@@ -14,7 +14,7 @@ if (args[0] == "open-only") {
     for (int iteration = 0; iteration < 24; iteration++) {
         long before = GC.GetAllocatedBytesForCurrentThread();
         long started = Stopwatch.GetTimestamp();
-        using var reader = ExcelDocument.OpenDataReader(args[1], new ExcelReadOptions { NumericAsDecimal = true });
+        using var reader = ExcelDocument.OpenReader(args[1], new ExcelReaderOptions { NumericAsDecimal = true });
         if (reader.FieldCount != 14 || string.IsNullOrEmpty(reader.GetName(0)))
             throw new InvalidDataException("Unexpected worksheet schema.");
         reader.Dispose();
@@ -38,7 +38,7 @@ if (args[0] == "open-only") {
     for (int iteration = 0; iteration < 24; iteration++) {
         long before = GC.GetAllocatedBytesForCurrentThread();
         long started = Stopwatch.GetTimestamp();
-        using var reader = ExcelDocument.OpenDataReader(args[1], new ExcelReadOptions { NumericAsDecimal = true });
+        using var reader = ExcelDocument.OpenReader(args[1], new ExcelReaderOptions { NumericAsDecimal = true });
         int rows = 0;
         ulong checksum = 14695981039346656037UL;
         while (reader.Read()) {

@@ -102,7 +102,7 @@ public static partial class ExcelIWorkConverter {
             Italic = style.Italic ?? defaults?.Italic ?? false,
             Underline = style.Underline ?? defaults?.Underline ?? false,
             Strikethrough = style.Strikethrough ?? defaults?.Strikethrough ?? false,
-            FontSize = style.FontSizePoints ?? defaults?.FontSizePoints,
+            FontSize = (style.FontSizePoints ?? defaults?.FontSizePoints) is double points ? global::OfficeIMO.OfficeLength.Points(points) : (global::OfficeIMO.OfficeLength?)null,
             FontName = style.FontName ?? defaults?.FontName,
             FontColor = style.Color?.RgbHex ?? defaults?.Color?.RgbHex
         };

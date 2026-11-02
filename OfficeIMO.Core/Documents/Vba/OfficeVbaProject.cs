@@ -181,7 +181,8 @@ public sealed partial class OfficeVbaProject {
 
     /// <summary>Adds a registered type-library reference without installing or executing that library.</summary>
     /// <remarks>Major and minor versions must each be between 0 and 65535, as required by the native reference format.</remarks>
-    public void AddRegisteredReference(string name, Guid typeLibraryId, int majorVersion = 1, int minorVersion = 0, string path = "") {
+    /// <returns>The added reference, or the existing reference with the same type-library identity.</returns>
+    public OfficeVbaReference AddRegisteredReference(string name, Guid typeLibraryId, int majorVersion = 1, int minorVersion = 0, string path = "") {
         EnsureEditable();
         OfficeVbaText.ValidateIdentifier(name, 128);
         if (typeLibraryId == Guid.Empty) throw new ArgumentException("A type library identity is required.", nameof(typeLibraryId));
@@ -189,12 +190,16 @@ public sealed partial class OfficeVbaProject {
         if (minorVersion < 0 || minorVersion > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(minorVersion));
         if (path == null || path.IndexOfAny(new[] { '#', '\r', '\n', '\0' }) >= 0) throw new ArgumentException("The type-library path cannot contain reference separators.", nameof(path));
         string identity = typeLibraryId.ToString("B").ToUpperInvariant();
-        if (_references.Any(reference => reference.LibraryId?.StartsWith("*\\G" + identity + "#", StringComparison.OrdinalIgnoreCase) == true)) return;
+        OfficeVbaReference? existing = _references.FirstOrDefault(reference =>
+            reference.LibraryId?.StartsWith("*\\G" + identity + "#", StringComparison.OrdinalIgnoreCase) == true);
+        if (existing != null) return existing;
         if (_references.Any(reference => string.Equals(reference.Name, name, StringComparison.OrdinalIgnoreCase))) throw new ArgumentException("A reference with this name already exists.", nameof(name));
         string libid = "*\\G" + identity + "#" + majorVersion.ToString("x", System.Globalization.CultureInfo.InvariantCulture) + "."
             + minorVersion.ToString("x", System.Globalization.CultureInfo.InvariantCulture) + "#0#" + path + "#" + name;
-        _references.Add(new OfficeVbaReference(name, libid, OfficeVbaDirectoryWriter.RegisteredReference(name, libid, CodePage)));
+        var created = new OfficeVbaReference(name, libid, OfficeVbaDirectoryWriter.RegisteredReference(name, libid, CodePage));
+        _references.Add(created);
         _referencesChanged = true;
+        return created;
     }
 
     /// <summary>Removes one explicit reference without rewriting source that uses its types.</summary>

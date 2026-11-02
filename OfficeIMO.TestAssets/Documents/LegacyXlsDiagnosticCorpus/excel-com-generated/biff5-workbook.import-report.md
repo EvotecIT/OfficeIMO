@@ -63,7 +63,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED | 1 |
+| xls-biff-formula-tokens-unsupported | 1 |
 
 ## Formula Token Blockers
 

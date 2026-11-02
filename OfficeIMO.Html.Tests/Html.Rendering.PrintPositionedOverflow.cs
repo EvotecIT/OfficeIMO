@@ -31,7 +31,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(expectedPages, result.RenderResult.Document.Pages.Count);
         Assert.DoesNotContain(result.RenderResult.Document.Diagnostics,
             diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PrintFitOverflowUnresolved);
-        string pdfText = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+        string pdfText = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).ExtractText();
         for (int number = 1; number <= 30; number++) {
             Assert.Contains("PARAGRAPH " + number, pdfText);
         }
@@ -89,7 +89,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(3, result.RenderResult.Document.Pages.Count);
         Assert.DoesNotContain(result.RenderResult.Document.Diagnostics,
             diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PrintFitOverflowUnresolved);
-        string pdfText = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+        string pdfText = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).ExtractText();
         for (int number = 1; number <= 30; number++) Assert.Contains("PARAGRAPH " + number, pdfText);
     }
 

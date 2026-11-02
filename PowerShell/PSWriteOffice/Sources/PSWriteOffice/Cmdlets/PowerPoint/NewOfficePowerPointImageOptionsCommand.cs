@@ -8,48 +8,47 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <example>
 ///   <summary>Render selected slides with their backgrounds and content.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$options = New-OfficePowerPointImageOptions -SlideNumber 1,3 -IncludeSlideBackground -IncludeSlideContent
+///   <code>$options = New-OfficePowerPointImageOptions -SlideNumber 1,3 -NoPictures
 /// Export-OfficePowerPointImage -Path .\Deck.pptx -OutputPath .\Slides -Options $options</code>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficePowerPointImageOptions")]
-[OutputType(typeof(PowerPointPresentationImageExportOptions))]
-public sealed class NewOfficePowerPointImageOptionsCommand : OfficeImageOptionsCommandBase<PowerPointPresentationImageExportOptions> {
+[Cmdlet(VerbsCommon.New, "OfficePowerPointImageOptions", DefaultParameterSetName = "Default")]
+[OutputType(typeof(PowerPointImageExportOptions))]
+public sealed class NewOfficePowerPointImageOptionsCommand : OfficeImageOptionsCommandBase<PowerPointImageExportOptions> {
     /// <summary>One-based slide numbers to export.</summary>
     [Parameter] public int[]? SlideNumber { get; set; }
     /// <summary>Include hidden slides.</summary>
     [Parameter] public SwitchParameter IncludeHiddenSlides { get; set; }
-    /// <summary>Render slide backgrounds.</summary>
-    [Parameter] public SwitchParameter IncludeSlideBackground { get; set; }
-    /// <summary>Render slide content.</summary>
-    [Parameter] public SwitchParameter IncludeSlideContent { get; set; }
-    /// <summary>Render pictures.</summary>
-    [Parameter] public SwitchParameter IncludePictures { get; set; }
-    /// <summary>Render auto shapes.</summary>
-    [Parameter] public SwitchParameter IncludeAutoShapes { get; set; }
-    /// <summary>Render text boxes.</summary>
-    [Parameter] public SwitchParameter IncludeTextBoxes { get; set; }
-    /// <summary>Render tables.</summary>
-    [Parameter] public SwitchParameter IncludeTables { get; set; }
-    /// <summary>Render charts.</summary>
-    [Parameter] public SwitchParameter IncludeCharts { get; set; }
+    /// <summary>Omit slide backgrounds.</summary>
+    [Parameter] public SwitchParameter NoSlideBackground { get; set; }
+    /// <summary>Omit slide content.</summary>
+    [Parameter] public SwitchParameter NoSlideContent { get; set; }
+    /// <summary>Omit pictures.</summary>
+    [Parameter] public SwitchParameter NoPictures { get; set; }
+    /// <summary>Omit auto shapes.</summary>
+    [Parameter] public SwitchParameter NoAutoShapes { get; set; }
+    /// <summary>Omit text boxes.</summary>
+    [Parameter] public SwitchParameter NoTextBoxes { get; set; }
+    /// <summary>Omit tables.</summary>
+    [Parameter] public SwitchParameter NoTables { get; set; }
+    /// <summary>Omit charts.</summary>
+    [Parameter] public SwitchParameter NoCharts { get; set; }
     /// <summary>Render hidden shapes.</summary>
     [Parameter] public SwitchParameter IncludeHiddenShapes { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var options = new PowerPointPresentationImageExportOptions();
+        var options = new PowerPointImageExportOptions();
         ApplyCommon(options);
         if (SlideNumber != null) options.SlideNumbers = SlideNumber;
-        Apply(nameof(IncludeHiddenSlides), value => options.IncludeHiddenSlides = value);
-        Apply(nameof(IncludeSlideBackground), value => options.IncludeSlideBackground = value);
-        Apply(nameof(IncludeSlideContent), value => options.IncludeSlideContent = value);
-        Apply(nameof(IncludePictures), value => options.IncludePictures = value);
-        Apply(nameof(IncludeAutoShapes), value => options.IncludeAutoShapes = value);
-        Apply(nameof(IncludeTextBoxes), value => options.IncludeTextBoxes = value);
-        Apply(nameof(IncludeTables), value => options.IncludeTables = value);
-        Apply(nameof(IncludeCharts), value => options.IncludeCharts = value);
-        Apply(nameof(IncludeHiddenShapes), value => options.IncludeHiddenShapes = value);
+        if (BoundSwitch(nameof(IncludeHiddenSlides)) is bool hiddenSlides) options.IncludeHiddenSlides = hiddenSlides;
+        options.IncludeSlideBackground = FeatureEnabled("SlideBackground");
+        options.IncludeSlideContent = FeatureEnabled("SlideContent");
+        options.IncludePictures = FeatureEnabled("Pictures");
+        options.IncludeAutoShapes = FeatureEnabled("AutoShapes");
+        options.IncludeTextBoxes = FeatureEnabled("TextBoxes");
+        options.IncludeTables = FeatureEnabled("Tables");
+        options.IncludeCharts = FeatureEnabled("Charts");
+        if (BoundSwitch(nameof(IncludeHiddenShapes)) is bool hiddenShapes) options.IncludeHiddenShapes = hiddenShapes;
         WriteObject(options);
     }
-    private void Apply(string name, System.Action<bool> setter) { if (IsBound(name)) setter(((SwitchParameter)MyInvocation.BoundParameters[name]).IsPresent); }
 }

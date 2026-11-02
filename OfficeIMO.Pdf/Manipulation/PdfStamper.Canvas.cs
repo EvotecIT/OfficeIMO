@@ -20,11 +20,11 @@ internal static partial class PdfStamper {
         PdfCanvasStampOptions effective = options ?? new PdfCanvasStampOptions();
         var cancellationToken = effective.CancellationToken;
         cancellationToken.ThrowIfCancellationRequested();
-        PdfOptions? renderingOptions = effective.RenderingOptionsSnapshot;
+        PdfCreateOptions? renderingOptions = effective.RenderingOptionsSnapshot;
         if (renderingOptions is not null && renderingOptions.TaggedStructureMode != PdfTaggedStructureMode.None) {
             throw new NotSupportedException("Existing-page canvas stamping is visual-only and cannot preserve a generated tagged structure tree. Use untagged rendering options or a document authoring path that owns the target structure tree.");
         }
-        PdfOptions? canvasRenderingOptions = renderingOptions?.CloneForCanvasStampRendering();
+        PdfCreateOptions? canvasRenderingOptions = renderingOptions?.CloneForCanvasStampRendering();
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent, readOptions, cancellationToken: cancellationToken);
 
         PdfReadDocument target = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
@@ -48,17 +48,17 @@ internal static partial class PdfStamper {
             cancellationToken.ThrowIfCancellationRequested();
             RejectNonVisualCanvasItems(canvas.Items);
 
-            PdfOptions overlayOptions = canvasRenderingOptions?.Clone() ?? new PdfOptions();
-            overlayOptions.PageWidth = width;
-            overlayOptions.PageHeight = height;
-            overlayOptions.MarginLeft = 0D;
-            overlayOptions.MarginTop = 0D;
-            overlayOptions.MarginRight = 0D;
-            overlayOptions.MarginBottom = 0D;
+            PdfCreateOptions overlayOptions = canvasRenderingOptions?.Clone() ?? new PdfCreateOptions();
+            overlayOptions.PageWidth = global::OfficeIMO.OfficeLength.Points(width);
+            overlayOptions.PageHeight = global::OfficeIMO.OfficeLength.Points(height);
+            overlayOptions.MarginLeft = global::OfficeIMO.OfficeLength.Points(0D);
+            overlayOptions.MarginTop = global::OfficeIMO.OfficeLength.Points(0D);
+            overlayOptions.MarginRight = global::OfficeIMO.OfficeLength.Points(0D);
+            overlayOptions.MarginBottom = global::OfficeIMO.OfficeLength.Points(0D);
             overlayOptions.Encryption = null;
-            byte[] overlay = PdfDocument.Create(overlayOptions)
+            byte[] overlay = PdfDocument.CreateForImportedLayout(overlayOptions)
                 .Canvas(generatedCanvas => CopyCanvasItems(canvas, generatedCanvas))
-                .ToBytes(cancellationToken);
+                .SerializeBytes(cancellationToken);
             int generatedPageBytes = overlay.Length > int.MaxValue - 1024 ? int.MaxValue : overlay.Length + 1024;
             maximumGeneratedPageBytes = Math.Max(maximumGeneratedPageBytes, generatedPageBytes);
             totalGeneratedBytes = totalGeneratedBytes > long.MaxValue - generatedPageBytes

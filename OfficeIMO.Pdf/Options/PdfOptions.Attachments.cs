@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     private long _maxEmbeddedFileBytes = PdfAttachmentAdmission.DefaultMaximumFileBytes;
     private long _maxTotalEmbeddedFileBytes = PdfAttachmentAdmission.DefaultMaximumTotalBytes;
     private long _totalEmbeddedFileBytes;
@@ -40,7 +40,7 @@ public sealed partial class PdfOptions {
 
     /// <summary>Adds an embedded file associated with the generated PDF catalog.</summary>
     /// <exception cref="InvalidDataException">The payload or projected catalog collection exceeds its configured byte limit.</exception>
-    public PdfOptions AddEmbeddedFile(PdfEmbeddedFile file) {
+    public PdfCreateOptions AddEmbeddedFile(PdfEmbeddedFile file) {
         Guard.NotNull(file, nameof(file));
         long projectedBytes = PrepareEmbeddedFileAdmission(file.FileName, file.ByteLength);
         PdfEmbeddedFile snapshot = file.Clone();
@@ -51,7 +51,7 @@ public sealed partial class PdfOptions {
 
     /// <summary>Adds an embedded file associated with the generated PDF catalog, checking byte limits before copying caller-owned bytes.</summary>
     /// <exception cref="InvalidDataException">The payload or projected catalog collection exceeds its configured byte limit.</exception>
-    public PdfOptions AddEmbeddedFile(
+    public PdfCreateOptions AddEmbeddedFile(
         string fileName,
         byte[] data,
         string? mimeType = null,
@@ -63,7 +63,7 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>Sets the modification date emitted in the embedded-file stream parameters for an existing attachment.</summary>
-    public PdfOptions SetEmbeddedFileModificationDate(string fileName, DateTimeOffset modificationDate) {
+    public PdfCreateOptions SetEmbeddedFileModificationDate(string fileName, DateTimeOffset modificationDate) {
         Guard.NotNullOrWhiteSpace(fileName, nameof(fileName));
         if (_embeddedFiles != null) {
             foreach (PdfEmbeddedFile file in _embeddedFiles) {
@@ -77,7 +77,7 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>Removes all embedded files associated with the generated PDF catalog.</summary>
-    public PdfOptions ClearEmbeddedFiles() {
+    public PdfCreateOptions ClearEmbeddedFiles() {
         _embeddedFiles?.Clear();
         _totalEmbeddedFileBytes = 0L;
         return this;

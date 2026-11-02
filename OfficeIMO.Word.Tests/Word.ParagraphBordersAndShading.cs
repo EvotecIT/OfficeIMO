@@ -2,7 +2,7 @@ using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create();
             var paragraph = document.AddParagraph("Border after existing paragraph formatting");
             paragraph.ShadingFillColor = Color.LightGray;
-            paragraph.LineSpacingAfterPoints = 12;
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(12D);
             if (usePreset) {
                 paragraph.Borders.Type = WordBorder.Box;
                 paragraph.Borders.Type = WordBorder.Shadow;
@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
                 paragraph.Borders.LeftStyle = WordBorderStyle.Single;
             }
 
-            using var stream = document.ToStream();
+            using var stream = new System.IO.MemoryStream(document.ToBytes());
             using var package = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(stream, false);
             Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(package));
             var properties = package.MainDocumentPart!.Document.Body!.GetFirstChild<Paragraph>()!.ParagraphProperties!;
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
                 var paragraph = document.AddParagraph("Border and shading");
                 paragraph.Borders.LeftStyle = WordBorderStyle.Thick;
                 paragraph.Borders.LeftColor = Color.Red;
-                paragraph.Borders.LeftSize = 24;
+                paragraph.Borders.LeftSize = OfficeLength.Points(3);
                 paragraph.ShadingFillColor = Color.LightGray;
                 document.Save();
             }
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
                 var paragraph = document.Paragraphs[0];
                 Assert.Equal(WordBorderStyle.Thick, paragraph.Borders.LeftStyle);
                 Assert.Equal(Color.Red.ToRgbHex(), paragraph.Borders.LeftColor!.Value.ToRgbHex());
-                Assert.Equal(24U, paragraph.Borders.LeftSize);
+                Assert.Equal(OfficeLength.Points(3), paragraph.Borders.LeftSize);
                 Assert.Equal(Color.LightGray.ToRgbHex(), paragraph.ShadingFillColorHex);
             }
         }

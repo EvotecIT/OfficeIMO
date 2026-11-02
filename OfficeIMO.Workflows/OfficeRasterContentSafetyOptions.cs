@@ -67,7 +67,7 @@ public sealed class OfficeRasterContentSafetyOptions {
             MaxCharacters = Inspection.MaxCharacters,
             MaxFindings = Inspection.MaxFindings,
             MaxPreviewCharacters = Inspection.MaxPreviewCharacters,
-            MaximumTinyFontSizePoints = Inspection.MaximumTinyFontSizePoints,
+            MaximumTinyFontSize = Inspection.MaximumTinyFontSize,
             MinimumVisibleContrastRatio = Inspection.MinimumVisibleContrastRatio,
             IncludeNonPrimaryContent = Inspection.IncludeNonPrimaryContent,
             DetectInstructionLikeText = Inspection.DetectInstructionLikeText,

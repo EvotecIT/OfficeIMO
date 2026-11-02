@@ -104,7 +104,7 @@ namespace OfficeIMO.Word {
                 sb.Append(string.Join(" ", parameters)).Append(' ');
             }
             if (Format != null) {
-                sb.Append("\\* ").Append(Format).Append(' ');
+                sb.Append("\\* ").Append(WordFieldFormatCodec.ToInstruction(Format.Value)).Append(' ');
             }
             if (!string.IsNullOrWhiteSpace(CustomFormat)) {
                 sb.Append("\\@ \"").Append(CustomFormat).Append("\" ");

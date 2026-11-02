@@ -202,14 +202,14 @@ public sealed class WordPdfTabInheritanceTests {
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1440;
-        level.IndentationHanging = 1080;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(54D);
         level.OpenXmlElement.PreviousParagraphProperties!.InsertAt(new W.Tabs(Tab(listTabPosition, W.TabStopValues.Number)), 0);
         level.OpenXmlElement.NumberingSymbolRunProperties = new W.NumberingSymbolRunProperties(
             new W.RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new W.FontSize { Val = "24" });
         WordParagraph paragraph = list.AddItem("LISTBODY\nLISTNEXT");
         paragraph.FontFamily = "Courier New";
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         W.ParagraphProperties properties = paragraph._paragraph.ParagraphProperties!;
         if (styleId != null) properties.ParagraphStyleId = new W.ParagraphStyleId { Val = styleId };
         if (tabs != null) properties.Tabs = tabs;
@@ -281,11 +281,9 @@ public sealed class WordPdfTabInheritanceTests {
             main.Document.Body!.InsertBefore(source, main.Document.Body.GetFirstChild<W.SectionProperties>());
         } else if (container == "table") {
             WordTable table = document.AddTable(1, 1);
-            table.Width = 5200;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(5200) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
-            table.Rows[0].Cells[0].Width = 5200;
-            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(5200) * 635)));
             W.TableCell cell = main.Document.Body!.Descendants<W.TableCell>().Single();
             cell.RemoveAllChildren<W.Paragraph>();
             cell.Append(new W.Paragraph(Run("CELLORIGIN")), source);
@@ -330,10 +328,10 @@ public sealed class WordPdfTabInheritanceTests {
         roots.AddRange(main.HeaderParts.Select(part => Assert.IsType<W.Header>(part.Header)));
         string[] before = roots.Select(root => root.OuterXml).ToArray();
         Assert.Empty(document.ValidateDocument());
-        byte[] bytes = document.ToPdfDocumentResult(new WordToPdfOptions {
+        byte[] bytes = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new PageSize(612, 792),
-            Margins = PageMargins.Uniform(72),
+            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792)),
+            Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72)),
             FontFamily = "Helvetica"
         }).ToBytes();
         Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(bytes, 0, 4));

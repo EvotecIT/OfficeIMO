@@ -14,7 +14,7 @@ This migration changes both the command surface and the PDF engine. Do not assum
 | --- | --- | --- |
 | `New-PDF`, `New-PDFDocument` | `New-OfficePdf` | Compose content with `Add-OfficePdf*` commands inside the document block. |
 | `Merge-PDF` | `Join-OfficePdf` | Write the combined result to a new path and reopen it for verification. |
-| `Split-PDF` | `Split-OfficePdf` | Confirm page ranges and output naming for the caller. |
+| `Split-PDF` | `Split-OfficeDocument` | Confirm page ranges and output naming for the caller. |
 | `Convert-PDFToText` | `Get-OfficePdfText` | PDF text extraction follows document content, not visual OCR; use an OCR workflow for scanned pages. |
 | `Get-PDFDetails` | `Get-OfficePdfInfo` | Additional inspection commands expose fonts, images, forms, signatures, compliance, and diagnostics. |
 | `Set-PDFForm` | `Set-OfficePdfForm` | Validate field names, appearances, flattening, and permission restrictions. |
@@ -40,7 +40,7 @@ New-OfficePdf -Path '.\Output\Status.pdf' {
 
 ```powershell
 Join-OfficePdf -Path '.\Cover.pdf', '.\Body.pdf' -OutputPath '.\Combined.pdf'
-Split-OfficePdf -Path '.\Combined.pdf' -OutputDirectory '.\Pages'
+Split-OfficeDocument -Path '.\Combined.pdf' -OutputDirectory '.\Pages'
 
 $info = Get-OfficePdfInfo -Path '.\Combined.pdf'
 $text = Get-OfficePdfText -Path '.\Combined.pdf'

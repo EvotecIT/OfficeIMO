@@ -11,28 +11,28 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreflightsDataTableInputReferences() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 2).SetValue(1);
             Cell owner = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                 .Single(cell => cell.CellReference?.Value == "B1");
             owner.CellFormula = new CellFormula {
                 FormulaType = CellFormulaValues.DataTable,
                 Reference = "B1:B2",
-                R1 = $"A{A1.MaxRows}"
+                R1 = $"A{ExcelA1.MaxRows}"
             };
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
                 () => sheet.InsertRows(1));
 
             Assert.Contains("row limit", exception.Message);
-            Assert.Equal($"A{A1.MaxRows}", owner.CellFormula.R1!.Value);
+            Assert.Equal($"A{ExcelA1.MaxRows}", owner.CellFormula.R1!.Value);
             Assert.Equal("B1", owner.CellReference!.Value);
         }
 
         [Fact]
         public void Test_StructuralRows_RemovesEmptyMergeCollection() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(2, 1).SetValue(1);
             sheet.MergeRange("A2:B2");
 
@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RejectsOleObjectsAtomically() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(2, 1).SetValue(1);
             sheet.WorksheetPart.Worksheet.Append(
                 new OleObjects(
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RejectsSingleCellXmlMappingsAtomically() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(2, 1).SetValue(1);
             sheet.WorksheetPart.AddNewPart<SingleCellTablePart>();
 
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreservesMovedCommentVmlShape() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(5, 2).SetValue(1);
             sheet.SetComment(5, 2, "Keep formatting", author: "Tester");
 

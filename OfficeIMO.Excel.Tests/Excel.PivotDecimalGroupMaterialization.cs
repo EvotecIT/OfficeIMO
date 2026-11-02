@@ -2,8 +2,10 @@ using OfficeIMO.Excel;
 using System.Globalization;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         private static string PivotDecimalGroupOraclePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
             "Documents", "ExcelPivotCorpus", "decimal-group-conformance.xlsx");
         private static string PivotDecimalGroupRefreshOraclePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
@@ -53,28 +55,34 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public void Test_PivotDecimalGroup_TemplateFreePublicApiMatchesExcel(bool numbersStoredAsText) {
-            string output = Path.Combine(_directoryWithFiles, numbersStoredAsText
-                ? "DecimalGroup.TextNumbers.xlsx" : "DecimalGroup.TemplateFree.xlsx");
+        public void Test_PivotDecimalGroup_TemplateFreePublicApiMatchesExcel(bool numbersStoredAsText)
+        {
+            string output = Path.Combine(_directoryWithFiles, numbersStoredAsText ? "DecimalGroup.TextNumbers.xlsx" : "DecimalGroup.TemplateFree.xlsx");
             using var oracle = ExcelDocumentReader.Open(PivotDecimalGroupOraclePath);
             var sourceValues = oracle.GetSheet("Source").ReadRange("A1:B12");
             var expected = oracle.GetSheet("Grouped").ReadRange("A4:B11");
-            using (var document = ExcelDocument.Create(output)) {
-                var sheet = document.AddWorksheet("Source");
+            using (var document = ExcelDocument.Create(output))
+            {
+                var sheet = document.AddSheet("Source");
                 for (int row = 0; row < 12; row++)
                     for (int column = 0; column < 2; column++)
-                        sheet.CellValue(row + 1, column + 1, numbersStoredAsText && row > 0 && column == 0
-                            ? Convert.ToString(sourceValues[row, column], CultureInfo.InvariantCulture)
-                            : sourceValues[row, column]);
-                sheet.Pivot("A1:B12").Rows("Quantity").Sum("Sales", "Metric")
-                    .NumberGroup("Quantity", 0.5, 0.25, 2.25).Layout(ExcelPivotLayout.Tabular)
-                    .At("D4", "PivotGrouped");
+                        sheet.CellValue(row + 1, column + 1, numbersStoredAsText && row > 0 && column == 0 ? Convert.ToString(sourceValues[row, column], CultureInfo.InvariantCulture) : sourceValues[row, column]);
+                {
+                    var pivotOptions1 = new ExcelPivotTableOptions();
+                    pivotOptions1.RowFields.Add("Quantity");
+                    pivotOptions1.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                    pivotOptions1.Groupings.Add(ExcelPivotGrouping.Number("Quantity", 0.5, 0.25, 2.25));
+                    pivotOptions1.Layout = ExcelPivotLayout.Tabular;
+                    pivotOptions1.Name = "PivotGrouped";
+                    sheet.AddPivotTable("A1:B12", "D4", pivotOptions1);
+                }
+
                 var result = sheet.MaterializePivotTable("PivotGrouped");
                 Assert.Equal("D4:E11", result.OutputRange);
-                Assert.True(result.Mutation.PackageIsValid,
-                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                Assert.True(result.Mutation.PackageIsValid, string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
                 document.Save(output);
             }
+
             using var reopened = ExcelDocumentReader.Open(output);
             var actual = reopened.GetSheet("Source").ReadRange("D4:E11");
             for (int row = 0; row < 8; row++)
@@ -107,26 +115,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_PivotDecimalGroup_AuthoringFieldOptionsUseDisplayedLabels() {
+        public void Test_PivotDecimalGroup_AuthoringFieldOptionsUseDisplayedLabels()
+        {
             string output = Path.Combine(_directoryWithFiles, "DecimalGroup.HiddenBucket.xlsx");
             using var oracle = ExcelDocumentReader.Open(PivotDecimalGroupOraclePath);
             var sourceValues = oracle.GetSheet("Source").ReadRange("A1:B12");
-            using (var document = ExcelDocument.Create(output)) {
-                var sheet = document.AddWorksheet("Source");
+            using (var document = ExcelDocument.Create(output))
+            {
+                var sheet = document.AddSheet("Source");
                 for (int row = 0; row < 12; row++)
                     for (int column = 0; column < 2; column++)
                         sheet.CellValue(row + 1, column + 1, sourceValues[row, column]);
-                sheet.Pivot("A1:B12").Rows("Quantity").Sum("Sales", "Metric")
-                    .NumberGroup("Quantity", 0.5, 0.25, 2.25).HideItems("Quantity", "0.25-0.75")
-                    .At("D4", "PivotGrouped");
+                {
+                    var pivotOptions2 = new ExcelPivotTableOptions();
+                    pivotOptions2.RowFields.Add("Quantity");
+                    pivotOptions2.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                    pivotOptions2.Groupings.Add(ExcelPivotGrouping.Number("Quantity", 0.5, 0.25, 2.25));
+                    pivotOptions2.FieldOptions.Add(new ExcelPivotFieldOptions("Quantity", hiddenItems: new[] { "0.25-0.75" }));
+                    pivotOptions2.Name = "PivotGrouped";
+                    sheet.AddPivotTable("A1:B12", "D4", pivotOptions2);
+                }
+
                 document.Save(output);
             }
+
             using var reopened = ExcelDocument.Load(output);
             var pivot = Assert.Single(reopened.GetPivotTables());
             var field = Assert.Single(pivot.Fields, field => field.FieldName == "Quantity");
             Assert.Equal(new[] { "0.25-0.75" }, field.HiddenItems);
-            Assert.Equal(new[] { "<0.25", "0.75-1.25", "1.25-1.75", "1.75-2.25", ">2.25" },
-                field.VisibleItems);
+            Assert.Equal(new[] { "<0.25", "0.75-1.25", "1.25-1.75", "1.75-2.25", ">2.25" }, field.VisibleItems);
             Assert.Empty(reopened.ValidateOpenXml());
         }
 
@@ -140,24 +157,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_PivotDecimalGroup_TenthsStayOnTheirBoundaries() {
+        public void Test_PivotDecimalGroup_TenthsStayOnTheirBoundaries()
+        {
             string output = Path.Combine(_directoryWithFiles, "DecimalGroup.Tenths.xlsx");
-            using (var document = ExcelDocument.Create(output)) {
-                var sheet = document.AddWorksheet("Source");
+            using (var document = ExcelDocument.Create(output))
+            {
+                var sheet = document.AddSheet("Source");
                 sheet.CellValue(1, 1, "Quantity");
                 sheet.CellValue(1, 2, "Sales");
-                for (int index = 1; index <= 4; index++) {
+                for (int index = 1; index <= 4; index++)
+                {
                     sheet.CellValue(index + 1, 1, index / 10d);
                     sheet.CellValue(index + 1, 2, index);
                 }
-                sheet.Pivot("A1:B5").Rows("Quantity").Sum("Sales", "Metric")
-                    .NumberGroup("Quantity", 0.1, 0.1, 0.4).Layout(ExcelPivotLayout.Tabular)
-                    .At("D4", "PivotTenths");
+
+                {
+                    var pivotOptions3 = new ExcelPivotTableOptions();
+                    pivotOptions3.RowFields.Add("Quantity");
+                    pivotOptions3.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                    pivotOptions3.Groupings.Add(ExcelPivotGrouping.Number("Quantity", 0.1, 0.1, 0.4));
+                    pivotOptions3.Layout = ExcelPivotLayout.Tabular;
+                    pivotOptions3.Name = "PivotTenths";
+                    sheet.AddPivotTable("A1:B5", "D4", pivotOptions3);
+                }
+
                 Assert.True(sheet.MaterializePivotTable("PivotTenths").Mutation.PackageIsValid);
-                Assert.Equal(7d, sheet.GetPivotData("PivotTenths", "Metric",
-                    new Dictionary<string, object?> { ["Quantity"] = 0.3d }).Value);
+                Assert.Equal(7d, sheet.GetPivotData("PivotTenths", "Metric", new Dictionary<string, object?> { ["Quantity"] = 0.3d }).Value);
                 document.Save(output);
             }
+
             using var reopened = ExcelDocumentReader.Open(output);
             var view = reopened.GetSheet("Source").ReadRange("D5:E8");
             Assert.Equal("0.1-0.2", view[0, 0]);
@@ -170,13 +198,15 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_PivotDecimalGroup_PreservesAdjacentLargeIntegerKeys() {
+        public void Test_PivotDecimalGroup_PreservesAdjacentLargeIntegerKeys()
+        {
             const double start = 8_999_999_999_999_998d;
             const double next = 8_999_999_999_999_999d;
             const double end = 9_000_000_000_000_000d;
             string output = Path.Combine(_directoryWithFiles, "NumericGroup.LargeIntegers.xlsx");
-            using (var document = ExcelDocument.Create(output)) {
-                var sheet = document.AddWorksheet("Source");
+            using (var document = ExcelDocument.Create(output))
+            {
+                var sheet = document.AddSheet("Source");
                 sheet.CellValue(1, 1, "Quantity");
                 sheet.CellValue(1, 2, "Sales");
                 sheet.CellValue(2, 1, start);
@@ -185,23 +215,30 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(3, 2, 2d);
                 sheet.CellValue(4, 1, end);
                 sheet.CellValue(4, 2, 3d);
-                sheet.Pivot("A1:B4").Rows("Quantity").Sum("Sales", "Metric")
-                    .NumberGroup("Quantity", 1, start, end).Layout(ExcelPivotLayout.Tabular)
-                    .At("D4", "PivotLargeIntegers");
+                {
+                    var pivotOptions4 = new ExcelPivotTableOptions();
+                    pivotOptions4.RowFields.Add("Quantity");
+                    pivotOptions4.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                    pivotOptions4.Groupings.Add(ExcelPivotGrouping.Number("Quantity", 1, start, end));
+                    pivotOptions4.Layout = ExcelPivotLayout.Tabular;
+                    pivotOptions4.Name = "PivotLargeIntegers";
+                    sheet.AddPivotTable("A1:B4", "D4", pivotOptions4);
+                }
+
                 Assert.True(sheet.MaterializePivotTable("PivotLargeIntegers").Mutation.PackageIsValid);
-                Assert.Equal(1d, sheet.GetPivotData("PivotLargeIntegers", "Metric",
-                    new Dictionary<string, object?> { ["Quantity"] = start }).Value);
-                Assert.Equal(5d, sheet.GetPivotData("PivotLargeIntegers", "Metric",
-                    new Dictionary<string, object?> { ["Quantity"] = next }).Value);
+                Assert.Equal(1d, sheet.GetPivotData("PivotLargeIntegers", "Metric", new Dictionary<string, object?> { ["Quantity"] = start }).Value);
+                Assert.Equal(5d, sheet.GetPivotData("PivotLargeIntegers", "Metric", new Dictionary<string, object?> { ["Quantity"] = next }).Value);
                 document.Save(output);
             }
-            using (var imported = ExcelDocument.Load(output)) {
+
+            using (var imported = ExcelDocument.Load(output))
+            {
                 var sheet = imported.GetSheet("Source");
                 Assert.Equal("D4:E7", sheet.MaterializePivotTable("PivotLargeIntegers").OutputRange);
-                Assert.Equal(5d, sheet.GetPivotData("PivotLargeIntegers", "Metric",
-                    new Dictionary<string, object?> { ["Quantity"] = next }).Value);
+                Assert.Equal(5d, sheet.GetPivotData("PivotLargeIntegers", "Metric", new Dictionary<string, object?> { ["Quantity"] = next }).Value);
                 imported.Save(output);
             }
+
             using var reopened = ExcelDocumentReader.Open(output);
             var view = reopened.GetSheet("Source").ReadRange("D5:E7");
             Assert.Equal("8999999999999998-8999999999999998", view[0, 0]);

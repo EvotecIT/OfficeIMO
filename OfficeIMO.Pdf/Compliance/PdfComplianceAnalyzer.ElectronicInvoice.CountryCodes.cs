@@ -29,7 +29,7 @@ internal static partial class PdfComplianceAnalyzer {
         "VN", "VU", "WF", "WS", "XI", "YE", "YT", "ZA", "ZM", "ZW"
     };
 
-    private static PdfComplianceRequirement BuildElectronicInvoiceXmlCountryCodeRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildElectronicInvoiceXmlCountryCodeRequirement(PdfCreateOptions options) {
         IReadOnlyList<PdfEmbeddedFile> embeddedFiles = options.EmbeddedFiles;
         var diagnostics = new List<string>();
         for (int i = 0; i < embeddedFiles.Count; i++) {

@@ -33,16 +33,15 @@ code
 
 ![Alt]({imagePath})
 ";
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions { FontFamily = "Calibri" });
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions { FontFamily = "Calibri" });
 
             Assert.Equal(WordParagraphStyles.Heading1, doc.Paragraphs[0].Style);
             var quoteParagraph = doc.Paragraphs.First(p => p.Text.Contains("Quote line"));
-            Assert.True(quoteParagraph.IndentationBefore > 0);
+            Assert.True(checked((int?)(quoteParagraph.IndentationBefore?.ToTwips())) > 0);
 
             var codeParagraph = doc.Paragraphs.First(p => p.Text.Contains("code"));
-            // New Markdown engine does not assign a language-specific style to code blocks.
-            // It uses monospace font on runs instead of paragraph style.
-            Assert.Null(codeParagraph.StyleId);
+            // Code blocks use a real paragraph style that records the fence language.
+            Assert.Equal("CodeLang_c", codeParagraph.StyleId);
 
             using MemoryStream ms = new();
             doc.Save(ms);
@@ -57,9 +56,9 @@ code
         [Fact]
         public void Markdown_BlockQuote_Nesting_RoundTrip() {
             string md = @"> Level 1\n> > Level 2";
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument();
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord();
 
-            string markdown = doc.ToMarkdown();
+            string markdown = doc.ToMarkdown().ToMarkdown();
             Assert.Contains("> Level 1", markdown);
             Assert.Contains("> > Level 2", markdown);
         }
@@ -74,7 +73,7 @@ code
                 </details>
                 """;
 
-            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions());
+            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions());
 
             var summaryIndex = doc.Paragraphs.FindIndex(p => string.Equals(p.Text.Trim(), "More info", StringComparison.Ordinal));
             var bodyIndex = doc.Paragraphs.FindIndex(p => string.Equals(p.Text.Trim(), "Hidden text", StringComparison.Ordinal));
@@ -97,7 +96,7 @@ code
                 Body text
                 """;
 
-            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions());
+            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions());
 
             var paragraphs = doc.Paragraphs
                 .Select(p => p.Text.Trim())
@@ -124,7 +123,7 @@ code
                 ### Pipeline
                 """;
 
-            using var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions());
+            using var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord(new WordMarkdownImportOptions());
 
             Assert.NotNull(document.TableOfContent);
             Assert.Equal(2, document.TableOfContent!.MinLevel);
@@ -143,7 +142,7 @@ code
                 ## Region
                 """;
 
-            using var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions());
+            using var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord(new WordMarkdownImportOptions());
 
             Assert.NotNull(document.TableOfContent);
             Assert.Equal(2, document.TableOfContent!.MinLevel);
@@ -174,7 +173,7 @@ code
                 ####### Deep region
                 """;
 
-            using var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions());
+            using var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord(new WordMarkdownImportOptions());
 
             Assert.NotNull(document.TableOfContent);
             Assert.Equal(7, document.TableOfContent!.MinLevel);
@@ -193,7 +192,7 @@ code
 
             string markdown = ((OfficeIMO.Markdown.IMarkdownBlock)marker).RenderMarkdown();
 
-            using var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions());
+            using var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord(new WordMarkdownImportOptions());
 
             Assert.Contains("title=\"A \\\"quoted\\\" \\\\ title\"", markdown, StringComparison.Ordinal);
             Assert.NotNull(document.TableOfContent);
@@ -202,21 +201,19 @@ code
 
         [Fact]
         public void TocMarkerBlock_ToHtmlFragment_Generates_Toc_From_Typed_Ast() {
-            var markdown = OfficeIMO.Markdown.MarkdownDoc.Create()
-                .Add(new OfficeIMO.Markdown.TocMarkerBlock {
-                    MinLevel = 2,
-                    MaxLevel = 3,
-                    IncludeTitle = true,
-                    Title = "Contents"
-                })
-                .H1("Report")
-                .H2("Region")
-                .H3("Pipeline");
+            var markdown = OfficeIMO.Markdown.MarkdownDocument.Create();
+            markdown.Add(new OfficeIMO.Markdown.TocMarkerBlock { MinLevel = 2, MaxLevel = 3, IncludeTitle = true, Title = "Contents" });
+            markdown.H1("Report");
+            markdown.H2("Region");
+            markdown.H3("Pipeline");
 
-            string html = markdown.ToHtmlFragment(new OfficeIMO.Markdown.HtmlOptions {
-                Style = OfficeIMO.Markdown.HtmlStyle.Plain,
-                CssDelivery = OfficeIMO.Markdown.CssDelivery.None,
-                BodyClass = null
+            string html = markdown.ToHtml(new OfficeIMO.Markdown.MarkdownHtmlExportOptions
+            {
+                Style = OfficeIMO.Markdown.MarkdownHtmlStyle.Plain,
+                CssDelivery = OfficeIMO.Markdown.MarkdownCssDelivery.None,
+                BodyClass = null,
+
+                Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
             });
 
             Assert.Contains("<h2>Contents</h2>", html, StringComparison.Ordinal);
@@ -227,7 +224,7 @@ code
 
         [Fact]
         public void MarkdownToWord_Renders_TocBuilder_Title_Only_As_Native_Toc_Title() {
-            var markdown = OfficeIMO.Markdown.MarkdownDoc.Create()
+            var markdown = OfficeIMO.Markdown.MarkdownDocument.Create()
                 .H1("Report")
                 .Toc(options => {
                     options.IncludeTitle = true;
@@ -238,7 +235,7 @@ code
                 }, placeAtTop: true)
                 .H2("Region");
 
-            using var document = markdown.ToWordDocument();
+            using var document = markdown.ToWord();
 
             var body = document._wordprocessingDocument.MainDocumentPart!.Document!.Body!;
             int topLevelTitleParagraphs = body
@@ -252,7 +249,7 @@ code
 
         [Fact]
         public void MarkdownToWord_Renders_DocumentToc_RequireTopLevel_As_Native_Toc_From_LevelOne() {
-            var markdown = OfficeIMO.Markdown.MarkdownDoc.Create()
+            var markdown = OfficeIMO.Markdown.MarkdownDocument.Create()
                 .Toc(options => {
                     options.IncludeTitle = false;
                     options.MinLevel = 2;
@@ -261,7 +258,7 @@ code
                 .H1("Report")
                 .H2("Region");
 
-            using var document = markdown.ToWordDocument();
+            using var document = markdown.ToWord();
 
             Assert.NotNull(document.TableOfContent);
             Assert.Equal(1, document.TableOfContent!.MinLevel);
@@ -270,17 +267,12 @@ code
 
         [Fact]
         public void MarkdownToWord_Renders_Typed_TocMarkerBlock_As_Native_Word_TableOfContents() {
-            var markdown = OfficeIMO.Markdown.MarkdownDoc.Create()
-                .Add(new OfficeIMO.Markdown.TocMarkerBlock {
-                    MinLevel = 2,
-                    MaxLevel = 4,
-                    IncludeTitle = true,
-                    Title = "Contents"
-                })
-                .H1("Report")
-                .H2("Region");
+            var markdown = OfficeIMO.Markdown.MarkdownDocument.Create();
+            markdown.Add(new OfficeIMO.Markdown.TocMarkerBlock { MinLevel = 2, MaxLevel = 4, IncludeTitle = true, Title = "Contents" });
+            markdown.H1("Report");
+            markdown.H2("Region");
 
-            using var document = markdown.ToWordDocument();
+            using var document = markdown.ToWord();
 
             Assert.NotNull(document.TableOfContent);
             Assert.Equal(2, document.TableOfContent!.MinLevel);
@@ -290,12 +282,12 @@ code
 
         [Fact]
         public void MarkdownToWord_Renders_Scoped_Toc_From_Realized_Entries() {
-            var markdown = OfficeIMO.Markdown.MarkdownDoc.Create()
+            var markdown = OfficeIMO.Markdown.MarkdownDocument.Create()
                 .H1("Section")
                 .TocHere(options => {
                     options.IncludeTitle = true;
                     options.Title = "Contents";
-                    options.Scope = OfficeIMO.Markdown.TocScope.PreviousHeading;
+                    options.Scope = OfficeIMO.Markdown.MarkdownTocScope.PreviousHeading;
                     options.MinLevel = 2;
                     options.MaxLevel = 3;
                 })
@@ -303,7 +295,7 @@ code
                 .H1("Other")
                 .H2("Outside");
 
-            using var document = markdown.ToWordDocument();
+            using var document = markdown.ToWord();
             string text = string.Join("\n", document.Paragraphs.Select(paragraph => paragraph.Text));
 
             Assert.Null(document.TableOfContent);
@@ -316,17 +308,17 @@ code
 
         [Fact]
         public void MarkdownToWord_Renders_EmptyScopedToc_Without_NativeDocumentToc() {
-            var markdown = OfficeIMO.Markdown.MarkdownDoc.Create()
+            var markdown = OfficeIMO.Markdown.MarkdownDocument.Create()
                 .H1("Empty Section")
                 .TocHere(options => {
-                    options.Scope = OfficeIMO.Markdown.TocScope.PreviousHeading;
+                    options.Scope = OfficeIMO.Markdown.MarkdownTocScope.PreviousHeading;
                     options.MinLevel = 2;
                     options.MaxLevel = 3;
                 })
                 .H1("Other")
                 .H2("Outside");
 
-            using var document = markdown.ToWordDocument();
+            using var document = markdown.ToWord();
             string text = string.Join("\n", document.Paragraphs.Select(paragraph => paragraph.Text));
 
             Assert.Null(document.TableOfContent);

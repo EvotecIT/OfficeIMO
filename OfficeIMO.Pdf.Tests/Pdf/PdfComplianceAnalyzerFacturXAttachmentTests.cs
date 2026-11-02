@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfComplianceAnalyzerTests {
     [Fact]
     public void FacturXReadinessRejectsNonCanonicalXmlAttachmentName() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 IncludeStandardFontToUnicodeMaps = true
             }
             .SetPdfAIdentification(3, "B")
@@ -23,7 +23,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRejectsSupplementRelationshipForInvoiceXml() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 IncludeStandardFontToUnicodeMaps = true
             }
             .SetPdfAIdentification(3, "B")
@@ -39,7 +39,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRequiresEmbeddedFileModificationDate() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigureFacturXGroundwork(CreateCiiXml());
 
         PdfComplianceReadinessReport missing = PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, options);
@@ -54,11 +54,11 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRejectsMalformedOrWrongRootXmlAttachment() {
-        var malformedOptions = new PdfOptions()
+        var malformedOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .AddEmbeddedFile("factur-x.xml", Encoding.UTF8.GetBytes("<rsm:CrossIndustryInvoice />"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var wrongRootOptions = new PdfOptions()
+        var wrongRootOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .AddEmbeddedFile("factur-x.xml", Encoding.UTF8.GetBytes("<Invoice />"), "text/xml", PdfAssociatedFileRelationship.Data);
@@ -72,7 +72,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadbackAcceptsCanonicalInvoiceXmlAttachment() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigureFacturXGroundwork(CreateCiiXml())
             .SetEmbeddedFileModificationDate("factur-x.xml", new DateTimeOffset(2026, 8, 24, 8, 30, 0, TimeSpan.Zero));
         byte[] pdf = PdfDocument.Create(options)
@@ -88,7 +88,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadbackRejectsNonInvoiceDataAttachment() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 IncludeStandardFontToUnicodeMaps = true
             }
             .SetPdfAIdentification(3, "B")

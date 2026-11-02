@@ -14,7 +14,7 @@ public sealed class OfficeProvenanceWorkflowFormat {
         IEnumerable<OfficeProvenanceAssetFormat> assetFormats,
         bool memoryOnlyAvailable = false,
         bool browserAvailable = false) {
-        if (string.IsNullOrWhiteSpace(extension) || extension[0] != '.') {
+        if ((extension == null || string.IsNullOrWhiteSpace(extension)) || extension[0] != '.') {
             throw new ArgumentException("A provenance format extension must begin with '.'.", nameof(extension));
         }
         OfficeProvenanceAssetFormat[] registeredAssetFormats = assetFormats?.Distinct().OrderBy(static item => item).ToArray()
@@ -59,8 +59,8 @@ public sealed class OfficeProvenanceWorkflowCapability {
         string notes,
         string? browserLabel = null,
         int browserOrder = int.MaxValue) {
-        if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Capability id cannot be empty.", nameof(id));
-        if (string.IsNullOrWhiteSpace(label)) throw new ArgumentException("Capability label cannot be empty.", nameof(label));
+        if ((id == null || string.IsNullOrWhiteSpace(id))) throw new ArgumentException("Capability id cannot be empty.", nameof(id));
+        if ((label == null || string.IsNullOrWhiteSpace(label))) throw new ArgumentException("Capability label cannot be empty.", nameof(label));
         OfficeProvenanceWorkflowFormat[] registeredFormats = formats?.OrderBy(static item => item.Extension, StringComparer.Ordinal).ToArray()
             ?? throw new ArgumentNullException(nameof(formats));
         if (registeredFormats.Length == 0) {
@@ -75,7 +75,7 @@ public sealed class OfficeProvenanceWorkflowCapability {
             throw new ArgumentException("A provenance capability cannot register duplicate extensions: " + string.Join(", ", duplicateExtensions), nameof(formats));
         }
         bool hasBrowserFormats = registeredFormats.Any(static item => item.BrowserAvailable);
-        if (hasBrowserFormats != !string.IsNullOrWhiteSpace(browserLabel)) {
+        if (hasBrowserFormats != !(browserLabel == null || string.IsNullOrWhiteSpace(browserLabel))) {
             throw new ArgumentException("Browser-qualified capabilities require one browser label, and other capabilities must omit it.", nameof(browserLabel));
         }
 
@@ -270,7 +270,7 @@ public static partial class OfficeProvenanceWorkflowCatalog {
         bool browser = false) => new(extension, [assetFormat], memoryOnly, browser);
 
     private static string GetExtension(string? path) {
-        if (string.IsNullOrWhiteSpace(path)) return string.Empty;
+        if ((path == null || string.IsNullOrWhiteSpace(path))) return string.Empty;
         string value = path.Trim();
         return value.StartsWith(".", StringComparison.Ordinal) && value.IndexOfAny(['/', '\\']) < 0
             ? value.ToLowerInvariant()

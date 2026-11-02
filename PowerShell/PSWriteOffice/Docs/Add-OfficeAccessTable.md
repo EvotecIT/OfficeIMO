@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a table to a newly created native database model.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Add-OfficeAccessTable [-Name] <string> -Document <AccessDocument> [-PassThru] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Live database document.
 
 ```yaml
 Type: AccessDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Table name.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Return the created or changed object.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

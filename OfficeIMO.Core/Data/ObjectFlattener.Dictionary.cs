@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 
 namespace OfficeIMO.Data {
-    public partial class ObjectFlattener {
+    internal partial class ObjectFlattener {
         private static void FlattenDictionary(
             IReadOnlyList<ObjectDictionaryEntry> entries,
             Dictionary<string, object?> dict,

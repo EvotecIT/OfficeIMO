@@ -1,5 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Word {
@@ -12,7 +12,7 @@ namespace OfficeIMO.Word {
         internal Run _run;
         internal V.Line _line = null!;
 
-        internal WordLine(WordDocument document, WordParagraph paragraph, double startXPt, double startYPt, double endXPt, double endYPt, string color = "#000000", double strokeWeightPt = 1) {
+        internal WordLine(WordDocument document, WordParagraph paragraph, OfficeLength startX, OfficeLength startY, OfficeLength endX, OfficeLength endY, string color, OfficeLength strokeWeight) {
             _document = document;
             _wordParagraph = paragraph;
             var vmlStroke = color;
@@ -20,10 +20,10 @@ namespace OfficeIMO.Word {
             _line = new V.Line() {
                 Id = "Line" + Guid.NewGuid().ToString("N"),
                 Style = "mso-wrap-style:square",
-                From = $"{startXPt}pt,{startYPt}pt",
-                To = $"{endXPt}pt,{endYPt}pt",
+                From = $"{WordShape.FormatVmlLength(startX)},{WordShape.FormatVmlLength(startY)}",
+                To = $"{WordShape.FormatVmlLength(endX)},{WordShape.FormatVmlLength(endY)}",
                 StrokeColor = vmlStroke,
-                StrokeWeight = $"{strokeWeightPt}pt"
+                StrokeWeight = WordShape.FormatVmlLength(strokeWeight)
             };
 
             Picture pict = new Picture();
@@ -58,7 +58,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the stroke color using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
+        /// Gets or sets the stroke color using <see cref="OfficeIMO.OfficeColor"/>.
         /// </summary>
         public Color Color {
             get {
@@ -75,14 +75,20 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the stroke weight in points.
         /// </summary>
-        public double StrokeWeightPt {
+        internal double StrokeWeightPoints {
             get {
-                if (double.TryParse(_line.StrokeWeight?.Value?.Replace("pt", ""), out double value)) {
+                if (double.TryParse(_line.StrokeWeight?.Value?.Replace("pt", ""), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double value)) {
                     return value;
                 }
                 return 0;
             }
-            set => _line.StrokeWeight = $"{value}pt";
+            set => _line.StrokeWeight = FormattableString.Invariant($"{value}pt");
+        }
+
+        /// <summary>Gets or sets the physical stroke thickness.</summary>
+        public OfficeLength StrokeWeight {
+            get => OfficeLength.TryParse(_line.StrokeWeight?.Value, out var value) ? value : OfficeLength.Zero;
+            set => _line.StrokeWeight = WordShape.FormatVmlLength(value);
         }
 
         /// <summary>

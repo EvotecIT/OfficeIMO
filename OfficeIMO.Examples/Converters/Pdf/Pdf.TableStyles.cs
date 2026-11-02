@@ -24,10 +24,10 @@ namespace OfficeIMO.Examples.Word {
                 cell.Borders.BottomColorHex = "FF0000";
                 cell.Borders.LeftColorHex = "FF0000";
                 cell.Borders.RightColorHex = "FF0000";
-                cell.Borders.TopSize = 8;
-                cell.Borders.BottomSize = 8;
-                cell.Borders.LeftSize = 8;
-                cell.Borders.RightSize = 8;
+                cell.Borders.TopSize = OfficeLength.Points(1);
+                cell.Borders.BottomSize = OfficeLength.Points(1);
+                cell.Borders.LeftSize = OfficeLength.Points(1);
+                cell.Borders.RightSize = OfficeLength.Points(1);
                 document.Save();
                 document.SaveAsPdf(pdfPath);
             }

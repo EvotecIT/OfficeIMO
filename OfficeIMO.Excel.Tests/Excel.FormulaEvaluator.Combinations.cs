@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
         [InlineData("COMBIN(8,#REF!)", "#REF!")]
         public void Combinations_replace_stale_caches_and_preserve_saved_typed_results(string formula, string expected) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Combinations");
+            var sheet = document.AddSheet("Combinations");
             sheet.CellValue(1, 1, 42d); sheet.CellFormula(1, 1, formula);
             Assert.Equal(1, document.Calculate());
             Assert.Equal(expected, Assert.Single(sheet.InspectFormulas().Formulas).CachedValue);
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
         [InlineData("COMBIN(1E20,1E21)")]
         public void Unqualified_combinations_preserve_existing_cache(string formula) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Combinations");
+            var sheet = document.AddSheet("Combinations");
             sheet.CellValue(1, 1, 8d); sheet.CellValue(2, 1, 2d);
             sheet.CellValue(1, 2, 42d); sheet.CellFormula(1, 2, formula);
             Assert.Equal(0, document.Calculate());
@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
         [InlineData(9007199254740991d, 1d, 9007199254740991d)]
         public void Combinations_recalculate_large_finite_results_after_operand_edits(double n, double k, double expected) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Combinations");
+            var sheet = document.AddSheet("Combinations");
             sheet.CellValue(1, 1, 8d); sheet.CellValue(2, 1, 2d); sheet.CellFormula(1, 2, "COMBIN(A1,A2)");
             Assert.Equal(1, document.Calculate()); Assert.Equal(28d, sheet.CellAt(1, 2).GetValue<double>());
             sheet.CellValue(1, 1, n); sheet.CellValue(2, 1, k);

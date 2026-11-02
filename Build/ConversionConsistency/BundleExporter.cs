@@ -73,11 +73,12 @@ internal static partial class NativeAdapters {
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged, TargetDpi = suite.Dpi, BackgroundColor = OfficeColor.White,
             DefaultFontFamily = suite.FontFamily, Margins = HtmlRenderMargins.All(0),
-            PageSize = new OfficePageSize(contract.Pages[0].Width / (double)suite.Dpi, contract.Pages[0].Height / (double)suite.Dpi)
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(contract.Pages[0].Width / (double)suite.Dpi), global::OfficeIMO.OfficeLength.Inches(contract.Pages[0].Height / (double)suite.Dpi))
         };
         options.UseRenderingProfile(profile);
-        var pdf = document.ToPdfDocumentResult(new HtmlToPdfOptions(options), cancellationToken);
-        return new NativeExport(pdf.ToBytes(cancellationToken), format => document.ExportImages(format, options),
-            pdf.Report.Warnings.Select(item => item.Code).ToList());
+        using var output = new MemoryStream();
+        OfficeConversionReport report = document.SaveAsPdf(output, new HtmlToPdfOptions(options), cancellationToken);
+        return new NativeExport(output.ToArray(), format => document.ExportImages(format, options),
+            report.Diagnostics.Select(item => item.Code).ToList());
     }
 }

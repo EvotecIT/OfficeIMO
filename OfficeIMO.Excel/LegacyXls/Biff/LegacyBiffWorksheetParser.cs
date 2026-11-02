@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (sheet.StreamOffset < 0 || sheet.StreamOffset >= workbookStream.Length) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-SHEET-OFFSET-INVALID",
+                    "xls-biff-sheet-offset-invalid",
                     $"Worksheet stream offset {sheet.StreamOffset} is outside the BIFF stream.",
                     sheetName: sheet.Name,
                     recordOffset: sheet.StreamOffset));
@@ -51,7 +51,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 if (offset + 4 > workbookStream.Length) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Error,
-                        "XLS-BIFF-SHEET-TRUNCATED-HEADER",
+                        "xls-biff-sheet-truncated-header",
                         "The worksheet stream ended inside a record header.",
                         sheetName: sheet.Name,
                         recordOffset: offset));
@@ -64,7 +64,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 if (payloadOffset + length > workbookStream.Length) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Error,
-                        "XLS-BIFF-SHEET-TRUNCATED-PAYLOAD",
+                        "xls-biff-sheet-truncated-payload",
                         $"BIFF record 0x{type:X4} declares {length} payload bytes, but the worksheet stream ends early.",
                         sheetName: sheet.Name,
                         recordOffset: offset,
@@ -78,7 +78,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     if (type != (ushort)BiffRecordType.Bof) {
                         diagnostics.Add(new LegacyXlsImportDiagnostic(
                             LegacyXlsDiagnosticSeverity.Error,
-                            "XLS-BIFF-SHEET-BOF-MISSING",
+                            "xls-biff-sheet-bof-missing",
                             "The worksheet substream does not start with a BOF record.",
                             sheetName: sheet.Name,
                             recordOffset: offset,
@@ -614,7 +614,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         } else if (options.ReportUnsupportedContent) {
                             diagnostics.Add(new LegacyXlsImportDiagnostic(
                                 LegacyXlsDiagnosticSeverity.Info,
-                                "XLS-BIFF-FORMULA-STRING-ORPHANED",
+                                "xls-biff-formula-string-orphaned",
                                 "A formula String record was found without a pending Formula record.",
                                 sheetName: sheet.Name,
                                 recordOffset: offset,
@@ -741,7 +741,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             } catch (Exception ex) when (ex is InvalidDataException || ex is OverflowException) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-SHEET-RECORD-INVALID",
+                    "xls-biff-sheet-record-invalid",
                     $"BIFF record 0x{type:X4} could not be parsed. {ex.Message}",
                     sheetName: sheet.Name,
                     recordOffset: offset,
@@ -784,7 +784,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             diagnostics.Add(new LegacyXlsImportDiagnostic(
                 LegacyXlsDiagnosticSeverity.Info,
-                "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED",
+                "xls-biff-formula-tokens-unsupported",
                 $"{failure.Description} {formulaContextDisplay} was preserved without projection.",
                 sheetName: sheetName,
                 recordOffset: offset,
@@ -823,7 +823,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (payload.Length < 2) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-WORKSHEET-PRINTSIZE-SHORT",
+                    "xls-biff-worksheet-printsize-short",
                     "The worksheet PrintSize record is shorter than expected.",
                     sheetName: sheet.Name,
                     recordOffset: offset,
@@ -835,7 +835,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (printSize > 3) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-WORKSHEET-PRINTSIZE-UNEXPECTED",
+                    "xls-biff-worksheet-printsize-unexpected",
                     $"The worksheet PrintSize record contains unexpected value {printSize}.",
                     sheetName: sheet.Name,
                     recordOffset: offset,
@@ -985,7 +985,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (payload.Length < 2) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-WORKSHEET-UNCALCED-SHORT",
+                    "xls-biff-worksheet-uncalced-short",
                     "The worksheet Uncalced record is shorter than expected.",
                     sheetName: sheet.Name,
                     recordOffset: offset,
@@ -997,7 +997,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (reserved != 0) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-WORKSHEET-UNCALCED-RESERVED",
+                    "xls-biff-worksheet-uncalced-reserved",
                     $"The worksheet Uncalced record contains unexpected reserved value {reserved}.",
                     sheetName: sheet.Name,
                     recordOffset: offset,
@@ -1016,7 +1016,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (payload.Length < 4) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-WORKSHEET-PHONETICINFO-SHORT",
+                    "xls-biff-worksheet-phoneticinfo-short",
                     "The worksheet PhoneticInfo record is shorter than expected.",
                     sheetName: sheet.Name,
                     recordOffset: offset,
@@ -1086,8 +1086,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return false;
                 }
 
-                string start = A1.CellReference(firstRow + 1, firstColumn + 1);
-                string end = A1.CellReference(lastRow + 1, lastColumn + 1);
+                string start = ExcelA1.CellReference(firstRow + 1, firstColumn + 1);
+                string end = ExcelA1.CellReference(lastRow + 1, lastColumn + 1);
                 parsedRanges.Add(start == end ? start : start + ":" + end);
             }
 
@@ -1158,7 +1158,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     20,
                     isSharedFormulaReference ? "SharedFormulaReference" : "CellFormula",
                     sheet.Name,
-                    A1.ColumnIndexToLetters(column) + row.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    ExcelA1.ColumnIndexToLetters(column) + row.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     recordOffset,
                     (ushort)BiffRecordType.Formula,
                     formulaTokenRecords);
@@ -1172,8 +1172,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 string failureDescription = formulaFailure == null ? "Unsupported formula tokens" : formulaFailure.Description;
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Info,
-                    "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED",
-                    $"{failureDescription} Formula at {A1.ColumnIndexToLetters(column)}{row} was imported from its cached result.",
+                    "xls-biff-formula-tokens-unsupported",
+                    $"{failureDescription} Formula at {ExcelA1.ColumnIndexToLetters(column)}{row} was imported from its cached result.",
                     sheetName: sheet.Name,
                     recordOffset: recordOffset,
                     recordType: (ushort)BiffRecordType.Formula,
@@ -1436,7 +1436,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (payload.Length < 6) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-SORT-SHORT",
+                    "xls-biff-sort-short",
                     "The Sort record is too short.",
                     sheetName: sheet.Name,
                     recordOffset: recordOffset,
@@ -1458,7 +1458,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if ((flags & 0xf800) != 0 || reserved != 0 || offset != payload.Length) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Info,
-                    "XLS-BIFF-SORT-RESERVED-BYTES",
+                    "xls-biff-sort-reserved-bytes",
                     "The Sort record contains non-default reserved data; parsed known sort settings only.",
                     sheetName: sheet.Name,
                     recordOffset: recordOffset,
@@ -1492,7 +1492,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             string description = $"The worksheet Sort record uses custom-list sort order index {customListIndex}; sort keys are projected, but the environment-dependent custom-list order cannot be projected to an Open XML custom-list string.";
             var feature = new LegacyXlsUnsupportedFeature(
                 LegacyXlsUnsupportedFeatureKind.WorksheetSort,
-                "XLS-BIFF-FEATURE-WORKSHEET-SORT-CUSTOM-LIST-UNSUPPORTED",
+                "xls-biff-feature-worksheet-sort-custom-list-unsupported",
                 description,
                 sheet.Name,
                 recordOffset,

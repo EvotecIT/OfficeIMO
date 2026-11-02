@@ -49,7 +49,7 @@ namespace OfficeIMO.Excel {
             }
 
             int summaryEndRow = currentRow - 1;
-            string summaryRange = $"{A1.CellReference(summaryStartRow, firstSummaryColumn)}:{A1.CellReference(summaryEndRow, lastSummaryColumn)}";
+            string summaryRange = $"{ExcelA1.CellReference(summaryStartRow, firstSummaryColumn)}:{ExcelA1.CellReference(summaryEndRow, lastSummaryColumn)}";
             return new ExcelSubtotalResult(summaryRange, summaryStartRow, summaryEndRow, results, grandTotalWritten);
         }
 
@@ -63,7 +63,7 @@ namespace OfficeIMO.Excel {
             foreach (int column in options.ValueColumns) {
                 string valueHeader = TryGetCellText(options.HeaderRow, column, out string valueText) && !string.IsNullOrWhiteSpace(valueText)
                     ? valueText
-                    : A1.ColumnIndexToLetters(column);
+                    : ExcelA1.ColumnIndexToLetters(column);
                 CellValue(row, column, valueHeader);
                 CellBold(row, column, true);
             }
@@ -75,7 +75,7 @@ namespace OfficeIMO.Excel {
             CellBold(row, options.GroupColumn, true);
 
             foreach (int column in options.ValueColumns) {
-                string columnName = A1.ColumnIndexToLetters(column);
+                string columnName = ExcelA1.ColumnIndexToLetters(column);
                 CellFormula(row, column, string.Format(CultureInfo.InvariantCulture, "SUBTOTAL({0},{1}{2}:{1}{3})", subtotalCode, columnName, group.StartRow, group.EndRow));
                 CellBold(row, column, true);
             }
@@ -86,7 +86,7 @@ namespace OfficeIMO.Excel {
             CellBold(row, options.GroupColumn, true);
 
             foreach (int column in options.ValueColumns) {
-                string columnName = A1.ColumnIndexToLetters(column);
+                string columnName = ExcelA1.ColumnIndexToLetters(column);
                 CellFormula(row, column, string.Format(CultureInfo.InvariantCulture, "SUBTOTAL({0},{1}{2}:{1}{3})", subtotalCode, columnName, options.DataStartRow, options.DataEndRow));
                 CellBold(row, column, true);
             }
@@ -133,15 +133,15 @@ namespace OfficeIMO.Excel {
             if (options.DataStartRow <= 0) throw new ArgumentOutOfRangeException(nameof(options.DataStartRow), "Data start row must be 1 or greater.");
             if (options.DataEndRow < options.DataStartRow) throw new ArgumentOutOfRangeException(nameof(options.DataEndRow), "Data end row must be greater than or equal to the data start row.");
             if (options.GroupColumn <= 0) throw new ArgumentOutOfRangeException(nameof(options.GroupColumn), "Group column must be 1 or greater.");
-            if (options.HeaderRow > A1.MaxRows || options.DataStartRow > A1.MaxRows || options.DataEndRow > A1.MaxRows) throw new ArgumentOutOfRangeException(nameof(options.DataEndRow), "Subtotal source rows must not exceed the Excel row limit.");
-            if (options.GroupColumn > A1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(options.GroupColumn), "Group column must not exceed the Excel column limit.");
+            if (options.HeaderRow > ExcelA1.MaxRows || options.DataStartRow > ExcelA1.MaxRows || options.DataEndRow > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(options.DataEndRow), "Subtotal source rows must not exceed the Excel row limit.");
+            if (options.GroupColumn > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(options.GroupColumn), "Group column must not exceed the Excel column limit.");
             if (options.ValueColumns == null || options.ValueColumns.Count == 0) throw new ArgumentException("At least one value column is required.", nameof(options.ValueColumns));
             if (options.ValueColumns.Any(column => column <= 0)) throw new ArgumentOutOfRangeException(nameof(options.ValueColumns), "Value columns must be 1 or greater.");
-            if (options.ValueColumns.Any(column => column > A1.MaxColumns)) throw new ArgumentOutOfRangeException(nameof(options.ValueColumns), "Value columns must not exceed the Excel column limit.");
+            if (options.ValueColumns.Any(column => column > ExcelA1.MaxColumns)) throw new ArgumentOutOfRangeException(nameof(options.ValueColumns), "Value columns must not exceed the Excel column limit.");
             if (options.OutlineLevel < 1 || options.OutlineLevel > 7) throw new ArgumentOutOfRangeException(nameof(options.OutlineLevel), "Excel outline level must be between 1 and 7.");
             int summaryStartRow = options.SummaryStartRow ?? checked(options.DataEndRow + 2);
             if (summaryStartRow <= options.DataEndRow) throw new ArgumentOutOfRangeException(nameof(options.SummaryStartRow), "Summary start row must be below the source data range.");
-            if (summaryStartRow > A1.MaxRows) throw new ArgumentOutOfRangeException(nameof(options.SummaryStartRow), "Summary start row must not exceed the Excel row limit.");
+            if (summaryStartRow > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(options.SummaryStartRow), "Summary start row must not exceed the Excel row limit.");
         }
 
         private static void ValidateSubtotalOutputBounds(ExcelSubtotalOptions options, int groupCount) {
@@ -150,7 +150,7 @@ namespace OfficeIMO.Excel {
                 + (options.IncludeHeader ? 1 : 0)
                 + (options.IncludeGrandTotal ? 1 : 0);
             int summaryEndRow = checked(summaryStartRow + rowCount - 1);
-            if (summaryEndRow > A1.MaxRows) {
+            if (summaryEndRow > ExcelA1.MaxRows) {
                 throw new ArgumentOutOfRangeException(nameof(options.SummaryStartRow), "Subtotal summary output must not exceed the Excel row limit.");
             }
         }

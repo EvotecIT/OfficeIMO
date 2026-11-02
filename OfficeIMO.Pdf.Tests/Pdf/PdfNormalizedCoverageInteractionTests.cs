@@ -82,9 +82,9 @@ public sealed class PdfNormalizedCoverageInteractionTests {
         // A and NFC A-acute exist, but the original combining acute does not.
         byte[] primary = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(true, 'A', 0x00C1);
         var report = new PdfConversionReport();
-        PdfOptions options = (named
-            ? new PdfOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, primary))
-            : new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, primary, family))
+        PdfCreateOptions options = (named
+            ? new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, primary))
+            : new PdfCreateOptions().EmbedStandardFont(PdfStandardFont.Helvetica, primary, family))
             .SetTextShapingMode(PdfTextShapingMode.OpenTypeLigatures)
             .ReportDiagnosticsTo(report);
         if (unrelatedFallback) {

@@ -1,0 +1,16 @@
+{
+  "package": "OfficeIMO.Reader.Dbf",
+  "status": "Public API consumer migration.",
+  "changes": [],
+  "extraChanges": [
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Executable DBF-to-XLSX callers and the README use ExcelDocument.CreateWriter(...).WriteTable(name, reader) after removal of the static WriteDataReader entry point. Disposal completes the XLSX package; callers retain reader ownership.",
+      "files": [
+        "OfficeIMO.Reader.Dbf.Tests/DbfConversionTests.cs",
+        "OfficeIMO.Reader.Dbf/README.md"
+      ]
+    }
+  ]
+}

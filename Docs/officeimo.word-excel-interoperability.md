@@ -98,22 +98,20 @@ Excel model. It records unsupported BIFF12 records in
 `XlsbImportDiagnostics` and `XlsbPreservedRecords`.
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Excel;
-using OfficeIMO.Excel.Xlsb;
 
 using ExcelDocument workbook = ExcelDocument.Load(
     "source.xlsb",
     new ExcelLoadOptions {
-        XlsbImportOptions = new XlsbImportOptions {
-            MaxCells = 2_000_000,
-            MaxSharedStrings = 500_000
-        }
+        MaxCells = 2_000_000,
+        MaxSharedStrings = 500_000
     });
 
 workbook["Data"].CellValue(2, 2, 1250m);
 workbook.Save("edited.xlsb");
 
-ExcelDocument.Convert("source.xlsb", "editable.xlsx");
+OfficeConverter.Convert("source.xlsb", "editable.xlsx");
 ```
 
 An unchanged XLSB source can be copied byte-for-byte. A supported cell edit uses
@@ -137,27 +135,27 @@ Use the normal `Load(...)` surface when you only need the projected model. Use
 the report-bearing surface when conversion or archival fidelity matters:
 
 ```csharp
+using System.IO;
+using System.Linq;
+using OfficeIMO;
 using OfficeIMO.Excel;
-using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Word;
-using OfficeIMO.Word.LegacyDoc;
 
-using LegacyXlsLoadResult xls = ExcelDocument.LoadLegacyXlsWithReport("book.xls");
-xls.EnsureNoImportErrors();
-File.WriteAllText("book.import-report.md", xls.CreateImportReport().ToMarkdown());
-xls.Document.Save("book.xlsx");
+using ExcelDocument xls = ExcelDocument.Load("book.xls", null, out OfficeConversionReport xlsReport);
+xlsReport.ThrowIfLoss();
+File.WriteAllLines("book.import-report.txt", xlsReport.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}"));
+xls.Save("book.xlsx");
 
-using LegacyDocLoadResult doc = WordDocument.LoadLegacyDocWithReport("letter.doc");
-doc.EnsureNoImportErrors();
-File.WriteAllText("letter.import-report.md", doc.ImportReport.ToMarkdown());
-doc.Document.Save("letter.docx");
+using WordDocument doc = WordDocument.Load("letter.doc", null, out OfficeConversionReport docReport);
+docReport.ThrowIfLoss();
+File.WriteAllLines("letter.import-report.txt", docReport.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}"));
+doc.Save("letter.docx");
 ```
 
-Native DOC/XLS saves and `WordDocument.Convert(...)` /
-`ExcelDocument.Convert(...)` block known conversion loss by default. Set the
-corresponding `LossPolicy` to `Allow` only after recording and accepting the
-report. This opt-in is a policy decision; it does not make an unsupported feature
-convertible.
+Native DOC/XLS saves block known conversion loss by default. Set `AllowLoss = true`
+in the save options only after recording and accepting the report. Structured file
+conversions use `OfficeConverter` with the same explicit loss decision. This opt-in
+does not make an unsupported feature convertible.
 
 ## Inventory macros and embedded payloads
 
@@ -229,11 +227,8 @@ using OfficeIMO.Word;
 using WordDocument document = WordDocument.Load("report.docx");
 document.InspectFeatures().EnsureCan(WordPreflightCapability.RenderFixedLayout);
 
-IReadOnlyList<OfficeImageExportResult> pages = document.ToImages()
-    .FromPage(0)
-    .TakePages(3)
-    .AsPng()
-    .Save("previews");
+OfficeIMO.OfficeConversionReport pages = document.SaveAsImages("previews",
+    new WordImageExportOptions { PageIndex = 0, PageCount = 3, Format = OfficeImageExportFormat.Png });
 ```
 
 The renderer estimates pagination; it is not Microsoft Word's layout engine.

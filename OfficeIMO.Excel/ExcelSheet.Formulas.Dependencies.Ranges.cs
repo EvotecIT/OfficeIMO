@@ -108,8 +108,8 @@ namespace OfficeIMO.Excel {
             int firstColumn = Math.Min(leftC1, rightC1);
             int lastRow = Math.Max(leftR2, rightR2);
             int lastColumn = Math.Max(leftC2, rightC2);
-            string start = A1.CellReference(firstRow, firstColumn);
-            string end = A1.CellReference(lastRow, lastColumn);
+            string start = ExcelA1.CellReference(firstRow, firstColumn);
+            string end = ExcelA1.CellReference(lastRow, lastColumn);
             string sheetQualifier = "'" + leftSheet.Name.Replace("'", "''") + "'!";
             string reference = sheetQualifier + (start == end ? start : start + ":" + end);
             combined = new FormulaDependencyReferenceMatch(

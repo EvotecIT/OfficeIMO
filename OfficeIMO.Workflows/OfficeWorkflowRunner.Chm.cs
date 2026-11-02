@@ -4,7 +4,7 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner {
     private static (byte[] Bytes, OfficeWorkflowConversionEvidence Evidence) ConvertChm(ValidatedRequest request, byte[] input,
-        OfficeWorkflowConversionOptions settings, CancellationToken token, bool emitHtmlTaggedStructure) {
+        OfficeWorkflowRenderingOptions settings, CancellationToken token, bool emitHtmlTaggedStructure) {
         var reading = new ChmReadOptions(); reading.MaxInputBytes = Math.Min(reading.MaxInputBytes, request.Limits.MaximumInputBytes);
         ChmDocument source = ChmDocument.Load(input, reading, token);
         ChmConversionOptions conversion = settings.Chm?.Clone() ?? new ChmConversionOptions();

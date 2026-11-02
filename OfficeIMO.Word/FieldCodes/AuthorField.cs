@@ -2,7 +2,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Represents the AUTHOR field code.
     /// </summary>
-    public class AuthorField : WordFieldCode {
+    public class WordAuthorField : WordFieldCode {
         /// <summary>
         /// Optional author name to insert instead of the document property.
         /// </summary>

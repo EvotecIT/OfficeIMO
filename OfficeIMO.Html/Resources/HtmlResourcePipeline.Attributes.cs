@@ -208,9 +208,9 @@ public static partial class HtmlResourcePipeline {
     private static string GetDiagnosticCode(HtmlResourceKind kind) {
         switch (kind) {
             case HtmlResourceKind.Image:
-                return "ImageResourceRejectedByPolicy";
+                return global::OfficeIMO.OfficeDiagnosticCodes.ImageResourceRejectedByPolicy;
             case HtmlResourceKind.Stylesheet:
-                return "StylesheetResourceRejectedByPolicy";
+                return global::OfficeIMO.OfficeDiagnosticCodes.StylesheetResourceRejectedByPolicy;
             case HtmlResourceKind.Hyperlink:
                 return "HyperlinkRejectedByPolicy";
             case HtmlResourceKind.Script:

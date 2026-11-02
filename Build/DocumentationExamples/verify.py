@@ -1,5 +1,7 @@
 """Read the quick-start documents independently of OfficeIMO."""
 
+from __future__ import annotations
+
 import argparse
 import posixpath
 from pathlib import Path

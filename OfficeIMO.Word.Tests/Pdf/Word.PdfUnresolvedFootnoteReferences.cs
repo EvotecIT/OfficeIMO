@@ -21,8 +21,8 @@ public partial class Word {
             if (columnFallback) source.Sections[0].ColumnCount = 2;
             source.Sections[0].AddEndnoteProperties(WordNumberFormat.Decimal);
             WordParagraph broken = source.AddParagraph("DANGLINGPREFIX");
-            broken.AddFootNote("DELETEDFOOTNOTEBODY").AddText("DANGLINGTAIL");
-            source.AddParagraph("ENDNOTEPREFIX").AddEndNote("KEPTENDNOTEBODY").AddText("ENDNOTETAIL");
+            broken.AddFootNote("DELETEDFOOTNOTEBODY").Paragraph.AddText("DANGLINGTAIL");
+            source.AddParagraph("ENDNOTEPREFIX").AddEndNote("KEPTENDNOTEBODY").Paragraph.AddText("ENDNOTETAIL");
             source.AddParagraph("FOLLOWINGBODY");
             var main = source.OpenXmlDocument.MainDocumentPart!;
             long id = Assert.Single(broken._paragraph.Descendants<W.FootnoteReference>()).Id!.Value;
@@ -36,7 +36,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Load(path);
         string[] validationBefore = AssertDanglingBodyFootnoteIsInvalid(document);
         string[] xmlBefore = UnresolvedFootnoteSourceXml(document);
-        var result = document.ToPdfDocumentResult(FootnoteDiagnosticOptions());
+        var result = document.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         string visible = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
         foreach (string token in new[] { "DANGLINGPREFIX", "DANGLINGTAIL", "ENDNOTEPREFIX", "ENDNOTETAIL", "KEPTENDNOTEBODY", "FOLLOWINGBODY" })
@@ -45,7 +45,7 @@ public partial class Word {
         Assert.Contains("ENDNOTEPREFIX1ENDNOTETAIL", visible, StringComparison.Ordinal);
         Assert.DoesNotContain("DELETEDFOOTNOTEBODY", visible, StringComparison.Ordinal);
         // No ordinary footnote remains to place, even when columns select a fallback profile.
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeFootnotePlacementApproximated");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-footnote-placement-approximated");
         Assert.Equal(validationBefore, AssertDanglingBodyFootnoteIsInvalid(document));
         Assert.Equal(xmlBefore, UnresolvedFootnoteSourceXml(document));
         Assert.Equal(hashBefore, OrdinaryZeroNoteSourceHash(path));
@@ -85,7 +85,7 @@ public partial class Word {
         string[] validationBefore = AssertDanglingBodyFootnoteIsInvalid(document);
         string[] xmlBefore = UnresolvedFootnoteSourceXml(document);
         Assert.NotNull(Assert.Single(document.FootNotes, note => note.ReferenceId == 0).Paragraphs);
-        var result = document.ToPdfDocumentResult(FootnoteDiagnosticOptions());
+        var result = document.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         string visible = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
         foreach (string token in new[] { ZeroNotePrefix, ZeroNoteSuffix, ZeroNoteBody, ZeroNoteFollowingBody })
@@ -94,13 +94,13 @@ public partial class Word {
         Assert.Contains(ZeroNotePrefix + "1" + ZeroNoteSuffix, visible, StringComparison.Ordinal);
         AssertZeroNoteInlineReferencePosition(pdf);
         if (columnFallback) {
-            var warning = Assert.Single(result.Warnings, item => item.Code == "NativeFootnotePlacementApproximated");
+            var warning = Assert.Single(result.Warnings, item => item.Code == "native-footnote-placement-approximated");
             Assert.Equal(OfficeConversionLossKind.Approximation, warning.LossKind);
             Assert.True(result.HasLoss);
             // Tolerant conversion and explicitly strict acceptance remain separate operations.
             Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
             Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
-        } else Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeFootnotePlacementApproximated");
+        } else Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-footnote-placement-approximated");
         Assert.Equal(validationBefore, AssertDanglingBodyFootnoteIsInvalid(document));
         Assert.Equal(xmlBefore, UnresolvedFootnoteSourceXml(document));
         Assert.Equal(hashBefore, OrdinaryZeroNoteSourceHash(path));
@@ -111,8 +111,8 @@ public partial class Word {
         string path = Path.Combine(_directoryWithFiles, "UnresolvedContinuationFootnote.docx");
         using (WordDocument source = CreateFootnoteDiagnosticDocument()) {
             WordParagraph broken = source.AddParagraph("DANGLINGPREFIX");
-            broken.AddFootNote("DELETEDFOOTNOTEBODY").AddText("DANGLINGTAIL");
-            source.AddParagraph(ZeroNotePrefix).AddFootNote(ZeroNoteBody).AddText(ZeroNoteSuffix);
+            broken.AddFootNote("DELETEDFOOTNOTEBODY").Paragraph.AddText("DANGLINGTAIL");
+            source.AddParagraph(ZeroNotePrefix).AddFootNote(ZeroNoteBody).Paragraph.AddText(ZeroNoteSuffix);
             source.AddParagraph(ZeroNoteFollowingBody);
             var main = source.OpenXmlDocument.MainDocumentPart!;
             W.FootnoteReference reference = Assert.Single(broken._paragraph.Descendants<W.FootnoteReference>());
@@ -134,7 +134,7 @@ public partial class Word {
         Assert.Single(mainAfterLoad.Document.Descendants<W.FootnoteReference>(), reference => reference.Id?.Value == 0);
         Assert.Null(Assert.Single(document.FootNotes, note => note.ReferenceId == 0).Paragraphs);
         // SDK existence validation may accept a matching ID; its non-Normal target cannot be an ordinary note.
-        var result = document.ToPdfDocumentResult(FootnoteDiagnosticOptions());
+        var result = document.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         Assert.Single(pdf.GetPages()); // No legitimate continuation story is needed for this short control.
         string visible = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
@@ -144,7 +144,7 @@ public partial class Word {
         Assert.DoesNotContain("SPECIALSTORYONLY", visible, StringComparison.Ordinal);
         Assert.DoesNotContain("DELETEDFOOTNOTEBODY", visible, StringComparison.Ordinal);
         AssertZeroNoteInlineReferencePosition(pdf);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeFootnotePlacementApproximated");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-footnote-placement-approximated");
         Assert.Equal(validationBefore, FootnoteValidationBaseline(document));
         Assert.Equal(xmlBefore, UnresolvedFootnoteSourceXml(document));
         Assert.Equal(hashBefore, OrdinaryZeroNoteSourceHash(path));

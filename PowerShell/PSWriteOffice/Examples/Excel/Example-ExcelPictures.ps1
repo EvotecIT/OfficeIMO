@@ -11,9 +11,9 @@ New-OfficeExcel -Path $path {
         ExcelCell -Address 'E1' -Value 'Scaled image'
         ExcelCell -Address 'E8' -Value 'Rotated image'
 
-        ExcelImage -Path $imagePath -Range 'A2:C12' -Name 'HeaderLogo' -AltText 'Company logo pinned to A2 through C12' -Placement MoveAndSize
-        ExcelImage -Path $imagePath -Address 'E2' -ScalePercent 20 -Name 'ScaledLogo' -AltText 'Logo scaled to 20 percent'
-        ExcelImage -Path $imagePath -Address 'E9' -Width 120 -Height 48 -RotationDegrees 12 -Name 'RotatedLogo' -AltText 'Logo rotated by 12 degrees'
+        ExcelImage -Path $imagePath -Address 'A2:C12' -Name 'HeaderLogo' -AltText 'Company logo pinned to A2 through C12' -Placement MoveAndSize
+        ExcelImage -Path $imagePath -Address 'E2' -Scale 20 -Name 'ScaledLogo' -AltText 'Logo scaled to 20 percent'
+        ExcelImage -Path $imagePath -Address 'E9' -Width 120px -Height 48px -Rotation 12 -Name 'RotatedLogo' -AltText 'Logo rotated by 12 degrees'
 
         ExcelColumn -ColumnName A -Width 18
         ExcelColumn -ColumnName B -Width 18

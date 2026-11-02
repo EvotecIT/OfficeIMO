@@ -87,7 +87,7 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlToPdfOptions { AllowSystemFontFallback = false };
         options.Fonts.Add("math", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('x', '2', 0x1D465));
         var document = HtmlConversionDocument.Parse(html);
-        byte[] pdf = document.ToPdfBytes(options);
+        byte[] pdf = (document.ToPdf(options)).ToBytes();
         Assert.Contains("(x)/(2)", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
         var rendered = HtmlRenderTestDriver.Render(document, options);

@@ -64,7 +64,7 @@ public static partial class PowerPointIWorkConverter {
 
         if (!editable) settings.ValidateVisualPreview(preview);
 
-        PowerPointPresentation presentation = PowerPointPresentation.Create();
+        PowerPointDocument presentation = PowerPointDocument.CreateForImport();
         try {
             IWorkCanvasSize? sourceSlideSize = projection.SlideSize;
             bool useSourceSlideSize = sourceSlideSize != null
@@ -75,8 +75,7 @@ public static partial class PowerPointIWorkConverter {
             if (useSourceSlideSize && sourceSlideSize != null) {
                 canvasWidth = sourceSlideSize.WidthPoints;
                 canvasHeight = sourceSlideSize.HeightPoints;
-                presentation.SlideSize.SetSizePoints(sourceSlideSize.WidthPoints,
-                    sourceSlideSize.HeightPoints, PowerPointSlideSizeType.Custom);
+                presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(sourceSlideSize.WidthPoints),                    OfficeIMO.OfficeLength.Points(sourceSlideSize.HeightPoints),PowerPointSlideSizeType.Custom);
             }
             if (editable) {
                 var slidePairs = new List<(IWorkKeynoteSlide Source, PowerPointSlide Target)>(
@@ -133,7 +132,8 @@ public static partial class PowerPointIWorkConverter {
                     : OfficeImageFormat.Jpeg;
                 (double left, double top, double width, double height) = PreviewLayout(preview,
                     canvasWidth / 72d, canvasHeight / 72d);
-                PowerPointPicture picture = slide.AddPictureInches(image, format, left, top, width, height);
+                PowerPointPicture picture = slide.AddImage(image, format, OfficeIMO.OfficeLength.Inches(left), OfficeIMO.OfficeLength.Inches(top), OfficeIMO.OfficeLength.Inches(width), OfficeIMO.OfficeLength.Inches(height));
+                picture.Bounds = new PowerPointLayoutBox(OfficeLength.Inches(left), OfficeLength.Inches(top), OfficeLength.Inches(width), OfficeLength.Inches(height));
                 picture.AltText = "Visual fallback from the source Keynote package";
             }
 
@@ -181,9 +181,10 @@ public static partial class PowerPointIWorkConverter {
         width = QuantizePositiveEmuPoints(width);
         height = QuantizePositiveEmuPoints(height);
         using var stream = new MemoryStream(source.GetBytes(), writable: false);
-        PowerPointPicture picture = slide.AddPicturePoints(stream,
+        PowerPointPicture picture = slide.AddImage(stream,
             source.MediaType == "image/png" ? OfficeImageFormat.Png : OfficeImageFormat.Jpeg,
-            left, top, width, height);
+            OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height));
+        picture.Bounds = new PowerPointLayoutBox(OfficeLength.Points(left), OfficeLength.Points(top), OfficeLength.Points(width), OfficeLength.Points(height));
         picture.Rotation = source.Geometry?.RotationDegrees;
         picture.AltText = source.AccessibilityDescription;
         if (source.Hyperlink != null

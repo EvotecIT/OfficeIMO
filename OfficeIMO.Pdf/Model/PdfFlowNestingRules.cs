@@ -7,7 +7,7 @@ internal static class PdfFlowNestingRules {
         ContainerBlock container => container.Blocks.All(child => IsColumnFlowSupported(child, allowTableOfContents)),
         SemanticBlock semantic => semantic.Blocks.All(child => IsColumnFlowSupported(child, allowTableOfContents)),
         FlowBlock flow => !flow.IsReplayable && flow.StaticBlocks != null &&
-                          flow.Options.ShowIf == null && flow.Options.MinimumRemainingHeight == 0D &&
+                          flow.Options.ShowIf == null && flow.Options.MinimumRemainingHeight.ToPoints() == 0D &&
                           flow.Options.OverflowBehavior == PdfFlowOverflowBehavior.Continue &&
                           flow.StaticBlocks.All(child => IsColumnFlowSupported(child, allowTableOfContents)),
         _ => IsColumnFlowPrimitive(block)

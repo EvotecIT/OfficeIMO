@@ -899,6 +899,11 @@ internal static partial class PowerShellObjectNormalizer
 
     private static bool TryGetFastCellValue(object? value, PowerShellObjectNormalizerOptions options, out object? normalized)
     {
+        while (value is PSObject wrapped && !ReferenceEquals(value, wrapped.BaseObject))
+        {
+            value = wrapped.BaseObject;
+        }
+
         normalized = value;
         if (value == null || value is string || !options.NormalizeCollectionValues)
         {

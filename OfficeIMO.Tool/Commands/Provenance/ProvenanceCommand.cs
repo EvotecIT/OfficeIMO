@@ -154,8 +154,8 @@ and blocks invalidating package signatures unless --remove-invalidated-signature
             },
             InputPath = Path.GetFullPath(input),
             OutputPath = output is null ? null : Path.GetFullPath(output),
-            ConflictPolicy = parsed.Force ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail,
-            Limits = new OfficeWorkflowLimits {
+            ConflictPolicy = parsed.Force ? OfficePublicationPolicy.Replace : OfficePublicationPolicy.Fail,
+            Limits = new OfficeOperationLimits {
                 MaximumInputBytes = parsed.MaximumInputBytes,
                 MaximumOutputBytes = parsed.MaximumOutputBytes
             }

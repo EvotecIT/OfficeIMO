@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel {
                     source.Reference = remappedSources.Count == 0 ? "#REF!" : remappedSources[0];
                     uint? recordCount = null;
                     if (remappedSources.Count > 0
-                        && A1.TryParseRange(
+                        && ExcelA1.TryParseRange(
                             remappedSources[0],
                             out int firstRow,
                             out _,
@@ -79,7 +79,7 @@ namespace OfficeIMO.Excel {
         private bool IsNamedPivotSourceAffected(string sourceName, int firstAffectedRow) {
             string? tableRange = GetTableRangeWithoutMaterializing(sourceName);
             if (tableRange != null
-                && A1.TryParseRange(tableRange.Replace("$", string.Empty), out _, out _, out int tableLastRow, out _)) {
+                && ExcelA1.TryParseRange(tableRange.Replace("$", string.Empty), out _, out _, out int tableLastRow, out _)) {
                 return tableLastRow >= firstAffectedRow;
             }
 

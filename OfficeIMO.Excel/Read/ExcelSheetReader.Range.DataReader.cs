@@ -154,7 +154,7 @@ namespace OfficeIMO.Excel {
                 throw new InvalidOperationException("Excel data-reader safety limits must be positive.");
             }
 
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
             if (r1 > r2 || c1 > c2) {
                 throw new ArgumentException($"Invalid range '{a1Range}'.", nameof(a1Range));
             }
@@ -162,17 +162,17 @@ namespace OfficeIMO.Excel {
             int cols = c2 - c1 + 1;
             int rows = r2 - r1 + 1;
             if (cols > _opt.MaxDataReaderColumns) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxDataReaderColumns), _opt.MaxDataReaderColumns, $"Range data-reader column count exceeds {nameof(ExcelReadOptions.MaxDataReaderColumns)}.");
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxDataReaderColumns), _opt.MaxDataReaderColumns, $"Range data-reader column count exceeds {nameof(ExcelReaderOptions.MaxDataReaderColumns)}.");
             }
             long sampleCells = (long)Math.Min(Math.Max(0, rows - (headersInFirstRow ? 1 : 0)), schemaSampleRows) * cols;
             if (sampleCells > _opt.MaxDataReaderBufferedCells) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), _opt.MaxDataReaderBufferedCells, $"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxDataReaderBufferedCells), _opt.MaxDataReaderBufferedCells, $"Range data-reader buffering exceeds {nameof(ExcelReaderOptions.MaxDataReaderBufferedCells)}.");
             }
             if (schemaSampleRows == 0
                 && (!_hasSdkWorksheetPart || rows > BufferedRangeStreamRowLimit)
                 && CanUseRangeStreamXmlReader()) {
                 if (cols > _opt.MaxDataReaderBufferedCells) {
-                    throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), _opt.MaxDataReaderBufferedCells, $"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
+                    throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxDataReaderBufferedCells), _opt.MaxDataReaderBufferedCells, $"Range data-reader buffering exceeds {nameof(ExcelReaderOptions.MaxDataReaderBufferedCells)}.");
                 }
 
                 return new ExcelXmlRangeDataReader(this, r1, c1, r2, c2, cols, headersInFirstRow, _opt, ct,
@@ -181,7 +181,7 @@ namespace OfficeIMO.Excel {
 
             long chunkCells = (long)Math.Min(rows, chunkRows) * cols;
             if (chunkCells > _opt.MaxDataReaderBufferedCells) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), _opt.MaxDataReaderBufferedCells, $"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxDataReaderBufferedCells), _opt.MaxDataReaderBufferedCells, $"Range data-reader buffering exceeds {nameof(ExcelReaderOptions.MaxDataReaderBufferedCells)}.");
             }
 
             IEnumerable<RangeChunk> chunks = ReadRangeStreamForDataReader(a1Range, chunkRows, mode, ct, trackCellPresence);
@@ -198,7 +198,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(chunkRows), "Chunk row count must be greater than zero.");
             }
 
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
             if (r1 > r2 || c1 > c2) {
                 yield break;
             }
@@ -513,7 +513,7 @@ namespace OfficeIMO.Excel {
                 int fieldCount,
                 bool headersInFirstRow,
                 int schemaSampleRows,
-                ExcelReadOptions options,
+                ExcelReaderOptions options,
                 CancellationToken ct) {
                 _chunks = chunks.GetEnumerator();
                 _nextRow = firstRow;

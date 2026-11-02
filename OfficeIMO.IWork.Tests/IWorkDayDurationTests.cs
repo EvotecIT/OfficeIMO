@@ -69,9 +69,9 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal("-359d", reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
             Assert.Empty(reopened.ValidateDocument());
         } else {
-            using var result = source.ToPowerPointPresentationResult(); Assert.False(result.IsVisualFallback);
+            using var result = source.ToPowerPointDocumentResult(); Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             Assert.Equal("-359d", reopened.Slides[0].Tables.Single().GetCell(0, 0).Text);
             Assert.Empty(reopened.ValidateDocument());
         }

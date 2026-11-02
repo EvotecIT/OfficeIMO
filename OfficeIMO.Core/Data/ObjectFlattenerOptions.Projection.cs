@@ -4,12 +4,16 @@ using System.Linq;
 
 namespace OfficeIMO.Data {
     public partial class ObjectFlattenerOptions {
+        // Native table hosts share display headers without changing the paths used to select values.
+        internal OfficeTableOptions? TableOptions { get; set; }
+
         internal HashSet<string>? ExplicitColumnLookup { get; private set; }
 
         internal HashSet<string>? ExplicitColumnAncestorLookup { get; private set; }
 
         internal ObjectFlattenerOptions CreateProjectionSnapshot() {
             var snapshot = (ObjectFlattenerOptions)MemberwiseClone();
+            snapshot.Formatters = new Dictionary<string, Func<object?, object?>>(Formatters, StringComparer.OrdinalIgnoreCase);
             snapshot.Columns = Columns?.ToArray();
             if (snapshot.Columns == null || snapshot.Columns.Length == 0) {
                 snapshot.ExplicitColumnLookup = null;

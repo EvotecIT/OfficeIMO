@@ -4,7 +4,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
     /// <summary>Creates a retrospective board and a follow-through slide with owners and observable checks.</summary>
     internal static class Retrospective {
         internal static void Create(string folder) {
-            using var deck = PowerPointPresentation.Create(Path.Combine(folder, "example.pptx"));
+            using var deck = PowerPointDocument.Create(Path.Combine(folder, "example.pptx"));
             var board = deck.AddSlide();
             Text(board, "Pilot retrospective", 1.5, 1, 30, 2, 31, "17365D");
             Text(board, "Turn observations into two changes the team can verify.", 1.5, 3, 30, 1.5, 19, "526179");
@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             string[] notes = { "Short daily handovers\nA visible owner for every queue", "Ambiguous access instructions\nDecisions hidden in chat", "A first-day access check\nOne shared decision log" };
             for (int i = 0; i < 3; i++) {
                 double x = 1.5 + i * 10.5;
-                board.AddRectangleCm(x, 5.5, 9.5, 10).Fill(fills[i]).Stroke("CBD5E1", 1);
+                board.AddRectangle(OfficeIMO.OfficeLength.Centimeters(x), OfficeIMO.OfficeLength.Centimeters(5.5), OfficeIMO.OfficeLength.Centimeters(9.5), OfficeIMO.OfficeLength.Centimeters(10)).Fill(fills[i]).Stroke("CBD5E1", global::OfficeIMO.OfficeLength.Points(1));
                 Text(board, headings[i], x + 0.6, 6.2, 8.3, 1.5, 22, "17365D");
                 Text(board, notes[i], x + 0.6, 8.5, 8.3, 6, 22, "243247");
             }
@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             deck.Save();
         }
         private static void Text(PowerPointSlide slide, string value, double x, double y, double width, double height, int size, string color) {
-            var box = slide.AddTextBoxCm(value, x, y, width, height); box.FontSize = size; box.Color = color;
+            var box = slide.AddTextBox(value,global::OfficeIMO.OfficeLength.Centimeters(x),global::OfficeIMO.OfficeLength.Centimeters(y),global::OfficeIMO.OfficeLength.Centimeters(width),global::OfficeIMO.OfficeLength.Centimeters(height)); box.FontSize = global::OfficeIMO.OfficeLength.Points(size); box.Color = color;
         }
     }
 }

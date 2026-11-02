@@ -139,10 +139,10 @@ public sealed partial class IWorkBoundaryTests {
                 using var reopened = WordprocessingDocument.Open(saved, false);
                 Assert.Equal(wordSymbol, reopened.MainDocumentPart!.DocumentSettingsPart!.Settings!.GetFirstChild<W.DecimalSymbol>()!.Val!.Value);
             } else {
-                using var result = source.ToPowerPointPresentationResult(policy);
+                using var result = source.ToPowerPointDocumentResult(policy);
                 Assert.False(result.IsVisualFallback);
                 Assert.Equal(separatorOmitted, result.Report.Diagnostics.Any(d => d.Code == "IWORK_KEYNOTE_DECIMAL_TAB_SYMBOL_OMITTED"));
-                using var strict = source.ToPowerPointPresentationResult(IWorkTestPolicy.ForIncompletePreview(new()));
+                using var strict = source.ToPowerPointDocumentResult(IWorkTestPolicy.ForIncompletePreview(new()));
                 Assert.Equal(separatorOmitted, strict.IsVisualFallback);
             }
         }
@@ -173,7 +173,7 @@ public sealed partial class IWorkBoundaryTests {
                 Assert.All(result.Projection.Tables[0].Cells, cell => Assert.Equal(IWorkCellKind.Empty, cell.Kind));
                 Assert.Equal(anchorDecimal ? "." : ",", result.Value.Settings.DecimalSymbol);
             } else {
-                using var result = source.ToPowerPointPresentationResult(policy);
+                using var result = source.ToPowerPointDocumentResult(policy);
                 Assert.False(result.IsVisualFallback);
                 Assert.Equal(anchorDecimal, result.Report.Diagnostics.Any(d => d.Code == "IWORK_KEYNOTE_DECIMAL_TAB_SYMBOL_OMITTED"));
             }

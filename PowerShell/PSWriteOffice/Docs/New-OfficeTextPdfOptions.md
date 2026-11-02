@@ -9,9 +9,9 @@ schema: 2.0.0
 Creates literal text decoding and PDF layout settings for Export-OfficeDocumentPdf.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
-New-OfficeTextPdfOptions [-EncodingName <string>] [-TabSize <int>] [-MaximumCharacters <int>] [-MaximumPages <int>] [-PdfOptions <PdfOptions>] [<CommonParameters>]
+New-OfficeTextPdfOptions [-EncodingName <string>] [-TabSize <int>] [-MaximumCharacters <int>] [-MaximumPages <int>] [-PdfOptions <PdfCreateOptions>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -33,7 +33,7 @@ Explicit encoding; otherwise use a Unicode BOM or strict UTF-8.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Maximum decoded and expanded characters.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Maximum generated pages.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -80,8 +80,8 @@ Accept wildcard characters: False
 PDF fonts and page geometry; default is ten-point Courier.
 
 ```yaml
-Type: PdfOptions
-Parameter Sets: __AllParameterSets
+Type: PdfCreateOptions
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Source columns per tab stop.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -117,7 +117,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Pdf.PdfPlainTextOptions`
+- `OfficeIMO.Pdf.PdfTextImportOptions`
 
 ## RELATED LINKS
 

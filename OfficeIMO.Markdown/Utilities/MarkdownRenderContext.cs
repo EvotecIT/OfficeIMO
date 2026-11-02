@@ -4,14 +4,14 @@ namespace OfficeIMO.Markdown;
 /// Ambient render context so nested markdown renderers can honor active markdown write options.
 /// </summary>
 internal static class MarkdownRenderContext {
-    private static readonly System.Threading.AsyncLocal<MarkdownWriteOptions?> s_Options = new();
+    private static readonly System.Threading.AsyncLocal<MarkdownSaveOptions?> s_Options = new();
     private static readonly System.Threading.AsyncLocal<MarkdownWriteContext?> s_WriteContext = new();
 
-    internal static MarkdownWriteOptions? Options => s_Options.Value;
+    internal static MarkdownSaveOptions? Options => s_Options.Value;
     internal static MarkdownWriteContext? WriteContext => s_WriteContext.Value;
     internal static void ThrowIfCancellationRequested() => WriteContext?.CancellationToken.ThrowIfCancellationRequested();
 
-    internal static IDisposable Push(MarkdownWriteOptions options) {
+    internal static IDisposable Push(MarkdownSaveOptions options) {
         var prior = s_Options.Value;
         var priorContext = s_WriteContext.Value;
         s_Options.Value = options;
@@ -28,10 +28,10 @@ internal static class MarkdownRenderContext {
     }
 
     private readonly struct Popper : System.IDisposable {
-        private readonly MarkdownWriteOptions? _prior;
+        private readonly MarkdownSaveOptions? _prior;
         private readonly MarkdownWriteContext? _priorContext;
 
-        public Popper(MarkdownWriteOptions? prior, MarkdownWriteContext? priorContext) {
+        public Popper(MarkdownSaveOptions? prior, MarkdownWriteContext? priorContext) {
             _prior = prior;
             _priorContext = priorContext;
         }

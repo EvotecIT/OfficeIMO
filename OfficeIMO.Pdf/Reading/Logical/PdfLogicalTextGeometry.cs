@@ -10,6 +10,7 @@ public enum PdfLogicalContentSourceKind {
 }
 
 /// <summary>Immutable bounds in top-left visual page coordinates.</summary>
+/// <remarks>Visual coordinates are numeric physical points (1/72 inch), with a top-left origin after crop, rotation and /UserUnit scaling. Use the page coordinate mapping methods when calling native read/edit APIs.</remarks>
 public sealed class PdfLogicalVisualBounds {
     internal PdfLogicalVisualBounds(double left, double top, double right, double bottom) {
         Left = left;

@@ -15,8 +15,8 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void GeneratedPageLimitStopsLayoutBeforeCreatingAnotherPage() {
-        var options = new PdfOptions {
-            PageHeight = 180, MarginTop = 24, MarginBottom = 24, MaxGeneratedPages = 1
+        var options = new PdfCreateOptions {
+            PageHeight = global::OfficeIMO.OfficeLength.Points(180), MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), MaxGeneratedPages = 1
         };
         PdfDocument document = PdfDocument.Create(options)
             .Paragraph(p => p.Text(string.Join(" ", Enumerable.Repeat("A long paragraph", 80))));
@@ -27,8 +27,8 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void GeneratedPageLimitCountsDiscardedSpacerPages() {
-        var options = new PdfOptions {
-            PageHeight = 180, MarginTop = 24, MarginBottom = 24, MaxGeneratedPages = 2
+        var options = new PdfCreateOptions {
+            PageHeight = global::OfficeIMO.OfficeLength.Points(180), MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), MaxGeneratedPages = 2
         };
         PdfDocument document = PdfDocument.Create(options)
             .Spacer(100_000)
@@ -42,8 +42,8 @@ public partial class PdfDocumentVisualQualityTests {
     public void GeneratedPageLimitAlsoAppliesToPagesComposedBeforeSettings() {
         PdfDocument document = PdfDocument.Create(_ => { });
         document.Compose(compose => compose.Page(page => page
-            .Size(300, 180)
-            .Margin(24)
+            .Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(180))
+            .Margin(global::OfficeIMO.OfficeLength.Points(24))
             .Content(content => content.Item(item => item.Paragraph(paragraph =>
                 paragraph.Text(string.Join(" ", Enumerable.Repeat("A long paragraph", 80))))))));
         document.Compose(compose => compose.Settings(settings => settings.MaxGeneratedPages = 1));
@@ -53,7 +53,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void GeneratedOutputLimitStopsSerializationBeforeTheBufferGrows() {
-        var options = new PdfOptions { MaxGeneratedOutputBytes = 128 };
+        var options = new PdfCreateOptions { MaxGeneratedOutputBytes = 128 };
         PdfDocument document = PdfDocument.Create(options).Paragraph(p => p.Text("Bounded output"));
 
         Assert.Equal(128L, options.Clone().MaxGeneratedOutputBytes);
@@ -63,8 +63,8 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Options_RejectInvalidPageGeometryAndTypography() {
         var widthException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
-                    PageWidth = 0
+            PdfDocument.Create(new PdfCreateOptions {
+                    PageWidth = global::OfficeIMO.OfficeLength.Points(0)
                 })
                 .Paragraph(p => p.Text("Invalid page width"))
                 .ToBytes());
@@ -72,8 +72,8 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("PDF page width must be a positive finite value.", widthException.Message, StringComparison.Ordinal);
 
         var marginException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
-                    MarginLeft = -1
+            PdfDocument.Create(new PdfCreateOptions {
+                    MarginLeft = global::OfficeIMO.OfficeLength.Points(-1)
                 })
                 .Paragraph(p => p.Text("Invalid margin"))
                 .ToBytes());
@@ -81,10 +81,10 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("PDF left margin must be a non-negative finite value.", marginException.Message, StringComparison.Ordinal);
 
         var contentWidthException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
-                    PageWidth = 100,
-                    MarginLeft = 50,
-                    MarginRight = 50
+            PdfDocument.Create(new PdfCreateOptions {
+                    PageWidth = global::OfficeIMO.OfficeLength.Points(100),
+                    MarginLeft = global::OfficeIMO.OfficeLength.Points(50),
+                    MarginRight = global::OfficeIMO.OfficeLength.Points(50)
                 })
                 .Paragraph(p => p.Text("No content width"))
                 .ToBytes());
@@ -92,10 +92,10 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("PDF margins must leave a positive content width.", contentWidthException.Message, StringComparison.Ordinal);
 
         var contentHeightException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
-                    PageHeight = 100,
-                    MarginTop = 60,
-                    MarginBottom = 40
+            PdfDocument.Create(new PdfCreateOptions {
+                    PageHeight = global::OfficeIMO.OfficeLength.Points(100),
+                    MarginTop = global::OfficeIMO.OfficeLength.Points(60),
+                    MarginBottom = global::OfficeIMO.OfficeLength.Points(40)
                 })
                 .Paragraph(p => p.Text("No content height"))
                 .ToBytes());
@@ -103,8 +103,8 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("PDF margins must leave a positive content height.", contentHeightException.Message, StringComparison.Ordinal);
 
         var fontException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
-                    DefaultFontSize = double.NaN
+            PdfDocument.Create(new PdfCreateOptions {
+                    DefaultFontSize = global::OfficeIMO.OfficeLength.Zero
                 })
                 .Paragraph(p => p.Text("Invalid font size"))
                 .ToBytes());
@@ -112,7 +112,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("PDF default font size must be a positive finite value.", fontException.Message, StringComparison.Ordinal);
 
         var defaultFontException = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new PdfOptions {
+            new PdfCreateOptions {
                 DefaultFont = (PdfStandardFont)99
             });
 
@@ -120,10 +120,10 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("PDF default font must be one of the supported standard PDF fonts.", defaultFontException.Message, StringComparison.Ordinal);
 
         var headerException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
+            PdfDocument.Create(new PdfCreateOptions {
                     ShowHeader = true,
                     HeaderFormat = "Header",
-                    HeaderFontSize = double.NaN
+                    HeaderFontSize = global::OfficeIMO.OfficeLength.Zero
                 })
                 .Paragraph(p => p.Text("Invalid header font size"))
                 .ToBytes());
@@ -131,7 +131,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("PDF header font size must be a positive finite value.", headerException.Message, StringComparison.Ordinal);
 
         var headerFontException = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new PdfOptions {
+            new PdfCreateOptions {
                 HeaderFont = (PdfStandardFont)99
             });
 
@@ -139,11 +139,11 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("PDF header font must be one of the supported standard PDF fonts.", headerFontException.Message, StringComparison.Ordinal);
 
         var headerOffsetException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
+            PdfDocument.Create(new PdfCreateOptions {
                     ShowHeader = true,
                     HeaderFormat = "Header",
-                    MarginTop = 20,
-                    HeaderOffsetY = 21
+                    MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+                    HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(21)
                 })
                 .Paragraph(p => p.Text("Header above page"))
                 .ToBytes());
@@ -151,7 +151,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("PDF header offset must not exceed the top margin when header content is enabled.", headerOffsetException.Message, StringComparison.Ordinal);
 
         var headerFormatException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
+            PdfDocument.Create(new PdfCreateOptions {
                     ShowHeader = true,
                     HeaderFormat = null!
                 })
@@ -161,7 +161,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("PDF header format cannot be null.", headerFormatException.Message, StringComparison.Ordinal);
 
         var headerAlignException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
+            PdfDocument.Create(new PdfCreateOptions {
                     ShowHeader = true,
                     HeaderFormat = "Header",
                     HeaderAlign = (PdfAlign)99
@@ -172,7 +172,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("PDF header alignment must be Left, Center, or Right.", headerAlignException.Message, StringComparison.Ordinal);
 
         var headerJustifyException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
+            PdfDocument.Create(new PdfCreateOptions {
                     ShowHeader = true,
                     HeaderFormat = "Header",
                     HeaderAlign = PdfAlign.Justify
@@ -183,9 +183,9 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("PDF header alignment must be Left, Center, or Right.", headerJustifyException.Message, StringComparison.Ordinal);
 
         var footerException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
+            PdfDocument.Create(new PdfCreateOptions {
                     ShowPageNumbers = true,
-                    FooterFontSize = double.PositiveInfinity
+                    FooterFontSize = global::OfficeIMO.OfficeLength.Zero
                 })
                 .Paragraph(p => p.Text("Invalid footer font size"))
                 .ToBytes());
@@ -193,7 +193,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("PDF footer font size must be a positive finite value.", footerException.Message, StringComparison.Ordinal);
 
         var footerFontException = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new PdfOptions {
+            new PdfCreateOptions {
                 FooterFont = (PdfStandardFont)99
             });
 
@@ -201,10 +201,10 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("PDF footer font must be one of the supported standard PDF fonts.", footerFontException.Message, StringComparison.Ordinal);
 
         var footerOffsetException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
+            PdfDocument.Create(new PdfCreateOptions {
                     ShowPageNumbers = true,
-                    MarginBottom = 20,
-                    FooterOffsetY = 21
+                    MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+                    FooterOffsetY = global::OfficeIMO.OfficeLength.Points(21)
                 })
                 .Paragraph(p => p.Text("Footer below page"))
                 .ToBytes());
@@ -212,7 +212,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("PDF footer offset must not exceed the bottom margin when footer content is enabled.", footerOffsetException.Message, StringComparison.Ordinal);
 
         var footerAlignException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
+            PdfDocument.Create(new PdfCreateOptions {
                     ShowPageNumbers = true,
                     FooterAlign = (PdfAlign)99
                 })
@@ -222,7 +222,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("PDF footer alignment must be Left, Center, or Right.", footerAlignException.Message, StringComparison.Ordinal);
 
         var footerJustifyException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfOptions {
+            PdfDocument.Create(new PdfCreateOptions {
                     ShowPageNumbers = true,
                     FooterAlign = PdfAlign.Justify
                 })
@@ -238,8 +238,8 @@ public partial class PdfDocumentVisualQualityTests {
             PdfDocument.Create()
                 .Compose(compose =>
                     compose.Page(page => {
-                        page.Size(200, 160);
-                        page.Margin(left: 100, top: 20, right: 100, bottom: 20);
+                        page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(160));
+                        page.Margin(left: global::OfficeIMO.OfficeLength.Points(100), top: global::OfficeIMO.OfficeLength.Points(20), right: global::OfficeIMO.OfficeLength.Points(100), bottom: global::OfficeIMO.OfficeLength.Points(20));
                         page.Content(content =>
                             content.Column(column =>
                                 column.Item().Paragraph(p => p.Text("No content width"))));
@@ -251,7 +251,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void DefaultOptions_UseProportionalHelveticaForPlainDocuments() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 ShowHeader = true,
                 HeaderFormat = "HeaderMarker",
                 ShowPageNumbers = true,

@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfReadDocument {
+internal sealed partial class PdfReadDocument {
     private static string? CombineFieldName(string? parentName, string? partialName) {
         if (string.IsNullOrEmpty(parentName)) {
             return string.IsNullOrEmpty(partialName) ? null : partialName;

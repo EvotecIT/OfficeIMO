@@ -43,7 +43,7 @@ public sealed class LegacyWordRunContent {
         Strike = source.Strike;
         Underline = source.Underline;
         VerticalPosition = source.VerticalPosition;
-        FontSizePoints = source.FontSizePoints;
+        FontSize = source.FontSizePoints.HasValue ? global::OfficeIMO.OfficeLength.Points(source.FontSizePoints.Value) : null;
         FontFamily = source.FontFamily;
         ColorHex = source.ColorHex;
         NoteIndex = source.NoteIndex;
@@ -61,8 +61,8 @@ public sealed class LegacyWordRunContent {
     public WordUnderlineStyle? Underline { get; }
     /// <summary>Gets the recovered vertical text position.</summary>
     public WordVerticalTextPosition? VerticalPosition { get; }
-    /// <summary>Gets the recovered font size in points.</summary>
-    public double? FontSizePoints { get; }
+    /// <summary>Gets the recovered font size.</summary>
+    public global::OfficeIMO.OfficeLength? FontSize { get; }
     /// <summary>Gets the recovered font family.</summary>
     public string? FontFamily { get; }
     /// <summary>Gets the recovered RGB color.</summary>
@@ -78,12 +78,13 @@ public sealed class LegacyWordImageContent {
     private readonly byte[] _source, _png;
     internal LegacyWordImageContent(LegacyWordImage source) {
         _source = source.SourceBytes; _png = source.PngBytes;
-        WidthPoints = source.WidthPoints; HeightPoints = source.HeightPoints;
+        Width = global::OfficeIMO.OfficeLength.Points(source.WidthPoints);
+        Height = global::OfficeIMO.OfficeLength.Points(source.HeightPoints);
     }
-    /// <summary>Gets the recovered graphic canvas width in points, before unsupported box overrides.</summary>
-    public double WidthPoints { get; }
-    /// <summary>Gets the recovered graphic canvas height in points, before unsupported box overrides.</summary>
-    public double HeightPoints { get; }
+    /// <summary>Gets the recovered graphic canvas width, before unsupported box overrides.</summary>
+    public global::OfficeIMO.OfficeLength Width { get; }
+    /// <summary>Gets the recovered graphic canvas height, before unsupported box overrides.</summary>
+    public global::OfficeIMO.OfficeLength Height { get; }
     /// <summary>Returns an independent copy of the original WPG1 source data.</summary>
     public byte[] GetSourceBytes() => (byte[])_source.Clone();
     /// <summary>Returns an independent copy of the recovered PNG image.</summary>
@@ -97,13 +98,13 @@ public sealed class LegacyWordStyleContent {
         Bold = source.Bold;
         Italic = source.Italic;
         Underline = source.Underline;
-        FontSizePoints = source.FontSizePoints;
+        FontSize = source.FontSizePoints.HasValue ? global::OfficeIMO.OfficeLength.Points(source.FontSizePoints.Value) : null;
         FontFamily = source.FontFamily;
         ColorHex = source.ColorHex;
         Alignment = source.Alignment;
-        LineSpacingPoints = source.LineSpacingPoints;
-        SpacingBeforePoints = source.SpacingBeforePoints;
-        SpacingAfterPoints = source.SpacingAfterPoints;
+        LineSpacing = source.LineSpacingPoints.HasValue ? global::OfficeIMO.OfficeLength.Points(source.LineSpacingPoints.Value) : null;
+        SpacingBefore = source.SpacingBeforePoints.HasValue ? global::OfficeIMO.OfficeLength.Points(source.SpacingBeforePoints.Value) : null;
+        SpacingAfter = source.SpacingAfterPoints.HasValue ? global::OfficeIMO.OfficeLength.Points(source.SpacingAfterPoints.Value) : null;
         PageBreakBefore = source.PageBreakBefore;
         KeepWithNext = source.KeepWithNext;
         KeepLinesTogether = source.KeepLinesTogether;
@@ -116,20 +117,20 @@ public sealed class LegacyWordStyleContent {
     public bool Italic { get; }
     /// <summary>Gets the recovered underline style.</summary>
     public WordUnderlineStyle? Underline { get; }
-    /// <summary>Gets the recovered font size in points.</summary>
-    public double? FontSizePoints { get; }
+    /// <summary>Gets the recovered font size.</summary>
+    public global::OfficeIMO.OfficeLength? FontSize { get; }
     /// <summary>Gets the recovered font family.</summary>
     public string? FontFamily { get; }
     /// <summary>Gets the recovered RGB color.</summary>
     public string? ColorHex { get; }
     /// <summary>Gets recovered paragraph alignment.</summary>
     public WordParagraphAlignment? Alignment { get; }
-    /// <summary>Gets recovered line spacing in points.</summary>
-    public double? LineSpacingPoints { get; }
-    /// <summary>Gets recovered spacing before the paragraph in points.</summary>
-    public double? SpacingBeforePoints { get; }
-    /// <summary>Gets recovered spacing after the paragraph in points.</summary>
-    public double? SpacingAfterPoints { get; }
+    /// <summary>Gets recovered physical line spacing.</summary>
+    public global::OfficeIMO.OfficeLength? LineSpacing { get; }
+    /// <summary>Gets recovered spacing before the paragraph.</summary>
+    public global::OfficeIMO.OfficeLength? SpacingBefore { get; }
+    /// <summary>Gets recovered spacing after the paragraph.</summary>
+    public global::OfficeIMO.OfficeLength? SpacingAfter { get; }
     /// <summary>Gets whether the style requests a page break before the paragraph.</summary>
     public bool PageBreakBefore { get; }
     /// <summary>Gets whether the style keeps a paragraph with the next paragraph.</summary>
@@ -149,9 +150,9 @@ public sealed class LegacyWordParagraphContent : LegacyWordBlockContent {
         PageBreakBefore = source.PageBreakBefore;
         KeepWithNext = source.KeepWithNext;
         KeepLinesTogether = source.KeepLinesTogether;
-        LineSpacingPoints = source.LineSpacingPoints;
-        SpacingBeforePoints = source.SpacingBeforePoints;
-        SpacingAfterPoints = source.SpacingAfterPoints;
+        LineSpacing = source.LineSpacingPoints.HasValue ? global::OfficeIMO.OfficeLength.Points(source.LineSpacingPoints.Value) : null;
+        SpacingBefore = source.SpacingBeforePoints.HasValue ? global::OfficeIMO.OfficeLength.Points(source.SpacingBeforePoints.Value) : null;
+        SpacingAfter = source.SpacingAfterPoints.HasValue ? global::OfficeIMO.OfficeLength.Points(source.SpacingAfterPoints.Value) : null;
         StyleName = source.StyleName;
     }
     /// <summary>Gets the combined paragraph text.</summary>
@@ -170,12 +171,12 @@ public sealed class LegacyWordParagraphContent : LegacyWordBlockContent {
     public bool KeepWithNext { get; }
     /// <summary>Gets whether the source requested keeping paragraph lines together.</summary>
     public bool KeepLinesTogether { get; }
-    /// <summary>Gets recovered line spacing in points.</summary>
-    public double? LineSpacingPoints { get; }
-    /// <summary>Gets recovered spacing before the paragraph in points.</summary>
-    public double? SpacingBeforePoints { get; }
-    /// <summary>Gets recovered spacing after the paragraph in points.</summary>
-    public double? SpacingAfterPoints { get; }
+    /// <summary>Gets recovered physical line spacing.</summary>
+    public global::OfficeIMO.OfficeLength? LineSpacing { get; }
+    /// <summary>Gets recovered spacing before the paragraph.</summary>
+    public global::OfficeIMO.OfficeLength? SpacingBefore { get; }
+    /// <summary>Gets recovered spacing after the paragraph.</summary>
+    public global::OfficeIMO.OfficeLength? SpacingAfter { get; }
     /// <summary>Gets the recovered source style name, when available.</summary>
     public string? StyleName { get; }
 }

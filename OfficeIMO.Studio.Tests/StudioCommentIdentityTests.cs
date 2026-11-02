@@ -184,12 +184,12 @@ public sealed class StudioCommentIdentityTests {
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "identity.pdf");
             byte[] bytes = sourceBytes ?? StudioCommentReviewTests.CreateSource();
-            if (restricted) bytes = PdfDocument.Load(bytes).Security.Encrypt(new("reader") {
+            if (restricted) bytes = PdfDocument.Load(new System.IO.MemoryStream(bytes)).Security.Encrypt(new("reader") {
                 OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.Print | PdfStandardPermissions.CopyContents | PdfStandardPermissions.Accessibility
             }).Pdf;
             if (duplicateNames) {
                 for (int page = 1; page <= 2; page++) {
-                    var document = PdfDocument.Load(bytes);
+                    var document = PdfDocument.Load(new System.IO.MemoryStream(bytes));
                     int id = document.Inspect().Annotations.First(annotation => annotation.PageNumber == page && annotation.Review?.IsReply != true && annotation.Subtype == "Text").ObjectNumber!.Value;
                     bytes = document.Annotations.Update(id, new() { Name = "duplicate-name" }).Bytes;
                 }

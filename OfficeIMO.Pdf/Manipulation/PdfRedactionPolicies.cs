@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 public enum PdfRedactionTextSelection {
     /// <summary>Select complete matching logical text blocks. This is the existing search behavior.</summary>
     LogicalBlocks,
-    /// <summary>Select matched encoded glyphs and reject ambiguous mappings or intersections with unselected text.</summary>
+    /// <summary>Remove exactly the matched encoded glyphs and keep the full mark over them. Refuses ambiguous mappings and text the mark would substantially cover.</summary>
     MatchedGlyphs
 }
 

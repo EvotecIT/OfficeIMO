@@ -20,7 +20,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///     Set-OfficeExcelChartAxis -CategoryTitle 'Week' -CategoryNumberFormat 'yyyy-mm-dd' -CategoryMinimum 46000 -CategoryMaximum 46090 -CategoryMajorUnit 14 -CategoryMinorUnit 7</code>
 ///   <para>Configures the chart's X axis through OfficeIMO's category/date-axis scale support while keeping the workbook chart object on the pipeline.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeExcelChartAxis")]
+[Cmdlet(VerbsCommon.Set, "OfficeExcelChartAxis", DefaultParameterSetName = "Default")]
 [Alias("ExcelChartAxis")]
 [OutputType(typeof(ExcelChart))]
 public sealed class SetOfficeExcelChartAxisCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
@@ -163,7 +163,7 @@ public sealed class SetOfficeExcelChartAxisCommand : PSWriteOffice.Cmdlets.Offic
             if (categoryGridlinesRequested || widthOnlyRequest) {
                 bool showMajor = ShowCategoryMajorGridlines.IsPresent || ShowCategoryMinorGridlines.IsPresent || categoryStyleRequested;
                 Chart.SetCategoryAxisGridlines(showMajor,
-                    ShowCategoryMinorGridlines.IsPresent, categoryGridlineColor, GridlineWidthPoints, AxisGroup);
+                    ShowCategoryMinorGridlines.IsPresent, categoryGridlineColor != null ? OfficeColor.Parse(categoryGridlineColor) : (OfficeColor?)null, GridlineWidthPoints.HasValue ? OfficeLength.Points(GridlineWidthPoints.Value) : (OfficeLength?)null, AxisGroup);
             }
 
             bool valueStyleRequested = !string.IsNullOrWhiteSpace(valueGridlineColor) ||
@@ -171,7 +171,7 @@ public sealed class SetOfficeExcelChartAxisCommand : PSWriteOffice.Cmdlets.Offic
             if (valueGridlinesRequested || widthOnlyRequest) {
                 bool showMajor = ShowValueMajorGridlines.IsPresent || ShowValueMinorGridlines.IsPresent || valueStyleRequested;
                 Chart.SetValueAxisGridlines(showMajor,
-                    ShowValueMinorGridlines.IsPresent, valueGridlineColor, GridlineWidthPoints, AxisGroup);
+                    ShowValueMinorGridlines.IsPresent, valueGridlineColor != null ? OfficeColor.Parse(valueGridlineColor) : (OfficeColor?)null, GridlineWidthPoints.HasValue ? OfficeLength.Points(GridlineWidthPoints.Value) : (OfficeLength?)null, AxisGroup);
             }
 
             WritePassThru(Chart);

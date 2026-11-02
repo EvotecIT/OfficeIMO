@@ -5,6 +5,114 @@
 
 `OfficeIMO.Core` is the zero-dependency shared foundation for OfficeIMO packages. It owns common document lifecycle and package-safety contracts, neutral tabular row mapping, color conversion, image metadata, font and text measurement, vector scenes, reusable ink and math models, chart snapshots, SVG, raster canvases, PNG/JPEG/TIFF/WebP encoding, and drawing-quality primitives. Format packages keep their file-format behavior while reusing these document-agnostic models and renderers.
 
+## Lengths, colors and themes
+
+`OfficeLength` stores whole EMUs and makes units explicit. Parsing and formatting
+use invariant culture; a bare number means points. Fractional EMUs round to the
+nearest whole EMU, with midpoint ties away from zero. Arithmetic throws on
+overflow. `ToString()` displays points with up to four decimals and no trailing
+zeros. Unit formats (`pt`, `cm`, `mm`, `in`, `px`) use the same display precision;
+`emu` preserves the exact whole-EMU value for parsing back without loss.
+`ToTwips()` and `ToHalfPoints()` perform coarser rounding when writing a
+format; they do not change the stored length.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Drawing;
+
+OfficeLength width = OfficeLength.Parse("2.5cm");
+OfficeLength padding = OfficeLength.Points(6);
+OfficeLength total = width + padding * 2;
+string display = total.ToString();            // "82.8661pt"
+string exact = total.ToString("emu");         // "1052400emu", exact round trip
+string centimeters = total.ToString("cm");    // "2.9233cm"
+
+OfficeTheme theme = OfficeTheme.Modern.WithPalette(
+    OfficeTheme.Modern.Palette.With(accent1: OfficeColor.Parse("#3458A4")));
+OfficeColor accent = OfficeColor.Parse("Accent1");
+OfficeColor rgb = accent.Resolve(theme);
+```
+
+`OfficeColor` keeps literal RGBA colors and semantic roles in the same value type.
+`Accent1` through `Accent6`, `Text`, `TextMuted` and `Background` expose native theme
+slot identities through `ThemeSlot`. `Success`, `Warning` and `Danger` have no
+native slot and resolve to literal palette colors. Keep a role intact when writing
+native theme references; call `Resolve(theme)` before reading RGBA channels or
+formatting a literal hexadecimal/CSS color. `ToString()` preserves a role name.
+Palette entries must be literal, preventing circular role references.
+
+`OfficeColor.FromNormalizedRgb(r, g, b, alpha: 255)` retains finite RGB values in
+the inclusive 0..1 range. `ToNormalizedRgb()` returns those values as a named
+`(double R, double G, double B)` tuple; resolve theme roles before calling it.
+The byte constructor, `FromRgb`, `FromRgba` and the `R`, `G`, `B`, `A` getters
+keep their 0..255 units. Normalized literals project RGB to the nearest byte,
+with midpoint ties to even, when byte channels are requested.
+
+```csharp
+OfficeColor precise = OfficeColor.FromNormalizedRgb(0.125, 0.5, 0.9, alpha: 17);
+var channels = precise.ToNormalizedRgb();     // (0.125, 0.5, 0.9)
+byte red = precise.R;                        // 32, the byte projection
+string css = precise.ToCssColor();           // "#2080e611", also a byte projection
+```
+
+`ToHex`, `ToRgbHex`, `ToArgbHex`, `ToCssColor` and literal `ToString()` output
+describe the byte projection. Parsing that output does not recover normalized
+precision. Existing hexadecimal/CSS parsing, color transforms and byte-based
+rendering keep their byte behavior; use `ToNormalizedRgb()` at boundaries that
+need the retained values. Equality and hashing include precise RGB values and
+byte alpha. An exact `byte / 255D` RGB triple equals its byte-constructed
+counterpart and has the same hash; different precise values can share a byte
+projection without being equal.
+
+`OfficeTheme.Default` is `Modern`. `Classic`, `Minimal`, `Boardroom` and `Dark` are
+also available. A theme contains `Palette`, `Fonts`, `TypeScale`, `TableStyle`,
+`ChartStyle` and `Spacing`. Top-level `WithPalette`, `WithFonts`, `WithTypeScale`,
+`WithTableStyle`, `WithChartStyle` and `WithSpacing` methods return customized
+copies. Each component has a `With(...)` method with optional named replacements.
+All components are immutable, and fallback-font and series-color lists are copied.
+Core describes the identity; document packages apply it to their own formats.
+
+`OfficeChartType` includes the existing flat renderer families and native 3-D,
+stock, surface and modern chart families. `Column` and `Bar` mean clustered
+columns and bars. `OfficeAlignment` describes shared horizontal alignment,
+including direction-dependent `Start` and `End`. `OfficeImageFormat` and
+`OfficePageOrientation` retain their existing Core definitions. A format's
+supported subset remains part of that format's contract.
+
+`OfficeChartOptions` carries a chart's title, width and height across Word, Excel
+and PowerPoint. Pass it after the chart type and data, or after the category
+selector in a typed chart call. `WordChartOptions` adds rounded corners,
+`ExcelChartOptions` adds the worksheet row and column, and
+`PowerPointChartOptions` adds slide placement and accessibility. Omitting options
+keeps each format's native drawing defaults.
+
+## Conversion diagnostics
+
+`OfficeConversionReport` records a completed conversion's `Source`, `Target`,
+optional `OutputPath`, `ItemsWritten`, `Elapsed` and immutable `Diagnostics`.
+Unreadable input, invalid arguments and I/O failures throw from converters.
+`HasLoss` includes approximation, omission and unassessed fidelity; call
+`ThrowIfLoss()` when the application requires conversion without reported loss.
+The resulting `OfficeConversionException` carries the report.
+
+`OfficeConversionResult<T>` carries a converted `Value` together with its
+`OfficeConversionReport` for asynchronous conversions. `HasLoss` reads the
+report's loss state, and deconstruction exposes both values:
+
+```csharp
+var report = new OfficeConversionReport("Word", "Text");
+var result = new OfficeConversionResult<string>("Converted text", report);
+var (text, conversionReport) = result;
+conversionReport.ThrowIfLoss();
+```
+
+Each `OfficeDiagnostic` has a stable `Code`, `Severity`, `Message`, optional
+`Location` and `Format`, and a separate `LossKind`. Severity alone does not establish
+loss: a warning may require review without losing content, and an informational
+finding may describe content that was not preserved. `OfficeDiagnosticCodes` is
+the shared code catalog. For example, `OfficeDiagnosticCodes.ChartFlattened` is
+`chart-flattened` across formats.
+
 ## Bounded embedded payload reads
 
 Native document owners create `OfficeEmbeddedPayloadInspection` sessions through
@@ -89,8 +197,9 @@ var project = OfficeVbaProject.Create("Automation");
 project.AddModule("Helpers",
     "Public Function Value() As Long\r\nValue = 42\r\nEnd Function\r\n");
 project.AddModule("Counter", "Public Count As Long\r\n", OfficeVbaModuleKind.Class);
-project.AddRegisteredReference("Office",
+OfficeVbaReference office = project.AddRegisteredReference("Office",
     new Guid("2DF8D04C-5BFA-101B-BDE5-00AA0044DE52"), 2, 8);
+Console.WriteLine(office.Name);
 File.WriteAllBytes("vbaProject.bin", project.Write().GetBytes());
 
 var loaded = OfficeVbaProject.Load(File.ReadAllBytes("vbaProject.bin"));
@@ -164,6 +273,17 @@ font measurement and equation construction. These options do not execute scripts
 require an external rendering engine.
 
 ## Per-column row mapping
+
+Automatic `reader.RowsAs<T>()` also supports positional records. Column names and
+aliases bind to public properties, then their matching constructor parameters.
+Getter-only record properties and record structs use the same constructor plan.
+An explicit public parameterless constructor retains its existing path. Plain
+value models without public constructors use default construction and assignments.
+Constructor-bound models require every mandatory constructor column.
+Optional parameters use their declared defaults. Constructor validation runs once;
+its assigned values are retained. Ambiguous constructors require a caller factory.
+Culture, custom conversion and redacted mapping errors apply to constructor values
+as they do to mutable properties. Async and ordered parallel reads use the same plan.
 
 `RowMapper<T>` in `OfficeIMO.Data` provides explicit assignments for any
 `DbDataReader`. CSV and Excel use this shared mapper. `FromColumns` tries aliases
@@ -302,7 +422,7 @@ is unsupported; ordinary models continue to use `RowsAs<T>` and `RowMapper<T>`.
 
 ## Image export density
 
-`OfficeImageExportOptions.UseQuality(...)` and fluent `WithQuality(...)` select shared density presets: `Preview` is 96 DPI, `Screen` is 192 DPI, and `Print` is 300 DPI. They retain the selected fonts, layout, format, and safety limits. Clear `TargetDpi` when setting `Scale` directly; fluent `WithScale(...)` clears it automatically. Each document adapter defines its logical units per inch.
+`OfficeImageExportOptions.UseQuality(...)` selects shared density presets: `Preview` is 96 DPI, `Screen` is 192 DPI, and `Print` is 300 DPI. The presets retain the selected fonts, layout, format, and safety limits. Clear `TargetDpi` when setting `Scale` directly. Each document adapter defines its logical units per inch.
 
 `OfficeDrawing.ExportImage(format, options)` exports a detached drawing through the same raster limits, density metadata, codecs, deadline, and diagnostic policy. Raster output is rendered at the requested density. SVG retains vector geometry and text; it cannot add detail to embedded raster images. Register regular and bold font faces for consistent measurement and output across machines.
 
@@ -1034,11 +1154,11 @@ The request preserves aspect ratio, avoids upscaling, keeps the original when re
 
 `OfficeRasterExportPlanner` is the shared pre-allocation owner for image export. It combines the caller's `MaximumRasterPixels` with renderer and encoder dimension/pixel limits, then either reduces scale with `IMAGE_RASTER_SCALE_REDUCED` or throws `OfficeImageExportLimitException`, according to `RasterOverflowBehavior`. The returned plan also owns the effective encoding settings: `CreateEncodingOptions()` reduces encoded density with the raster scale so safety limits preserve the document's physical size. Explicit top-level `DpiX`/`DpiY` values apply across formats; when those values are not assigned, format-specific PNG, JPEG, and TIFF density remains authoritative. Drawing's managed PNG and APNG, JPEG, classic unsigned 8/12/16-bit or finite floating 16/24/32/64-bit grayscale/RGB/RGBA/device-CMYK TIFF and 8-bit palette TIFF, uncompressed BMP, composited GIF, and ordinary lossless VP8L and lossy VP8 WebP paths (including raw or lossless-compressed separate alpha planes) enforce encoded-payload and decoded-pixel guards. TIFF accepts both byte orders, chunky or planar strips and tiles with uncompressed, LZW, PackBits, or Deflate payloads and integer or floating-point horizontal prediction; sample and associated-alpha precision is retained until eight-bit RGBA output or ICC conversion. Packed twelve-bit samples require Predictor 1. Mixed component widths and reversed bit order outside CCITT are rejected; arbitrary page selection and bounded multi-page writing use the same page contract. Floating TIFF values are normalized device components, with explicit ICC conversion when supplied and clipping to the SDR range at output; they do not implicitly declare linear scRGB or request automatic scientific-data rescaling. Non-finite color or alpha samples are rejected; unspecified extra channels and tile padding are ignored. TIFF also supports packed grayscale/palette samples, CCITT T.4/T.6 including the optional uncompressed mode, and baseline eight-bit, Huffman/arithmetic extended-sequential eight/twelve-bit or Huffman/arithmetic lossless two-through-sixteen-bit JPEG payloads. Bounded legacy compression-6 interchange images and table-pointer scans retain the eight/twelve/sixteen-bit contract; see the [TIFF support and qualification boundaries](../OfficeIMO.Xps/SUPPORT.md). BigTIFF, animated WebP pixel decoding, and unsupported JPEG-in-TIFF processes remain caller-codec boundaries. `OfficeRasterImageFallbackCodec` can wrap an application codec at the final raster boundary. It reports `IMAGE_SOURCE_DECODED_BY_CALLER_CODEC` when that codec succeeds; if neither Drawing nor the application can decode a source image, it returns a visible placeholder and `IMAGE_SOURCE_DECODE_FALLBACK` instead of allowing the renderer to omit the image silently.
 
-Every format package builds on the same fluent export contract. `FitWithin(width, height)`, `FitWithinWidth(...)`, and `FitWithinHeight(...)` cap both raster and SVG output without enlarging smaller content. `ConfigureOptions(...)` exposes the complete provider-specific option object when no dedicated fluent shortcut exists. Batch limits, cancellation, progress, and `WithRenderTimeout(...)` apply to the complete operation, including streaming saves. Each batch result reports its zero-based `SequenceIndex`; `SequenceCount` is populated when the total is known before streaming or after a fluent builder materializes the complete result list.
+Format image operations share the same export options. Set `MaximumOutputWidth` and `MaximumOutputHeight` to cap raster and SVG output without enlarging smaller content. Format-specific options carry the remaining rendering settings. Batch limits, cancellation, progress and `RenderTimeout` apply to the complete operation, including streaming saves. Each batch result reports its zero-based `SequenceIndex`; `SequenceCount` is populated when the total is known before streaming or after materializing the complete result list.
 
 ### Managed multilingual shaping
 
-For raster complex text, set `TextShapingProvider` and optionally `TextShapingLanguage` on the shared image-export options, or use `WithTextShaping(...)` on a fluent builder. `OfficeManagedTextShapingProvider.Instance` uses the font programs in Core without another runtime dependency. Its horizontal static TrueType and OpenType/CFF profile covers font-selected Arabic joining forms, required lam-alef ligatures, contextual substitutions and mark attachment, together with Hebrew and Latin combining marks. The font's script and language features select the actual glyphs; family names alone do not establish shaping support.
+For raster complex text, set `TextShapingProvider` and optionally `TextShapingLanguage` on the shared image-export options. `OfficeManagedTextShapingProvider.Instance` uses the font programs in Core without another runtime dependency. Its horizontal static TrueType and OpenType/CFF profile covers font-selected Arabic joining forms, required lam-alef ligatures, contextual substitutions and mark attachment, together with Hebrew and Latin combining marks. The font's script and language features select the actual glyphs; family names alone do not establish shaping support.
 
 The shared owner applies GDEF filtering, mark-to-base, mark-to-ligature and mark-to-mark positioning, and supported pair adjustments. Joining controls affect Arabic context; CGJ retains its mark-ordering boundary. Retained nonpainting controls have zero advance and use a verified blank glyph. Font-directed canonical composition and Arabic mark ordering preserve the complete original Unicode source. Composition follows the native shaping profile and can cross a lower-class intervening mark, so this is not a claim of complete UAX #53 conformance.
 
@@ -1051,6 +1171,7 @@ The multilingual mark profile is bounded to static fonts and supported GSUB/GPOS
 ### Deterministic text measurement
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Drawing;
 
 var measurer = OfficeTextMeasurer.Create();
@@ -1185,6 +1306,7 @@ foreach (OfficeConversionCapability route in
 ### Build a reusable vector scene
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Drawing;
 
 var drawing = new OfficeDrawing(width: 420, height: 180)
@@ -1292,17 +1414,17 @@ var styledStop = new OfficeTextTabStop(180).WithLeader(".").WithLeaderStyle(
     new OfficeTextTabLeaderStyle(fontSizeFactor: 1.5, color: OfficeColor.Blue, italic: true));
 ```
 
-Unspecified properties inherit each actual tab run, including font family, bold/italic state, decorations and baseline. `fontSizePoints` overrides the relative multiplier and follows drawing scale and frame fitting. Color includes alpha by default; `inheritOpacity: true` keeps the active run's alpha, and an explicit `opacity` overrides either source. A transparent background override clears inherited background paint. The style is immutable, survives cloning and tinting, and has no effect on line leaders or a blank SPACE leader. Editing the glyph preserves its style; passing null to `WithLeaderStyle` removes only the formatting overrides. Unrepresentable relative font sizes suppress leader paint, report clipping and retain the body and tab advance.
+Unspecified properties inherit each actual tab run, including font family, bold/italic state, decorations and baseline. `fontSize` accepts an `OfficeLength`, overrides the relative multiplier and follows drawing scale and frame fitting. Color includes alpha by default; `inheritOpacity: true` keeps the active run's alpha, and an explicit `opacity` overrides either source. A transparent background override clears inherited background paint. The style is immutable, survives cloning and tinting, and has no effect on line leaders or a blank SPACE leader. Editing the glyph preserves its style; passing null to `WithLeaderStyle` removes only the formatting overrides. Unrepresentable relative font sizes suppress leader paint, report clipping and retain the body and tab advance.
 
 Use `WithLineLeader` for vector paint that adds no characters to extracted text:
 
 ```csharp
 var ruledStop = new OfficeTextTabStop(180).WithLineLeader(
     new OfficeTextTabLineLeader(OfficeTextTabLineLeaderStyle.DotDash,
-        doubleLine: true, widthPoints: 0.75, color: OfficeColor.Blue));
+        doubleLine: true, width: OfficeLength.Points(0.75), color: OfficeColor.Blue));
 ```
 
-Line leaders support solid, dotted, dash, long dash, dot dash, dot dot dash and wave patterns, with optional parallel double lines. `None` retains a blank gap. A null color uses the tab's active text color. An absolute `widthPoints` follows drawing scale; otherwise `widthFontFraction` follows the active rendered font size, including frame fitting. Patterns and their painted bounds share one layout plan across SVG, raster and PDF. A declared `LeaderText`, including SPACE, takes precedence; each editing method preserves the other declaration, and null clears only its own kind. Vector paint is bounded to 8,192 vertices per tab and 100,000 per text frame. Truncation reports clipping and retains field positions and body font sizes. Pattern spacing and wave outlines are an approximation profile, not a promise of identical typography across native producers.
+Line leaders support solid, dotted, dash, long dash, dot dash, dot dot dash and wave patterns, with optional parallel double lines. `None` retains a blank gap. A null color uses the tab's active text color. An absolute `width` accepts an `OfficeLength` and follows drawing scale; otherwise `widthFontFraction` follows the active rendered font size, including frame fitting. Patterns and their painted bounds share one layout plan across SVG, raster and PDF. A declared `LeaderText`, including SPACE, takes precedence; each editing method preserves the other declaration, and null clears only its own kind. Vector paint is bounded to 8,192 vertices per tab and 100,000 per text frame. Truncation reports clipping and retains field positions and body font sizes. Pattern spacing and wave outlines are an approximation profile, not a promise of identical typography across native producers.
 
 Affine effect groups contribute their transformed child bounds, not the dimensions
 of their temporary rendering buffers. Empty groups do not create overflow findings.
@@ -1315,12 +1437,12 @@ using OfficeIMO.Drawing;
 var snapshot = new OfficeChartSnapshot(
     name: "RevenueChart",
     title: "Revenue by quarter",
-    chartKind: OfficeChartKind.ColumnClustered,
+    chartKind: OfficeChartType.ColumnClustered,
     data: new OfficeChartData(
         new[] { "Q1", "Q2", "Q3", "Q4" },
         new[] {
-            new OfficeChartSeries("Revenue", new[] { 10d, 18d, 24d, 30d }),
-            new OfficeChartSeries("Forecast", new[] { 12d, 19d, 25d, 33d })
+            new OfficeSeries("Revenue", new[] { 10d, 18d, 24d, 30d }),
+            new OfficeSeries("Forecast", new[] { 12d, 19d, 25d, 33d })
         }),
     widthPoints: 420,
     heightPoints: 260);
@@ -1342,7 +1464,7 @@ var framedStyle = new OfficeChartStyle(
     legendBorderColor: OfficeColor.Parse("#375A7F"),
     legendBorderWidth: 1);
 var framedSnapshot = new OfficeChartSnapshot("RevenueChart", "Revenue by quarter",
-    OfficeChartKind.ColumnClustered, snapshot.Data, 420, 260, style: framedStyle);
+    OfficeChartType.ColumnClustered, snapshot.Data, 420, 260, style: framedStyle);
 OfficeDrawing framedChart = OfficeChartDrawingRenderer.Render(framedSnapshot);
 ```
 
@@ -1360,10 +1482,10 @@ do not gain false edge markers or labels. Data labels for visible points can ext
 
 ### Style individual chart points
 
-Use `OfficeChartSeries.WithSeriesStyle` for independent series fill and outline paint, and
+Use `OfficeSeries.WithSeriesStyle` for independent series fill and outline paint, and
 `WithPointStyles` for overrides aligned with the series values. Both use `OfficeChartPointStyle`.
 For example, `.WithSeriesStyle(new OfficeChartPointStyle(noFill: true,
-outlineColor: OfficeColor.Red, outlineWidth: 2, showOutline: true))` draws an unfilled area,
+outlineColor: OfficeColor.Red, outlineWidth: OfficeLength.Points(2), showOutline: true))` draws an unfilled area,
 column or bubble with a visible red outline. Point fills override inherited no-fill; outline-only
 point overrides keep the series fill policy. Line series use outline paint for their connecting
 line; their marker paint remains independent.
@@ -1371,10 +1493,10 @@ The returned series preserves its data and other settings. A null entry inherits
 colour; an explicit no-fill style leaves an outlined slice visible without changing its value.
 
 ```csharp
-var status = new OfficeChartSeries("Status", new[] { 8d, 2d, 1d })
+var status = new OfficeSeries("Status", new[] { 8d, 2d, 1d })
     .WithPointStyles(new OfficeChartPointStyle?[] {
         new(fillColor: OfficeColor.Parse("#168A56")),
-        new(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: 2,
+        new(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: OfficeLength.Points(2),
             outlineJoin: OfficeStrokeLineJoin.Round),
         new(hatch: OfficeChartHatchPattern.WideForwardDiagonal,
             hatchColor: OfficeColor.Parse("#7300A3"), outlineColor: OfficeColor.Black)
@@ -1398,11 +1520,11 @@ from the top, from 0 through 360 degrees; hole size is an inner-to-outer diamete
 percentage from 10 through 90, with a default of 50.
 
 ```csharp
-var series = new OfficeChartSeries("Status", new[] { 7d, 3d })
+var series = new OfficeSeries("Status", new[] { 7d, 3d })
     .WithPointExplosions(new[] { 25, 0 });
 var data = new OfficeChartData(new[] { "Complete", "Pending" }, new[] { series });
 var radial = new OfficeChartRadialLayout(firstSliceAngleDegrees: 90, doughnutHolePercent: 70);
-var snapshot = new OfficeChartSnapshot("Status", null, OfficeChartKind.Doughnut,
+var snapshot = new OfficeChartSnapshot("Status", null, OfficeChartType.Doughnut,
     data, 400, 300, null, new OfficeChartLayout(showLegend: false), radial);
 OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
 ```

@@ -5,7 +5,7 @@ namespace OfficeIMO.OpenDocument.Odg.Pdf;
 /// <summary>Controls page-preserving Draw-to-PDF conversion through the shared Drawing engine.</summary>
 public sealed class OdgToPdfOptions {
     /// <summary>PDF generation settings. Page sizes and margins come from the drawing pages.</summary>
-    public PdfOptions? PdfOptions { get; set; }
+    public PdfCreateOptions? PdfOptions { get; set; }
 
     /// <summary>Selects print-visible layers. Set false to use screen-visible layers.</summary>
     public bool ForPrint { get; set; } = true;

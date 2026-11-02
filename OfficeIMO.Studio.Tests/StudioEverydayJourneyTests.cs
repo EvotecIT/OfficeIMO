@@ -20,7 +20,7 @@ public sealed class StudioEverydayJourneyTests {
             string saved = Path.Combine(services.Paths.Root, "journey-reviewed.pdf");
             PdfDocument.Create(document => {
                 foreach (string text in new[] { "Introduction", "Quarterly results", "Appendix" }) {
-                    document.Page(page => page.Size(400, 560).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(text)))));
+                    document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(560)).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(text)))));
                 }
             }).Save(source);
             using var document = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services,

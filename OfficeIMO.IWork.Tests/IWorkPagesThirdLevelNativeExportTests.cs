@@ -69,7 +69,7 @@ public sealed class IWorkPagesThirdLevelNativeExportTests {
                 paths.Add(scenario.GetProperty("nativePdf").GetString()!);
             else paths.Add("pages-third-level-officeimo-docx-v15.4.pdf");
             foreach (string path in paths) {
-                var pdf = PdfReadDocument.Open(File.ReadAllBytes(Corpus(path))); Assert.Single(pdf.Pages);
+                var pdf = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(Corpus(path)))); Assert.Single(pdf.Pages);
                 string text = Regex.Replace(pdf.ExtractText(), @"\s+", string.Empty); int previous = -1;
                 foreach (JsonElement item in scenario.GetProperty("expectedItems").EnumerateArray()) {
                     string wanted = Regex.Replace(item.GetProperty("number").GetInt32()

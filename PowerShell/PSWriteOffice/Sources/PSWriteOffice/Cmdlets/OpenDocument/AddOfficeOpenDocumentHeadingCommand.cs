@@ -10,7 +10,7 @@ namespace PSWriteOffice.Cmdlets.OpenDocument;
 ///   <prefix>PS&gt; </prefix>
 ///   <code>Add-OfficeOpenDocumentHeading -Text 'Results' -Level 2</code>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeOpenDocumentHeading")]
+[Cmdlet(VerbsCommon.Add, "OfficeOpenDocumentHeading", DefaultParameterSetName = "Default")]
 [OutputType(typeof(OdtParagraph))]
 public sealed class AddOfficeOpenDocumentHeadingCommand : PSCmdlet {
     /// <summary>OpenDocument text document. Omit inside New-OfficeOpenDocument -Content.</summary>

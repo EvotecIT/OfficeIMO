@@ -26,7 +26,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.NotEqual(0, glyphId);
         Assert.Equal(0, advance);
         Assert.Equal(0D, face.Program.Measure(mark, 18D));
-        PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
         byte[] bytes = pdf.ToBytes();
         pdf.RequireNoLoss();
         Assert.Contains(pdf.Report.Warnings, warning => warning.Code == HtmlPdfDiagnosticCodes.FontProgramOutlined);

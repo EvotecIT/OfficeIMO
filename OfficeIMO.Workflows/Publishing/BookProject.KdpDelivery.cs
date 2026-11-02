@@ -30,7 +30,7 @@ public sealed partial class BookProject {
     /// </remarks>
     public byte[] ToKdpDeliveryBytes(byte[] listingCover, EpubWriteOptions? options = null,
         long maximumOutputBytes = MaximumKdpDeliveryBytes, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(listingCover);
+        if (listingCover == null) throw new ArgumentNullException(nameof(listingCover));
         if (maximumOutputBytes <= 0 || maximumOutputBytes > MaximumKdpDeliveryBytes)
             throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
         cancellationToken.ThrowIfCancellationRequested();

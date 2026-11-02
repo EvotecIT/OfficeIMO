@@ -28,7 +28,7 @@ var selected = recommendations
     .ThenBy(recommendation => recommendation.Design.Index)
     .First();
 
-using var presentation = PowerPointPresentation.Create("design-brief.pptx");
+using var presentation = PowerPointDocument.Create("design-brief.pptx");
 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
 PowerPointCompositionOptions composition = PowerPointCompositionOptions.FromBrief(brief);
@@ -259,6 +259,6 @@ Use `--powerpoint` to run the full PowerPoint example set and validate every gen
 | Composer presets | One slide needs custom structure but should not start from manual coordinates | `PowerPointCompositionPreset` |
 | Custom-plan context | One slide needs custom structure but should share deck styling | `PowerPointSlideCompositionContext` through `PowerPointDeckPlan.AddCustom(...)` |
 | Semantic slide | The content has a known shape such as process, case study, or card grid | `PowerPointDeckPlan` |
-| Deck composition | The caller wants to render the whole story with one fitting design | `PowerPointPresentation.Compose(...)` |
+| Deck composition | The caller wants to render the whole story with one fitting design | `PowerPointDocument.Compose(...)` |
 | Design brief | Brand, purpose, palette, and preferences should travel together | `PowerPointDesignBrief` |
 | Auto layout strategy | Auto variants should lean toward content fit, seeded variation, compactness, or visual proof | `PowerPointAutoLayoutStrategy` |

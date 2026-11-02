@@ -24,7 +24,7 @@ public sealed class WordPdfIdentifierTests {
         word.Position = 0;
         using WordDocument reopened = WordDocument.Load(word);
         Assert.Equal(identifier, WordPaperText.RemoveOptionalBreaks(reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text));
-        byte[] pdf = reopened.ToPdfDocument(new WordToPdfOptions { IncludePageNumbers = false }).ToBytes();
+        byte[] pdf = reopened.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes();
         string extracted = PdfReadDocument.Open(pdf).ExtractText().Trim();
         Assert.Equal(identifier, extracted);
         Assert.DoesNotContain('\u200B', extracted);
@@ -38,8 +38,9 @@ public sealed class WordPdfIdentifierTests {
 
     [Fact]
     public void CanvasLogicalText_AfterSharedAnchorExtraction_PreservesBoundedSelection() {
-        byte[] pdf = PdfDocument.Create().Canvas(canvas => canvas.ActualText("OriginalIdentifier", 20, 20, 120, 12,
-            paint => paint.Text("Painted glyphs", 20, 20, 120, 12))).ToBytes();
+        // The 12 pt box is sized for standard Helvetica metrics.
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { EmbedDefaultFonts = false }).Canvas(canvas => canvas.ActualText("OriginalIdentifier", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(12),
+            paint => paint.Text("Painted glyphs", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(12)))).ToBytes();
         Assert.Equal("OriginalIdentifier", PdfReadDocument.Open(pdf).ExtractText().Trim());
     }
 
@@ -50,8 +51,8 @@ public sealed class WordPdfIdentifierTests {
         const string identifier = "CorpKeyRecoveryAgent";
         const string uri = "https://example.test/template";
         string display = WordPaperText.WithIdentifierBreaks(identifier).Replace('\u200C', '\u200B');
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-            PageWidth = width + 40, MarginLeft = 20, MarginRight = 20,
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+            PageWidth = global::OfficeIMO.OfficeLength.Points(width + 40), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
         }.UseTextFallbacks()).Paragraph(paragraph => paragraph.Link(display, uri)).ToBytes();
         Assert.Equal(identifier, PdfReadDocument.Open(pdf).ExtractText().Trim());

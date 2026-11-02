@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfTextDiagnostics {
     /// <summary>Reuses the current writer descriptor without recording subset usage or provider coverage.</summary>
-    internal static PdfTextShapingOptions ForEncodingDiagnostics(PdfOptions options, string fontName,
+    internal static PdfTextShapingOptions ForEncodingDiagnostics(PdfCreateOptions options, string fontName,
         string source = "", OfficeTextFeatureSettings? featureSettings = null,
         OfficeTextDirection direction = OfficeTextDirection.Auto, bool preservesPaintedGlyphs = false) =>
         new(recordGlyphUsage: false, throwOnMissingGlyph: false, skipLayoutControls: true,
@@ -14,7 +14,7 @@ internal static partial class PdfTextDiagnostics {
             featureSettings: options.ResolveTextFeatureSettings(featureSettings), direction: direction,
             preservesPaintedGlyphs: preservesPaintedGlyphs);
 
-    internal static IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeGeneratedEncoding(string text, PdfOptions options,
+    internal static IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeGeneratedEncoding(string text, PdfCreateOptions options,
         PdfStandardFont font, string source, OfficeTextFeatureSettings? featureSettings,
         OfficeTextDirection direction, bool preservesPaintedGlyphs) {
         if (!PdfExternalTextShaper.RequiresCompleteDefaultLatinShaping(text))

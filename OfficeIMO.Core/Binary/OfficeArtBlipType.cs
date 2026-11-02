@@ -1,7 +1,7 @@
 namespace OfficeIMO.Drawing.Binary;
 
 /// <summary>Identifies the persistence format declared by an OfficeArt BLIP store entry.</summary>
-public enum OfficeArtBlipType {
+internal enum OfficeArtBlipType {
     /// <summary>The BLIP could not be read.</summary>
     Error = 0x00,
 
@@ -34,7 +34,7 @@ public enum OfficeArtBlipType {
 }
 
 /// <summary>Identifies where an OfficeArt BLIP record was found.</summary>
-public enum OfficeArtBlipStorage {
+internal enum OfficeArtBlipStorage {
     /// <summary>No BLIP record was available.</summary>
     None,
 

@@ -4,13 +4,13 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class BookProject {
     private static IReadOnlyList<XElement> BuildOnixSubjects(IReadOnlyList<BookOnixSubject> subjects, CancellationToken token) {
-        ArgumentNullException.ThrowIfNull(subjects);
+        if (subjects == null) throw new ArgumentNullException(nameof(subjects));
         if (subjects.Count > 64) throw new ArgumentException("Supply at most 64 ONIX subject declarations.", nameof(subjects));
         XNamespace ns = OnixNamespace;
         var result = new List<XElement>();
         var mainSchemes = new HashSet<(BookOnixSubjectScheme, string?)>();
         foreach (BookOnixSubject subject in subjects) {
-            token.ThrowIfCancellationRequested(); ArgumentNullException.ThrowIfNull(subject);
+            token.ThrowIfCancellationRequested(); if (subject == null) throw new ArgumentNullException(nameof(subject));
             string scheme = subject.Scheme switch {
                 BookOnixSubjectScheme.Dewey => "01", BookOnixSubjectScheme.LibraryOfCongressClassification => "03",
                 BookOnixSubjectScheme.LibraryOfCongressHeading => "04", BookOnixSubjectScheme.Bisac => "10",
@@ -24,7 +24,7 @@ public sealed partial class BookProject {
             else if (subject.SchemeName != null) throw new ArgumentException("Only proprietary subject schemes carry a scheme name.", nameof(subjects));
             if (subject.SchemeVersion != null) RequireOnixText(subject.SchemeVersion, nameof(subject.SchemeVersion));
             if (subject.Code != null) RequireOnixText(subject.Code, nameof(subject.Code));
-            ArgumentNullException.ThrowIfNull(subject.Headings);
+            if (subject.Headings == null) throw new ArgumentNullException("subject.Headings");
             if (subject.Headings.Count > 16 || subject.Code == null && subject.Headings.Count == 0 ||
                 subject.Scheme == BookOnixSubjectScheme.Keywords && subject.Code != null)
                 throw new ArgumentException("Subjects need a code or 1–16 headings; keywords use headings only.", nameof(subjects));
@@ -42,7 +42,7 @@ public sealed partial class BookProject {
             if (subject.Code != null) element.Add(new XElement(ns + "SubjectCode", subject.Code));
             var languages = new HashSet<string>(StringComparer.Ordinal);
             foreach (BookOnixSubjectHeading heading in subject.Headings) {
-                token.ThrowIfCancellationRequested(); ArgumentNullException.ThrowIfNull(heading);
+                token.ThrowIfCancellationRequested(); if (heading == null) throw new ArgumentNullException(nameof(heading));
                 RequireOnixText(heading.Text, nameof(heading.Text));
                 RequireOnixTranslationLanguage(heading.LanguageCode, subject.Headings.Count, nameof(subject.Headings));
                 if (!languages.Add(heading.LanguageCode ?? string.Empty))

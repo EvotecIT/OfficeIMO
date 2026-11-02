@@ -12,7 +12,7 @@ public sealed partial class IWorkBoundaryTests {
         bool presenterNotes) {
         using MemoryStream package = CreateKeynotePackageWithNestedList(presenterNotes);
 
-        using var result = IWorkSourceDocument.Open(package).ToPowerPointPresentationResult(
+        using var result = IWorkSourceDocument.Open(package).ToPowerPointDocumentResult(
             new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         PowerPointSlide slide = Assert.Single(result.Value.Slides);
         PowerPointParagraph[] paragraphs = (presenterNotes
@@ -31,7 +31,7 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+        using PowerPointDocument reopened = PowerPointDocument.Load(saved);
         PowerPointSlide persistedSlide = Assert.Single(reopened.Slides);
         PowerPointParagraph[] persisted = (presenterNotes
                 ? persistedSlide.Notes.Paragraphs

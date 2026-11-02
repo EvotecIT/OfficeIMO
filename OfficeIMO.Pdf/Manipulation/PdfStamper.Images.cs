@@ -81,8 +81,8 @@ internal static partial class PdfStamper {
 
         if (!PdfWriter.TryBuildImageStream(
                 prepared,
-                effectiveOptions.Width ?? Math.Max(1, prepared.Info.Width),
-                effectiveOptions.Height ?? Math.Max(1, prepared.Info.Height),
+                effectiveOptions.Width?.ToPoints() ?? Math.Max(1, prepared.Info.Width),
+                effectiveOptions.Height?.ToPoints() ?? Math.Max(1, prepared.Info.Height),
                 out var imageStream,
                 out string? unsupportedReason)) {
             throw new NotSupportedException(unsupportedReason ?? "Image format is not supported.");
@@ -110,7 +110,6 @@ internal static partial class PdfStamper {
                 cancellationToken.ThrowIfCancellationRequested();
                 int pageNumber = i + 1;
                 if (!selectedSet.Contains(pageNumber)) continue;
-                var size = document.Pages[i].GetPageSize();
                 if (!effectiveOptions.BehindContent) {
                     IsolateExistingContents(rewrittenObjects, pageObjectNumbers[i], ref nextObjectNumber);
                 }
@@ -120,8 +119,7 @@ internal static partial class PdfStamper {
                     0,
                     BuildImageStampStream(
                         imageResourceName,
-                        size.Width,
-                        size.Height,
+                        document.Pages[i],
                         imageStream.LayoutPixelWidth,
                         imageStream.LayoutPixelHeight,
                         imageStream.Orientation,

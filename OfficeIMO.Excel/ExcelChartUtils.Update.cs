@@ -42,7 +42,7 @@ namespace OfficeIMO.Excel {
                 + plotArea.Elements<Surface3DChart>().Count()
                 + plotArea.Elements<SurfaceChart>().Count();
 
-            ExcelChartType defaultType = InferChartType(plotArea);
+            OfficeChartType defaultType = InferChartType(plotArea);
             List<SeriesDescriptor> descriptors = BuildSeriesDescriptors(range, data, defaultType, useSeriesOverrides: chartElementCount > 1);
             ValidateSingleSeriesPieVariants(descriptors);
 

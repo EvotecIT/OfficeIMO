@@ -285,7 +285,7 @@ public sealed class StudioShellStabilityTests {
             Assert.True(tab.ShowRecentPreviews);
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "private.pdf");
-            PdfDocument.Create(document => document.Page(page => page.Size(200, 300).Content(content =>
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)).Content(content =>
                 content.Item(item => item.Paragraph(text => text.Text("Private")))))).Save(source);
             var recent = new RecentDocumentViewModel(source, DateTimeOffset.UtcNow);
             tab.RecentDocuments.Add(recent);
@@ -313,7 +313,7 @@ public sealed class StudioShellStabilityTests {
         services: services);
 
     private static string CreateDocument(string path) {
-        PdfDocument.Create(compose => compose.Page(page => page.Size(420D, 620D))).Save(path);
+        PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(420D), global::OfficeIMO.OfficeLength.Points(620D)))).Save(path);
         return Path.GetFullPath(path);
     }
 

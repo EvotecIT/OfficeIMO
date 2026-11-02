@@ -51,7 +51,7 @@ public partial class HtmlWordGapClosure {
         WordParagraph shadedRun = Assert.Single(shadedParagraph.GetRuns());
         shadedRun.RunShadingFillColorHex = "ABCDEF";
 
-        string html = document.ToHtml(new WordToHtmlOptions { IncludeRunHighlightStyles = true });
+        string html = document.ToHtml(new WordHtmlExportOptions { IncludeRunHighlightStyles = true });
 
         Assert.Contains("background-color:#ffff00", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("background-color:#abcdef", html, StringComparison.OrdinalIgnoreCase);

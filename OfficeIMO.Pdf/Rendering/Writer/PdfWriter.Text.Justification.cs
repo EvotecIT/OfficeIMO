@@ -26,7 +26,7 @@ internal static partial class PdfWriter {
 
     /// <summary>Plans one physical line's glyph and separator advances for paint and paint diagnostics.</summary>
     private static RichLineJustification PlanRichLineJustification(List<RichSeg> segments,
-        PdfAlign alignment, PdfParagraphStyle? style, double availableWidth, bool isFinalParagraphLine, PdfOptions options) {
+        PdfAlign alignment, PdfParagraphStyle? style, double availableWidth, bool isFinalParagraphLine, PdfCreateOptions options) {
         if (alignment == PdfAlign.Justify &&
             TryApplyWordCompressionPlan(segments, availableWidth, out RichLineJustification compression))
             return compression;

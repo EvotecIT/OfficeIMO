@@ -406,8 +406,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return false;
                 }
 
-                string start = A1.CellReference(firstRow + 1, firstColumn + 1);
-                string end = A1.CellReference(lastRow + 1, lastColumn + 1);
+                string start = ExcelA1.CellReference(firstRow + 1, firstColumn + 1);
+                string end = ExcelA1.CellReference(lastRow + 1, lastColumn + 1);
                 parsedRanges.Add(start == end ? start : start + ":" + end);
             }
 
@@ -516,21 +516,21 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             if (normalized.IndexOf(':') >= 0) {
-                if (!A1.TryParseRange(normalized, out int startRow, out int startColumn, out int endRow, out int endColumn)) {
+                if (!ExcelA1.TryParseRange(normalized, out int startRow, out int startColumn, out int endRow, out int endColumn)) {
                     return false;
                 }
 
-                string start = A1.CellReference(startRow, startColumn);
-                string end = A1.CellReference(endRow, endColumn);
+                string start = ExcelA1.CellReference(startRow, startColumn);
+                string end = ExcelA1.CellReference(endRow, endColumn);
                 sourceRange = start == end ? start : start + ":" + end;
                 return true;
             }
 
-            if (!A1.TryParseCellReferenceFast(normalized, out int row, out int column)) {
+            if (!ExcelA1.TryParseCellReferenceFast(normalized, out int row, out int column)) {
                 return false;
             }
 
-            sourceRange = A1.CellReference(row, column);
+            sourceRange = ExcelA1.CellReference(row, column);
             return true;
         }
 
@@ -557,7 +557,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 }
             }
 
-            if (A1.TryParseCellReferenceFast(normalized, out _, out _)) {
+            if (ExcelA1.TryParseCellReferenceFast(normalized, out _, out _)) {
                 return false;
             }
 

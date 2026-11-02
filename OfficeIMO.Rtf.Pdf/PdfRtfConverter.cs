@@ -312,14 +312,14 @@ internal static class PdfRtfConverter {
 
     private sealed class RunStyleCatalog {
         private readonly RtfDocument _document;
-        private readonly Dictionary<OfficeIMO.Drawing.OfficeColor, int> _colors =
-            new Dictionary<OfficeIMO.Drawing.OfficeColor, int>();
+        private readonly Dictionary<OfficeIMO.OfficeColor, int> _colors =
+            new Dictionary<OfficeIMO.OfficeColor, int>();
 
         internal RunStyleCatalog(RtfDocument document) {
             _document = document;
         }
 
-        internal int GetColorIndex(OfficeIMO.Drawing.OfficeColor color) {
+        internal int GetColorIndex(OfficeIMO.OfficeColor color) {
             if (_colors.TryGetValue(color, out int index)) {
                 return index;
             }

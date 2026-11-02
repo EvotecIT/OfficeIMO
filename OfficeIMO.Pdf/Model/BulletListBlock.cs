@@ -1,10 +1,10 @@
 namespace OfficeIMO.Pdf;
 
 internal sealed class BulletListBlock : PdfListBlock {
-    public BulletListBlock(System.Collections.Generic.IEnumerable<string> items, PdfAlign align, PdfColor? color, PdfListStyle? style = null)
+    public BulletListBlock(System.Collections.Generic.IEnumerable<string> items, PdfAlign align, global::OfficeIMO.OfficeColor? color, PdfListStyle? style = null)
         : base(items, align, color, style, "Bullet list") { }
 
-    public BulletListBlock(System.Collections.Generic.IEnumerable<PdfListItem> items, PdfAlign align, PdfColor? color, PdfListStyle? style = null)
+    public BulletListBlock(System.Collections.Generic.IEnumerable<PdfListItem> items, PdfAlign align, global::OfficeIMO.OfficeColor? color, PdfListStyle? style = null)
         : base(items, align, color, style, "Bullet list") { }
 
     internal override bool IsNumbered => false;

@@ -247,8 +247,8 @@ public sealed class HtmlEditableLayoutExcelTests {
 
         Assert.True(ContainsCellText(sheet, "Bounded"));
         ExcelImage picture = Assert.Single(sheet.Images);
-        Assert.InRange(picture.WidthPixels, 1, 12);
-        Assert.InRange(picture.HeightPixels, 1, 12);
+        Assert.InRange(picture.Width.ToPixels(), 1, 12);
+        Assert.InRange(picture.Height.ToPixels(), 1, 12);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.SemanticValueInvalid
             && diagnostic.Source != null
@@ -308,9 +308,9 @@ public sealed class HtmlEditableLayoutExcelTests {
         Assert.Equal(2, images.Length);
         ExcelImage firstImage = images[0];
         ExcelImage secondImage = images[1];
-        Assert.True(firstImage.TryGetAbsoluteAnchorBounds(out _, out int firstY, out _, out _));
-        Assert.True(secondImage.TryGetAbsoluteAnchorBounds(out _, out int secondY, out _, out _));
-        Assert.True(secondY >= firstY + 80D);
+        Assert.True(firstImage.TryGetAbsoluteAnchorBounds(out _, out OfficeIMO.OfficeLength firstY, out _, out _));
+        Assert.True(secondImage.TryGetAbsoluteAnchorBounds(out _, out OfficeIMO.OfficeLength secondY, out _, out _));
+        Assert.True(secondY.ToPixels() >= firstY.ToPixels() + 80D);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified);
     }
@@ -333,12 +333,16 @@ public sealed class HtmlEditableLayoutExcelTests {
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified);
     }
 
-    [Fact]
-    public void AbsoluteRegionPicturesBlockLaterCellAnchors() {
+    [Theory]
+    [InlineData(200D, 80D, 128D, 0D, 3, 1)]
+    [InlineData(64D, 20.5D, 128D, 20D, 3, 2)]
+    [InlineData(64.5D, 20D, 192D, 0D, 4, 1)]
+    public void AbsoluteRegionPicturesBlockLaterCellAnchors(double width, double height,
+        double followingLeft, double followingTop, int expectedColumn, int firstOccupiedRow) {
         string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
         string html = "<div style='position:absolute;z-index:-1;left:0;top:0;width:64px;height:20px'>First" +
-            "<img src='" + image + "' style='position:absolute;left:128px;top:0;width:200px;height:80px'></div>" +
-            "<div style='position:absolute;left:128px;top:0;width:64px;height:20px'>After absolute picture</div>";
+            FormattableString.Invariant($"<img src='{image}' style='position:absolute;left:128px;top:0;width:{width}px;height:{height}px'></div>") +
+            FormattableString.Invariant($"<div style='position:absolute;left:{followingLeft}px;top:{followingTop}px;width:64px;height:20px'>After absolute picture</div>");
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
             .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
@@ -346,8 +350,8 @@ public sealed class HtmlEditableLayoutExcelTests {
 
         (int Row, int Column)? moved = FindCellText(sheet, "After absolute picture");
         Assert.True(moved.HasValue);
-        Assert.Equal(3, moved.Value.Column);
-        Assert.True(moved.Value.Row > 1);
+        Assert.Equal(expectedColumn, moved.Value.Column);
+        Assert.True(moved.Value.Row > firstOccupiedRow);
         Assert.Contains(sheet.Images, drawing => drawing.HasAbsoluteAnchor);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified);

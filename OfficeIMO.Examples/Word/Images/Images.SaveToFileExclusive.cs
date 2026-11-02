@@ -3,29 +3,35 @@ using System.IO;
 using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 
-namespace OfficeIMO.Examples.Word {
-    internal static partial class Images {
-        internal static void Example_ImageSaveToFileExclusive(string folderPath, bool openWord) {
+namespace OfficeIMO.Examples.Word
+{
+    internal static partial class Images
+    {
+        internal static void Example_ImageSaveToFileExclusive(string folderPath, bool openWord)
+        {
             Console.WriteLine("[*] Demonstrating exclusive access when saving images");
             string filePath = Path.Combine(folderPath, "ImageSaveExclusive.docx");
             string imagePaths = Path.Combine(Directory.GetCurrentDirectory(), "Images");
-
             using var document = WordDocument.Create(filePath);
             var paragraph = document.AddParagraph();
-            var image = paragraph.InsertImage(Path.Combine(imagePaths, "Kulek.jpg"), 50, 50);
-
+            var image = paragraph.AddImage(Path.Combine(imagePaths, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
             string fileToSave = Path.Combine(folderPath, "LockedImage.jpg");
-            using (var lockStream = new FileStream(fileToSave, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite)) {
-                try {
+            using (var lockStream = new FileStream(fileToSave, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite))
+            {
+                try
+                {
                     image.Save(fileToSave);
-                } catch (IOException) {
+                }
+                catch (IOException)
+                {
                     Console.WriteLine("[!] Unable to save image while file is locked");
                 }
             }
 
             image.Save(fileToSave);
             document.Save();
-            if (openWord) document.OpenInApplication();
+            if (openWord)
+                document.OpenInApplication();
         }
     }
 }

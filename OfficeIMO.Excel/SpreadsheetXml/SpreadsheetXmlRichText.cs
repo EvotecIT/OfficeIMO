@@ -38,7 +38,7 @@ internal static class SpreadsheetXmlRichText {
                             case "Face": run.FontName = attribute.Value; break;
                             case "Size":
                                 if (!double.TryParse(attribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double size) || double.IsNaN(size) || double.IsInfinity(size) || size <= 0 || size > 409) throw new InvalidDataException("Invalid rich-text font size.");
-                                run.FontSize = size; break;
+                                run.FontSize = OfficeLength.Points(size); break;
                             case "Color":
                                 string color = attribute.Value;
                                 if (color.Length != 7 || color[0] != '#' || !uint.TryParse(color.Substring(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _)) throw new InvalidDataException("Invalid rich-text font color.");
@@ -65,7 +65,7 @@ internal static class SpreadsheetXmlRichText {
             if (value.FontName != null || value.FontSize.HasValue || value.FontColor != null) {
                 writer.WriteStartElement("html", "Font", Html.NamespaceName); wrappers++;
                 if (value.FontName != null) writer.WriteAttributeString("html", "Face", Html.NamespaceName, value.FontName);
-                if (value.FontSize.HasValue) writer.WriteAttributeString("html", "Size", Html.NamespaceName, value.FontSize.Value.ToString("R", CultureInfo.InvariantCulture));
+                if (value.FontSize.HasValue) writer.WriteAttributeString("html", "Size", Html.NamespaceName, value.FontSize.Value.ToPoints().ToString("R", CultureInfo.InvariantCulture));
                 if (value.FontColor is string rgb) writer.WriteAttributeString("html", "Color", Html.NamespaceName, "#" + rgb.Substring(rgb.Length - 6));
             }
             Add(value.Bold, "B"); Add(value.Italic, "I"); Add(value.Underline, "U"); Add(value.Strikethrough, "S");

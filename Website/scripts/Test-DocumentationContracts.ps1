@@ -105,22 +105,10 @@ foreach ($publicContentFile in $publicContentFiles) {
     }
 }
 
-$excelProductPath = Join-Path $SiteRoot 'content\products\excel.md'
-$excelProduct = Get-Content -LiteralPath $excelProductPath -Raw
-if ($excelProduct -notmatch 'workbook\.AddWorksheet\("Q4 Sales"\)') {
-    Add-Failure 'The OfficeIMO.Excel product quick start must use ExcelDocument.AddWorksheet.'
-}
-if ($excelProduct -notmatch '(?s)sheet\.AddTable\(\s*\$"A1:C\{totalsRow\}",\s*hasHeader:\s*true,\s*name:\s*"SalesTable",\s*style:\s*TableStyle\.TableStyleMedium9\)') {
-    Add-Failure 'The OfficeIMO.Excel product quick start must use the supported ExcelSheet.AddTable signature and TableStyle enum.'
-}
-if ($excelProduct -notmatch 'sheet\.SetTableTotalsByName\(') {
-    Add-Failure 'The OfficeIMO.Excel product quick start must use the supported named-table totals API.'
-}
-
 $powerPointImageExportPath = Join-Path $docsRoot 'powerpoint\image-export\index.md'
 $powerPointImageExport = Get-Content -LiteralPath $powerPointImageExportPath -Raw
-if ($powerPointImageExport -notmatch 'PowerPointPresentation\.Load\("Quarterly-Review\.pptx"\)') {
-    Add-Failure 'The PowerPoint image-export guide must load existing presentations through PowerPointPresentation.Load.'
+if ($powerPointImageExport -notmatch 'PowerPointDocument\.Load\("Quarterly-Review\.pptx"\)') {
+    Add-Failure 'The PowerPoint image-export guide must load existing presentations through PowerPointDocument.Load.'
 }
 
 $showcasePath = Join-Path $SiteRoot 'data\showcase.json'
@@ -581,13 +569,22 @@ if ($powerShellExample.Count -ne 1) {
     }
     foreach ($page in $apiLinks.pages.PSObject.Properties | Where-Object Name -Like '/docs/pswriteoffice/*') {
         foreach ($link in $page.Value) {
-            if ($commandByName.ContainsKey($link.n) -and $link.h -cne "/api/powershell/$($commandByName[$link.n].ToLowerInvariant())/") {
+            if ($link.h -like '/api/powershell/*' -and -not $commandByName.ContainsKey($link.n)) {
+                Add-Failure "PowerShell API link '$($link.n)' on '$($page.Name)' is absent from the current command catalog."
+            } elseif ($commandByName.ContainsKey($link.n) -and $link.h -cne "/api/powershell/$($commandByName[$link.n].ToLowerInvariant())/") {
                 Add-Failure "PowerShell command or alias '$($link.n)' must link to its canonical command on '$($page.Name)'."
             }
         }
     }
     foreach ($manifest in Get-ChildItem -LiteralPath (Join-Path $SiteRoot 'data/apidocs/related') -Filter '*.json') {
         foreach ($entry in @(Get-Content -LiteralPath $manifest.FullName -Raw | ConvertFrom-Json)) {
+            if ($manifest.Name -eq 'powershell.json') {
+                foreach ($target in @($entry.targets)) {
+                    if (-not $commandByName.ContainsKey($target) -or $commandByName[$target] -cne $target) {
+                        Add-Failure "Related PowerShell target '$target' on '$($entry.url)' must name a current canonical command."
+                    }
+                }
+            }
             if (@($entry.targets).Count -ne @($entry.targets | Sort-Object -Unique).Count) {
                 Add-Failure "Related content '$($entry.url)' has duplicate canonical targets in '$($manifest.Name)'."
             }

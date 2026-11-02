@@ -32,9 +32,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void FormulaEvaluator_IndexAreasOnDifferentSheetsReturnTypedValueErrors() {
             using var document = ExcelDocument.Create();
-            var source = document.AddWorksheet("Data");
+            var source = document.AddSheet("Data");
             source.CellValue(1, 1, 10d);
-            var report = document.AddWorksheet("Report");
+            var report = document.AddSheet("Report");
             report.CellValue(1, 1, 20d);
             report.CellFormula(1, 4, "INDEX((Data!A1,Report!A1),1,1,2)");
             report.CellFormula(2, 4, "IFERROR(SUM(INDEX((Data!A1,Report!A1),0,1,2)),99)");

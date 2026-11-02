@@ -57,7 +57,7 @@ public sealed class HtmlVerticalTableHeaderTests {
             + "<table><thead><tr><th><span>Cairo</span></th><th><span>LosAngeles</span></th></tr></thead>"
             + "<tbody><tr><td>One</td><td>Two</td></tr></tbody></table>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
         string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Contains("Cairo", text, StringComparison.Ordinal);

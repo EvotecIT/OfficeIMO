@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     // Called only after a system-loaded family was successfully registered. Explicit caller
     // registrations and rendering profiles do not pass through this automatic policy.
     private void ReportInstalledOfficeFontSubstitution(string requestedFamilies, PdfEmbeddedFontFamily family, bool namedFamily) {
@@ -17,9 +17,9 @@ public sealed partial class PdfOptions {
             RegisterFontFamilySubstitution(source, family.FamilyName, impact);
         }
 
-        if (_diagnosticsReport == null ||
-            !(_reportedLayoutDiagnostics ??= new HashSet<string>()).Add("installed-font-substitution|" + source + "|" + family.FamilyName)) return;
-        _diagnosticsReport.Add(new PdfConversionWarning(
+        if (DiagnosticsReport == null ||
+            !PdfOutputDiagnosticScope.Admit("installed-font-substitution|" + source + "|" + family.FamilyName, ref _reportedLayoutDiagnostics)) return;
+        DiagnosticsReport.Add(new PdfConversionWarning(
             _diagnosticsConverter, "font-family-substitution", "font:" + source,
             "The source font family '" + source + "' is unavailable for embedding; generated text uses the installed substitute '" + family.FamilyName + "'. " +
             (impact == PdfFontFamilySubstitutionImpact.Compatible

@@ -2,7 +2,7 @@ using System;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointDesignExtensions {
-        internal static PowerPointSlide AddDesignerSlide(PowerPointPresentation presentation,
+        internal static PowerPointSlide AddDesignerSlide(PowerPointDocument presentation,
             PowerPointDesignerSlideOptions options) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             if (options == null) throw new ArgumentNullException(nameof(options));
@@ -15,7 +15,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Creates a designer facade whose semantic slide kinds use explicit named template layouts.
         ///     Theme tokens are imported into the design brief while the copied template remains the native owner.
         /// </summary>
-        public static PowerPointDeckComposer UseTemplateDesigner(this PowerPointPresentation presentation,
+        public static PowerPointDeckComposer UseTemplateDesigner(this PowerPointDocument presentation,
             PowerPointTemplateInventory inventory, PowerPointTemplateLayoutMap layoutMap, string seed,
             string? purpose = null, int alternativeIndex = 0, bool applyTheme = false) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));

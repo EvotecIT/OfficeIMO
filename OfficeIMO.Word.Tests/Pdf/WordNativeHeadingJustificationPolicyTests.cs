@@ -47,9 +47,9 @@ public sealed class WordNativeHeadingJustificationPolicyTests {
             Assert.Empty(document.ValidateDocument());
             string authoredDocument = document.OpenXmlDocument.MainDocumentPart!.Document.OuterXml;
             string authoredStyles = document.OpenXmlDocument.MainDocumentPart.StyleDefinitionsPart!.Styles!.OuterXml;
-            byte[] bytes = document.ToPdfDocumentResult(new WordToPdfOptions {
-                IncludePageNumbers = false, PageSize = new PageSize(300D, 300D),
-                Margins = PageMargins.Uniform(30D), FontFamily = "Helvetica"
+            byte[] bytes = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
+                IncludePageNumbers = false, PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(300D),OfficeIMO.OfficeLength.Points(300D)),
+                Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30D)), FontFamily = "Helvetica"
             }).ToBytes();
             Assert.Equal(authoredDocument, document.OpenXmlDocument.MainDocumentPart.Document.OuterXml);
             Assert.Equal(authoredStyles, document.OpenXmlDocument.MainDocumentPart.StyleDefinitionsPart.Styles.OuterXml);
@@ -108,8 +108,8 @@ public sealed class WordNativeHeadingJustificationPolicyTests {
         if (scenario == "both-break") target._paragraph.Append(new W.Run(new W.Break()), Run("Short final words"));
         Assert.Empty(document.ValidateDocument());
         string authored = document.OpenXmlDocument.MainDocumentPart!.Document.OuterXml;
-        byte[] bytes = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false,
-            PageSize = new PageSize(300D, 300D), Margins = PageMargins.Uniform(30D), FontFamily = "Helvetica" }).ToBytes();
+        byte[] bytes = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false,
+            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(300D),OfficeIMO.OfficeLength.Points(300D)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30D)), FontFamily = "Helvetica" }).ToBytes();
         Assert.Equal(authored, document.OpenXmlDocument.MainDocumentPart.Document.OuterXml);
         RetainEvidence(bytes, "heading-policy-" + scenario + "-" + (heading ? "heading" : "body") + "-" + (left ? "left" : "source"));
         using var pdf = PdfPigDocument.Open(bytes);
@@ -126,8 +126,9 @@ public sealed class WordNativeHeadingJustificationPolicyTests {
         File.WriteAllBytes(Path.Combine(directory, label + "-" + Guid.NewGuid().ToString("N") + ".pdf"), bytes);
     }
 
+    // Direct regular weight keeps heading and body glyphs identical whatever the heading style's weight.
     private static W.Run Run(string text) => new(new W.RunProperties(
-        new W.RunFonts { Ascii = "Helvetica", HighAnsi = "Helvetica" }, new W.FontSize { Val = "24" }),
+        new W.RunFonts { Ascii = "Helvetica", HighAnsi = "Helvetica" }, new W.Bold { Val = false }, new W.FontSize { Val = "24" }),
         new W.Text(text) { Space = SpaceProcessingModeValues.Preserve });
     private static double Span(IReadOnlyList<Letter> line) => line[line.Count - 1].EndBaseLine.X - line[0].StartBaseLine.X;
 }

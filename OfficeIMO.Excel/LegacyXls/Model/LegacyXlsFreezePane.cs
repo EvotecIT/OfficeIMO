@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents frozen pane metadata parsed from a legacy XLS worksheet view.
     /// </summary>
-    public sealed class LegacyXlsFreezePane {
+    internal sealed class LegacyXlsFreezePane {
         /// <summary>
         /// Creates legacy frozen pane metadata.
         /// </summary>

@@ -52,8 +52,8 @@ internal static partial class HtmlCssPageSettingsResolver {
             if (namedCount != 1 || parts.Count != namedCount + orientationCount) return false;
             OfficePageSize namedSize = named.GetValueOrDefault();
             OfficePageSize resolved = landscape ? namedSize.Landscape() : portrait ? namedSize.Portrait() : namedSize;
-            width = resolved.WidthInches * HtmlRenderOptions.CssPixelsPerInch;
-            height = resolved.HeightInches * HtmlRenderOptions.CssPixelsPerInch;
+            width = resolved.Width.ToInches() * HtmlRenderOptions.CssPixelsPerInch;
+            height = resolved.Height.ToInches() * HtmlRenderOptions.CssPixelsPerInch;
             return true;
         }
 
@@ -75,10 +75,10 @@ internal static partial class HtmlCssPageSettingsResolver {
         }
 
         if (lengths.Count != 2) return false;
-        var custom = new OfficePageSize(lengths[0] / HtmlRenderOptions.CssPixelsPerInch, lengths[1] / HtmlRenderOptions.CssPixelsPerInch);
+        var custom = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(lengths[0] / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(lengths[1] / HtmlRenderOptions.CssPixelsPerInch));
         OfficePageSize customResolved = landscape ? custom.Landscape() : portrait ? custom.Portrait() : custom;
-        width = customResolved.WidthInches * HtmlRenderOptions.CssPixelsPerInch;
-        height = customResolved.HeightInches * HtmlRenderOptions.CssPixelsPerInch;
+        width = customResolved.Width.ToInches() * HtmlRenderOptions.CssPixelsPerInch;
+        height = customResolved.Height.ToInches() * HtmlRenderOptions.CssPixelsPerInch;
         return true;
     }
 

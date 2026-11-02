@@ -9,7 +9,7 @@ public sealed class Markdown_DefinitionList_Ast_Tests {
     [InlineData("Term\n:   Definition\n")]
     [InlineData("Term\n:\tDefinition\n")]
     public void DefinitionList_MarkdigMarkerSyntax_Matches_MarkdigHtml(string markdown) {
-        var office = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions()).ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var office = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions()).ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
@@ -98,7 +98,7 @@ Term
     [Theory]
     [MemberData(nameof(MarkdigDefinitionListContinuationCases))]
     public void DefinitionList_MarkdigContinuationSyntax_Matches_MarkdigHtml(string markdown) {
-        var office = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions()).ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var office = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions()).ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
@@ -161,8 +161,8 @@ Term 2
         var syntaxList = result.SyntaxTree.Children[1];
         var syntaxGroup = Assert.Single(syntaxList.Children);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("Term 1", paragraph.Inlines.RenderMarkdown());
@@ -200,8 +200,8 @@ lazy continuation
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var paragraphSyntax = Assert.Single(definitionValue.Children);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First paragraph\nlazy continuation", paragraph.Inlines.RenderMarkdown());
@@ -249,8 +249,8 @@ lazy two
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var paragraphSyntax = Assert.Single(definitionValue.Children);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First paragraph\nlazy one\nlazy two", paragraph.Inlines.RenderMarkdown());
@@ -359,7 +359,7 @@ lazy title
         var textSyntax = Assert.Single(headingSyntax.Children, child => child.Kind == MarkdownSyntaxKind.HeadingText);
         var markerSyntax = Assert.Single(headingSyntax.Children, child => child.Kind == MarkdownSyntaxKind.HeadingSetextUnderlineMarker);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var office = result.Document.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
         var markdigWritten = MarkdigMarkdown.ToHtml(written + "\n", CreateMarkdigDefinitionListPipeline());
 
@@ -404,7 +404,7 @@ Term
         var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
         var heading = Assert.IsType<HeadingBlock>(definition.ChildBlocks[1]);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var office = result.Document.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
         var markdigWritten = MarkdigMarkdown.ToHtml(written + "\n", CreateMarkdigDefinitionListPipeline());
 
@@ -437,8 +437,8 @@ text
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var headingSyntax = Assert.Single(definitionValue.Children);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal(2, heading.Level);
@@ -480,8 +480,8 @@ text
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First paragraph", paragraph.Inlines.RenderMarkdown());
@@ -545,8 +545,8 @@ text
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var paragraphSyntax = Assert.Single(definitionValue.Children);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("code", paragraph.Inlines.RenderMarkdown());
@@ -583,8 +583,8 @@ Term
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var paragraphSyntax = Assert.Single(definitionValue.Children);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("| A | |---| | B |", NormalizePlainText(InlinePlainText.Extract(paragraph.Inlines)));
@@ -616,8 +616,8 @@ Term
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var paragraphSyntax = Assert.Single(definitionValue.Children);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First paragraph | A | |---| | B |", NormalizePlainText(InlinePlainText.Extract(paragraph.Inlines)));
@@ -656,8 +656,8 @@ Term
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var tableSyntax = Assert.Single(definitionValue.Children);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, readerOptions);
-        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, readerOptions);
+        var office = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListAndPipeTablesPipeline());
 
         Assert.Equal("A", Assert.Single(table.Headers));
@@ -673,8 +673,8 @@ Term
     [InlineData("Term\n: Definition\n")]
     [InlineData("Term\n:  Definition\n")]
     public void DefinitionList_MarkdigMarkerSyntax_Requires_MarkdigMarkerSpacing(string markdown) {
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
-        var html = doc.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var html = doc.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
@@ -718,7 +718,8 @@ Term
                 new DefinitionListDefinition(new[] { new ParagraphBlock(new InlineSequence().Text("first")) }),
                 new DefinitionListDefinition(new[] { new ParagraphBlock(new InlineSequence().Text("second")) })
             }));
-        var document = MarkdownDoc.Create().Add(definitionList);
+        var document = MarkdownDocument.Create();
+        document.Add(definitionList);
 
         var syntaxTree = OfficeIMO.Markdown.MarkdownReader.BuildSyntaxTree(document);
         var syntaxGroup = Assert.Single(Assert.Single(syntaxTree.Children).Children);
@@ -751,10 +752,10 @@ Term
 :   Definition
 """;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
         var written = NormalizeMarkdown(document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written);
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written);
 
         Assert.Equal(NormalizeMarkdown(markdown), written);
         Assert.Equal(NormalizeMarkdown(markdown), NormalizeMarkdown(((IMarkdownBlock)definitionList).RenderMarkdown()));
@@ -773,10 +774,10 @@ Term 2
 :   Second
 """;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
         var written = NormalizeMarkdown(document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written);
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written);
 
         Assert.Equal(NormalizeMarkdown(markdown), written);
         Assert.Equal(NormalizeMarkdown(markdown), NormalizeMarkdown(((IMarkdownBlock)definitionList).RenderMarkdown()));
@@ -800,10 +801,10 @@ Term
 :   Second paragraph
 """;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
         var written = NormalizeMarkdown(document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal(NormalizeMarkdown(markdown), written);
@@ -820,11 +821,11 @@ Term 2
 :   Second
 """;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
         var written = NormalizeMarkdown(document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var reparsedDefinitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(reparsed.Blocks));
-        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var office = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal(NormalizeMarkdown(markdown), written);
@@ -841,10 +842,10 @@ Term
     - item
 """;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
         var written = NormalizeMarkdown(document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal(NormalizeMarkdown(markdown), written);
@@ -870,8 +871,8 @@ Term
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var listSyntax = Assert.IsType<MarkdownSyntaxNode>(definitionValue.Children[1]);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First paragraph", paragraph.Inlines.RenderMarkdown());
@@ -909,8 +910,8 @@ Term
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var listSyntax = definitionValue.Children[1];
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First paragraph", paragraph.Inlines.RenderMarkdown());
@@ -948,8 +949,8 @@ Term
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First paragraph", paragraph.Inlines.RenderMarkdown());
@@ -987,9 +988,9 @@ Term
         var unorderedSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.UnorderedList);
         var orderedSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.OrderedList);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
-        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First paragraph", paragraph.Inlines.RenderMarkdown());
@@ -1038,9 +1039,9 @@ lazy
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
-        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("<div>\n  html\n  </div>\nlazy", html.Html.Replace("\r\n", "\n"));
@@ -1068,9 +1069,9 @@ lazy
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
-        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("<div>\n  html\n  </div>\nlazy", html.Html.Replace("\r\n", "\n"));
@@ -1106,9 +1107,9 @@ lazy
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
-        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("lazy", trailingParagraph.Inlines.RenderMarkdown());
@@ -1140,9 +1141,9 @@ lazy
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
-        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("lazy", trailingParagraph.Inlines.RenderMarkdown());
@@ -1180,9 +1181,9 @@ lazy
         var codeSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.CodeBlock);
         var codeContentSyntax = codeSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.CodeContent);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
-        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First", paragraph.Inlines.RenderMarkdown());
@@ -1244,9 +1245,9 @@ Term
         var listItemSyntax = listSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.ListItem);
         var itemParagraphSyntax = listItemSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
-        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First", paragraph.Inlines.RenderMarkdown());
@@ -1301,9 +1302,9 @@ Term
         var itemParagraphSyntax = listItemSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
         var tableSyntax = listItemSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Table);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, readerOptions);
-        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
-        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, readerOptions);
+        var office = result.Document.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListAndPipeTablesPipeline());
 
         Assert.Equal("First", paragraph.Inlines.RenderMarkdown());
@@ -1368,8 +1369,8 @@ Term
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First", paragraph.Inlines.RenderMarkdown());
@@ -1415,8 +1416,8 @@ Term
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First paragraph", paragraph.Inlines.RenderMarkdown());
@@ -1464,8 +1465,8 @@ text
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First paragraph", paragraph.Inlines.RenderMarkdown());
@@ -1514,9 +1515,9 @@ text
         var listItemSyntax = listSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.ListItem);
         var itemParagraphSyntax = listItemSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
-        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First", paragraph.Inlines.RenderMarkdown());
@@ -1572,9 +1573,9 @@ text
         var listItemSyntax = listSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.ListItem);
         var itemParagraphSyntax = listItemSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
-        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First", paragraph.Inlines.RenderMarkdown());
@@ -1623,8 +1624,8 @@ Term
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First paragraph", paragraph.Inlines.RenderMarkdown());
@@ -1673,8 +1674,8 @@ text
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First paragraph", paragraph.Inlines.RenderMarkdown());
@@ -1716,9 +1717,9 @@ Term
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
-        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First paragraph", paragraph.Inlines.RenderMarkdown());
@@ -1777,9 +1778,9 @@ lazy two
         var quoteSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.Quote);
         var quoteParagraphSyntax = quoteSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
-        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First", paragraph.Inlines.RenderMarkdown());
@@ -1842,9 +1843,9 @@ text
         var quoteSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.Quote);
         var quoteParagraphSyntax = quoteSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
-        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First", paragraph.Inlines.RenderMarkdown());
@@ -1898,9 +1899,9 @@ text
         var quoteSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.Quote);
         var quoteParagraphSyntax = quoteSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
-        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First", paragraph.Inlines.RenderMarkdown());
@@ -1948,9 +1949,9 @@ lazy
         var quoteSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.Quote);
         var quoteParagraphSyntax = quoteSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
-        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First", paragraph.Inlines.RenderMarkdown());
@@ -2012,9 +2013,9 @@ Term
         var quoteSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.Quote);
         var quoteParagraphSyntax = quoteSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
-        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("First", paragraph.Inlines.RenderMarkdown());
@@ -2068,9 +2069,9 @@ Term
         var quoteParagraphSyntax = quoteSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
         var tableSyntax = quoteSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Table);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, readerOptions);
-        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
-        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, readerOptions);
+        var office = result.Document.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListAndPipeTablesPipeline());
 
         Assert.Equal("First", paragraph.Inlines.RenderMarkdown());
@@ -2113,10 +2114,10 @@ Term
 ---
 """;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
         var written = NormalizeMarkdown(document.ToMarkdown());
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
-        var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = reparsed.ToHtml(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("Term\n:   \n    First paragraph\n    ---", written);
@@ -2127,7 +2128,7 @@ Term
     public void DefinitionList_SimpleInlineSyntax_Still_Writes_Simple_Inline_Syntax() {
         const string markdown = "Term: Definition";
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal(NormalizeMarkdown(markdown), NormalizeMarkdown(((IMarkdownBlock)definitionList).RenderMarkdown()));
@@ -2210,15 +2211,15 @@ Term
         return builder.Build();
     }
 
-    private static MarkdownReaderOptions CreateMarkdigDefinitionListReaderOptions() {
-        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+    private static MarkdownLoadOptions CreateMarkdigDefinitionListReaderOptions() {
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
         options.DefinitionLists = true;
         return options;
     }
 
-    private static HtmlOptions CreateMarkdigDefinitionListHtmlOptions() => new() {
-        Style = HtmlStyle.Plain,
-        CssDelivery = CssDelivery.None,
+    private static MarkdownHtmlExportOptions CreateMarkdigDefinitionListHtmlOptions() => new() {
+        Style = MarkdownHtmlStyle.Plain,
+        CssDelivery = MarkdownCssDelivery.None,
         BodyClass = null,
         AutoHeadingIdentifiers = false
     };

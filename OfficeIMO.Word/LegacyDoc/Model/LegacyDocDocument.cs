@@ -6,7 +6,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
     /// <summary>
     /// Neutral legacy binary Word document model for the supported import subset.
     /// </summary>
-    public sealed partial class LegacyDocDocument {
+    internal sealed partial class LegacyDocDocument {
         private readonly List<LegacyDocImportDiagnostic> _diagnostics = new();
         private readonly List<string> _paragraphs = new();
         private readonly List<IReadOnlyList<LegacyDocTextRun>> _paragraphTextRuns = new();
@@ -116,7 +116,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             var document = new LegacyDocDocument();
             if (!OfficeCompoundFileReader.TryRead(bytes, new OfficeCompoundReadOptions(preserveResourceLimits: true), out OfficeCompoundFile? compoundFile, out string? compoundError)) {
-                document.AddError("DOC-COMPOUND-INVALID", compoundError ?? "The OLE compound document could not be read.");
+                document.AddError("doc-compound-invalid", compoundError ?? "The OLE compound document could not be read.");
                 return document;
             }
 
@@ -134,24 +134,24 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         private void LoadFromCompound(OfficeCompoundFile compoundFile, LegacyDocImportOptions options) {
             if (!TryGetRootStream(compoundFile, "WordDocument", out byte[]? wordDocumentStreamCandidate)) {
-                AddError("DOC-WORDDOCUMENT-MISSING", "The compound document does not contain a WordDocument stream.");
+                AddError("doc-worddocument-missing", "The compound document does not contain a WordDocument stream.");
                 return;
             }
 
             byte[] wordDocumentStream = wordDocumentStreamCandidate!;
             if (wordDocumentStream.Length > options.MaxInputBytes) {
-                AddError("DOC-WORDDOCUMENT-TOO-LARGE", $"The WordDocument stream is {wordDocumentStream.Length} bytes, which exceeds the configured limit of {options.MaxInputBytes} bytes.");
+                AddError("doc-worddocument-too-large", $"The WordDocument stream is {wordDocumentStream.Length} bytes, which exceeds the configured limit of {options.MaxInputBytes} bytes.");
                 return;
             }
 
             LegacyDocFib fib;
             if (!LegacyDocFib.TryRead(wordDocumentStream, out fib, out string? fibError)) {
-                AddError("DOC-FIB-INVALID", fibError ?? "The WordDocument stream does not contain a supported File Information Block.");
+                AddError("doc-fib-invalid", fibError ?? "The WordDocument stream does not contain a supported File Information Block.");
                 return;
             }
 
             if (fib.IsEncrypted) {
-                AddError("DOC-ENCRYPTED", "Password-protected binary .doc files are detected but are not imported by the dependency-free reader.");
+                AddError("doc-encrypted", "Password-protected binary .doc files are detected but are not imported by the dependency-free reader.");
                 return;
             }
 
@@ -161,9 +161,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             if (!TryGetRootStream(compoundFile, tableStreamName, out byte[]? tableStreamCandidate)) {
                 string alternateName = fib.UsesOneTableStream ? "0Table" : "1Table";
                 if (TryGetRootStream(compoundFile, alternateName, out tableStreamCandidate)) {
-                    AddWarning("DOC-TABLE-STREAM-FALLBACK", $"The FIB requested {tableStreamName}, but only {alternateName} was present. The available table stream was used.");
+                    AddWarning("doc-table-stream-fallback", $"The FIB requested {tableStreamName}, but only {alternateName} was present. The available table stream was used.");
                 } else {
-                    AddError("DOC-TABLE-STREAM-MISSING", $"The compound document does not contain the {tableStreamName} table stream.");
+                    AddError("doc-table-stream-missing", $"The compound document does not contain the {tableStreamName} table stream.");
                     return;
                 }
             }
@@ -174,29 +174,29 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             EndnotePositionValues? dopEndnotePosition = ReadDopEndnotePlacement(tableStream, fib);
 
             if (!LegacyDocPieceTable.TryRead(wordDocumentStream, tableStream, fib, options.MaxDecodedCharacters, out LegacyDocTextContent textContent, out string? textError)) {
-                AddError("DOC-PIECE-TABLE-INVALID", textError ?? "The legacy DOC piece table could not be decoded.");
+                AddError("doc-piece-table-invalid", textError ?? "The legacy DOC piece table could not be decoded.");
                 return;
             }
 
             IReadOnlyList<string> fontFamilies = LegacyDocFontTableReader.ReadFontFamilies(tableStream, fib, out string? fontTableWarning);
             if (fontTableWarning != null) {
-                AddWarning("DOC-FONT-TABLE-INVALID", fontTableWarning);
+                AddWarning("doc-font-table-invalid", fontTableWarning);
             }
 
             IReadOnlyList<string> revisionAuthors = LegacyDocRevisionAuthorReader.Read(tableStream, fib, out string? revisionAuthorWarning);
             if (revisionAuthorWarning != null) {
-                AddWarning("DOC-REVISION-AUTHORS-INVALID", revisionAuthorWarning);
+                AddWarning("doc-revision-authors-invalid", revisionAuthorWarning);
             }
 
             StyleSheet = LegacyDocStyleSheet.Read(tableStream, fib, fontFamilies, out string? styleSheetWarning);
             if (styleSheetWarning != null) {
-                AddWarning("DOC-STYLESHEET-INVALID", styleSheetWarning);
+                AddWarning("doc-stylesheet-invalid", styleSheetWarning);
             }
 
             Numbering = LegacyDocNumberingReader.Read(tableStream, fib, fontFamilies, out string? numberingWarning);
             if (numberingWarning != null) {
                 AddUnsupportedFeature(new LegacyDocUnsupportedFeature(LegacyDocUnsupportedFeatureKind.Numbering,
-                    "DOC-NUMBERING-INVALID", numberingWarning, detailCode: "PlfLst/PlfLfo"), options.ReportUnsupportedContent);
+                    "doc-numbering-invalid", numberingWarning, detailCode: "PlfLst/PlfLfo"), options.ReportUnsupportedContent);
             }
 
             Sections = ApplyDopEndnotePlacement(
@@ -206,7 +206,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             Sections = ApplyDopNoteSettings(Sections, tableStream, fib);
             SectionFormat = Sections.Count == 0 ? LegacyDocSectionFormat.Default : Sections[0].Format;
             if (sectionFormattingWarning != null) {
-                AddWarning("DOC-SEPX-INVALID", sectionFormattingWarning);
+                AddWarning("doc-sepx-invalid", sectionFormattingWarning);
             }
 
             IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges = LegacyDocCharacterFormattingReader.ReadCharacterFormatting(
@@ -217,7 +217,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 revisionAuthors,
                 out string? formattingWarning);
             if (formattingWarning != null) {
-                AddWarning("DOC-CHPX-INVALID", formattingWarning);
+                AddWarning("doc-chpx-invalid", formattingWarning);
             }
 
             byte[] dataStream = TryGetRootStream(compoundFile, "Data", out byte[]? dataStreamCandidate)
@@ -226,20 +226,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges = LegacyDocParagraphFormattingReader.ReadParagraphFormatting(
                 wordDocumentStream, tableStream, fib, out string? paragraphFormattingWarning, dataStream, options);
             if (paragraphFormattingWarning != null) {
-                AddWarning("DOC-PAPX-INVALID", paragraphFormattingWarning);
+                AddWarning("doc-papx-invalid", paragraphFormattingWarning);
             }
 
             if (numberingWarning == null && paragraphFormattingRanges.Select(item => item.Format)
                 .Concat(StyleSheet.ParagraphStyles.Select(item => item.ParagraphFormat))
                 .Any(format => !Numbering.ContainsReference(format))) {
                 AddUnsupportedFeature(new LegacyDocUnsupportedFeature(LegacyDocUnsupportedFeatureKind.Numbering,
-                    "DOC-NUMBERING-REFERENCE-INVALID", "A paragraph or style references a missing native list instance or level.",
+                    "doc-numbering-reference-invalid", "A paragraph or style references a missing native list instance or level.",
                     detailCode: "sprmPIlfo/sprmPIlvl"), options.ReportUnsupportedContent);
             }
 
             Bookmarks = LegacyDocBookmarkReader.Read(tableStream, fib, out string? bookmarkWarning);
             if (bookmarkWarning != null) {
-                AddWarning("DOC-BOOKMARK-PLC-INVALID", bookmarkWarning);
+                AddWarning("doc-bookmark-plc-invalid", bookmarkWarning);
             }
             var bookmarkProjection = new LegacyDocBookmarkProjectionTracker(Bookmarks);
 
@@ -252,7 +252,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 fib.CcpText + fib.CcpFtn + fib.CcpHdd + fib.CcpAtn + fib.CcpEdn,
                 options.MaxDecodedImageBytes);
             if (pictures.Warning != null) {
-                AddWarning("DOC-PICTURE-DATA-INVALID", pictures.Warning);
+                AddWarning("doc-picture-data-invalid", pictures.Warning);
             }
 
             Text = BuildFormattedParagraphs(
@@ -265,17 +265,17 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 options.ReportUnsupportedContent);
             Footnotes = LegacyDocFootnoteReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? footnoteWarning);
             if (footnoteWarning != null) {
-                AddWarning("DOC-FOOTNOTE-PLC-INVALID", footnoteWarning);
+                AddWarning("doc-footnote-plc-invalid", footnoteWarning);
             }
 
             Endnotes = LegacyDocFootnoteReader.ReadEndnotes(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? endnoteWarning);
             if (endnoteWarning != null) {
-                AddWarning("DOC-ENDNOTE-PLC-INVALID", endnoteWarning);
+                AddWarning("doc-endnote-plc-invalid", endnoteWarning);
             }
 
             Comments = LegacyDocCommentReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? commentWarning);
             if (commentWarning != null) {
-                AddWarning("DOC-COMMENT-PLC-INVALID", commentWarning);
+                AddWarning("doc-comment-plc-invalid", commentWarning);
             }
 
             TextBoxStories = LegacyDocTextBoxStoryReader.Read(textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition);
@@ -288,10 +288,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             HeaderFooterStories = LegacyDocHeaderFooterReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, pictures.PicturesByCharacterPosition, out string? headerFooterWarning);
             if (headerFooterWarning != null) {
-                AddWarning("DOC-PLCFHDD-INVALID", headerFooterWarning);
+                AddWarning("doc-plcfhdd-invalid", headerFooterWarning);
                 AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
                     LegacyDocUnsupportedFeatureKind.HeaderFooter,
-                    "DOC-HEADER-FOOTER-STORIES-PRESENT",
+                    "doc-header-footer-stories-present",
                     "The legacy DOC contains header or footer story text with an unsupported header/footer story PLC. Headers and footers are preserved in the source file but are not projected into the OfficeIMO document.",
                     detailCode: "Fib:PlcfHdd"),
                     options.ReportUnsupportedContent);
@@ -319,7 +319,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     || entry.Path.StartsWith("Macros", StringComparison.OrdinalIgnoreCase)
                     || entry.Path.IndexOf("VBA", StringComparison.OrdinalIgnoreCase) >= 0,
                 LegacyDocCompoundFeatureKind.VbaProject,
-                "DOC-MACROS-PRESENT",
+                "doc-macros-present",
                 "The legacy DOC contains VBA project storage. Macros are preserved in the source file but are not projected into the OfficeIMO document.",
                 "Compound:VbaProjectStorage");
 
@@ -327,7 +327,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 compoundFile,
                 entry => entry.Path.IndexOf("ObjectPool", StringComparison.OrdinalIgnoreCase) >= 0,
                 LegacyDocCompoundFeatureKind.OleObject,
-                "DOC-OLE-OBJECTS-PRESENT",
+                "doc-ole-objects-present",
                 "The legacy DOC contains embedded OLE object storage. Embedded objects are preserved in the source file but are not projected into the OfficeIMO document.",
                 "Compound:OleObjectStorage");
 
@@ -336,7 +336,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 entry => entry.Path.IndexOf("ActiveX", StringComparison.OrdinalIgnoreCase) >= 0
                     || entry.Path.IndexOf("OCX", StringComparison.OrdinalIgnoreCase) >= 0,
                 LegacyDocCompoundFeatureKind.ActiveXControl,
-                "DOC-ACTIVEX-CONTROLS-PRESENT",
+                "doc-activex-controls-present",
                 "The legacy DOC contains ActiveX control storage. ActiveX controls are preserved in the source file but are not projected into the OfficeIMO document.",
                 "Compound:ActiveXControlStorage");
 
@@ -346,7 +346,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     || entry.Path.IndexOf("Ole10Native", StringComparison.OrdinalIgnoreCase) >= 0
                     || entry.Path.IndexOf("Package", StringComparison.OrdinalIgnoreCase) >= 0,
                 LegacyDocCompoundFeatureKind.EmbeddedPackage,
-                "DOC-EMBEDDED-PACKAGES-PRESENT",
+                "doc-embedded-packages-present",
                 "The legacy DOC contains embedded package payload storage. Embedded packages are preserved in the source file but are not projected into the OfficeIMO document.",
                 "Compound:EmbeddedPackageStorage");
 
@@ -356,14 +356,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 compoundFile,
                 IsDigitalSignatureEntry,
                 LegacyDocCompoundFeatureKind.DigitalSignature,
-                "DOC-DIGITAL-SIGNATURE-PRESENT",
+                "doc-digital-signature-present",
                 "The legacy DOC contains digital-signature storage. Rewriting the document invalidates the existing signature.",
                 "Compound:DigitalSignature");
             AddUnsupportedCompoundEntryIfPresent(
                 compoundFile,
                 IsDigitalSignatureEntry,
                 LegacyDocUnsupportedFeatureKind.DigitalSignature,
-                "DOC-DIGITAL-SIGNATURE-PRESENT",
+                "doc-digital-signature-present",
                 "The legacy DOC contains digital-signature storage. Saving is blocked by default because rewriting the document invalidates the existing signature.",
                 "Compound:DigitalSignature",
                 reportDiagnostic);
@@ -372,7 +372,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddUnsupportedStoryFeatureIfPresent(
                     fib.CcpHdd,
                     LegacyDocUnsupportedFeatureKind.HeaderFooter,
-                    "DOC-HEADER-FOOTER-STORIES-PRESENT",
+                    "doc-header-footer-stories-present",
                     "The legacy DOC contains header or footer story text without a supported header/footer story PLC. Headers and footers are preserved in the source file but are not projected into the OfficeIMO document.",
                     "Fib:CcpHdd",
                     reportDiagnostic);
@@ -381,7 +381,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddUnsupportedStoryFeatureIfPresent(
                     fib.CcpFtn,
                     LegacyDocUnsupportedFeatureKind.Footnote,
-                    "DOC-FOOTNOTE-STORIES-PRESENT",
+                    "doc-footnote-stories-present",
                     "The legacy DOC contains footnote story text. Footnotes are preserved in the source file but are not projected into the OfficeIMO document.",
                     "Fib:CcpFtn",
                     reportDiagnostic);
@@ -390,7 +390,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddUnsupportedStoryFeatureIfPresent(
                     fib.CcpEdn,
                     LegacyDocUnsupportedFeatureKind.Endnote,
-                    "DOC-ENDNOTE-STORIES-PRESENT",
+                    "doc-endnote-stories-present",
                     "The legacy DOC contains endnote story text. Endnotes are preserved in the source file but are not projected into the OfficeIMO document.",
                     "Fib:CcpEdn",
                     reportDiagnostic);
@@ -399,7 +399,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddUnsupportedStoryFeatureIfPresent(
                     fib.CcpAtn,
                     LegacyDocUnsupportedFeatureKind.Comment,
-                    "DOC-COMMENT-STORIES-PRESENT",
+                    "doc-comment-stories-present",
                     "The legacy DOC contains comment or annotation story text. Comments are preserved in the source file but are not projected into the OfficeIMO document.",
                     "Fib:CcpAtn",
                     reportDiagnostic);
@@ -409,7 +409,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddUnsupportedStoryFeatureIfPresent(
                     fib.CcpTxbx,
                     LegacyDocUnsupportedFeatureKind.TextBox,
-                    "DOC-TEXTBOX-STORIES-PRESENT",
+                    "doc-textbox-stories-present",
                     "The legacy DOC contains text box story text that could not be read from the piece table. Text boxes are preserved in the source file but are not projected into the OfficeIMO document.",
                     "Fib:CcpTxbx",
                     reportDiagnostic);
@@ -419,7 +419,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddUnsupportedStoryFeatureIfPresent(
                     fib.CcpHdrTxbx,
                     LegacyDocUnsupportedFeatureKind.TextBox,
-                    "DOC-HEADER-TEXTBOX-STORIES-PRESENT",
+                    "doc-header-textbox-stories-present",
                     "The legacy DOC contains header or footer text box story text that could not be read from the piece table. Header and footer text boxes are preserved in the source file but are not projected into the OfficeIMO document.",
                     "Fib:CcpHdrTxbx",
                     reportDiagnostic);
@@ -471,7 +471,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             if (fib.IsFastSaved) {
                 AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
                     LegacyDocUnsupportedFeatureKind.FastSave,
-                    "DOC-FAST-SAVE-PRESENT",
+                    "doc-fast-save-present",
                     "The legacy DOC is marked as fast-saved or complex. Fast-save deltas are preserved in the source file but are not projected into the OfficeIMO document.",
                     detailCode: "Fib:FComplex"),
                     reportDiagnostic);
@@ -479,18 +479,18 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             if (fib.QuickSaveCount > 0 && reportDiagnostic) {
                 AddWarning(
-                    "DOC-QUICK-SAVE-HISTORY-PRESENT",
+                    "doc-quick-save-history-present",
                     $"The legacy DOC reports {fib.QuickSaveCount} quick-save revision(s). The projected document content is readable; quick-save history is not represented as editable revision history.");
             }
 
             if (fib.HasPictures && pictureDataFullyProjected) {
                 AddInfo(
-                    "DOC-PICTURES-PROJECTED",
+                    "doc-pictures-projected",
                     "Supported inline picture payloads were projected from the legacy DOC Data stream into editable Open XML images.");
             } else if (fib.HasPictures) {
                 _preservedFeatures.Add(new LegacyDocPreservedFeature(
                     LegacyDocPreservedFeatureKind.Picture,
-                    "DOC-PICTURES-PRESENT",
+                    "doc-pictures-present",
                     "The legacy DOC FIB indicates picture payloads. Pictures are preserved in the source file but are not projected into the OfficeIMO document.",
                     "Fib:FHasPic"));
             }
@@ -518,7 +518,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             _compoundFeatures.Add(new LegacyDocCompoundFeature(
                 LegacyDocCompoundFeatureKind.BinaryData,
-                "DOC-BINARY-DATA-STREAM-PRESENT",
+                "doc-binary-data-stream-present",
                 "The legacy DOC contains a binary Data stream used by pictures, drawings, form fields, or other payloads. These payloads are preserved in the source file but are not projected into the OfficeIMO document.",
                 entry.Path,
                 "Compound:BinaryDataStream",
@@ -625,7 +625,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 if (!reportedNestedTable && format.MaximumTableDepth > 2) {
                     AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
                         LegacyDocUnsupportedFeatureKind.NestedTable,
-                        "DOC-NESTED-TABLES-PRESENT",
+                        "doc-nested-tables-present",
                         BuildNestedTableDescription(format),
                         detailCode: "PAPX:sprmPItap"),
                         reportUnsupportedFeatures);
@@ -635,7 +635,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 if (format.HasMergedTableCells) {
                     AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
                         LegacyDocUnsupportedFeatureKind.MergedTableCell,
-                        "DOC-MERGED-TABLE-CELLS-PRESENT",
+                        "doc-merged-table-cells-present",
                         "The legacy DOC contains unsupported or conflicting merged table cell descriptors. That table structure is preserved in the source file but cannot be safely projected into the OfficeIMO table model yet.",
                         detailCode: "PAPX:sprmTDefTable"),
                         reportUnsupportedFeatures);
@@ -671,7 +671,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             _preservedFeatures.Add(new LegacyDocPreservedFeature(
                 LegacyDocPreservedFeatureKind.Bookmark,
-                "DOC-BOOKMARK-RANGE-PRESENT",
+                "doc-bookmark-range-present",
                 $"The legacy DOC contains bookmark '{bookmark.Name}' at character range {bookmark.StartCharacter}-{bookmark.EndCharacter} outside the currently supported body, table-cell, header/footer, footnote, and endnote paragraph bookmark projection. The bookmark is preserved in the source file but is not projected into the OfficeIMO document.",
                 "Fib:PlcfBkf"));
         }

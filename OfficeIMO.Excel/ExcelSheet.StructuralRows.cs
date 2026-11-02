@@ -97,13 +97,13 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ValidateStructuralRowArguments(int firstRow, int count) {
-            if (firstRow < 1 || firstRow > A1.MaxRows) {
-                throw new ArgumentOutOfRangeException(nameof(firstRow), $"Row must be between 1 and {A1.MaxRows}.");
+            if (firstRow < 1 || firstRow > ExcelA1.MaxRows) {
+                throw new ArgumentOutOfRangeException(nameof(firstRow), $"Row must be between 1 and {ExcelA1.MaxRows}.");
             }
             if (count < 1) {
                 throw new ArgumentOutOfRangeException(nameof(count), "Row count must be greater than zero.");
             }
-            if ((long)firstRow + count - 1L > A1.MaxRows) {
+            if ((long)firstRow + count - 1L > ExcelA1.MaxRows) {
                 throw new ArgumentOutOfRangeException(nameof(count), "The requested row block must fit inside the worksheet row limit.");
             }
         }
@@ -214,7 +214,7 @@ namespace OfficeIMO.Excel {
             ValidateRowInsertionAgainstPivotOutputs(firstRow);
             SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
             uint maxShiftedRow = GetMaximumEffectiveRowIndex(sheetData, firstRow);
-            if (maxShiftedRow > 0U && (long)maxShiftedRow + count > A1.MaxRows) {
+            if (maxShiftedRow > 0U && (long)maxShiftedRow + count > ExcelA1.MaxRows) {
                 throw new InvalidOperationException("Inserting rows would move worksheet content beyond Excel's row limit.");
             }
             ValidateWorkbookSharedFormulasForStructuralEdit();
@@ -234,7 +234,7 @@ namespace OfficeIMO.Excel {
                 .Where(item => item.FormulaType?.Value == CellFormulaValues.Array
                     || item.FormulaType?.Value == CellFormulaValues.DataTable)) {
                 if (formula.Reference?.Value is not string reference
-                    || !A1.TryParseRange(
+                    || !ExcelA1.TryParseRange(
                         reference.Replace("$", string.Empty),
                         out int arrayFirstRow,
                         out _,
@@ -258,7 +258,7 @@ namespace OfficeIMO.Excel {
                 .Where(item => item.FormulaType?.Value == CellFormulaValues.Array
                     || item.FormulaType?.Value == CellFormulaValues.DataTable)) {
                 if (formula.Reference?.Value is not string reference
-                    || !A1.TryParseRange(
+                    || !ExcelA1.TryParseRange(
                         reference.Replace("$", string.Empty),
                         out int ownedFirstRow,
                         out _,
@@ -281,7 +281,7 @@ namespace OfficeIMO.Excel {
             foreach (var tableDefinitionPart in _worksheetPart.TableDefinitionParts) {
                 Table? table = tableDefinitionPart.Table;
                 if (table?.Reference?.Value is not string reference
-                    || !A1.TryParseRange(
+                    || !ExcelA1.TryParseRange(
                         reference.Replace("$", string.Empty),
                         out int tableFirstRow,
                         out _,
@@ -314,7 +314,7 @@ namespace OfficeIMO.Excel {
                 if (source?.Reference?.Value is string reference
                     && string.IsNullOrWhiteSpace(source.Id?.Value)
                     && string.Equals(source.Sheet?.Value, Name, StringComparison.OrdinalIgnoreCase)
-                    && A1.TryParseRange(
+                    && ExcelA1.TryParseRange(
                         reference.Replace("$", string.Empty),
                         out int sourceFirstRow,
                         out _,
@@ -355,7 +355,7 @@ namespace OfficeIMO.Excel {
                     if (string.IsNullOrWhiteSpace(rangeSet.Id?.Value)
                         && string.Equals(rangeSet.Sheet?.Value, Name, StringComparison.OrdinalIgnoreCase)
                         && rangeSet.Reference?.Value is string consolidationReference
-                        && A1.TryParseRange(
+                        && ExcelA1.TryParseRange(
                             consolidationReference.Replace("$", string.Empty),
                             out int consolidationFirstRow,
                             out _,
@@ -372,7 +372,7 @@ namespace OfficeIMO.Excel {
             foreach (var pivotPart in _worksheetPart.PivotTableParts) {
                 string? reference = pivotPart.PivotTableDefinition?.Location?.Reference?.Value;
                 if (reference == null
-                    || !A1.TryParseRange(reference.Replace("$", string.Empty), out int pivotFirstRow, out _, out int pivotLastRow, out _)) {
+                    || !ExcelA1.TryParseRange(reference.Replace("$", string.Empty), out int pivotFirstRow, out _, out int pivotLastRow, out _)) {
                     continue;
                 }
 
@@ -389,7 +389,7 @@ namespace OfficeIMO.Excel {
             foreach (var pivotPart in _worksheetPart.PivotTableParts) {
                 string? reference = pivotPart.PivotTableDefinition?.Location?.Reference?.Value;
                 if (reference != null
-                    && A1.TryParseRange(reference.Replace("$", string.Empty), out int pivotFirstRow, out _, out int pivotLastRow, out _)
+                    && ExcelA1.TryParseRange(reference.Replace("$", string.Empty), out int pivotFirstRow, out _, out int pivotLastRow, out _)
                     && firstRow > pivotFirstRow
                     && firstRow <= pivotLastRow) {
                     throw new InvalidOperationException(
@@ -644,7 +644,7 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (Break pageBreak in WorksheetRoot.Descendants<RowBreaks>().SelectMany(rowBreaks => rowBreaks.Elements<Break>())) {
-                if (pageBreak.Id?.Value is uint row && row >= firstRow && (long)row + count > A1.MaxRows) {
+                if (pageBreak.Id?.Value is uint row && row >= firstRow && (long)row + count > ExcelA1.MaxRows) {
                     throw new InvalidOperationException("Inserting rows would move a page break beyond Excel's row limit.");
                 }
             }
@@ -657,7 +657,7 @@ namespace OfficeIMO.Excel {
                     && zeroBasedRow + 1 >= firstRow
                     && (long)zeroBasedRow
                         + (IsZeroOffsetDrawingBoundary(marker) ? 0L : 1L)
-                        + count > A1.MaxRows) {
+                        + count > ExcelA1.MaxRows) {
                     throw new InvalidOperationException("Inserting rows would move a drawing anchor beyond Excel's row limit.");
                 }
             }
@@ -747,7 +747,7 @@ namespace OfficeIMO.Excel {
                     if (placement == VmlAnchorPlacement.OneCell) {
                         int oneBasedFromRow = values[2] + 1;
                         if (oneBasedFromRow >= firstRow
-                            && (long)values[6] + count >= A1.MaxRows) {
+                            && (long)values[6] + count >= ExcelA1.MaxRows) {
                             throw new InvalidOperationException(
                                 "Inserting rows would move a comment note anchor beyond Excel's row limit.");
                         }
@@ -763,7 +763,7 @@ namespace OfficeIMO.Excel {
                             count,
                             lastDeletedRow: null,
                             out var remappedRows)
-                        && (remappedRows == null || remappedRows.Value.r2 >= A1.MaxRows)) {
+                        && (remappedRows == null || remappedRows.Value.r2 >= ExcelA1.MaxRows)) {
                         throw new InvalidOperationException(
                             "Inserting rows would move a comment note anchor beyond Excel's row limit.");
                     }
@@ -881,7 +881,7 @@ namespace OfficeIMO.Excel {
                     || !CanRewriteFormulaReference(match.Reference, Name, rewriteUnqualifiedReferences)
                     || match.Reference.Kind == ExcelReferenceKind.WholeColumn) return false;
                 int last = Math.Max(match.Reference.Start.Row, match.Reference.End.Row);
-                return last >= firstRow && (long)last + count > A1.MaxRows;
+                return last >= firstRow && (long)last + count > ExcelA1.MaxRows;
             });
 
             if (overflow) {
@@ -913,7 +913,7 @@ namespace OfficeIMO.Excel {
             foreach (ReferenceListPart part in SplitReferenceList(references)) {
                 if (TryParseReference(part, out var bounds)
                     && bounds.r2 >= firstRow
-                    && (long)bounds.r2 + count > A1.MaxRows) {
+                    && (long)bounds.r2 + count > ExcelA1.MaxRows) {
                     throw new InvalidOperationException(
                         $"Inserting rows would move reference '{part}' beyond Excel's row limit.");
                 }

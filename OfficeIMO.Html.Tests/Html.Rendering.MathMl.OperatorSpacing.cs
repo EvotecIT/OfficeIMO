@@ -12,7 +12,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlMathMl_AuthoredCssPixelsKeepFormulaSemanticsAndOriginalSupplement() {
         const string markup = "<math xmlns='http://www.w3.org/1998/Math/MathML' aria-label='spaced x equals two' "
             + "style='font:20px SpacingMath'><mrow><mtext>x</mtext><mo form='infix' lspace='4px' rspace='0'>=</mo><mn>2</mn></mrow></math>";
-        var options = new HtmlToPdfOptions { PageSize = new OfficePageSize(3D, 2D), HonorCssPageRules = false,
+        var options = new HtmlToPdfOptions { PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(3D), global::OfficeIMO.OfficeLength.Inches(2D)), HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D), AllowSystemFontFallback = false };
         options.Fonts.Add("SpacingMath", ManagedTextShapingTestAssets.CreateFont('x', '=', '2'));
         var result = HtmlConversionDocument.Parse(markup).RenderToPdfResult(

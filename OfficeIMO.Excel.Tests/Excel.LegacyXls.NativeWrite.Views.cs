@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    document.AddWorksheet("First").CellValue(1, 1, "First");
-                    document.AddWorksheet("Second").CellValue(1, 1, "Second");
+                    document.AddSheet("First").CellValue(1, 1, "First");
+                    document.AddSheet("Second").CellValue(1, 1, "Second");
 
                     Workbook workbook = document.WorkbookRoot;
                     workbook.RemoveAllChildren<BookViews>();
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Views");
+                    ExcelSheet sheet = document.AddSheet("Views");
                     sheet.CellValue(1, 1, "Equivalent worksheet views");
 
                     Worksheet worksheet = sheet.WorksheetPart.Worksheet;
@@ -196,7 +196,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Views");
+                    ExcelSheet sheet = document.AddSheet("Views");
                     sheet.CellValue(1, 1, "Divergent worksheet views");
 
                     Worksheet worksheet = sheet.WorksheetPart.Worksheet;

@@ -118,24 +118,24 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void StructuredPipeline_PromotesTableBeforeGeneralSegmentation() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 420,
-                PageHeight = 320,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(320),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
                 new[] { "Year", "Region", "Value" },
                 new[] { "2025", "North", "1250" },
                 new[] { "2024", "West", "980" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 70, 120, 90 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(90) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
 
@@ -151,7 +151,7 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Equal(new[] { "2025", "North", "1250" }, candidate.Rows[1]);
         Assert.Equal(candidate.Rows.Select(static row => row.ToArray()), table.Rows.Select(static row => row.ToArray()));
         Assert.Contains(page.Analysis.Regions, region =>
-            region.Evidence.Any(static evidence => evidence.Code == "region.canonical-table"));
+            region.Evidence.Any(static evidence => evidence.Code == "region-canonical-table"));
     }
 
     [Fact]
@@ -201,7 +201,7 @@ public partial class PdfUnderstandingPipelineTests {
     public void Pipeline_UsesCallerSuppliedStageAndRecordsItsProvider() {
         byte[] pdf = PdfDocument.Create()
             .Paragraph(p => p.Text("Top region"))
-            .Paragraph(p => p.Text("Bottom region"), style: new PdfParagraphStyle { SpacingBefore = 40 })
+            .Paragraph(p => p.Text("Bottom region"), style: new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(40) })
             .ToBytes();
         var custom = new ReverseReadingOrderStage();
         var options = new PdfUnderstandingPipelineOptions { ReadingOrder = custom };
@@ -361,7 +361,7 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Equal(90D, words[0].XEnd, 6);
         Assert.Equal(120D, words[1].XStart, 6);
         Assert.Equal(130D, words[1].XEnd, 6);
-        Assert.All(words, word => Assert.Contains(word.Evidence, static evidence => evidence.Code == "word.character-advance-projection"));
+        Assert.All(words, word => Assert.Contains(word.Evidence, static evidence => evidence.Code == "word-character-advance-projection"));
     }
 
     [Fact]
@@ -379,7 +379,7 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Equal(70D, words[0].XEnd, 6);
         Assert.Equal(80D, words[1].XStart, 6);
         Assert.Equal(100D, words[1].XEnd, 6);
-        Assert.All(words, word => Assert.Contains(word.Evidence, static evidence => evidence.Code == "word.baseline-projection"));
+        Assert.All(words, word => Assert.Contains(word.Evidence, static evidence => evidence.Code == "word-baseline-projection"));
     }
 
     [Fact]
@@ -551,14 +551,14 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void ReadOptionsCopiesPreserveReadingDirectionAndRemainIndependent() {
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             LayoutOptions = new PdfTextLayoutOptions {
                 ReadingDirection = PdfReadingDirection.RightToLeft
             }
         };
 
-        PdfReadOptions clone = options.Clone();
-        PdfReadOptions selected = PdfReadOptions.WithPageSelection(options, PdfPageSelection.From(2));
+        PdfLoadOptions clone = options.Clone();
+        PdfLoadOptions selected = PdfLoadOptions.WithPageSelection(options, PdfPageSelection.From(2));
 
         Assert.Equal(PdfReadingDirection.RightToLeft, clone.LayoutOptions.ReadingDirection);
         Assert.Equal(PdfReadingDirection.RightToLeft, selected.LayoutOptions.ReadingDirection);
@@ -681,8 +681,8 @@ public partial class PdfUnderstandingPipelineTests {
         PdfUnderstandingImageRegion imageRegion = Assert.Single(page.Analysis.ImageRegions);
         Assert.True(imageRegion.IsFigure);
         Assert.Equal(captionText, Assert.IsType<PdfUnderstandingSemanticElement>(imageRegion.Caption).Region.Text);
-        Assert.Contains(imageRegion.Evidence, static evidence => evidence.Code == "image-region.placement-geometry");
-        Assert.Contains(imageRegion.Evidence, static evidence => evidence.Code == "image-region.caption-proximity");
+        Assert.Contains(imageRegion.Evidence, static evidence => evidence.Code == "image-region-placement-geometry");
+        Assert.Contains(imageRegion.Evidence, static evidence => evidence.Code == "image-region-caption-proximity");
         Assert.Contains(page.Analysis.Trace, static stage => stage.Stage == "image-region-detection");
         PdfLogicalImage image = Assert.Single(page.Images);
         Assert.Same(imageRegion, Assert.Single(image.Regions));
@@ -723,7 +723,7 @@ public partial class PdfUnderstandingPipelineTests {
             .Image(image, 120D, 60D)
             .Image(image, 120D, 60D)
             .ToBytes();
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Pipeline = new PdfUnderstandingPipelineOptions {
                 MaxImageRegionsPerPage = 1
             }
@@ -828,7 +828,7 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Equal(0D, placement.Opacity);
         Assert.Null(region.Caption);
         Assert.False(region.IsFigure);
-        Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region.caption-proximity");
+        Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region-caption-proximity");
         Assert.Contains(page.Paragraphs, static paragraph => paragraph.Text == "透明画像の近接テキスト");
     }
 
@@ -854,8 +854,8 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Equal(3, placement.MarkedContentId);
         Assert.Null(placement.ContentStreamObjectNumber);
         Assert.Same(placement, region.Placement);
-        Assert.Contains(region.Evidence, static evidence => evidence.Code == "image-region.marked-content");
-        Assert.Contains(region.Evidence, static evidence => evidence.Code == "image-region.tagged-figure");
+        Assert.Contains(region.Evidence, static evidence => evidence.Code == "image-region-marked-content");
+        Assert.Contains(region.Evidence, static evidence => evidence.Code == "image-region-tagged-figure");
         Assert.True(region.IsFigure);
         Assert.Equal("Revenue chart", region.AlternativeText);
         Assert.Equal(3, Assert.Single(page.Images).PrimaryPlacement?.MarkedContentId);
@@ -886,8 +886,8 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.True(region.IsFigure);
         Assert.Equal("Tagged chart", region.AlternativeText);
         Assert.Equal("Tagged caption", Assert.IsType<PdfUnderstandingSemanticElement>(region.Caption).Region.Text);
-        Assert.Contains(region.Evidence, static evidence => evidence.Code == "image-region.tagged-caption");
-        Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region.caption-proximity");
+        Assert.Contains(region.Evidence, static evidence => evidence.Code == "image-region-tagged-caption");
+        Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region-caption-proximity");
         Assert.Equal("Tagged caption", Assert.Single(page.Captions).Text);
     }
 
@@ -912,7 +912,7 @@ public partial class PdfUnderstandingPipelineTests {
             Assert.Single(PdfDocument.Load(pdf).Read().Pages).Analysis.ImageRegions);
 
         Assert.Equal("Contained caption", Assert.IsType<PdfUnderstandingSemanticElement>(region.Caption).Region.Text);
-        Assert.Contains(region.Evidence, static evidence => evidence.Code == "image-region.tagged-caption");
+        Assert.Contains(region.Evidence, static evidence => evidence.Code == "image-region-tagged-caption");
     }
 
     [Fact]
@@ -941,7 +941,7 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.All(page.Analysis.ImageRegions, static region => {
             Assert.True(region.IsFigure);
             Assert.Null(region.Caption);
-            Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region.tagged-caption");
+            Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region-tagged-caption");
         });
         Assert.Equal("Ambiguous caption", Assert.Single(page.Captions).Text);
     }
@@ -970,7 +970,7 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.False(region.IsFigure);
         Assert.Null(region.AlternativeText);
         Assert.Null(region.Caption);
-        Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region.tagged-caption");
+        Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region-tagged-caption");
         Assert.DoesNotContain(page.Analysis.Elements, static element =>
             element.Kind == PdfUnderstandingSemanticKind.Caption && element.Region.Text == "Detached caption");
     }
@@ -998,7 +998,7 @@ public partial class PdfUnderstandingPipelineTests {
 
         Assert.True(region.IsFigure);
         Assert.Null(region.Caption);
-        Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region.tagged-caption");
+        Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region-tagged-caption");
     }
 
     [Fact]
@@ -1070,7 +1070,7 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Equal(5, region.Placement.ContentStreamObjectNumber);
         Assert.True(region.IsFigure);
         Assert.Equal("Form chart", region.AlternativeText);
-        Assert.Contains(region.Evidence, static evidence => evidence.Code == "image-region.tagged-figure");
+        Assert.Contains(region.Evidence, static evidence => evidence.Code == "image-region-tagged-figure");
     }
 
     [Fact]
@@ -1121,7 +1121,7 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Null(region.Placement.ContentStreamObjectNumber);
         Assert.False(region.IsFigure);
         Assert.Null(region.AlternativeText);
-        Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region.tagged-figure");
+        Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region-tagged-figure");
     }
 
     [Fact]
@@ -1155,7 +1155,7 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Null(region.Placement.ContentStreamObjectNumber);
         Assert.False(region.IsFigure);
         Assert.Null(region.AlternativeText);
-        Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region.tagged-figure");
+        Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region-tagged-figure");
     }
 
     [Fact]
@@ -1180,7 +1180,7 @@ public partial class PdfUnderstandingPipelineTests {
 
         Assert.Null(region.Caption);
         Assert.False(region.IsFigure);
-        Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region.caption-proximity");
+        Assert.DoesNotContain(region.Evidence, static evidence => evidence.Code == "image-region-caption-proximity");
         Assert.Contains(page.Analysis.Elements, static element =>
             element.Kind == PdfUnderstandingSemanticKind.Heading && element.Region.Text == "Caption lead");
     }
@@ -1197,7 +1197,7 @@ public partial class PdfUnderstandingPipelineTests {
             new MemoryStream(pdf, writable: false),
             "limited.pdf",
             pdfOptions: new ReaderPdfOptions {
-                ReadOptions = new PdfReadOptions {
+                ReadOptions = new PdfLoadOptions {
                     Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = 1 }
                 }
             }));
@@ -1209,7 +1209,7 @@ public partial class PdfUnderstandingPipelineTests {
             new MemoryStream(pdf, writable: false),
             "expanded.pdf",
             pdfOptions: new ReaderPdfOptions {
-                ReadOptions = new PdfReadOptions {
+                ReadOptions = new PdfLoadOptions {
                     Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = 2 }
                 }
             });
@@ -1318,8 +1318,8 @@ public partial class PdfUnderstandingPipelineTests {
             })
             .ToBytes();
 
-        PdfDocumentReadResult fast = PdfDocument.Load(pdf).Read(new PdfReadOptions { Profile = PdfReadProfile.Fast });
-        PdfDocumentReadResult structured = PdfDocument.Load(pdf).Read(new PdfReadOptions { Profile = PdfReadProfile.Structured });
+        PdfDocumentReadResult fast = PdfDocument.Load(pdf).Read(new PdfLoadOptions { Profile = PdfReadProfile.Fast });
+        PdfDocumentReadResult structured = PdfDocument.Load(pdf).Read(new PdfLoadOptions { Profile = PdfReadProfile.Structured });
         PdfUnderstandingPageResult fastPage = Assert.Single(fast.Pages).Analysis;
         PdfUnderstandingPageResult structuredPage = Assert.Single(structured.Pages).Analysis;
 
@@ -1341,11 +1341,11 @@ public partial class PdfUnderstandingPipelineTests {
             .Paragraph(paragraph => paragraph.Text("Second page body."))
             .ToBytes();
 
-        PdfLogicalPage fastPage = Assert.Single(PdfDocument.Load(pdf).Read(new PdfReadOptions {
+        PdfLogicalPage fastPage = Assert.Single(PdfDocument.Load(pdf).Read(new PdfLoadOptions {
             Profile = PdfReadProfile.Fast,
             PageSelection = PdfPageSelection.From(1)
         }).Pages);
-        PdfLogicalPage structuredPage = Assert.Single(PdfDocument.Load(pdf).Read(new PdfReadOptions {
+        PdfLogicalPage structuredPage = Assert.Single(PdfDocument.Load(pdf).Read(new PdfLoadOptions {
             Profile = PdfReadProfile.Structured,
             PageSelection = PdfPageSelection.From(2)
         }).Pages);
@@ -1402,11 +1402,11 @@ public partial class PdfUnderstandingPipelineTests {
 
         PdfUnderstandingSemanticElement matched = Assert.Single(page.Elements, element =>
             element.Region.Text == "Section 2" &&
-            element.Evidence.Any(static evidence => evidence.Code == "semantic.outline-heading"));
+            element.Evidence.Any(static evidence => evidence.Code == "semantic-outline-heading"));
         Assert.Equal(PdfUnderstandingSemanticKind.Heading, matched.Kind);
         Assert.DoesNotContain(page.Elements, element =>
             element.Region.Text == "Section 1" &&
-            element.Evidence.Any(static evidence => evidence.Code == "semantic.outline-heading"));
+            element.Evidence.Any(static evidence => evidence.Code == "semantic-outline-heading"));
     }
 
     [Fact]
@@ -1418,7 +1418,7 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Contains(page.Elements, element =>
             element.Kind == PdfUnderstandingSemanticKind.Paragraph &&
             element.Region.Text == "Form paragraph" &&
-            element.Evidence.Any(static evidence => evidence.Code == "semantic.tagged-pdf-role"));
+            element.Evidence.Any(static evidence => evidence.Code == "semantic-tagged-pdf-role"));
         Assert.DoesNotContain(page.Elements, element =>
             element.Kind == PdfUnderstandingSemanticKind.Heading &&
             element.Region.Text == "Form paragraph");
@@ -1442,7 +1442,7 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Contains(page.Elements, element =>
             element.Kind == PdfUnderstandingSemanticKind.Paragraph &&
             element.Region.Text == "Form paragraph" &&
-            element.Evidence.Any(static evidence => evidence.Code == "semantic.tagged-pdf-role"));
+            element.Evidence.Any(static evidence => evidence.Code == "semantic-tagged-pdf-role"));
         Assert.All(
             result.TaggedContent!.StructureElements,
             element => Assert.Single(element.MarkedContentReferences));
@@ -1655,7 +1655,7 @@ public partial class PdfUnderstandingPipelineTests {
             page.Elements,
             static candidate => candidate.Region.Text.Contains("Cyclic tagged content", StringComparison.Ordinal));
         Assert.NotEqual(PdfUnderstandingSemanticKind.Heading, element.Kind);
-        Assert.DoesNotContain(element.Evidence, static evidence => evidence.Code == "semantic.tagged-pdf-role");
+        Assert.DoesNotContain(element.Evidence, static evidence => evidence.Code == "semantic-tagged-pdf-role");
     }
 
     [Fact]
@@ -1767,7 +1767,7 @@ public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void GeneratedEncryptedDocument_UsesItsCredentialsForCanonicalRead() {
         PdfDocument document = PdfDocument.Create(
-            new PdfOptions().SetEncryption("open", "owner"));
+            new PdfCreateOptions().SetEncryption("open", "owner"));
         document.Paragraph(paragraph => paragraph.Text("Encrypted semantic content"));
 
         PdfDocumentReadResult result = document.Read();
@@ -1849,7 +1849,7 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Empty(page.Tables);
         Assert.Contains("Retained by segmentation", result.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("Excluded", result.Text, StringComparison.Ordinal);
-        Assert.DoesNotContain("Excluded", result.ToMarkdown(), StringComparison.Ordinal);
+        Assert.DoesNotContain("Excluded", result.ExtractMarkdown(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1931,8 +1931,8 @@ public partial class PdfUnderstandingPipelineTests {
             pdf,
             options,
             layoutOptions: new PdfTextLayoutOptions {
-                IgnoreHeaderHeight = 80D,
-                IgnoreFooterHeight = 80D
+                IgnoreHeaderHeight = OfficeIMO.OfficeLength.Points(80D),
+                IgnoreFooterHeight = OfficeIMO.OfficeLength.Points(80D)
             }).Pages);
 
         Assert.Equal("Retained body evidence", Assert.Single(page.Analysis.DecodedRuns).Text);
@@ -1956,8 +1956,8 @@ public partial class PdfUnderstandingPipelineTests {
             pdf,
             options,
             layoutOptions: new PdfTextLayoutOptions {
-                IgnoreHeaderHeight = 60D,
-                IgnoreFooterHeight = 60D
+                IgnoreHeaderHeight = OfficeIMO.OfficeLength.Points(60D),
+                IgnoreFooterHeight = OfficeIMO.OfficeLength.Points(60D)
             }).Pages);
 
         Assert.Equal("Retained visual body", Assert.Single(page.Analysis.DecodedRuns).Text);
@@ -2061,7 +2061,7 @@ public partial class PdfUnderstandingPipelineTests {
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => Read(
             pdf,
             options,
-            layoutOptions: new PdfTextLayoutOptions { IgnoreHeaderHeight = 20D }));
+            layoutOptions: new PdfTextLayoutOptions { IgnoreHeaderHeight = OfficeIMO.OfficeLength.Points(20D) }));
 
         Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts, exception.Kind);
         Assert.Equal(2, exception.Limit);
@@ -2079,7 +2079,7 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Throws<OperationCanceledException>(() => TextLayoutEngine.FilterIgnoredPageBands(
             spans,
             PdfReadDocument.Open(PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes()).Pages[0],
-            new PdfTextLayoutOptions { IgnoreHeaderHeight = 20D },
+            new PdfTextLayoutOptions { IgnoreHeaderHeight = OfficeIMO.OfficeLength.Points(20D) },
             consumeWork: null,
             cancellationCheck: () => {
                 if (++polls == 5) cancellation.Cancel();
@@ -2175,7 +2175,7 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Contains(page.Elements, element =>
             element.Kind == PdfUnderstandingSemanticKind.Paragraph &&
             element.Region.Text.Contains("Tagged body paragraph", StringComparison.Ordinal) &&
-            element.Evidence.Any(static evidence => evidence.Code == "semantic.tagged-pdf-role"));
+            element.Evidence.Any(static evidence => evidence.Code == "semantic-tagged-pdf-role"));
         Assert.All(
             page.DecodedRuns.Where(static run => run.Text.Contains("Tagged", StringComparison.Ordinal)),
             static run => Assert.True(run.MarkedContentId.HasValue));
@@ -2185,26 +2185,26 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void StructuredRead_UsesTaggedRowsAndCellsInsteadOfAnOverlappingGeometricGuess() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas
                 .Structure(PdfCanvasStructureRole.Table, table => table
                     .Structure(PdfCanvasStructureRole.TableRow, row => row
-                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Code", 40D, 100D, 45D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Area", 150D, 100D, 35D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Value", 190D, 100D, 38D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("State", 232D, 100D, 42D, 16D)))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Code", global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(45D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Area", global::OfficeIMO.OfficeLength.Points(150D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(35D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Value", global::OfficeIMO.OfficeLength.Points(190D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(38D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("State", global::OfficeIMO.OfficeLength.Points(232D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(42D), global::OfficeIMO.OfficeLength.Points(16D))))
                     .Structure(PdfCanvasStructureRole.TableRow, row => row
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("A-01", 40D, 120D, 45D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("SE", 150D, 120D, 35D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("1250.5", 190D, 120D, 38D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Ready", 232D, 120D, 42D, 16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("A-01", global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(45D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("SE", global::OfficeIMO.OfficeLength.Points(150D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(35D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("1250.5", global::OfficeIMO.OfficeLength.Points(190D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(38D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Ready", global::OfficeIMO.OfficeLength.Points(232D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(42D), global::OfficeIMO.OfficeLength.Points(16D))))
                     .Structure(PdfCanvasStructureRole.TableRow, row => row
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("B-02", 40D, 140D, 45D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("PL", 150D, 140D, 35D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("980.25", 190D, 140D, 38D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Done", 232D, 140D, 42D, 16D))))
-                .Figure("Chart axis", figure => figure.Text("1200", 340D, 121D, 40D, 16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("B-02", global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(45D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("PL", global::OfficeIMO.OfficeLength.Points(150D), global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(35D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("980.25", global::OfficeIMO.OfficeLength.Points(190D), global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(38D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Done", global::OfficeIMO.OfficeLength.Points(232D), global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(42D), global::OfficeIMO.OfficeLength.Points(16D)))))
+                .Figure("Chart axis", figure => figure.Text("1200", global::OfficeIMO.OfficeLength.Points(340D), global::OfficeIMO.OfficeLength.Points(121D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(16D))))
             .ToBytes();
 
         PdfLogicalPage page = Assert.Single(PdfDocument.Load(pdf).Read().Pages);
@@ -2212,7 +2212,7 @@ public partial class PdfUnderstandingPipelineTests {
         PdfLogicalTable table = Assert.Single(page.Tables);
 
         Assert.Equal("tagged-structure", candidate.DetectionKind);
-        Assert.Contains(candidate.Evidence, static evidence => evidence.Code == "table.tagged-structure");
+        Assert.Contains(candidate.Evidence, static evidence => evidence.Code == "table-tagged-structure");
         Assert.Equal(4, candidate.Columns.Count);
         Assert.Equal(new[] { "Code", "Area", "Value", "State" }, candidate.Rows[0]);
         Assert.Equal(new[] { "A-01", "SE", "1250.5", "Ready" }, candidate.Rows[1]);
@@ -2223,19 +2223,19 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void StructuredRead_ProjectsTaggedTablesForEveryRepeatedPageSelection() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas
                 .Structure(PdfCanvasStructureRole.Table, table => table
                     .Structure(PdfCanvasStructureRole.TableRow, row => row
-                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Metric", 40D, 100D, 80D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Value", 160D, 100D, 80D, 16D)))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Metric", global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Value", global::OfficeIMO.OfficeLength.Points(160D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(16D))))
                     .Structure(PdfCanvasStructureRole.TableRow, row => row
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Quality", 40D, 120D, 80D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("High", 160D, 120D, 80D, 16D)))))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Quality", global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("High", global::OfficeIMO.OfficeLength.Points(160D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(16D))))))
             .ToBytes();
 
-        PdfDocumentReadResult result = PdfDocument.Load(pdf).Read(new PdfReadOptions {
+        PdfDocumentReadResult result = PdfDocument.Load(pdf).Read(new PdfLoadOptions {
             PageSelection = PdfPageSelection.From(1, 1)
         });
 
@@ -2256,19 +2256,19 @@ public partial class PdfUnderstandingPipelineTests {
         PdfDocumentReadResult result = PdfDocument.Load(CreateWrappedTaggedHeadingPdf()).Read();
         PdfLogicalPage page = Assert.Single(result.Pages);
 
-        Assert.Equal(2, page.Headings.Count);
+        // The two source lines form one wrapped heading.
+        PdfLogicalHeading heading = Assert.Single(page.Headings);
+        Assert.Equal("Wrapped tagged heading title", heading.Text);
+        Assert.Equal(new[] { "Wrapped tagged", "heading title" }, heading.Lines.Select(static line => line.Text));
         Assert.All(page.TextBlocks.Where(static block =>
                 block.Text is "Wrapped tagged" or "heading title"),
             static block => Assert.Equal(PdfLogicalElementKind.Heading, block.Kind));
-        Assert.All(page.Headings, static heading => {
-            Assert.Equal(2, heading.Level);
-            Assert.Contains(heading.Evidence, static evidence => evidence.Code == "semantic.tagged-pdf-role");
-        });
+        Assert.Equal(2, heading.Level);
+        Assert.Contains(heading.Evidence, static evidence => evidence.Code == "semantic-tagged-pdf-role");
         Assert.NotEmpty(result.Sections);
 
         string html = result.ToHtml(new PdfToHtmlOptions { Profile = PdfHtmlProfile.Semantic });
-        Assert.Contains("<h2>Wrapped tagged</h2>", html, StringComparison.Ordinal);
-        Assert.Contains("<h2>heading title</h2>", html, StringComparison.Ordinal);
+        Assert.Contains("<h2>Wrapped tagged heading title</h2>", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -2411,7 +2411,7 @@ public partial class PdfUnderstandingPipelineTests {
                 element.Kind == PdfUnderstandingSemanticKind.Header &&
                 element.Region.Text == "Large running header");
             Assert.Contains(runningHeader.Evidence, evidence => evidence.Code == "semantic.large-font");
-            Assert.Contains(runningHeader.Evidence, evidence => evidence.Code == "semantic.repeated-header");
+            Assert.Contains(runningHeader.Evidence, evidence => evidence.Code == "semantic-repeated-header");
         });
         Assert.DoesNotContain(result.Sections, section => section.Title == "Large running header");
     }
@@ -2466,7 +2466,7 @@ public partial class PdfUnderstandingPipelineTests {
             .Paragraph(paragraph => paragraph.Text("Opening body"))
             .ToBytes();
 
-        PdfDocumentReadResult result = PdfDocument.Load(pdf).Read(new PdfReadOptions {
+        PdfDocumentReadResult result = PdfDocument.Load(pdf).Read(new PdfLoadOptions {
             PageSelection = PdfPageSelection.From(2, 1)
         });
         PdfLogicalSection section = Assert.Single(result.Sections);
@@ -2495,7 +2495,7 @@ public partial class PdfUnderstandingPipelineTests {
             static element => element.Kind == PdfUnderstandingSemanticKind.Table);
         Assert.Contains("Table metric", table.Region.Text, StringComparison.Ordinal);
         Assert.Contains("Premium", table.Region.Text, StringComparison.Ordinal);
-        Assert.Contains(table.Region.Evidence, static evidence => evidence.Code == "region.canonical-table");
+        Assert.Contains(table.Region.Evidence, static evidence => evidence.Code == "region-canonical-table");
         Assert.DoesNotContain(
             page.Elements,
             static element => element.Kind == PdfUnderstandingSemanticKind.Paragraph &&
@@ -2538,7 +2538,7 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Same(item.Lines[0], item.Line);
         Assert.Equal("First tagged list line continuation tagged list line", item.Text);
         Assert.Equal(item.Text, string.Concat(item.Runs.Select(static run => run.Text)));
-        Assert.Contains(item.Evidence, static evidence => evidence.Code == "semantic.tagged-pdf-role");
+        Assert.Contains(item.Evidence, static evidence => evidence.Code == "semantic-tagged-pdf-role");
         Assert.Single(PdfLogicalReadingOrderAnalysis.Analyze(page),
             static candidate => candidate.Kind == PdfLogicalReadingOrderKind.ListItem);
         PdfLogicalSection section = Assert.Single(logical.Sections);
@@ -2550,7 +2550,7 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Equal(item.Text, block.Text);
         Assert.DoesNotContain(reader.Blocks, static block => block.Text == "continuation tagged list line");
 
-        string markdown = logical.ToMarkdown();
+        string markdown = logical.ExtractMarkdown();
         Assert.Single(markdown.Split('\n'), static line => line.StartsWith("- ", StringComparison.Ordinal));
         Assert.Contains(item.Text, markdown, StringComparison.Ordinal);
     }
@@ -2573,7 +2573,7 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Equal(new[] { "First independent item", "Second independent item" },
             items.Select(static item => item.Text));
         Assert.All(items, static item => Assert.Single(item.Lines));
-        Assert.Equal(2, logical.ToMarkdown().Split('\n').Count(static line => line.StartsWith("- ", StringComparison.Ordinal)));
+        Assert.Equal(2, logical.ExtractMarkdown().Split('\n').Count(static line => line.StartsWith("- ", StringComparison.Ordinal)));
     }
 
     [Fact]
@@ -2594,7 +2594,7 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Equal("Wrapped list item continuation line", item.Text);
         Assert.Single(PdfLogicalReadingOrderAnalysis.Analyze(logical.Pages[0]),
             static candidate => candidate.Kind == PdfLogicalReadingOrderKind.ListItem);
-        Assert.Single(logical.ToMarkdown().Split('\n'), static line => line.StartsWith("- ", StringComparison.Ordinal));
+        Assert.Single(logical.ExtractMarkdown().Split('\n'), static line => line.StartsWith("- ", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -2722,7 +2722,7 @@ public partial class PdfUnderstandingPipelineTests {
             }, style: new PdfTableStyle {
                 HeaderBold = false,
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 220D, 220D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(220D) }
             })
             .ToBytes();
 
@@ -2950,7 +2950,7 @@ public partial class PdfUnderstandingPipelineTests {
         PdfPageSelection? selection = null,
         PdfTextLayoutOptions? layoutOptions = null,
         CancellationToken cancellationToken = default) {
-        return PdfDocument.Load(pdf).Read(new PdfReadOptions {
+        return PdfDocument.Load(pdf).Read(new PdfLoadOptions {
             Profile = profile,
             PageSelection = selection,
             LayoutOptions = layoutOptions ?? new PdfTextLayoutOptions(),
@@ -3166,7 +3166,7 @@ public partial class PdfUnderstandingPipelineTests {
             element.Kind == PdfUnderstandingSemanticKind.Heading &&
             element.Level == level &&
             element.Region.Text.Contains(text, StringComparison.Ordinal) &&
-            element.Evidence.Any(static evidence => evidence.Code == "semantic.tagged-pdf-role"));
+            element.Evidence.Any(static evidence => evidence.Code == "semantic-tagged-pdf-role"));
     }
 
     private static PdfUnderstandingLine CreateGappedUnderstandingLine(string left, string right, double baselineY) {
@@ -3441,7 +3441,7 @@ public partial class PdfUnderstandingPipelineTests {
             IReadOnlyList<PdfUnderstandingRegion> orderedRegions) =>
             orderedRegions.Select(static region => region.Text.StartsWith("Table section", StringComparison.Ordinal)
                 ? new PdfUnderstandingSemanticElement(region, PdfUnderstandingSemanticKind.Heading, level: 1)
-                : region.Evidence.Any(static evidence => evidence.Code == "region.canonical-table")
+                : region.Evidence.Any(static evidence => evidence.Code == "region-canonical-table")
                     ? new PdfUnderstandingSemanticElement(region, PdfUnderstandingSemanticKind.Table)
                     : new PdfUnderstandingSemanticElement(region, PdfUnderstandingSemanticKind.Paragraph)).ToArray();
     }

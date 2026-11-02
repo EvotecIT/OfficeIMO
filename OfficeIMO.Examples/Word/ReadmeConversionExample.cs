@@ -89,7 +89,7 @@ namespace OfficeIMO.Examples.Word {
             try {
                 string outputPath = Path.Combine(folderPath, "README_from_markdown.docx");
                 
-                using (var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions {
+                using (var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord(new WordMarkdownImportOptions {
                     FontFamily = "Calibri"
                 })) {
                     document.Save(outputPath);
@@ -126,7 +126,7 @@ namespace OfficeIMO.Examples.Word {
                 
                 using (var document = WordDocument.Load(inputPath)) {
                     string htmlPath = Path.Combine(folderPath, "README_to_html.html");
-                    document.SaveAsHtml(htmlPath, new WordToHtmlOptions {
+                    document.SaveAsHtml(htmlPath, new WordHtmlExportOptions {
                         IncludeFontStyles = true,
                         IncludeListStyles = true,
                         IncludeDefaultCss = true
@@ -164,7 +164,7 @@ namespace OfficeIMO.Examples.Word {
                 
                 using (var document = WordDocument.Load(inputPath)) {
                     string pdfPath = Path.Combine(folderPath, "README_to_pdf.pdf");
-                    document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                    document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                         Orientation = OfficePageOrientation.Portrait
                     });
                     
@@ -231,7 +231,7 @@ namespace OfficeIMO.Examples.Word {
 ";
             
             try {
-                using (var document = OfficeIMO.Html.HtmlConversionDocument.Parse(sampleHtml).ToWordDocument(new HtmlToWordOptions {
+                using (var document = OfficeIMO.Html.HtmlConversionDocument.Parse(sampleHtml).ToWord(new WordHtmlImportOptions {
                     FontFamily = "Calibri"
                 })) {
                     string outputPath = Path.Combine(folderPath, "README_from_html.docx");
@@ -261,8 +261,8 @@ namespace OfficeIMO.Examples.Word {
             // Test Markdown -> Word -> Markdown
             try {
                 Console.WriteLine("Testing: Markdown → Word → Markdown");
-                using (var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown.Substring(0, Math.Min(500, markdown.Length))).ToWordDocument()) {
-                    string backToMarkdown = document.ToMarkdown();
+                using (var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown.Substring(0, Math.Min(500, markdown.Length))).ToWord()) {
+                    string backToMarkdown = (document.ToMarkdown()).ToMarkdown();
                     Console.WriteLine($"  • Original length: {markdown.Length}");
                     Console.WriteLine($"  • Round-trip length: {backToMarkdown.Length}");
                     Console.WriteLine($"  • Data preserved: ~{(backToMarkdown.Length * 100 / 500)}%");

@@ -14,14 +14,14 @@ Sets text on an existing PowerPoint text box.
 Set-OfficePowerPointShapeText [-InputObject] <Object> [-Text] <string> [-PassThru] [<CommonParameters>]
 ```
 
-### Run
+### Content
 ```powershell
-Set-OfficePowerPointShapeText [-InputObject] <Object> -Run <Object[]> [-PassThru] [<CommonParameters>]
+Set-OfficePowerPointShapeText [-InputObject] <Object> [-Content] <scriptblock> [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
 Accepts either a PowerPointTextBox object or a PowerPointShapeInfo record
-returned by Find-OfficePowerPointShape or Get-OfficePowerPointShape. This is the direct
+returned by Get-OfficePowerPointShape. This is the direct
 object-editing counterpart to the creation DSL: locate the text box in an existing deck, replace its
 contents, then save or close the presentation.
 
@@ -29,30 +29,47 @@ contents, then save or close the presentation.
 
 ### EXAMPLE 1
 ```powershell
-PS> Find-OfficePowerPointShape -Presentation $ppt -Text 'Draft' -Kind TextBox |
+PS> Get-OfficePowerPointShape -Document $ppt -Text 'Draft' -Kind TextBox |
                 Set-OfficePowerPointShapeText -Text 'Ready'
 ```
 
-Accepts shape metadata returned by Find-OfficePowerPointShape or Get-OfficePowerPointShape.
+Accepts shape metadata returned by Get-OfficePowerPointShape.
 
 ### EXAMPLE 2
 ```powershell
-PS> $ppt = Get-OfficePowerPoint -Path .\Release.pptx
-Find-OfficePowerPointShape -Presentation $ppt -Text 'Status marker' -Kind TextBox |
+PS> $ppt = Open-OfficePowerPoint -Path .\Release.pptx
+Get-OfficePowerPointShape -Document $ppt -Text 'Status marker' -Kind TextBox |
     Set-OfficePowerPointShapeText -Text 'Status marker: Ready for launch'
-$ppt | Close-OfficePowerPoint -Save
+Save-OfficePowerPoint -Document $ppt
+Close-OfficePowerPoint -Document $ppt
 ```
 
 Searches the existing deck, edits the matched text box, and saves the presentation.
 
 ## PARAMETERS
 
+### -Content
+Replacement rich paragraphs and runs, using PowerPointParagraph and PowerPointText.
+
+```yaml
+Type: ScriptBlock
+Parameter Sets: Content
+Aliases: None
+Possible values:
+
+Required: True
+Position: 1
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -InputObject
 PowerPoint text box or shape-info record for a text box to update.
 
 ```yaml
 Type: Object
-Parameter Sets: Text, Run
+Parameter Sets: Text, Content
 Aliases: None
 Possible values:
 
@@ -68,27 +85,11 @@ Emit the updated text box so additional OfficeIMO operations can continue.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Text, Run
+Parameter Sets: Text, Content
 Aliases: None
 Possible values:
 
 Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Run
-Replacement rich text runs. Each run can be created with TextRun/PowerPointTextRun or provided as a hashtable/object.
-
-```yaml
-Type: Object[]
-Parameter Sets: Run
-Aliases: Runs
-Possible values:
-
-Required: True
 Position: named
 Default value: None
 Accept pipeline input: False

@@ -18,7 +18,7 @@ public sealed class VisioPdfApiConsistencyTests {
         string? destination = diagram.FilePath;
         OfficeDocumentReadResult normalized = diagram.ToOfficeDocumentReadResult();
         PdfDocumentConversionResult conversion = diagram.ToPdfDocumentResult();
-        string text = PdfReadDocument.Open(conversion.ToBytes()).ExtractText();
+        string text = PdfDocument.Load(new System.IO.MemoryStream(conversion.ToBytes())).ExtractText();
 
         Assert.Equal(destination, diagram.FilePath);
         Assert.Equal("document.vsdx", normalized.Source.Path);
@@ -89,7 +89,7 @@ public sealed class VisioPdfApiConsistencyTests {
 
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
-            await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                 diagram.SaveAsPdfAsync(new MemoryStream(), cancellationToken: cancellation.Token));
         } finally {
             if (File.Exists(outputPath)) File.Delete(outputPath);

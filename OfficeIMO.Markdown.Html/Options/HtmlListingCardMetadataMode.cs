@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown.Html;
 /// <summary>
 /// Controls how low-value metadata inside repeated listing cards is treated during HTML-to-markdown conversion.
 /// </summary>
-public enum HtmlListingCardMetadataMode {
+public enum MarkdownHtmlListingCardMetadataMode {
     /// <summary>
     /// Preserves all listing-card metadata elements.
     /// </summary>

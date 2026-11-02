@@ -44,7 +44,7 @@ namespace OfficeIMO.Examples.Word {
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 var section2 = document.AddSection();
                 section2.AddHeadersAndFooters();
@@ -53,11 +53,11 @@ namespace OfficeIMO.Examples.Word {
                 var section2DefaultHeader = RequireHeader(section2Headers.Default, "Section 2 default header");
 
                 var paragraghInHeaderSection1 = section2DefaultHeader.AddParagraph();
-                paragraghInHeaderSection1.Text = "Weird shit? 1";
+                paragraghInHeaderSection1.Text = "Section 1 header";
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 var section3 = document.AddSection();
                 section3.AddHeadersAndFooters();
@@ -66,11 +66,11 @@ namespace OfficeIMO.Examples.Word {
                 var section3DefaultHeader = RequireHeader(section3Headers.Default, "Section 3 default header");
 
                 var paragraghInHeaderSection3 = section3DefaultHeader.AddParagraph();
-                paragraghInHeaderSection3.Text = "Weird shit? 2";
+                paragraghInHeaderSection3.Text = "Section 2 header";
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 // 2 section, 9 paragraphs + 7 pagebreaks = 15 paragraphs, 7 pagebreaks
                 Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);

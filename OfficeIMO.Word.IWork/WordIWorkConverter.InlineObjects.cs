@@ -49,9 +49,7 @@ public static partial class WordIWorkConverter {
             double width = source.Geometry?.WidthPoints ?? source.PixelWidth.GetValueOrDefault(640) * 72d / 96d;
             double height = source.Geometry?.HeightPoints ?? source.PixelHeight.GetValueOrDefault(480) * 72d / 96d;
             if (source.Geometry == null) (width, height) = FitInside(width, height, contentWidth, contentHeight);
-            paragraph.AddText(string.Empty).InsertImage(image, source.FileName,
-                Helpers.ConvertPointsToPixels(width), Helpers.ConvertPointsToPixels(height),
-                description: source.AccessibilityDescription ?? "Image imported from Pages");
+            paragraph.AddText(string.Empty).AddImage(image, source.FileName, OfficeIMO.OfficeLength.Pixels(Helpers.ConvertPointsToPixels(width)), OfficeIMO.OfficeLength.Pixels(Helpers.ConvertPointsToPixels(height)), options: new OfficeIMO.Word.WordImageOptions { Description = source.AccessibilityDescription ?? "Image imported from Pages" });
         }
         return false;
     }

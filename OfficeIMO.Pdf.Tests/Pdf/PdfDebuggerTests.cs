@@ -38,7 +38,7 @@ public class PdfDebuggerTests {
 
     [Fact]
     public void Dump_BoundsOperatorsAndReadsEncryptedDocumentsWithExplicitOptions() {
-        byte[] encrypted = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        byte[] encrypted = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Encrypted debugger"))
             .ToBytes();
 

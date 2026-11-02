@@ -28,7 +28,7 @@ public sealed class RtfPdfLineSpacingRegressionTests {
             paragraph.SetLineSpacing(spacing, multiple);
         }
 
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(PortableOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open((document.ToPdf(PortableOptions())).ToBytes());
         Assert.Equal(1, pdf.NumberOfPages);
         var letters = pdf.GetPage(1).Letters;
         var first = Assert.Single(letters, letter => letter.Value == "A");
@@ -88,7 +88,7 @@ public sealed class RtfPdfLineSpacingRegressionTests {
     }
 
     private static double[] ReadBaselines(RtfDocument document) {
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(PortableOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open((document.ToPdf(PortableOptions())).ToBytes());
         Assert.Equal(1, pdf.NumberOfPages);
         var letters = pdf.GetPage(1).Letters;
         return new[] { "A", "B", "C" }
@@ -98,9 +98,9 @@ public sealed class RtfPdfLineSpacingRegressionTests {
 
     private static RtfToPdfOptions PortableOptions() => new RtfToPdfOptions {
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
-        PdfOptions = new PdfCore.PdfOptions {
+        PdfOptions = new PdfCore.PdfCreateOptions {
             DefaultFont = PdfCore.PdfStandardFont.Helvetica,
-            DefaultFontSize = 12
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
         }
     };
 }

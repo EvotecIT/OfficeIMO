@@ -73,12 +73,12 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain("pt\"", svg, StringComparison.Ordinal);
         // No caller font is registered for this default-font workflow. The
         // serialized PDF owns its selected fallback program and glyphs.
-        byte[] savedPdf = document.ToPdfBytes(new HtmlToPdfOptions(options) {
+        byte[] savedPdf = (document.ToPdf(new HtmlToPdfOptions(options) {
             Mode = options.Mode,
-            PageSize = new OfficePageSize(rendered.Pages[0].Width / HtmlRenderOptions.CssPixelsPerInch,
-                rendered.Pages[0].Height / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(rendered.Pages[0].Width / HtmlRenderOptions.CssPixelsPerInch),
+                global::OfficeIMO.OfficeLength.Inches(rendered.Pages[0].Height / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false
-        });
+        })).ToBytes();
         var savedPage = OfficeIMO.Pdf.PdfReadDocument.Open(savedPdf).Pages[0];
         OfficeImageExportResult savedSvg = savedPage.ExportImage(OfficeImageExportFormat.Svg,
             new OfficeIMO.Pdf.PdfImageExportOptions {

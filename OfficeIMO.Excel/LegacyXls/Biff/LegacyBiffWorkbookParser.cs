@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 }
 
                 if (!TryDecryptRecordStream(workbookStream, filePass, options.Password!, workbook.MutableDiagnostics, out workbookStream)) {
-                    if (!workbook.MutableDiagnostics.Any(diagnostic => diagnostic.Code == "XLS-BIFF-FILEPASS-PASSWORD-INVALID")) {
+                    if (!workbook.MutableDiagnostics.Any(diagnostic => diagnostic.Code == "xls-biff-filepass-password-invalid")) {
                         AddFilePassBlocker(workbook, filePass);
                     }
 
@@ -61,7 +61,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 && workbookCodePage.IsInvalid) {
                 workbook.MutableDiagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Error,
-                    "XLS-BIFF-CODEPAGE-INVALID",
+                    "xls-biff-codepage-invalid",
                     workbookCodePage.InvalidReason!,
                     recordOffset: workbookCodePage.ProblemRecordOffset,
                     recordType: (ushort)BiffRecordType.CodePage));
@@ -450,7 +450,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 if (offset + 4 > workbookStream.Length) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Error,
-                        "XLS-BIFF-GLOBALS-TRUNCATED-HEADER",
+                        "xls-biff-globals-truncated-header",
                         "The BIFF globals stream ended inside a record header.",
                         recordOffset: offset));
                     break;
@@ -462,7 +462,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 if (payloadOffset + length > workbookStream.Length) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Error,
-                        "XLS-BIFF-GLOBALS-TRUNCATED-PAYLOAD",
+                        "xls-biff-globals-truncated-payload",
                         $"BIFF record 0x{type:X4} declares {length} payload bytes, but the stream ends early.",
                         recordOffset: offset,
                         recordType: type));
@@ -485,7 +485,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (record.Payload.Length < 2) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-DATE1904-SHORT",
+                    "xls-biff-date1904-short",
                     "A Date1904 record was too short to parse.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -550,7 +550,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (currentExternalReference == null) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-EXTERNNAME-ORPHANED",
+                    "xls-biff-externname-orphaned",
                     "An ExternName record appeared before a SupBook supporting link.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -571,7 +571,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 if (record.Payload.Length < 5) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-FORMAT-SHORT",
+                        "xls-biff-format-short",
                         "A Format record was too short to parse.",
                         recordOffset: record.Offset,
                         recordType: record.Type));
@@ -586,7 +586,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             } catch (Exception ex) when (ex is InvalidDataException || ex is OverflowException) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-FORMAT-INVALID",
+                    "xls-biff-format-invalid",
                     $"A Format record could not be parsed. {ex.Message}",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -600,7 +600,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (record.Payload.Length < 2) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-EXTERNSHEET-SHORT",
+                    "xls-biff-externsheet-short",
                     "An ExternSheet record was too short to parse.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -612,7 +612,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (expectedLength > record.Payload.Length) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-EXTERNSHEET-INVALID",
+                    "xls-biff-externsheet-invalid",
                     "An ExternSheet record ended before all XTI references could be read.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -672,7 +672,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 if (record.Payload.Length < 14) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-LBL-SHORT",
+                        "xls-biff-lbl-short",
                         "A Lbl record was too short to parse.",
                         recordOffset: record.Offset,
                         recordType: record.Type));
@@ -695,7 +695,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 if (string.IsNullOrWhiteSpace(name)) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-LBL-EMPTY-NAME",
+                        "xls-biff-lbl-empty-name",
                         "A Lbl record has no supported name and was not imported.",
                         recordOffset: record.Offset,
                         recordType: record.Type));
@@ -725,14 +725,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     if (formulaFailure == null) {
                         diagnostics.Add(new LegacyXlsImportDiagnostic(
                             LegacyXlsDiagnosticSeverity.Info,
-                            "XLS-BIFF-LBL-FORMULA-UNSUPPORTED",
+                            "xls-biff-lbl-formula-unsupported",
                             $"Defined name '{name}' uses a formula shape that is not imported yet.",
                             recordOffset: record.Offset,
                             recordType: record.Type));
                     } else {
                         diagnostics.Add(new LegacyXlsImportDiagnostic(
                             LegacyXlsDiagnosticSeverity.Info,
-                            "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED",
+                            "xls-biff-formula-tokens-unsupported",
                             $"{formulaFailure.Description} Defined name '{name}' uses a formula shape that is not imported yet.",
                             recordOffset: record.Offset,
                             recordType: record.Type,
@@ -752,7 +752,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     if (boundSheetIndex < 0 || boundSheetIndex >= boundSheetProjectedSheetIndexes.Count) {
                         diagnostics.Add(new LegacyXlsImportDiagnostic(
                             LegacyXlsDiagnosticSeverity.Warning,
-                            "XLS-BIFF-LBL-SCOPE-INVALID",
+                            "xls-biff-lbl-scope-invalid",
                             $"Defined name '{name}' references a sheet scope outside the workbook.",
                             recordOffset: record.Offset,
                             recordType: record.Type));
@@ -763,7 +763,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     if (!localSheetIndex.HasValue) {
                         diagnostics.Add(new LegacyXlsImportDiagnostic(
                             LegacyXlsDiagnosticSeverity.Info,
-                            "XLS-BIFF-LBL-SCOPE-UNSUPPORTED",
+                            "xls-biff-lbl-scope-unsupported",
                             $"Defined name '{name}' is scoped to a sheet type that is not imported yet.",
                             recordOffset: record.Offset,
                             recordType: record.Type));
@@ -775,7 +775,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 if (localSheetIndex.HasValue && (localSheetIndex.Value < 0 || localSheetIndex.Value >= projectedSheetCount)) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-LBL-SCOPE-INVALID",
+                        "xls-biff-lbl-scope-invalid",
                         $"Defined name '{name}' references a sheet scope outside the workbook.",
                         recordOffset: record.Offset,
                         recordType: record.Type));
@@ -786,7 +786,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             } catch (Exception ex) when (ex is InvalidDataException || ex is OverflowException) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-LBL-INVALID",
+                    "xls-biff-lbl-invalid",
                     $"A Lbl record could not be parsed. {ex.Message}",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -836,7 +836,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 if (record.Payload.Length < 16) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-FONT-SHORT",
+                        "xls-biff-font-short",
                         "A Font record was too short to parse.",
                         recordOffset: record.Offset,
                         recordType: record.Type));
@@ -876,7 +876,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             } catch (Exception ex) when (ex is InvalidDataException || ex is OverflowException) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-FONT-INVALID",
+                    "xls-biff-font-invalid",
                     $"A Font record could not be parsed. {ex.Message}",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -918,7 +918,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (record.Payload.Length < 2) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-PALETTE-SHORT",
+                    "xls-biff-palette-short",
                     "A Palette record was too short to parse.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -930,7 +930,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (expectedLength > record.Payload.Length) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-PALETTE-INVALID",
+                    "xls-biff-palette-invalid",
                     "A Palette record ended before all colors could be read.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -956,7 +956,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (record.Payload.Length < 6) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-XF-SHORT",
+                    "xls-biff-xf-short",
                     "An XF record was too short to parse.",
                     recordOffset: record.Offset,
                     recordType: record.Type));
@@ -1194,7 +1194,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 if (record.Payload.Length < 7) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-BOUNDSHEET-SHORT",
+                        "xls-biff-boundsheet-short",
                         "A BoundSheet record was too short to parse.",
                         recordOffset: record.Offset,
                         recordType: record.Type));
@@ -1215,7 +1215,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             } catch (Exception ex) when (ex is InvalidDataException || ex is OverflowException) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-BOUNDSHEET-INVALID",
+                    "xls-biff-boundsheet-invalid",
                     $"A BoundSheet record could not be parsed. {ex.Message}",
                     recordOffset: record.Offset,
                     recordType: record.Type));

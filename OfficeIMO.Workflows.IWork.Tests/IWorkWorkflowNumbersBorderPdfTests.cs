@@ -45,7 +45,7 @@ public sealed partial class IWorkWorkflowTests {
             && d.LossKind == OfficeConversionLossKind.Omission);
         Assert.DoesNotContain(evidence.FidelityDiagnostics, d => d.Code == "IWORK_TABLE_BORDERS_UNSUPPORTED"
             || d.LossKind == OfficeConversionLossKind.Failure);
-        Assert.Contains(result.Diagnostics, d => d.Code == "OutputReopened");
+        Assert.Contains(result.Diagnostics, d => d.Code == "conversion-output-reopened");
         Assert.Equal(hash, Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(files.Input))));
         Assert.Empty(Directory.GetFiles(files.Root, "*.tmp"));
     }

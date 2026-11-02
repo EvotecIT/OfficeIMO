@@ -76,7 +76,7 @@ public sealed class DrawPdfTextPaintClippingTests {
             && m.Status == OdfConversionMappingStatus.Unsupported));
         var strict = new OdgToPdfOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported };
         if (clipped) Assert.Throws<OdfConversionLossException>(() => source.ToPdfBytes(strict));
-        else Assert.Contains(marker, PdfReadDocument.Open(source.ToPdfBytes(strict)).ExtractText());
+        else Assert.Contains(marker, PdfDocument.Load(new System.IO.MemoryStream(source.ToPdfBytes(strict))).ExtractText());
         Assert.Equal(before, Xml(source));
     }
     private static string[] Xml(OdgDocument source) => new[] { source.GetXml("content.xml").ToString(), source.GetXml("styles.xml").ToString() };

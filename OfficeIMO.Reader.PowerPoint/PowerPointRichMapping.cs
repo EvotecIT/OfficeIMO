@@ -13,7 +13,7 @@ namespace OfficeIMO.Reader.PowerPoint;
 
 internal static class PowerPointRichMapping {
     internal static OfficeDocumentReadResult Apply(
-        PowerPointPresentation presentation,
+        PowerPointDocument presentation,
         ReaderOptions readerOptions,
         ReaderPowerPointOptions options,
         OfficeDocumentReadResult result,
@@ -76,12 +76,12 @@ internal static class PowerPointRichMapping {
                             Content = payload,
                             PayloadHash = OfficeDocumentAssetHash.ComputeSha256Hex(Encoding.UTF8.GetBytes(payload)),
                             SourceName = snapshot.Name,
-                            Width = snapshot.WidthPoints,
-                            Height = snapshot.HeightPoints,
-                            X = shape.LeftPoints,
-                            Y = shape.TopPoints,
-                            PlacedWidth = shape.WidthPoints,
-                            PlacedHeight = shape.HeightPoints,
+                            Width = snapshot.Width.ToPoints(),
+                            Height = snapshot.Height.ToPoints(),
+                            X = shape.Left.ToPoints(),
+                            Y = shape.Top.ToPoints(),
+                            PlacedWidth = shape.Width.ToPoints(),
+                            PlacedHeight = shape.Height.ToPoints(),
                             PlacementCount = 1,
                             HasGeometry = true,
                             IsAxisAligned = true,
@@ -125,8 +125,8 @@ internal static class PowerPointRichMapping {
             pages.Add(new OfficeDocumentPage {
                 Number = slideNumber,
                 Name = ResolvePowerPointSlideName(slideShapes, slideNumber),
-                Width = presentation.SlideSize.WidthPoints,
-                Height = presentation.SlideSize.HeightPoints,
+                Width = presentation.SlideSize.Width.ToPoints(),
+                Height = presentation.SlideSize.Height.ToPoints(),
                 Location = BuildPowerPointLocation(result.Source.Path, slideNumber, null, "slide", "powerpoint-slide-" + slideNumber.ToString("D4", CultureInfo.InvariantCulture)),
                 Blocks = slideBlocks,
                 Tables = slideTables,
@@ -291,14 +291,14 @@ internal static class PowerPointRichMapping {
             writer.WriteStartObject();
             writer.WriteString("name", snapshot.Name);
             writer.WriteString("title", snapshot.Title);
-            writer.WriteString("kind", snapshot.ChartKind.ToString());
+            writer.WriteString("kind", OfficeIMO.Internal.OfficeChartTypeName.Format(snapshot.ChartKind));
             writer.WritePropertyName("categories");
             writer.WriteStartArray();
             foreach (string category in snapshot.Data.Categories) writer.WriteStringValue(category);
             writer.WriteEndArray();
             writer.WritePropertyName("series");
             writer.WriteStartArray();
-            foreach (OfficeChartSeries series in snapshot.Data.Series) {
+            foreach (OfficeSeries series in snapshot.Data.Series) {
                 writer.WriteStartObject();
                 writer.WriteString("name", series.Name);
                 WritePowerPointChartValues(writer, "values", series.Values);
@@ -307,7 +307,7 @@ internal static class PowerPointRichMapping {
                 } else {
                     WritePowerPointChartValues(writer, "xValues", series.XValues);
                 }
-                writer.WriteString("kind", series.RenderKind?.ToString());
+                writer.WriteString("kind", series.RenderKind.HasValue ? OfficeIMO.Internal.OfficeChartTypeName.Format(series.RenderKind.Value) : null);
                 writer.WriteEndObject();
             }
             writer.WriteEndArray();
@@ -335,7 +335,7 @@ internal static class PowerPointRichMapping {
     }
 
     private static OfficeDocumentRegion BuildPowerPointRegion(PowerPointShape shape) {
-        return new OfficeDocumentRegion { X = shape.LeftPoints, Y = shape.TopPoints, Width = shape.WidthPoints, Height = shape.HeightPoints };
+        return new OfficeDocumentRegion { X = shape.Left.ToPoints(), Y = shape.Top.ToPoints(), Width = shape.Width.ToPoints(), Height = shape.Height.ToPoints() };
     }
 
     private static ReaderLocation BuildPowerPointLocation(string? path, int slide, int? sourceBlockIndex, string kind, string anchor) {

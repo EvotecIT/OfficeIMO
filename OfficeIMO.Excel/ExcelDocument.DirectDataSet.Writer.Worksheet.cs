@@ -625,7 +625,7 @@ namespace OfficeIMO.Excel {
                     lastColumn = Math.Max(lastColumn, overlayCells[i].Column);
                 }
 
-                return "A1:" + A1.CellReference(lastRow, lastColumn);
+                return "A1:" + ExcelA1.CellReference(lastRow, lastColumn);
             }
 
             private static void WriteOverlayCells(
@@ -661,7 +661,7 @@ namespace OfficeIMO.Excel {
                     WriteCell(
                         writer,
                         InvariantNumberText.Get(cell.Row),
-                        "<c r=\"" + A1.ColumnIndexToLetters(cell.Column),
+                        "<c r=\"" + ExcelA1.ColumnIndexToLetters(cell.Column),
                         cell.Value,
                         CreateOverlayStyleAttribute(cell, stylePlan),
                         dateTimeOffsetWriteStrategy,
@@ -723,7 +723,7 @@ namespace OfficeIMO.Excel {
                     WriteCell(
                         writer,
                         rowReference,
-                        "<c r=\"" + A1.ColumnIndexToLetters(cell.Column),
+                        "<c r=\"" + ExcelA1.ColumnIndexToLetters(cell.Column),
                         cell.Value,
                         CreateOverlayStyleAttribute(cell, stylePlan),
                         dateTimeOffsetWriteStrategy,
@@ -749,7 +749,7 @@ namespace OfficeIMO.Excel {
 
                 var columns = new string[columnCount];
                 for (int i = 0; i < columnCount; i++) {
-                    columns[i] = "<c r=\"" + A1.ColumnIndexToLetters(i + 1);
+                    columns[i] = "<c r=\"" + ExcelA1.ColumnIndexToLetters(i + 1);
                 }
 
                 return columns;
@@ -761,7 +761,7 @@ namespace OfficeIMO.Excel {
                 for (int columnCount = 1; columnCount < cache.Length; columnCount++) {
                     var columns = new string[columnCount];
                     for (int i = 0; i < columnCount; i++) {
-                        columns[i] = "<c r=\"" + A1.ColumnIndexToLetters(i + 1);
+                        columns[i] = "<c r=\"" + ExcelA1.ColumnIndexToLetters(i + 1);
                     }
 
                     cache[columnCount] = columns;

@@ -16,7 +16,7 @@ public sealed class SpreadsheetTemporalValidationConversionTests {
     public void ConstantExcelDateAndTimeFormulaBoundsConvertWithoutLoss() {
         byte[] package;
         using (ExcelDocument authored = ExcelDocument.Create()) {
-            ExcelSheet sheet = authored.AddWorksheet("Data");
+            ExcelSheet sheet = authored.AddSheet("Data");
             sheet.ValidationDate("A1", ExcelDataValidationOperator.Between,
                 new DateTime(2024, 2, 29), new DateTime(2024, 12, 31));
             sheet.ValidationTime("B1", ExcelDataValidationOperator.Between,
@@ -64,7 +64,7 @@ public sealed class SpreadsheetTemporalValidationConversionTests {
     public void DynamicAndFractionalExcelDateTimeFormulasReportUnsupported() {
         byte[] package;
         using (ExcelDocument authored = ExcelDocument.Create()) {
-            ExcelSheet sheet = authored.AddWorksheet("Data");
+            ExcelSheet sheet = authored.AddSheet("Data");
             sheet.ValidationDate("A1", ExcelDataValidationOperator.Equal, new DateTime(2024, 1, 1));
             sheet.ValidationTime("B1", ExcelDataValidationOperator.Equal, new TimeSpan(8, 30, 0));
             package = authored.ToBytes();
@@ -98,7 +98,7 @@ public sealed class SpreadsheetTemporalValidationConversionTests {
     public void EarlyOutOfRangeAndFractionalExcelDatesReportUnsupported() {
         byte[] package;
         using (ExcelDocument authored = ExcelDocument.Create()) {
-            ExcelSheet sheet = authored.AddWorksheet("Data");
+            ExcelSheet sheet = authored.AddSheet("Data");
             for (int index = 0; index < 3; index++) {
                 sheet.ValidationDate(((char)('A' + index)).ToString() + "1",
                     ExcelDataValidationOperator.Equal, new DateTime(2024, 1, 1));
@@ -158,7 +158,7 @@ public sealed class SpreadsheetTemporalValidationConversionTests {
         var time = new TimeSpan(9, 30, 15);
         using ExcelDocument source = ExcelDocument.Create();
         source.DateSystem = dateSystem;
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.ValidationDate("A1:A3", ExcelDataValidationOperator.Between,
             firstDate, secondDate, allowBlank: false);
         sheet.ValidationTime("B1:B3", ExcelDataValidationOperator.Equal, time);
@@ -233,7 +233,7 @@ public sealed class SpreadsheetTemporalValidationConversionTests {
             && mapping.Status == OdfConversionMappingStatus.Unsupported);
 
         using ExcelDocument excel = ExcelDocument.Create();
-        excel.AddWorksheet("Data").ValidationTime("A1", ExcelDataValidationOperator.Equal,
+        excel.AddSheet("Data").ValidationTime("A1", ExcelDataValidationOperator.Equal,
             TimeSpan.FromMilliseconds(500));
         OdfConversionResult<OdsDocument> toOds = excel.ToOpenDocumentResult();
         Assert.Empty(toOds.Value.Validations);

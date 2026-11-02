@@ -3,7 +3,7 @@ using OfficeIMO.Markdown;
 namespace OfficeIMO.MarkdownRenderer;
 
 public static partial class MarkdownRenderer {
-    private static string BuildOverflowBodyHtml(HtmlOptions htmlOptions, string message) {
+    private static string BuildOverflowBodyHtml(MarkdownHtmlExportOptions htmlOptions, string message) {
         string msg = System.Net.WebUtility.HtmlEncode(message ?? "Content too large.");
         string inner = $"<blockquote class=\"callout warning\" data-omd=\"overflow\"><p>{msg}</p></blockquote>";
 
@@ -25,11 +25,11 @@ public static partial class MarkdownRenderer {
     /// </summary>
     public static string BuildShellHtml(string? title = null, MarkdownRendererOptions? options = null) {
         options ??= new MarkdownRendererOptions();
-        var htmlOptions = options.HtmlOptions ?? new HtmlOptions { Kind = HtmlKind.Fragment };
+        var htmlOptions = options.HtmlOptions ?? new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Fragment };
 
         // Build head assets (CSS + optional Prism assets) from OfficeIMO.Markdown.
         // This intentionally uses an empty doc; content is pushed later via updateContent(...).
-        var empty = MarkdownDoc.Create();
+        var empty = MarkdownDocument.Create();
         var parts = empty.ToHtmlParts(htmlOptions);
 
         var sb = new StringBuilder(16 * 1024);

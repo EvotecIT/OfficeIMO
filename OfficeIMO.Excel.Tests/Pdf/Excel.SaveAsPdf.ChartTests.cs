@@ -29,9 +29,8 @@ public partial class Excel {
     [Fact]
     public void SaveAsPdf_PlainPieRetainsOutsideLabelsAndLeaderLines() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Pie,
-            new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Status", new[] { 3d, 4d }) }), 1, 1);
+        ExcelChart chart = document.AddSheet("Results").AddChart(OfficeChartType.Pie, new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeSeries("Status", new[] { 3d, 4d }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
         C.PieChart native = document.OpenXmlDocument.WorkbookPart!.WorksheetParts
             .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single()
             .ChartSpace!.Descendants<C.PieChart>().Single();
@@ -39,12 +38,12 @@ public partial class Excel {
             new C.DataLabelPosition { Val = C.DataLabelPositionValues.OutsideEnd }, true);
         native.GetFirstChild<C.DataLabels>()!.AddChild(new C.ShowCategoryName { Val = true }, true);
         native.GetFirstChild<C.DataLabels>()!.AddChild(new C.ShowLeaderLines { Val = true }, true);
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         Assert.Equal(OfficeChartDataLabelPosition.OutsideEnd, snapshot.Layout!.DataLabelPosition);
         MethodInfo mapper = typeof(ExcelPdfConverterExtensions).GetMethod("CreateOfficeChartSnapshot",
             BindingFlags.NonPublic | BindingFlags.Static)!;
         OfficeChartSnapshot pdfSnapshot = Assert.IsType<OfficeChartSnapshot>(
-            mapper.Invoke(null, new object[] { snapshot, new ExcelToPdfOptions() }));
+            mapper.Invoke(null, new object[] { snapshot, new ExcelPdfExportOptions() }));
         Assert.Equal(OfficeChartDataLabelPosition.OutsideEnd, pdfSnapshot.Layout.DataLabelPosition);
         Assert.True(pdfSnapshot.Layout.ShowDataLabelLeaderLines);
     }
@@ -56,7 +55,7 @@ public partial class Excel {
         byte[] bytes;
         PdfCore.PdfDocumentConversionResult result;
         byte[] disabledBytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Charts")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Charts" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "Category");
             sheet.Cell(1, 2, "Actual");
@@ -70,35 +69,35 @@ public partial class Excel {
             sheet.Cell(4, 1, "Mar");
             sheet.Cell(4, 2, 24);
             sheet.Cell(4, 3, 20);
-            sheet.AddChartFromRange("A1:C4", row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.ColumnClustered, title: "Revenue Chart");
+            sheet.AddChart(OfficeChartType.ColumnClustered, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220), Title = "Revenue Chart" });
 
             ExcelChart chart = Assert.Single(sheet.Charts);
-            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+            Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
             Assert.Equal("Revenue Chart", snapshot.Title);
-            Assert.Equal(ExcelChartType.ColumnClustered, snapshot.ChartType);
+            Assert.Equal(OfficeChartType.ColumnClustered, snapshot.ChartType);
             Assert.Equal(3, snapshot.Data.Categories.Count);
             Assert.Equal(2, snapshot.Data.Series.Count);
             MethodInfo createSnapshot = typeof(ExcelPdfConverterExtensions).GetMethod("CreateOfficeChartSnapshot", BindingFlags.NonPublic | BindingFlags.Static)!;
-            var sharedSnapshot = Assert.IsType<OfficeChartSnapshot>(createSnapshot.Invoke(null, new object[] { snapshot, new ExcelToPdfOptions() }));
+            var sharedSnapshot = Assert.IsType<OfficeChartSnapshot>(createSnapshot.Invoke(null, new object[] { snapshot, new ExcelPdfExportOptions() }));
             Assert.Equal("Revenue Chart", sharedSnapshot.Title);
 
             document.Save();
 
-            var options = new ExcelToPdfOptions {
+            var options = new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(480, 360),
-                Margins = PdfCore.PageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(480),OfficeIMO.OfficeLength.Points(360)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             };
-            result = document.ToPdfDocumentResult(options);
+            result = document.ConvertToPdfWithEvidence(options);
             bytes = result.ToBytes();
-            disabledBytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            disabledBytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 UseWorksheetCharts = false,
-                PageSize = new PdfCore.PageSize(480, 360),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(480),OfficeIMO.OfficeLength.Points(360)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -121,7 +120,7 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfStyledCharts.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Charts")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Charts" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "Category");
             sheet.Cell(1, 2, "Actual");
@@ -135,15 +134,15 @@ public partial class Excel {
             sheet.Cell(4, 1, "Mar");
             sheet.Cell(4, 2, 24);
             sheet.Cell(4, 3, 20);
-            sheet.AddChartFromRange("A1:C4", row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.ColumnClustered, title: "Styled Excel Chart");
+            sheet.AddChart(OfficeChartType.ColumnClustered, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220), Title = "Styled Excel Chart" });
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(480, 360),
-                Margins = PdfCore.PageMargins.Uniform(24),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(480),OfficeIMO.OfficeLength.Points(360)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24)),
                 ChartStyle = new OfficeChartStyle(
                     palette: new[] {
                         OfficeColor.FromRgb(18, 52, 86),
@@ -151,7 +150,7 @@ public partial class Excel {
                     },
                     backgroundColor: OfficeColor.FromRgb(242, 248, 255),
                     titleColor: OfficeColor.FromRgb(200, 10, 10))
-            });
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         string rawPdf = PdfOperatorSearchText.From(bytes);
@@ -172,15 +171,15 @@ public partial class Excel {
 
         byte[] bytes;
         PdfCore.PdfDocumentConversionResult result;
-        var options = new ExcelToPdfOptions {
+        var options = new ExcelPdfExportOptions {
             IncludeSheetHeadings = false,
             HeaderRowCount = 1,
-            PageSize = new PdfCore.PageSize(480, 360),
-            Margins = PdfCore.PageMargins.Uniform(24),
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(480),OfficeIMO.OfficeLength.Points(360)),
+            Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24)),
             ChartLayout = new OfficeChartLayout(maximumCategoryAxisLabels: 12, preventLabelOverlap: false)
         };
 
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Charts")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Charts" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "Month");
             sheet.Cell(1, 2, "Actual");
@@ -189,10 +188,10 @@ public partial class Excel {
                 sheet.Cell(row, 2, row * 3);
             }
 
-            sheet.AddChartFromRange("A1:B13", row: 1, column: 4, widthPixels: 300, heightPixels: 180, type: ExcelChartType.Line, title: "Dense Month Chart");
+            sheet.AddChart(OfficeChartType.Line, "A1:B13", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(300), Height = OfficeLength.Pixels(180), Title = "Dense Month Chart" });
             document.Save();
 
-            result = document.ToPdfDocumentResult(options);
+            result = document.ConvertToPdfWithEvidence(options);
             bytes = result.ToBytes();
         }
 
@@ -210,17 +209,17 @@ public partial class Excel {
         var data = new ExcelChartData(Array.Empty<string>(), new[] {
             new ExcelChartSeries("Empty", Array.Empty<double>())
         });
-        var snapshot = new ExcelChartSnapshot(
+        var snapshot = new ExcelChartInfo(
             "EmptyChart",
             "Empty Chart",
-            ExcelChartType.Line,
+            OfficeChartType.Line,
             data,
             rowIndex: 1,
             columnIndex: 1,
-            offsetXPixels: 0,
-            offsetYPixels: 0,
-            widthPixels: 320,
-            heightPixels: 180);
+            offsetX: OfficeLength.Pixels(0),
+            offsetY: OfficeLength.Pixels(0),
+            width: OfficeLength.Pixels(320),
+            height: OfficeLength.Pixels(180));
 
         MethodInfo method = typeof(ExcelPdfConverterExtensions).GetMethod("HasRenderableChartData", BindingFlags.NonPublic | BindingFlags.Static)!;
 
@@ -233,7 +232,7 @@ public partial class Excel {
 
         byte[] bytes;
         OfficeColor[] sliceColors;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Charts")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Charts" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "Category");
             sheet.Cell(1, 2, "Control Share");
@@ -245,25 +244,25 @@ public partial class Excel {
             sheet.Cell(4, 2, 11);
             sheet.Cell(5, 1, "Not assessed");
             sheet.Cell(5, 2, 6);
-            sheet.AddChartFromRange("A1:B5", row: 1, column: 4, widthPixels: 280, heightPixels: 180, type: ExcelChartType.Pie, title: "Control Status Pie");
-            sheet.AddChartFromRange("A1:B5", row: 12, column: 4, widthPixels: 280, heightPixels: 180, type: ExcelChartType.Doughnut, title: "Control Status Doughnut");
+            sheet.AddChart(OfficeChartType.Pie, "A1:B5", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(280), Height = OfficeLength.Pixels(180), Title = "Control Status Pie" });
+            sheet.AddChart(OfficeChartType.Doughnut, "A1:B5", new OfficeIMO.Excel.ExcelChartOptions { Row = 12, Column = 4, Width = OfficeLength.Pixels(280), Height = OfficeLength.Pixels(180), Title = "Control Status Doughnut" });
 
             List<ExcelChart> charts = sheet.Charts.ToList();
             Assert.Equal(2, charts.Count);
             Assert.All(charts, chart => Assert.True(chart.TryGetSnapshot(out _)));
-            Assert.Equal(ExcelChartType.Pie, charts[0].ChartType);
-            Assert.Equal(ExcelChartType.Doughnut, charts[1].ChartType);
-            Assert.True(charts[0].TryGetSnapshot(out ExcelChartSnapshot pieSnapshot));
+            Assert.Equal(OfficeChartType.Pie, charts[0].ChartType);
+            Assert.Equal(OfficeChartType.Doughnut, charts[1].ChartType);
+            Assert.True(charts[0].TryGetSnapshot(out ExcelChartInfo pieSnapshot));
             sliceColors = pieSnapshot.Style!.Palette.Take(3).ToArray();
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(480, 520),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(480),OfficeIMO.OfficeLength.Points(520)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -286,7 +285,7 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfAreaCharts.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Charts")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Charts" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "Quarter");
             sheet.Cell(1, 2, "Services");
@@ -303,23 +302,23 @@ public partial class Excel {
             sheet.Cell(5, 1, "Q4");
             sheet.Cell(5, 2, 54);
             sheet.Cell(5, 3, 34);
-            sheet.AddChartFromRange("A1:C5", row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.Area, title: "Revenue Area");
-            sheet.AddChartFromRange("A1:C5", row: 14, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.AreaStacked100, title: "Revenue Mix Area");
+            sheet.AddChart(OfficeChartType.Area, "A1:C5", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220), Title = "Revenue Area" });
+            sheet.AddChart(OfficeChartType.AreaStacked100, "A1:C5", new OfficeIMO.Excel.ExcelChartOptions { Row = 14, Column = 5, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220), Title = "Revenue Mix Area" });
 
             List<ExcelChart> charts = sheet.Charts.ToList();
             Assert.Equal(2, charts.Count);
             Assert.All(charts, chart => Assert.True(chart.TryGetSnapshot(out _)));
-            Assert.Equal(ExcelChartType.Area, charts[0].ChartType);
-            Assert.Equal(ExcelChartType.AreaStacked100, charts[1].ChartType);
+            Assert.Equal(OfficeChartType.Area, charts[0].ChartType);
+            Assert.Equal(OfficeChartType.AreaStacked100, charts[1].ChartType);
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(520, 620),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(520),OfficeIMO.OfficeLength.Points(620)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -339,28 +338,28 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfNegativeLineChart.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Charts")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Charts" })) {
             ExcelSheet sheet = document.Sheets[0];
             var data = new ExcelChartData(
                 new[] { "Low", "Zero", "High" },
                 new[] {
-                    new ExcelChartSeries("Profit", new[] { -10D, 0D, 10D }, ExcelChartType.Line)
+                    new ExcelChartSeries("Profit", new[] { -10D, 0D, 10D }, OfficeChartType.Line)
                 });
 
-            sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.Line, title: "Profit Trend");
+            sheet.AddChart(OfficeChartType.Line, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220), Title = "Profit Trend" });
 
             ExcelChart chart = Assert.Single(sheet.Charts);
-            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
-            Assert.Equal(ExcelChartType.Line, snapshot.ChartType);
+            Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
+            Assert.Equal(OfficeChartType.Line, snapshot.ChartType);
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(480, 360),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(480),OfficeIMO.OfficeLength.Points(360)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -369,7 +368,7 @@ public partial class Excel {
         Assert.Contains("Profit", text);
 
         MethodInfo rangeMethod = typeof(OfficeChartDrawingRenderer).GetMethod("GetFiniteSeriesRange", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object range = rangeMethod.Invoke(null, new object[] { new List<OfficeChartSeries> { new OfficeChartSeries("Profit", new[] { -10D, 0D, 10D }) } })!;
+        object range = rangeMethod.Invoke(null, new object[] { new List<OfficeSeries> { new OfficeSeries("Profit", new[] { -10D, 0D, 10D }) } })!;
         double min = (double)range.GetType().GetProperty("Min", BindingFlags.Instance | BindingFlags.Public)!.GetValue(range)!;
         double max = (double)range.GetType().GetProperty("Max", BindingFlags.Instance | BindingFlags.Public)!.GetValue(range)!;
 
@@ -390,12 +389,12 @@ public partial class Excel {
         var snapshot = new OfficeChartSnapshot(
             "PositiveLine",
             null,
-            OfficeChartKind.Line,
+            OfficeChartType.Line,
             new OfficeChartData(
                 new[] { "Low", "High" },
-                new[] { new OfficeChartSeries("Value", new[] { 10D, 20D }) }),
-            360D,
-            220D);
+                new[] { new OfficeSeries("Value", new[] { 10D, 20D }) }),
+            global::OfficeIMO.OfficeLength.Points(360D),
+            global::OfficeIMO.OfficeLength.Points(220D));
 
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
         OfficeDrawingShape firstMarker = drawing.Shapes
@@ -403,7 +402,8 @@ public partial class Excel {
             .OrderBy(shape => shape.X)
             .First();
 
-        Assert.InRange(firstMarker.Y, 90D, 110D);
+        // 10 on the 0-25 axis that 20 rounds up to sits 40 % up the plot.
+        Assert.InRange(firstMarker.Y, 105D, 125D);
     }
 
     [Fact]
@@ -411,12 +411,12 @@ public partial class Excel {
         var snapshot = new OfficeChartSnapshot(
             "PositiveArea",
             null,
-            OfficeChartKind.Area,
+            OfficeChartType.Area,
             new OfficeChartData(
                 new[] { "Low", "High" },
-                new[] { new OfficeChartSeries("Value", new[] { 10D, 20D }) }),
-            360D,
-            220D);
+                new[] { new OfficeSeries("Value", new[] { 10D, 20D }) }),
+            global::OfficeIMO.OfficeLength.Points(360D),
+            global::OfficeIMO.OfficeLength.Points(220D));
 
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
 
@@ -428,15 +428,15 @@ public partial class Excel {
         var snapshot = new OfficeChartSnapshot(
             "MultiDoughnut",
             null,
-            OfficeChartKind.Doughnut,
+            OfficeChartType.Doughnut,
             new OfficeChartData(
                 new[] { "A", "B", "C" },
                 new[] {
-                    new OfficeChartSeries("Outer", new[] { 3D, 2D, 1D }),
-                    new OfficeChartSeries("Inner", new[] { 1D, 2D, 3D })
+                    new OfficeSeries("Outer", new[] { 3D, 2D, 1D }),
+                    new OfficeSeries("Inner", new[] { 1D, 2D, 3D })
                 }),
-            360D,
-            220D);
+            global::OfficeIMO.OfficeLength.Points(360D),
+            global::OfficeIMO.OfficeLength.Points(220D));
 
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
         int slices = drawing.Shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Polygon);
@@ -450,37 +450,37 @@ public partial class Excel {
 
         byte[] bytes;
         PdfCore.PdfDocumentConversionResult result;
-        var options = new ExcelToPdfOptions {
+        var options = new ExcelPdfExportOptions {
             IncludeSheetHeadings = false,
             HeaderRowCount = 1,
-            PageSize = new PdfCore.PageSize(480, 360),
-            Margins = PdfCore.PageMargins.Uniform(24)
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(480),OfficeIMO.OfficeLength.Points(360)),
+            Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
         };
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Charts")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Charts" })) {
             ExcelSheet sheet = document.Sheets[0];
             var data = new ExcelChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new ExcelChartSeries("Sales", new[] { 12D, 18D, 24D }, ExcelChartType.ColumnClustered, OfficeChartAxisGroup.Primary),
-                    new ExcelChartSeries("Trend", new[] { 10D, 16D, 22D }, ExcelChartType.Line, OfficeChartAxisGroup.Secondary)
+                    new ExcelChartSeries("Sales", new[] { 12D, 18D, 24D }, OfficeChartType.ColumnClustered, OfficeChartAxisGroup.Primary),
+                    new ExcelChartSeries("Trend", new[] { 10D, 16D, 22D }, OfficeChartType.Line, OfficeChartAxisGroup.Secondary)
                 });
 
-            sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.ColumnClustered, title: "Sales vs Trend");
+            sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220), Title = "Sales vs Trend" });
             ExcelChart chart = Assert.Single(sheet.Charts);
-            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+            Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
             MethodInfo createSnapshot = typeof(ExcelPdfConverterExtensions).GetMethod("CreateOfficeChartSnapshot", BindingFlags.NonPublic | BindingFlags.Static)!;
             var sharedSnapshot = Assert.IsType<OfficeChartSnapshot>(createSnapshot.Invoke(null, new object[] { snapshot, options }));
-            Assert.Equal(OfficeChartKind.ColumnClustered, sharedSnapshot.ChartKind);
-            Assert.Equal(OfficeChartKind.Line, sharedSnapshot.Data.Series[1].RenderKind);
+            Assert.Equal(OfficeChartType.ColumnClustered, sharedSnapshot.ChartKind);
+            Assert.Equal(OfficeChartType.Line, sharedSnapshot.Data.Series[1].RenderKind);
             Assert.Equal(OfficeChartAxisGroup.Secondary, sharedSnapshot.Data.Series[1].AxisGroup);
 
             document.Save();
 
-            result = document.ToPdfDocumentResult(options);
+            result = document.ConvertToPdfWithEvidence(options);
             bytes = result.ToBytes();
         }
 
-        Assert.DoesNotContain(result.Warnings, item => item.Code == "WorksheetChart");
+        Assert.DoesNotContain(result.Warnings, item => item.Code == "worksheet-chart");
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         string text = pdf.GetPage(1).Text;
@@ -491,22 +491,22 @@ public partial class Excel {
 
     [Fact]
     public void SaveAsPdf_ExcelWorkbook_RejectsNonCartesianComboChart() {
-        var snapshot = new ExcelChartSnapshot(
+        var snapshot = new ExcelChartInfo(
             "UnsupportedCombo",
             "Unsupported Pie Line Combo",
-            ExcelChartType.Pie,
+            OfficeChartType.Pie,
             new ExcelChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new ExcelChartSeries("Share", new[] { 12D, 18D, 24D }, ExcelChartType.Pie),
-                    new ExcelChartSeries("Trend", new[] { 10D, 16D, 22D }, ExcelChartType.Line)
+                    new ExcelChartSeries("Share", new[] { 12D, 18D, 24D }, OfficeChartType.Pie),
+                    new ExcelChartSeries("Trend", new[] { 10D, 16D, 22D }, OfficeChartType.Line)
                 }),
             rowIndex: 1,
             columnIndex: 5,
-            offsetXPixels: 0,
-            offsetYPixels: 0,
-            widthPixels: 360,
-            heightPixels: 220);
+            offsetX: OfficeLength.Pixels(0),
+            offsetY: OfficeLength.Pixels(0),
+            width: OfficeLength.Pixels(360),
+            height: OfficeLength.Pixels(220));
         MethodInfo method = typeof(ExcelPdfConverterExtensions).GetMethod(
             "IsSupportedChartSnapshot",
             BindingFlags.NonPublic | BindingFlags.Static)!;
@@ -518,22 +518,22 @@ public partial class Excel {
 
     [Fact]
     public void SaveAsPdf_ExcelWorkbook_RejectsComboChartsWithIncompatibleAxisOrientations() {
-        var snapshot = new ExcelChartSnapshot(
+        var snapshot = new ExcelChartInfo(
             "IncompatibleCombo",
             "Column Bar Combo",
-            ExcelChartType.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new ExcelChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new ExcelChartSeries("Vertical", new[] { 12D, 18D, 24D }, ExcelChartType.ColumnClustered),
-                    new ExcelChartSeries("Horizontal", new[] { 10D, 16D, 22D }, ExcelChartType.BarClustered)
+                    new ExcelChartSeries("Vertical", new[] { 12D, 18D, 24D }, OfficeChartType.ColumnClustered),
+                    new ExcelChartSeries("Horizontal", new[] { 10D, 16D, 22D }, OfficeChartType.BarClustered)
                 }),
             rowIndex: 1,
             columnIndex: 5,
-            offsetXPixels: 0,
-            offsetYPixels: 0,
-            widthPixels: 360,
-            heightPixels: 220);
+            offsetX: OfficeLength.Pixels(0),
+            offsetY: OfficeLength.Pixels(0),
+            width: OfficeLength.Pixels(360),
+            height: OfficeLength.Pixels(220));
         MethodInfo method = typeof(ExcelPdfConverterExtensions).GetMethod(
             "IsSupportedChartSnapshot",
             BindingFlags.NonPublic | BindingFlags.Static)!;
@@ -544,13 +544,13 @@ public partial class Excel {
     }
 
     [Theory]
-    [InlineData(ExcelChartType.ColumnClustered, ExcelChartType.Scatter)]
-    [InlineData(ExcelChartType.Scatter, ExcelChartType.ColumnClustered)]
-    [InlineData(ExcelChartType.Scatter, ExcelChartType.Line)]
+    [InlineData(OfficeChartType.ColumnClustered, OfficeChartType.Scatter)]
+    [InlineData(OfficeChartType.Scatter, OfficeChartType.ColumnClustered)]
+    [InlineData(OfficeChartType.Scatter, OfficeChartType.Line)]
     public void SaveAsPdf_ExcelWorkbook_RejectsMixedCategoryAndScatterAxisModels(
-        ExcelChartType baseType,
-        ExcelChartType seriesType) {
-        var snapshot = new ExcelChartSnapshot(
+        OfficeChartType baseType,
+        OfficeChartType seriesType) {
+        var snapshot = new ExcelChartInfo(
             "IncompatibleAxisModelCombo",
             "Category Scatter Combo",
             baseType,
@@ -562,10 +562,10 @@ public partial class Excel {
                 }),
             rowIndex: 1,
             columnIndex: 5,
-            offsetXPixels: 0,
-            offsetYPixels: 0,
-            widthPixels: 360,
-            heightPixels: 220);
+            offsetX: OfficeLength.Pixels(0),
+            offsetY: OfficeLength.Pixels(0),
+            width: OfficeLength.Pixels(360),
+            height: OfficeLength.Pixels(220));
         MethodInfo method = typeof(ExcelPdfConverterExtensions).GetMethod(
             "IsSupportedChartSnapshot",
             BindingFlags.NonPublic | BindingFlags.Static)!;
@@ -579,13 +579,13 @@ public partial class Excel {
     public void SaveAsPdf_ExcelWorkbook_Maps_Stacked_Line_Charts_To_Shared_Stacked_Line_Renderer() {
         MethodInfo method = typeof(ExcelPdfConverterExtensions).GetMethod("TryMapChartKind", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        object?[] stackedArgs = { ExcelChartType.LineStacked, null };
-        object?[] percentArgs = { ExcelChartType.LineStacked100, null };
+        object?[] stackedArgs = { OfficeChartType.LineStacked, null };
+        object?[] percentArgs = { OfficeChartType.LineStacked100, null };
 
         Assert.True((bool)method.Invoke(null, stackedArgs)!);
         Assert.True((bool)method.Invoke(null, percentArgs)!);
-        Assert.Equal(OfficeChartKind.LineStacked, stackedArgs[1]);
-        Assert.Equal(OfficeChartKind.LineStacked100, percentArgs[1]);
+        Assert.Equal(OfficeChartType.LineStacked, stackedArgs[1]);
+        Assert.Equal(OfficeChartType.LineStacked100, percentArgs[1]);
     }
 
     [Fact]
@@ -593,26 +593,26 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfNegativeAreaChart.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Charts")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Charts" })) {
             ExcelSheet sheet = document.Sheets[0];
             var data = new ExcelChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new ExcelChartSeries("Delta", new[] { -6D, 0D, 9D }, ExcelChartType.Area)
+                    new ExcelChartSeries("Delta", new[] { -6D, 0D, 9D }, OfficeChartType.Area)
                 });
 
-            sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.Area, title: "Delta Area");
+            sheet.AddChart(OfficeChartType.Area, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220), Title = "Delta Area" });
             ExcelChart chart = Assert.Single(sheet.Charts);
-            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
-            Assert.Equal(ExcelChartType.Area, snapshot.ChartType);
+            Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
+            Assert.Equal(OfficeChartType.Area, snapshot.ChartType);
 
             document.Save();
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(480, 360),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(480),OfficeIMO.OfficeLength.Points(360)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -621,7 +621,7 @@ public partial class Excel {
         Assert.Contains("Delta", text);
 
         MethodInfo rangeMethod = typeof(OfficeChartDrawingRenderer).GetMethod("GetFiniteSeriesRange", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object range = rangeMethod.Invoke(null, new object[] { new List<OfficeChartSeries> { new OfficeChartSeries("Delta", new[] { -6D, 0D, 9D }) } })!;
+        object range = rangeMethod.Invoke(null, new object[] { new List<OfficeSeries> { new OfficeSeries("Delta", new[] { -6D, 0D, 9D }) } })!;
         Assert.Equal(-6D, (double)range.GetType().GetProperty("Min", BindingFlags.Instance | BindingFlags.Public)!.GetValue(range)!);
         Assert.Equal(9D, (double)range.GetType().GetProperty("Max", BindingFlags.Instance | BindingFlags.Public)!.GetValue(range)!);
     }
@@ -631,31 +631,31 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfScatterCharts.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Charts")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Charts" })) {
             ExcelSheet sheet = document.Sheets[0];
             var data = new ExcelChartData(
                 new[] { "1", "2", "4", "8", "16" },
                 new[] {
-                    new ExcelChartSeries("Latency", new[] { 9D, 7D, 5.5D, 4.2D, 3.8D }, ExcelChartType.Scatter),
-                    new ExcelChartSeries("Throughput", new[] { 2D, 3.5D, 6D, 7.5D, 9D }, ExcelChartType.Scatter)
+                    new ExcelChartSeries("Latency", new[] { 9D, 7D, 5.5D, 4.2D, 3.8D }, OfficeChartType.Scatter),
+                    new ExcelChartSeries("Throughput", new[] { 2D, 3.5D, 6D, 7.5D, 9D }, OfficeChartType.Scatter)
                 });
 
-            sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.Scatter, title: "Scale Scatter");
+            sheet.AddChart(OfficeChartType.Scatter, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220), Title = "Scale Scatter" });
 
             ExcelChart chart = Assert.Single(sheet.Charts);
-            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
-            Assert.Equal(ExcelChartType.Scatter, snapshot.ChartType);
+            Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
+            Assert.Equal(OfficeChartType.Scatter, snapshot.ChartType);
             Assert.Equal(5, snapshot.Data.Categories.Count);
             Assert.Equal(2, snapshot.Data.Series.Count);
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(480, 360),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(480),OfficeIMO.OfficeLength.Points(360)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -674,31 +674,31 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfRadarCharts.xlsx");
 
         byte[] bytes;
-        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Charts")) {
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Charts" })) {
             ExcelSheet sheet = document.Sheets[0];
             var data = new ExcelChartData(
                 new[] { "Quality", "Speed", "Cost", "Coverage", "Risk" },
                 new[] {
-                    new ExcelChartSeries("Current", new[] { 7D, 6D, 5D, 8D, 4D }, ExcelChartType.Radar),
-                    new ExcelChartSeries("Target", new[] { 9D, 8D, 7D, 9D, 6D }, ExcelChartType.Radar)
+                    new ExcelChartSeries("Current", new[] { 7D, 6D, 5D, 8D, 4D }, OfficeChartType.Radar),
+                    new ExcelChartSeries("Target", new[] { 9D, 8D, 7D, 9D, 6D }, OfficeChartType.Radar)
                 });
 
-            sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.Radar, title: "Capability Radar");
+            sheet.AddChart(OfficeChartType.Radar, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220), Title = "Capability Radar" });
 
             ExcelChart chart = Assert.Single(sheet.Charts);
-            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
-            Assert.Equal(ExcelChartType.Radar, snapshot.ChartType);
+            Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
+            Assert.Equal(OfficeChartType.Radar, snapshot.ChartType);
             Assert.Equal(5, snapshot.Data.Categories.Count);
             Assert.Equal(2, snapshot.Data.Series.Count);
 
             document.Save();
 
-            bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+            bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(480, 360),
-                Margins = PdfCore.PageMargins.Uniform(24)
-            });
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(480),OfficeIMO.OfficeLength.Points(360)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -708,18 +708,19 @@ public partial class Excel {
         Assert.Contains("Target", text);
 
         string rawPdf = PdfOperatorSearchText.From(bytes);
-        Assert.Contains(DefaultAccentPdfColor(1) + " rg", rawPdf, StringComparison.Ordinal);
-        Assert.Contains(DefaultAccentPdfColor(2) + " rg", rawPdf, StringComparison.Ordinal);
+        // Radar series are lines, and their legend keys are strokes in the series colour.
+        Assert.Contains(DefaultAccentPdfColor(1) + " RG", rawPdf, StringComparison.Ordinal);
+        Assert.Contains(DefaultAccentPdfColor(2) + " RG", rawPdf, StringComparison.Ordinal);
     }
 
     [Fact]
     public void SaveAsPdf_ExcelWorkbook_Preserves_Negative_Radar_Chart_Values() {
         var series = new List<ExcelChartSeries> {
-            new ExcelChartSeries("Delta", new[] { -10D, -2D, 0D, 10D }, ExcelChartType.Radar)
+            new ExcelChartSeries("Delta", new[] { -10D, -2D, 0D, 10D }, OfficeChartType.Radar)
         };
 
         MethodInfo rangeMethod = typeof(OfficeChartDrawingRenderer).GetMethod("GetRadarValueRange", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object range = rangeMethod.Invoke(null, new object[] { series.Select(item => new OfficeChartSeries(item.Name, item.Values)).ToList() })!;
+        object range = rangeMethod.Invoke(null, new object[] { series.Select(item => new OfficeSeries(item.Name, item.Values)).ToList() })!;
         double min = (double)range.GetType().GetProperty("Min", BindingFlags.Instance | BindingFlags.Public)!.GetValue(range)!;
         double max = (double)range.GetType().GetProperty("Max", BindingFlags.Instance | BindingFlags.Public)!.GetValue(range)!;
 

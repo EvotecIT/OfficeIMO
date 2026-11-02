@@ -97,7 +97,7 @@ public sealed class TextEditingReviewTests {
             [0], new PdfTextEditOptions(), [1], default);
         await workspace.ReplaceAllTextAsync("Account", "Entry", false, false, default);
         await Assert.ThrowsAsync<InvalidOperationException>(() => workspace.ApplyPreparedTextEditAsync(prepared, default));
-        Assert.Equal(3, PdfDocument.Load(workspace.CopyBytes()).Text.Find("Entry").Count);
+        Assert.Equal(3, PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Text.Find("Entry").Count);
     }
 
     [Theory]

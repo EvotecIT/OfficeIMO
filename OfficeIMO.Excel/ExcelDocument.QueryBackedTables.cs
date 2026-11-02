@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(options.WorksheetName)) throw new ArgumentNullException(nameof(options.WorksheetName));
             if (string.IsNullOrWhiteSpace(options.TableName)) throw new ArgumentNullException(nameof(options.TableName));
             string[] columns = ValidateQueryColumns(options.ColumnNames);
-            (int row, int column) = A1.ParseCellRef(options.StartCell);
+            (int row, int column) = ExcelA1.ParseCellRef(options.StartCell);
             if (row < 1 || column < 1 || column + columns.Length - 1 > 16_384) {
                 throw new ArgumentOutOfRangeException(nameof(options.StartCell));
             }
@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel {
             string requestedTableName = options.TableName.Trim();
 
             ExcelSheet sheet = this[options.WorksheetName];
-            string range = A1.CellReference(row, column) + ":" + A1.CellReference(row, column + columns.Length - 1);
+            string range = ExcelA1.CellReference(row, column) + ":" + ExcelA1.CellReference(row, column + columns.Length - 1);
             string? tableName = null;
             uint connectionId = 0U;
             QueryTablePart? authoredQueryPart = null;
@@ -303,12 +303,6 @@ namespace OfficeIMO.Excel {
                         .ToArray();
                     if (matches.Length == 0) continue;
                     foreach (XElement match in matches) match.Remove();
-                    if (document.Root != null) {
-                        document.Root.SetAttributeValue(
-                            "count",
-                            document.Root.Elements().Count(element => element.Name.LocalName == "connection")
-                                .ToString(CultureInfo.InvariantCulture));
-                    }
                     WriteOpenXmlPartText(part, document.ToString(SaveOptions.DisableFormatting));
                 } catch (InvalidDataException) {
                     // Preserve oversized or malformed caller-owned metadata instead of mutating it.

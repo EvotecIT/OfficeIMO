@@ -45,8 +45,8 @@ public sealed class PdfTableCellPaginationTests {
 
     private static PdfTableCell Cell(string text, bool? widowControl, bool keepTogether = false) {
         var runs = new[] { PdfTextRun.Normal(text) };
-        return new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: 12,
-            lineSpacing: PdfLineSpacing.Exactly(20), widowControl: widowControl, keepTogether: keepTogether) });
+        return new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: global::OfficeIMO.OfficeLength.Points(12),
+            lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), widowControl: widowControl, keepTogether: keepTogether) });
     }
 
     [Theory]
@@ -75,8 +75,8 @@ public sealed class PdfTableCellPaginationTests {
         var first = new[] { PdfTextRun.Normal("JoinedFirst") };
         var next = new[] { PdfTextRun.Normal("NextOne\nNextTwo\nNextThree") };
         var cell = new PdfTableCell(first.Concat(next), new[] {
-            new PdfTableCellParagraph(first, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(20), widowControl: false, keepWithNext: keepWithNext),
-            new PdfTableCellParagraph(next, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(20), widowControl: false)
+            new PdfTableCellParagraph(first, fontSize: global::OfficeIMO.OfficeLength.Points(12), lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), widowControl: false, keepWithNext: keepWithNext),
+            new PdfTableCellParagraph(next, fontSize: global::OfficeIMO.OfficeLength.Points(12), lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), widowControl: false)
         });
         var cells = new[] {
             new[] { Cell(string.Join("\n", Enumerable.Range(1, 15).Select(line => "Prelude" + line)), false) }, new[] { cell }
@@ -88,15 +88,15 @@ public sealed class PdfTableCellPaginationTests {
     }
 
     private static byte[] Render(string mode, PdfTableCell[][] cells) {
-        var options = new PdfOptions { PageWidth = 500, PageHeight = 400, MarginLeft = 40, MarginRight = 40,
-            MarginTop = 40, MarginBottom = 40, DefaultFontSize = 12 };
-        var style = new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0,
-            FontSize = 12, LineHeight = 20D / 12D, SpacingBefore = 0, SpacingAfter = 0,
-            BorderWidth = 0, RowSeparatorWidth = 0 };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(400), MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) };
+        var style = new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0),
+            FontSize = global::OfficeIMO.OfficeLength.Points(12), LineHeight = 20D / 12D, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0), RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0) };
         return mode switch {
             "flow" => PdfDocument.Create(options).Table(cells, style: style).ToBytes(),
             "columns" => PdfDocument.Create(options).Columns(content => content.Table(cells, style: style),
-                new PdfMultiColumnOptions { Gap = 20, BalanceLastPage = false }).ToBytes(),
+                new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = false }).ToBytes(),
             "row" => PdfDocument.Create(options).Row(row => row.PercentColumn(100, column => column.Table(cells, style: style))).ToBytes(),
             _ => throw new ArgumentException(nameof(mode))
         };

@@ -2,8 +2,10 @@ using OfficeIMO.Excel;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         private static string PivotDateGroupOraclePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
             "Documents", "ExcelPivotCorpus", "date-group-conformance.xlsx");
         private static string PivotDateGroupRefreshOraclePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
@@ -53,36 +55,50 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_PivotDateGroupMaterialization_TemplateFreePublicApi() {
+        public void Test_PivotDateGroupMaterialization_TemplateFreePublicApi()
+        {
             string output = Path.Combine(_directoryWithFiles, "DateGroup.TemplateFree.xlsx");
-            using (var document = ExcelDocument.Create(output)) {
-                var sheet = document.AddWorksheet("Source");
+            using (var document = ExcelDocument.Create(output))
+            {
+                var sheet = document.AddSheet("Source");
                 sheet.CellValue(1, 1, "OrderDate");
                 sheet.CellValue(1, 2, "Sales");
-                var dates = new[] { new DateTime(2025, 1, 15), new DateTime(2025, 3, 20),
-                    new DateTime(2025, 7, 1), new DateTime(2026, 1, 10), new DateTime(2026, 4, 5) };
-                for (int index = 0; index < dates.Length; index++) {
+                var dates = new[]
+                {
+                    new DateTime(2025, 1, 15),
+                    new DateTime(2025, 3, 20),
+                    new DateTime(2025, 7, 1),
+                    new DateTime(2026, 1, 10),
+                    new DateTime(2026, 4, 5)
+                };
+                for (int index = 0; index < dates.Length; index++)
+                {
                     sheet.CellValue(index + 2, 1, dates[index]);
                     sheet.CellValue(index + 2, 2, (index + 1) * 10d);
                 }
-                sheet.Pivot("A1:B6").Rows("OrderDate").Sum("Sales", "Metric")
-                    .DateHierarchy("OrderDate", ExcelPivotGroupBy.Years, ExcelPivotGroupBy.Months)
-                    .Layout(ExcelPivotLayout.Tabular).At("D4", "PivotDateGrouped");
+
+                {
+                    var pivotOptions1 = new ExcelPivotTableOptions();
+                    pivotOptions1.RowFields.Add("OrderDate");
+                    pivotOptions1.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
+                    pivotOptions1.Groupings.Add(ExcelPivotGrouping.DateHierarchy("OrderDate", ExcelPivotGroupBy.Years, ExcelPivotGroupBy.Months));
+                    pivotOptions1.Layout = ExcelPivotLayout.Tabular;
+                    pivotOptions1.Name = "PivotDateGrouped";
+                    sheet.AddPivotTable("A1:B6", "D4", pivotOptions1);
+                }
+
                 var result = sheet.MaterializePivotTable("PivotDateGrouped");
                 Assert.Equal("D4:F12", result.OutputRange);
-                Assert.True(result.Mutation.PackageIsValid,
-                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                Assert.True(result.Mutation.PackageIsValid, string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
                 Assert.Equal(150d, sheet.GetPivotData("PivotDateGrouped", "Metric").Value);
-                Assert.Equal(60d, sheet.GetPivotData("PivotDateGrouped", "Metric",
-                    new Dictionary<string, object?> { ["OrderDate Years"] = "2025" }).Value);
-                Assert.Equal(40d, sheet.GetPivotData("PivotDateGrouped", "Metric",
-                    new Dictionary<string, object?> { ["OrderDate Years"] = "2026", ["OrderDate Months"] = "January" }).Value);
+                Assert.Equal(60d, sheet.GetPivotData("PivotDateGrouped", "Metric", new Dictionary<string, object?> { ["OrderDate Years"] = "2025" }).Value);
+                Assert.Equal(40d, sheet.GetPivotData("PivotDateGrouped", "Metric", new Dictionary<string, object?> { ["OrderDate Years"] = "2026", ["OrderDate Months"] = "January" }).Value);
                 document.Save(output);
             }
+
             using var reopened = ExcelDocument.Load(output);
             Assert.Empty(reopened.ValidateOpenXml());
-            Assert.Equal(90d, reopened.GetSheet("Source").GetPivotData("PivotDateGrouped", "Metric",
-                new Dictionary<string, object?> { ["OrderDate Years"] = "2026" }).Value);
+            Assert.Equal(90d, reopened.GetSheet("Source").GetPivotData("PivotDateGrouped", "Metric", new Dictionary<string, object?> { ["OrderDate Years"] = "2026" }).Value);
         }
 
         [Fact]

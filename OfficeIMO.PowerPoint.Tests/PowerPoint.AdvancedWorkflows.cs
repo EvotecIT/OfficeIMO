@@ -23,9 +23,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ReviewAndAnimationInspectionProjectsClassicModernAndTimingMetadata() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointCreateOptions());
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream, new PowerPointCreateOptions());
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTextBox target = slide.AddTextBoxPoints("Animated review target", 40, 40, 240, 50);
+            PowerPointTextBox target = slide.AddTextBox("Animated review target",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(50));
 
             PresentationPart presentationPart = slide.SlidePart.GetParentParts().OfType<PresentationPart>().Single();
             CommentAuthorsPart classicAuthors = presentationPart.AddNewPart<CommentAuthorsPart>();
@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AnimationInspectionBoundsTraversalAndProjectedNodes() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             slide.SlidePart.Slide!.Timing = new Timing(
                 new TimeNodeList(
@@ -132,7 +132,7 @@ namespace OfficeIMO.Tests {
         public void AnimationInspectionSkipsShapeTraversalForUntargetedTimingNodes() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(path)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     ShapeTree shapeTree = slide.SlidePart.Slide!.CommonSlideData!.ShapeTree!;
                     for (uint shapeId = 100U; shapeId < 10_101U; shapeId++) {
@@ -148,7 +148,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Load(path);
+                using PowerPointDocument reopened = PowerPointDocument.Load(path);
                 Assert.True(reopened.Slides[0].Shapes.Count > 10_000);
                 PowerPointAnimationNode node = Assert.Single(reopened.InspectAnimations().Nodes);
 
@@ -164,14 +164,14 @@ namespace OfficeIMO.Tests {
         public void SemanticSmartArtWorkflowsRoundTripEditableNodeText() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(path)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointSmartArt process = slide.AddSmartArt(PowerPointSmartArtType.BasicProcess,
-                        new[] { "Discover", "Design", "Deliver" }, 20, 20, 2600000, 1200000);
+                        new[] { "Discover", "Design", "Deliver" }, OfficeIMO.OfficeLength.Emus(20), OfficeIMO.OfficeLength.Emus(20), OfficeIMO.OfficeLength.Emus(2600000), OfficeIMO.OfficeLength.Emus(1200000));
                     PowerPointSmartArt hierarchy = slide.AddSmartArt(PowerPointSmartArtType.BasicHierarchy,
-                        new[] { "Executive", "Platform", "Delivery" }, 2800000, 20, 2600000, 1200000);
+                        new[] { "Executive", "Platform", "Delivery" }, OfficeIMO.OfficeLength.Emus(2800000), OfficeIMO.OfficeLength.Emus(20), OfficeIMO.OfficeLength.Emus(2600000), OfficeIMO.OfficeLength.Emus(1200000));
                     PowerPointSmartArt cycle = slide.AddSmartArt(PowerPointSmartArtType.BasicCycle,
-                        new[] { "Plan", "Run", "Learn", "Improve" }, 20, 1400000, 5200000, 1400000);
+                        new[] { "Plan", "Run", "Learn", "Improve" }, OfficeIMO.OfficeLength.Emus(20), OfficeIMO.OfficeLength.Emus(1400000), OfficeIMO.OfficeLength.Emus(5200000), OfficeIMO.OfficeLength.Emus(1400000));
 
                     Assert.Equal(new[] { "Discover", "Design", "Deliver" }, process.GetNodeTexts());
                     Assert.Equal(3, hierarchy.NodeCount);
@@ -181,7 +181,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(path, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(path, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                     PowerPointSmartArt[] diagrams = presentation.Slides[0].SmartArts.ToArray();
                     Assert.Equal(3, diagrams.Length);
                     Assert.Equal(new[] { "Discover", "Design", "Deliver" }, diagrams[0].GetNodeTexts());
@@ -197,8 +197,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BasicCycleAuthorsEveryExportedTopologyEdge() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddSmartArt(PowerPointSmartArtType.BasicCycle,
                 new[] { "Plan", "Run", "Learn", "Improve" });
@@ -223,8 +223,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BasicHierarchyAuthorsEveryParentTransition() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddSmartArt(PowerPointSmartArtType.BasicHierarchy,
                 new[] { "Executive", "Platform", "Delivery", "Operations" });
@@ -253,7 +253,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void AddSmartArtRejectsUndefinedLayoutKind() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
 
             ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
@@ -269,15 +269,15 @@ namespace OfficeIMO.Tests {
         [InlineData(5486400L, 27273042316901L, "height")]
         public void AddSmartArtRejectsUnrepresentableExtentsBeforeMutation(
             long width, long height, string parameterName) {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
 
             ArgumentOutOfRangeException exception =
                 Assert.Throws<ArgumentOutOfRangeException>(() =>
                     slide.AddSmartArt(PowerPointSmartArtType.BasicProcess,
-                        new[] { "Discover", "Deliver" }, width: width,
-                        height: height));
+                        new[] { "Discover", "Deliver" }, width: OfficeIMO.OfficeLength.Emus(width),
+                        height: OfficeIMO.OfficeLength.Emus(height)));
 
             Assert.Equal(parameterName, exception.ParamName);
             Assert.Empty(slide.SmartArts);
@@ -287,9 +287,9 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportedSmartArtRejectsUnknownCategoryBeforeSemanticProjection() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
-            presentation.SlideSize.SetSizePoints(640, 360);
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(640),OfficeIMO.OfficeLength.Points(360));
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointSmartArt smartArt = slide.AddSmartArt(
                 PowerPointSmartArtType.BasicProcess,
@@ -315,15 +315,15 @@ namespace OfficeIMO.Tests {
             Assert.True(PowerPointDesktopReferenceRenderer
                 .HasExpectedVisibleContent(slide));
 
-            smartArt.LeftPoints = 700;
+            smartArt.Left= OfficeIMO.OfficeLength.Points(700);
             Assert.False(PowerPointDesktopReferenceRenderer
                 .HasExpectedVisibleContent(slide));
         }
 
         [Fact]
         public void ImportedSmartArtRejectsModifiedRecognizedLayoutBeforeProjection() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSmartArt smartArt = presentation.AddSlide().AddSmartArt(
                 PowerPointSmartArtType.BasicProcess,
                 new[] { "Discover", "Deliver" });
@@ -340,8 +340,8 @@ namespace OfficeIMO.Tests {
         [InlineData(false)]
         public void ImportedSmartArtRejectsModifiedRecognizedStyleParts(
             bool modifyQuickStyle) {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointSmartArt smartArt = slide.AddSmartArt(
                 PowerPointSmartArtType.BasicProcess,
@@ -360,8 +360,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportedSmartArtRejectsUnrepresentableQuickAndColorStyles() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointSmartArt smartArt = slide.AddSmartArt(
                 PowerPointSmartArtType.BasicProcess,
@@ -391,8 +391,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void SemanticSmartArtCarriesThemeColorsAndMinorFont() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             presentation.SetThemeColor(PowerPointThemeColor.Accent1,
                 "C00000");
             presentation.SetThemeColor(PowerPointThemeColor.Light1,
@@ -420,14 +420,14 @@ namespace OfficeIMO.Tests {
         public void BroaderSemanticSmartArtLayoutsRoundTripAndRender(
             PowerPointSmartArtType type, OfficeDiagramKind expectedKind) {
             using var stream = new MemoryStream();
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
-                presentation.SlideSize.SetSizePoints(360, 220);
+            using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
+                presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220));
                 PowerPointSmartArt smartArt = presentation.AddSlide().AddSmartArt(type,
                     new[] { "Discover", "Build", "Validate", "Ship" },
-                    PowerPointUnits.FromPoints(20),
-                    PowerPointUnits.FromPoints(20),
-                    PowerPointUnits.FromPoints(320),
-                    PowerPointUnits.FromPoints(180));
+                    OfficeIMO.OfficeLength.Points(20),
+                    OfficeIMO.OfficeLength.Points(20),
+                    OfficeIMO.OfficeLength.Points(320),
+                    OfficeIMO.OfficeLength.Points(180));
                 Assert.True(smartArt.TryGetOfficeDiagramSnapshot(
                     out OfficeDiagramSnapshot snapshot));
                 Assert.Equal(expectedKind, snapshot.Kind);
@@ -435,7 +435,7 @@ namespace OfficeIMO.Tests {
             }
 
             stream.Position = 0;
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            using PowerPointDocument reopened = PowerPointDocument.Load(stream);
             PowerPointSmartArt authored = Assert.Single(reopened.Slides[0].SmartArts);
             Assert.True(authored.TryGetOfficeDiagramSnapshot(
                 out OfficeDiagramSnapshot reopenedSnapshot));
@@ -465,8 +465,8 @@ namespace OfficeIMO.Tests {
         [InlineData(PowerPointSmartArtType.BasicRelationship)]
         public void BroaderSemanticSmartArtRejectsXmlInvalidNodeTextBeforeMutation(
             PowerPointSmartArtType type) {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
 
             Assert.Throws<ArgumentException>(() => slide.AddSmartArt(type,
@@ -480,31 +480,31 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BasicListSmartArtRemainsSemanticAfterFrameResize() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSmartArt smartArt = presentation.AddSlide().AddSmartArt(
                 PowerPointSmartArtType.BasicList,
                 new[] { "Discover", "Build", "Ship" },
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(320),
-                PowerPointUnits.FromPoints(180));
+                OfficeIMO.OfficeLength.Points(20),
+                OfficeIMO.OfficeLength.Points(20),
+                OfficeIMO.OfficeLength.Points(320),
+                OfficeIMO.OfficeLength.Points(180));
 
-            smartArt.Width = PowerPointUnits.FromPoints(240);
-            smartArt.Height = PowerPointUnits.FromPoints(240);
+            smartArt.Width= global::OfficeIMO.OfficeLength.Points(240);
+            smartArt.Height= global::OfficeIMO.OfficeLength.Points(240);
 
             Assert.True(smartArt.TryGetOfficeDiagramSnapshot(
                 out OfficeDiagramSnapshot snapshot));
             Assert.Equal(OfficeDiagramKind.List, snapshot.Kind);
-            Assert.Equal(240D, snapshot.WidthPoints, 3);
-            Assert.Equal(240D, snapshot.HeightPoints, 3);
+            Assert.Equal(240D, snapshot.Width.ToPoints(), 3);
+            Assert.Equal(240D, snapshot.Height.ToPoints(), 3);
             Assert.Empty(presentation.ValidateDocument());
         }
 
         [Fact]
         public void SmartArtNodeMutationRejectsXmlInvalidTextWithoutChangingData() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSmartArt smartArt = presentation.AddSlide().AddSmartArt(
                 PowerPointSmartArtType.BasicProcess, new[] { "Original" });
 
@@ -520,14 +520,14 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void EmbeddedSmartArtRenderingKeepsSlideBackgroundVisible() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(360, 220);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220));
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "123456";
             slide.AddSmartArt(PowerPointSmartArtType.BasicProcess,
                 new[] { "Start", "Finish" },
-                PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(320), PowerPointUnits.FromPoints(180));
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20),
+                OfficeIMO.OfficeLength.Points(320), OfficeIMO.OfficeLength.Points(180));
 
             OfficeImageExportResult png = slide.ExportImage(
                 OfficeImageExportFormat.Png);
@@ -631,13 +631,13 @@ namespace OfficeIMO.Tests {
                 .Select(index => "Node " + index)
                 .ToArray();
             using var stream = new MemoryStream();
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
                 presentation.AddSlide().AddSmartArt(type, nodeTexts);
                 presentation.Save();
             }
 
             stream.Position = 0;
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            using PowerPointDocument reopened = PowerPointDocument.Load(stream);
             PowerPointSmartArt smartArt = Assert.Single(reopened.Slides[0].SmartArts);
             Assert.Equal(nodeTexts, smartArt.GetNodeTexts());
             Dgm.LayoutDefinition layout = Assert.Single(reopened.Slides[0].SlidePart
@@ -656,7 +656,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NotesPagesAndHandoutsExportExistingNotesWithoutCreatingNewNotesParts() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointCreateOptions());
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream, new PowerPointCreateOptions());
             for (int index = 0; index < 3; index++) {
                 PowerPointSlide slide = presentation.AddSlide();
                 slide.AddTitle("Slide " + (index + 1));
@@ -664,15 +664,15 @@ namespace OfficeIMO.Tests {
             }
             Assert.Null(presentation.Slides[2].SlidePart.NotesSlidePart);
 
-            byte[] notesPdf = presentation.ToPdfBytes(new PowerPointToPdfOptions {
+            byte[] notesPdf = presentation.ToPdf(new PowerPointPdfExportOptions {
                 PageLayout = PowerPointPdfPageLayout.NotesPages,
                 IncludeSpeakerNotes = true
-            });
-            byte[] handoutPdf = presentation.ToPdfBytes(new PowerPointToPdfOptions {
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+            byte[] handoutPdf = presentation.ToPdf(new PowerPointPdfExportOptions {
                 PageLayout = PowerPointPdfPageLayout.Handouts,
                 HandoutSlidesPerPage = 3,
                 IncludeSpeakerNotes = true
-            });
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
             using var notes = PdfPigDocument.Open(new MemoryStream(notesPdf));
             using var handout = PdfPigDocument.Open(new MemoryStream(handoutPdf));
@@ -681,7 +681,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Speaker note 1", notes.GetPage(1).Text, StringComparison.Ordinal);
             Assert.Contains("Speaker note 2", handout.GetPage(1).Text, StringComparison.Ordinal);
             Assert.Null(presentation.Slides[2].SlidePart.NotesSlidePart);
-            Assert.Throws<ArgumentOutOfRangeException>(() => new PowerPointToPdfOptions {
+            Assert.Throws<ArgumentOutOfRangeException>(() => new PowerPointPdfExportOptions {
                 HandoutSlidesPerPage = 5
             });
         }
@@ -692,23 +692,23 @@ namespace OfficeIMO.Tests {
         public void NotesAndHandoutThumbnailsHonorPdfContentFilters(PowerPointPdfPageLayout layout) {
             using var controlStream = new MemoryStream();
             using var pictureStream = new MemoryStream();
-            using PowerPointPresentation control = PowerPointPresentation.Create(controlStream, new PowerPointCreateOptions());
-            using PowerPointPresentation withPicture = PowerPointPresentation.Create(pictureStream, new PowerPointCreateOptions());
+            using PowerPointDocument control = PowerPointDocument.Create(controlStream, new PowerPointCreateOptions());
+            using PowerPointDocument withPicture = PowerPointDocument.Create(pictureStream, new PowerPointCreateOptions());
             control.AddSlide().AddTitle("Filtered thumbnail");
             withPicture.AddSlide().AddTitle("Filtered thumbnail");
-            withPicture.Slides[0].AddPicture(new MemoryStream(PdfPngTestImages.CreateRgbPng(255, 0, 0)),
-                OfficeIMO.Drawing.OfficeImageFormat.Png, PowerPointUnits.FromPoints(72), PowerPointUnits.FromPoints(72),
-                PowerPointUnits.FromPoints(180), PowerPointUnits.FromPoints(120));
+            withPicture.Slides[0].AddImage(new MemoryStream(PdfPngTestImages.CreateRgbPng(255, 0, 0)),
+                OfficeIMO.Drawing.OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(72),
+                global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(120));
 
-            var controlOptions = new PowerPointToPdfOptions { PageLayout = layout };
-            var pictureOptions = new PowerPointToPdfOptions { PageLayout = layout };
+            var controlOptions = new PowerPointPdfExportOptions { PageLayout = layout };
+            var pictureOptions = new PowerPointPdfExportOptions { PageLayout = layout };
             controlOptions.UseProfile(PdfCore.PdfExportProfile.TextOnly);
             pictureOptions.UseProfile(PdfCore.PdfExportProfile.TextOnly);
 
             byte[] controlThumbnail = PdfCore.PdfPageImageRenderer.RenderPageAsPng(
-                control.ToPdfBytes(controlOptions));
+                control.ToPdf(controlOptions).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
             byte[] pictureThumbnail = PdfCore.PdfPageImageRenderer.RenderPageAsPng(
-                withPicture.ToPdfBytes(pictureOptions));
+                withPicture.ToPdf(pictureOptions).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
             VisualRasterComparison comparison = VisualBaselineTestSupport.CompareRasterImages(
                 controlThumbnail, pictureThumbnail, channelTolerance: 0, allowedDifferentPixels: 0);
 
@@ -720,18 +720,18 @@ namespace OfficeIMO.Tests {
         public void SignedPresentationSaveIsBlockedUntilMutationPolicyIsExplicit() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(path)) {
                     presentation.AddSlide().AddTitle("Signed workflow");
                     presentation.Save();
                 }
                 AddSyntheticSignature(path);
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(path)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(path)) {
                     PowerPointSignatureReport inspection = presentation.InspectSignatures();
                     Assert.True(inspection.HasSignatureMetadata);
                     Assert.Equal(1, inspection.XmlSignaturePartCount);
-                    PowerPointSignedPresentationMutationException blocked =
-                        Assert.Throws<PowerPointSignedPresentationMutationException>(() => presentation.Save());
+                    PowerPointSignedDocumentMutationException blocked =
+                        Assert.Throws<PowerPointSignedDocumentMutationException>(() => presentation.Save());
                     Assert.Equal(PowerPointSignatureMutationAction.Blocked, blocked.Report.Action);
 
                     presentation.SignatureMutationPolicy =
@@ -751,15 +751,15 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void SignatureCarrierAddedThroughOpenXmlDocumentStillBlocksSave() {
             using var destination = new MemoryStream();
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create(destination);
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create(destination);
             presentation.AddSlide().AddTitle("Live signature carrier");
             presentation.OpenXmlDocument.AddDigitalSignatureOriginPart();
 
             PowerPointSignatureReport inspection = presentation.InspectSignatures();
 
             Assert.True(inspection.HasOriginPart);
-            Assert.Throws<PowerPointSignedPresentationMutationException>(
+            Assert.Throws<PowerPointSignedDocumentMutationException>(
                 () => presentation.Save());
         }
 
@@ -767,23 +767,23 @@ namespace OfficeIMO.Tests {
         public void SignedPresentationDisposeCannotBypassMutationPolicy() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(path)) {
                     presentation.AddSlide().AddTitle("Signed workflow");
                     presentation.Save();
                 }
                 AddSyntheticSignature(path);
 
-                PowerPointPresentation edited = PowerPointPresentation.Load(path,
+                PowerPointDocument edited = PowerPointDocument.Load(path,
                     new PowerPointLoadOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose });
                 edited.Slides[0].AddTextBox("Must not persist");
-                PowerPointSignedPresentationMutationException blocked =
-                    Assert.Throws<PowerPointSignedPresentationMutationException>(() => edited.Dispose());
+                PowerPointSignedDocumentMutationException blocked =
+                    Assert.Throws<PowerPointSignedDocumentMutationException>(() => edited.Dispose());
 
                 Assert.Equal(PowerPointSignatureMutationAction.Blocked, blocked.Report.Action);
                 using (PresentationDocument signed = PresentationDocument.Open(path, false)) {
                     Assert.NotNull(signed.DigitalSignatureOriginPart);
                 }
-                using PowerPointPresentation reopened = PowerPointPresentation.Load(path, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+                using PowerPointDocument reopened = PowerPointDocument.Load(path, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
                 Assert.DoesNotContain(reopened.Slides[0].TextBoxes,
                     textBox => textBox.Text == "Must not persist");
             } finally {
@@ -795,13 +795,13 @@ namespace OfficeIMO.Tests {
         public void UntouchedSignedPresentationCanBeInspectedThroughEditableOpen() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(path)) {
                     presentation.AddSlide().AddTitle("Signed inspection");
                     presentation.Save();
                 }
                 AddSyntheticSignature(path);
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(path, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(path, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                     Assert.True(presentation.InspectSignatures().HasSignatureMetadata);
                     Assert.Equal("Signed inspection", presentation.Slides[0].TextBoxes.First().Text);
                 }
@@ -820,7 +820,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string output = Path.Combine(Path.GetTempPath(), "OfficeIMO.SmartArtReference", Guid.NewGuid().ToString("N"));
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(path)) {
                     foreach (PowerPointSmartArtType type in
                              (PowerPointSmartArtType[])Enum.GetValues(typeof(PowerPointSmartArtType))) {
                         presentation.AddSlide().AddSmartArt(type,
@@ -947,20 +947,20 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesktopReferenceLaneDerivesExpectedContentFromRenderedPaint() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
-            presentation.SlideSize.SetSizePoints(100, 100);
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(100),OfficeIMO.OfficeLength.Points(100));
 
             PowerPointSlide offCanvas = presentation.AddSlide();
-            PowerPointAutoShape offCanvasShape = offCanvas.AddRectanglePoints(
-                120, 120, 20, 20);
+            PowerPointAutoShape offCanvasShape = offCanvas.AddRectangle(
+                OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20));
             offCanvasShape.FillColor = "FF0000";
             Assert.False(PowerPointDesktopReferenceRenderer
                 .HasExpectedVisibleContent(offCanvas));
 
             PowerPointSlide unpainted = presentation.AddSlide();
-            PowerPointAutoShape unpaintedShape = unpainted.AddRectanglePoints(
-                20, 20, 40, 40);
+            PowerPointAutoShape unpaintedShape = unpainted.AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40));
             ShapeProperties unpaintedProperties = ((Shape)unpaintedShape.Element)
                 .ShapeProperties!;
             unpaintedProperties.RemoveAllChildren<A.SolidFill>();
@@ -972,15 +972,15 @@ namespace OfficeIMO.Tests {
 
             PowerPointSlide transparent = presentation.AddSlide();
             PowerPointAutoShape transparentShape = transparent
-                .AddRectanglePoints(20, 20, 40, 40);
+                .AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40));
             transparentShape.FillColor = "FF0000";
             transparentShape.FillTransparency = 100;
             Assert.False(PowerPointDesktopReferenceRenderer
                 .HasExpectedVisibleContent(transparent));
 
             PowerPointSlide visible = presentation.AddSlide();
-            PowerPointAutoShape visibleShape = visible.AddRectanglePoints(
-                20, 20, 40, 40);
+            PowerPointAutoShape visibleShape = visible.AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40));
             visibleShape.FillColor = "FF0000";
             Assert.True(PowerPointDesktopReferenceRenderer
                 .HasExpectedVisibleContent(visible));
@@ -988,15 +988,13 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesktopReferenceLaneTreatsSkippedVisibleChartAsExpectedContent() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
-            presentation.SlideSize.SetSizePoints(640, 360);
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(640),OfficeIMO.OfficeLength.Points(360));
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointChart chart = slide.AddChartPoints(
-                OfficeChartKind.ColumnClustered,
-                new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
-                    new OfficeChartSeries("Actual", new[] { 10D, 20D })
-                }), 40, 40, 560, 280);
+            PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
+                    new OfficeSeries("Actual", new[] { 10D, 20D })
+                }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Width = global::OfficeIMO.OfficeLength.Points(560), Height = global::OfficeIMO.OfficeLength.Points(280) });
             chart.SetLegendTextStyle(fontName: "Arial")
                 .SetCategoryAxisLabelTextStyle(fontName: "Georgia")
                 .SetValueAxisLabelTextStyle(fontName: "Arial");
@@ -1011,7 +1009,7 @@ namespace OfficeIMO.Tests {
             Assert.True(PowerPointDesktopReferenceRenderer
                 .HasExpectedVisibleContent(slide));
 
-            chart.LeftPoints = 700;
+            chart.Left= OfficeIMO.OfficeLength.Points(700);
             Assert.False(PowerPointDesktopReferenceRenderer
                 .HasExpectedVisibleContent(slide));
         }

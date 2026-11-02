@@ -7,7 +7,7 @@
 
         <VersionPrefix>3.5.3</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
-        <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             $(TargetFrameworks);net472</TargetFrameworks>
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
         <Company>Evotec</Company>
@@ -65,6 +65,8 @@
     <ItemGroup>
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" Link="SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartAutomaticColors.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartAutomaticColors.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartThemeWriter.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartThemeWriter.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartTextReader*.cs" Link="SharedSource\OpenXml\%(Filename)%(Extension)" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartCategoryGeometry.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartCategoryGeometry.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartPointStyles.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartPointStyles.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartExplosions.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartExplosions.cs" />
@@ -82,18 +84,11 @@
 
     <ItemGroup>
         <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
-        <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeVbaProjectPartEditor.cs" Link="SharedSource\OpenXml\OfficeVbaProjectPartEditor.cs" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'">
         <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.9" />
-    </ItemGroup>
-
-    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-        <Reference Include="System.IO.Compression" />
-        <Reference Include="System.Net.Http" />
-        <Reference Include="WindowsBase" />
     </ItemGroup>
 
     <ItemGroup>
@@ -110,6 +105,10 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="OfficeIMO.Word.Tests" />
+        <InternalsVisibleTo Include="OfficeIMO.IWork.Tests" />
+        <InternalsVisibleTo Include="OfficeIMO.IWork.AotSmoke" />
+        <InternalsVisibleTo Include="OfficeIMO.Markup.Tests" />
+        <InternalsVisibleTo Include="PSWriteOffice" />
         <InternalsVisibleTo Include="OfficeIMO.Markdown.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Rtf.Tests" />
@@ -120,10 +119,26 @@
         <InternalsVisibleTo Include="OfficeIMO.Word.GoogleDocs" />
         <InternalsVisibleTo Include="OfficeIMO.Word.Markdown" />
         <InternalsVisibleTo Include="OfficeIMO.Word.Pdf" />
+        <InternalsVisibleTo Include="OfficeIMO.Pdf.Word" />
         <InternalsVisibleTo Include="OfficeIMO.Word.Rtf" />
         <InternalsVisibleTo Include="OfficeIMO.LegacyImport.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Word.IWork" />
         <InternalsVisibleTo Include="OfficeIMO.VerifyTests" />
     </ItemGroup>
 
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO" /></ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <Reference Include="System.IO.Compression" />
+        <Reference Include="System.Net.Http" />
+        <Reference Include="WindowsBase" />
+    </ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Shared.Tests" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Word.Benchmarks" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows.Tests" /></ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.CompatibilityCatalog.Tool" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Word" />
+  </ItemGroup>
 </Project>

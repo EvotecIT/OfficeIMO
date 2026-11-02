@@ -23,7 +23,7 @@ public sealed class HtmlFoundationTests {
         HtmlDocument edited = original.Edit(document => document.QuerySelector("p")!.TextContent = "After");
         Assert.Contains("<!DOCTYPE odd@name>", edited.OuterHtml, StringComparison.OrdinalIgnoreCase);
         Assert.Equal("odd@name", Assert.IsType<HtmlDocumentType>(edited.FirstChild).Name);
-        Assert.Contains("After", HtmlConversionDocument.FromDocument(edited).ToMarkdown());
+        Assert.Contains("After", HtmlConversionDocument.FromDocument(edited).ToMarkdown().ToMarkdown());
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public sealed class HtmlFoundationTests {
         Assert.NotNull(changed);
         Assert.Equal("id", changed.Attributes[0].Name);
         Assert.Equal("a", edited.QuerySelector("a")!.LocalName);
-        Assert.Contains("https://example.org/guide", HtmlConversionDocument.FromDocument(edited).ToMarkdown());
+        Assert.Contains("https://example.org/guide", HtmlConversionDocument.FromDocument(edited).ToMarkdown().ToMarkdown());
         Assert.Contains("#123456", HtmlComputedStyleEngine.Compute(edited)[changed].GetValue("color"));
     }
 
@@ -93,8 +93,8 @@ public sealed class HtmlFoundationTests {
         Assert.Same(changed.Document.GetNode(first.NodeId), changed.Document.QuerySelector("#title"));
         Assert.Throws<InvalidOperationException>(() => first.SetAttribute("x", "y"));
         Assert.Throws<InvalidOperationException>(() => editor!.CreateElement("div"));
-        Assert.Contains("After", changed.ToMarkdown());
-        Assert.DoesNotContain("After", original.ToMarkdown());
+        Assert.Contains("After", changed.ToMarkdown().ToMarkdown());
+        Assert.DoesNotContain("After", original.ToMarkdown().ToMarkdown());
     }
 
     [Fact]
@@ -140,8 +140,8 @@ public sealed class HtmlFoundationTests {
         var converted = HtmlConversionDocument.FromDocument(document, new HtmlConversionDocumentOptions {
             Limits = new HtmlConversionLimits { MaxHtmlNodes = 5 }
         });
-        Assert.Contains("Attached", converted.ToMarkdown());
-        Assert.DoesNotContain("Detached", converted.ToMarkdown());
+        Assert.Contains("Attached", converted.ToMarkdown().ToMarkdown());
+        Assert.DoesNotContain("Detached", converted.ToMarkdown().ToMarkdown());
         Assert.Throws<InvalidOperationException>(() => invalid.OuterHtml);
         Assert.Equal("Attached", document.QuerySelector("p")!.TextContent);
         Assert.Equal("Detached", detached.QuerySelector("b")!.TextContent);
@@ -242,7 +242,7 @@ public sealed class HtmlFoundationTests {
         Assert.Equal(1, provider.Calls);
         Assert.Equal("authored", converted.Document.ProviderId);
         Assert.True(converted.Document.IsReadOnly);
-        Assert.Contains("From provider", converted.ToMarkdown());
+        Assert.Contains("From provider", converted.ToMarkdown().ToMarkdown());
         provider.Returned!.Body!.TextContent = "Later mutation";
         Assert.Equal("From provider", converted.Document.Body!.TextContent);
     }
@@ -267,7 +267,7 @@ public sealed class HtmlFoundationTests {
     [Fact]
     public void MarkdownFiltersReceiveStableReadOnlySnapshots() {
         HtmlElement? retained = null;
-        var options = new HtmlToMarkdownOptions();
+        var options = new MarkdownHtmlImportOptions();
         options.ElementFilters.Add(element => {
             retained ??= element;
             Assert.True(element.Document.IsReadOnly);
@@ -275,7 +275,7 @@ public sealed class HtmlFoundationTests {
             return element.Id == "remove";
         });
         var document = HtmlConversionDocument.Parse("<p id='remove'>Gone</p><p>Kept</p>");
-        string markdown = document.ToMarkdown(options);
+        string markdown = document.ToMarkdown(options).ToMarkdown();
         Assert.DoesNotContain("Gone", markdown);
         Assert.Contains("Kept", markdown);
         Assert.Contains("Gone", retained!.Document.TextContent);
@@ -288,10 +288,10 @@ public sealed class HtmlFoundationTests {
         document = document.Edit(edit => edit.QuerySelector("#title")!.TextContent = "Edited foundation");
         var styles = HtmlComputedStyleEngine.Compute(document);
         Assert.Contains(document.Document.QuerySelector("#title")!, styles.Keys);
-        Assert.Contains("Edited foundation", document.ToMarkdown());
+        Assert.Contains("Edited foundation", document.ToMarkdown().ToMarkdown());
         byte[] png = document.ToPng();
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Take(8).ToArray());
-        byte[] pdf = document.ToPdfBytes(new HtmlToPdfOptions());
+        byte[] pdf = (document.ToPdf(new HtmlToPdfOptions())).ToBytes();
         var read = OfficeIMO.Pdf.PdfReadDocument.Open(pdf);
         Assert.Contains("Edited foundation", read.ExtractText());
         Assert.Contains("Second page", read.ExtractText());
@@ -300,7 +300,7 @@ public sealed class HtmlFoundationTests {
 
     [Fact]
     public void PublicHtmlAndCallbackContractsDoNotExposeNativeDomTypes() {
-        Assembly[] assemblies = { typeof(HtmlDocument).Assembly, typeof(HtmlConversionDocument).Assembly, typeof(HtmlInlineElementConversionContext).Assembly, typeof(AngleSharpHtmlParser).Assembly };
+        Assembly[] assemblies = { typeof(HtmlDocument).Assembly, typeof(HtmlConversionDocument).Assembly, typeof(MarkdownHtmlInlineConversionContext).Assembly, typeof(AngleSharpHtmlParser).Assembly };
         foreach (Type type in assemblies.SelectMany(assembly => assembly.GetExportedTypes())) {
             foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)) {
                 AssertOwnedSignature(method.ReturnType, type.FullName + "." + method.Name);

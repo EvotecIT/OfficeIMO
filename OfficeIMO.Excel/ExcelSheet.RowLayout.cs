@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
         /// <param name="rowIndex">The 1-based row index to update.</param>
         /// <param name="options">The layout options to apply.</param>
         public void SetRowLayout(int rowIndex, ExcelRowLayoutOptions options) {
-            if (rowIndex <= 0 || rowIndex > A1.MaxRows) {
+            if (rowIndex <= 0 || rowIndex > ExcelA1.MaxRows) {
                 throw new ArgumentOutOfRangeException(nameof(rowIndex), "Row index must be between 1 and the Excel row limit.");
             }
 
@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (options.ClearHeight) {
-                SetRowHeight(rowIndex, 0);
+                SetRowHeight(rowIndex, default);
             }
 
             if (options.Height.HasValue) {
@@ -69,7 +69,7 @@ namespace OfficeIMO.Excel {
             if (options.FirstColumn.HasValue || options.LastColumn.HasValue) {
                 firstColumn = options.FirstColumn ?? options.LastColumn!.Value;
                 lastColumn = options.LastColumn ?? firstColumn;
-            } else if (A1.TryParseRange(GetUsedRangeA1(), out _, out int usedFirstColumn, out _, out int usedLastColumn)) {
+            } else if (ExcelA1.TryParseRange(GetUsedRangeA1(), out _, out int usedFirstColumn, out _, out int usedLastColumn)) {
                 firstColumn = usedFirstColumn;
                 lastColumn = usedLastColumn;
             } else {
@@ -85,7 +85,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException("LastColumn must be greater than or equal to FirstColumn.", nameof(options));
             }
 
-            if (lastColumn > A1.MaxColumns) {
+            if (lastColumn > ExcelA1.MaxColumns) {
                 throw new ArgumentOutOfRangeException(nameof(options), "LastColumn exceeds the maximum Excel column.");
             }
 

@@ -10,15 +10,15 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Worksheet selection, reader limits, conversion, and cancellation settings.</param>
         /// <returns>A reader owned by the caller. The input file is closed before this method returns.</returns>
         /// <remarks>
-        /// The encrypted input and the decrypted package are each bounded by ExcelReadOptions.MaxInputBytes.
+        /// The encrypted input and the decrypted package are each bounded by ExcelReaderOptions.MaxInputBytes.
         /// Opening buffers the complete input and decrypted package, verifies package integrity, and copies
         /// the options. Only Office Agile encryption is supported. Legacy XLS password encryption uses LoadEncrypted.
         /// </remarks>
-        public static ExcelWorkbookDataReader OpenEncryptedDataReader(
-            string path, string password, ExcelReadOptions? options = null) {
+        internal static ExcelWorkbookDataReader OpenEncryptedDataReader(
+            string path, string password, ExcelReaderOptions? options = null) {
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
             if (password == null) throw new ArgumentNullException(nameof(password));
-            ExcelReadOptions effectiveOptions = (options ?? new ExcelReadOptions()).Clone();
+            ExcelReaderOptions effectiveOptions = (options ?? new ExcelReaderOptions()).Clone();
             effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
             using var source = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
             byte[] encryptedBytes = ExcelReadLimitFailure.ReadInput(() => OfficeStreamReader.ReadRemainingBytes(
@@ -34,15 +34,15 @@ namespace OfficeIMO.Excel {
         /// <remarks>
         /// The source remains open on success, failure, and reader disposal. Its seekable position is restored.
         /// Non-seekable sources advance through their remaining content. The complete encrypted input and
-        /// decrypted package are buffered, each bounded by ExcelReadOptions.MaxInputBytes. Agile package integrity
+        /// decrypted package are buffered, each bounded by ExcelReaderOptions.MaxInputBytes. Agile package integrity
         /// is verified and options are copied. This API supports Office Open XML packages protected by Agile encryption.
         /// </remarks>
-        public static ExcelWorkbookDataReader OpenEncryptedDataReader(
-            Stream stream, string password, ExcelReadOptions? options = null) {
+        internal static ExcelWorkbookDataReader OpenEncryptedDataReader(
+            Stream stream, string password, ExcelReaderOptions? options = null) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
             if (password == null) throw new ArgumentNullException(nameof(password));
-            ExcelReadOptions effectiveOptions = (options ?? new ExcelReadOptions()).Clone();
+            ExcelReaderOptions effectiveOptions = (options ?? new ExcelReaderOptions()).Clone();
             long originalPosition = stream.CanSeek ? stream.Position : 0L;
             byte[] encryptedBytes;
             try {
@@ -60,24 +60,24 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Worksheet selection, reader limits, conversion, and cancellation settings.</param>
         /// <returns>A reader owned by the caller.</returns>
         /// <remarks>
-        /// Encrypted input and decrypted package sizes are each bounded by ExcelReadOptions.MaxInputBytes.
+        /// Encrypted input and decrypted package sizes are each bounded by ExcelReaderOptions.MaxInputBytes.
         /// The complete decrypted package is buffered, integrity is verified, and options are copied.
         /// Only Office Agile encryption is supported.
         /// Legacy XLS password encryption is handled by LoadEncrypted.
         /// </remarks>
-        public static ExcelWorkbookDataReader OpenEncryptedDataReader(
-            byte[] encryptedBytes, string password, ExcelReadOptions? options = null) {
+        internal static ExcelWorkbookDataReader OpenEncryptedDataReader(
+            byte[] encryptedBytes, string password, ExcelReaderOptions? options = null) {
             if (encryptedBytes == null) throw new ArgumentNullException(nameof(encryptedBytes));
             if (password == null) throw new ArgumentNullException(nameof(password));
             return OpenEncryptedDataReaderCore(
-                encryptedBytes, password, (options ?? new ExcelReadOptions()).Clone());
+                encryptedBytes, password, (options ?? new ExcelReaderOptions()).Clone());
         }
 
         private static ExcelWorkbookDataReader OpenEncryptedDataReaderCore(
-            byte[] encryptedBytes, string password, ExcelReadOptions options) {
+            byte[] encryptedBytes, string password, ExcelReaderOptions options) {
             options.CancellationToken.ThrowIfCancellationRequested();
             if (encryptedBytes.LongLength > options.MaxInputBytes) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxInputBytes), options.MaxInputBytes,
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxInputBytes), options.MaxInputBytes,
                     $"Encrypted workbook input contains {encryptedBytes.LongLength} bytes, exceeding the configured limit of {options.MaxInputBytes} bytes.");
             }
             byte[] packageBytes = OfficeEncryption.DecryptPackage(
@@ -86,7 +86,8 @@ namespace OfficeIMO.Excel {
             if (packageBytes.Length < 2 || packageBytes[0] != 0x50 || packageBytes[1] != 0x4B) {
                 throw new InvalidDataException("The decrypted workbook must be an Office Open XML package. Legacy XLS password encryption uses LoadEncrypted.");
             }
-            return OpenDataReader(packageBytes, options);
+            options.Password = null;
+            return OpenReader(packageBytes, options);
         }
     }
 }

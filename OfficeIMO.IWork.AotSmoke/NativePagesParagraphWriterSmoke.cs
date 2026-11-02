@@ -49,9 +49,9 @@ internal static class NativePagesParagraphWriterSmoke {
         using var reopened = WordDocument.Load(output);
         Require(reopened.Settings.DecimalSymbol == "."
             && string.Concat(reopened.Paragraphs.Select(p => p.Text)) == string.Concat(projection.Paragraphs)
-            && reopened.Paragraphs.Any(p => p.Text.StartsWith("Relative spacing 1.5:", StringComparison.Ordinal) && p.LineSpacing == 360)
-            && reopened.Paragraphs.Any(p => p.Text.StartsWith("Double spacing:", StringComparison.Ordinal) && p.LineSpacing == 480)
-            && reopened.Paragraphs.Any(p => p.Text == "Rich layout" && p.LineSpacing == 300)
+            && reopened.Paragraphs.Any(p => p.Text.StartsWith("Relative spacing 1.5:", StringComparison.Ordinal) && p.LineSpacing == global::OfficeIMO.Word.WordLineSpacing.Multiple(1.5))
+            && reopened.Paragraphs.Any(p => p.Text.StartsWith("Double spacing:", StringComparison.Ordinal) && p.LineSpacing == global::OfficeIMO.Word.WordLineSpacing.Multiple(2))
+            && reopened.Paragraphs.Any(p => p.Text == "Rich layout" && p.LineSpacing == global::OfficeIMO.Word.WordLineSpacing.Multiple(1.25))
             && reopened.Paragraphs.Any(p => p.Text == "Start\tLeft\tCenter\tRight\t123.45" && p.TabStops.Count == 4),
             "Saved/reopened Pages DOCX lost relative line spacing.");
         using var destination = new MemoryStream(); destination.WriteByte(9);

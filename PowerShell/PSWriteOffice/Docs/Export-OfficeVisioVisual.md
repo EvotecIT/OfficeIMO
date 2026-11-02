@@ -9,7 +9,7 @@ schema: 2.0.0
 Exports CFX semantic visual-artifact input as a native editable VSDX diagram.
 
 ## SYNTAX
-### __AllParameterSets
+### InputObject (Default)
 ```powershell
 Export-OfficeVisioVisual [-InputObject] <Object> [-Path] <string> [-Open] [-PassThru] [-PageName <string>] [-UseNaturalPageSize] [-PixelsPerInch <double>] [-NoTitle] [-NoGroups] [-NoShapeData] [-NoHyperlinks] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Typed CFX artifact, semantic envelope/JSON, ImagePlayground portable artifact, o
 
 ```yaml
 Type: Object
-Parameter Sets: __AllParameterSets
+Parameter Sets: InputObject
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Do not create native Visio containers for CFX groups or lanes.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: InputObject
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Do not copy safe CFX links onto native Visio shapes and connectors.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: InputObject
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Do not copy CFX metadata, ports, and details into Visio Shape Data.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: InputObject
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Do not add the artifact title as an editable Visio title.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: InputObject
 Aliases: None
 Possible values:
 
@@ -113,7 +113,7 @@ Open the generated VSDX after saving.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: InputObject
 Aliases: Show
 Possible values:
 
@@ -129,7 +129,7 @@ Name of the generated Visio page.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: InputObject
 Aliases: None
 Possible values:
 
@@ -145,7 +145,7 @@ Emit the conversion result instead of the saved file.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: InputObject
 Aliases: None
 Possible values:
 
@@ -161,7 +161,7 @@ Destination .vsdx path.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: InputObject
 Aliases: FilePath
 Possible values:
 
@@ -177,7 +177,7 @@ Pixel density used with -UseNaturalPageSize.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: InputObject
 Aliases: None
 Possible values:
 
@@ -193,7 +193,7 @@ Use the CFX natural pixel size as the minimum Visio page size.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: InputObject
 Aliases: None
 Possible values:
 

@@ -10,13 +10,13 @@ namespace OfficeIMO.Examples.Markdown {
             string markdown = "- Item 1\n- Item 2\n\n1. First\n1. Second";
 
             // Convert Markdown to Word document
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions());
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord(new WordMarkdownImportOptions());
             
             // Save the Word document
             doc.Save(filePath);
             
             // Convert back to Markdown
-            string roundTrip = doc.ToMarkdown(new WordToMarkdownOptions());
+            string roundTrip = (doc.ToMarkdown(new WordMarkdownExportOptions())).ToMarkdown();
             Console.WriteLine(roundTrip);
 
             if (openWord) {

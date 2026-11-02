@@ -267,26 +267,25 @@ namespace OfficeIMO.Excel {
                 return bufferedRows;
             }
 
-            internal DirectDataSetTableModel WithGeneratedColumnNames() {
+            internal DirectDataSetTableModel WithColumnNames(IReadOnlyList<string> columnNames) {
+                if (columnNames.Count != ColumnCount) throw new ArgumentException("Column name count must match the data model.", nameof(columnNames));
+                bool unchanged = true;
+                for (int index = 0; index < ColumnCount; index++) {
+                    if (!string.Equals(GetColumnName(index), columnNames[index], StringComparison.Ordinal)) unchanged = false;
+                }
+                if (unchanged) return this;
                 var columns = new DirectDataSetColumnModel[ColumnCount];
                 for (int i = 0; i < columns.Length; i++) {
-                    columns[i] = new DirectDataSetColumnModel("Column" + (i + 1).ToString(CultureInfo.InvariantCulture), GetColumnType(i));
+                    columns[i] = new DirectDataSetColumnModel(columnNames[i], GetColumnType(i));
                 }
 
                 if (_sourceTable != null) {
                     return new DirectDataSetTableModel(_sourceTable, columns);
                 }
 
-                if (_exactDictionaryRows != null) {
-                    return new DirectDataSetTableModel(columns, _exactDictionaryRows);
-                }
-
-                if (_dictionaryRows != null) {
-                    return new DirectDataSetTableModel(columns, _dictionaryRows);
-                }
-
-                if (_legacyDictionaryRows != null) {
-                    return new DirectDataSetTableModel(columns, _legacyDictionaryRows, _legacyDictionaryExactKeyLookup);
+                if (_exactDictionaryRows != null || _dictionaryRows != null || _legacyDictionaryRows != null) {
+                    // Resolve values through the original keys before changing their display names.
+                    return new DirectDataSetTableModel(columns, GetBufferedRowsForReuse());
                 }
 
                 if (_hasCellValueRows) {

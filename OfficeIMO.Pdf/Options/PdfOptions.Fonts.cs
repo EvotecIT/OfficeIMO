@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     private static readonly PdfStandardFont[] AdditionalFontFamilySlotPreference = {
         PdfStandardFont.TimesRoman,
         PdfStandardFont.Courier,
@@ -35,7 +35,7 @@ public sealed partial class PdfOptions {
     /// </summary>
     /// <param name="familyName">Office, CSS, or system font family name such as <c>Aptos</c>, <c>Calibri</c>, or <c>Consolas</c>.</param>
     /// <param name="embedSystemFont">When true, installed TrueType faces are preferred over dependency-free standard PDF font aliases.</param>
-    public PdfOptions UseOfficeFontFamily(string? familyName, bool embedSystemFont = true) {
+    public PdfCreateOptions UseOfficeFontFamily(string? familyName, bool embedSystemFont = true) {
         TryUseOfficeFontFamilyCore(familyName, embedSystemFont, requireEmbeddedFont: false);
         return this;
     }
@@ -320,7 +320,7 @@ public sealed partial class PdfOptions {
 
         return string.Join("|", _embeddedFonts
             .OrderBy(font => font.Key)
-            .Select(font => ((int)font.Key).ToString(CultureInfo.InvariantCulture) + ":" + (font.Value.FontName ?? string.Empty) + ":" + font.Value.DataSnapshot.Length.ToString(CultureInfo.InvariantCulture) + ":" + (font.Value.SyntheticOblique ? "1" : "0")));
+            .Select(font => ((int)font.Key).ToString(CultureInfo.InvariantCulture) + ":" + (font.Value.FontName ?? string.Empty) + ":" + font.Value.DataSnapshot.Length.ToString(CultureInfo.InvariantCulture) + ":" + (font.Value.SyntheticOblique ? "1" : "0") + ":" + (font.Value.SyntheticBold ? "1" : "0")));
     }
 
     /// <summary>
@@ -330,7 +330,7 @@ public sealed partial class PdfOptions {
     /// <param name="familyName">Office, CSS, or system font family name such as <c>Aptos</c>, <c>Georgia</c>, or <c>Consolas</c>.</param>
     /// <param name="baseFontFamily">The semantic standard family slot to back: Helvetica, Times-Roman, or Courier.</param>
     /// <param name="embedSystemFont">When true, installed TrueType faces are embedded into the selected semantic slot when available.</param>
-    public PdfOptions RegisterOfficeFontFamily(string? familyName, PdfStandardFont baseFontFamily, bool embedSystemFont = true) {
+    public PdfCreateOptions RegisterOfficeFontFamily(string? familyName, PdfStandardFont baseFontFamily, bool embedSystemFont = true) {
         if (string.IsNullOrWhiteSpace(familyName)) {
             return this;
         }
@@ -351,7 +351,7 @@ public sealed partial class PdfOptions {
     /// </summary>
     /// <param name="baseFontFamily">The semantic standard family slot to back: Helvetica, Times-Roman, or Courier.</param>
     /// <param name="fontFamily">Reusable TrueType font family to embed into that semantic slot.</param>
-    public PdfOptions RegisterFontFamily(PdfStandardFont baseFontFamily, PdfEmbeddedFontFamily fontFamily) {
+    public PdfCreateOptions RegisterFontFamily(PdfStandardFont baseFontFamily, PdfEmbeddedFontFamily fontFamily) {
         Guard.NotNull(fontFamily, nameof(fontFamily));
         PdfEmbeddedFontFamily snapshot = fontFamily.Clone();
         return RegisterFontFamilyCore(
@@ -360,18 +360,19 @@ public sealed partial class PdfOptions {
             snapshot.RegularSnapshot,
             snapshot.BoldSnapshot,
             snapshot.ItalicSnapshot,
-            snapshot.BoldItalicSnapshot);
+            snapshot.BoldItalicSnapshot,
+            snapshot.UsesProgramFontNames);
     }
 
-    internal PdfOptions RegisterFallbackFontFamily(
+    internal PdfCreateOptions RegisterFallbackFontFamily(
         PdfStandardFont baseFontFamily,
         string familyName,
         byte[] regular) {
         PdfStandardFont normalizedFamily = PdfStandardFontMapper.GetFontFamily(baseFontFamily);
         EmbedStandardFontSnapshot(normalizedFamily, regular, BuildFontFamilyFaceName(familyName, "Regular"));
-        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: false), regular, BuildFontFamilyFaceName(familyName, "Bold"));
+        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: false), regular, BuildFontFamilyFaceName(familyName, "Bold"), syntheticBold: true);
         EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: false, italic: true), regular, BuildFontFamilyFaceName(familyName, "Italic"), syntheticOblique: true);
-        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: true), regular, BuildFontFamilyFaceName(familyName, "BoldItalic"), syntheticOblique: true);
+        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: true), regular, BuildFontFamilyFaceName(familyName, "BoldItalic"), syntheticOblique: true, syntheticBold: true);
         (_fallbackOwnedFontFamilies ??= new HashSet<PdfStandardFont>()).Add(normalizedFamily);
         return this;
     }
@@ -388,6 +389,7 @@ public sealed partial class PdfOptions {
             string face = style == 0 ? "Regular" : style == 1 ? "Bold" : style == 2 ? "Italic" : "BoldItalic";
             if (embedded.FontName != BuildFontFamilyFaceName(candidate.FontName, face)
                 || embedded.SyntheticOblique != ((style & 2) != 0)
+                || embedded.SyntheticBold != ((style & 1) != 0)
                 || (!ReferenceEquals(embedded.DataSnapshot, candidate.DataSnapshot)
                     && !embedded.DataSnapshot.SequenceEqual(candidate.DataSnapshot))) return false;
             found = true;
@@ -395,18 +397,19 @@ public sealed partial class PdfOptions {
         return found;
     }
 
-    private PdfOptions RegisterFontFamilyCore(
+    private PdfCreateOptions RegisterFontFamilyCore(
         PdfStandardFont baseFontFamily,
         string familyName,
         byte[] regular,
         byte[]? bold,
         byte[]? italic,
-        byte[]? boldItalic) {
+        byte[]? boldItalic,
+        bool useProgramFontNames) {
         PdfStandardFont normalizedFamily = PdfStandardFontMapper.GetFontFamily(baseFontFamily);
-        EmbedStandardFontSnapshot(normalizedFamily, regular, BuildFontFamilyFaceName(familyName, "Regular"));
-        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: false), bold ?? regular, BuildFontFamilyFaceName(familyName, "Bold"));
-        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: false, italic: true), italic ?? regular, BuildFontFamilyFaceName(familyName, "Italic"), syntheticOblique: italic == null);
-        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: true), boldItalic ?? bold ?? italic ?? regular, BuildFontFamilyFaceName(familyName, "BoldItalic"), syntheticOblique: boldItalic == null && (bold != null || italic == null));
+        EmbedStandardFontSnapshot(normalizedFamily, regular, useProgramFontNames ? null : BuildFontFamilyFaceName(familyName, "Regular"));
+        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: false), bold ?? regular, useProgramFontNames ? null : BuildFontFamilyFaceName(familyName, "Bold"), syntheticBold: bold == null);
+        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: false, italic: true), italic ?? regular, useProgramFontNames ? null : BuildFontFamilyFaceName(familyName, "Italic"), syntheticOblique: italic == null);
+        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: true), boldItalic ?? bold ?? italic ?? regular, useProgramFontNames ? null : BuildFontFamilyFaceName(familyName, "BoldItalic"), syntheticOblique: boldItalic == null && (bold != null || italic == null), syntheticBold: boldItalic == null && bold == null);
         return this;
     }
 
@@ -415,7 +418,7 @@ public sealed partial class PdfOptions {
     /// Occupied compatibility slots are resolved when fallback runs are rendered.
     /// </summary>
     /// <param name="fallbackSet">Fallback set that pairs prioritized embedded font candidates with generated font slots.</param>
-    public PdfOptions RegisterEmbeddedFontFallbacks(PdfEmbeddedFontFallbackSet fallbackSet) {
+    public PdfCreateOptions RegisterEmbeddedFontFallbacks(PdfEmbeddedFontFallbackSet fallbackSet) {
         Guard.NotNull(fallbackSet, nameof(fallbackSet));
         SetCallerEmbeddedFontFallbacks(fallbackSet);
         return this;

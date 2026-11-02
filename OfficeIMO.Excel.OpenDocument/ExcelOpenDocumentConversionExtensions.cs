@@ -19,7 +19,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (source == null) throw new ArgumentNullException(nameof(source));
         ExcelOpenDocumentConversionOptions effective = options ?? new ExcelOpenDocumentConversionOptions();
         effective.Validate();
-        ExcelWorkbookSnapshot snapshot = source.CreateInspectionSnapshot();
+        ExcelWorkbookInfo snapshot = source.Inspect();
         OdsDocument target = OdsDocument.Create();
         var report = new OdfConversionReport(source.SourceFormat.ToString().ToUpperInvariant(), "ODS");
         target.Metadata.Title = snapshot.Title;
@@ -36,13 +36,13 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         var dataStyles = new Dictionary<uint, string>();
         var convertedCellsBySheet = new Dictionary<string, HashSet<(int Row, int Column)>>(StringComparer.Ordinal);
         int worksheetOrdinal = 0;
-        foreach (ExcelWorksheetSnapshot worksheet in snapshot.Worksheets) {
+        foreach (ExcelWorksheetInfo worksheet in snapshot.Worksheets) {
             worksheetOrdinal++;
             OdsSheet sheet = target.AddSheet(worksheet.Name);
             var materializedCoordinates = new HashSet<(int Row, int Column)>();
             var validationAssignments = new Dictionary<(int Row, int Column), string>();
             sheet.Hidden = worksheet.Hidden;
-            foreach (ExcelColumnSnapshot column in worksheet.Columns) {
+            foreach (ExcelColumnInfo column in worksheet.Columns) {
                 if (column.EndIndex > effective.MaximumColumns) {
                     skippedColumns += Math.Max(0, column.EndIndex - Math.Max(effective.MaximumColumns + 1, column.StartIndex) + 1L);
                     truncated = true;
@@ -51,19 +51,19 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 for (int index = Math.Max(1, column.StartIndex); index <= last; index++) {
                     OdsColumn converted = sheet.Column(index - 1L);
                     converted.Hidden = column.Hidden;
-                    if (column.Width.HasValue) converted.Width = OdfLength.Points(ExcelWidthToPoints(column.Width.Value));
+                    if (column.StoredWidth.HasValue) converted.Width = OdfLength.Points(ExcelWidthToPoints(column.StoredWidth.Value));
                     columns++;
                 }
             }
-            foreach (ExcelRowSnapshot row in worksheet.Rows) {
+            foreach (ExcelRowInfo row in worksheet.Rows) {
                 if (row.Index < 1 || row.Index > effective.MaximumRows) { skippedRows++; truncated = true; continue; }
                 OdsRow converted = sheet.Row(row.Index - 1L);
                 converted.Hidden = row.Hidden;
-                if (row.Height.HasValue) converted.Height = OdfLength.Points(row.Height.Value);
+                if (row.StoredHeight.HasValue) converted.Height = OdfLength.Points(row.StoredHeight.Value);
                 rows++;
             }
 
-            foreach (ExcelCellSnapshot cell in worksheet.Cells) {
+            foreach (ExcelCellInfo cell in worksheet.Cells) {
                 if (cell.Row < 1 || cell.Column < 1 || cell.Row > effective.MaximumRows || cell.Column > effective.MaximumColumns ||
                     materializedCells >= effective.MaximumExpandedCells) {
                     skippedCells++;
@@ -118,8 +118,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 cells++;
             }
 
-            var threadedAnnotations = new Dictionary<(int Row, int Column), List<ExcelThreadedCommentSnapshot>>();
-            foreach (ExcelThreadedCommentSnapshot threaded in worksheet.ThreadedComments) {
+            var threadedAnnotations = new Dictionary<(int Row, int Column), List<ExcelThreadedCommentInfo>>();
+            foreach (ExcelThreadedCommentInfo threaded in worksheet.ThreadedComments) {
                 if (!ExcelReference.TryParse(threaded.CellReference, out ExcelReference? reference)
                     || reference!.Kind != ExcelReferenceKind.Cell
                     || reference.IsQualified
@@ -132,7 +132,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     continue;
                 }
                 var coordinate = (reference.Start.Row, reference.Start.Column);
-                if (!threadedAnnotations.TryGetValue(coordinate, out List<ExcelThreadedCommentSnapshot>? annotationThread)) {
+                if (!threadedAnnotations.TryGetValue(coordinate, out List<ExcelThreadedCommentInfo>? annotationThread)) {
                     if (!materializedCoordinates.Contains(coordinate)) {
                         if (materializedCells >= effective.MaximumExpandedCells) {
                             skippedCells++;
@@ -142,16 +142,16 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                         materializedCoordinates.Add(coordinate);
                         materializedCells++;
                     }
-                    annotationThread = new List<ExcelThreadedCommentSnapshot>();
+                    annotationThread = new List<ExcelThreadedCommentInfo>();
                     threadedAnnotations.Add(coordinate, annotationThread);
                 }
                 annotationThread.Add(threaded);
                 threadedComments++;
             }
-            foreach (KeyValuePair<(int Row, int Column), List<ExcelThreadedCommentSnapshot>> entry in threadedAnnotations
+            foreach (KeyValuePair<(int Row, int Column), List<ExcelThreadedCommentInfo>> entry in threadedAnnotations
                 .OrderBy(item => item.Key.Row).ThenBy(item => item.Key.Column)) {
                 OdsCell cell = sheet.Cell(entry.Key.Row - 1L, entry.Key.Column - 1L);
-                ExcelThreadedCommentSnapshot first = entry.Value[0];
+                ExcelThreadedCommentInfo first = entry.Value[0];
                 string text = FormatThreadedCommentTranscript(entry.Value, includeMetadataForSingleRoot: cell.Annotation != null);
                 if (cell.Annotation != null) {
                     cell.Annotation.Text = cell.Annotation.Text + "\n\nThreaded discussion:\n" + text;
@@ -164,7 +164,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             }
 
             int validationOrdinal = 0;
-            foreach (ExcelDataValidationSnapshot validation in worksheet.Validations) {
+            foreach (ExcelDataValidationInspectionInfo validation in worksheet.Validations) {
                 validationOrdinal++;
                 if (!TryCreateOdsValidationCondition(validation, source.DateSystem,
                     out OdsValidationConditionSyntax? condition)) {
@@ -263,7 +263,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 }
             }
 
-            foreach (ExcelMergedRangeSnapshot merged in worksheet.MergedRanges) {
+            foreach (ExcelMergedRangeInfo merged in worksheet.MergedRanges) {
                 if (merged.StartRow < 1 || merged.StartColumn < 1 || merged.StartRow > effective.MaximumRows ||
                     merged.StartColumn > effective.MaximumColumns || merged.EndRow > effective.MaximumRows ||
                     merged.EndColumn > effective.MaximumColumns) {
@@ -419,7 +419,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         var sourceValidations = source.Validations
             .GroupBy(validation => validation.Name, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
-        var sheetTargets = source.Sheets.Select(ods => (Source: ods, Target: target.AddWorksheet(ods.Name))).ToList();
+        var sheetTargets = source.Sheets.Select(ods => (Source: ods, Target: target.AddSheet(ods.Name))).ToList();
         var sheetNameMap = sheetTargets.ToDictionary(pair => pair.Source.Name, pair => pair.Target.Name, StringComparer.Ordinal);
         OdsNamedRangeConversionPlan namedRangePlan = BuildOdsNamedRangeConversionPlan(source.NamedRanges, sheetNameMap);
         CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Metadata.Language);
@@ -497,7 +497,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 ? TryGetUniformColumnWidth(columnRuns) : null;
             double? defaultColumnWidth = uniformDefaultColumnWidth ??
                 (effective.MaximumColumns == 16_384 ? TryGetDominantColumnWidth(columnRuns) : null);
-            if (defaultColumnWidth.HasValue) sheet.SetDefaultColumnWidth(defaultColumnWidth.Value);
+            if (defaultColumnWidth.HasValue) sheet.SetDefaultColumnWidth(ExcelColumnWidth.Characters(defaultColumnWidth.Value));
             if (uniformDefaultColumnWidth.HasValue)
                 columnLayouts = (int)Math.Min(int.MaxValue, (long)columnLayouts + effective.MaximumColumns);
             foreach (OdsColumnRun columnRun in uniformDefaultColumnWidth.HasValue
@@ -517,7 +517,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     int excelColumn = checked((int)column + 1);
                     if (columnRun.Hidden) sheet.SetColumnHidden(excelColumn, true);
                     if (columnRun.Width.HasValue) {
-                        if (columnRun.Width.Value.TryToPoints(out double points)) sheet.SetColumnWidth(excelColumn, PointsToExcelWidth(points));
+                        if (columnRun.Width.Value.TryToPoints(out double points)) sheet.SetColumnWidth(excelColumn, ExcelColumnWidth.Characters(PointsToExcelWidth(points)));
                         else unsupportedMeasurements++;
                     }
                     columnLayouts++;
@@ -529,7 +529,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             int materializedRowLayouts = 0;
             double? uniformDefaultRowHeight = effective.MaximumRows == 1_048_576
                 ? TryGetUniformRowHeight(rowRuns) : null;
-            if (uniformDefaultRowHeight.HasValue) sheet.SetDefaultRowHeight(uniformDefaultRowHeight.Value);
+            if (uniformDefaultRowHeight.HasValue) sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(uniformDefaultRowHeight.Value)));
             foreach (OdsRowRun rowRun in rowRuns) {
                 IReadOnlyList<OdsCellRun> cellRuns = rowRun.CellRuns;
                 bool hiddenRowRun = rowRun.Hidden;
@@ -587,7 +587,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     else if (needsIndividualLayout) truncated = true;
                     if (hiddenRowRun && canMaterializeLayout) { sheet.SetRowHidden(excelRow, true); rowLayouts++; }
                     if (rowHeight.HasValue && !uniformDefaultRowHeight.HasValue && canMaterializeLayout) {
-                        if (rowHeight.Value.TryToPoints(out double points)) sheet.SetRowHeight(excelRow, points);
+                        if (rowHeight.Value.TryToPoints(out double points)) sheet.SetRowHeight(excelRow, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(points)));
                         else unsupportedMeasurements++;
                         rowLayouts++;
                     } else if (rowHeight.HasValue && uniformDefaultRowHeight.HasValue) {
@@ -736,7 +736,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             conditionalTargetLimitFailures += conditionalTargetLimits.Count;
         }
 
-        if (target.Sheets.Count == 0) activeTarget = target.AddWorksheet("Sheet1");
+        if (target.Sheets.Count == 0) activeTarget = target.AddSheet("Sheet1");
         else if (activeTarget == null) {
             activeTarget = firstTarget!;
             activeTarget.SetHidden(false);
@@ -934,7 +934,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     }
 
     private static string FormatThreadedCommentTranscript(
-        IReadOnlyList<ExcelThreadedCommentSnapshot> comments,
+        IReadOnlyList<ExcelThreadedCommentInfo> comments,
         bool includeMetadataForSingleRoot = false) {
         if (!includeMetadataForSingleRoot && comments.Count == 1
             && string.IsNullOrWhiteSpace(comments[0].ParentId) && !comments[0].Done) {
@@ -942,7 +942,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         }
         var builder = new StringBuilder();
         for (int index = 0; index < comments.Count; index++) {
-            ExcelThreadedCommentSnapshot comment = comments[index];
+            ExcelThreadedCommentInfo comment = comments[index];
             if (index > 0) builder.Append("\n\n");
             builder.Append(string.IsNullOrWhiteSpace(comment.ParentId) ? "Comment" : "Reply");
             if (!string.IsNullOrWhiteSpace(comment.Author)) builder.Append(" by ").Append(comment.Author);

@@ -65,7 +65,7 @@ public sealed class AsciiDocToMarkdownContractTests {
         Assert.Equal(new[] { 1, 2 }, result.Value.Blocks.OfType<HeadingBlock>().Select(static heading => heading.Level));
         TableBlock table = Assert.Single(result.Value.Blocks.OfType<TableBlock>());
         Assert.Equal("Important values", table.Attributes.GetAttribute("caption"));
-        Assert.Contains("caption=\"Important values\"", result.Value.ToMarkdown(), StringComparison.Ordinal);
+        Assert.Contains("caption=\"Important values\"", ((result.Value.ToMarkdown())), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public sealed class AsciiDocToMarkdownContractTests {
         const string source = "= Guide\n\n== Start\nParagraph text\n\n* one\n* two\n";
         AsciiDocToMarkdownResult conversion = AsciiDocDocument.ParseResult(source).Document.ToMarkdownDocumentResult();
 
-        using var word = conversion.Value.ToWordDocument();
+        using var word = conversion.Value.ToWord();
         string visibleText = string.Join(" ", word.Paragraphs.Select(paragraph => paragraph.Text));
 
         Assert.Contains("Guide", visibleText, StringComparison.Ordinal);

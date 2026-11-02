@@ -16,8 +16,8 @@ public static partial class OfficeVisualPlacementExtensions {
     /// <summary>Inserts a visual anchored to a worksheet cell.</summary>
     /// <remarks>Use the overload with an out conversion result to inspect fidelity diagnostics.</remarks>
     public static ExcelImage AddVisualArtifact(this ExcelSheet sheet, int row, int column, VisualArtifact artifact,
-        OfficeVisualConversionOptions? options = null, int offsetXPixels = 0, int offsetYPixels = 0) =>
-        sheet.AddVisualArtifact(row, column, artifact, out _, options, offsetXPixels, offsetYPixels);
+        OfficeVisualConversionOptions? options = null, OfficeLength offsetX = default, OfficeLength offsetY = default) =>
+        sheet.AddVisualArtifact(row, column, artifact, out _, options, offsetX, offsetY);
 
     /// <summary>Inserts a visual at a slide position expressed in points.</summary>
     /// <remarks>Use a layout box to constrain both dimensions, or the overload with an out result to inspect fidelity.</remarks>

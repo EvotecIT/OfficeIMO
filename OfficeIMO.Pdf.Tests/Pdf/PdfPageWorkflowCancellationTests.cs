@@ -25,7 +25,7 @@ public class PdfPageWorkflowCancellationTests {
             () => document.Pages.Rotate(90, "1", token),
             () => document.Pages.RotateBy(90, selection, token),
             () => document.Pages.SetCropBox(20, 20, 400, 700, token, 1),
-            () => document.Pages.Resize(new PdfPageResizeOptions(PageSizes.Letter) { CancellationToken = token }, 1),
+            () => document.Pages.Resize(new PdfPageResizeOptions(PdfPageSizes.Letter) { CancellationToken = token }, 1),
             () => document.Pages.CropAndTranslate(20, 20, 400, 700, token, 1),
             () => document.Pages.DestructiveCrop(20, 20, 400, 700, new PdfDestructiveCropOptions { CancellationToken = token }, 1),
             () => document.Pages.ApplyAttributes(token, PdfPageAttributeEdit.RotateBy(90, selection)),
@@ -117,7 +117,7 @@ public class PdfPageWorkflowCancellationTests {
         byte[] source = CreateSource();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        var options = new PdfPageResizeOptions(PageSizes.Letter) { CancellationToken = cancellation.Token };
+        var options = new PdfPageResizeOptions(PdfPageSizes.Letter) { CancellationToken = cancellation.Token };
         Assert.Throws<OperationCanceledException>(() => PdfPageEditor.ResizePages(source, options, null, CancellationToken.None));
         options.CancellationToken = CancellationToken.None;
         Assert.Throws<OperationCanceledException>(() => PdfPageEditor.ResizePages(source, options, null, cancellation.Token));
@@ -282,7 +282,7 @@ public class PdfPageWorkflowCancellationTests {
         (input, output, token) => PdfPageEditor.RotatePages(input, output, 90, options, token, 1)
     };
 
-    private static byte[] CreateSource() => PdfDocument.Create(new PdfOptions { CreateOutlineFromHeadings = true })
+    private static byte[] CreateSource() => PdfDocument.Create(new PdfCreateOptions { CreateOutlineFromHeadings = true })
         .H1("First section").Paragraph(p => p.Text("First content"))
         .PageBreak().H1("Second section").Paragraph(p => p.Text("Second content")).ToBytes();
 

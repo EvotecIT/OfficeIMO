@@ -181,14 +181,14 @@ internal static class HtmlStaticBudgetWorker {
 
     private static HtmlRenderOptions CreatePrintOptions() => new() {
         Mode = HtmlRenderMode.Paged, ViewportWidth = 768D, ViewportHeight = 900D,
-        PageSize = new OfficePageSize(8.27D, 11.69D), Margins = HtmlRenderMargins.All(40D),
+        PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(8.27D), global::OfficeIMO.OfficeLength.Inches(11.69D)), Margins = HtmlRenderMargins.All(40D),
         Scale = 1D, BackgroundColor = OfficeColor.White, UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
         FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss
     };
 
     private static HtmlRenderOptions CreateSnapshotOptions() => new() {
         Mode = HtmlRenderMode.Continuous, ViewportWidth = 768D, ViewportHeight = 900D,
-        PageSize = new OfficePageSize(8D, 9.375D), Margins = HtmlRenderMargins.All(0D), HonorCssPageRules = false,
+        PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(8D), global::OfficeIMO.OfficeLength.Inches(9.375D)), Margins = HtmlRenderMargins.All(0D), HonorCssPageRules = false,
         Scale = 1D, BackgroundColor = OfficeColor.White, UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
         FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss
     };

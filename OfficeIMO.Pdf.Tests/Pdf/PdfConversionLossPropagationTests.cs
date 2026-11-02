@@ -1,3 +1,6 @@
+using OfficeIMO.Pdf.Word;
+using OfficeIMO.Pdf.Excel;
+using OfficeIMO.Pdf.PowerPoint;
 using OfficeIMO.Pdf;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel.Pdf;
@@ -54,7 +57,7 @@ public sealed class PdfConversionLossPropagationTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void ImageExportCapturesLateInformationalLossAndRejectsItBeforeDelivery(bool fluent) {
+    public void ImageExportCapturesLateInformationalLossAndRejectsItBeforeDelivery(bool streamed) {
         var report = new PdfConversionReport();
         PdfDocument document = PdfDocument.Create().Deferred(_ => {
             report.Add(new PdfConversionWarning("renderer", "LateLoss", "page:1", "Late omission",
@@ -62,22 +65,22 @@ public sealed class PdfConversionLossPropagationTests {
             return item => item.Paragraph(paragraph => paragraph.Text("Content"));
         });
         var conversion = new PdfDocumentConversionResult(document, report);
-        var builder = conversion.ToImages();
+        var operation = conversion.CreateImageExportOperation(new PdfImageExportOptions { Format = OfficeImageExportFormat.Svg });
         Assert.Empty(conversion.Warnings);
 
-        OfficeImageExportResult image = Assert.Single(fluent
-            ? builder.AsSvg().Export()
+        OfficeImageExportResult image = Assert.Single(streamed
+            ? operation.Export()
             : conversion.ExportImages(OfficeImageExportFormat.Svg));
         Assert.Contains(image.Diagnostics, diagnostic => diagnostic.Code == "LateLoss" &&
             diagnostic.LossKind == OfficeConversionLossKind.Omission);
-        var strict = new PdfImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoLoss = true } };
+        var strict = new PdfImageExportOptions { Format = OfficeImageExportFormat.Svg, FailOnLoss = true, Policy = new OfficeImageExportPolicy { RequireNoFailures = false } };
         int delivered = 0;
-        var failure = Assert.Throws<OfficeImageExportPolicyException>(() => {
-            if (fluent) conversion.ToImages(strict).AsSvg().ExportEach(_ => delivered++);
+        var failure = Assert.Throws<OfficeIMO.OfficeConversionException>(() => {
+            if (streamed) conversion.CreateImageExportOperation(strict).ExportEach(_ => delivered++);
             else conversion.ExportImages(OfficeImageExportFormat.Svg, strict);
         });
         Assert.Equal(0, delivered);
-        Assert.Contains(failure.Diagnostics, diagnostic => diagnostic.Code == "LateLoss");
+        Assert.Contains(Assert.IsType<OfficeIMO.OfficeConversionReport>(failure.Report).Diagnostics, diagnostic => diagnostic.Code == "LateLoss");
     }
 
     [Theory]
@@ -104,9 +107,9 @@ public sealed class PdfConversionLossPropagationTests {
         Assert.Equal(lossKind, fidelity.LossKind);
         Assert.Equal("source", fidelity.Source);
         Assert.Equal("source:1", fidelity.Location);
-        var strict = new PdfImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoLoss = true } };
-        var failure = Assert.Throws<OfficeImageExportPolicyException>(() => conversion.ToImages(strict).AsSvg().Export());
-        Assert.Contains(failure.Diagnostics, diagnostic =>
+        var strict = new PdfImageExportOptions { Format = OfficeImageExportFormat.Svg, FailOnLoss = true, Policy = new OfficeImageExportPolicy { RequireNoFailures = false } };
+        var failure = Assert.Throws<OfficeIMO.OfficeConversionException>(() => conversion.CreateImageExportOperation(strict).Export());
+        Assert.Contains(Assert.IsType<OfficeIMO.OfficeConversionReport>(failure.Report).Diagnostics, diagnostic =>
             diagnostic.Code == "UnsupportedObject" && diagnostic.LossKind == lossKind);
     }
 
@@ -121,15 +124,15 @@ public sealed class PdfConversionLossPropagationTests {
             conversion.ExportImages(OfficeImageExportFormat.Svg));
 
         OfficeImageExportDiagnostic diagnostic = Assert.Single(failure.Diagnostics,
-            item => item.Code == "SourceConversionDiagnosticContractMismatch");
+            item => item.Code == "source-conversion-diagnostic-contract-mismatch");
         Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
         OfficeConversionFidelityDiagnostic contractFailure = Assert.Single(
             conversion.FidelityDiagnostics,
-            item => item.Code == "CONVERSION_REPORT_UNTYPED_LOSS");
+            item => item.Code == "conversion-report-untyped-loss");
         Assert.Equal(OfficeConversionLossKind.Failure, contractFailure.LossKind);
         PdfConversionProofReport proof = conversion.AssessProof();
         Assert.Contains(proof.FidelityDiagnostics,
-            item => item.Code == "CONVERSION_REPORT_UNTYPED_LOSS"
+            item => item.Code == "conversion-report-untyped-loss"
                 && item.LossKind == OfficeConversionLossKind.Failure);
         Assert.Throws<InvalidOperationException>(proof.RequireNoLoss);
     }
@@ -169,7 +172,7 @@ public sealed class PdfConversionLossPropagationTests {
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
-        PdfExcelTableImportResult result = logical.ImportTablesToExcelDocumentResult();
+        PdfExcelTableImportResult result = logical.ConvertToExcelWithEvidence();
         using (result.Value) {
             Assert.Empty(result.Report.Entries);
             Assert.True(result.Report.HasOmittedPageContent);
@@ -206,7 +209,7 @@ public sealed class PdfConversionLossPropagationTests {
 
         Assert.True(result.Report.HasLoss);
         Assert.Contains(result.Report.Warnings, static warning =>
-            warning.Code == "PdfSemanticLayoutReflowed" &&
+            warning.Code == OfficeDiagnosticCodes.PdfSemanticLayoutReflowed &&
             warning.LossKind == OfficeConversionLossKind.Approximation);
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
     }
@@ -218,12 +221,12 @@ public sealed class PdfConversionLossPropagationTests {
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
-        PdfPowerPointConversionResult result = logical.ToPowerPointPresentationResult(
-            PdfToPowerPointOptions.CreateEditableContent());
+        PdfPowerPointConversionResult result = logical.ConvertToPowerPointWithEvidence(
+            PowerPointPdfImportOptions.CreateEditableContent());
         using (result.Value) {
             Assert.True(result.Report.HasLoss);
             Assert.Contains(result.Report.Warnings, static warning =>
-                warning.Code == "PdfEditableContentReconstructed" &&
+                warning.Code == "pdf-editable-content-reconstructed" &&
                 warning.LossKind == OfficeConversionLossKind.Approximation);
             Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
         }

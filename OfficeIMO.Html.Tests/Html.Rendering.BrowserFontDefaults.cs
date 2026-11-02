@@ -10,7 +10,8 @@ public sealed partial class HtmlRenderingTests {
     [InlineData(true, "<kbd>X</kbd>", "Consolas")]
     [InlineData(true, "<samp>X</samp>", "Consolas")]
     [InlineData(true, "<pre><code><samp>X</samp></code></pre>", "Consolas")]
-    [InlineData(true, "<section style='font-family:serif'><code>X</code></section>", "serif")]
+    // The user-agent code rule beats an inherited family in both modes, as in a browser.
+    [InlineData(true, "<section style='font-family:serif'><code>X</code></section>", "Consolas")]
     [InlineData(false, "<code>X</code>", "Consolas")]
     public void HtmlBrowserFontDefaults_CodeFamilyIsAppliedBeforeChildInheritance(
         bool standardsMode, string markup, string documentFamily) {
@@ -65,7 +66,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(16D, serif.Font.Size, 6);
             Assert.Equal("serif", serif.Font.FamilyName);
             Assert.Equal(browser ? 13D : 16D, code.Font.Size, 6);
-            Assert.Equal(browser ? "monospace" : "serif", code.Font.FamilyName);
+            Assert.Equal(browser ? "monospace" : "Consolas", code.Font.FamilyName);
         }
     }
 
@@ -164,7 +165,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlBrowserFontDefaults_RemAndCalculatedSizesRetainAbsoluteProvenance(
         string size, double browserSize) {
         AssertBrowserFontDefaultModes("<section style='font-size:" + size
-            + "'><code>X</code></section>", browserSize, "monospace", 20D, "serif",
+            + "'><code>X</code></section>", browserSize, "monospace", 20D, "Consolas",
             extraCss: "html{font-family:monospace}body{font-family:serif}");
     }
 

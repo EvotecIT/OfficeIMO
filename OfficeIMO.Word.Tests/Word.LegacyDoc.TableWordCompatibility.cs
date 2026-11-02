@@ -22,7 +22,7 @@ public partial class Word {
             table._tableProperties!.TableStyle = new TableStyle { Val = "CellShadingChild" };
         }
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Cell fill";
-        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.Equal("00FF00", restored.Tables[0].Rows[0].Cells[0].ShadingFillColorHex);
     }
 
@@ -54,7 +54,7 @@ public partial class Word {
         }
         table._tableProperties!.TableLook = new TableLook { FirstRow = false, FirstColumn = false, LastRow = false, LastColumn = false, NoHorizontalBand = false, NoVerticalBand = false };
         for (int row = 0; row < 2; row++) for (int col = 0; col < 2; col++) table.Rows[row].Cells[col].Paragraphs[0].Text = "Disabled band";
-        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         foreach (WordTableRow row in restored.Tables[0].Rows) foreach (WordTableCell cell in row.Cells) Assert.Equal(string.Empty, cell.Paragraphs[0].ColorHex);
     }
 }

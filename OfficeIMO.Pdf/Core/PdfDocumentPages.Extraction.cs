@@ -65,7 +65,7 @@ public sealed partial class PdfDocumentPages {
     /// <summary>
     /// Attempts to create a new PDF containing selected pages in caller order, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> ExtractResult(PdfPageSelection selection, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> ExtractResult(PdfPageSelection selection, PdfLoadOptions? options = null) {
         Guard.NotNull(selection, nameof(selection));
         return TryPageExtractionOperation("Extract pages", effectiveOptions => Extract(selection, effectiveOptions), options);
     }
@@ -80,7 +80,7 @@ public sealed partial class PdfDocumentPages {
     /// <summary>
     /// Attempts to create a new PDF containing pages described by page ranges, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> ExtractResult(string pageRanges, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> ExtractResult(string pageRanges, PdfLoadOptions? options = null) {
         return TryPageExtractionOperation("Extract pages", effectiveOptions => Extract(PdfPageSelection.Parse(pageRanges), effectiveOptions), options);
     }
 
@@ -209,8 +209,8 @@ public sealed partial class PdfDocumentPages {
             throw new InvalidOperationException("Split output count did not match the planned page-count evidence.");
         }
 
-        PdfArtifactSnapshot inputArtifact = _document.Pipeline.Output ??
-            PdfArtifactSnapshot.Capture(input, _document.ReadOptions, cancellationToken);
+        PdfArtifactInfo inputArtifact = _document.Pipeline.Output ??
+            PdfArtifactInfo.Capture(input, _document.ReadOptions, cancellationToken);
         var documents = new PdfDocument[outputs.Count];
         for (int i = 0; i < outputs.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -234,8 +234,8 @@ public sealed partial class PdfDocumentPages {
         PdfLoadOptions? options,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        PdfArtifactSnapshot inputArtifact = _document.Pipeline.Output ??
-            PdfArtifactSnapshot.Capture(input, _document.ReadOptions, cancellationToken);
+        PdfArtifactInfo inputArtifact = _document.Pipeline.Output ??
+            PdfArtifactInfo.Capture(input, _document.ReadOptions, cancellationToken);
         return _document.WithCanonicalBytesKnownPageCount(
             input,
             inputArtifact,
@@ -259,7 +259,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Splits this document and returns the generated parts with bounded-probe evidence.</summary>
-    public PdfProductionSplitResult SplitForProductionResult(PdfProductionSplitOptions options) {
+    internal PdfProductionSplitResult SplitForProductionResult(PdfProductionSplitOptions options) {
         Guard.NotNull(options, nameof(options));
         return PdfProductionSplitter.Split(_document.GetBytesForOperation(options.CancellationToken), options, _document.ReadOptions);
     }

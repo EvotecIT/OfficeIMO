@@ -13,7 +13,7 @@ internal static partial class RtfPdfConverter {
         PdfCore.PdfAlign align = RtfPdfMapping.ToPdfAlign(document.GetParagraphFormatting(paragraph).Alignment);
         List<PdfCore.PdfTextRun> pendingRuns = new List<PdfCore.PdfTextRun>();
         bool emitted = false;
-        AppendListMarker(paragraph, pendingRuns, state, options);
+        AppendListMarker(document, paragraph, pendingRuns, state, options);
 
         foreach (IRtfInline inline in paragraph.Inlines) {
             switch (inline) {
@@ -103,20 +103,20 @@ internal static partial class RtfPdfConverter {
                 UseDefaultCharacterFormatting = source.UseParsedParagraphDefaults
             });
             strut = new PdfCore.PdfTextRun(string.Empty, bold: inherited.Bold, italic: inherited.Italic,
-                fontSize: inherited.FontSize, font: state.ResolveFont(inherited.FontId, inherited.Bold, inherited.Italic),
+                fontSize: inherited.FontSize.HasValue ? OfficeLength.Points(inherited.FontSize.Value) : null, font: state.ResolveFont(inherited.FontId, inherited.Bold, inherited.Italic),
                 fontFamily: state.ResolveFontFamily(inherited.FontId));
         }
         strut.IsLineBoxStrut = true;
-        if (strut.FontSize is double sourceSize && sourceSize > 0D &&
+        if ((strut.FontSize?.ToPoints()) is double sourceSize && sourceSize > 0D &&
             !double.IsNaN(sourceSize) && !double.IsInfinity(sourceSize)) {
             for (int index = bodyStartIndex; index < runs.Count; index++) {
                 PdfCore.PdfTextRun control = runs[index];
-                if (control.FontSize.HasValue || control.Text.Length == 0) continue;
+                if ((control.FontSize?.ToPoints()).HasValue || control.Text.Length == 0) continue;
                 // Every blank source line needs its own known font box. A note
                 // label before the body must not become a break's fallback size.
                 runs[index] = new PdfCore.PdfTextRun(control.Text, bold: strut.Bold,
                     underline: control.Underline, color: control.Color, italic: strut.Italic,
-                    strike: control.Strike, fontSize: sourceSize, font: strut.Font,
+                    strike: control.Strike, fontSize: global::OfficeIMO.OfficeLength.Points(sourceSize), font: strut.Font,
                     linkUri: control.LinkUri, linkContents: control.LinkContents,
                     baseline: strut.Baseline, linkDestinationName: control.LinkDestinationName,
                     tabLeader: control.TabLeader, tabAlignment: control.TabAlignment,
@@ -136,7 +136,7 @@ internal static partial class RtfPdfConverter {
             PdfCore.PdfTextRun run = runs[index];
             if (run.IsLineBoxStrut || run.InlineElement != null ||
                 run.Text.Any(character => character is not ('\r' or '\n' or '\t'))) return false;
-            if (run.Text.Length > 0 && run.FontSize is double size && size > 0D &&
+            if (run.Text.Length > 0 && run.FontSize?.ToPoints() is double size && size > 0D &&
                 !double.IsNaN(size) && !double.IsInfinity(size)) controlStyle = run;
         }
         return true;
@@ -146,7 +146,7 @@ internal static partial class RtfPdfConverter {
 
     private static void AppendParagraphRuns(RtfDocument document, RtfParagraph paragraph, List<PdfCore.PdfTextRun> runs, RtfToPdfOptions options, PdfRenderState state, bool collectNotes = true, string? inheritedLinkUri = null, string? inheritedLinkDestinationName = null, string? inheritedLinkContents = null, PdfInlineProjectionContext context = PdfInlineProjectionContext.Text) {
         RecordParagraphFrameDiagnostic(document, paragraph, options, "Paragraph/Frame");
-        AppendListMarker(paragraph, runs, state, options);
+        AppendListMarker(document, paragraph, runs, state, options);
         for (int inlineIndex = 0; inlineIndex < paragraph.Inlines.Count; inlineIndex++) {
             IRtfInline inline = paragraph.Inlines[inlineIndex];
             switch (inline) {
@@ -214,8 +214,8 @@ internal static partial class RtfPdfConverter {
             return;
         }
 
-        PdfCore.PdfColor? foreground = RtfPdfMapping.ToPdfColor(document, run.ForegroundColorIndex);
-        PdfCore.PdfColor? background = RtfPdfMapping.ToPdfColor(document, run.HighlightColorIndex)
+        global::OfficeIMO.OfficeColor? foreground = RtfPdfMapping.ToPdfColor(document, run.ForegroundColorIndex);
+        global::OfficeIMO.OfficeColor? background = RtfPdfMapping.ToPdfColor(document, run.HighlightColorIndex)
             ?? RtfPdfMapping.ToPdfColor(document, run.CharacterBackgroundColorIndex);
         PdfCore.PdfStandardFont? font = state.ResolveFont(run.FontId, run.Bold, run.Italic);
         string? linkUri = run.Hyperlink?.ToString() ?? inheritedLinkUri;
@@ -229,7 +229,7 @@ internal static partial class RtfPdfConverter {
             color: foreground,
             italic: run.Italic,
             strike: run.Strike || run.DoubleStrike,
-            fontSize: run.FontSize,
+            fontSize: ((double?)(run.FontSize) is double physicalLength3 ? global::OfficeIMO.OfficeLength.Points(physicalLength3) : (global::OfficeIMO.OfficeLength?)null),
             font: font,
             fontFamily: state.ResolveFontFamily(run.FontId),
             linkUri: linkUri,
@@ -238,7 +238,7 @@ internal static partial class RtfPdfConverter {
             linkDestinationName: linkDestinationName,
             backgroundColor: background);
         if (run.KerningHalfPoints is > 0) {
-            double fontSize = run.FontSize ?? state.FontOptions.DefaultFontSize;
+            double fontSize = run.FontSize ?? state.FontOptions.DefaultFontSize.ToPoints();
             pdfRun = pdfRun.WithFeatureSettings(state.FontOptions.DefaultTextFeatureSettings.With("kern",
                 fontSize >= run.KerningHalfPoints.Value / 2D ? 1 : 0));
         }
@@ -303,13 +303,22 @@ internal static partial class RtfPdfConverter {
         AppendPlainText(text, runs, state);
     }
 
-    private static void AppendListMarker(RtfParagraph paragraph, List<PdfCore.PdfTextRun> runs, PdfRenderState state, RtfToPdfOptions options) {
+    private static void AppendListMarker(RtfDocument document, RtfParagraph paragraph, List<PdfCore.PdfTextRun> runs, PdfRenderState state, RtfToPdfOptions options) {
         RtfListMarker? marker = state.NextListMarker(paragraph);
         if (marker == null) return;
         if (!marker.IsNumberFormatSupported) AddConversionWarning(options, "ListNumberFormatFlattened", "Paragraph/List", "The requested numbering format was represented by decimal marker text.", RtfConversionAction.Flattened);
         if (marker.Formatting.Level.PictureIndex.HasValue) AddConversionWarning(options, "ListPictureFlattened", "Paragraph/List", "The picture bullet was represented by its text marker.", RtfConversionAction.Flattened);
-        if (marker.Text.Length > 0) {
+        if (marker.Text.Length == 0) return;
+        // The marker shares the line with the text, so it takes the text's face and size for one line box.
+        RtfRun? firstRun = paragraph.Inlines.OfType<RtfRun>().FirstOrDefault(run => !string.IsNullOrEmpty(run.Text));
+        if (firstRun == null) {
             runs.Add(state.CreateDefaultRun(marker.Text + marker.Separator));
+            return;
         }
+        RtfRun text = document.Styles.Count > 0 || firstRun.UseDefaultCharacterFormatting
+            ? document.GetRunFormatting(paragraph, firstRun) : firstRun;
+        runs.Add(new PdfCore.PdfTextRun(marker.Text + marker.Separator,
+            fontSize: text.FontSize.HasValue ? OfficeLength.Points(text.FontSize.Value) : null,
+            font: state.ResolveFont(text.FontId, bold: false, italic: false), fontFamily: state.ResolveFontFamily(text.FontId)));
     }
 }

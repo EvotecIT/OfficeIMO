@@ -9,9 +9,9 @@ schema: 2.0.0
 Creates discoverable layout, resource-limit, and rendering settings for HTML image export.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
-New-OfficeHtmlRenderOptions [-Mode <HtmlRenderMode>] [-FidelityPolicy <HtmlRenderFidelityPolicy>] [-ViewportWidth <Double>] [-ViewportHeight <Double>] [-PageSize <OfficePageSize>] [-HonorCssPageRules] [-DefaultFontFamily <string>] [-DefaultFontSize <Double>] [-DefaultLineHeight <Double>] [-BaseUri <string>] [-MaxPageCount <Int32>] [-MaxInputCharacters <Int32>] [-MaxHtmlNodes <Int32>] [-MaxTotalResourceBytes <Int64>] [-ResourceTimeoutSeconds <Double>] [-Scale <Double>] [-MaximumOutputWidth <Int32>] [-MaximumOutputHeight <Int32>] [-BackgroundColor <string>] [-TargetDpi <Double>] [-MaximumRasterPixels <Int64>] [-RasterOverflowBehavior <OfficeRasterOverflowBehavior>] [-MaximumOutputCount <Int32>] [-MaximumTotalRasterPixels <Int64>] [-MaximumTotalEncodedBytes <Int64>] [-RenderTimeoutSeconds <Double>] [-MaximumDegreeOfParallelism <Int32>] [-TextShapingLanguage <string>] [<CommonParameters>]
+New-OfficeHtmlRenderOptions [-Mode <HtmlRenderMode>] [-FidelityPolicy <HtmlRenderFidelityPolicy>] [-ViewportWidth <Double>] [-ViewportHeight <Double>] [-PageSize <OfficePageSize>] [-HonorCssPageRules] [-DefaultFontFamily <string>] [-DefaultFontSize <Double>] [-DefaultLineHeight <Double>] [-BaseUri <string>] [-MaxPageCount <Int32>] [-MaxInputCharacters <Int32>] [-MaxHtmlNodes <Int32>] [-MaxTotalResourceBytes <Int64>] [-ResourceTimeoutSeconds <Double>] [-Scale <Double>] [-MaximumOutputWidth <Int32>] [-MaximumOutputHeight <Int32>] [-BackgroundColor <string>] [-TargetDpi <Double>] [-MaximumRasterPixelCount <Int64>] [-RasterOverflowBehavior <OfficeRasterOverflowBehavior>] [-MaximumOutputCount <Int32>] [-MaximumTotalRasterPixelCount <Int64>] [-MaximumTotalEncodedBytes <Int64>] [-RenderTimeoutSeconds <Double>] [-MaximumDegreeOfParallelism <Int32>] [-TextShapingLanguage <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -33,7 +33,7 @@ Background color name or hex value.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Base URI for relative resources.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Default font family.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Default font size.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Default line-height multiplier.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -113,7 +113,7 @@ Fidelity policy for unsupported content.
 
 ```yaml
 Type: HtmlRenderFidelityPolicy
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: AllowDiagnosedLoss, RequireNoLoss
 
@@ -129,7 +129,7 @@ Honor CSS page rules.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -145,7 +145,7 @@ Maximum HTML nodes.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -161,7 +161,7 @@ Maximum independent renders processed concurrently.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -177,7 +177,7 @@ Maximum images accepted from one batch export.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -193,7 +193,7 @@ Maximum output height in pixels.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -209,7 +209,7 @@ Maximum output width in pixels.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -220,12 +220,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaximumRasterPixels
+### -MaximumRasterPixelCount
 Maximum pixels allocated for one raster image.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -241,7 +241,7 @@ Maximum aggregate encoded bytes accepted from one batch.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -252,12 +252,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaximumTotalRasterPixels
+### -MaximumTotalRasterPixelCount
 Maximum aggregate raster pixels accepted from one batch.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -273,7 +273,7 @@ Maximum HTML input characters.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -289,7 +289,7 @@ Maximum rendered page count.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -305,7 +305,7 @@ Maximum resource bytes loaded for the document.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -321,7 +321,7 @@ HTML render mode.
 
 ```yaml
 Type: HtmlRenderMode
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Continuous, Paged
 
@@ -337,7 +337,7 @@ Page size used by paged rendering.
 
 ```yaml
 Type: OfficePageSize
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -353,7 +353,7 @@ Reduce or reject oversized raster output.
 
 ```yaml
 Type: OfficeRasterOverflowBehavior
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: ReduceScale, Throw
 
@@ -369,7 +369,7 @@ Maximum seconds allowed for one render.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -385,7 +385,7 @@ Maximum duration allowed for one resource load.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -401,7 +401,7 @@ Output scale multiplier.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -417,7 +417,7 @@ Target output density in dots per inch.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -433,7 +433,7 @@ BCP 47 language hint for text shaping.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -449,7 +449,7 @@ Optional viewport height in CSS pixels.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -465,7 +465,7 @@ Viewport width in CSS pixels.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

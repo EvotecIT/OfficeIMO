@@ -127,7 +127,7 @@ public sealed class PublisherCustomPathTests {
         Assert.Contains("linearGradient", svg.Value);
         var pdf = publication.ToPdfDocumentResult();
         Assert.Contains(publication.ReadReport, pdf.SourceConversionReports);
-        Assert.Equal(publication.Pages.Count, PdfReadDocument.Open(pdf.ToBytes()).Pages.Count);
+        Assert.Equal(publication.Pages.Count, PdfDocument.Load(new System.IO.MemoryStream(pdf.ToBytes())).Pages.Count);
         Assert.Throws<OfficeConversionException>(() => svg.RequireNoLoss());
     }
 

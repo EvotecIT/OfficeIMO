@@ -91,7 +91,7 @@ public sealed class PdfAutomationCommandTests {
     public async Task SearchableOcrPublishesTextThroughConfiguredProviderWithoutReturningRecognizedText() {
         using var scope = new DirectoryScope();
         string source = scope.File("scan.pdf"), destination = scope.File("searchable.pdf");
-        PdfDocument.Create(d => { d.Page(p => p.Size(200, 100).Margin(10)); d.Page(p => p.Size(200, 100).Margin(10)); }).Save(source);
+        PdfDocument.Create(d => { d.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(100)).Margin(global::OfficeIMO.OfficeLength.Points(10))); d.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(100)).Margin(global::OfficeIMO.OfficeLength.Points(10))); }).Save(source);
         int calls = 0;
         var catalog = new OcrEngineCatalog().Register(new FixtureProvider(request => { calls++; Assert.Equal(2, request.PageNumber); return Recognized(); }));
         var result = await Run(["ocr", source, "--output", destination, "--pages", "last", "--ocr-provider", "fixture", "--dpi", "72"], catalog);
@@ -110,7 +110,7 @@ public sealed class PdfAutomationCommandTests {
         string allowed = scope.File("allowed"), outside = scope.File("outside");
         Directory.CreateDirectory(allowed); Directory.CreateDirectory(outside);
         string source = Path.Combine(allowed, "scan.pdf"), parent = Path.Combine(allowed, "output");
-        PdfDocument.Create(d => d.Page(p => p.Size(200, 100).Margin(10))).Save(source);
+        PdfDocument.Create(d => d.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(100)).Margin(global::OfficeIMO.OfficeLength.Points(10)))).Save(source);
         var catalog = new OcrEngineCatalog().Register(new FixtureProvider(_ => {
             Directory.CreateSymbolicLink(parent, outside); return Recognized();
         }));
@@ -190,7 +190,7 @@ public sealed class PdfAutomationCommandTests {
     }
     internal static void CreatePdf(string path, int count) => PdfDocument.Create(d => {
         for (int index = 1; index <= count; index++) { int page = index;
-            d.Page(p => p.Size(200 + page, 100).Margin(10).Content(c => c.Item(i => i.Paragraph(t => t.Text("Page " + page)))));
+            d.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(200 + page), global::OfficeIMO.OfficeLength.Points(100)).Margin(global::OfficeIMO.OfficeLength.Points(10)).Content(c => c.Item(i => i.Paragraph(t => t.Text("Page " + page)))));
         }
     }).Save(path);
     private sealed class DirectoryScope : IDisposable {

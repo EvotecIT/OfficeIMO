@@ -17,12 +17,13 @@ namespace OfficeIMO.PowerPoint {
         public OfficePresetShapeType? ShapeType => Shape.ShapeProperties?.GetFirstChild<A.PresetGeometry>()?.Preset?.Value.ToOfficeEnum();
 
         /// <summary>
-        ///     Sets the outline color (and optional width in points) and returns the shape for chaining.
+        ///     Sets the outline color (and optional physical width) and returns the shape for chaining.
         /// </summary>
-        public PowerPointConnectionShape Stroke(string color, double? widthPoints = null) {
+        public PowerPointConnectionShape Stroke(string color, OfficeLength? width = null) {
+            if (width.HasValue) ToDrawingLineWidth(width.Value, nameof(width));
             OutlineColor = color;
-            if (widthPoints != null) {
-                OutlineWidthPoints = widthPoints;
+            if (width.HasValue) {
+                OutlineWidth = width;
             }
 
             return this;

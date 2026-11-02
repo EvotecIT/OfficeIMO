@@ -68,13 +68,15 @@ namespace OfficeIMO.Excel {
     public sealed class ExcelTemplateImage {
         private readonly byte[] _bytes;
 
-        private ExcelTemplateImage(byte[] bytes, string contentType, int widthPixels, int heightPixels, int offsetXPixels, int offsetYPixels, string? name, string? altText, bool lockAspectRatio) {
+        private ExcelTemplateImage(byte[] bytes, string contentType, OfficeLength width, OfficeLength height, OfficeLength offsetX, OfficeLength offsetY, string? name, string? altText, bool lockAspectRatio) {
+            if (width <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(width));
+            if (height <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(height));
             _bytes = bytes.ToArray();
             ContentType = contentType;
-            WidthPixels = widthPixels;
-            HeightPixels = heightPixels;
-            OffsetXPixels = offsetXPixels;
-            OffsetYPixels = offsetYPixels;
+            Width = width;
+            Height = height;
+            OffsetX = offsetX;
+            OffsetY = offsetY;
             Name = name;
             AltText = altText;
             LockAspectRatio = lockAspectRatio;
@@ -86,17 +88,17 @@ namespace OfficeIMO.Excel {
         /// <summary>Image content type, such as image/png or image/jpeg.</summary>
         public string ContentType { get; }
 
-        /// <summary>Image width in pixels.</summary>
-        public int WidthPixels { get; }
+        /// <summary>Image width as a document length.</summary>
+        public OfficeLength Width { get; }
 
-        /// <summary>Image height in pixels.</summary>
-        public int HeightPixels { get; }
+        /// <summary>Image height as a document length.</summary>
+        public OfficeLength Height { get; }
 
-        /// <summary>Horizontal pixel offset from the target cell.</summary>
-        public int OffsetXPixels { get; }
+        /// <summary>Horizontal length offset from the target cell.</summary>
+        public OfficeLength OffsetX { get; }
 
-        /// <summary>Vertical pixel offset from the target cell.</summary>
-        public int OffsetYPixels { get; }
+        /// <summary>Vertical length offset from the target cell.</summary>
+        public OfficeLength OffsetY { get; }
 
         /// <summary>Optional drawing name.</summary>
         public string? Name { get; }
@@ -110,55 +112,64 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Creates a template image from bytes.
         /// </summary>
-        public static ExcelTemplateImage FromBytes(byte[] bytes, string contentType = "image/png", int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null, bool lockAspectRatio = true) {
+        public static ExcelTemplateImage FromBytes(byte[] bytes, string contentType = "image/png", OfficeLength? width = null, OfficeLength? height = null, OfficeLength offsetX = default, OfficeLength offsetY = default, string? name = null, string? altText = null, bool lockAspectRatio = true) {
             if (bytes == null || bytes.Length == 0) throw new ArgumentException("Image bytes are required.", nameof(bytes));
-            return new ExcelTemplateImage(bytes.ToArray(), NormalizeContentType(contentType), widthPixels, heightPixels, offsetXPixels, offsetYPixels, name, altText, lockAspectRatio);
+            return new ExcelTemplateImage(bytes.ToArray(), NormalizeContentType(contentType), width ?? OfficeLength.Pixels(96), height ?? OfficeLength.Pixels(32), offsetX, offsetY, name, altText, lockAspectRatio);
         }
 
         /// <summary>
         /// Creates a template image from a stream.
         /// </summary>
-        public static ExcelTemplateImage FromStream(Stream stream, string contentType = "image/png", int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null, bool lockAspectRatio = true) {
+        public static ExcelTemplateImage FromStream(Stream stream, string contentType = "image/png", OfficeLength? width = null, OfficeLength? height = null, OfficeLength offsetX = default, OfficeLength offsetY = default, string? name = null, string? altText = null, bool lockAspectRatio = true) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             using var buffer = new MemoryStream();
             stream.CopyTo(buffer);
-            return FromBytes(buffer.ToArray(), contentType, widthPixels, heightPixels, offsetXPixels, offsetYPixels, name, altText, lockAspectRatio);
+            return FromBytes(buffer.ToArray(), contentType, width, height, offsetX, offsetY, name, altText, lockAspectRatio);
         }
 
         /// <summary>
         /// Asynchronously creates a template image from a remote URL.
         /// </summary>
-        public static async Task<ExcelTemplateImage> FromUrlAsync(string url, int widthPixels = 96, int heightPixels = 32,
-            int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null,
+        public static async Task<ExcelTemplateImage> FromUrlAsync(string url, OfficeLength? width = null, OfficeLength? height = null,
+            OfficeLength offsetX = default, OfficeLength offsetY = default, string? name = null, string? altText = null,
             bool lockAspectRatio = true, CancellationToken cancellationToken = default) {
-            return await FromUrlCoreAsync(url, null, widthPixels, heightPixels, offsetXPixels, offsetYPixels,
+            return await FromUrlCoreAsync(url, null, width, height, offsetX, offsetY,
                 name, altText, lockAspectRatio, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>Creates a template image using an explicit remote-network policy.</summary>
         public static Task<ExcelTemplateImage> FromUrlAsync(string url, OfficeRemoteImageLoadOptions remoteImageOptions,
-            int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0,
+            OfficeLength? width = null, OfficeLength? height = null, OfficeLength offsetX = default, OfficeLength offsetY = default,
             string? name = null, string? altText = null, bool lockAspectRatio = true,
             CancellationToken cancellationToken = default) {
             if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
-            return FromUrlCoreAsync(url, remoteImageOptions, widthPixels, heightPixels, offsetXPixels,
-                offsetYPixels, name, altText, lockAspectRatio, cancellationToken);
+            return FromUrlCoreAsync(url, remoteImageOptions, width, height, offsetX,
+                offsetY, name, altText, lockAspectRatio, cancellationToken);
         }
 
         private static async Task<ExcelTemplateImage> FromUrlCoreAsync(string url,
-            OfficeRemoteImageLoadOptions? remoteImageOptions, int widthPixels, int heightPixels,
-            int offsetXPixels, int offsetYPixels, string? name, string? altText, bool lockAspectRatio,
+            OfficeRemoteImageLoadOptions? remoteImageOptions, OfficeLength? width, OfficeLength? height,
+            OfficeLength offsetX, OfficeLength offsetY, string? name, string? altText, bool lockAspectRatio,
             CancellationToken cancellationToken) {
             OfficeRemoteImage remote = await OfficeRemoteImageLoader.LoadAsync(
                 url,
                 remoteImageOptions,
                 cancellationToken).ConfigureAwait(false);
-            return FromBytes(remote.ToBytes(), remote.ContentType, widthPixels, heightPixels, offsetXPixels, offsetYPixels,
+            return FromBytes(remote.ToBytes(), remote.ContentType, width, height, offsetX, offsetY,
                 name, altText, lockAspectRatio);
         }
 
         internal bool TryAddToSheet(ExcelSheet sheet, int row, int column) {
-            sheet.AddImage(row, column, _bytes, ContentType, WidthPixels, HeightPixels, OffsetXPixels, OffsetYPixels, Name, AltText, LockAspectRatio);
+            sheet.AddImage(row, column, _bytes, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = ContentType,
+                Width = Width,
+                Height = Height,
+                OffsetX = OffsetX,
+                OffsetY = OffsetY,
+                Name = Name,
+                Description = AltText,
+                LockAspectRatio = LockAspectRatio
+            });
             return true;
         }
 

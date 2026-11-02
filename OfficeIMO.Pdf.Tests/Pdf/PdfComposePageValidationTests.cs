@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests.Pdf {
                 PdfDocument.Create().Compose(c => c.Page(page => page.Content(content => content.Column(column => column.Item().Element(null!))))));
 
             Assert.Throws<InvalidOperationException>(() =>
-                PdfDocument.Create().Compose(c => c.Page(page => page.Content(content => content.Element(element => element.Padding(4))))));
+                PdfDocument.Create().Compose(c => c.Page(page => page.Content(content => content.Element(element => element.Padding(global::OfficeIMO.OfficeLength.Points(4)))))));
 
             Assert.Throws<ArgumentNullException>(() =>
                 PdfDocument.Create().Compose(c => c.Page(page => page.Content(content => content.Element(element => element.Content(null!))))));

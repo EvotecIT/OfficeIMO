@@ -27,7 +27,7 @@ public static class OdgPdfConversionExtensions {
     /// <summary>Attempts to save a Draw document as PDF and returns structured failure evidence.</summary>
     public static PdfCore.PdfSaveResult SaveAsPdfResult(this OdgDocument document, string path, OdgToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return document.ToPdfDocumentResult(options, cancellationToken).SaveResult(path, cancellationToken); }
+        try { return document.ToPdfDocumentResult(options, cancellationToken).TrySaveWithEvidence(path, cancellationToken); }
         catch (OperationCanceledException) { throw; }
         catch (OdfConversionLossException exception) { return PdfCore.PdfSaveResult.FromFailure(path, exception, exception.Report); }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(path, exception); }
@@ -36,7 +36,7 @@ public static class OdgPdfConversionExtensions {
     /// <summary>Attempts to write a Draw document as PDF to a caller-owned stream.</summary>
     public static PdfCore.PdfSaveResult SaveAsPdfResult(this OdgDocument document, Stream stream, OdgToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return document.ToPdfDocumentResult(options, cancellationToken).SaveResult(stream, cancellationToken); }
+        try { return document.ToPdfDocumentResult(options, cancellationToken).TrySaveWithEvidence(stream, cancellationToken); }
         catch (OperationCanceledException) { throw; }
         catch (OdfConversionLossException exception) { return PdfCore.PdfSaveResult.FromFailure(null, exception, exception.Report); }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(null, exception); }
@@ -71,7 +71,7 @@ public static class OdgPdfConversionExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         try {
             return await OdgPdfConversionEngine.Convert(document, options, cancellationToken)
-                .SaveResultAsync(path, cancellationToken)
+                .TrySaveWithEvidenceAsync(path, cancellationToken)
                 .ConfigureAwait(false);
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             throw;
@@ -91,7 +91,7 @@ public static class OdgPdfConversionExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         try {
             return await OdgPdfConversionEngine.Convert(document, options, cancellationToken)
-                .SaveResultAsync(stream, cancellationToken)
+                .TrySaveWithEvidenceAsync(stream, cancellationToken)
                 .ConfigureAwait(false);
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             throw;

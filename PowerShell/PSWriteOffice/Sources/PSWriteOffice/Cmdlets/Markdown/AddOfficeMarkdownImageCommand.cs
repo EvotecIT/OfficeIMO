@@ -16,7 +16,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeMarkdownImage", DefaultParameterSetName = ParameterSetContext)]
 [Alias("MarkdownImage")]
-[OutputType(typeof(MarkdownDoc))]
+[OutputType(typeof(MarkdownDocument))]
 public sealed class AddOfficeMarkdownImageCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
@@ -24,7 +24,7 @@ public sealed class AddOfficeMarkdownImageCommand : PSCmdlet
 
     /// <summary>Markdown document to update outside the DSL context.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public MarkdownDoc Document { get; set; } = null!;
+    public MarkdownDocument Document { get; set; } = null!;
 
     /// <summary>Image path or URL.</summary>
     [Parameter(Mandatory = true, Position = 0)]
@@ -54,7 +54,9 @@ public sealed class AddOfficeMarkdownImageCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var doc = ResolveDocument();
-        doc.Image(Path, Alt, Title, Width, Height);
+        doc.Image(Path, Alt, Title,
+            Width.HasValue ? OfficeIMO.OfficeLength.Pixels(Width.Value) : null,
+            Height.HasValue ? OfficeIMO.OfficeLength.Pixels(Height.Value) : null);
 
         if (PassThru.IsPresent)
         {
@@ -62,7 +64,7 @@ public sealed class AddOfficeMarkdownImageCommand : PSCmdlet
         }
     }
 
-    private MarkdownDoc ResolveDocument()
+    private MarkdownDocument ResolveDocument()
     {
         if (ParameterSetName == ParameterSetDocument)
         {

@@ -6,38 +6,41 @@ schema: 2.0.0
 ---
 # Get-OfficePowerPointSection
 ## SYNOPSIS
-Gets PowerPoint sections from a presentation.
+Reads sections from a live presentation, optionally matching a PowerShell wildcard pattern.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
-Get-OfficePowerPointSection [-Presentation <PowerPointPresentation>] [-Name <string>] [-CaseSensitive] [<CommonParameters>]
+Get-OfficePowerPointSection [[-Document] <PowerPointDocument>] [-Name <string>] [-CaseSensitive] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Returns OfficeIMO section metadata so scripts can inspect section names and slide ranges.
+Reads sections from a live presentation, optionally matching a PowerShell wildcard pattern.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $ppt = New-OfficePowerPoint -Path .\Examples\Documents\PowerPointSectionsRead.pptx -NoSave
-Add-OfficePowerPointSlide -Presentation $ppt -Layout 1
-Add-OfficePowerPointSection -Presentation $ppt -Name 'Appendix' -StartSlideIndex 0
-Get-OfficePowerPointSection -Presentation $ppt | Select-Object Name, FirstSlideIndex, SlideCount
-$ppt | Close-OfficePowerPoint
+$deck = Open-OfficePowerPoint -Path ./Review.pptx
+Get-OfficePowerPointSection -Document $deck
+Close-OfficePowerPoint -Document $deck
 ```
 
-Returns section information including section names and slide indexes.
+
+### EXAMPLE 2
+```powershell
+$deck | Get-OfficePowerPointSection -Name Appendix
+```
+
 
 ## PARAMETERS
 
 ### -CaseSensitive
-Use case-sensitive matching for section names.
+Gets or sets whether name matching is case-sensitive.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -45,15 +48,31 @@ Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Document
+Gets or sets the live document; omission uses its enclosing content block.
+
+```yaml
+Type: PowerPointDocument
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: 0
+Default value: None
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
 ### -Name
-Optional section name filter.
+Gets or sets a section name or PowerShell wildcard pattern.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -61,23 +80,7 @@ Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Presentation
-Presentation to inspect (optional inside DSL).
-
-```yaml
-Type: PowerPointPresentation
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
+Accept wildcard characters: True
 ```
 
 ### CommonParameters
@@ -85,7 +88,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 

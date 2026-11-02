@@ -2,7 +2,7 @@ Import-Module PSWriteOffice -ErrorAction Stop
 $documents = Join-Path $PSScriptRoot '..\Documents'
 $null = New-Item -Path $documents -ItemType Directory -Force
 $path = Join-Path $documents 'Example-WordLineBreaks.docx'
-$document = New-OfficeWord -Path $path -NoSave
+$document = New-OfficeWord -Path $path
 
 # Add-OfficeWordBreak creates a same-paragraph line break similar to Shift+Enter in Word.
 $paragraph = Add-OfficeWordParagraph -Target $document -Text 'Line 1 in the same paragraph' -PassThru

@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void ConditionalFormattingLifecycle_UnifiesStandardAndOfficeExtensionRules() {
             string path = Path.Combine(_directoryWithFiles, "ConditionalFormattingLifecycle.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 for (int row = 1; row <= 3; row++) sheet.CellAt(row, 1).SetValue(row - 2);
 
                 ExcelConditionalFormattingInfo extension = sheet.AddConditionalFormattingRule(
@@ -103,7 +103,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "ConditionalFormattingUnknownRoundTrip.xlsx");
             const string vendorNamespace = "urn:officeimo:test:conditional-formatting";
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Imported");
+                ExcelSheet sheet = document.AddSheet("Imported");
                 var unknown = new OpenXmlUnknownElement("v", "state", vendorNamespace);
                 unknown.SetAttribute(new OpenXmlAttribute("mode", string.Empty, "retained"));
                 var importedRule = new X14.ConditionalFormattingRule(
@@ -153,7 +153,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ConditionalFormattingLifecycle_RejectsUnknownAuthoredTypesButEditsImportedTypes() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Imported");
+            ExcelSheet sheet = document.AddSheet("Imported");
 
             Assert.Throws<ArgumentException>(() => sheet.AddConditionalFormattingRule(
                 new ExcelConditionalFormattingInfo {
@@ -189,7 +189,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ConditionalFormattingLifecycle_ClearPreservesUnrelatedWorksheetExtensions() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Extensions");
+            ExcelSheet sheet = document.AddSheet("Extensions");
             sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
                 Source = ExcelConditionalFormattingSource.Office2010Extension,
                 Range = "A1",
@@ -228,7 +228,7 @@ namespace OfficeIMO.Tests {
         public void ConditionalFormattingLifecycle_AuthorsOfficeExtensionColorScalesAndCustomIcons() {
             string path = Path.Combine(_directoryWithFiles, "ConditionalFormattingExtensionVisuals.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Visuals");
+                ExcelSheet sheet = document.AddSheet("Visuals");
                 for (int row = 1; row <= 4; row++) sheet.CellAt(row, 1).SetValue(row);
 
                 sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
@@ -280,7 +280,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ConditionalFormattingLifecycle_CommonEditsPreserveUnprojectedVisualsAndValidateBeforeMutation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Imported");
+            ExcelSheet sheet = document.AddSheet("Imported");
             var firstThreshold = new X14.ConditionalFormattingValueObject();
             firstThreshold.SetAttribute(new OpenXmlAttribute("type", string.Empty, "autoMin"));
             var secondThreshold = new X14.ConditionalFormattingValueObject();
@@ -323,7 +323,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ConditionalFormattingLifecycle_RangeUpdateSplitsSharedImportedOwners() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Imported");
+            ExcelSheet sheet = document.AddSheet("Imported");
             var first = new ConditionalFormattingRule(new Formula("A1>0")) {
                 Type = ConditionalFormatValues.Expression,
                 Priority = 1
@@ -351,7 +351,7 @@ namespace OfficeIMO.Tests {
         public void ConditionalFormattingLifecycle_AuthorsStandardAndInlineExtensionDifferentialStyles() {
             string path = Path.Combine(_directoryWithFiles, "ConditionalFormattingDifferentialStyles.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Styles");
+                ExcelSheet sheet = document.AddSheet("Styles");
                 sheet.CellAt(1, 1).SetValue(1);
                 sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
                     Range = "A1",
@@ -396,9 +396,9 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles,
                 officeExtension ? "ConditionalFontOffExtension.xlsx" : "ConditionalFontOffStandard.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Styles");
+                ExcelSheet sheet = document.AddSheet("Styles");
                 sheet.CellAt(1, 1).SetValue(1);
-                sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
+                ExcelConditionalFormattingInfo authored = sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
                     Source = officeExtension
                         ? ExcelConditionalFormattingSource.Office2010Extension
                         : ExcelConditionalFormattingSource.Standard,
@@ -411,9 +411,35 @@ namespace OfficeIMO.Tests {
                     DifferentialFontStrike = false,
                     DifferentialFontUnderline = false,
                     DifferentialFontName = "Liberation Serif",
-                    DifferentialFontSize = 11.5D
+                    DifferentialFontSize = global::OfficeIMO.OfficeLength.Pixels(46D / 3D)
                 });
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(11.5D), authored.DifferentialFontSize);
+                foreach (global::OfficeIMO.OfficeLength size in new[] {
+                    global::OfficeIMO.OfficeLength.Points(1),
+                    global::OfficeIMO.OfficeLength.Inches(0.25D),
+                    global::OfficeIMO.OfficeLength.Points(409)
+                }) {
+                    authored.DifferentialFontSize = size;
+                    sheet.UpdateConditionalFormattingRule(authored);
+                    Assert.Equal(size, Assert.Single(sheet.GetConditionalFormattingRules()).DifferentialFontSize);
+                }
+                authored.DifferentialFontSize = global::OfficeIMO.OfficeLength.Pixels(46D / 3D);
+                sheet.UpdateConditionalFormattingRule(authored);
+                ExcelConditionalFormattingInfo clone = sheet.CloneConditionalFormattingRule(authored, "B1");
+                Assert.Equal(authored.DifferentialFontSize, clone.DifferentialFontSize);
+                sheet.RemoveConditionalFormattingRule(clone);
                 document.Save();
+            }
+
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, false)) {
+                WorkbookPart workbook = package.WorkbookPart!;
+                Worksheet worksheet = workbook.WorksheetParts.Single().Worksheet;
+                Font nativeFont = officeExtension
+                    ? worksheet.Descendants<X14.DifferentialType>().Single().Font!
+                    : workbook.WorkbookStylesPart!.Stylesheet!.DifferentialFormats!
+                        .Elements<DifferentialFormat>().ElementAt(checked((int)worksheet
+                            .Descendants<ConditionalFormattingRule>().Single().FormatId!.Value)).Font!;
+                Assert.Equal(11.5D, nativeFont.FontSize!.Val!.Value);
             }
 
             using (var document = ExcelDocument.Load(path)) {
@@ -423,7 +449,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(rule.DifferentialFontStrike);
                 Assert.False(rule.DifferentialFontUnderline);
                 Assert.Equal("Liberation Serif", rule.DifferentialFontName);
-                Assert.Equal(11.5D, rule.DifferentialFontSize);
+                Assert.Equal(11.5D, rule.DifferentialFontSize?.ToPoints());
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -435,7 +461,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles,
                 officeExtension ? "ConditionalStrikeExtension.xlsx" : "ConditionalStrikeStandard.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Styles");
+                ExcelSheet sheet = document.AddSheet("Styles");
                 sheet.CellAt(1, 1).SetValue(1);
                 sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
                     Source = officeExtension
@@ -453,6 +479,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Load(path)) {
                 ExcelConditionalFormattingInfo rule = Assert.Single(document.Sheets[0].GetConditionalFormattingRules());
                 Assert.True(rule.DifferentialFontStrike);
+                Assert.Null(rule.DifferentialFontSize);
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -464,18 +491,37 @@ namespace OfficeIMO.Tests {
         [InlineData(true, 410D)]
         public void ConditionalFormattingLifecycle_RejectsOutOfRangeFontSize(bool officeExtension, double fontSize) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Styles");
-            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddConditionalFormattingRule(
-                new ExcelConditionalFormattingInfo {
-                    Source = officeExtension
-                        ? ExcelConditionalFormattingSource.Office2010Extension
-                        : ExcelConditionalFormattingSource.Standard,
-                    Range = "A1",
-                    Type = "CellIs",
-                    Operator = "GreaterThan",
-                    Formulas = new[] { "0" },
-                    DifferentialFontSize = fontSize
-                }));
+            ExcelSheet sheet = document.AddSheet("Styles");
+            var definition = new ExcelConditionalFormattingInfo {
+                Source = officeExtension
+                    ? ExcelConditionalFormattingSource.Office2010Extension
+                    : ExcelConditionalFormattingSource.Standard,
+                Range = "A1",
+                Type = "CellIs",
+                Operator = "GreaterThan",
+                Formulas = new[] { "0" },
+                DifferentialFontSize = global::OfficeIMO.OfficeLength.Points(fontSize)
+            };
+            foreach (global::OfficeIMO.OfficeLength invalidSize in new[] {
+                global::OfficeIMO.OfficeLength.Points(fontSize),
+                global::OfficeIMO.OfficeLength.Pixels(fontSize * 4D / 3D),
+                global::OfficeIMO.OfficeLength.Emus(fontSize < 1D ? 12699L : 5194301L)
+            }) {
+                definition.DifferentialFontSize = invalidSize;
+                string worksheetBefore = sheet.WorksheetPart.Worksheet.OuterXml;
+                string? stylesBefore = document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet?.OuterXml;
+                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddConditionalFormattingRule(definition));
+                Assert.Equal(worksheetBefore, sheet.WorksheetPart.Worksheet.OuterXml);
+                Assert.Equal(stylesBefore, document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet?.OuterXml);
+            }
+            definition.DifferentialFontSize = global::OfficeIMO.OfficeLength.Points(11);
+            ExcelConditionalFormattingInfo existing = sheet.AddConditionalFormattingRule(definition);
+            existing.DifferentialFontSize = global::OfficeIMO.OfficeLength.Inches(fontSize / 72D);
+            string existingWorksheet = sheet.WorksheetPart.Worksheet.OuterXml;
+            string? existingStyles = document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet?.OuterXml;
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.UpdateConditionalFormattingRule(existing));
+            Assert.Equal(existingWorksheet, sheet.WorksheetPart.Worksheet.OuterXml);
+            Assert.Equal(existingStyles, document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet?.OuterXml);
         }
     }
 }

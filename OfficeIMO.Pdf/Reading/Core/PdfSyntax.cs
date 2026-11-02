@@ -149,7 +149,7 @@ internal static partial class PdfSyntax {
                 HandleStructuralDefect(
                     parsingMode,
                     repairDiagnostics,
-                    "MissingEndObject",
+                    "missing-end-object",
                     "Indirect object " + id.ToString(System.Globalization.CultureInfo.InvariantCulture) + " has no readable endobj boundary; lenient parsing used the next object or end of file.",
                     id);
                 end = (i + 1 < matches.Length) ? matches[i + 1].Index : text.Length;
@@ -168,7 +168,7 @@ internal static partial class PdfSyntax {
             int firstBodyCharacter = SkipWhitespaceAndComments(text, bodyStart, preliminaryBodyEnd, cancellationToken);
 
             void ReportUnreadableObject() => HandleStructuralDefect(parsingMode, repairDiagnostics,
-                "UnreadableIndirectObject", "Indirect object " + id.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                "unreadable-indirect-object", "Indirect object " + id.ToString(System.Globalization.CultureInfo.InvariantCulture) +
                 " could not be read completely; feature detection retains conservative source markers.", id);
 
             if (firstBodyCharacter + 1 >= preliminaryBodyEnd || text[firstBodyCharacter] != '<' || text[firstBodyCharacter + 1] != '<') {
@@ -234,7 +234,7 @@ internal static partial class PdfSyntax {
                             HandleStructuralDefect(
                                 parsingMode,
                                 repairDiagnostics,
-                                "IncorrectStreamLength",
+                                "incorrect-stream-length",
                                 "Stream object " + id.ToString(System.Globalization.CultureInfo.InvariantCulture) +
                                 " declares /Length " + byteLen.ToString(System.Globalization.CultureInfo.InvariantCulture) +
                                 " but its readable endstream boundary indicates " + recoveredLength.ToString(System.Globalization.CultureInfo.InvariantCulture) + " bytes.",
@@ -247,7 +247,7 @@ internal static partial class PdfSyntax {
                             HandleStructuralDefect(
                                 parsingMode,
                                 repairDiagnostics,
-                                "MissingStreamLength",
+                                "missing-stream-length",
                                 "Stream object " + id.ToString(System.Globalization.CultureInfo.InvariantCulture) +
                                 " has no /Length; lenient parsing used its endstream boundary.",
                                 id);
@@ -300,7 +300,7 @@ internal static partial class PdfSyntax {
         void ReportIncompleteXref() {
             if (reportedIncompleteXref) return;
             reportedIncompleteXref = true;
-            HandleStructuralDefect(parsingMode, repairDiagnostics, "UnreadableIndirectObject",
+            HandleStructuralDefect(parsingMode, repairDiagnostics, "unreadable-indirect-object",
                 "Cross-reference stream entries could not be read completely.", null);
         }
         bool appliedXrefStreamEntries = ApplyClassicXrefEntries(map, pdf, text, parsedOffsets, activeClassicObjectNumbers, limits, xrefScanBudget, decodedStreamBudget, ReportIncompleteXref, out bool appliedClassicEntries, cancellationToken);
@@ -313,7 +313,7 @@ internal static partial class PdfSyntax {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (definition.Value <= 1) continue;
                 string identifier = definition.Key.Id.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + definition.Key.Generation.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                HandleStructuralDefect(parsingMode, repairDiagnostics, "DuplicateObjectIdentifier", "Indirect object " + identifier + " is defined " + definition.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + " times without an incremental /Prev chain; lenient parsing retained the last readable definition.", definition.Key.Id);
+                HandleStructuralDefect(parsingMode, repairDiagnostics, "duplicate-object-identifier", "Indirect object " + identifier + " is defined " + definition.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + " times without an incremental /Prev chain; lenient parsing retained the last readable definition.", definition.Key.Id);
             }
         }
         PdfStandardSecurityHandler? decryptor = null;
@@ -336,18 +336,18 @@ internal static partial class PdfSyntax {
             ExpandObjectStreams(map, pdf, parsedOffsets, appliedClassicEntries ? activeClassicObjectNumbers : null, limits, decodedStreamBudget, ReportUnreadableCompressedObject, cancellationToken);
         }
         void ReportUnreadableCompressedObject(int objectNumber) => HandleStructuralDefect(parsingMode, repairDiagnostics,
-            "UnreadableIndirectObject", "Compressed object content could not be read completely.", objectNumber);
+            "unreadable-indirect-object", "Compressed object content could not be read completely.", objectNumber);
         var unreadableObjects = new HashSet<int?>();
         foreach (PdfRepairDiagnostic diagnostic in repairDiagnostics) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (diagnostic.Code == "UnreadableIndirectObject") unreadableObjects.Add(diagnostic.ObjectNumber);
+            if (diagnostic.Code == "unreadable-indirect-object") unreadableObjects.Add(diagnostic.ObjectNumber);
         }
         foreach (var entry in map.Values) {
             cancellationToken.ThrowIfCancellationRequested();
             bool incomplete = entry.Value.HasIncompleteSyntax ||
                 (entry.Value is PdfStream stream && stream.Dictionary.HasIncompleteSyntax);
             if (incomplete && unreadableObjects.Add(entry.ObjectNumber))
-                HandleStructuralDefect(parsingMode, repairDiagnostics, "UnreadableIndirectObject",
+                HandleStructuralDefect(parsingMode, repairDiagnostics, "unreadable-indirect-object",
                     "An active object retained incomplete syntax during cross-reference recovery.", entry.ObjectNumber);
         }
         cancellationToken.ThrowIfCancellationRequested();
@@ -427,7 +427,7 @@ internal static partial class PdfSyntax {
             HandleStructuralDefect(
                 parsingMode,
                 diagnostics,
-                "MissingStartXref",
+                "missing-start-xref",
                 "The PDF has no readable startxref pointer; lenient parsing rebuilt the object index with a bounded indirect-object scan.",
                 null);
             return;
@@ -447,7 +447,7 @@ internal static partial class PdfSyntax {
         HandleStructuralDefect(
             parsingMode,
             diagnostics,
-            "InvalidStartXref",
+            "invalid-start-xref",
             "The active startxref pointer does not identify a readable xref table or xref stream; lenient parsing rebuilt the object index with a bounded indirect-object scan.",
             null);
     }

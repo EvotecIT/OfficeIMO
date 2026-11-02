@@ -20,15 +20,20 @@ internal sealed class PdfSourceTextFont {
     internal string BaseFont { get; }
 
     internal string Encode(string text) {
-        if (OfficeManagedTextShaper.RequiresComplexLayout(text) || OfficeTextElements.ContainsCombiningMarkOrJoiner(text)) {
-            throw new NotSupportedException("Source-font editing does not support text requiring shaping, bidirectional layout, or combining-mark positioning.");
-        }
-        if (!_cmap.TryEncodeTextCodes(text, out IReadOnlyList<string> codes) ||
-            codes.Any(code => code.Length != _codeHexLength)) {
+        if (!TryGetCodes(text, out IReadOnlyList<string> codes)) {
             throw new NotSupportedException("The source font '" + BaseFont +
                 "' cannot encode this text with its existing subset. Choose an explicit Font to permit substitution.");
         }
         return string.Concat(codes);
+    }
+
+    internal bool CanEncode(string text) => TryGetCodes(text, out _);
+
+    private bool TryGetCodes(string text, out IReadOnlyList<string> codes) {
+        if (OfficeManagedTextShaper.RequiresComplexLayout(text) || OfficeTextElements.ContainsCombiningMarkOrJoiner(text)) {
+            throw new NotSupportedException("Source-font editing does not support text requiring shaping, bidirectional layout, or combining-mark positioning.");
+        }
+        return _cmap.TryEncodeTextCodes(text, out codes) && codes.All(code => code.Length == _codeHexLength);
     }
 
     internal double Measure(string text, double fontSize) {

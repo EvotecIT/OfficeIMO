@@ -4,14 +4,16 @@ using OfficeIMO.Excel;
 using OfficeIMO.Excel.GoogleSheets;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public void Test_GoogleSheetsBatch_CompilesRichTextConditionalFormattingAndOutlines() {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsAdvancedCells.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.SetRichText(1, 1, new[] {
                     new ExcelRichTextRun("Bold") { Bold = true, FontColor = "FF112233" },
                     new ExcelRichTextRun(" plain"),
@@ -37,7 +39,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsConditionalExpression.xlsx");
             try {
                 using (var document = ExcelDocument.Create(path)) {
-                    ExcelSheet sheet = document.AddWorksheet("Data");
+                    ExcelSheet sheet = document.AddSheet("Data");
                     sheet.CellValue(2, 1, 12);
                     sheet.AddConditionalRule("A2:A5", ExcelConditionalFormattingOperator.GreaterThan, "10", fillColor: "FFC6EFCE");
                     document.Save();
@@ -98,7 +100,7 @@ namespace OfficeIMO.Tests {
         [InlineData(false)]
         public void Test_GoogleSheetsBatch_PreservesConditionalStrike(bool strike) {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, 1);
             sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
                 Range = "A1",
@@ -131,13 +133,8 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsChart.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Dashboard");
-                sheet.AddChart(
-                    new ExcelChartData(new[] { "A", "B" }, new[] { new ExcelChartSeries("Sales", new[] { 2d, 5d }) }),
-                    row: 2,
-                    column: 4,
-                    type: ExcelChartType.ColumnClustered,
-                    title: "Sales");
+                ExcelSheet sheet = document.AddSheet("Dashboard");
+                sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "A", "B" }, new[] { new ExcelChartSeries("Sales", new[] { 2d, 5d }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 4, Title = "Sales" });
 
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
 
@@ -145,7 +142,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("COLUMN", chart.ChartType);
                 Assert.Equal("_OfficeIMO_ChartData", chart.DataSheetName);
                 Assert.Contains(batch.Requests.OfType<GoogleSheetsAddSheetRequest>(), request => request.SheetName == chart.DataSheetName && request.Hidden);
-                Assert.DoesNotContain(batch.Report.Notices, notice => notice.Code == "SHEETS.CHART.UNSUPPORTED");
+                Assert.DoesNotContain(batch.Report.Notices, notice => notice.Code == "sheets-chart-unsupported");
             } finally {
                 if (File.Exists(path)) File.Delete(path);
             }
@@ -156,19 +153,14 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsLargeChart.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Dashboard");
+                ExcelSheet sheet = document.AddSheet("Dashboard");
                 string[] categories = Enumerable.Range(1, 1001).Select(index => $"Category {index}").ToArray();
                 ExcelChartSeries[] series = Enumerable.Range(1, 27)
                     .Select(seriesIndex => new ExcelChartSeries(
                         $"Series {seriesIndex}",
                         Enumerable.Range(1, categories.Length).Select(value => (double)(value + seriesIndex)).ToArray()))
                     .ToArray();
-                sheet.AddChart(
-                    new ExcelChartData(categories, series),
-                    row: 2,
-                    column: 4,
-                    type: ExcelChartType.ColumnClustered,
-                    title: "Large chart");
+                sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(categories, series), new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 4, Title = "Large chart" });
 
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
                 GoogleSheetsAddChartRequest chart = Assert.Single(batch.Requests.OfType<GoogleSheetsAddChartRequest>());
@@ -196,7 +188,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsNamedRangeGrid.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 document.SetNamedRange("GlobalExtent", "'Data'!A1:AA2001", save: false);
                 sheet.SetNamedRange("LocalExtent", "AB1:AB2002", save: false);
 
@@ -217,15 +209,10 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsScatter.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Dashboard");
-                sheet.AddChart(
-                    new ExcelChartData(
+                ExcelSheet sheet = document.AddSheet("Dashboard");
+                sheet.AddChart(OfficeChartType.Scatter, new ExcelChartData(
                         Array.Empty<string>(),
-                        new[] { new ExcelChartSeries("Points", new[] { 10D, 20D }, new[] { 1D, 4D }, ExcelChartType.Scatter) }),
-                    row: 2,
-                    column: 4,
-                    type: ExcelChartType.Scatter,
-                    title: "Scatter");
+                        new[] { new ExcelChartSeries("Points", new[] { 10D, 20D }, new[] { 1D, 4D }, OfficeChartType.Scatter) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 4, Title = "Scatter" });
 
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
 
@@ -250,23 +237,18 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsScatterDifferentDomains.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Dashboard");
-                sheet.AddChart(
-                    new ExcelChartData(
+                ExcelSheet sheet = document.AddSheet("Dashboard");
+                sheet.AddChart(OfficeChartType.Scatter, new ExcelChartData(
                         Array.Empty<string>(),
                         new[] {
-                            new ExcelChartSeries("First", new[] { 10D, 20D }, new[] { 1D, 4D }, ExcelChartType.Scatter),
-                            new ExcelChartSeries("Second", new[] { 30D, 40D }, new[] { 2D, 8D }, ExcelChartType.Scatter),
-                        }),
-                    row: 2,
-                    column: 4,
-                    type: ExcelChartType.Scatter,
-                    title: "Different domains");
+                            new ExcelChartSeries("First", new[] { 10D, 20D }, new[] { 1D, 4D }, OfficeChartType.Scatter),
+                            new ExcelChartSeries("Second", new[] { 30D, 40D }, new[] { 2D, 8D }, OfficeChartType.Scatter),
+                        }), new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 4, Title = "Different domains" });
 
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
 
                 Assert.Empty(batch.Requests.OfType<GoogleSheetsAddChartRequest>());
-                Assert.Contains(batch.Report.Notices, notice => notice.Code == "SHEETS.CHART.SCATTER_X_VALUES_UNSUPPORTED");
+                Assert.Contains(batch.Report.Notices, notice => notice.Code == "sheets-chart-scatter-x-values-unsupported");
             } finally {
                 if (File.Exists(path)) File.Delete(path);
             }
@@ -286,8 +268,8 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsNamedRangeScopes.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet north = document.AddWorksheet("North");
-                ExcelSheet south = document.AddWorksheet("South");
+                ExcelSheet north = document.AddSheet("North");
+                ExcelSheet south = document.AddSheet("South");
                 north.SetNamedRange("LocalData", "A1:A2", save: false);
                 south.SetNamedRange("LocalData", "B1:B2", save: false);
                 document.SetNamedRange("North_LocalData", "'North'!C1:C2", save: false);
@@ -310,14 +292,9 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsChartDataCollision.xlsx");
             try {
                 using (var document = ExcelDocument.Create(path)) {
-                    ExcelSheet dashboard = document.AddWorksheet("ChartData");
+                    ExcelSheet dashboard = document.AddSheet("ChartData");
                     dashboard.CellValue(1, 1, "User content");
-                    dashboard.AddChart(
-                        new ExcelChartData(new[] { "A", "B" }, new[] { new ExcelChartSeries("Sales", new[] { 2d, 5d }) }),
-                        row: 2,
-                        column: 4,
-                        type: ExcelChartType.ColumnClustered,
-                        title: "Sales");
+                    dashboard.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "A", "B" }, new[] { new ExcelChartSeries("Sales", new[] { 2d, 5d }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 4, Title = "Sales" });
                     document.Save();
                 }
                 using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
@@ -342,7 +319,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsLiteralValues.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "=1+1");
                 sheet.CellValue(1, 2, "00123");
                 sheet.CellFormula(1, 3, "1+1");
@@ -365,7 +342,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsSharedStringRichText.xlsx");
             try {
                 using (var document = ExcelDocument.Create(path)) {
-                    ExcelSheet sheet = document.AddWorksheet("Data");
+                    ExcelSheet sheet = document.AddSheet("Data");
                     sheet.SetRichText(1, 1, new[] {
                         new ExcelRichTextRun("Bold") { Bold = true },
                         new ExcelRichTextRun(" plain") { Italic = true },
@@ -408,7 +385,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsSettings.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Protected");
+                ExcelSheet sheet = document.AddSheet("Protected");
                 sheet.CellValue(1, 1, "Value");
                 sheet.Protect();
                 var options = new GoogleSheetsSaveOptions {
@@ -454,11 +431,13 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_GoogleSheetsPivot_MapsPopulationAggregatesExactly() {
+        public void Test_GoogleSheetsPivot_MapsPopulationAggregatesExactly()
+        {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsPopulationPivot.xlsx");
-            try {
+            try
+            {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "North");
@@ -467,32 +446,26 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(3, 2, 20d);
                 sheet.CellValue(4, 1, "North");
                 sheet.CellValue(4, 2, 30d);
-                sheet.AddPivotTable(
-                    "A1:B4",
-                    "D1",
-                    name: "PopulationPivot",
-                    rowFields: new[] { "Region" },
-                    dataFields: new[] {
-                        new ExcelPivotDataField("Value", ExcelPivotDataFunction.Count, "Non-empty count"),
-                        new ExcelPivotDataField("Value", ExcelPivotDataFunction.CountNumbers, "Numeric count"),
-                        new ExcelPivotDataField("Value", ExcelPivotDataFunction.StandardDeviationP, "Population SD"),
-                        new ExcelPivotDataField("Value", ExcelPivotDataFunction.VarianceP, "Population Variance"),
-                    });
-
+                sheet.AddPivotTable("A1:B4", "D1", options: new ExcelPivotTableOptions { Name = "PopulationPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Count, "Non-empty count"), new ExcelPivotDataField("Value", ExcelPivotDataFunction.CountNumbers, "Numeric count"), new ExcelPivotDataField("Value", ExcelPivotDataFunction.StandardDeviationP, "Population SD"), new ExcelPivotDataField("Value", ExcelPivotDataFunction.VarianceP, "Population Variance"), } });
                 GoogleSheetsBatch batch = document.BuildGoogleSheetsBatch();
                 GoogleSheetsAddPivotTableRequest pivot = Assert.Single(batch.Requests.OfType<GoogleSheetsAddPivotTableRequest>());
                 Assert.Equal(new[] { "COUNTA", "COUNT", "STDEVP", "VARP" }, pivot.Values.Select(value => value.SummarizeFunction).ToArray());
-            } finally {
-                if (File.Exists(path)) File.Delete(path);
+            }
+            finally
+            {
+                if (File.Exists(path))
+                    File.Delete(path);
             }
         }
 
         [Fact]
-        public void Test_GoogleSheetsPivot_SuppressesCachedOutputWhenNativePivotIsEmitted() {
+        public void Test_GoogleSheetsPivot_SuppressesCachedOutputWhenNativePivotIsEmitted()
+        {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsCachedPivot.xlsx");
-            try {
+            try
+            {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "North");
@@ -503,25 +476,19 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 5, "Cached Total");
                 sheet.CellValue(2, 4, "North");
                 sheet.CellValue(2, 5, 10d);
-                sheet.AddPivotTable(
-                    "A1:B3",
-                    "D1",
-                    name: "CachedPivot",
-                    rowFields: new[] { "Region" },
-                    dataFields: new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum, "Total") });
-
+                sheet.AddPivotTable("A1:B3", "D1", options: new ExcelPivotTableOptions { Name = "CachedPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum, "Total") } });
                 GoogleSheetsBatch batch = document.BuildGoogleSheetsBatch();
-
                 GoogleSheetsAddPivotTableRequest pivot = Assert.Single(batch.Requests.OfType<GoogleSheetsAddPivotTableRequest>());
                 Assert.Equal(0, pivot.DestinationRowIndex);
                 Assert.Equal(3, pivot.DestinationColumnIndex);
-                GoogleSheetsUpdateCellsRequest cells = Assert.Single(
-                    batch.Requests.OfType<GoogleSheetsUpdateCellsRequest>(),
-                    request => request.SheetName == "Data");
+                GoogleSheetsUpdateCellsRequest cells = Assert.Single(batch.Requests.OfType<GoogleSheetsUpdateCellsRequest>(), request => request.SheetName == "Data");
                 Assert.Contains(cells.Cells, cell => cell.RowIndex == 0 && cell.ColumnIndex == 0 && Equals(cell.Value.Value, "Region"));
                 Assert.DoesNotContain(cells.Cells, cell => cell.RowIndex <= 1 && cell.ColumnIndex >= 3 && cell.ColumnIndex <= 4);
-            } finally {
-                if (File.Exists(path)) File.Delete(path);
+            }
+            finally
+            {
+                if (File.Exists(path))
+                    File.Delete(path);
             }
         }
     }

@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
 
             Assert.Contains(result.Limitations, limitation =>
-                limitation.Code == "EffectiveFormatting.ThemeResolution" &&
+                limitation.Code == "effective-formatting-theme-resolution" &&
                 limitation.SourceContainsShape &&
                 limitation.TargetContainsShape);
         }
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
 
             Assert.Contains(result.Limitations, limitation =>
-                limitation.Code == "EffectiveFormatting.ConditionalTableStyles" &&
+                limitation.Code == "effective-formatting-conditional-table-styles" &&
                 limitation.SourceContainsShape &&
                 limitation.TargetContainsShape);
         }

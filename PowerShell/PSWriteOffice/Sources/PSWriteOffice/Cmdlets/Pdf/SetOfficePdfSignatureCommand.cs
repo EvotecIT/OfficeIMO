@@ -55,7 +55,7 @@ public sealed class SetOfficePdfSignatureCommand : PSWriteOffice.Cmdlets.OfficeM
         var document = PdfDocument
             .Load(inputPath, PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent))
             .Security.CompleteExternalSignature(File.ReadAllBytes(signaturePath));
-        document.Save(outputPath).RequireSuccess();
+        document.Save(outputPath);
         if (PassThruReport.IsPresent) {
             WriteObject(document.Security.ValidateSignatures());
             return;

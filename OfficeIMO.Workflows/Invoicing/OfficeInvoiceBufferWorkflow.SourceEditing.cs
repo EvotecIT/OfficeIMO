@@ -1,18 +1,27 @@
+using OfficeIMO.Internal;
 using System.Security.Cryptography;
 using System.Xml;
 using OfficeIMO.Invoicing;
+#if NET8_0_OR_GREATER
 using OfficeIMO.Invoicing.Validation;
+#endif
 
 namespace OfficeIMO.Workflows;
 
 public static partial class OfficeInvoiceBufferWorkflow {
     private static async Task<OfficeInvoiceWorkflowResult> ProcessSourceEditAsync(OfficeInvoiceWorkflowRequest request,
-        InvoiceValidator? validator, CancellationToken token) {
-        string hash = Convert.ToHexString(SHA256.HashData(request.Xml));
+
+#if NET8_0_OR_GREATER
+        InvoiceValidator? validator,
+#endif
+        CancellationToken token) {
+        string hash = OfficeRuntimeCompatibility.ToHexString(OfficeRuntimeCompatibility.HashSha256(request.Xml));
         var diagnostics = new OperationDiagnostics();
         InvoiceReadResult? source = null;
         InvoiceModelValidationResult? model = null;
+#if NET8_0_OR_GREATER
         InvoiceValidationReport? standards = null;
+#endif
         try {
             token.ThrowIfCancellationRequested();
             var edit = InvoiceSourceEditor.Apply(InvoiceSourceDocument.Load(request.Xml), request.SourceEdits!);
@@ -32,6 +41,7 @@ public static partial class OfficeInvoiceBufferWorkflow {
             }
             token.ThrowIfCancellationRequested();
             if (request.ValidationRelease.HasValue) {
+#if NET8_0_OR_GREATER
                 if (validator == null) {
                     diagnostics.Add(new InvoiceDiagnostic("INV-WORKFLOW-VALIDATOR", "Standards validation was requested, but no configured validator was supplied.", "Standards"));
                     return Result(false);
@@ -42,6 +52,11 @@ public static partial class OfficeInvoiceBufferWorkflow {
                     diagnostics.Add(new InvoiceDiagnostic("INV-WORKFLOW-STANDARDS", "The edited XML did not pass all requested standards stages. No output artifact is returned.", "Standards"));
                     return Result(false);
                 }
+
+#else
+                diagnostics.Add(new InvoiceDiagnostic("INV-WORKFLOW-VALIDATOR", "Standards validation requires .NET 8 or later. No output artifact is returned.", "Standards"));
+                return Result(false);
+#endif
             } else {
                 diagnostics.Add(new InvoiceDiagnostic("INV-WORKFLOW-STANDARDS-NOT-RUN", "The source edit retains XML content; standards schema and business rules were not requested.", "Standards", InvoiceDiagnosticSeverity.Information));
             }
@@ -54,6 +69,10 @@ public static partial class OfficeInvoiceBufferWorkflow {
         }
 
         OfficeInvoiceWorkflowResult Result(bool succeeded, byte[]? xml = null) =>
-            new(request, hash, succeeded, source, model, diagnostics.ToList(), standards, xml, xml);
+            new(request, hash, succeeded, source, model, diagnostics.ToList(),
+#if NET8_0_OR_GREATER
+                standards,
+#endif
+                 xml, xml);
     }
 }

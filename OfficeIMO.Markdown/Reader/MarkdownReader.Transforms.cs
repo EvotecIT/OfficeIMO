@@ -5,10 +5,10 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
-    private static MarkdownDoc ApplyDocumentTransforms(
-        MarkdownDoc document,
-        MarkdownReaderOptions options,
+internal static partial class MarkdownReader {
+    private static MarkdownDocument ApplyDocumentTransforms(
+        MarkdownDocument document,
+        MarkdownLoadOptions options,
         ICollection<MarkdownDocumentTransformDiagnostic>? diagnostics = null,
         MarkdownSyntaxNode? syntaxTree = null,
         string? sourceMarkdown = null,
@@ -34,7 +34,7 @@ public static partial class MarkdownReader {
                 preservesOriginalMarkdown));
     }
 
-    private static IReadOnlyList<MarkdownSourceSpan?> BuildTopLevelBlockSourceSpans(MarkdownDoc document, MarkdownSyntaxNode syntaxTree) {
+    private static IReadOnlyList<MarkdownSourceSpan?> BuildTopLevelBlockSourceSpans(MarkdownDocument document, MarkdownSyntaxNode syntaxTree) {
         var spans = new List<MarkdownSourceSpan?>(document.Blocks.Count);
         var blockChildren = syntaxTree.Children
             .Where(static child => child.AssociatedObject is IMarkdownBlock)
@@ -61,7 +61,7 @@ public static partial class MarkdownReader {
     }
 
     private static IReadOnlyList<IMarkdownDocumentTransform> BuildEffectiveDocumentTransforms(
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         string? sourceMarkdown = null,
         bool skipAbsentRegisteredFenceTransform = false) {
         if (options == null) {

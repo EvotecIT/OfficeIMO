@@ -8,7 +8,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using SemanticComparison;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
 
                 document.AddParagraph("Test 1");
 
-                var hyperlink = document.AddParagraph("Hello users! Please visit ").AddHyperLink("bookmark below", "TestBookmark", true, "This is link to bookmark below shown within Tooltip");
+                var hyperlink = document.AddParagraph("Hello users! Please visit ").AddHyperLink("bookmark below", "TestBookmark", true, "This is link to bookmark below shown within Tooltip").Paragraph;
                 var hyperlinkElement = hyperlink.Hyperlink;
                 Assert.NotNull(hyperlinkElement);
 
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.HyperLinks.Count == 2);
                 Assert.True(document.ParagraphsHyperLinks.Count == 2);
 
-                var hyperlink1 = document.AddParagraph("Test Email Address ").AddHyperLink("Przemysław Klys", new Uri("mailto:kontakt@evotec.pl?subject=Test Subject"));
+                var hyperlink1 = document.AddParagraph("Test Email Address ").AddHyperLink("Przemysław Klys", new Uri("mailto:kontakt@evotec.pl?subject=Test Subject")).Paragraph;
                 var hyperlink1Element = hyperlink1.Hyperlink;
                 Assert.NotNull(hyperlink1Element);
 
@@ -227,7 +227,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(paragraph.Bold == false);
 
                 var hyperlink = document.AddParagraph("Hello users! Please visit ").AddHyperLink("bookmark below",
-                    "TestBookmark", true, "This is link to bookmark below shown within Tooltip");
+                    "TestBookmark", true, "This is link to bookmark below shown within Tooltip").Paragraph;
                 var hyperlinkElement = hyperlink.Hyperlink;
                 Assert.NotNull(hyperlinkElement);
 
@@ -251,7 +251,7 @@ namespace OfficeIMO.Tests {
 
 
                 var hyperlinkWithoutStyle = document.AddParagraph("Hello users! Please visit ").AddHyperLink("bookmark below",
-                    "TestBookmark", false, "This is link to bookmark below shown within Tooltip");
+                    "TestBookmark", false, "This is link to bookmark below shown within Tooltip").Paragraph;
                 var hyperlinkWithoutStyleElement = hyperlinkWithoutStyle.Hyperlink;
                 Assert.NotNull(hyperlinkWithoutStyleElement);
 
@@ -276,8 +276,8 @@ namespace OfficeIMO.Tests {
                 hyperlinkWithoutStyle.Italic = true;
                 hyperlinkWithoutStyle.Color = Color.Red;
                 hyperlinkWithoutStyle.Underline = WordUnderlineStyle.Dash;
-                hyperlinkWithoutStyle.Spacing = 2;
-                hyperlinkWithoutStyle.FontSize = 12;
+                hyperlinkWithoutStyle.Spacing = OfficeLength.Emus((long)(2) * 635);
+                hyperlinkWithoutStyle.FontSize = global::OfficeIMO.OfficeLength.Points(12);
                 hyperlinkWithoutStyle.FontFamily = "Arial";
                 hyperlinkWithoutStyle.Highlight = WordHighlightColor.Cyan;
                 hyperlinkWithoutStyle.Strike = true;
@@ -288,8 +288,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(hyperlinkWithoutStyle.Italic);
                 Assert.True(hyperlinkWithoutStyle.Underline == WordUnderlineStyle.Dash);
                 Assert.True(hyperlinkWithoutStyle.Color == Color.Red);
-                Assert.True(hyperlinkWithoutStyle.Spacing == 2);
-                Assert.True(hyperlinkWithoutStyle.FontSize == 12);
+                Assert.True(hyperlinkWithoutStyle.Spacing == OfficeLength.Emus(2 * 635));
+                Assert.True(hyperlinkWithoutStyle.FontSize?.ToPoints() == 12);
                 Assert.True(hyperlinkWithoutStyle.FontFamily == "Arial");
                 Assert.True(hyperlinkWithoutStyle.Highlight == WordHighlightColor.Cyan);
                 Assert.True(hyperlinkWithoutStyle.Strike);
@@ -500,7 +500,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CopyFormatting.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Go to ");
-                var refPara = paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
+                var refPara = paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true).Paragraph;
                 refPara.Bold = true;
                 var reference = refPara.Hyperlink;
                 Assert.NotNull(reference);
@@ -532,12 +532,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ListFormatting.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var first = document.AddList(WordListStyle.Bulleted);
-                var google = first.AddItem("").AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);
+                var google = first.AddItem("").AddHyperLink("Google", new Uri("https://google.com"), addStyle: true).Paragraph;
                 google.Bold = true;
                 var googleRef = google.Hyperlink;
                 Assert.NotNull(googleRef);
 
-                var bing = first.AddItem("").AddHyperLink("Bing", new Uri("https://bing.com"), addStyle: true);
+                var bing = first.AddItem("").AddHyperLink("Bing", new Uri("https://bing.com"), addStyle: true).Paragraph;
                 bing.Italic = true;
                 var bingRef = bing.Hyperlink;
                 Assert.NotNull(bingRef);
@@ -545,11 +545,11 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("separator");
 
                 var second = document.AddList(WordListStyle.Bulleted);
-                var duck = second.AddItem("").AddHyperLink("DuckDuckGo", new Uri("https://duckduckgo.com"));
+                var duck = second.AddItem("").AddHyperLink("DuckDuckGo", new Uri("https://duckduckgo.com")).Paragraph;
                 var duckLink = duck.Hyperlink;
                 Assert.NotNull(duckLink);
                 duckLink!.CopyFormattingFrom(googleRef!);
-                var start = second.AddItem("").AddHyperLink("Startpage", new Uri("https://startpage.com"));
+                var start = second.AddItem("").AddHyperLink("Startpage", new Uri("https://startpage.com")).Paragraph;
                 var startLink = start.Hyperlink;
                 Assert.NotNull(startLink);
                 startLink!.CopyFormattingFrom(bingRef!);

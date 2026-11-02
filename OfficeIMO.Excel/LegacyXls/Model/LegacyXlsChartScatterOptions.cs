@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes decoded Scatter chart group options preserved from a BIFF chart stream.
     /// </summary>
-    public sealed class LegacyXlsChartScatterOptions {
+    internal sealed class LegacyXlsChartScatterOptions {
         internal LegacyXlsChartScatterOptions(ushort bubbleSizeRatio, ushort bubbleSizeRepresentation, ushort flags) {
             BubbleSizeRatio = bubbleSizeRatio;
             BubbleSizeRepresentation = bubbleSizeRepresentation;

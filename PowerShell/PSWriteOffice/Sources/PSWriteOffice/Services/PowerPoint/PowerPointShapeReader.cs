@@ -12,10 +12,10 @@ public sealed class PowerPointShapeInfo
     /// <summary>The underlying OfficeIMO shape wrapper.</summary>
     public PowerPointShape Shape { get; set; } = null!;
 
-    /// <summary>Zero-based slide index when known.</summary>
+    /// <summary>One-based slide position when known.</summary>
     public int SlideIndex { get; set; } = -1;
 
-    /// <summary>Zero-based shape index on the slide.</summary>
+    /// <summary>One-based shape position on the slide.</summary>
     public int ShapeIndex { get; set; } = -1;
 
     /// <summary>High-level PowerPoint shape kind.</summary>
@@ -82,14 +82,14 @@ internal static class PowerPointShapeReader
         {
             Slide = slide,
             Shape = shape,
-            SlideIndex = slideIndex,
-            ShapeIndex = shapeIndex,
+            SlideIndex = slideIndex >= 0 ? slideIndex + 1 : -1,
+            ShapeIndex = shapeIndex + 1,
             Kind = GetKind(shape),
             Name = shape.Name,
-            LeftPoints = shape.LeftPoints,
-            TopPoints = shape.TopPoints,
-            WidthPoints = shape.WidthPoints,
-            HeightPoints = shape.HeightPoints
+            LeftPoints = shape.Left.ToPoints(),
+            TopPoints = shape.Top.ToPoints(),
+            WidthPoints = shape.Width.ToPoints(),
+            HeightPoints = shape.Height.ToPoints()
         };
 
         switch (shape)

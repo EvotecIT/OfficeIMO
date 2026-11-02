@@ -11,7 +11,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the run is bold.
+        /// Gets or sets a value indicating whether the run is bold. Setting false explicitly overrides inherited bold.
         /// </summary>
         public bool Bold {
             get {
@@ -26,23 +26,13 @@ namespace OfficeIMO.Word {
                 } else {
                     runProperties = VerifyRunProperties();
                 }
-                if (value == true) {
-                    runProperties.Bold = new Bold();
-                    runProperties.BoldComplexScript = new BoldComplexScript();
-                } else {
-                    if (runProperties.BoldComplexScript != null) {
-                        runProperties.BoldComplexScript.Remove();
-                    }
-
-                    if (runProperties.Bold != null) {
-                        runProperties.Bold.Remove();
-                    }
-                }
+                runProperties.Bold = new Bold { Val = value };
+                runProperties.BoldComplexScript = new BoldComplexScript { Val = value };
             }
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the run is italic.
+        /// Gets or sets a value indicating whether the run is italic. Setting false explicitly overrides inherited italic.
         /// </summary>
         public bool Italic {
             get {
@@ -57,11 +47,8 @@ namespace OfficeIMO.Word {
                 } else {
                     runProperties = VerifyRunProperties();
                 }
-                if (value != true) {
-                    runProperties.Italic = null;
-                } else {
-                    runProperties.Italic = new Italic { };
-                }
+                runProperties.Italic = new Italic { Val = value };
+                runProperties.ItalicComplexScript = new ItalicComplexScript { Val = value };
             }
         }
 
@@ -121,17 +108,19 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the character spacing value in twentieths of a point.
+        /// Gets or sets the signed physical character spacing. Null removes the local value.
         /// </summary>
-        public int? Spacing {
+        public OfficeLength? Spacing {
             get {
                 var runProperties = ScopedRunProperties;
                 if (runProperties != null && runProperties.Spacing != null) {
-                    return runProperties.Spacing.Val?.Value;
+                    return runProperties.Spacing.Val?.Value is int nativeSpacing
+                        ? OfficeLength.Emus((long)nativeSpacing * 635) : (OfficeLength?)null;
                 }
                 return null;
             }
             set {
+                int? nativeSpacing = value.HasValue ? checked((int)value.Value.ToTwips()) : (int?)null;
                 RunProperties runProperties;
                 if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
@@ -141,7 +130,7 @@ namespace OfficeIMO.Word {
                 }
                 if (value != null) {
                     Spacing spacing = new Spacing();
-                    spacing.Val = value;
+                    spacing.Val = nativeSpacing;
                     runProperties.Spacing = spacing;
                 } else {
                     if (runProperties.Spacing != null) runProperties.Spacing.Remove();
@@ -270,21 +259,16 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the font size in points.
-        /// </summary>
-        public int? FontSize {
-            get {
-                double? points = FontSizePoints;
-                return points.HasValue ? checked((int)points.Value) : null;
-            }
-            set => FontSizePoints = value;
-        }
-
-        /// <summary>
         /// Gets or sets the font size in points with Word's native half-point precision.
         /// Values finer than half a point are rounded away from zero to the nearest representable size.
         /// </summary>
-        public double? FontSizePoints {
+        public global::OfficeIMO.OfficeLength? FontSize {
+            get => NativeFontSizePoints is double points ? global::OfficeIMO.OfficeLength.Points(points) : null;
+            set => NativeFontSizePoints = value?.ToPoints();
+        }
+
+        /// <summary>Gets or sets native point values without a whole-EMU round trip.</summary>
+        internal double? NativeFontSizePoints {
             get {
                 var runProperties = ScopedRunProperties;
                 string? value = runProperties?.FontSize?.Val?.Value;
@@ -318,9 +302,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the text color using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
+        /// Gets or sets the text color using <see cref="OfficeIMO.OfficeColor"/>.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor? Color {
+        public OfficeIMO.OfficeColor? Color {
             get {
                 if (ColorHex == "") {
                     return null;
@@ -329,7 +313,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (value != null) {
-                    this.ColorHex = value.Value.ToRgbHex();
+                    SetRunColor(value.Value);
                 }
             }
         }

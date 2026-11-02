@@ -4,8 +4,8 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
     /// <summary>Adds a simple AcroForm text field at the current flow position.</summary>
-    internal PdfDocument TextField(string name, double width = 180, double height = 22, string value = "", PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, PdfFormFieldStyle? style = null) {
-        AddBlock(new TextFieldBlock(name, width, height, value, align, fontSize, spacingBefore, spacingAfter, style));
+    internal PdfDocument TextField(string name, OfficeLength? width = null, OfficeLength? height = null, string value = "", PdfAlign align = PdfAlign.Left, OfficeLength? fontSize = null, OfficeLength? spacingBefore = null, OfficeLength? spacingAfter = null, PdfFormFieldStyle? style = null) {
+        AddBlock(new TextFieldBlock(name, (width ?? OfficeLength.Points(180)).ToPoints(), (height ?? OfficeLength.Points(22)).ToPoints(), value, align, (fontSize ?? OfficeLength.Points(10)).ToPoints(), (spacingBefore ?? OfficeLength.Zero).ToPoints(), (spacingAfter ?? OfficeLength.Points(6)).ToPoints(), style));
         return this;
     }
 

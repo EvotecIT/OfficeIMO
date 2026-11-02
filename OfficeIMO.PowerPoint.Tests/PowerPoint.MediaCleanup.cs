@@ -6,12 +6,12 @@ namespace OfficeIMO.Tests {
     public sealed class PowerPointMediaCleanupTests {
         [Fact]
         public void RemovingSoundedSlideReleasesPackageMediaData() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             presentation.AddSlide().AddTitle("Retained");
             PowerPointSlide removed = presentation.AddSlide();
             PowerPointAutoShape shape = removed.AddRectangle(
-                100000, 100000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             using (var actionSound = new MemoryStream(CreateWave(),
                        writable: false)) {
                 shape.SetClickSound(actionSound, "Action");
@@ -44,10 +44,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void RemovingTableRowWrappersAndColumnsReleasesDiscardedRunSounds() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTable table = slide.AddTable(2, 2);
+            PowerPointTable table = slide.AddTable(2,2);
             PowerPointTextRun removedRowRun = table.GetCell(0, 0)
                 .Paragraphs.Single().Runs.Single();
             using (var rowSound = new MemoryStream(CreateWave(),

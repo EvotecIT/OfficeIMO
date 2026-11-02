@@ -32,7 +32,7 @@ public partial class Excel {
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", (utf16 ? Encoding.Unicode : Encoding.UTF8).GetBytes(xml.ToString()));
             using var cancellation = new CancellationTokenSource();
             CancellationToken token = cancellable ? cancellation.Token : default;
-            var options = new ExcelReadOptions();
+            var options = new ExcelReaderOptions();
             if (api.StartsWith("StreamDom", StringComparison.Ordinal)) options.Culture = CultureInfo.GetCultureInfo("fr-FR");
             using var owner = ExcelDocumentReader.Open(path, options);
             var sheet = owner.GetSheet("Data");

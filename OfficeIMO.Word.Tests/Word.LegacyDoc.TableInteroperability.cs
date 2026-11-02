@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     document.AddParagraph("Commented").AddComment("OfficeIMO", "OI", "Comment");
-                    WordTable table = document.AddTable(1, 2);
+                    WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("A1", removeExistingParagraphs: true);
                     table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
                     document.Save(docPath);

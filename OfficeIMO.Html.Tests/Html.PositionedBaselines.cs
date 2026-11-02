@@ -29,7 +29,7 @@ public sealed class HtmlPositionedBaselineTests {
         // including reduced script faces and authored baseline displacements.
         Assert.Equal("A2B3C", SvgPaintedText.Read(svg));
         HtmlRenderingTests.AssertPdfBackedSvgRetainsBaselineInk(rendered.Pages[0], svg);
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions(options)));
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open((document.ToPdf(new HtmlToPdfOptions(options))).ToBytes());
         var page = pdf.GetPage(1);
         Assert.Equal("A2B3C", string.Concat(page.Letters.Select(letter => letter.Value)));
         foreach (HtmlRenderText source in text) {
@@ -43,7 +43,7 @@ public sealed class HtmlPositionedBaselineTests {
 
     [Fact]
     public void TopLevelInlineContentDoesNotReportAChangeOfPageGeometry() {
-        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, PageSize = new OfficePageSize(5, 4), Margins = HtmlRenderMargins.All(0) };
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(5), global::OfficeIMO.OfficeLength.Inches(4)), Margins = HtmlRenderMargins.All(0) };
         var result = HtmlConversionDocument.Parse("<span>First inline line</span><br><svg width='100' height='30'><text x='0' y='20'>SVG label</text></svg>")
             .ExportImages(OfficeImageExportFormat.Png, options);
         Assert.Single(result);

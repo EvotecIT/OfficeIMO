@@ -278,7 +278,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             sharedStringCount,
                             limits.MaxStringCharacters);
                     }
-                    if (column < 0 || column >= A1.MaxColumns) {
+                    if (column < 0 || column >= ExcelA1.MaxColumns) {
                         throw new InvalidDataException(
                             $"The XLSB cell record at offset {recordOffset} contains invalid column index {column}.");
                     }
@@ -362,9 +362,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             uint firstColumnValue = cursor.ReadUInt32();
             uint lastColumnValue = cursor.ReadUInt32();
             if (firstRow > lastRow
-                || lastRow >= A1.MaxRows
+                || lastRow >= ExcelA1.MaxRows
                 || firstColumnValue > lastColumnValue
-                || lastColumnValue >= A1.MaxColumns) {
+                || lastColumnValue >= ExcelA1.MaxColumns) {
                 throw new InvalidDataException(
                     $"The BrtWsDim record at offset {record.RecordOffset} contains an invalid worksheet range.");
             }

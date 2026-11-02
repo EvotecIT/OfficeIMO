@@ -92,13 +92,13 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         private static SortedSet<uint> CollectReferencedStyleIndexes(IReadOnlyList<ExcelSheet> sheets) {
             var indexes = new SortedSet<uint>();
             foreach (ExcelSheet sheet in sheets) {
-                foreach (ExcelColumnSnapshot column in sheet.GetColumnDefinitions()) {
+                foreach (ExcelColumnInfo column in sheet.GetColumnDefinitions()) {
                     if (column.StyleIndex.HasValue) {
                         indexes.Add(column.StyleIndex.Value);
                     }
                 }
 
-                foreach (ExcelRowSnapshot row in sheet.GetRowDefinitions()) {
+                foreach (ExcelRowInfo row in sheet.GetRowDefinitions()) {
                     if (row.StyleIndex.HasValue) {
                         indexes.Add(row.StyleIndex.Value);
                     }

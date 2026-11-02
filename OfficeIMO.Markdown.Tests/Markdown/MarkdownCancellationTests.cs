@@ -19,8 +19,8 @@ public sealed class MarkdownCancellationTests {
         try {
             if (existingImage) File.WriteAllBytes(image, sentinel);
             using var cancelled = new CancellationTokenSource();
-            var options = new HtmlToMarkdownOptions {
-                Base64Images = HtmlBase64ImageHandling.SaveToFile,
+            var options = new MarkdownHtmlImportOptions {
+                Base64Images = MarkdownHtmlBase64ImageHandling.SaveToFile,
                 Base64ImageOutputDirectory = root,
                 Base64ImageFileNameGenerator = (_, _) => { cancelled.Cancel(); return "image.png"; }
             };
@@ -40,7 +40,7 @@ public sealed class MarkdownCancellationTests {
         var document = MarkdownReader.ParseWithSyntaxTree("One").Document;
         using var cancelled = new CancellationTokenSource();
         int laterCalls = 0;
-        var options = new MarkdownWriteOptions();
+        var options = new MarkdownSaveOptions();
         if (syntax) {
             options.SyntaxBlockRenderExtensions.Add(MarkdownSyntaxBlockMarkdownRenderExtension.CreateContextual(
                 "later", MarkdownSyntaxKind.Paragraph, (_, _, _) => { laterCalls++; return null; }));
@@ -63,7 +63,7 @@ public sealed class MarkdownCancellationTests {
         var document = MarkdownReader.ParseWithSyntaxTree("[One](https://example.test/)").Document;
         using var cancelled = new CancellationTokenSource();
         int laterCalls = 0;
-        var options = new MarkdownWriteOptions();
+        var options = new MarkdownSaveOptions();
         if (syntax) {
             options.SyntaxInlineRenderExtensions.Add(MarkdownSyntaxInlineMarkdownRenderExtension.CreateContextual(
                 "later", MarkdownSyntaxKind.InlineLink, (_, _, _) => { laterCalls++; return null; }));
@@ -84,10 +84,10 @@ public sealed class MarkdownCancellationTests {
         var document = HtmlConversionDocument.Parse("<p><span>One</span></p>");
         using var cancelled = new CancellationTokenSource();
         int laterCalls = 0;
-        var options = new HtmlToMarkdownOptions();
-        options.InlineElementConverters.Add(new HtmlInlineElementConverter("cancel", "Cancel", _ => { cancelled.Cancel(); return null; }));
-        options.InlineElementConverters.Add(new HtmlInlineElementConverter("later", "Later", _ => { laterCalls++; return null; }));
-        Assert.ThrowsAny<OperationCanceledException>(() => document.ToMarkdownDocumentResult(options, cancelled.Token));
+        var options = new MarkdownHtmlImportOptions();
+        options.InlineElementConverters.Add(new MarkdownHtmlInlineConverter("cancel", "Cancel", _ => { cancelled.Cancel(); return null; }));
+        options.InlineElementConverters.Add(new MarkdownHtmlInlineConverter("later", "Later", _ => { laterCalls++; return null; }));
+        Assert.ThrowsAny<OperationCanceledException>(() => document.ToMarkdown(options, cancelled.Token));
         Assert.Equal(0, laterCalls);
     }
 
@@ -96,19 +96,19 @@ public sealed class MarkdownCancellationTests {
         var document = HtmlConversionDocument.Parse("<p>One</p><p>Two</p>");
         using var cancelled = new CancellationTokenSource();
         int calls = 0;
-        var options = new HtmlToMarkdownOptions();
+        var options = new MarkdownHtmlImportOptions();
         options.ElementFilters.Add(_ => { calls++; cancelled.Cancel(); return false; });
-        Assert.ThrowsAny<OperationCanceledException>(() => document.ToMarkdownDocumentResult(options, cancelled.Token));
+        Assert.ThrowsAny<OperationCanceledException>(() => document.ToMarkdown(options, cancelled.Token));
         Assert.Equal(1, calls);
-        Assert.Contains("One", document.ToMarkdown());
+        Assert.Contains("One", document.ToMarkdown().ToMarkdown());
     }
 
     [Fact]
     public void CancelledWriterStopsAfterTheFirstCallbackAndRestoresItsContext() {
-        var document = MarkdownDoc.Create().P("One").P("Two");
+        var document = MarkdownDocument.Create().P("One").P("Two");
         using var cancelled = new CancellationTokenSource();
         int calls = 0;
-        var options = new MarkdownWriteOptions();
+        var options = new MarkdownSaveOptions();
         options.BlockRenderExtensions.Add(MarkdownBlockMarkdownRenderExtension.CreateContextual(
             "cancel-block", typeof(ParagraphBlock), (_, context) => {
                 Assert.Equal(cancelled.Token, context.CancellationToken);
@@ -122,10 +122,10 @@ public sealed class MarkdownCancellationTests {
 
     [Fact]
     public void CancellationInsideAnInlineRendererStopsTheRemainingInlines() {
-        var document = MarkdownDoc.Create().P(paragraph => paragraph.Bold("One").Bold("Two"));
+        var document = MarkdownDocument.Create().P(paragraph => paragraph.Bold("One").Bold("Two"));
         using var cancelled = new CancellationTokenSource();
         int calls = 0;
-        var options = new MarkdownWriteOptions();
+        var options = new MarkdownSaveOptions();
         options.InlineRenderExtensions.Add(MarkdownInlineMarkdownRenderExtension.CreateContextual(
             "cancel-inline", typeof(BoldInline), (_, context) => {
                 Assert.Equal(cancelled.Token, context.CancellationToken);
@@ -141,10 +141,10 @@ public sealed class MarkdownCancellationTests {
         File.WriteAllText(path, "Existing content");
         try {
             using var cancelled = new CancellationTokenSource();
-            var options = new MarkdownWriteOptions();
+            var options = new MarkdownSaveOptions();
             options.BlockRenderExtensions.Add(MarkdownBlockMarkdownRenderExtension.CreateContextual(
                 "cancel-save", typeof(ParagraphBlock), (_, _) => { cancelled.Cancel(); return "Cancelled"; }));
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => MarkdownDoc.Create().P("New content").SaveAsync(path, options, cancellationToken: cancelled.Token));
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => MarkdownDocument.Create().P("New content").SaveAsync(path, options, cancellationToken: cancelled.Token));
             Assert.Equal("Existing content", File.ReadAllText(path));
         } finally { File.Delete(path); }
     }

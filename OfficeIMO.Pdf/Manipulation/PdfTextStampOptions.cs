@@ -8,10 +8,9 @@ public sealed class PdfTextStampOptions {
     public System.Threading.CancellationToken CancellationToken { get; set; }
 
     private int[]? _pageNumbers;
-    private double? _x;
-    private double? _y;
+    private PdfAlign _align = PdfAlign.Left;
     private PdfStandardFont _font = PdfStandardFont.HelveticaBold;
-    private double _fontSize = 24;
+    private global::OfficeIMO.OfficeLength _fontSize = global::OfficeIMO.OfficeLength.Points(24);
     private double _rotationDegrees;
 
     /// <summary>
@@ -51,26 +50,16 @@ public sealed class PdfTextStampOptions {
     }
 
     /// <summary>
-    /// X coordinate of the text baseline origin in PDF points. When null, a sensible default is used.
+    /// Physical X coordinate of the text baseline origin from the unrotated PDF origin.
+    /// When null, stamps use 36 points and watermarks center in the effective page box.
     /// </summary>
-    public double? X {
-        get => _x;
-        set {
-            ValidateOptionalFinite(value, nameof(X), "Text stamp X coordinate must be finite.");
-            _x = value;
-        }
-    }
+    public global::OfficeIMO.OfficeLength? X { get; set; }
 
     /// <summary>
-    /// Y coordinate of the text baseline origin in PDF points. When null, a sensible default is used.
+    /// Physical Y coordinate of the text baseline origin from the unrotated PDF origin.
+    /// When null, stamps use 36 points and watermarks center in the effective page box.
     /// </summary>
-    public double? Y {
-        get => _y;
-        set {
-            ValidateOptionalFinite(value, nameof(Y), "Text stamp Y coordinate must be finite.");
-            _y = value;
-        }
-    }
+    public global::OfficeIMO.OfficeLength? Y { get; set; }
 
     /// <summary>
     /// Standard PDF font used for the stamp.
@@ -84,12 +73,12 @@ public sealed class PdfTextStampOptions {
     }
 
     /// <summary>
-    /// Text size in PDF points.
+    /// Physical text size. Defaults to 24 points.
     /// </summary>
-    public double FontSize {
+    public global::OfficeIMO.OfficeLength FontSize {
         get => _fontSize;
         set {
-            ValidatePositiveFinite(value, nameof(FontSize), "Font size must be a positive finite value.");
+            ValidatePositive(value, nameof(FontSize), "Font size must be a positive finite value.");
             _fontSize = value;
         }
     }
@@ -97,7 +86,7 @@ public sealed class PdfTextStampOptions {
     /// <summary>
     /// RGB text color.
     /// </summary>
-    public PdfColor Color { get; set; } = PdfColor.Gray;
+    public global::OfficeIMO.OfficeColor Color { get; set; } = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D);
 
     /// <summary>
     /// Text rotation in degrees around the text origin.
@@ -115,14 +104,29 @@ public sealed class PdfTextStampOptions {
     /// </summary>
     public bool BehindContent { get; set; }
 
-    private static void ValidateOptionalFinite(double? value, string paramName, string message) {
-        if (value.HasValue) {
-            ValidateFinite(value.Value, paramName, message);
+    /// <summary>
+    /// Horizontal alignment of the text against <see cref="X"/>: <see cref="PdfAlign.Left"/> (the default) starts the
+    /// text at X, <see cref="PdfAlign.Center"/> centres it on X and <see cref="PdfAlign.Right"/> ends it at X. When X is
+    /// null, centred text uses the page centre and right-aligned text ends 36 points from the right page edge.
+    /// </summary>
+    public PdfAlign Align {
+        get => _align;
+        set {
+            Guard.LeftCenterRightAlign(value, nameof(Align), "Text stamp");
+            _align = value;
         }
     }
 
-    private static void ValidatePositiveFinite(double value, string paramName, string message) {
-        if (value <= 0 || double.IsNaN(value) || double.IsInfinity(value)) {
+    /// <summary>
+    /// When true (the default), the stamp text uses the installed font that backs <see cref="Font"/> in the default
+    /// theme, the same font documents created by OfficeIMO.Pdf use, embedded as a subset. When no such font is
+    /// installed, or it lacks a character of the text, the non-embedded standard font is written instead.
+    /// Set to false to always write the non-embedded standard font.
+    /// </summary>
+    public bool EmbedFont { get; set; } = PdfCreateOptions.EmbedDefaultFontsInitially;
+
+    private static void ValidatePositive(global::OfficeIMO.OfficeLength value, string paramName, string message) {
+        if (value.ToEmus() <= 0) {
             throw new System.ArgumentOutOfRangeException(paramName, message);
         }
     }

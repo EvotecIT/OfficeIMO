@@ -8,12 +8,12 @@ namespace OfficeIMO.PowerPoint {
     ///     Base type for one semantic designer slide request.
     /// </summary>
     public abstract class PowerPointDeckPlanSlide {
-        private protected PowerPointDeckPlanSlide(string title, string? subtitle, string? seed) {
-            if (string.IsNullOrWhiteSpace(title)) {
+        private protected PowerPointDeckPlanSlide(string? title, string? subtitle, string? seed, bool allowEmptyTitle = false) {
+            if (!allowEmptyTitle && string.IsNullOrWhiteSpace(title)) {
                 throw new ArgumentException("Plan slide title cannot be null or empty.", nameof(title));
             }
 
-            Title = title;
+            Title = title ?? string.Empty;
             Subtitle = subtitle;
             Seed = seed;
         }
@@ -52,9 +52,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal PowerPointDeckPlanSlideRenderSummary DescribeRender(int index, PowerPointDeckDesign design,
-            int slideIndexOffset = 0) {
+            int slideIndexOffset = 0, bool isLast = false) {
             string slideSeed = ResolveSeed(index, slideIndexOffset);
-            string? layoutVariant = ResolveLayoutVariant(design, slideSeed);
+            string? layoutVariant = this is PowerPointContentPlanSlide content
+                ? content.ResolvePreviewLayout(index + slideIndexOffset, isLast).ToString()
+                : ResolveLayoutVariant(design, slideSeed);
             return new PowerPointDeckPlanSlideRenderSummary(
                 index,
                 Kind,
@@ -151,7 +153,7 @@ namespace OfficeIMO.PowerPoint {
 
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
             PowerPointDesignerSlideOptions options = ConfigurePreview(design, slideSeed, _configure);
-            return PowerPointDesignExtensions.ResolveSectionVariant(options).ToString();
+            return "Section";
         }
 
         private protected override IReadOnlyList<string> ResolveLayoutReasons(PowerPointDeckDesign design,
@@ -233,7 +235,7 @@ namespace OfficeIMO.PowerPoint {
 
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
             PowerPointCaseStudySlideOptions options = ConfigurePreview(design, slideSeed, _configure);
-            return PowerPointDesignExtensions.ResolveCaseStudyVariant(options, Sections, Metrics).ToString();
+            return "CaseStudy";
         }
 
         private protected override IReadOnlyList<string> ResolveLayoutReasons(PowerPointDeckDesign design,
@@ -316,7 +318,7 @@ namespace OfficeIMO.PowerPoint {
 
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
             PowerPointProcessSlideOptions options = ConfigurePreview(design, slideSeed, _configure);
-            return PowerPointDesignExtensions.ResolveProcessVariant(options, Steps).ToString();
+            return "Process";
         }
 
         private protected override IReadOnlyList<string> ResolveLayoutReasons(PowerPointDeckDesign design,
@@ -396,7 +398,7 @@ namespace OfficeIMO.PowerPoint {
 
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
             PowerPointCardGridSlideOptions options = ConfigurePreview(design, slideSeed, _configure);
-            return PowerPointDesignExtensions.ResolveCardGridVariant(options, Cards).ToString();
+            return "Cards";
         }
 
         private protected override IReadOnlyList<string> ResolveLayoutReasons(PowerPointDeckDesign design,
@@ -461,7 +463,7 @@ namespace OfficeIMO.PowerPoint {
 
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
             PowerPointLogoWallSlideOptions options = ConfigurePreview(design, slideSeed, _configure);
-            return PowerPointDesignExtensions.ResolveLogoWallVariant(options, Logos).ToString();
+            return "Logos";
         }
 
         private protected override IReadOnlyList<string> ResolveLayoutReasons(PowerPointDeckDesign design,
@@ -535,7 +537,7 @@ namespace OfficeIMO.PowerPoint {
 
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
             PowerPointCoverageSlideOptions options = ConfigurePreview(design, slideSeed, _configure);
-            return PowerPointDesignExtensions.ResolveCoverageVariant(options, Locations).ToString();
+            return "Coverage";
         }
 
         private protected override IReadOnlyList<string> ResolveLayoutReasons(PowerPointDeckDesign design,
@@ -622,7 +624,7 @@ namespace OfficeIMO.PowerPoint {
 
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
             PowerPointCapabilitySlideOptions options = ConfigurePreview(design, slideSeed, _configure);
-            return PowerPointDesignExtensions.ResolveCapabilityVariant(options, Sections).ToString();
+            return (options.Metrics.Count > 0 ? "CaseStudy" : options.Locations.Count > 0 ? "Coverage" : !string.IsNullOrWhiteSpace(options.VisualImagePath) ? "TwoContent" : options.Logos.Count > 0 ? "Logos" : "Cards");
         }
 
         private protected override IReadOnlyList<string> ResolveLayoutReasons(PowerPointDeckDesign design,

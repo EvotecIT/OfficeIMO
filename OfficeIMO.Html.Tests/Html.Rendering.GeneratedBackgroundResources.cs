@@ -120,7 +120,7 @@ public sealed partial class HtmlRenderingTests {
             ? await HtmlRenderEngine.RenderAsync(html, options) : HtmlRenderEngine.Render(html, options);
 
         Assert.Equal("https://example.test/main.css", Assert.Single(requests));
-        Assert.Equal(generated, rendered.Diagnostics.Any(diagnostic => diagnostic.Code == "ImageResourceRejectedByPolicy"
+        Assert.Equal(generated, rendered.Diagnostics.Any(diagnostic => diagnostic.Code == "image-resource-rejected-by-policy"
             && diagnostic.Source == "file:///private/blocked.png"));
     }
 

@@ -11,11 +11,11 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(false, 2)]
     [InlineData(true, 2)]
     public void Table_MergedTailSurvivesTheLastNeighbourRowSplitting(bool inRowColumn, double cellSpacing) {
-        PdfTableStyle style = TableStyles.Minimal();
+        PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.CellPaddingX = style.CellPaddingY = 0;
-        style.MinRowHeight = 0;
-        style.CellSpacing = cellSpacing;
+        style.CellPaddingX = style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(0);
+        style.CellSpacing = global::OfficeIMO.OfficeLength.Points(cellSpacing);
         const int tokenCount = 40;
         PdfTableCell[][] rows = {
             new[] { PdfTableCell.Merge(string.Join("\n", Enumerable.Range(1, tokenCount).Select(n => $"Span{n}")), rowSpan: 3), PdfTableCell.TextCell("Neighbour0") },
@@ -23,9 +23,9 @@ public partial class PdfDocumentVisualQualityTests {
             new[] { PdfTableCell.TextCell(string.Join("\n", Enumerable.Range(1, 8).Select(n => $"LongNeighbour{n}"))) },
             new[] { PdfTableCell.TextCell("AfterSpan"), PdfTableCell.TextCell("AfterNeighbour") }
         };
-        PdfDocument document = PdfDocument.Create(new PdfOptions {
-            PageWidth = 300, PageHeight = 120, MarginLeft = 20, MarginRight = 20,
-            MarginTop = 20, MarginBottom = 20, DefaultFontSize = 12
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
+            PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(120), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
         });
         if (inRowColumn)
             document.Compose(builder => builder.Page(page => page.Content(content =>
@@ -52,21 +52,21 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(true, 12)]
     [InlineData(true, 18)]
     public void Table_MergedTextAndPaintContinueWithinEachPage(bool inRowColumn, int tokenCount) {
-        PdfTableStyle style = TableStyles.Minimal();
+        PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.CellPaddingX = style.CellPaddingY = 0;
-        style.MinRowHeight = 0;
+        style.CellPaddingX = style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(0);
         style.BorderColor = style.RowSeparatorColor = style.RowStripeFill = null;
-        style.CellFills = new() { [(0, 0)] = new PdfColor(.31, .41, .51) };
-        style.CellBorders = new() { [(0, 0)] = new PdfCellBorder { Color = new PdfColor(.61, .21, .11), Width = .5 } };
+        style.CellFills = new() { [(0, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.31, .41, .51) };
+        style.CellBorders = new() { [(0, 0)] = new PdfCellBorder { Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.61, .21, .11), Width = global::OfficeIMO.OfficeLength.Points(.5) } };
         PdfTableCell[][] rows = {
             new[] { PdfTableCell.Merge(string.Join("\n", Enumerable.Range(1, tokenCount).Select(n => $"Token{n}")), rowSpan: 3), PdfTableCell.TextCell("Neighbour0") },
             new[] { PdfTableCell.TextCell("Neighbour1") },
             new[] { PdfTableCell.TextCell("Neighbour2") }
         };
-        PdfDocument document = PdfDocument.Create(new PdfOptions {
-            PageWidth = 300, PageHeight = 120, MarginLeft = 20, MarginRight = 20,
-            MarginTop = 20, MarginBottom = 20, DefaultFontSize = 12
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
+            PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(120), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
         });
         if (inRowColumn)
             document.Compose(builder => builder.Page(page => page.Content(content =>

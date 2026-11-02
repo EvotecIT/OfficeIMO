@@ -32,12 +32,12 @@ public partial class Word {
         Assert.Empty(document.ValidateDocument());
         string paragraphXml = paragraph._paragraph.OuterXml;
         string stylesXml = document.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.OuterXml;
-        var options = new WordToPdfOptions();
+        var options = new WordPdfExportOptions();
 
         for (int index = 0; index < 2; index++) {
-            var result = document.ToPdfDocumentResult(options);
+            var result = document.ConvertToPdfWithEvidence(options);
             PdfConversionWarning warning = Assert.Single(result.Warnings,
-                item => item.Code == "NativeParagraphFrameFlattened");
+                item => item.Code == "native-paragraph-frame-flattened");
             Assert.Equal(OfficeIMO.OfficeConversionLossKind.Approximation, warning.LossKind);
             Assert.True(result.HasLoss);
             Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
@@ -45,7 +45,7 @@ public partial class Word {
             var saved = result.Save(output);
             Assert.True(saved.Succeeded);
             Assert.True(saved.HasLoss);
-            Assert.Single(saved.Warnings, item => item.Code == "NativeParagraphFrameFlattened");
+            Assert.Single(saved.Warnings, item => item.Code == "native-paragraph-frame-flattened");
             byte[] savedPdf = output.ToArray();
             string allText = PdfReadDocument.Open(savedPdf,
                 new PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
@@ -62,8 +62,8 @@ public partial class Word {
     public void SaveAsPdf_OrdinaryParagraphsDoNotReportFrameLoss() {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("PLAINMARKER");
-        var result = document.ToPdfDocumentResult();
-        Assert.DoesNotContain(result.Warnings, item => item.Code == "NativeParagraphFrameFlattened");
+        var result = document.ConvertToPdfWithEvidence();
+        Assert.DoesNotContain(result.Warnings, item => item.Code == "native-paragraph-frame-flattened");
         Assert.Contains("PLAINMARKER", PdfReadDocument.Open(result.ToBytes()).ExtractText(), StringComparison.Ordinal);
     }
 
@@ -74,9 +74,9 @@ public partial class Word {
         using WordDocument document = CreateFrameFlowBreakDocument(columnBreak, inherited, out WordParagraph paragraph);
         string sourceXml = paragraph._paragraph.OuterXml;
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(CreateFrameFlowBreakPdfOptions());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(CreateFrameFlowBreakPdfOptions());
 
-        PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "NativeParagraphFrameFlattened");
+        PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "native-paragraph-frame-flattened");
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Approximation, warning.LossKind);
         Assert.True(result.HasLoss);
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
@@ -91,7 +91,7 @@ public partial class Word {
     public void SaveAsPdf_BreakOnlyFrameRequireNoLossRejectsApproximation() {
         using WordDocument document = CreateFrameFlowBreakDocument(false, false, out _);
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(CreateFrameFlowBreakPdfOptions());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(CreateFrameFlowBreakPdfOptions());
 
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
         Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
@@ -114,9 +114,9 @@ public partial class Word {
         SetFrameDiagnosticProperties(document, paragraph, inherited: false);
         string sourceXml = paragraph._paragraph.OuterXml;
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
 
-        Assert.Single(result.Warnings, item => item.Code == "NativeParagraphFrameFlattened");
+        Assert.Single(result.Warnings, item => item.Code == "native-paragraph-frame-flattened");
         string text = PdfReadDocument.Open(result.ToBytes()).ExtractText();
         Assert.Equal(1, text.Split(new[] { "FRAMEBEFORE" }, StringSplitOptions.None).Length - 1);
         if (!trailingLegacyMark) Assert.Equal(1, text.Split(new[] { "FRAMEAFTER" }, StringSplitOptions.None).Length - 1);
@@ -131,9 +131,9 @@ public partial class Word {
         using WordDocument document = CreateFrameFlowBreakDocument(columnBreak, false, out WordParagraph paragraph);
         paragraph._paragraph.ParagraphProperties!.RemoveAllChildren<W.FrameProperties>();
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(CreateFrameFlowBreakPdfOptions());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(CreateFrameFlowBreakPdfOptions());
 
-        Assert.DoesNotContain(result.Warnings, item => item.Code == "NativeParagraphFrameFlattened");
+        Assert.DoesNotContain(result.Warnings, item => item.Code == "native-paragraph-frame-flattened");
         result.RequireNoLoss();
         string text = PdfReadDocument.Open(result.ToBytes()).ExtractText();
         Assert.Contains("BEFORE", text, StringComparison.Ordinal);
@@ -153,12 +153,12 @@ public partial class Word {
         return document;
     }
 
-    private static WordToPdfOptions CreateFrameFlowBreakPdfOptions() {
-        var pdfOptions = new PdfOptions();
+    private static WordPdfExportOptions CreateFrameFlowBreakPdfOptions() {
+        var pdfOptions = new PdfCreateOptions();
         pdfOptions.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
             ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'B', 'E', 'F', 'O', 'R', 'T')));
-        return new WordToPdfOptions {
+        return new WordPdfExportOptions {
             IncludePageNumbers = false,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
             PdfOptions = pdfOptions

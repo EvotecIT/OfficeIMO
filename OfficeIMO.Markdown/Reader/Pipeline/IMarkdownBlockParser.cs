@@ -13,5 +13,5 @@ public interface IMarkdownBlockParser {
     /// <param name="doc">Markdown document model being built.</param>
     /// <param name="state">Mutable state shared across parsers.</param>
     /// <returns>true if a block was parsed; otherwise false.</returns>
-    bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state);
+    bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state);
 }

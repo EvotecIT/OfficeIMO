@@ -60,7 +60,7 @@ internal static class ExcelExtractionExtensions {
         var range = string.IsNullOrWhiteSpace(a1Range) ? sheet.GetUsedRangeA1() : a1Range!;
 
         // Determine headers from the first row in the overall range.
-        (int r1, int c1, int r2, int c2) = A1.ParseRange(range);
+        (int r1, int c1, int r2, int c2) = ExcelA1.ParseRange(range);
         var width = Math.Max(0, c2 - c1 + 1);
         long projectedCells = (long)Math.Max(0, r2 - r1 + 1) * width;
         if (projectedCells > chunking.MaxProjectedCells - chunking.ProjectedCells)

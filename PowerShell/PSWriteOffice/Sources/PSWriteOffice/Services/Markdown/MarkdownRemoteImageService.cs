@@ -15,8 +15,8 @@ internal static class MarkdownRemoteImageService
     private static readonly HttpClient Client = new();
 
     internal static async Task ConfigureResolverAsync(
-        MarkdownDoc document,
-        MarkdownToWordOptions options,
+        MarkdownDocument document,
+        WordMarkdownImportOptions options,
         CancellationToken cancellationToken)
     {
         var collector = new RemoteImageCollector();

@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         [InlineData("xlookup-name", "EmptyLookup")]
         public void FormulaEvaluator_BlankReferenceFunctionsRetainContextUntilCellEvaluation(string caseId, string reference) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("References");
+            var sheet = document.AddSheet("References");
             sheet.CellValue(1, 1, 1d);
             sheet.CellValue(3, 1, 3d);
             document.SetNamedRange("EmptyCell", "'References'!$A$2");
@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
         [InlineData("XLOOKUP(2,{1;2;3},A1:A3)")]
         public void FormulaEvaluator_BlankReferencesCoerceAtNumericAndCriteriaConsumers(string reference) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Consumers");
+            var sheet = document.AddSheet("Consumers");
             sheet.CellValue(1, 1, 1d);
             sheet.CellValue(3, 1, 3d);
             for (int row = 1; row <= 3; row++) {
@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
         [InlineData("XLOOKUP(2,{1;2;3},A1:A3)")]
         public void FormulaEvaluator_BlankCriteriaReferencesUseZeroRatherThanFormulaText(string reference) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Criteria");
+            var sheet = document.AddSheet("Criteria");
             sheet.CellValue(1, 1, 1d);
             sheet.CellValue(3, 1, 3d);
             for (int row = 1; row <= 3; row++) {
@@ -113,7 +113,7 @@ namespace OfficeIMO.Tests {
         [InlineData("EmptyKey")]
         public void FormulaEvaluator_BlankLookupKeysRespectLegacyAndModernSearchSemantics(string key) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Keys");
+            var sheet = document.AddSheet("Keys");
             document.SetNamedRange("EmptyKey", "Keys!$H$1", save: false);
             sheet.CellValue(2, 1, 5d);
             sheet.CellValue(3, 1, 0d);
@@ -160,7 +160,7 @@ namespace OfficeIMO.Tests {
         [InlineData(true)]
         public void FormulaEvaluator_ArrayBlankOutputsReplaceCachesWithNumericZero(bool dynamic) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Arrays");
+            var sheet = document.AddSheet("Arrays");
             sheet.CellValue(1, 1, 1d);
             sheet.CellValue(2, 1, 9d);
             if (dynamic) sheet.SetDynamicArrayFormula("G1", "A1:A2");

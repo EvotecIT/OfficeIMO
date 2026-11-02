@@ -28,8 +28,8 @@ public sealed class OpenDocumentParagraphAlignmentConversionTests {
 
         OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
         using WordDocument target = conversion.Value;
-        WordParagraphSnapshot converted = Assert.Single(target.CreateInspectionSnapshot().Sections
-            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
+        WordParagraphInfo converted = Assert.Single(target.Inspect().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
 
         Assert.Equal(expectedWordAlignment, converted.Alignment);
         Assert.True(converted.IsRightToLeft);

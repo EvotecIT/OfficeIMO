@@ -1,6 +1,6 @@
 # OfficeIMO.OneNote.Markdown
 
-`OfficeIMO.OneNote.Markdown` is the shared semantic projection from offline `OfficeIMO.OneNote` models to Markdown text and `MarkdownDoc`. Reader, HTML, and PDF adapters consume this projection instead of implementing separate OneNote format logic.
+`OfficeIMO.OneNote.Markdown` is the shared semantic projection from offline `OfficeIMO.OneNote` models to Markdown text and `MarkdownDocument`. Reader, HTML, and PDF adapters consume this projection instead of implementing separate OneNote format logic.
 
 ```csharp
 using OfficeIMO.OneNote;

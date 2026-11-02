@@ -11,18 +11,22 @@ namespace OfficeIMO.Word {
         /// Add default header and footers to section. You can control odd/even/first with DifferentOddAndEventPages/DifferentFirstPage properties.
         /// </summary>
         /// <param name="section"></param>
-        public static void AddHeadersAndFooters(this WordSection section) {
+        /// <returns>The attached default header and footer.</returns>
+        public static (WordHeader Header, WordFooter Footer) AddHeadersAndFooters(this WordSection section) {
             AddHeaderReference(section._document, section, HeaderFooterValues.Default);
             AddFooterReference(section._document, section, HeaderFooterValues.Default);
+            return (section.Header.Default!, section.Footer.Default!);
         }
 
         /// <summary>
         /// Add default header and footers to document (section 0). You can control odd/even/first with DifferentOddAndEventPages/DifferentFirstPage properties.
         /// </summary>
         /// <param name="document"></param>
-        public static void AddHeadersAndFooters(this WordDocument document) {
+        /// <returns>The attached default header and footer.</returns>
+        public static (WordHeader Header, WordFooter Footer) AddHeadersAndFooters(this WordDocument document) {
             AddHeaderReference(document, document.Sections[0], HeaderFooterValues.Default);
             AddFooterReference(document, document.Sections[0], HeaderFooterValues.Default);
+            return (document.Sections[0].Header.Default!, document.Sections[0].Footer.Default!);
         }
 
         /// <summary>
@@ -234,8 +238,8 @@ namespace OfficeIMO.Word {
                 var pageSize = WordPageSizes.Letter;
                 // Clone to avoid sharing instances between sections.
                 PageSize pageSizeClone = new PageSize() {
-                    Width = pageSize.WidthTwips,
-                    Height = pageSize.HeightTwips,
+                    Width = checked((uint)(pageSize.Width.ToTwips())),
+                    Height = checked((uint)(pageSize.Height.ToTwips())),
                     Code = pageSize.PaperCode
                 };
 

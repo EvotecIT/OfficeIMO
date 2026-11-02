@@ -477,7 +477,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static string GetColumnName(int columnIndex) {
-            return A1.ColumnIndexToLetters(columnIndex);
+            return ExcelA1.ColumnIndexToLetters(columnIndex);
         }
 
         private string BuildCellReference(int row, int column) {
@@ -499,7 +499,7 @@ namespace OfficeIMO.Excel {
         private string GetCachedColumnName(int columnIndex) {
             const int MaxCachedColumn = 256;
             if ((uint)(columnIndex - 1) >= MaxCachedColumn) {
-                return A1.ColumnIndexToLetters(columnIndex);
+                return ExcelA1.ColumnIndexToLetters(columnIndex);
             }
 
             var cache = _cellReferenceColumnNameCache;
@@ -510,7 +510,7 @@ namespace OfficeIMO.Excel {
 
             string? columnName = cache[columnIndex - 1];
             if (columnName == null) {
-                columnName = A1.ColumnIndexToLetters(columnIndex);
+                columnName = ExcelA1.ColumnIndexToLetters(columnIndex);
                 cache[columnIndex - 1] = columnName;
             }
 
@@ -550,7 +550,7 @@ namespace OfficeIMO.Excel {
             return rowIndex;
         }
 
-        // Exposed as internal so other components in the same assembly (e.g., SheetComposer)
+        // Exposed as internal so other components in the same assembly (e.g., ExcelReportBuilder)
         // can reuse the shared-string/inline-string resolution logic when they already have
         // a Cell reference. Prefer using public TryGetCellText(row,col, out text) when possible.
         internal string GetCellText(Cell cell) {

@@ -99,7 +99,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         double halfPoints = points * 2D;
         double roundedHalfPoints = Math.Round(halfPoints, MidpointRounding.AwayFromZero);
         if (Math.Abs(halfPoints - roundedHalfPoints) > 0.000000001D) return 1;
-        target.FontSizePoints = roundedHalfPoints / 2D;
+        target.FontSize = global::OfficeIMO.OfficeLength.Points(roundedHalfPoints / 2D);
         return 0;
     }
 

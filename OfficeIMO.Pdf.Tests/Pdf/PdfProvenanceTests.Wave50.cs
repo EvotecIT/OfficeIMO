@@ -34,7 +34,7 @@ public sealed partial class PdfProvenanceTests {
 
     [Fact]
     public void ProvenanceRemovalRefusesToSilentlyDropPdfEncryption() {
-        byte[] encrypted = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        byte[] encrypted = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Encrypted provenance"))
             .AttachFile(new PdfEmbeddedFile(
                 "content-credential.c2pa",

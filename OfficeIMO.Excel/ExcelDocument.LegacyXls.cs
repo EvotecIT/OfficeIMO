@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
         /// Loads a legacy binary `.xls` workbook and projects supported content into a normal OfficeIMO Excel document.
         /// The resulting document can save as Open XML `.xlsx` or as a supported native `.xls` subset.
         /// </summary>
-        public static ExcelDocument LoadLegacyXls(string path, LegacyXlsImportOptions? options = null) {
+        internal static ExcelDocument LoadLegacyXls(string path, LegacyXlsImportOptions? options = null) {
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(path, options);
             return ProjectLoadedLegacyXlsWorkbook(workbook, path);
         }
@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel {
         /// Loads a legacy binary `.xls` workbook and returns both the projected OfficeIMO document and the import report.
         /// The resulting document can save as Open XML `.xlsx` or as a supported native `.xls` subset.
         /// </summary>
-        public static LegacyXlsLoadResult LoadLegacyXlsWithReport(string path, LegacyXlsImportOptions? options = null) {
+        internal static LegacyXlsLoadResult LoadLegacyXlsWithReport(string path, LegacyXlsImportOptions? options = null) {
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(path, options);
             return CreateLegacyXlsLoadResult(workbook, path);
         }
@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel {
         /// Loads a legacy binary `.xls` workbook stream and projects supported content into a normal OfficeIMO Excel document.
         /// The resulting document can save as Open XML `.xlsx` or as a supported native `.xls` subset.
         /// </summary>
-        public static ExcelDocument LoadLegacyXls(Stream stream, LegacyXlsImportOptions? options = null) {
+        internal static ExcelDocument LoadLegacyXls(Stream stream, LegacyXlsImportOptions? options = null) {
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(stream, options);
             return ProjectLoadedLegacyXlsWorkbook(workbook, sourcePath: null);
         }
@@ -34,7 +34,7 @@ namespace OfficeIMO.Excel {
         /// Loads a legacy binary `.xls` workbook stream and returns both the projected OfficeIMO document and the import report.
         /// The resulting document can save as Open XML `.xlsx` or as a supported native `.xls` subset.
         /// </summary>
-        public static LegacyXlsLoadResult LoadLegacyXlsWithReport(Stream stream, LegacyXlsImportOptions? options = null) {
+        internal static LegacyXlsLoadResult LoadLegacyXlsWithReport(Stream stream, LegacyXlsImportOptions? options = null) {
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(stream, options);
             return CreateLegacyXlsLoadResult(workbook, sourcePath: null);
         }

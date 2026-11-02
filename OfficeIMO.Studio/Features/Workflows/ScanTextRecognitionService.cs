@@ -20,6 +20,6 @@ internal sealed class ScanTextRecognitionService : IScanTextRecognitionService {
             : _runtime.CreateSessionAsync(sessionOptions, cancellationToken)).ConfigureAwait(false);
         var settings = options.Pdf.Clone();
         settings.Language = options.Languages.ToTesseractExpression();
-        return await PdfDocument.Load(source).PrepareSearchableOcrAsync(session.Engine, settings, cancellationToken).ConfigureAwait(false);
+        return await PdfDocument.Load(new MemoryStream(source)).PrepareSearchableOcrAsync(session.Engine, settings, cancellationToken).ConfigureAwait(false);
     }
 }

@@ -128,7 +128,7 @@ namespace OfficeIMO.PowerPoint {
 
                 foreach (PowerPointTextRun run in paragraph.Runs) {
                     run.Bold = true;
-                    run.FontSize = fontSize;
+                    run.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize);
                 }
             }
         }

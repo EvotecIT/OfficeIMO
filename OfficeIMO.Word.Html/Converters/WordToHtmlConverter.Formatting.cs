@@ -39,7 +39,7 @@ namespace OfficeIMO.Word.Html {
                 IHtmlDocument htmlDocument,
                 WordParagraph run,
                 INode node,
-                WordToHtmlOptions options,
+                WordHtmlExportOptions options,
                 bool suppressUnderline,
                 bool suppressStrikethrough,
                 string source) {
@@ -73,7 +73,7 @@ namespace OfficeIMO.Word.Html {
                         if (!IsExactCssUnderline(underline.Value)) {
                             AddWordTextStyleApproximation(
                                 options,
-                                "WordUnderlineStyleApproximated",
+                                "word-underline-style-approximated",
                                 "Word underline style '" + underline.Value + "' uses the closest CSS " + cssStyle + " pattern; private round-trip metadata retains the exact Word value.",
                                 source);
                         }
@@ -95,7 +95,7 @@ namespace OfficeIMO.Word.Html {
             private static bool IsExactCssUnderline(WordUnderlineStyle underline) => underline is
                 WordUnderlineStyle.Single or WordUnderlineStyle.Double or WordUnderlineStyle.Dotted or WordUnderlineStyle.Dash or WordUnderlineStyle.Wave;
 
-            private static void AddWordTextStyleApproximation(WordToHtmlOptions options, string code, string message, string source) {
+            private static void AddWordTextStyleApproximation(WordHtmlExportOptions options, string code, string message, string source) {
                 if (options.ConversionReport.Diagnostics.Any(diagnostic => diagnostic.Code == code && diagnostic.Source == source)) return;
                 options.ConversionReport.Add(
                     "OfficeIMO.Word.Html",

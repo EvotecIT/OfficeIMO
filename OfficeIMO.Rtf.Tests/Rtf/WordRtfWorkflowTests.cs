@@ -17,7 +17,7 @@ public class WordRtfWorkflowTests {
         Assert.True(result.WorkflowResult.IsValid);
         Assert.Contains("Name", result.WorkflowResult.MergeFieldNames);
         Assert.Contains("Dear Ada", PlainText(result.Document), StringComparison.Ordinal);
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RtfWordMailMergeCompleted");
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "rtf-word-mail-merge-completed");
     }
 
     [Fact]

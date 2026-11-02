@@ -4,7 +4,7 @@ using OfficeIMO.Pdf;
 /// <summary>Independent reader qualification of each PDF table cell, its column and ordered row.</summary>
 internal static class DataTablesPdfComparisonVerifier {
     internal static object Verify(string path, int rows, int columns, bool unique) {
-        PdfReadDocument document = PdfReadDocument.Open(path);
+        using PdfDocument document = PdfDocument.Load(path);
         Require(!document.RepairReport.HasRepairs, "PDF required reader repairs.");
         int row = 0, headings = 0;
         const double pageWidth = 1190.551, pageHeight = 841.89;

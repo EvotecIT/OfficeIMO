@@ -119,17 +119,18 @@ public static partial class OfficeDrawingSvgExporter {
         output.Append('"').AppendAttribute("fill-rule", "nonzero");
         if (text.FillSuppressed) output.AppendAttribute("fill", "none");
         else output.AppendPaintAttribute("fill", text.Color ?? OfficeColor.Black);
-        if (text.OutlineStrokeColor is OfficeColor stroke) AppendTextStrokeAttributes(output, stroke, text.OutlineStrokeWidth, text.OutlineStrokeDashPattern, text.OutlineStrokeDashOffset);
+        if (text.OutlineStrokeColor is OfficeColor stroke) AppendTextStrokeAttributes(output, stroke, text.OutlineStrokeWidth, text.OutlineStrokeDashPattern, text.OutlineStrokeDashOffset, text.OutlineStrokeLineCap, text.OutlineStrokeLineJoin, text.OutlineStrokeMiterLimit);
         output.Append("/></g>");
         return true;
     }
 
     private static void AppendTextStrokeAttributes(StringBuilder output, OfficeColor color, double width,
-        IReadOnlyList<double>? dashPattern, double dashOffset) {
+        IReadOnlyList<double>? dashPattern, double dashOffset, OfficeStrokeLineCap cap, OfficeStrokeLineJoin join, double miterLimit) {
         output.AppendPaintAttribute("stroke", color)
             .AppendNumberAttribute("stroke-width", width > 0D ? width : 1D)
-            .AppendAttribute("stroke-linejoin", "miter")
-            .AppendNumberAttribute("stroke-miterlimit", 10D);
+            .AppendStrokeLineCapAttribute(cap)
+            .AppendStrokeLineJoinAttribute(join)
+            .AppendNumberAttribute("stroke-miterlimit", miterLimit);
         if (dashPattern is { Count: > 0 }) {
             output.Append(" stroke-dasharray=\"");
             for (int index = 0; index < dashPattern.Count; index++) {
@@ -151,7 +152,7 @@ public static partial class OfficeDrawingSvgExporter {
     private static void AppendStrokedSvgText(StringBuilder output, string fragment, OfficeDrawingText text, CancellationToken token) {
         var root = XElement.Parse("<g>" + fragment + "</g>", LoadOptions.PreserveWhitespace);
         var attributes = new StringBuilder("<g");
-        AppendTextStrokeAttributes(attributes, text.OutlineStrokeColor!.Value, text.OutlineStrokeWidth, text.OutlineStrokeDashPattern, text.OutlineStrokeDashOffset);
+        AppendTextStrokeAttributes(attributes, text.OutlineStrokeColor!.Value, text.OutlineStrokeWidth, text.OutlineStrokeDashPattern, text.OutlineStrokeDashOffset, text.OutlineStrokeLineCap, text.OutlineStrokeLineJoin, text.OutlineStrokeMiterLimit);
         var paint = XElement.Parse(attributes.Append("/>").ToString());
         foreach (XElement element in root.Descendants().Where(e => e.Name.LocalName is "text" or "tspan")) {
             token.ThrowIfCancellationRequested();

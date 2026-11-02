@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel {
                 return this;
             }
 
-            string column = A1.ColumnIndexToLetters(_colIndex);
+            string column = ExcelA1.ColumnIndexToLetters(_colIndex);
             _sheet.FormatRange(
                 column + _startRow.ToString(CultureInfo.InvariantCulture) + ":" +
                 column + _endRow.ToString(CultureInfo.InvariantCulture),
@@ -117,7 +117,7 @@ namespace OfficeIMO.Excel {
         /// Applies a solid background fill to the column using an OfficeIMO color.
         /// </summary>
         /// <param name="color">Fill color.</param>
-        public ExcelColumnStyleByHeaderBuilder Background(OfficeIMO.Drawing.OfficeColor color) {
+        public ExcelColumnStyleByHeaderBuilder Background(OfficeIMO.OfficeColor color) {
             for (int r = _startRow; r <= _endRow; r++)
                 _sheet.CellBackground(r, _colIndex, color);
             return this;
@@ -201,7 +201,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Overload that accepts OfficeIMO colors for convenience.
         /// </summary>
-        public ExcelColumnStyleByHeaderBuilder BackgroundByTextMap(System.Collections.Generic.IDictionary<string, OfficeIMO.Drawing.OfficeColor> map, bool caseInsensitive = true) {
+        public ExcelColumnStyleByHeaderBuilder BackgroundByTextMap(System.Collections.Generic.IDictionary<string, OfficeIMO.OfficeColor> map, bool caseInsensitive = true) {
             if (map == null || map.Count == 0) return this;
             var hex = new System.Collections.Generic.Dictionary<string, string>(caseInsensitive ? System.StringComparer.OrdinalIgnoreCase : System.StringComparer.Ordinal);
             foreach (var kv in map)

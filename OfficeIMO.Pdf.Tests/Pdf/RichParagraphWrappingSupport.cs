@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests.Pdf {
             return method!.Invoke(null, new object?[] { runs, maxWidthPts, fontSize, baseFont, fontSize * 1.4, null, tabStopWidth ?? 36.0, null, tabStops, System.Threading.CancellationToken.None })!;
         }
 
-        private static object InvokeWrapRichRunsWithOptions(IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, PdfOptions options) {
+        private static object InvokeWrapRichRunsWithOptions(IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, PdfCreateOptions options) {
             var method = typeof(PdfWriter).GetMethod("WrapRichRunsCore", BindingFlags.NonPublic | BindingFlags.Static);
             Assert.NotNull(method);
             return method!.Invoke(null, new object?[] { runs, maxWidthPts, fontSize, baseFont, fontSize * 1.4, null, 36.0, options, null, System.Threading.CancellationToken.None })!;

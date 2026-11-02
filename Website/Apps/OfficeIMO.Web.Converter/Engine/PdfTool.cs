@@ -20,7 +20,8 @@ internal static class PdfTool {
 
     internal static PdfProbeDocument Probe(ToolSession session, int slot) {
         SelectedDocument file = session.Input(slot);
-        PdfDocumentPreflight preflight = PdfDocument.Preflight(file.Bytes, BrowserPdfPolicy.CreateReadOptions());
+        PdfLoadOptions inspectionOptions = BrowserPdfPolicy.CreateReadOptions();
+        PdfDocumentPreflight preflight = PdfDocument.Preflight(file.Bytes, inspectionOptions);
         bool encrypted = preflight.Probe.Security.HasEncryption;
         return new PdfProbeDocument(
             true,

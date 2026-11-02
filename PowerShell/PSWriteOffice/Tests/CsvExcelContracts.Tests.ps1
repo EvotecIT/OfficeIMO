@@ -29,7 +29,7 @@ Describe 'CSV and Excel mutation contracts' {
         Test-Path -LiteralPath $path | Should -BeFalse
     }
 
-    It 'does not copy an Excel template when New-OfficeExcel NoSave is invoked with WhatIf' {
+    It 'does not copy an Excel template when New-OfficeExcel content block is invoked with WhatIf' {
         $template = Join-Path $TestDrive 'template.xlsx'
         $target = Join-Path $TestDrive 'target.xlsx'
         New-OfficeExcel -Path $template {
@@ -38,30 +38,30 @@ Describe 'CSV and Excel mutation contracts' {
             }
         }
 
-        New-OfficeExcel -TemplatePath $template -Path $target -NoSave -WhatIf | Out-Null
+        New-OfficeExcel -Template $template -Path $target -WhatIf {} | Out-Null
 
         Test-Path -LiteralPath $target | Should -BeFalse
     }
 
-    It 'does not create an Excel package when New-OfficeExcel NoSave is invoked with WhatIf' {
+    It 'does not create an Excel package when New-OfficeExcel content block is invoked with WhatIf' {
         $target = Join-Path $TestDrive 'nosave-whatif.xlsx'
 
-        New-OfficeExcel -Path $target -NoSave -WhatIf {
+        New-OfficeExcel -Path $target -WhatIf {
             ExcelSheet -Name Data
         } | Out-Null
 
         Test-Path -LiteralPath $target | Should -BeFalse
     }
 
-    It 'returns a NoSave Excel workbook that can be saved later' {
+    It 'returns a live Excel workbook that can be saved later' {
         $target = Join-Path $TestDrive 'nosave-later-save.xlsx'
 
-        $document = New-OfficeExcel -Path $target -NoSave {
-            ExcelSheet -Name Data {
-                ExcelCell -Address A1 -Value 'Ready'
-            }
-        }
+        $document = New-OfficeExcel -Path $target
         try {
+            Add-OfficeExcelSheet -Document $document -Name Data -Content {
+                ExcelCell -Address A1 -Value 'Ready'
+            } | Out-Null
+            Test-Path -LiteralPath $target | Should -BeFalse
             $document.Save($target)
         } finally {
             $document.Dispose()
@@ -70,12 +70,12 @@ Describe 'CSV and Excel mutation contracts' {
         Test-Path -LiteralPath $target | Should -BeTrue
     }
 
-    It 'returns a live NoSave Excel workbook for emitted method calls' {
+    It 'returns a live Excel workbook for emitted method calls' {
         $target = Join-Path $TestDrive 'nosave-live-workbook.xlsx'
 
-        $workbook = New-OfficeExcel -Path $target -NoSave
+        $workbook = New-OfficeExcel -Path $target
         try {
-            $sheet = $workbook.AddWorksheet('Data')
+            $sheet = $workbook.AddSheet('Data')
             $sheet.Cell(1, 1, 'Ready')
             Save-OfficeExcel -Document $workbook -Path $target
         } finally {
@@ -92,15 +92,15 @@ Describe 'CSV and Excel mutation contracts' {
             WordParagraph -Text 'Template'
         }
 
-        New-OfficeWord -TemplatePath $template -Path $target -WhatIf | Out-Null
+        New-OfficeWord -Template $template -Path $target -WhatIf {} | Out-Null
 
         Test-Path -LiteralPath $target | Should -BeFalse
     }
 
-    It 'does not create a Word package when New-OfficeWord NoSave is invoked with WhatIf' {
+    It 'does not create a Word package when New-OfficeWord content block is invoked with WhatIf' {
         $target = Join-Path $TestDrive 'nosave-whatif.docx'
 
-        New-OfficeWord -Path $target -NoSave -WhatIf {
+        New-OfficeWord -Path $target -WhatIf {
             WordParagraph -Text 'Draft'
         } | Out-Null
 
@@ -194,7 +194,7 @@ Describe 'CSV and Excel mutation contracts' {
 
         New-OfficeExcel -Path $xlsx {
             ExcelSheet -Name Data {
-                Add-OfficeExcelTable -InputObject $rows -TableName Rows
+                Add-OfficeExcelTable -InputObject $rows -Name Rows
             }
         }
 
@@ -267,7 +267,7 @@ Describe 'CSV and Excel mutation contracts' {
             Add-OfficeExcelSheet -Name Data
         }
 
-        $document = Get-OfficeExcel -Path $xlsx
+        $document = Open-OfficeExcel -Path $xlsx
         try {
             $document | Add-OfficeExcelThreadedComment -Sheet Data -Address A1 -Text 'Nope' -Author Reviewer -WhatIf
             $audit = $document | Get-OfficeExcelCommentAudit -IncludeComments
@@ -277,7 +277,7 @@ Describe 'CSV and Excel mutation contracts' {
         }
     }
 
-    It 'does not join workbooks into live Excel documents when WhatIf is used' {
+    It 'does not copy sheets into live Excel documents when WhatIf is used' {
         $target = Join-Path $TestDrive 'join-target-whatif.xlsx'
         $source = Join-Path $TestDrive 'join-source-whatif.xlsx'
         New-OfficeExcel -Path $target {
@@ -287,9 +287,9 @@ Describe 'CSV and Excel mutation contracts' {
             Add-OfficeExcelSheet -Name Source
         }
 
-        $document = Get-OfficeExcel -Path $target
+        $document = Open-OfficeExcel -Path $target
         try {
-            $document | Join-OfficeExcelWorkbook -SourcePath $source -WhatIf | Should -BeNullOrEmpty
+            $document | Copy-OfficeExcelSheet -Source $source -WhatIf | Should -BeNullOrEmpty
             $summary = $document | Get-OfficeExcelSummary -IncludeSheets
             $summary.SheetCount | Should -Be 1
             $summary.Sheets.Name | Should -Contain 'Target'
@@ -305,7 +305,7 @@ Describe 'CSV and Excel mutation contracts' {
             Add-OfficeExcelSheet -Name Data
         }
 
-        $document = Get-OfficeExcel -Path $xlsx
+        $document = Open-OfficeExcel -Path $xlsx
         try {
             $document | Repair-OfficeExcelWorkbook -PassThru -WhatIf | Should -BeNullOrEmpty
         } finally {

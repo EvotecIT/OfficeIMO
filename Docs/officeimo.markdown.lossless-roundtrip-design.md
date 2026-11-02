@@ -2,14 +2,14 @@
 
 OfficeIMO exposes two complementary Markdown models:
 
-- `MarkdownDoc` is the semantic editing model used by renderers, transforms, converters, and canonical writing.
+- `MarkdownDocument` is the semantic editing model used by renderers, transforms, converters, and canonical writing.
 - `MarkdownParseResult.FinalSyntaxTree` is the source-oriented structural model used for spans, tokens, trivia, navigation, and source edits.
 
 Lossless workflows preserve source text that the caller does not intentionally change. Semantic `ToMarkdown()` output is a normalized document representation and is not presented as byte-preserving output.
 
 ## Current public contract
 
-- `MarkdownReaderOptions.PreserveTrivia` retains the raw reader input as `MarkdownParseResult.OriginalMarkdown`.
+- `MarkdownLoadOptions.PreserveTrivia` retains the raw reader input as `MarkdownParseResult.OriginalMarkdown`.
 - Syntax nodes and native projections expose normalized-source spans and source fields for the supported tokens.
 - Original-source slices are available when raw and normalized text are identical or differ only by supported line-ending normalization.
 - `MarkdownRoundtripWriter.WriteUnchanged` returns preserved original Markdown byte-for-byte when the parsed document has not changed.
@@ -66,7 +66,7 @@ For a focused source edit:
 ```csharp
 MarkdownParseResult parsed = MarkdownReader.ParseWithSyntaxTree(
     source,
-    new MarkdownReaderOptions { PreserveTrivia = true });
+    new MarkdownLoadOptions { PreserveTrivia = true });
 
 MarkdownRoundtripResult result = MarkdownRoundtripWriter.WriteWithSourceEdit(
     parsed,

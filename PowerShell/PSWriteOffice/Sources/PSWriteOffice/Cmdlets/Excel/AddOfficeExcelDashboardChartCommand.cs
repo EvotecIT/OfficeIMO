@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System;
 using System.Management.Automation;
 using OfficeIMO.Excel;
@@ -60,7 +61,7 @@ public sealed class AddOfficeExcelDashboardChartCommand : PSCmdlet
 
     /// <summary>Optional chart type override.</summary>
     [Parameter]
-    public ExcelChartType? ChartType { get; set; }
+    public OfficeChartType? ChartType { get; set; }
 
     /// <summary>Chart title.</summary>
     [Parameter]
@@ -115,8 +116,8 @@ public sealed class AddOfficeExcelDashboardChartCommand : PSCmdlet
             Title = Title,
             HasHeaders = HasHeaders,
             IncludeCachedData = IncludeCachedData,
-            WidthPixels = WidthPixels,
-            HeightPixels = HeightPixels,
+            Width = WidthPixels.HasValue ? OfficeLength.Pixels(WidthPixels.Value) : (OfficeLength?)null,
+            Height = HeightPixels.HasValue ? OfficeLength.Pixels(HeightPixels.Value) : (OfficeLength?)null,
             StyleId = StyleId,
             ColorStyleId = ColorStyleId
         };

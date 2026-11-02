@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfComplianceAnalyzerTests {
     [Fact]
     public void ProofReportRequiresVeraPdfBeforeClaimingPdfA() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
 
         PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(
@@ -26,7 +26,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void ProofReportAllowsPdfAClaimWhenRequiredValidatorPasses() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
         byte[] artifact = PdfDocument.Create(options).ToBytes();
         PdfExternalValidationResult veraPdf = PdfExternalValidationResult.PassedForArtifact(
@@ -59,7 +59,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void ProofReportRejectsUnprofiledValidatorResultForRequestedProof() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
         byte[] artifact = PdfDocument.Create(options).ToBytes();
         PdfExternalValidationResult veraPdf = PdfExternalValidationResult.PassedForArtifact(
@@ -85,7 +85,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void DocumentProofUsesGeneratedEvidenceBeforeAcceptingExternalPdfAValidation() {
-        PdfDocument document = PdfDocument.Create(new PdfOptions()
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions()
                 .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B))
             .Paragraph(paragraph => paragraph.Text("Generated text must still have embedded font proof."));
         PdfComplianceArtifact complianceArtifact = document.CreateComplianceArtifact(PdfComplianceProfile.PdfA3B);
@@ -109,7 +109,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void ComplianceArtifactRejectsValidatorEvidenceFromAnotherDocument() {
-        var options = new PdfOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
+        var options = new PdfCreateOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
         PdfComplianceArtifact artifact = PdfDocument.Create(options)
             .Meta(title: "First artifact")
             .CreateComplianceArtifact(PdfComplianceProfile.PdfA3B);
@@ -134,7 +134,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void ComplianceArtifactUsesTheSingleEncryptedRenderItCaptured() {
-        PdfDocument document = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Encrypted exact artifact."));
 
         PdfComplianceArtifact artifact = document.CreateComplianceArtifact(PdfComplianceProfile.PdfA3B);
@@ -154,7 +154,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void OpenedEncryptedDocumentProofReusesItsAuthenticatedReadOptions() {
-        byte[] encryptedBytes = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        byte[] encryptedBytes = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Authenticated compliance readback."))
             .ToBytes();
         PdfDocument opened = PdfDocument.Load(
@@ -204,7 +204,7 @@ public partial class PdfComplianceAnalyzerTests {
             "PDF/A-3b profile accepted.",
             "PDF/A-3b");
 
-        PdfComplianceProofReport proof = PdfDocument.Create(new PdfOptions()
+        PdfComplianceProofReport proof = PdfDocument.Create(new PdfCreateOptions()
                 .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B)
                 .RequireCompliance(PdfComplianceProfile.PdfA3B))
             .AssessComplianceProof(new[] { veraPdf });
@@ -219,7 +219,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void ProofReportRejectsValidatorPassBoundToDifferentArtifactWithSameLength() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
         byte[] validatedArtifact = PdfDocument.Create(options).ToBytes();
         byte[] requestedArtifact = (byte[])validatedArtifact.Clone();
@@ -260,7 +260,7 @@ public partial class PdfComplianceAnalyzerTests {
     public void ReadinessAcceptsOpenTypeCffEmbeddedFontsForPdfAFontCoverage() {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B)
             .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath!), "OfficeIMO Source Serif CFF");
 
@@ -278,7 +278,7 @@ public partial class PdfComplianceAnalyzerTests {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
 
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B)
             .EmbedStandardFont(PdfStandardFont.Helvetica, CreateOverflowingCmapOpenTypeCffFont(File.ReadAllBytes(fontPath!)), "OfficeIMO Malformed CFF");
 
@@ -294,7 +294,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void ProofReportRejectsValidatorPassForDifferentProfile() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
         byte[] artifact = PdfDocument.Create(options).ToBytes();
         PdfExternalValidationResult veraPdf = PdfExternalValidationResult.PassedForArtifact(
@@ -320,7 +320,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void ProofReportFindExternalValidationReturnsRequestedProfileResult() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
         byte[] artifact = PdfDocument.Create(options).ToBytes();
         PdfExternalValidationResult otherProfile = PdfExternalValidationResult.PassedForArtifact(
@@ -350,7 +350,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void ProofReportBlocksClaimWhenRequiredValidatorFailedEvenIfLaterResultPassed() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
         byte[] artifact = PdfDocument.Create(options).ToBytes();
         PdfExternalValidationResult failed = PdfExternalValidationResult.FromExitCodeForArtifact(
@@ -387,7 +387,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void ProofReportExposesBlockingValidatorProofRowWhenFailureAndPassAreSupplied() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
         byte[] artifact = PdfDocument.Create(options).ToBytes();
         PdfExternalValidationResult failed = PdfExternalValidationResult.FromExitCodeForArtifact(
@@ -433,7 +433,7 @@ public partial class PdfComplianceAnalyzerTests {
     public void ProofReportRequiresVeraPdfAndMustangForElectronicInvoiceProfiles() {
         PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(
             PdfComplianceProfile.FacturX,
-            new PdfOptions(),
+            new PdfCreateOptions(),
             externalValidations: Array.Empty<PdfExternalValidationResult>(),
             generatedStandardFonts: Array.Empty<PdfStandardFont>());
 
@@ -447,7 +447,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void ProofReportExposesPerValidatorRowsForElectronicInvoiceProfiles() {
-        byte[] artifact = PdfDocument.Create(new PdfOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B)).ToBytes();
+        byte[] artifact = PdfDocument.Create(new PdfCreateOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B)).ToBytes();
         PdfExternalValidationResult veraPdf = PdfExternalValidationResult.PassedForArtifact(
             PdfExternalValidatorKind.VeraPdf,
             "veraPDF",
@@ -465,7 +465,7 @@ public partial class PdfComplianceAnalyzerTests {
 
         PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(
             PdfComplianceProfile.FacturX,
-            new PdfOptions(),
+            new PdfCreateOptions(),
             artifact,
             externalValidations: new[] { veraPdf, mustang },
             generatedStandardFonts: Array.Empty<PdfStandardFont>());
@@ -490,8 +490,8 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void ProofReportRequiresPdfUaValidatorForPdfUaProfiles() {
-        PdfComplianceReadinessReport readiness = PdfComplianceAnalyzer.Assess(PdfComplianceProfile.PdfUa1, new PdfOptions());
-        PdfComplianceReadinessReport ua2Readiness = PdfComplianceAnalyzer.Assess(PdfComplianceProfile.PdfUa2, new PdfOptions());
+        PdfComplianceReadinessReport readiness = PdfComplianceAnalyzer.Assess(PdfComplianceProfile.PdfUa1, new PdfCreateOptions());
+        PdfComplianceReadinessReport ua2Readiness = PdfComplianceAnalyzer.Assess(PdfComplianceProfile.PdfUa2, new PdfCreateOptions());
 
         PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(readiness);
         PdfComplianceProofReport ua2Proof = PdfComplianceAnalyzer.AssessProof(ua2Readiness);

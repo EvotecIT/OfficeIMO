@@ -191,7 +191,7 @@ namespace OfficeIMO.Tests {
 
         private static VisioPremiumBaselineContext CreateBaselineContext(VisioGalleryResult result, string prefix) {
             VisioDocument loaded = VisioDocument.Load(result.FilePath);
-            VisioInspectionSnapshot inspection = loaded.CreateInspectionSnapshot();
+            VisioInspectionSnapshot inspection = loaded.Inspect();
             VisioStencilProfile stencilProfile = inspection.CreateStencilProfile();
             return new VisioPremiumBaselineContext(
                 prefix + ".inspection.txt",

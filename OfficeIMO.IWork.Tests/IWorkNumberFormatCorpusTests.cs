@@ -50,7 +50,7 @@ public sealed class IWorkNumberFormatCorpusTests {
         using var reopened = ExcelDocument.Load(saved);
         ExcelSheet sheet = Assert.Single(reopened.Sheets);
         int count = manifest.RootElement.GetProperty("cases").GetArrayLength();
-        ExcelRangeVisualSnapshot snapshot = sheet.Range($"B1:B{count}").CreateVisualSnapshot();
+        ExcelRangeVisualInfo snapshot = sheet.Range($"B1:B{count}").CreateVisualSnapshot();
         foreach (JsonElement expected in manifest.RootElement.GetProperty("cases").EnumerateArray()) {
             int row = expected.GetProperty("row").GetInt32();
             ExcelCellData cell = sheet.CellAt(row, 2).GetValue();
@@ -67,7 +67,7 @@ public sealed class IWorkNumberFormatCorpusTests {
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(Fixture("numbers"), conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
-        ExcelRangeVisualSnapshot snapshot = reopened.Sheets[0].Range("B1:B13").CreateVisualSnapshot();
+        ExcelRangeVisualInfo snapshot = reopened.Sheets[0].Range("B1:B13").CreateVisualSnapshot();
         foreach (int row in new[] { 3, 5, 8, 10 }) {
             Assert.Equal("FF0000", Assert.Single(snapshot.Cells, c => c.Row == row).Style.FontColorHex);
         }

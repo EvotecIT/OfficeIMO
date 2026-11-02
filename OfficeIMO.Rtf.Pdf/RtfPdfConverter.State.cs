@@ -17,14 +17,14 @@ internal static partial class RtfPdfConverter {
         private readonly List<PdfNoteReference> _noteReferences = new List<PdfNoteReference>();
 
         public PdfRenderState(RtfDocument document, IReadOnlyDictionary<int, PdfFontBinding> fontSlots,
-            OfficeIMO.Pdf.PdfOptions fontOptions) {
+            OfficeIMO.Pdf.PdfCreateOptions fontOptions) {
             _numbering = new RtfListNumbering(document);
             _fontSlots = fontSlots;
             _defaultFontId = document.Settings.DefaultFontId;
             FontOptions = fontOptions;
         }
 
-        public OfficeIMO.Pdf.PdfOptions FontOptions { get; set; }
+        public OfficeIMO.Pdf.PdfCreateOptions FontOptions { get; set; }
 
         public IReadOnlyList<PdfNoteReference> NoteReferences => _noteReferences.AsReadOnly();
 
@@ -42,7 +42,7 @@ internal static partial class RtfPdfConverter {
         }
 
         /// <summary>Shares operation font slots while isolating running-story numbering and note references from body flow.</summary>
-        public PdfRenderState CreateRunningStoryState(RtfDocument document, OfficeIMO.Pdf.PdfOptions fontOptions) =>
+        public PdfRenderState CreateRunningStoryState(RtfDocument document, OfficeIMO.Pdf.PdfCreateOptions fontOptions) =>
             new PdfRenderState(document, _fontSlots, fontOptions);
 
         public OfficeIMO.Pdf.PdfStandardFont? ResolveFont(int? fontId, bool bold, bool italic) {
@@ -65,7 +65,7 @@ internal static partial class RtfPdfConverter {
             return false;
         }
 
-        public OfficeIMO.Pdf.PdfTextRun CreateDefaultRun(string text, bool bold = false, double? fontSize = null) =>
+        public OfficeIMO.Pdf.PdfTextRun CreateDefaultRun(string text, bool bold = false, OfficeIMO.OfficeLength? fontSize = null) =>
             new OfficeIMO.Pdf.PdfTextRun(text, bold: bold, fontSize: fontSize,
                 font: ResolveFont(null, bold, italic: false), fontFamily: ResolveFontFamily(null));
 

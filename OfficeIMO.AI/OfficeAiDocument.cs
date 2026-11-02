@@ -31,10 +31,9 @@ public sealed class OfficeAiDocument {
         Images = Array.AsReadOnly(images);
         PageProvenance = pageProvenance;
         HasSourceDiagnostics = hasSourceDiagnostics;
-        SnapshotHash = Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new {
-            sourceHash = hash, evidence, pages, pageProvenance, hasSourceDiagnostics,
-            images = images.Select(image => new { image.Id, image.Page, image.MediaType, image.Width, image.Height, image.ContentHash })
-        }))).ToLowerInvariant();
+        SnapshotHash = Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new OfficeAiSnapshotPayload(hash, evidence, pages, pageProvenance, hasSourceDiagnostics,
+            images.Select(image => new OfficeAiSnapshotImage(image.Id, image.Page, image.MediaType, image.Width, image.Height, image.ContentHash))),
+            OfficeAiJsonContext.Default.OfficeAiSnapshotPayload))).ToLowerInvariant();
     }
 
     /// <summary>SHA-256 of the exact captured source bytes.</summary>

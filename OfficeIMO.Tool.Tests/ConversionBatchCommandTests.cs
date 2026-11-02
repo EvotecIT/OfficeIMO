@@ -12,22 +12,22 @@ public sealed class ConversionBatchCommandTests {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-batch-cli-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(root, "input"));
         try {
-            var request = new OfficeConversionBatchRequest {
+            var request = new OfficeBatchOptions {
                 InputDirectory = Path.Combine(root, "input"), OutputDirectory = Path.Combine(root, "output"),
-                CheckpointDirectory = Path.Combine(root, "state")
+                ResumeFrom = Path.Combine(root, "state", "plan.json")
             };
             File.WriteAllText(Path.Combine(request.InputDirectory, "source.txt"), "Literal <b>content</b>");
             for (int run = 0; run < 2; run++) {
                 using var output = new MemoryStream();
                 using var error = new StringWriter();
-                int code = await OfficeImoToolApp.RunAsync(["workflow", "batch", "--input-directory", request.InputDirectory!, "--output", request.OutputDirectory, "--checkpoint", request.CheckpointDirectory!], Stream.Null, output, error);
+                int code = await OfficeImoToolApp.RunAsync(["workflow", "batch", "--input-directory", request.InputDirectory!, "--output", request.OutputDirectory, "--checkpoint", Path.GetDirectoryName(request.ResumeFrom!)!], Stream.Null, output, error);
                 Assert.Equal((int)OfficeImoToolExitCode.Success, code);
                 string json = Encoding.UTF8.GetString(output.ToArray());
-                Assert.Contains("\"Completed\":1", json);
-                Assert.Contains("\"Reused\":" + run, json);
+                Assert.Contains("\"completed\":1", json);
+                Assert.Contains("\"reused\":" + run, json);
                 Assert.Equal(string.Empty, error.ToString());
             }
-            Assert.True(File.Exists(Path.Combine(request.OutputDirectory, "source.txt.pdf")));
+            Assert.True(File.Exists(Path.Combine(request.OutputDirectory, "source.pdf")));
         } finally { Directory.Delete(root, true); }
     }
 
@@ -45,11 +45,11 @@ public sealed class ConversionBatchCommandTests {
 
             Assert.Equal((int)OfficeImoToolExitCode.OperationFailed, run.Code);
             using JsonDocument result = JsonDocument.Parse(run.Output);
-            Assert.Equal(1, result.RootElement.GetProperty("Completed").GetInt32());
-            Assert.Equal(1, result.RootElement.GetProperty("Failed").GetInt32());
+            Assert.Equal(1, result.RootElement.GetProperty("summary").GetProperty("completed").GetInt32());
+            Assert.Equal(1, result.RootElement.GetProperty("summary").GetProperty("failed").GetInt32());
             Assert.Contains("Literal mixed batch marker",
-                PdfReadDocument.Open(File.ReadAllBytes(Path.Combine(destination, "text.txt.pdf"))).ExtractText(), StringComparison.Ordinal);
-            Assert.False(File.Exists(Path.Combine(destination, "drawing.fodg.pdf")));
+                PdfReadDocument.Open(File.ReadAllBytes(Path.Combine(destination, "text.pdf"))).ExtractText(), StringComparison.Ordinal);
+            Assert.False(File.Exists(Path.Combine(destination, "drawing.pdf")));
             Assert.Contains("drawing.fodg", run.Error, StringComparison.Ordinal);
         } finally { Directory.Delete(root, true); }
     }
@@ -70,7 +70,7 @@ public sealed class ConversionBatchCommandTests {
             var run = await RunBatch(["--input-directory", input, "--output", destination, "--diagram-layers", "screen"]);
 
             Assert.Equal((int)OfficeImoToolExitCode.Success, run.Code);
-            string text = PdfReadDocument.Open(File.ReadAllBytes(Path.Combine(destination, "layers.fodg.pdf"))).ExtractText();
+            string text = PdfReadDocument.Open(File.ReadAllBytes(Path.Combine(destination, "layers.pdf"))).ExtractText();
             Assert.Contains("BatchScreenOnly", text, StringComparison.Ordinal);
             Assert.DoesNotContain("BatchPrintOnly", text, StringComparison.Ordinal);
         } finally { Directory.Delete(root, true); }
@@ -87,15 +87,15 @@ public sealed class ConversionBatchCommandTests {
             Assert.Equal((int)OfficeImoToolExitCode.Success, first.Code);
             string finding = first.Error.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
                 .First(line => line.Contains("[page:1:", StringComparison.Ordinal) && line.Contains("capitalization", StringComparison.Ordinal));
-            byte[] original = File.ReadAllBytes(Path.Combine(destination, "drawing.fodg.pdf"));
+            byte[] original = File.ReadAllBytes(Path.Combine(destination, "drawing.pdf"));
 
             var reused = await RunBatch(args);
 
             Assert.Equal((int)OfficeImoToolExitCode.Success, reused.Code);
             using JsonDocument result = JsonDocument.Parse(reused.Output);
-            Assert.Equal(1, result.RootElement.GetProperty("Reused").GetInt32());
+            Assert.Equal(1, result.RootElement.GetProperty("summary").GetProperty("reused").GetInt32());
             Assert.Contains(finding, reused.Error, StringComparison.Ordinal);
-            Assert.Equal(original, File.ReadAllBytes(Path.Combine(destination, "drawing.fodg.pdf")));
+            Assert.Equal(original, File.ReadAllBytes(Path.Combine(destination, "drawing.pdf")));
         } finally { Directory.Delete(root, true); }
     }
 

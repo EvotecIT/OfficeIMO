@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
 
     internal static partial class ExcelRangeImageRenderer {
         internal static OfficeImageExportResult Render(
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             OfficeImageExportFormat format,
             ExcelImageExportOptions options,
             CancellationToken cancellationToken = default) =>
@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel {
                 cancellationToken);
 
         internal static OfficeImageExportResult Render(
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             OfficeImageExportFormat format,
             ExcelImageExportOptions options,
             OfficeImageExportFormat rasterPlanningFormat,
@@ -62,7 +62,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static OfficeImageExportResult RenderCore(
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             OfficeImageExportFormat format,
             ExcelImageExportOptions options,
             OfficeImageExportFormat rasterPlanningFormat,
@@ -145,7 +145,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal static OfficeRasterImage RenderRaster(
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             ExcelImageExportOptions options,
             List<OfficeImageExportDiagnostic>? diagnostics = null,
             CancellationToken cancellationToken = default) {
@@ -206,7 +206,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal static string RenderSvg(
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             ExcelImageExportOptions options,
             List<OfficeImageExportDiagnostic>? diagnostics = null,
             CancellationToken cancellationToken = default,
@@ -222,7 +222,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static string RenderSvgCore(
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             ExcelImageExportOptions options,
             List<OfficeImageExportDiagnostic>? diagnostics,
             CancellationToken cancellationToken,
@@ -381,7 +381,7 @@ namespace OfficeIMO.Excel {
 
         private static void RenderRasterChart(
             OfficeRasterCanvas canvas,
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             ExcelVisualChart chart,
             ExcelImageExportOptions options,
             List<OfficeImageExportDiagnostic>? diagnostics,
@@ -421,7 +421,7 @@ namespace OfficeIMO.Excel {
 
         private static void AppendSvgChart(
             StringBuilder builder,
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             ExcelVisualChart chart,
             ExcelImageExportOptions options,
             List<OfficeImageExportDiagnostic>? diagnostics,
@@ -454,9 +454,9 @@ namespace OfficeIMO.Excel {
                 OfficeSvgFormatting.ExtractSvgInner(chartSvg));
         }
 
-        internal static bool TryCreateOfficeChartSnapshot(ExcelChartSnapshot snapshot, double width, double height, List<OfficeImageExportDiagnostic>? diagnostics, string sheetName, out OfficeChartSnapshot? officeSnapshot) {
+        internal static bool TryCreateOfficeChartSnapshot(ExcelChartInfo snapshot, double width, double height, List<OfficeImageExportDiagnostic>? diagnostics, string sheetName, out OfficeChartSnapshot? officeSnapshot) {
             officeSnapshot = null;
-            if (!TryMapChartKind(snapshot.ChartType, out OfficeChartKind kind, out string? approximation)) {
+            if (!TryMapChartKind(snapshot.ChartType, out OfficeChartType kind, out string? approximation)) {
                 diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartKindUnsupported,
@@ -468,7 +468,7 @@ namespace OfficeIMO.Excel {
             if (approximation != null) {
                 diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
-                    ExcelImageExportDiagnosticCodes.ChartKindApproximated,
+                    IsFlatChartProjection(snapshot.ChartType) ? OfficeDiagnosticCodes.ChartFlattened : ExcelImageExportDiagnosticCodes.ChartKindApproximated,
                     approximation,
                     sheetName + "!" + snapshot.Name));
             }
@@ -492,21 +492,20 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (snapshot.Data.Series.Any(series => series.ChartType.HasValue &&
-                series.ChartType.Value != snapshot.ChartType &&
-                (!TryMapSeriesRenderKind(series.ChartType.Value, out _, out string? seriesApproximation) || seriesApproximation != null))) {
+            foreach (ExcelChartSeries series in snapshot.Data.Series.Where(series => series.ChartType.HasValue && series.ChartType.Value != snapshot.ChartType)) {
+                if (!TryMapSeriesRenderKind(series.ChartType!.Value, out _, out string? seriesApproximation) || seriesApproximation == null) continue;
                 diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
-                    ExcelImageExportDiagnosticCodes.ChartKindApproximated,
-                    "Excel combo chart includes a series type that is rendered through a fallback chart kind.",
+                    IsFlatChartProjection(series.ChartType.Value) ? OfficeDiagnosticCodes.ChartFlattened : ExcelImageExportDiagnosticCodes.ChartKindApproximated,
+                    "Excel combo series '" + series.Name + "': " + seriesApproximation,
                     sheetName + "!" + snapshot.Name));
             }
 
             OfficeChartData data = new OfficeChartData(
                 snapshot.Data.Categories,
-                snapshot.Data.Series.Select(series => snapshot.ChartType == ExcelChartType.Bubble
+                snapshot.Data.Series.Select(series => snapshot.ChartType == OfficeChartType.Bubble
                     ? CreateBubbleChartSeries(series)
-                    : new OfficeChartSeries(
+                    : new OfficeSeries(
                     series.Name,
                     series.Values,
                     series.XValues,
@@ -520,12 +519,12 @@ namespace OfficeIMO.Excel {
                     markerOutlineWidth: series.MarkerOutlineWidth,
                     strokeWidth: series.SeriesLineWidth,
                     strokeDashStyle: series.SeriesLineDashStyle,
-                    renderKind: TryMapSeriesRenderKind(series.ChartType ?? snapshot.ChartType, out OfficeChartKind seriesKind, out _) ? seriesKind : null,
+                    renderKind: TryMapSeriesRenderKind(series.ChartType ?? snapshot.ChartType, out OfficeChartType seriesKind, out _) ? seriesKind : null,
                     axisGroup: series.AxisGroup == OfficeChartAxisGroup.Secondary
                         ? OfficeChartAxisGroup.Secondary
                         : OfficeChartAxisGroup.Primary).WithSeriesStyle(series.SeriesStyle).WithPointStyles(series.PointStyles)
-                            .WithPointExplosions(series.PointExplosions)));
-            officeSnapshot = new OfficeChartSnapshot(snapshot.Name, snapshot.Title, kind, data, Math.Max(1D, width), Math.Max(1D, height), snapshot.Style, snapshot.Layout, snapshot.BubbleScalePercent, snapshot.BubbleSizeMode, snapshot.RadialLayout);
+                            .WithPointExplosions(series.PointExplosions).WithTrendline(series.Trendline)));
+            officeSnapshot = new OfficeChartSnapshot(snapshot.Name, snapshot.Title, kind, data, global::OfficeIMO.OfficeLength.Points(Math.Max(1D, width)), global::OfficeIMO.OfficeLength.Points(Math.Max(1D, height)), snapshot.Style, snapshot.Layout, snapshot.BubbleScalePercent, snapshot.BubbleSizeMode, snapshot.RadialLayout);
             if (OfficeChartDrawingRenderer.HasUnsupportedAxisUnitBudget(officeSnapshot)) {
                 diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
@@ -538,37 +537,37 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        internal static bool TryMapSeriesRenderKind(ExcelChartType type, out OfficeChartKind kind, out string? approximation) {
+        internal static bool TryMapSeriesRenderKind(OfficeChartType type, out OfficeChartType kind, out string? approximation) {
             if (!TryMapChartKind(type, out kind, out approximation)) {
                 return false;
             }
 
-            return kind == OfficeChartKind.ColumnClustered ||
-                kind == OfficeChartKind.ColumnStacked ||
-                kind == OfficeChartKind.ColumnStacked100 ||
-                kind == OfficeChartKind.BarClustered ||
-                kind == OfficeChartKind.BarStacked ||
-                kind == OfficeChartKind.BarStacked100 ||
-                kind == OfficeChartKind.Line ||
-                kind == OfficeChartKind.LineStacked ||
-                kind == OfficeChartKind.LineStacked100 ||
-                kind == OfficeChartKind.Area ||
-                kind == OfficeChartKind.AreaStacked ||
-                kind == OfficeChartKind.AreaStacked100 ||
-                kind == OfficeChartKind.Scatter;
+            return kind == OfficeChartType.ColumnClustered ||
+                kind == OfficeChartType.ColumnStacked ||
+                kind == OfficeChartType.ColumnStacked100 ||
+                kind == OfficeChartType.BarClustered ||
+                kind == OfficeChartType.BarStacked ||
+                kind == OfficeChartType.BarStacked100 ||
+                kind == OfficeChartType.Line ||
+                kind == OfficeChartType.LineStacked ||
+                kind == OfficeChartType.LineStacked100 ||
+                kind == OfficeChartType.Area ||
+                kind == OfficeChartType.AreaStacked ||
+                kind == OfficeChartType.AreaStacked100 ||
+                kind == OfficeChartType.Scatter;
         }
 
         internal static bool TryMapCompatibleComboSeriesRenderKind(
-            ExcelChartType baseType,
-            ExcelChartType seriesType,
-            out OfficeChartKind seriesKind,
+            OfficeChartType baseType,
+            OfficeChartType seriesType,
+            out OfficeChartType seriesKind,
             out string? approximation,
             out string? unsupportedReason) {
             seriesKind = default;
             approximation = null;
             unsupportedReason = null;
 
-            if (!TryMapSeriesRenderKind(baseType, out OfficeChartKind baseKind, out _)) {
+            if (!TryMapSeriesRenderKind(baseType, out OfficeChartType baseKind, out _)) {
                 unsupportedReason = "combo-chart base type '" + baseType + "' is not supported by the shared Cartesian chart renderer.";
                 return false;
             }
@@ -591,113 +590,127 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool IsScatterAxisChartKind(OfficeChartKind kind) =>
-            kind == OfficeChartKind.Scatter;
+        private static bool IsScatterAxisChartKind(OfficeChartType kind) =>
+            kind == OfficeChartType.Scatter;
 
-        private static bool IsBarChartKind(OfficeChartKind kind) =>
-            kind == OfficeChartKind.BarClustered ||
-            kind == OfficeChartKind.BarStacked ||
-            kind == OfficeChartKind.BarStacked100;
+        private static bool IsBarChartKind(OfficeChartType kind) =>
+            kind == OfficeChartType.BarClustered ||
+            kind == OfficeChartType.BarStacked ||
+            kind == OfficeChartType.BarStacked100;
 
-        internal static bool TryMapChartKind(ExcelChartType type, out OfficeChartKind kind, out string? approximation) {
+        /// <summary>Whether the supported projection discards native three-dimensional geometry.</summary>
+        internal static bool IsFlatChartProjection(OfficeChartType type) => type is
+            OfficeChartType.Column3DClustered or
+            OfficeChartType.Column3DStacked or
+            OfficeChartType.Column3DStacked100 or
+            OfficeChartType.Bar3DClustered or
+            OfficeChartType.Bar3DStacked or
+            OfficeChartType.Bar3DStacked100 or
+            OfficeChartType.Line3D or
+            OfficeChartType.Area3D or
+            OfficeChartType.Area3DStacked or
+            OfficeChartType.Area3DStacked100 or
+            OfficeChartType.Pie3D;
+
+        internal static bool TryMapChartKind(OfficeChartType type, out OfficeChartType kind, out string? approximation) {
             approximation = null;
             switch (type) {
-                case ExcelChartType.ColumnClustered:
-                    kind = OfficeChartKind.ColumnClustered;
+                case OfficeChartType.ColumnClustered:
+                    kind = OfficeChartType.ColumnClustered;
                     return true;
-                case ExcelChartType.ColumnStacked:
-                    kind = OfficeChartKind.ColumnStacked;
+                case OfficeChartType.ColumnStacked:
+                    kind = OfficeChartType.ColumnStacked;
                     return true;
-                case ExcelChartType.ColumnStacked100:
-                    kind = OfficeChartKind.ColumnStacked100;
+                case OfficeChartType.ColumnStacked100:
+                    kind = OfficeChartType.ColumnStacked100;
                     return true;
-                case ExcelChartType.BarClustered:
-                    kind = OfficeChartKind.BarClustered;
+                case OfficeChartType.BarClustered:
+                    kind = OfficeChartType.BarClustered;
                     return true;
-                case ExcelChartType.BarStacked:
-                    kind = OfficeChartKind.BarStacked;
+                case OfficeChartType.BarStacked:
+                    kind = OfficeChartType.BarStacked;
                     return true;
-                case ExcelChartType.BarStacked100:
-                    kind = OfficeChartKind.BarStacked100;
+                case OfficeChartType.BarStacked100:
+                    kind = OfficeChartType.BarStacked100;
                     return true;
-                case ExcelChartType.Line:
-                    kind = OfficeChartKind.Line;
+                case OfficeChartType.Line:
+                    kind = OfficeChartType.Line;
                     return true;
-                case ExcelChartType.LineStacked:
-                    kind = OfficeChartKind.LineStacked;
+                case OfficeChartType.LineStacked:
+                    kind = OfficeChartType.LineStacked;
                     return true;
-                case ExcelChartType.LineStacked100:
-                    kind = OfficeChartKind.LineStacked100;
+                case OfficeChartType.LineStacked100:
+                    kind = OfficeChartType.LineStacked100;
                     return true;
-                case ExcelChartType.Area:
-                    kind = OfficeChartKind.Area;
+                case OfficeChartType.Area:
+                    kind = OfficeChartType.Area;
                     return true;
-                case ExcelChartType.AreaStacked:
-                    kind = OfficeChartKind.AreaStacked;
+                case OfficeChartType.AreaStacked:
+                    kind = OfficeChartType.AreaStacked;
                     return true;
-                case ExcelChartType.AreaStacked100:
-                    kind = OfficeChartKind.AreaStacked100;
+                case OfficeChartType.AreaStacked100:
+                    kind = OfficeChartType.AreaStacked100;
                     return true;
-                case ExcelChartType.Pie:
-                case ExcelChartType.Pie3D:
-                case ExcelChartType.PieOfPie:
-                case ExcelChartType.BarOfPie:
-                    kind = OfficeChartKind.Pie;
-                    approximation = type == ExcelChartType.Pie ? null : "Excel pie variant is rendered as a standard 2D pie chart.";
+                case OfficeChartType.Pie:
+                case OfficeChartType.Pie3D:
+                case OfficeChartType.PieOfPie:
+                case OfficeChartType.BarOfPie:
+                    kind = OfficeChartType.Pie;
+                    approximation = type == OfficeChartType.Pie ? null : "Excel pie variant is rendered as a standard 2D pie chart.";
                     return true;
-                case ExcelChartType.Doughnut:
-                    kind = OfficeChartKind.Doughnut;
+                case OfficeChartType.Doughnut:
+                    kind = OfficeChartType.Doughnut;
                     return true;
-                case ExcelChartType.Bubble:
-                    kind = OfficeChartKind.Bubble;
+                case OfficeChartType.Bubble:
+                    kind = OfficeChartType.Bubble;
                     return true;
-                case ExcelChartType.Scatter:
-                    kind = OfficeChartKind.Scatter;
+                case OfficeChartType.Scatter:
+                    kind = OfficeChartType.Scatter;
                     return true;
-                case ExcelChartType.Radar:
-                    kind = OfficeChartKind.Radar;
+                case OfficeChartType.Radar:
+                    kind = OfficeChartType.Radar;
                     return true;
-                case ExcelChartType.Column3DClustered:
-                case ExcelChartType.Column3DStacked:
-                case ExcelChartType.Column3DStacked100:
-                    kind = type == ExcelChartType.Column3DStacked ? OfficeChartKind.ColumnStacked : type == ExcelChartType.Column3DStacked100 ? OfficeChartKind.ColumnStacked100 : OfficeChartKind.ColumnClustered;
+                case OfficeChartType.Column3DClustered:
+                case OfficeChartType.Column3DStacked:
+                case OfficeChartType.Column3DStacked100:
+                    kind = type == OfficeChartType.Column3DStacked ? OfficeChartType.ColumnStacked : type == OfficeChartType.Column3DStacked100 ? OfficeChartType.ColumnStacked100 : OfficeChartType.ColumnClustered;
                     approximation = "Excel 3D column chart is rendered as a 2D column chart.";
                     return true;
-                case ExcelChartType.Bar3DClustered:
-                case ExcelChartType.Bar3DStacked:
-                case ExcelChartType.Bar3DStacked100:
-                    kind = type == ExcelChartType.Bar3DStacked ? OfficeChartKind.BarStacked : type == ExcelChartType.Bar3DStacked100 ? OfficeChartKind.BarStacked100 : OfficeChartKind.BarClustered;
+                case OfficeChartType.Bar3DClustered:
+                case OfficeChartType.Bar3DStacked:
+                case OfficeChartType.Bar3DStacked100:
+                    kind = type == OfficeChartType.Bar3DStacked ? OfficeChartType.BarStacked : type == OfficeChartType.Bar3DStacked100 ? OfficeChartType.BarStacked100 : OfficeChartType.BarClustered;
                     approximation = "Excel 3D bar chart is rendered as a 2D bar chart.";
                     return true;
-                case ExcelChartType.Line3D:
-                    kind = OfficeChartKind.Line;
+                case OfficeChartType.Line3D:
+                    kind = OfficeChartType.Line;
                     approximation = "Excel 3D line chart is rendered as a 2D line chart.";
                     return true;
-                case ExcelChartType.Area3D:
-                case ExcelChartType.Area3DStacked:
-                case ExcelChartType.Area3DStacked100:
-                    kind = type == ExcelChartType.Area3DStacked ? OfficeChartKind.AreaStacked : type == ExcelChartType.Area3DStacked100 ? OfficeChartKind.AreaStacked100 : OfficeChartKind.Area;
+                case OfficeChartType.Area3D:
+                case OfficeChartType.Area3DStacked:
+                case OfficeChartType.Area3DStacked100:
+                    kind = type == OfficeChartType.Area3DStacked ? OfficeChartType.AreaStacked : type == OfficeChartType.Area3DStacked100 ? OfficeChartType.AreaStacked100 : OfficeChartType.Area;
                     approximation = "Excel 3D area chart is rendered as a 2D area chart.";
                     return true;
-                case ExcelChartType.Stock:
-                    kind = OfficeChartKind.Line;
+                case OfficeChartType.Stock:
+                    kind = OfficeChartType.Line;
                     approximation = "Excel stock chart is rendered as a line chart with high-low lines; up and down bars are not drawn.";
                     return true;
-                case ExcelChartType.Surface:
-                case ExcelChartType.SurfaceWireframe:
-                case ExcelChartType.SurfaceContour:
-                case ExcelChartType.SurfaceContourWireframe:
-                    kind = OfficeChartKind.Line;
+                case OfficeChartType.Surface:
+                case OfficeChartType.SurfaceWireframe:
+                case OfficeChartType.SurfaceContour:
+                case OfficeChartType.SurfaceContourWireframe:
+                    kind = OfficeChartType.Line;
                     approximation = "Excel surface chart is rendered as a line chart without surface bands or their colour scale.";
                     return true;
                 default:
-                    kind = OfficeChartKind.ColumnClustered;
+                    kind = OfficeChartType.ColumnClustered;
                     return false;
             }
         }
 
         private static void DrawBorders(OfficeRasterCanvas canvas, ExcelVisualCell cell, double scale) {
-            ExcelCellBorderSnapshot? border = cell.Style.Border;
+            ExcelCellBorderInfo? border = cell.Style.Border;
             if (border == null) {
                 return;
             }
@@ -724,7 +737,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void DrawBorder(OfficeRasterCanvas canvas, double x1, double y1, double x2, double y2, ExcelBorderSideSnapshot? border, double scale) {
+        private static void DrawBorder(OfficeRasterCanvas canvas, double x1, double y1, double x2, double y2, ExcelBorderSideInfo? border, double scale) {
             if (border == null || !TryResolveBorderStroke(border.Style, scale, out ExcelBorderStroke stroke)) {
                 return;
             }
@@ -739,7 +752,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void AppendSvgBorders(StringBuilder builder, ExcelVisualCell cell, double scale) {
-            ExcelCellBorderSnapshot? border = cell.Style.Border;
+            ExcelCellBorderInfo? border = cell.Style.Border;
             if (border == null) {
                 return;
             }
@@ -766,7 +779,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void AppendSvgLine(StringBuilder builder, double x1, double y1, double x2, double y2, ExcelBorderSideSnapshot? border, double scale) {
+        private static void AppendSvgLine(StringBuilder builder, double x1, double y1, double x2, double y2, ExcelBorderSideInfo? border, double scale) {
             if (border == null || !TryResolveBorderStroke(border.Style, scale, out ExcelBorderStroke stroke)) {
                 return;
             }
@@ -793,7 +806,7 @@ namespace OfficeIMO.Excel {
                 dashArray != null && dashStyle == OfficeStrokeDashStyle.Dot ? OfficeStrokeLineCap.Round : null);
         }
 
-        private static bool TryCreateBorderBox(ExcelCellBorderSnapshot border, double scale, out OfficeBorderBox borderBox) {
+        private static bool TryCreateBorderBox(ExcelCellBorderInfo border, double scale, out OfficeBorderBox borderBox) {
             borderBox = default;
             if (!TryCreateBorderSide(border.Left, scale, out OfficeBorderSide? left) ||
                 !TryCreateBorderSide(border.Top, scale, out OfficeBorderSide? top) ||
@@ -817,7 +830,7 @@ namespace OfficeIMO.Excel {
             return borderBox.HasVisibleSide;
         }
 
-        private static bool TryCreateBorderSide(ExcelBorderSideSnapshot? border, double scale, out OfficeBorderSide? side) {
+        private static bool TryCreateBorderSide(ExcelBorderSideInfo? border, double scale, out OfficeBorderSide? side) {
             side = null;
             if (border == null || !TryResolveBorderStroke(border.Style, scale, out ExcelBorderStroke stroke)) {
                 return true;
@@ -904,7 +917,7 @@ namespace OfficeIMO.Excel {
             return OfficeTextVerticalAlignment.Bottom;
         }
 
-        private static OfficeFontStyle ResolveFontStyle(ExcelCellStyleSnapshot style) {
+        private static OfficeFontStyle ResolveFontStyle(ExcelCellStyleInfo style) {
             OfficeFontStyle fontStyle = OfficeFontStyle.Regular;
             if (style.Bold) {
                 fontStyle |= OfficeFontStyle.Bold;
@@ -950,9 +963,9 @@ namespace OfficeIMO.Excel {
             return any ? resolved : null;
         }
 
-        private static int ScaledWidth(ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options) => Math.Max(1, (int)Math.Ceiling(snapshot.Width * options.Scale));
+        private static int ScaledWidth(ExcelRangeVisualInfo snapshot, ExcelImageExportOptions options) => Math.Max(1, (int)Math.Ceiling(snapshot.Width * options.Scale));
 
-        private static int ScaledHeight(ExcelRangeVisualSnapshot snapshot, ExcelImageExportOptions options) => Math.Max(1, (int)Math.Ceiling(snapshot.Height * options.Scale));
+        private static int ScaledHeight(ExcelRangeVisualInfo snapshot, ExcelImageExportOptions options) => Math.Max(1, (int)Math.Ceiling(snapshot.Height * options.Scale));
 
         private static string Number(double value) => OfficeSvgFormatting.FormatNumber(value);
 

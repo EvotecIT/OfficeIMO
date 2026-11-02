@@ -77,6 +77,6 @@ public sealed class PdfPageOrientationReviewTests {
         return Task.FromResult(new OcrResult { Provider = "fixture", Orientation = new() { ClockwiseRotationDegrees = degrees, Confidence = confidence } });
     }, new OcrEngineCapabilities { SupportsOrientationDetection = true });
     private static PdfDocument Source() => PdfDocument.Create(compose => {
-        for (int i = 0; i < 2; i++) compose.Page(page => page.Size(300, 500).Content(content => content.Text("Orientation review")));
+        for (int i = 0; i < 2; i++) compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.Text("Orientation review")));
     });
 }

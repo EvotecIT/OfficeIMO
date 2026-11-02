@@ -23,7 +23,7 @@ public sealed class ConversionPublicationEvidenceTests {
             OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new() {
                 Operation = OfficeWorkflowOperation.Convert, InputPath = input, OutputPath = output,
                 ConversionRouteId = extension == "pub" ? "publisher-pdf" : "odg-pdf",
-                ConflictPolicy = failure == "conflict" ? OfficeWorkflowConflictPolicy.Fail : OfficeWorkflowConflictPolicy.Replace,
+                ConflictPolicy = failure == "conflict" ? OfficePublicationPolicy.Fail : OfficePublicationPolicy.Replace,
                 PublicationGuard = failure == "guard" ? new DenyGuard() : null
             }, progress: failure == "cancel" ? new CancelAtPublication(cancellation) : null, cancellationToken: cancellation.Token);
             Assert.False(result.Succeeded);
@@ -33,12 +33,12 @@ public sealed class ConversionPublicationEvidenceTests {
             OfficeWorkflowConversionEvidence evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
             Assert.Equal(extension.ToUpperInvariant(), evidence.Facts["sourceFormat"]); Assert.Equal("2", evidence.Facts["sourcePages"]);
             if (extension == "pub") { Assert.True(evidence.HasLoss); Assert.NotEmpty(evidence.FidelityDiagnostics); }
-            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "conversion-output-reopened");
         } finally { Directory.Delete(root, true); }
     }
 
-    private sealed class DenyGuard : IOfficeWorkflowPublicationGuard {
-        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) => new(false);
+    private sealed class DenyGuard : IOfficePublicationGuard {
+        public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) => Task.FromResult(false);
     }
 
     private sealed class CancelAtPublication(CancellationTokenSource cancellation) : IProgress<OfficeWorkflowProgress> {

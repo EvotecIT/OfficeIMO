@@ -11,7 +11,7 @@ public sealed class PdfRunningTextEffectivePreflightTests {
     [InlineData("Footer")]
     public void CustomRunningTextSegmentsPreflightAndRenderWithoutSupersededFormatGlyphs(string owner) {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'x');
-        var options = new PdfOptions { HeaderFormat = "Page {page}/{pages}", CompressContentStreams = false }
+        var options = new PdfCreateOptions { HeaderFormat = "Page {page}/{pages}", CompressContentStreams = false }
             .EmbedStandardFont(PdfStandardFont.Helvetica, font, "Selected running text");
         PdfDocument document = PdfDocument.Create(options).Compose(composition => composition.Page(page => {
             page.Content(content => content.Text("x"));

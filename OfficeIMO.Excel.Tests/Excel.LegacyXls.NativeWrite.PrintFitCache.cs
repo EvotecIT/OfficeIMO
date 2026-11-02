@@ -13,7 +13,7 @@ public partial class Excel {
     public void LegacyXls_NativeSave_PreservesStoredFitDimensionsAndScalingMode(bool? fitEnabled) {
         string xlsx = Path.Combine(_directoryWithFiles, "StoredPrintFit" + fitEnabled + ".xlsx");
         string xls = Path.ChangeExtension(xlsx, ".xls");
-        using (var workbook = ExcelDocument.Create(xlsx, "Print")) {
+        using (var workbook = ExcelDocument.Create(xlsx, new ExcelCreateOptions { FirstSheetName = "Print" })) {
             ExcelSheet sheet = workbook.Sheets[0];
             sheet.CellValue(1, 1, "Cached fit dimensions");
             sheet.SetPageSetup(fitToWidth: 2, fitToHeight: 0, scale: 85);

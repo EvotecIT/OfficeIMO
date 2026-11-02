@@ -40,7 +40,7 @@ internal sealed partial class OfficeImoAgentService {
                 _ => throw new AgentUsageException("colorMode must be color or grayscale.")
             },
             PaperSize = paper.ToLowerInvariant() switch {
-                "a4" => PageSizes.A4, "letter" => PageSizes.Letter, "legal" => PageSizes.Legal, "a3" => PageSizes.A3,
+                "a4" => PdfPageSizes.A4, "letter" => PdfPageSizes.Letter, "legal" => PdfPageSizes.Legal, "a3" => PdfPageSizes.A3,
                 _ => throw new AgentUsageException("paper must be A4, Letter, Legal, or A3.")
             },
             Orientation = orientation.ToLowerInvariant() switch {

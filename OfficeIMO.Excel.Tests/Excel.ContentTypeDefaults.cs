@@ -52,7 +52,7 @@ public sealed class ExcelContentTypeDefaultsTests {
     private static byte[] CreateWorkbookWithInheritedXmlContentType(bool worksheetDefault) {
         using var package = new MemoryStream();
         using (var document = ExcelDocument.Create()) {
-            document.AddWorksheet("Data").CellValue(1, 1, 42);
+            document.AddSheet("Data").CellValue(1, 1, 42);
             document.SetCustomDocumentProperty("Review", "Original metadata");
             document.Save(package);
         }

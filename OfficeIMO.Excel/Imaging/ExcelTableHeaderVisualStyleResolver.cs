@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel {
                 string? reference = table?.Reference?.Value;
                 if (string.IsNullOrWhiteSpace(reference)
                     || table!.HeaderRowCount?.Value == 0U
-                    || !A1.TryParseRange(reference!, out int tableFirstRow, out int tableFirstColumn, out _, out int tableLastColumn)
+                    || !ExcelA1.TryParseRange(reference!, out int tableFirstRow, out int tableFirstColumn, out _, out int tableLastColumn)
                     || tableFirstRow < firstRow
                     || tableFirstRow > lastRow) {
                     continue;
@@ -58,14 +58,14 @@ namespace OfficeIMO.Excel {
                 int startColumn = Math.Max(firstColumn, tableFirstColumn);
                 int endColumn = Math.Min(lastColumn, tableLastColumn);
                 for (int column = startColumn; column <= endColumn; column++) {
-                    styles[A1.CellReference(tableFirstRow, column)] = visualStyle;
+                    styles[ExcelA1.CellReference(tableFirstRow, column)] = visualStyle;
                 }
             }
 
             return styles;
         }
 
-        internal static ExcelCellStyleSnapshot Apply(ExcelCellStyleSnapshot style, ExcelTableHeaderVisualStyle tableStyle) {
+        internal static ExcelCellStyleInfo Apply(ExcelCellStyleInfo style, ExcelTableHeaderVisualStyle tableStyle) {
             bool hasDirectStyle = style.StyleIndex != 0U;
             bool hasDirectFontStyle = style.IsFontFamilyExplicit;
             bool preserveDirectFill = hasDirectStyle && HasDirectFill(style);
@@ -76,7 +76,7 @@ namespace OfficeIMO.Excel {
                 ? style.FontColorArgb ?? "000000"
                 : tableStyle.FontColorArgb;
 
-            return new ExcelCellStyleSnapshot {
+            return new ExcelCellStyleInfo {
                 StyleIndex = style.StyleIndex,
                 NumberFormatId = style.NumberFormatId,
                 NumberFormatCode = style.NumberFormatCode,
@@ -99,7 +99,7 @@ namespace OfficeIMO.Excel {
                 FillGradientUnsupported = !useTableFill && style.FillGradientUnsupported,
                 FillGradientStartColorArgb = useTableFill ? null : style.FillGradientStartColorArgb,
                 FillGradientEndColorArgb = useTableFill ? null : style.FillGradientEndColorArgb,
-                FillGradientStops = useTableFill ? Array.Empty<ExcelGradientFillStopSnapshot>() : style.FillGradientStops,
+                FillGradientStops = useTableFill ? Array.Empty<ExcelGradientFillStopInspectionInfo>() : style.FillGradientStops,
                 FillGradientDegree = useTableFill ? null : style.FillGradientDegree,
                 Border = preserveDirectBorder ? style.Border : CreateTableBorder(tableStyle.BorderColorArgb),
                 HorizontalAlignment = style.HorizontalAlignment,
@@ -110,7 +110,7 @@ namespace OfficeIMO.Excel {
             };
         }
 
-        private static bool HasDirectFill(ExcelCellStyleSnapshot style) =>
+        private static bool HasDirectFill(ExcelCellStyleInfo style) =>
             !string.IsNullOrWhiteSpace(style.FillColorArgb) ||
             !string.IsNullOrWhiteSpace(style.FillPatternType) ||
             !string.IsNullOrWhiteSpace(style.FillPatternForegroundColorArgb) ||
@@ -121,16 +121,16 @@ namespace OfficeIMO.Excel {
             style.FillGradientStops.Count > 0 ||
             style.FillGradientDegree.HasValue;
 
-        private static ExcelCellBorderSnapshot? CreateTableBorder(string? colorArgb) {
+        private static ExcelCellBorderInfo? CreateTableBorder(string? colorArgb) {
             if (string.IsNullOrWhiteSpace(colorArgb)) {
                 return null;
             }
 
-            return new ExcelCellBorderSnapshot(
-                left: new ExcelBorderSideSnapshot("thin", colorArgb),
-                right: new ExcelBorderSideSnapshot("thin", colorArgb),
-                top: new ExcelBorderSideSnapshot("thin", colorArgb),
-                bottom: new ExcelBorderSideSnapshot("thin", colorArgb));
+            return new ExcelCellBorderInfo(
+                left: new ExcelBorderSideInfo("thin", colorArgb),
+                right: new ExcelBorderSideInfo("thin", colorArgb),
+                top: new ExcelBorderSideInfo("thin", colorArgb),
+                bottom: new ExcelBorderSideInfo("thin", colorArgb));
         }
 
     }

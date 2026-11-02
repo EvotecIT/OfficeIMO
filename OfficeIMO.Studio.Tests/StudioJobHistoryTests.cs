@@ -34,7 +34,7 @@ public sealed class StudioJobHistoryTests {
         await session.Dispatch(async () => {
             var services = TestAppBuilder.CreateTestServices();
             string input = Path.Combine(services.Paths.Root, "source.pdf");
-            PdfDocument.Create(document => document.Page(page => page.Size(200, 300))).Save(input);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)))).Save(input);
             var runner = new BlockingRunner();
             DocumentHealthViewModel Create() => new(_ => Task.FromResult<string?>(input),
                 _ => Task.FromResult<string?>(services.Paths.Root), runner, jobHistory: services.Jobs);

@@ -14,59 +14,50 @@ namespace OfficeIMO.Examples.PowerPoint {
             const double titleHeightCm = 1.3;
             const double bodyGapCm = 0.8;
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 Console.WriteLine($"  Initial slides: {presentation.Slides.Count} (expected: 0)");
-                PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
-                PowerPointLayoutBox titleBox = PowerPointLayoutBox.FromCentimeters(
-                    content.LeftCm, content.TopCm, content.WidthCm, titleHeightCm);
-                PowerPointLayoutBox bodyBox = PowerPointLayoutBox.FromCentimeters(
-                    content.LeftCm,
-                    content.TopCm + titleHeightCm + bodyGapCm,
-                    content.WidthCm,
-                    content.HeightCm - titleHeightCm - bodyGapCm);
+                PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Centimeters(marginCm));
+                PowerPointLayoutBox titleBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(titleHeightCm));
+                PowerPointLayoutBox bodyBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),                    OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + titleHeightCm + bodyGapCm),                    OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),                    OfficeIMO.OfficeLength.Centimeters(content.Height.ToCentimeters() - titleHeightCm - bodyGapCm));
 
                 PowerPointSlide intro = presentation.AddSlide();
-                intro.AddTitle("Lifecycle Example", titleBox);
+                intro.AddTitle("Lifecycle Example",titleBox);
                 PowerPointTextBox introBox = intro.AddTextBox(
-                    "Slides are created on demand and persisted on Save().",
-                    bodyBox);
+                    "Slides are created on demand and persisted on Save().",                    bodyBox);
                 introBox.AddBullet("Create slides in memory");
                 introBox.AddBullet("Save to persist content");
                 introBox.AddBullet("Reopen and append later");
-                introBox.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
+                introBox.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfter: global::OfficeIMO.OfficeLength.Points(2));
 
                 PowerPointSlide step1 = presentation.AddSlide();
-                step1.AddTitle("Step 1: Create", titleBox);
+                step1.AddTitle("Step 1: Create",titleBox);
                 PowerPointTextBox step1Box = step1.AddTextBox(
-                    $"Created two slides in memory. Current count: {presentation.Slides.Count}",
-                    bodyBox);
+                    $"Created two slides in memory. Current count: {presentation.Slides.Count}",                    bodyBox);
                 step1Box.TextAutoFit = PowerPointTextAutoFit.Normal;
-                step1Box.SetTextMarginsCm(0.3, 0.2, 0.3, 0.2);
+                step1Box.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.2));
                 Console.WriteLine($"  After 2 slides: {presentation.Slides.Count} (expected: 2)");
 
                 presentation.Save();
             }
 
             // Reopen and append more content
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
-                PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
-                PowerPointLayoutBox titleBox = PowerPointLayoutBox.FromCentimeters(
-                    content.LeftCm, content.TopCm, content.WidthCm, titleHeightCm);
-                PowerPointLayoutBox bodyBox = PowerPointLayoutBox.FromCentimeters(
-                    content.LeftCm,
-                    content.TopCm + titleHeightCm + bodyGapCm,
-                    content.WidthCm,
-                    content.HeightCm - titleHeightCm - bodyGapCm);
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
+                PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Centimeters(marginCm));
+                PowerPointLayoutBox titleBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(titleHeightCm));
+                PowerPointLayoutBox bodyBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),                    OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + titleHeightCm + bodyGapCm),                    OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),                    OfficeIMO.OfficeLength.Centimeters(content.Height.ToCentimeters() - titleHeightCm - bodyGapCm));
                 Console.WriteLine($"  Reopened slides: {presentation.Slides.Count} (expected: 2)");
 
                 PowerPointSlide step2 = presentation.AddSlide();
-                step2.AddTitle("Step 2: Reopen", titleBox);
+                step2.AddTitle("Step 2: Reopen",titleBox);
                 PowerPointTextBox step2Box = step2.AddTextBox(
-                    "Added a third slide after reopening the file.",
-                    bodyBox);
+                    "Added a third slide after reopening the file.",                    bodyBox);
                 step2Box.AddBullet($"Total slides now: {presentation.Slides.Count}");
                 step2Box.AddBullet("Changes are persisted on Save()");
-                step2Box.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
+                step2Box.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfter: global::OfficeIMO.OfficeLength.Points(2));
                 step2.Notes.Text = "Demonstrates lazy initialization and persistence.";
 
                 presentation.Save();

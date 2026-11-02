@@ -4,7 +4,7 @@ namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
         private void ApplyCachedImageSize(WordImage image, WordImage cached, double? width, double? height) {
             if (!_unscaledImageSizes.TryGetValue(cached, out var original)) {
-                original = (cached.Width ?? 0D, cached.Height ?? 0D);
+                original = ((cached.Width?.ToPixels()) ?? 0D, (cached.Height?.ToPixels()) ?? 0D);
             }
             ApplyImageSize(image, original, width, height);
         }
@@ -14,17 +14,17 @@ namespace OfficeIMO.Word.Html {
             if (original.Width <= 0D || original.Height <= 0D) return;
 
             if (width.HasValue && height.HasValue) {
-                image.Width = width.Value;
-                image.Height = height.Value;
+                image.Width = OfficeIMO.OfficeLength.Pixels(width.Value);
+                image.Height = OfficeIMO.OfficeLength.Pixels(height.Value);
             } else if (width.HasValue) {
-                image.Width = width.Value;
-                image.Height = original.Height * width.Value / original.Width;
+                image.Width = OfficeIMO.OfficeLength.Pixels(width.Value);
+                image.Height = OfficeIMO.OfficeLength.Pixels(original.Height * width.Value / original.Width);
             } else if (height.HasValue) {
-                image.Width = original.Width * height.Value / original.Height;
-                image.Height = height.Value;
+                image.Width = OfficeIMO.OfficeLength.Pixels(original.Width * height.Value / original.Height);
+                image.Height = OfficeIMO.OfficeLength.Pixels(height.Value);
             } else {
-                image.Width = original.Width;
-                image.Height = original.Height;
+                image.Width = OfficeIMO.OfficeLength.Pixels(original.Width);
+                image.Height = OfficeIMO.OfficeLength.Pixels(original.Height);
             }
         }
 
@@ -33,20 +33,20 @@ namespace OfficeIMO.Word.Html {
         /// image to the Word content width, while preserving its aspect ratio.
         /// </summary>
         private static void FitImageToWidthConstraints(
-            WordImage image, double? contentWidth, double? maximumWidth, HtmlToWordOptions options,
+            WordImage image, double? contentWidth, double? maximumWidth, WordHtmlImportOptions options,
             string source, string alternativeText) {
             double? limit = contentWidth;
             if (maximumWidth is > 0D) {
                 limit = limit.HasValue ? Math.Min(limit.Value, maximumWidth.Value) : maximumWidth;
             }
-            if (limit is not > 0D || image.Width is not double width ||
-                image.Height is not double height || width <= limit.Value || height <= 0D) {
+            if (limit is not > 0D || (image.Width?.ToPixels()) is not double width ||
+                (image.Height?.ToPixels()) is not double height || width <= limit.Value || height <= 0D) {
                 return;
             }
 
             double scale = limit.Value / width;
-            image.Width = limit.Value;
-            image.Height = height * scale;
+            image.Width = OfficeIMO.OfficeLength.Pixels(limit.Value);
+            image.Height = OfficeIMO.OfficeLength.Pixels(height * scale);
             string diagnosticSource = source.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
                 ? string.IsNullOrWhiteSpace(alternativeText) ? "data:image" : alternativeText
                 : source;

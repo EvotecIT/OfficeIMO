@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes a BIFF rich-text formatting run inside a cell string.
     /// </summary>
-    public sealed class LegacyXlsTextFormattingRun {
+    internal sealed class LegacyXlsTextFormattingRun {
         /// <summary>
         /// Creates rich-text run metadata.
         /// </summary>

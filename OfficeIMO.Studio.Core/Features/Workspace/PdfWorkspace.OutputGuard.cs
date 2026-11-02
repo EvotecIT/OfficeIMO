@@ -9,8 +9,8 @@ internal sealed partial class PdfWorkspace {
     }
 
     private sealed class WorkspaceOutputPublicationGuard(PdfWorkspace workspace, string source, long revision,
-        IOfficeWorkflowPublicationGuard? host) : IOfficeWorkflowPublicationGuard {
-        public async ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
+        IOfficePublicationGuard? host) : IOfficePublicationGuard {
+        public async Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
             token.ThrowIfCancellationRequested();
             if (!IsCurrentAndSeparate(path, isDirectory)) return false;
             if (host is not null && !await host.CanPublishAsync(path, isDirectory, token).ConfigureAwait(false)) return false;

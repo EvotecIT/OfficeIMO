@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
     public partial class PowerPointLegacyPptMasterTests {
         [Fact]
         public void NativeWriter_WritesNotesMasterDrawingsAndPlaceholders() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             NotesMasterPart notesMasterPart = presentation.OpenXmlDocument
                 .PresentationPart!.NotesMasterPart!;
             P.ShapeTree tree = notesMasterPart.NotesMaster!.CommonSlideData!
@@ -21,17 +21,15 @@ namespace OfficeIMO.Tests {
                              and not P.GroupShapeProperties).ToArray()) {
                 child.Remove();
             }
-            var slideBounds = new PowerPointLayoutBox(400000, 300000,
-                4200000, 2500000);
-            var bodyBounds = new PowerPointLayoutBox(500000, 3300000,
-                8100000, 2800000);
+            var slideBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(400000),OfficeIMO.OfficeLength.Emus(300000),                OfficeIMO.OfficeLength.Emus(4200000),OfficeIMO.OfficeLength.Emus(2500000));
+            var bodyBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(500000),OfficeIMO.OfficeLength.Emus(3300000),                OfficeIMO.OfficeLength.Emus(8100000),OfficeIMO.OfficeLength.Emus(2800000));
             tree.Append(
                 CreateNotesMasterShape(2U, "Notes slide image", slideBounds,
                     P.PlaceholderValues.SlideImage),
                 CreateNotesMasterShape(3U, "Notes body", bodyBounds,
                     P.PlaceholderValues.Body, "Notes body default"),
                 CreateNotesMasterShape(4U, "Notes decoration",
-                    new PowerPointLayoutBox(8200000, 400000, 400000, 400000),
+                    new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(8200000),OfficeIMO.OfficeLength.Emus(400000),OfficeIMO.OfficeLength.Emus(400000),OfficeIMO.OfficeLength.Emus(400000)),
                     placeholder: null, text: null,
                     shapeType: A.ShapeTypeValues.Ellipse));
             presentation.AddSlide(PowerPointSlideLayoutType.Blank);
@@ -40,9 +38,9 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptSpecialMaster notesMaster = Assert.IsType<
-                LegacyPptSpecialMaster>(LegacyPptPresentation.Load(bytes)
+                LegacyPptSpecialMaster>(LegacyPptDocument.Load(bytes)
                 .NotesMaster);
 
             Assert.NotNull(notesMaster.RoundTripTheme?.ThemeXml);
@@ -51,7 +49,7 @@ namespace OfficeIMO.Tests {
                 shape => shape.Placeholder?.Kind
                     == LegacyPptPlaceholderKind.MasterNotesSlideImage);
             Assert.Equal(LegacyPptShapeKind.Rectangle, slideImage.Kind);
-            Assert.Equal(ToEmus(ToMasterUnits(slideBounds.Left)),
+            Assert.Equal(ToEmus(ToMasterUnits(slideBounds.Left.ToEmus())),
                 ToEmus(slideImage.Bounds.Left));
             LegacyPptShape body = Assert.Single(notesMaster.Shapes,
                 shape => shape.Placeholder?.Kind
@@ -65,7 +63,7 @@ namespace OfficeIMO.Tests {
                 slideImage.ShapeId >> 10, shape.ShapeId >> 10));
 
             using var stream = new MemoryStream(bytes);
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(
+            using PowerPointDocument reopened = PowerPointDocument.Load(
                 stream);
             P.Shape[] projected = reopened.OpenXmlDocument.PresentationPart!
                 .NotesMasterPart!.NotesMaster!.CommonSlideData!.ShapeTree!
@@ -81,7 +79,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_RejectsUnsupportedNotesMasterDrawing() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.OpenXmlDocument.PresentationPart!.NotesMasterPart!
                 .NotesMaster!.CommonSlideData!.ShapeTree!
                 .Append(new P.GraphicFrame());
@@ -92,33 +90,31 @@ namespace OfficeIMO.Tests {
 
             Assert.False(preflight.CanWrite);
             Assert.Contains(preflight.Findings, finding =>
-                finding.Code == "PPT-WRITE-NOTES-MASTER-SHAPE");
+                finding.Code == "ppt-write-notes-master-shape");
         }
 
         [Fact]
         public void NativeWriter_WritesHandoutMasterTopologyDrawingsAndBackground() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             HandoutMasterPart handoutMasterPart = CreateHandoutMaster(presentation);
             P.CommonSlideData commonSlideData = handoutMasterPart.HandoutMaster!
                 .CommonSlideData!;
             P.ShapeTree tree = commonSlideData.ShapeTree!;
-            var dateBounds = new PowerPointLayoutBox(350000, 300000,
-                2600000, 450000);
-            var headerBounds = new PowerPointLayoutBox(3200000, 300000,
-                5700000, 450000);
+            var dateBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(350000),OfficeIMO.OfficeLength.Emus(300000),                OfficeIMO.OfficeLength.Emus(2600000),OfficeIMO.OfficeLength.Emus(450000));
+            var headerBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(3200000),OfficeIMO.OfficeLength.Emus(300000),                OfficeIMO.OfficeLength.Emus(5700000),OfficeIMO.OfficeLength.Emus(450000));
             tree.Append(
                 CreateNotesMasterShape(2U, "Handout date", dateBounds,
                     P.PlaceholderValues.DateAndTime, "July 2026"),
                 CreateNotesMasterShape(3U, "Handout header", headerBounds,
                     P.PlaceholderValues.Header, "Quarterly review"),
                 CreateNotesMasterShape(4U, "Handout footer",
-                    new PowerPointLayoutBox(350000, 6200000, 6000000, 450000),
+                    new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(350000),OfficeIMO.OfficeLength.Emus(6200000),OfficeIMO.OfficeLength.Emus(6000000),OfficeIMO.OfficeLength.Emus(450000)),
                     P.PlaceholderValues.Footer, "Confidential"),
                 CreateNotesMasterShape(5U, "Handout slide number",
-                    new PowerPointLayoutBox(8300000, 6200000, 600000, 450000),
+                    new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(8300000),OfficeIMO.OfficeLength.Emus(6200000),OfficeIMO.OfficeLength.Emus(600000),OfficeIMO.OfficeLength.Emus(450000)),
                     P.PlaceholderValues.SlideNumber, "1"),
                 CreateNotesMasterShape(6U, "Handout decoration",
-                    new PowerPointLayoutBox(8450000, 950000, 400000, 400000),
+                    new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(8450000),OfficeIMO.OfficeLength.Emus(950000),OfficeIMO.OfficeLength.Emus(400000),OfficeIMO.OfficeLength.Emus(400000)),
                     placeholder: null, text: null,
                     shapeType: A.ShapeTypeValues.Ellipse));
             commonSlideData.Background = new P.Background(
@@ -133,8 +129,8 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
-            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
+            LegacyPptDocument binary = LegacyPptDocument.Load(bytes);
             Assert.Equal(16U, binary.DocumentSettings!.HandoutMasterPersistId);
             LegacyPptSpecialMaster handoutMaster = Assert.IsType<
                 LegacyPptSpecialMaster>(binary.HandoutMaster);
@@ -150,7 +146,7 @@ namespace OfficeIMO.Tests {
                 shape => shape.Placeholder?.Kind
                     == LegacyPptPlaceholderKind.MasterDate);
             Assert.Equal("July 2026", date.Text);
-            Assert.Equal(ToEmus(ToMasterUnits(dateBounds.Left)),
+            Assert.Equal(ToEmus(ToMasterUnits(dateBounds.Left.ToEmus())),
                 ToEmus(date.Bounds.Left));
             Assert.Equal("Quarterly review", Assert.Single(
                 handoutMaster.Shapes, shape => shape.Placeholder?.Kind
@@ -167,7 +163,7 @@ namespace OfficeIMO.Tests {
                 date.ShapeId >> 10, shape.ShapeId >> 10));
 
             using var stream = new MemoryStream(bytes);
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(
+            using PowerPointDocument reopened = PowerPointDocument.Load(
                 stream);
             HandoutMasterPart projectedPart = Assert.IsType<HandoutMasterPart>(
                 reopened.OpenXmlDocument.PresentationPart!.HandoutMasterPart);
@@ -190,8 +186,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_WritesSpecialMasterAndNotesPagePictureBackgrounds() {
             byte[] imageBytes = PdfPngTestImages.CreateRgbPng(25, 135, 84);
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PresentationPart presentationPart = presentation.OpenXmlDocument
                 .PresentationPart!;
             NotesMasterPart notesMasterPart = presentationPart
@@ -214,8 +210,8 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
-            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
+            LegacyPptDocument binary = LegacyPptDocument.Load(bytes);
 
             LegacyPptBackground notesMasterBackground = Assert.IsType<
                 LegacyPptBackground>(Assert.IsType<LegacyPptSpecialMaster>(
@@ -238,8 +234,8 @@ namespace OfficeIMO.Tests {
                 .ReferenceCount);
 
             using var stream = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.Load(stream);
+            using PowerPointDocument reopened =
+                PowerPointDocument.Load(stream);
             Assert.NotNull(reopened.OpenXmlDocument.PresentationPart!
                 .NotesMasterPart!.NotesMaster!.CommonSlideData!.Background!
                 .BackgroundProperties!.GetFirstChild<A.BlipFill>());
@@ -256,8 +252,8 @@ namespace OfficeIMO.Tests {
         public void ImportedMasterPictureBackgroundEdits_AppendOneDeduplicatedBlip() {
             byte[] imageBytes = PdfPngTestImages.CreateRgbPng(74, 34, 194);
             byte[] sourceBytes;
-            using (PowerPointPresentation created =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument created =
+                   PowerPointDocument.Create()) {
                 PresentationPart presentationPart = created.OpenXmlDocument
                     .PresentationPart!;
                 SlideMasterPart mainMaster = presentationPart.SlideMasterParts
@@ -275,13 +271,13 @@ namespace OfficeIMO.Tests {
                 slide.Notes.Text = "Preserved picture background note";
                 slide.SlidePart.NotesSlidePart!.NotesSlide!.CommonSlideData!
                     .Background = CreateSolidBackground("445566");
-                sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 sourceBytes);
 
             using var input = new MemoryStream(sourceBytes, writable: false);
-            using PowerPointPresentation imported = PowerPointPresentation.Load(
+            using PowerPointDocument imported = PowerPointDocument.Load(
                 input);
             PresentationPart importedPart = imported.OpenXmlDocument
                 .PresentationPart!;
@@ -299,8 +295,8 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            byte[] savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
+            LegacyPptDocument saved = LegacyPptDocument.Load(savedBytes);
 
             Assert.True(saved.Package.DocumentStream.AsSpan(0,
                     original.Package.DocumentStream.Length)
@@ -319,31 +315,31 @@ namespace OfficeIMO.Tests {
                     .Background).Picture!.ImageBytes);
             using var reopenedInput = new MemoryStream(savedBytes,
                 writable: false);
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(
+            using PowerPointDocument reopened = PowerPointDocument.Load(
                 reopenedInput);
             Assert.Empty(reopened.ValidateDocument());
             Assert.Equal(savedBytes,
-                reopened.ToBytes(PowerPointFileFormat.Ppt));
+                reopened.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
         public void ImportedNotesPagePictureBackgroundEdit_AppendsPreservingBlip() {
             byte[] imageBytes = PdfPngTestImages.CreateRgbPng(91, 61, 31);
             byte[] sourceBytes;
-            using (PowerPointPresentation created =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument created =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = created.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 slide.Notes.Text = "Notes page picture";
                 slide.SlidePart.NotesSlidePart!.NotesSlide!.CommonSlideData!
                     .Background = CreateSolidBackground("123456");
-                sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 sourceBytes);
 
             using var input = new MemoryStream(sourceBytes, writable: false);
-            using PowerPointPresentation imported = PowerPointPresentation.Load(
+            using PowerPointDocument imported = PowerPointDocument.Load(
                 input);
             NotesSlidePart notesPart = imported.Slides[0].SlidePart
                 .NotesSlidePart!;
@@ -355,8 +351,8 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            byte[] savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
+            LegacyPptDocument saved = LegacyPptDocument.Load(savedBytes);
 
             Assert.True(saved.Package.DocumentStream.AsSpan(0,
                     original.Package.DocumentStream.Length)
@@ -370,7 +366,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_RejectsUnsupportedHandoutMasterDrawing() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             HandoutMasterPart handoutMasterPart = CreateHandoutMaster(presentation);
             handoutMasterPart.HandoutMaster!.CommonSlideData!.ShapeTree!
                 .Append(new P.GraphicFrame());
@@ -381,11 +377,11 @@ namespace OfficeIMO.Tests {
 
             Assert.False(preflight.CanWrite);
             Assert.Contains(preflight.Findings, finding =>
-                finding.Code == "PPT-WRITE-HANDOUT-MASTER-SHAPE");
+                finding.Code == "ppt-write-handout-master-shape");
         }
 
         private static HandoutMasterPart CreateHandoutMaster(
-            PowerPointPresentation presentation) {
+            PowerPointDocument presentation) {
             PresentationPart presentationPart = presentation.OpenXmlDocument
                 .PresentationPart!;
             HandoutMasterPart handoutMasterPart = presentationPart
@@ -435,10 +431,10 @@ namespace OfficeIMO.Tests {
                     applicationProperties),
                 new P.ShapeProperties(
                     new A.Transform2D(
-                        new A.Offset { X = bounds.Left, Y = bounds.Top },
+                        new A.Offset { X = bounds.Left.ToEmus(), Y = bounds.Top.ToEmus() },
                         new A.Extents {
-                            Cx = bounds.Width,
-                            Cy = bounds.Height
+                            Cx = bounds.Width.ToEmus(),
+                            Cy = bounds.Height.ToEmus()
                         }),
                     new A.PresetGeometry(new A.AdjustValueList()) {
                         Preset = shapeType ?? A.ShapeTypeValues.Rectangle

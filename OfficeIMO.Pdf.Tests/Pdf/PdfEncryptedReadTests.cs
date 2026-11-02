@@ -31,7 +31,7 @@ public class PdfEncryptedReadTests {
         Assert.Contains("Secret PDF Text", text, StringComparison.Ordinal);
         Assert.Contains("Secret PDF Text", fluentText, StringComparison.Ordinal);
         Assert.True(diagnostics.ObjectGraphParsed);
-        Assert.Contains(diagnostics.Findings, finding => finding.Code == "EncryptionDetected");
+        Assert.Contains(diagnostics.Findings, finding => finding.Code == "encryption-detected");
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public class PdfEncryptedReadTests {
         Assert.True(report.HasSignatures);
         Assert.Equal(1, report.SignatureCount);
         Assert.Equal("Approval", Assert.Single(report.Signatures).Signature.FieldName);
-        Assert.DoesNotContain(report.Findings, finding => finding.Code == "NoSignatures");
+        Assert.DoesNotContain(report.Findings, finding => finding.Code == "no-signatures");
     }
 
     [Fact]

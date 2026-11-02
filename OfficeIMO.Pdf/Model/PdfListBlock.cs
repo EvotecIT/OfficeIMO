@@ -7,7 +7,7 @@ internal abstract class PdfListBlock : IPdfBlock {
     protected PdfListBlock(
         System.Collections.Generic.IEnumerable<string> items,
         PdfAlign align,
-        PdfColor? color,
+        global::OfficeIMO.OfficeColor? color,
         PdfListStyle? style,
         string validationName) {
         Guard.NotNull(items, nameof(items));
@@ -31,7 +31,7 @@ internal abstract class PdfListBlock : IPdfBlock {
     protected PdfListBlock(
         System.Collections.Generic.IEnumerable<PdfListItem> items,
         PdfAlign align,
-        PdfColor? color,
+        global::OfficeIMO.OfficeColor? color,
         PdfListStyle? style,
         string validationName) {
         Guard.NotNull(items, nameof(items));
@@ -41,7 +41,9 @@ internal abstract class PdfListBlock : IPdfBlock {
         bool hasCustomMarkers = false;
         foreach (PdfListItem? item in items) {
             if (item != null) {
-                richItems.Add(new PdfListItem(item.Runs, item.BookmarkName, item.Marker));
+                richItems.Add(new PdfListItem(item.Runs, item.BookmarkName, item.Marker) {
+                    BookmarkAliases = item.BookmarkAliases.ToArray()
+                });
                 hasCustomMarkers |= item.Marker != null;
             }
         }
@@ -62,7 +64,7 @@ internal abstract class PdfListBlock : IPdfBlock {
 
     public PdfAlign Align { get; }
 
-    public PdfColor? Color { get; }
+    public global::OfficeIMO.OfficeColor? Color { get; }
 
     public PdfListStyle? Style { get; }
 

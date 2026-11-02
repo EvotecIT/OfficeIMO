@@ -82,7 +82,7 @@ public sealed partial class IWorkEverydayNativeExportTests {
         Assert.Contains("4. List continuation", output.Markdown);
         var blocks = output.Pages.SelectMany(page => page.Blocks).Where(block => block.Kind == "list-item").ToArray();
         Assert.Equal(new[] { "7.", "8.", "3.", "4." }, blocks.Select(block => block.Marker));
-        var lists = OfficeIMO.Markdown.MarkdownReader.Parse(output.Markdown!).Blocks
+        var lists = OfficeIMO.Markdown.MarkdownDocument.Parse(output.Markdown!).Blocks
             .OfType<OfficeIMO.Markdown.OrderedListBlock>().ToArray();
         Assert.Equal(new[] { 7, 3 }, lists.Select(list => list.Start));
         Assert.All(lists, list => Assert.Equal(2, list.Items.Count));

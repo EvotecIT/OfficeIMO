@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
         [InlineData("IFERROR(EVEN(1/0),99)", "99")]
         public void Scalar_math_replaces_stale_caches_with_typed_results(string formula, string expected) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Math");
+            var sheet = document.AddSheet("Math");
             sheet.CellFormula(1, 1, "42");
             Assert.Equal(1, document.Calculate());
             sheet.CellFormula(1, 1, formula);
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
         [InlineData("EVEN(\"text\")")]
         public void Scalar_math_does_not_flatten_ranges_or_discard_arguments(string formula) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Math");
+            var sheet = document.AddSheet("Math");
             sheet.CellValue(1, 1, 3d); sheet.CellValue(2, 1, 2d);
             sheet.CellFormula(1, 2, formula);
             Assert.Equal(0, document.Calculate());
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests {
         [InlineData("IFERROR(MOD(#REF!,A1:A2),99)")]
         public void Scalar_math_qualifies_all_operands_before_propagating_errors(string formula) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Math");
+            var sheet = document.AddSheet("Math");
             sheet.CellValue(1, 1, 3d); sheet.CellValue(2, 1, 2d);
             sheet.CellFormula(1, 2, "42");
             Assert.Equal(1, document.Calculate());
@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Scalar_math_retains_existing_boolean_numeric_coercion() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Math");
+            var sheet = document.AddSheet("Math");
             sheet.CellValue(1, 1, true);
             sheet.CellFormula(1, 2, "SQRT(TRUE)");
             sheet.CellFormula(2, 2, "INT(A1)");
@@ -105,7 +105,7 @@ namespace OfficeIMO.Tests {
         [InlineData("SQRT(ABS(A1))", 2.9832867780352594d, 1.70293863659264d)]
         public void Scalar_math_follows_edited_operands(string formula, double first, double second) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Math");
+            var sheet = document.AddSheet("Math");
             sheet.CellValue(1, 1, -8.9d); sheet.CellValue(2, 1, 2d);
             sheet.CellFormula(1, 2, formula);
             Assert.Equal(1, document.Calculate());

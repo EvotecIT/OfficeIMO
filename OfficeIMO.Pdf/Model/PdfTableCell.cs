@@ -305,25 +305,25 @@ public sealed partial class PdfTableCell {
 }
 
 internal sealed class PdfTableCellParagraph {
-    public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<PdfTextRun> runs, double spacingAfter = 0D, PdfAlign? align = null, double spacingBefore = 0D, double leftIndent = 0D, double rightIndent = 0D, double firstLineIndent = 0D, double? lineHeight = null, double? defaultTabStopWidth = null, System.Collections.Generic.IEnumerable<PdfTabStop>? tabStops = null, double? fontSize = null, PdfLineSpacing? lineSpacing = null, bool? widowControl = null, bool keepTogether = false, bool keepWithNext = false, PdfJustificationMode justificationMode = PdfJustificationMode.Words, bool justifyExplicitLineBreaks = false, bool justifyLastLine = false, bool useWordJustificationSpacing = false) {
+    public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<PdfTextRun> runs, global::OfficeIMO.OfficeLength spacingAfter = default, PdfAlign? align = null, global::OfficeIMO.OfficeLength spacingBefore = default, global::OfficeIMO.OfficeLength leftIndent = default, global::OfficeIMO.OfficeLength rightIndent = default, global::OfficeIMO.OfficeLength firstLineIndent = default, double? lineHeight = null, global::OfficeIMO.OfficeLength? defaultTabStopWidth = null, System.Collections.Generic.IEnumerable<PdfTabStop>? tabStops = null, global::OfficeIMO.OfficeLength? fontSize = null, PdfLineSpacing? lineSpacing = null, bool? widowControl = null, bool keepTogether = false, bool keepWithNext = false, PdfJustificationMode justificationMode = PdfJustificationMode.Words, bool justifyExplicitLineBreaks = false, bool justifyLastLine = false, bool useWordJustificationSpacing = false) {
         Guard.NotNull(runs, nameof(runs));
-        if (spacingBefore < 0 || double.IsNaN(spacingBefore) || double.IsInfinity(spacingBefore)) {
+        if (spacingBefore.ToPoints() < 0 || double.IsNaN(spacingBefore.ToPoints()) || double.IsInfinity(spacingBefore.ToPoints())) {
             throw new System.ArgumentOutOfRangeException(nameof(spacingBefore), "Table cell paragraph spacing must be a non-negative finite value.");
         }
 
-        if (spacingAfter < 0 || double.IsNaN(spacingAfter) || double.IsInfinity(spacingAfter)) {
+        if (spacingAfter.ToPoints() < 0 || double.IsNaN(spacingAfter.ToPoints()) || double.IsInfinity(spacingAfter.ToPoints())) {
             throw new System.ArgumentOutOfRangeException(nameof(spacingAfter), "Table cell paragraph spacing must be a non-negative finite value.");
         }
 
-        if (double.IsNaN(leftIndent) || double.IsInfinity(leftIndent)) {
+        if (double.IsNaN(leftIndent.ToPoints()) || double.IsInfinity(leftIndent.ToPoints())) {
             throw new System.ArgumentOutOfRangeException(nameof(leftIndent), "Table cell paragraph left indent must be a finite value.");
         }
 
-        if (double.IsNaN(rightIndent) || double.IsInfinity(rightIndent)) {
+        if (double.IsNaN(rightIndent.ToPoints()) || double.IsInfinity(rightIndent.ToPoints())) {
             throw new System.ArgumentOutOfRangeException(nameof(rightIndent), "Table cell paragraph right indent must be a finite value.");
         }
 
-        if (double.IsNaN(firstLineIndent) || double.IsInfinity(firstLineIndent)) {
+        if (double.IsNaN(firstLineIndent.ToPoints()) || double.IsInfinity(firstLineIndent.ToPoints())) {
             throw new System.ArgumentOutOfRangeException(nameof(firstLineIndent), "Table cell paragraph first line indent must be a finite value.");
         }
 
@@ -331,11 +331,11 @@ internal sealed class PdfTableCellParagraph {
             throw new System.ArgumentOutOfRangeException(nameof(lineHeight), "Table cell paragraph line height must be a positive finite value.");
         }
 
-        if (defaultTabStopWidth.HasValue && (defaultTabStopWidth.Value <= 0 || double.IsNaN(defaultTabStopWidth.Value) || double.IsInfinity(defaultTabStopWidth.Value))) {
+        if (defaultTabStopWidth.HasValue && (defaultTabStopWidth.Value.ToPoints() <= 0 || double.IsNaN(defaultTabStopWidth.Value.ToPoints()) || double.IsInfinity(defaultTabStopWidth.Value.ToPoints()))) {
             throw new System.ArgumentOutOfRangeException(nameof(defaultTabStopWidth), "Table cell paragraph default tab stop width must be a positive finite value.");
         }
 
-        if (fontSize.HasValue && (fontSize.Value <= 0D || double.IsNaN(fontSize.Value) || double.IsInfinity(fontSize.Value)))
+        if (fontSize.HasValue && (fontSize.Value.ToPoints() <= 0D || double.IsNaN(fontSize.Value.ToPoints()) || double.IsInfinity(fontSize.Value.ToPoints())))
             throw new System.ArgumentOutOfRangeException(nameof(fontSize), "Table cell paragraph font size must be a positive finite value.");
         if (justificationMode < PdfJustificationMode.Words || justificationMode > PdfJustificationMode.Characters)
             throw new System.ArgumentOutOfRangeException(nameof(justificationMode));
@@ -383,19 +383,19 @@ internal sealed class PdfTableCellParagraph {
 
     public System.Collections.Generic.IReadOnlyList<PdfTextRun> Runs { get; }
 
-    public double SpacingBefore { get; }
+    public global::OfficeIMO.OfficeLength SpacingBefore { get; }
 
-    public double SpacingAfter { get; }
+    public global::OfficeIMO.OfficeLength SpacingAfter { get; }
 
     public PdfAlign? Align { get; }
 
-    public double LeftIndent { get; }
+    public global::OfficeIMO.OfficeLength LeftIndent { get; }
 
-    public double RightIndent { get; }
+    public global::OfficeIMO.OfficeLength RightIndent { get; }
 
-    public double FirstLineIndent { get; }
+    public global::OfficeIMO.OfficeLength FirstLineIndent { get; }
 
-    public double? FontSize { get; }
+    public global::OfficeIMO.OfficeLength? FontSize { get; }
 
     public PdfLineSpacing? LineSpacing { get; }
 
@@ -415,7 +415,7 @@ internal sealed class PdfTableCellParagraph {
 
     public double? LineHeight { get; }
 
-    public double? DefaultTabStopWidth { get; }
+    public global::OfficeIMO.OfficeLength? DefaultTabStopWidth { get; }
 
     public System.Collections.Generic.IReadOnlyList<PdfTabStop> TabStops { get; }
 

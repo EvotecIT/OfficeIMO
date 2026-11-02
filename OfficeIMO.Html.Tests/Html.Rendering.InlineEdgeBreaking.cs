@@ -66,8 +66,8 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(TableGeometrySource(content), TableGeometryOptions());
         HtmlRenderText[] texts = InlineEdgeTexts(rendered);
         Assert.Equal("AAAAAA", string.Concat(texts.Select(text => text.Text)));
-        Assert.Equal(OfficeIMO.Drawing.OfficeColor.Blue, texts[0].Color);
-        Assert.Equal(OfficeIMO.Drawing.OfficeColor.Black, texts[texts.Length - 1].Color);
+        Assert.Equal(OfficeIMO.OfficeColor.Blue, texts[0].Color);
+        Assert.Equal(OfficeIMO.OfficeColor.Black, texts[texts.Length - 1].Color);
         Assert.True(texts[texts.Length - 1].Y > texts[0].Y);
         HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
@@ -102,7 +102,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(TableGeometrySource(content), TableGeometryOptions());
         HtmlRenderText x = Assert.Single(InlineEdgeTexts(rendered), text => text.Text == "X");
         Assert.Equal(expectedX + (floated ? 30D : 0D), x.X, 3);
-        if (firstLine) Assert.Equal(OfficeIMO.Drawing.OfficeColor.Blue, x.Color);
+        if (firstLine) Assert.Equal(OfficeIMO.OfficeColor.Blue, x.Color);
         HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 

@@ -28,7 +28,7 @@ public partial class Word {
         int[] expectedIndices = { 12, 1, restart == "child" ? 5 : 2, restart == "child" ? 6 : 3, 13, 1 };
         var markers = WordDocumentTraversal.BuildListMarkers(document);
         var indices = WordDocumentTraversal.BuildListIndices(document);
-        string text = PdfReadDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false })).ExtractText();
+        string text = PdfReadDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).ExtractText();
         for (int index = 0; index < items.Length; index++) {
             Assert.Equal(expected[index], markers[items[index]].Marker);
             Assert.Equal(expectedIndices[index], indices[items[index]].Index);
@@ -129,7 +129,7 @@ public partial class Word {
     private static void AssertListInstanceCounterValues(WordDocument document, WordParagraph[] items, int[] expected, string suffix, int suffixStart = 0) {
         var indices = WordDocumentTraversal.BuildListIndices(document);
         var markers = WordDocumentTraversal.BuildListMarkers(document);
-        string text = PdfReadDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false })).ExtractText();
+        string text = PdfReadDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).ExtractText();
         for (int index = 0; index < items.Length; index++) {
             string marker = expected[index] + (index >= suffixStart ? suffix : ".");
             Assert.Equal(expected[index], indices[items[index]].Index);

@@ -5,40 +5,45 @@ namespace OfficeIMO.Word;
 public partial class WordImage {
     private const double CropPercentageUnits = 100000D;
 
-    /// <summary>Gets or sets the crop from the top in centimeters of the original image height, before displayed scaling.</summary>
+    /// <summary>Gets or sets the crop from the top as a length of the original image height, before displayed scaling.</summary>
     /// <remarks>Uses the embedded image's intrinsic dimensions and DPI. Setting a crop preserves its displayed scale, adjusts the frame and floating anchor, and respects rotation and mirrors. Negative values add empty margins. Null removes this edge and restores its area. Values are rounded to DrawingML percentage precision. Reading leaves the document XML unchanged.</remarks>
     /// <exception cref="InvalidOperationException">The embedded source size or floating anchor position cannot be resolved without pagination.</exception>
     /// <exception cref="ArgumentOutOfRangeException">The crop is not finite, removes the entire source area, or overflows the frame or anchor range.</exception>
-    public double? CropTopCentimeters {
-        get => GetCropCentimeters(CropTop, horizontal: false);
-        set => SetCropCentimeters(value, horizontal: false, leading: true);
+    public OfficeLength? CropTop {
+        get => GetCropLength(CropTopPercentage, horizontal: false);
+        set => SetCropCentimeters(value?.ToCentimeters(), horizontal: false, leading: true);
     }
 
-    /// <summary>Gets or sets the crop from the bottom in centimeters of the original image height, before displayed scaling.</summary>
+    /// <summary>Gets or sets the crop from the bottom as a length of the original image height, before displayed scaling.</summary>
     /// <remarks>Uses intrinsic image dimensions and DPI, preserves displayed scale and the opposite edge, and adjusts the frame and floating anchor for rotation and mirrors. Negative values add empty margins; null removes this edge. Reading leaves the document XML unchanged.</remarks>
     /// <exception cref="InvalidOperationException">The embedded source size or floating anchor position cannot be resolved without pagination.</exception>
     /// <exception cref="ArgumentOutOfRangeException">The crop is not finite, removes the entire source area, or overflows the frame or anchor range.</exception>
-    public double? CropBottomCentimeters {
-        get => GetCropCentimeters(CropBottom, horizontal: false);
-        set => SetCropCentimeters(value, horizontal: false, leading: false);
+    public OfficeLength? CropBottom {
+        get => GetCropLength(CropBottomPercentage, horizontal: false);
+        set => SetCropCentimeters(value?.ToCentimeters(), horizontal: false, leading: false);
     }
 
-    /// <summary>Gets or sets the crop from the left in centimeters of the original image width, before displayed scaling.</summary>
+    /// <summary>Gets or sets the crop from the left as a length of the original image width, before displayed scaling.</summary>
     /// <remarks>Uses intrinsic image dimensions and DPI, preserves displayed scale and the opposite edge, and adjusts the frame and floating anchor for rotation and mirrors. Negative values add empty margins; null removes this edge. Reading leaves the document XML unchanged.</remarks>
     /// <exception cref="InvalidOperationException">The embedded source size or floating anchor position cannot be resolved without pagination.</exception>
     /// <exception cref="ArgumentOutOfRangeException">The crop is not finite, removes the entire source area, or overflows the frame or anchor range.</exception>
-    public double? CropLeftCentimeters {
-        get => GetCropCentimeters(CropLeft, horizontal: true);
-        set => SetCropCentimeters(value, horizontal: true, leading: true);
+    public OfficeLength? CropLeft {
+        get => GetCropLength(CropLeftPercentage, horizontal: true);
+        set => SetCropCentimeters(value?.ToCentimeters(), horizontal: true, leading: true);
     }
 
-    /// <summary>Gets or sets the crop from the right in centimeters of the original image width, before displayed scaling.</summary>
+    /// <summary>Gets or sets the crop from the right as a length of the original image width, before displayed scaling.</summary>
     /// <remarks>Uses intrinsic image dimensions and DPI, preserves displayed scale and the opposite edge, and adjusts the frame and floating anchor for rotation and mirrors. Negative values add empty margins; null removes this edge. Reading leaves the document XML unchanged.</remarks>
     /// <exception cref="InvalidOperationException">The embedded source size or floating anchor position cannot be resolved without pagination.</exception>
     /// <exception cref="ArgumentOutOfRangeException">The crop is not finite, removes the entire source area, or overflows the frame or anchor range.</exception>
-    public double? CropRightCentimeters {
-        get => GetCropCentimeters(CropRight, horizontal: true);
-        set => SetCropCentimeters(value, horizontal: true, leading: false);
+    public OfficeLength? CropRight {
+        get => GetCropLength(CropRightPercentage, horizontal: true);
+        set => SetCropCentimeters(value?.ToCentimeters(), horizontal: true, leading: false);
+    }
+
+    private OfficeLength? GetCropLength(int? crop, bool horizontal) {
+        double? centimeters = GetCropCentimeters(crop, horizontal);
+        return centimeters.HasValue ? OfficeLength.Centimeters(centimeters.Value) : null;
     }
 
     private double? GetCropCentimeters(int? crop, bool horizontal) {
@@ -48,8 +53,8 @@ public partial class WordImage {
     }
 
     private void SetCropCentimeters(double? value, bool horizontal, bool leading) {
-        int? first = horizontal ? CropLeft : CropTop;
-        int? last = horizontal ? CropRight : CropBottom;
+        int? first = horizontal ? CropLeftPercentage : CropTopPercentage;
+        int? last = horizontal ? CropRightPercentage : CropBottomPercentage;
         if (!value.HasValue && !(leading ? first : last).HasValue) return;
         int? crop = null;
         if (value.HasValue) {
@@ -58,18 +63,21 @@ public partial class WordImage {
         }
         if (leading) first = crop;
         else last = crop;
-        ApplyPhysicalCrop(horizontal ? first : CropLeft, horizontal ? CropTop : first,
-            horizontal ? last : CropRight, horizontal ? CropBottom : last);
+        ApplyPhysicalCrop(horizontal ? first : CropLeftPercentage, horizontal ? CropTopPercentage : first,
+            horizontal ? last : CropRightPercentage, horizontal ? CropBottomPercentage : last);
     }
 
-    /// <summary>Applies the fluent crop rectangle as one edit, validating both axes before changing either.</summary>
-    internal void SetCropCentimeters(double left, double top, double right, double bottom) {
-        var size = GetIntrinsicCropSizeCentimeters();
-        int? cropLeft = ConvertCentimetersToCrop(left, size.Width, nameof(left));
-        int? cropRight = ConvertCentimetersToCrop(right, size.Width, nameof(right));
-        int? cropTop = ConvertCentimetersToCrop(top, size.Height, nameof(top));
-        int? cropBottom = ConvertCentimetersToCrop(bottom, size.Height, nameof(bottom));
+    /// <summary>Applies all four physical source crops together, validating the frame and anchor before changing the image.</summary>
+    /// <remarks>Null clears an edge. Negative lengths add source margins. Distances use the original image resolution and retain its displayed scale.</remarks>
+    public WordImage SetCrop(OfficeLength? left, OfficeLength? top, OfficeLength? right, OfficeLength? bottom) {
+        (double Width, double Height) size = left.HasValue || top.HasValue || right.HasValue || bottom.HasValue
+            ? GetIntrinsicCropSizeCentimeters() : default;
+        int? cropLeft = left.HasValue ? ConvertCentimetersToCrop(left.Value.ToCentimeters(), size.Width, nameof(left)) : null;
+        int? cropRight = right.HasValue ? ConvertCentimetersToCrop(right.Value.ToCentimeters(), size.Width, nameof(right)) : null;
+        int? cropTop = top.HasValue ? ConvertCentimetersToCrop(top.Value.ToCentimeters(), size.Height, nameof(top)) : null;
+        int? cropBottom = bottom.HasValue ? ConvertCentimetersToCrop(bottom.Value.ToCentimeters(), size.Height, nameof(bottom)) : null;
         ApplyPhysicalCrop(cropLeft, cropTop, cropRight, cropBottom);
+        return this;
     }
 
     private (double Width, double Height) GetIntrinsicCropSizeCentimeters() {
@@ -96,8 +104,8 @@ public partial class WordImage {
     private long GetCroppedAxisExtent(bool horizontal, int? first, int? last) {
         if (GetPicture() == null)
             throw new InvalidOperationException("Physical cropping requires a DrawingML picture.");
-        double currentExtent = (horizontal ? EmuWidth : EmuHeight) ?? 0D;
-        double previousVisible = horizontal ? VisibleCropFraction(CropLeft, CropRight) : VisibleCropFraction(CropTop, CropBottom);
+        double currentExtent = (horizontal ? ((double?)Width?.ToEmus()) : ((double?)Height?.ToEmus())) ?? 0D;
+        double previousVisible = horizontal ? VisibleCropFraction(CropLeftPercentage, CropRightPercentage) : VisibleCropFraction(CropTopPercentage, CropBottomPercentage);
         double nextVisible = VisibleCropFraction(first, last);
         if (!IsPositiveFiniteCropValue(currentExtent) || !IsPositiveFiniteCropValue(previousVisible))
             throw new InvalidOperationException("The current picture must have a positive frame and a nonempty source crop before applying a physical crop.");
@@ -115,7 +123,7 @@ public partial class WordImage {
         // Resolve all geometry before changing the XML, including unsupported or malformed anchors.
         var position = GetPhysicalCropAnchorPosition(left, top, right, bottom, width, height);
         var inner = GetPicture()?.ShapeProperties?.Transform2D?.Extents;
-        CropLeft = left; CropRight = right; CropTop = top; CropBottom = bottom;
+        CropLeftPercentage = left; CropRightPercentage = right; CropTopPercentage = top; CropBottomPercentage = bottom;
         WordDrawingLayoutReader.SetExtent(_Image, width, height);
         if (inner != null) {
             inner.Cx = width;

@@ -72,7 +72,7 @@ public sealed class OfficeContentSafetyOptions {
     /// <summary>Maximum characters retained in a finding preview. Defaults to 240.</summary>
     public int MaxPreviewCharacters { get; set; } = 240;
     /// <summary>Font sizes at or below this value are treated as effectively concealed. Defaults to two points.</summary>
-    public double MaximumTinyFontSizePoints { get; set; } = 2D;
+    public OfficeLength MaximumTinyFontSize { get; set; } = OfficeLength.Points(2);
     /// <summary>Contrast ratios below this value are reported. Defaults to 1.25.</summary>
     public double MinimumVisibleContrastRatio { get; set; } = 1.25D;
     /// <summary>Whether notes, comments, metadata, alternative text, and other non-primary stories are reported.</summary>
@@ -96,8 +96,8 @@ public sealed class OfficeContentSafetyOptions {
         if (MaxCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxCharacters));
         if (MaxFindings <= 0) throw new ArgumentOutOfRangeException(nameof(MaxFindings));
         if (MaxPreviewCharacters <= 0 || MaxPreviewCharacters > 4096) throw new ArgumentOutOfRangeException(nameof(MaxPreviewCharacters));
-        if (double.IsNaN(MaximumTinyFontSizePoints) || double.IsInfinity(MaximumTinyFontSizePoints) || MaximumTinyFontSizePoints < 0D || MaximumTinyFontSizePoints > 72D) {
-            throw new ArgumentOutOfRangeException(nameof(MaximumTinyFontSizePoints));
+        if (MaximumTinyFontSize < OfficeLength.Zero || MaximumTinyFontSize > OfficeLength.Points(72)) {
+            throw new ArgumentOutOfRangeException(nameof(MaximumTinyFontSize));
         }
         if (double.IsNaN(MinimumVisibleContrastRatio) || double.IsInfinity(MinimumVisibleContrastRatio) || MinimumVisibleContrastRatio < 1D || MinimumVisibleContrastRatio > 21D) {
             throw new ArgumentOutOfRangeException(nameof(MinimumVisibleContrastRatio));

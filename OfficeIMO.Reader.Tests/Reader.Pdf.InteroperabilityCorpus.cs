@@ -94,12 +94,15 @@ public sealed class ReaderPdfInteroperabilityCorpusTests {
             result.Tables.Count >= minimumTables,
             $"{fileName} reconstructed {result.Tables.Count} tables; expected at least {minimumTables}.");
         if (fileName == "microsoft-word-windows-word-business-delivery-summary.pdf") {
-            Assert.Equal(11, result.Tables.Count(table =>
+            // All twelve printed headers survive, including the ruled continuation on the next page.
+            Assert.Equal(12, result.Tables.Count(table =>
                 table.Columns.Count >= 2 &&
                 NormalizeTableLabel(table.Columns[0]) == "deliveryworksheet" &&
                 NormalizeTableLabel(table.Columns[1]) == "response"));
             Assert.Contains(result.Tables, table =>
                 table.Columns.Select(NormalizeTableLabel).SequenceEqual(new[] { "role", "name", "decision", "date", "notes" }));
+            Assert.Contains(NormalizeTableLabel("the first systems attackers target for credential material."),
+                NormalizeTableLabel(result.GetText()));
         }
         Assert.True(result.Assets.Count >= minimumAssets);
         Assert.Equal(result.Assets.Count, result.Visuals.Count);

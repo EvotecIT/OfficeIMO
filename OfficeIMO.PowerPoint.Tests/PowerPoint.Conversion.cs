@@ -17,17 +17,17 @@ public sealed class PowerPointConversionTests {
         string roundTrip = files.Path("roundtrip.pptx");
         CreateTextPresentation(pptx);
 
-        PowerPointPresentationConversionResult toPpt = PowerPointPresentation.Convert(pptx, ppt);
+        PowerPointDocumentConversionResult toPpt = PowerPointDocument.Convert(pptx, ppt);
 
         Assert.Equal(ppt, toPpt.RequireNoLoss());
         Assert.Equal("PowerPoint.Pptx", toPpt.Report.SourceFormatDescriptor.Id);
         Assert.Equal("PowerPoint.Ppt", toPpt.Report.DestinationFormatDescriptor.Id);
         Assert.True(toPpt.Report.Compatibility.IsStrictlyCompatible);
 
-        PowerPointPresentationConversionResult toPptx = PowerPointPresentation.Convert(ppt, roundTrip);
+        PowerPointDocumentConversionResult toPptx = PowerPointDocument.Convert(ppt, roundTrip);
 
         Assert.Equal(roundTrip, toPptx.RequireNoLoss());
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(roundTrip);
+        using PowerPointDocument reopened = PowerPointDocument.Load(roundTrip);
         Assert.Contains(reopened.Slides[0].TextBoxes,
             textBox => textBox.Text.Contains("Conversion contract", StringComparison.Ordinal));
     }
@@ -39,14 +39,14 @@ public sealed class PowerPointConversionTests {
         string potx = files.Path("template.potx");
         CreateTextPresentation(pptx);
 
-        PowerPointPresentationConversionResult result = PowerPointPresentation.Convert(pptx, potx);
+        PowerPointDocumentConversionResult result = PowerPointDocument.Convert(pptx, potx);
 
         Assert.Equal(PowerPointFileFormat.Pptx, result.Report.SourceFormat);
         Assert.Equal(PowerPointFileFormat.Pptx, result.Report.DestinationFormat);
         Assert.Equal(OfficeDocumentKind.Document, result.Report.SourceFormatDescriptor.DocumentKind);
         Assert.Equal(OfficeDocumentKind.Template, result.Report.DestinationFormatDescriptor.DocumentKind);
         Assert.True(File.Exists(potx));
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(potx);
+        using PowerPointDocument reopened = PowerPointDocument.Load(potx);
         Assert.Equal("PowerPoint.Potx", reopened.SourceFormatDescriptor.Id);
     }
 
@@ -55,31 +55,31 @@ public sealed class PowerPointConversionTests {
         using var files = new ConversionFiles();
         string source = files.Path("chart.pptx");
         string destination = files.Path("chart.ppt");
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(source)) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(source)) {
             presentation.AddSlide(PowerPointSlideLayoutType.Blank).AddChart();
             presentation.Save();
         }
 
-        PowerPointPresentationConversionException blocked = Assert.Throws<PowerPointPresentationConversionException>(() =>
-            PowerPointPresentation.Convert(source, destination));
+        PowerPointDocumentConversionException blocked = Assert.Throws<PowerPointDocumentConversionException>(() =>
+            PowerPointDocument.Convert(source, destination));
         Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, blocked.Reason);
         Assert.Contains(blocked.Result.Report.Compatibility.Findings,
             finding => finding.State == OfficeCompatibilityState.Blocked
-                && finding.Code == "PPT-WRITE-CHART-CONVERTED");
+                && finding.Code == "ppt-write-chart-converted");
 
-        PowerPointPresentationConversionResult converted = PowerPointPresentation.Convert(
+        PowerPointDocumentConversionResult converted = PowerPointDocument.Convert(
             source,
             destination,
-            new PowerPointPresentationConversionOptions {
+            new PowerPointDocumentConversionOptions {
                 CompatibilityMode = OfficeCompatibilityMode.PreferVisual
             });
 
         Assert.Contains(converted.Report.Compatibility.Findings,
             finding => finding.State == OfficeCompatibilityState.Rasterized
-                && finding.Code == "PPT-WRITE-CHART-CONVERTED"
+                && finding.Code == "ppt-write-chart-converted"
                 && (finding.Impact & OfficeCompatibilityImpact.Editability) != 0);
         Assert.True(converted.HasLoss);
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(destination);
+        using PowerPointDocument reopened = PowerPointDocument.Load(destination);
         Assert.Empty(reopened.Slides[0].Charts);
         Assert.Single(reopened.Slides[0].Pictures);
     }
@@ -89,22 +89,22 @@ public sealed class PowerPointConversionTests {
         using var files = new ConversionFiles();
         string source = files.Path("chart.pptx");
         string destination = files.Path("chart.ppt");
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(source)) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(source)) {
             presentation.AddSlide(PowerPointSlideLayoutType.Blank).AddChart();
             presentation.Save();
         }
 
-        PowerPointPresentationConversionException exception = Assert.Throws<PowerPointPresentationConversionException>(() =>
-            PowerPointPresentation.Convert(
+        PowerPointDocumentConversionException exception = Assert.Throws<PowerPointDocumentConversionException>(() =>
+            PowerPointDocument.Convert(
                 source,
                 destination,
-                new PowerPointPresentationConversionOptions {
+                new PowerPointDocumentConversionOptions {
                     CompatibilityMode = OfficeCompatibilityMode.PreferEditable
                 }));
 
         Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, exception.Reason);
         Assert.Contains(exception.Result.Report.Compatibility.Findings,
-            finding => finding.Code == "PPT-WRITE-CHART-CONVERTED"
+            finding => finding.Code == "ppt-write-chart-converted"
                 && finding.State == OfficeCompatibilityState.Blocked);
         Assert.False(File.Exists(destination));
     }
@@ -125,19 +125,19 @@ public sealed class PowerPointConversionTests {
                      OfficeCompatibilityMode.PreferVisual
                  }) {
             string destination = files.Path("custom-xml-" + mode + ".ppt");
-            var options = new PowerPointPresentationConversionOptions { CompatibilityMode = mode };
+            var options = new PowerPointDocumentConversionOptions { CompatibilityMode = mode };
 
-            PowerPointPresentationConversionReport analysis = PowerPointPresentation.AnalyzeConversion(
+            PowerPointDocumentConversionReport analysis = PowerPointDocument.AnalyzeConversion(
                 source,
                 destination,
                 options);
 
             Assert.Contains(analysis.Compatibility.Findings,
-                finding => finding.Code == "PPT-WRITE-CUSTOM-XML"
+                finding => finding.Code == "ppt-write-custom-xml"
                     && finding.State == OfficeCompatibilityState.Blocked
                     && finding.RepresentsLoss);
-            PowerPointPresentationConversionException blocked = Assert.Throws<PowerPointPresentationConversionException>(() =>
-                PowerPointPresentation.Convert(source, destination, options));
+            PowerPointDocumentConversionException blocked = Assert.Throws<PowerPointDocumentConversionException>(() =>
+                PowerPointDocument.Convert(source, destination, options));
             Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, blocked.Reason);
             Assert.False(File.Exists(destination));
         }
@@ -148,26 +148,26 @@ public sealed class PowerPointConversionTests {
         using var files = new ConversionFiles();
         string source = files.Path("chart.pptx");
         string destination = files.Path("chart.ppt");
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(source)) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(source)) {
             presentation.AddSlide(PowerPointSlideLayoutType.Blank).AddChart();
             presentation.Save();
         }
         byte[] sourceBytes = File.ReadAllBytes(source);
 
-        PowerPointPresentationConversionResult result = PowerPointPresentation.Convert(
+        PowerPointDocumentConversionResult result = PowerPointDocument.Convert(
             source,
             destination,
-            new PowerPointPresentationConversionOptions {
+            new PowerPointDocumentConversionOptions {
                 CompatibilityMode = OfficeCompatibilityMode.PreservationOnly
             });
 
         Assert.Contains(result.Report.Compatibility.Findings,
-            finding => finding.Code == "PPT-WRITE-CHART-CONVERTED"
+            finding => finding.Code == "ppt-write-chart-converted"
                 && finding.State == OfficeCompatibilityState.Rasterized);
         Assert.Contains(result.Report.Compatibility.Findings,
-            finding => finding.Code == "PowerPoint.SourceCarrier.Embedded"
+            finding => finding.Code == "power-point-source-carrier-embedded"
                 && finding.State == OfficeCompatibilityState.EmbeddedSource);
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(destination);
+        using PowerPointDocument reopened = PowerPointDocument.Load(destination);
         Assert.Empty(reopened.Slides[0].Charts);
         Assert.Single(reopened.Slides[0].Pictures);
         Assert.True(reopened.TryGetCompatibilitySourcePayload(out OfficeCompatibilitySourcePayload? payload, out string? error), error);
@@ -184,20 +184,20 @@ public sealed class PowerPointConversionTests {
         string legacy = files.Path("source.ppt");
         string destination = files.Path("restored.pptx");
         CreateTextPresentation(source);
-        PowerPointPresentation.Convert(source, legacy).RequireNoLoss();
+        PowerPointDocument.Convert(source, legacy).RequireNoLoss();
         byte[] legacyBytes = File.ReadAllBytes(legacy);
 
-        PowerPointPresentationConversionResult result = PowerPointPresentation.Convert(
+        PowerPointDocumentConversionResult result = PowerPointDocument.Convert(
             legacy,
             destination,
-            new PowerPointPresentationConversionOptions {
+            new PowerPointDocumentConversionOptions {
                 CompatibilityMode = OfficeCompatibilityMode.PreservationOnly
             });
 
         Assert.Contains(result.Report.Compatibility.Findings,
-            finding => finding.Code == "PowerPoint.SourceCarrier.Embedded"
+            finding => finding.Code == "power-point-source-carrier-embedded"
                 && finding.State == OfficeCompatibilityState.EmbeddedSource);
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(destination);
+        using PowerPointDocument reopened = PowerPointDocument.Load(destination);
         Assert.True(reopened.TryGetCompatibilitySourcePayload(out OfficeCompatibilitySourcePayload? payload, out string? error), error);
         Assert.NotNull(payload);
         Assert.Equal("PowerPoint.Ppt", payload!.FormatId);
@@ -211,15 +211,15 @@ public sealed class PowerPointConversionTests {
         string destination = files.Path("add-in.ppa");
         CreateTextPresentation(source);
 
-        PowerPointPresentationConversionException exception = Assert.Throws<PowerPointPresentationConversionException>(() =>
-            PowerPointPresentation.Convert(source, destination));
+        PowerPointDocumentConversionException exception = Assert.Throws<PowerPointDocumentConversionException>(() =>
+            PowerPointDocument.Convert(source, destination));
 
         Assert.Equal(OfficeConversionFailureReason.DestinationFeatureUnsupported, exception.Reason);
         Assert.True(exception.Result.Report.HasLoss);
         Assert.Contains(exception.Result.Report.FidelityDiagnostics,
             diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
         Assert.Contains(exception.Result.Report.Diagnostics,
-            diagnostic => diagnostic.Code == "PowerPoint.LegacyDestination.NotWritable"
+            diagnostic => diagnostic.Code == "power-point-legacy-destination-not-writable"
                 && diagnostic.CompatibilityState == OfficeCompatibilityState.Blocked);
         Assert.False(File.Exists(destination));
     }
@@ -229,15 +229,15 @@ public sealed class PowerPointConversionTests {
         using var files = new ConversionFiles();
         string source = files.Path("chart.pptx");
         string destination = files.Path("chart.ppt");
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(source)) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(source)) {
             presentation.AddSlide(PowerPointSlideLayoutType.Blank).AddChart();
             presentation.Save();
         }
 
-        PowerPointPresentationConversionReport report = PowerPointPresentation.AnalyzeConversion(
+        PowerPointDocumentConversionReport report = PowerPointDocument.AnalyzeConversion(
             source,
             destination,
-            new PowerPointPresentationConversionOptions { CompatibilityMode = OfficeCompatibilityMode.PreferVisual });
+            new PowerPointDocumentConversionOptions { CompatibilityMode = OfficeCompatibilityMode.PreferVisual });
 
         Assert.Contains(report.Compatibility.Findings,
             finding => finding.State == OfficeCompatibilityState.Rasterized);
@@ -251,35 +251,35 @@ public sealed class PowerPointConversionTests {
         string source = files.Path("encrypted.ppt");
         string blockedDestination = files.Path("blocked.pptx");
         string allowedDestination = files.Path("allowed.pptx");
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create()) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create()) {
             presentation.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("Encrypted conversion source");
             File.WriteAllBytes(source, presentation.ToEncryptedBytes(password, PowerPointFileFormat.Ppt));
         }
 
-        var blockedOptions = new PowerPointPresentationConversionOptions {
+        var blockedOptions = new PowerPointDocumentConversionOptions {
             LoadOptions = new PowerPointLoadOptions {
                 LegacyPptImportOptions = new LegacyPptImportOptions { Password = password }
             }
         };
-        PowerPointPresentationConversionReport analysis = PowerPointPresentation.AnalyzeConversion(
+        PowerPointDocumentConversionReport analysis = PowerPointDocument.AnalyzeConversion(
             source,
             blockedDestination,
             blockedOptions);
 
         Assert.True(analysis.Compatibility.HasSecurityImpact);
         Assert.Contains(analysis.Compatibility.Findings,
-            finding => finding.Code == "PPT-ENCRYPTION-DECRYPTED"
+            finding => finding.Code == "ppt-encryption-decrypted"
                 && finding.State == OfficeCompatibilityState.Blocked
                 && finding.RepresentsLoss);
-        PowerPointPresentationConversionException blocked = Assert.Throws<PowerPointPresentationConversionException>(() =>
-            PowerPointPresentation.Convert(source, blockedDestination, blockedOptions));
+        PowerPointDocumentConversionException blocked = Assert.Throws<PowerPointDocumentConversionException>(() =>
+            PowerPointDocument.Convert(source, blockedDestination, blockedOptions));
         Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, blocked.Reason);
         Assert.False(File.Exists(blockedDestination));
 
-        PowerPointPresentationConversionResult allowed = PowerPointPresentation.Convert(
+        PowerPointDocumentConversionResult allowed = PowerPointDocument.Convert(
             source,
             allowedDestination,
-            new PowerPointPresentationConversionOptions {
+            new PowerPointDocumentConversionOptions {
                 CompatibilityMode = OfficeCompatibilityMode.BestEffort,
                 LoadOptions = new PowerPointLoadOptions {
                     LegacyPptImportOptions = new LegacyPptImportOptions { Password = password }
@@ -287,7 +287,7 @@ public sealed class PowerPointConversionTests {
             });
         Assert.True(allowed.Report.Compatibility.HasSecurityImpact);
         Assert.Contains(allowed.Report.Compatibility.Findings,
-            finding => finding.Code == "PPT-ENCRYPTION-DECRYPTED"
+            finding => finding.Code == "ppt-encryption-decrypted"
                 && finding.State == OfficeCompatibilityState.Dropped
                 && finding.RepresentsLoss);
         Assert.True(File.Exists(allowedDestination));
@@ -302,30 +302,30 @@ public sealed class PowerPointConversionTests {
         CreateTextPresentation(source);
         AddSyntheticSignature(source);
 
-        PowerPointPresentationConversionReport analysis = PowerPointPresentation.AnalyzeConversion(
+        PowerPointDocumentConversionReport analysis = PowerPointDocument.AnalyzeConversion(
             source,
             blockedDestination);
 
         Assert.True(analysis.Compatibility.HasSecurityImpact);
         Assert.Contains(analysis.Compatibility.Findings,
-            finding => finding.Code == "PowerPoint.DigitalSignature.Invalidated"
+            finding => finding.Code == "power-point-digital-signature-invalidated"
                 && finding.State == OfficeCompatibilityState.Blocked
                 && finding.RepresentsLoss);
-        PowerPointPresentationConversionException blocked = Assert.Throws<PowerPointPresentationConversionException>(() =>
-            PowerPointPresentation.Convert(source, blockedDestination));
+        PowerPointDocumentConversionException blocked = Assert.Throws<PowerPointDocumentConversionException>(() =>
+            PowerPointDocument.Convert(source, blockedDestination));
         Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, blocked.Reason);
         Assert.False(File.Exists(blockedDestination));
 
-        PowerPointPresentationConversionResult allowed = PowerPointPresentation.Convert(
+        PowerPointDocumentConversionResult allowed = PowerPointDocument.Convert(
             source,
             allowedDestination,
-            new PowerPointPresentationConversionOptions {
+            new PowerPointDocumentConversionOptions {
                 CompatibilityMode = OfficeCompatibilityMode.BestEffort,
                 SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
             });
         Assert.True(allowed.Report.Compatibility.HasSecurityImpact);
         Assert.Contains(allowed.Report.Compatibility.Findings,
-            finding => finding.Code == "PowerPoint.DigitalSignature.Invalidated"
+            finding => finding.Code == "power-point-digital-signature-invalidated"
                 && finding.State == OfficeCompatibilityState.Dropped
                 && finding.RepresentsLoss);
         using PresentationDocument package = PresentationDocument.Open(allowedDestination, false);
@@ -333,7 +333,7 @@ public sealed class PowerPointConversionTests {
     }
 
     private static void CreateTextPresentation(string path) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(path);
+        using PowerPointDocument presentation = PowerPointDocument.Create(path);
         presentation.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("Conversion contract");
         presentation.Save();
     }

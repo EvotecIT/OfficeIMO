@@ -238,12 +238,12 @@ public sealed partial class IWorkBoundaryTests {
             if (field == 4) Assert.Equal(expected, reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
             else Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
         } else {
-            using var automatic = source.ToPowerPointPresentationResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToPowerPointDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.Equal(field == 4, automatic.IsVisualFallback);
-            using var partial = source.ToPowerPointPresentationResult(options);
+            using var partial = source.ToPowerPointDocumentResult(options);
             Assert.True(partial.Report.IsPartialEditableReconstruction);
             partial.Value.Save(saved); saved.Position = 0;
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+            using PowerPointDocument reopened = PowerPointDocument.Load(saved);
             Assert.Equal(expected, reopened.Slides[0].Tables.First().GetCell(0, 0).Text);
         }
     }

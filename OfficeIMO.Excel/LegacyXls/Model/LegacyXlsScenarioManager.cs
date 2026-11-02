@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents BIFF8 scenario-manager metadata parsed from a ScenMan record.
     /// </summary>
-    public sealed class LegacyXlsScenarioManager {
+    internal sealed class LegacyXlsScenarioManager {
         /// <summary>
         /// Creates scenario-manager metadata.
         /// </summary>

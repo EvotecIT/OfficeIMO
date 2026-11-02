@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes one preserved value from an external cell cache CRN record.
     /// </summary>
-    public sealed class LegacyXlsExternalCachedCell {
+    internal sealed class LegacyXlsExternalCachedCell {
         internal LegacyXlsExternalCachedCell(int row, int column, LegacyXlsCellValueKind kind, object? value) {
             Row = row;
             Column = column;

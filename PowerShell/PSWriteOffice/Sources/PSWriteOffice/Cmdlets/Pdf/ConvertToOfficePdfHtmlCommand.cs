@@ -95,7 +95,8 @@ public sealed class ConvertToOfficePdfHtmlCommand : PSCmdlet
         {
             PdfToHtmlOptions options = BuildOptions();
             string inputPath = PdfCommandUtilities.ResolvePath(this, Path);
-            string html = LoadLogicalDocument(inputPath).ToHtml(options);
+            using PdfDocument document = LoadDocument(inputPath);
+            string html = document.ToHtml(options);
 
             if (!string.IsNullOrWhiteSpace(OutputPath))
             {
@@ -152,9 +153,9 @@ public sealed class ConvertToOfficePdfHtmlCommand : PSCmdlet
         return options;
     }
 
-    private PdfDocumentReadResult LoadLogicalDocument(string path)
+    private PdfDocument LoadDocument(string path)
     {
         var readOptions = PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent);
-        return PdfCommandUtilities.LoadDocument(path, readOptions).Read();
+        return PdfCommandUtilities.LoadDocument(path, readOptions);
     }
 }

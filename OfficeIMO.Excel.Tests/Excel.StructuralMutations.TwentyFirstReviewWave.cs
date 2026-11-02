@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_CellShiftPlans_RejectFormulaReferencesBeyondWorksheetCapacity() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellFormula(2, 2, "XFD1+A1048576");
 
             Assert.Throws<InvalidOperationException>(() =>
@@ -30,8 +30,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralMutationPlans_RejectRemovedWorksheetAcrossEveryKind() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            document.AddWorksheet("Survivor").CellValue(1, 1, "Unchanged");
+            ExcelSheet sheet = document.AddSheet("Data");
+            document.AddSheet("Survivor").CellValue(1, 1, "Unchanged");
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(2, 1, "B");
             ExcelStructuralMutationPlan[] plans = {
@@ -64,10 +64,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal("'First''s':'Last''s'", parsed.Reference.Qualifier);
 
             using var document = ExcelDocument.Create();
-            document.AddWorksheet("First Sheet");
-            ExcelSheet middle = document.AddWorksheet("Middle");
-            document.AddWorksheet("Last Sheet");
-            ExcelSheet formulas = document.AddWorksheet("Formulas");
+            document.AddSheet("First Sheet");
+            ExcelSheet middle = document.AddSheet("Middle");
+            document.AddSheet("Last Sheet");
+            ExcelSheet formulas = document.AddSheet("Formulas");
             formulas.CellFormula(1, 1, "SUM('First Sheet':'Last Sheet'!A1)");
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>

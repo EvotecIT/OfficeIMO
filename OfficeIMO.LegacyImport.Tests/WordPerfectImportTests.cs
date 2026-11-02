@@ -34,8 +34,8 @@ public sealed class WordPerfectImportTests {
     public void RetainsIndependentHeadersAndPageGeometryAcrossSections() {
         using LegacyWordImportResult result = Import(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "WordPerfect", "WP6.wpd")));
         Assert.Equal(2, result.Content.Sections.Count);
-        Assert.InRange(result.Content.Sections[0].PageWidthPoints!.Value, 595, 596);
-        Assert.InRange(result.Content.Sections[0].MarginLeftPoints!.Value, 70, 72);
+        Assert.InRange(result.Content.Sections[0].PageWidth!.Value.ToPoints(), 595, 596);
+        Assert.InRange(result.Content.Sections[0].MarginLeft!.Value.ToPoints(), 70, 72);
         Assert.Equal("Header Type A", string.Concat(result.Value.Sections[0].Header.Default!.Paragraphs.Select(paragraph => paragraph.Text)));
         Assert.Equal("Header Type A but changed", string.Concat(result.Value.Sections[1].Header.Default!.Paragraphs.Select(paragraph => paragraph.Text)));
         Assert.Equal(WordSectionBreakType.NextPage, result.Value.Sections[1].BreakType);
@@ -98,8 +98,8 @@ public sealed class WordPerfectImportTests {
         } else source = Document6(Join(Function6(0xd4, 0x1b, new byte[8]), Text("Visible")));
         using var result = Import(source);
         Assert.Equal("Visible", result.PlainText);
-        Assert.Null(Assert.Single(result.Content.Paragraphs[0].Runs).FontSizePoints);
-        Assert.Contains(result.Report.Findings, finding => finding.Code == "WORDPERFECT_FONT_SIZE");
+        Assert.Null(Assert.Single(result.Content.Paragraphs[0].Runs).FontSize);
+        Assert.Contains(result.Report.Findings, finding => finding.Code == "wordperfect-font-size");
         Assert.Empty(new OpenXmlValidator(FileFormatVersions.Office2019).Validate(result.Value.OpenXmlDocument));
     }
 
@@ -128,7 +128,7 @@ public sealed class WordPerfectImportTests {
         WordTable table = Assert.Single(result.Value.Tables);
         Assert.Equal("A1", string.Concat(table.Rows[0].Cells[0].Paragraphs.Select(paragraph => paragraph.Text)));
         Assert.Equal("B2", string.Concat(table.Rows[1].Cells[1].Paragraphs.Select(paragraph => paragraph.Text)));
-        Assert.Equal(2880, table.Rows[0].Cells[0].Width);
+        Assert.Equal(2880, table.Rows[0].Cells[0].Width?.ToNativeValue());
         Assert.Equal("Before\nA1\nB1\nA2\nB2\nAfter", result.PlainText);
         Assert.Empty(new OpenXmlValidator(FileFormatVersions.Office2019).Validate(result.Value.OpenXmlDocument));
     }
@@ -196,11 +196,11 @@ public sealed class WordPerfectImportTests {
         byte[] copy = image.GetSourceBytes(); copy[0] = 0;
         Assert.Equal(0xff, image.GetSourceBytes()[0]);
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, image.GetPngBytes().Take(8));
-        Assert.InRange(image.WidthPoints, 376, 377);
-        Assert.InRange(image.HeightPoints, 474, 475);
+        Assert.InRange(image.Width.ToPoints(), 376, 377);
+        Assert.InRange(image.Height.ToPoints(), 474, 475);
         Assert.Single(result.Value.Images);
         Assert.Equal("BeforeAfter", result.PlainText);
-        Assert.Contains(result.Report.Findings, finding => finding.Code == "WORDPERFECT_GRAPHIC_LAYOUT");
+        Assert.Contains(result.Report.Findings, finding => finding.Code == "wordperfect-graphic-layout");
         using var docx = new MemoryStream(); result.Value.Save(docx); docx.Position = 0;
         using WordDocument loaded = WordDocument.Load(docx); Assert.Single(loaded.Images);
         Assert.Empty(new OpenXmlValidator(FileFormatVersions.Office2019).Validate(result.Value.OpenXmlDocument));
@@ -223,7 +223,7 @@ public sealed class WordPerfectImportTests {
         byte[] unsupported = (byte[])wpg.Clone(); unsupported[10] = 2;
         using LegacyWordImportResult result = Import(GraphicDocument(unsupported));
         Assert.Empty(result.Value.Images);
-        Assert.Contains(result.Report.Findings, finding => finding.Code == "WORDPERFECT_GRAPHIC_PROFILE");
+        Assert.Contains(result.Report.Findings, finding => finding.Code == "wordperfect-graphic-profile");
         Assert.Equal(OfficeLegacyInertContentKind.None, result.Report.InertContent);
     }
 
@@ -231,7 +231,7 @@ public sealed class WordPerfectImportTests {
     public void PdfKeepsAnInlineGraphicBetweenItsSurroundingText() {
         using LegacyWordImportResult result = Import(GraphicDocument(File.ReadAllBytes(
             Path.Combine(AppContext.BaseDirectory, "Fixtures", "WordPerfect", "WPG1.wpg"))));
-        var page = Assert.Single(PdfDocument.Load(result.Value.ToPdfBytes()).Read().Pages);
+        var page = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream((result.Value.ToPdf()).ToBytes())).Read().Pages);
         var before = Assert.Single(page.TextBlocks.SelectMany(block => block.Spans), span => span.Text == "Before");
         var after = Assert.Single(page.TextBlocks.SelectMany(block => block.Spans), span => span.Text == "After");
         var image = Assert.Single(page.Images).PrimaryPlacement!;

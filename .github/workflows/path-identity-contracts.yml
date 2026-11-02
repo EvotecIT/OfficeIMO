@@ -56,20 +56,33 @@ jobs:
           dotnet-version: 8.0.x
           global-json-file: global.json
 
+      # Keep the target runtime x86, but compile the large reference graph in a 64-bit host.
+      - name: Keep the x86 test runtime
+        if: matrix.architecture == 'x86'
+        shell: pwsh
+        run: '"DOTNET_ROOT_X86=$env:DOTNET_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8'
+
+      - name: Setup x64 build host for x86 contracts
+        if: matrix.architecture == 'x86'
+        uses: actions/setup-dotnet@v6
+        with:
+          architecture: x64
+          global-json-file: global.json
+
       - name: Restore focused contracts
-        run: dotnet restore OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj
+        run: dotnet restore OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj ${{ matrix.architecture == 'x86' && '--runtime win-x86' || '' }}
 
       - name: Restore PST mutation contracts
-        run: dotnet restore OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj
+        run: dotnet restore OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj ${{ matrix.architecture == 'x86' && '--runtime win-x86' || '' }}
 
       - name: Build netstandard compatibility asset
         run: dotnet build OfficeIMO.Core/OfficeIMO.Core.csproj -c Release -f netstandard2.0 --no-restore --nologo
 
       - name: Run physical identity contracts
-        run: dotnet test OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj -c Release -f ${{ matrix.framework }} --no-restore --filter "FullyQualifiedName~PathIdentityContracts|FullyQualifiedName~PathIdentityPublicationContracts" --nologo
+        run: dotnet test OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj -c Release -f ${{ matrix.framework }} ${{ matrix.architecture == 'x86' && '--runtime win-x86' || '' }} --no-restore --filter "FullyQualifiedName~PathIdentityContracts|FullyQualifiedName~PathIdentityPublicationContracts" --nologo
 
       - name: Run PST mutation contracts
-        run: dotnet test OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj -c Release -f ${{ matrix.framework }} --no-restore --filter FullyQualifiedName~PstMutationTransactionTests --nologo
+        run: dotnet test OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj -c Release -f ${{ matrix.framework }} ${{ matrix.architecture == 'x86' && '--runtime win-x86' || '' }} --no-restore --filter FullyQualifiedName~PstMutationTransactionTests --nologo
 
   ci-validation:
     name: CI validation

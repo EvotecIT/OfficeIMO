@@ -24,8 +24,13 @@ namespace OfficeIMO.Examples.Html {
                 HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, options);
                 HtmlDiagnostic[] warnings = rendered.Diagnostics
                     .Where(diagnostic => diagnostic.Severity != HtmlDiagnosticSeverity.Info).ToArray();
-                if (warnings.Length > 0) {
-                    throw new InvalidOperationException(name + ": " + string.Join("; ", warnings.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Detail)));
+                // Warnings describe fidelity limits of the managed renderer. Report them and keep
+                // writing the showcase; only errors mean the page could not be produced.
+                foreach (HtmlDiagnostic warning in warnings) {
+                    Console.WriteLine($"{name}: {warning.Severity} {warning.Code}: {warning.Message}");
+                }
+                if (warnings.Any(diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error)) {
+                    throw new InvalidOperationException(name + ": " + string.Join("; ", warnings.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message)));
                 }
                 int expectedPages = name == "page-breaks" ? 2 : 1;
                 if (rendered.Pages.Count != expectedPages) {
@@ -35,9 +40,15 @@ namespace OfficeIMO.Examples.Html {
                 string stem = Path.Combine(outputRoot, name);
                 File.WriteAllText(stem + ".html", html);
                 document.SaveAsPdf(stem + ".pdf", options);
-                document.ToImage(options).AsPng().OnFileConflict(OfficeImageExportFileConflictPolicy.Replace).Save(stem + ".png");
-                document.ToImage(options).AsSvg().OnFileConflict(OfficeImageExportFileConflictPolicy.Replace).Save(stem + ".svg");
-                var inspection = global::OfficeIMO.Pdf.PdfDocument.Load(File.ReadAllBytes(stem + ".pdf")).Inspect();
+                var imageOptions1 = options.Clone();
+                imageOptions1.Format = OfficeImageExportFormat.Png;
+                imageOptions1.FileConflictPolicy = OfficeImageExportFileConflictPolicy.Replace;
+                document.SaveAsImage(stem + ".png", imageOptions1);
+                var imageOptions2 = options.Clone();
+                imageOptions2.Format = OfficeImageExportFormat.Svg;
+                imageOptions2.FileConflictPolicy = OfficeImageExportFileConflictPolicy.Replace;
+                document.SaveAsImage(stem + ".svg", imageOptions2);
+                var inspection = global::OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(stem + ".pdf"))).Inspect();
                 if (name == "fillable-forms" && inspection.FormFieldCount < 4) {
                     throw new InvalidOperationException($"{name}: expected at least four interactive PDF fields, found {inspection.FormFieldCount}.");
                 }

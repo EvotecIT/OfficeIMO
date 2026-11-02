@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
                 document.BuiltinDocumentProperties.Keywords = "orig1, orig2";
                 document.AddParagraph("Test");
                 document.Save();
-                var options = new WordToPdfOptions {
+                var options = new WordPdfExportOptions {
                     Title = "Override Title",
                     Author = "Override Author",
                     Subject = "Override Subject",

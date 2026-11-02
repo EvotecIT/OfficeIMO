@@ -20,9 +20,9 @@ public class HtmlTextExportConsistencyTests {
                 "@font-face{font-family:ScriptProof;src:url(data:font/ttf;base64," + font + ")}p{margin:0;font:" +
                 size.ToString(System.Globalization.CultureInfo.InvariantCulture) + "px/32px ScriptProof}" +
                 "span{font-style:italic;color:blue;text-decoration:line-through;text-decoration-color:red}</style><p>" + body + "</p>";
-            var converted = HtmlConversionDocument.Parse(html).ToPdfDocumentResult();
+            var converted = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence();
             Assert.Contains(converted.Report.Warnings, warning => warning.Code == HtmlPdfDiagnosticCodes.FontProgramOutlined);
-            return OfficeDrawingRasterRenderer.Render(OfficeIMO.Pdf.PdfDocument.Load(converted.ToBytes()).Render.Drawing(1), 4D, OfficeColor.White);
+            return OfficeDrawingRasterRenderer.Render(OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(converted.ToBytes())).Render.Drawing(1), 4D, OfficeColor.White);
         }
         // Match the glyph sizes so default script sizing does not affect the geometry comparison.
         OfficeRasterImage reference = Render("<span>H</span>", 15.6D);
@@ -85,9 +85,9 @@ public class HtmlTextExportConsistencyTests {
         HtmlRenderDocument reference = HtmlRenderTestDriver.Render(styles + body);
         double expectedOffset = Assert.Single(reference.Pages[0].Visuals.OfType<HtmlRenderText>(), run => run.Baseline != OfficeTextBaseline.Normal).BaselineOffset;
         if (foreignObject) body = "<svg xmlns='http://www.w3.org/2000/svg' width='180' height='100'><foreignObject width='180' height='100'><div xmlns='http://www.w3.org/1999/xhtml'>" + body + "</div></foreignObject></svg>";
-        var converted = HtmlConversionDocument.Parse(styles + body).ToPdfDocumentResult();
+        var converted = HtmlConversionDocument.Parse(styles + body).ConvertToPdfWithEvidence();
         Assert.Contains(converted.Report.Warnings, warning => warning.Code == HtmlPdfDiagnosticCodes.FontProgramOutlined);
-        OfficeDrawing drawing = OfficeIMO.Pdf.PdfDocument.Load(converted.ToBytes()).Render.Drawing(1);
+        OfficeDrawing drawing = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(converted.ToBytes())).Render.Drawing(1);
         OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, scale: 4D, background: OfficeColor.White);
         (int blueBottom, int redBottom) = FindInkBottoms(image);
         Assert.True(blueBottom >= 0 && redBottom >= 0);
@@ -133,7 +133,7 @@ public class HtmlTextExportConsistencyTests {
         var scene = HtmlRenderTestDriver.Render(source);
         foreach (var drawing in scene.Pages[0].Visuals.OfType<HtmlRenderDrawing>())
             foreach (var run in drawing.Drawing.Elements.OfType<OfficeDrawingText>()) _log.WriteLine($"Scene [{run.Text}] x={run.X} width={run.Width} advance={run.TextAdvanceWidth}");
-        byte[] bytes = source.ToPdfBytes();
+        byte[] bytes = (source.ToPdf()).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var letters = pdf.GetPage(1).Letters.ToArray();
         string text = string.Concat(letters.Select(x => x.Value));
@@ -175,7 +175,7 @@ public class HtmlTextExportConsistencyTests {
     public void SvgForeignObjectKeepsScripts(bool nested, string script) {
         string html = "<p style='margin:0;font-family:Arial;font-size:24px'>A<"+script+">2</"+script+">B</p>";
         if (nested) html = "<svg xmlns='http://www.w3.org/2000/svg' width='320' height='100'><foreignObject width='320' height='100'><div xmlns='http://www.w3.org/1999/xhtml'>"+html+"</div></foreignObject></svg>";
-        byte[] bytes = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
         Assert.Equal("A2B", string.Concat(letters.Select(letter => letter.Value)));

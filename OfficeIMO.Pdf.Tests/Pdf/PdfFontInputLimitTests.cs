@@ -8,7 +8,7 @@ public class PdfFontInputLimitTests {
     public void OversizedFontFileIsRejectedBeforeAuthoringOptionsChange() {
         string path = CreateOversizedFile();
         try {
-            var options = new PdfOptions();
+            var options = new PdfCreateOptions();
             Assert.Throws<InvalidDataException>(() => options.EmbedStandardFont(PdfStandardFont.Helvetica, path));
             Assert.Empty(options.EmbeddedFonts);
             Assert.Throws<InvalidDataException>(() => PdfEmbeddedFontFamily.FromFiles("Oversized", path));
@@ -28,7 +28,7 @@ public class PdfFontInputLimitTests {
         string regularPath = Path.Combine(Path.GetTempPath(), "officeimo-font-small-" + Guid.NewGuid().ToString("N") + ".ttf");
         try {
             File.WriteAllBytes(regularPath, new byte[] { 1 });
-            var options = new PdfOptions();
+            var options = new PdfCreateOptions();
             Assert.Throws<InvalidDataException>(() => PdfEmbeddedFontFamily.FromFiles("Oversized Bold", regularPath, boldPath: oversizedPath));
             Assert.Throws<InvalidDataException>(() => options.UseFontFamily("Oversized Bold", regularPath, boldPath: oversizedPath));
             Assert.Empty(options.EmbeddedFonts);
@@ -41,7 +41,7 @@ public class PdfFontInputLimitTests {
     [Fact]
     public void OversizedFontBytesAreRejectedBeforeCopyOrRegistration() {
         byte[] oversized = new byte[128 * 1024 * 1024 + 1];
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         Assert.Throws<InvalidDataException>(() => new PdfEmbeddedFont(PdfStandardFont.Helvetica, oversized));
         Assert.Throws<InvalidDataException>(() => new PdfEmbeddedFontFamily("Oversized", oversized));
         Assert.Throws<InvalidDataException>(() => new PdfEmbeddedFontFamily("Oversized Bold", new byte[] { 1 }, bold: oversized));

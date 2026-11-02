@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         public void RejectedRootRelationshipsDoNotEnterPackageUpdateMode() {
             using var package = new MemoryStream();
             using (ExcelDocument document = ExcelDocument.Create()) {
-                document.AddWorksheet("Data").CellValue(1, 1, "safe");
+                document.AddSheet("Data").CellValue(1, 1, "safe");
                 document.Save(package);
             }
             using (var archive = new ZipArchive(package, ZipArchiveMode.Update, leaveOpen: true)) {
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
             byte[] package;
             using (var output = new MemoryStream()) {
                 using (ExcelDocument document = ExcelDocument.Create()) {
-                    document.AddWorksheet("Data").CellValue(1, 1, "safe");
+                    document.AddSheet("Data").CellValue(1, 1, "safe");
                     document.Save(output);
                 }
                 package = output.ToArray();
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
             try {
                 using (ExcelDocument document = ExcelDocument.Create()) {
-                    document.AddWorksheet("Data").CellValue(1, 1, "safe");
+                    document.AddSheet("Data").CellValue(1, 1, "safe");
                     document.Save(path);
                 }
                 var options = new ExcelLoadOptions {

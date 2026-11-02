@@ -25,7 +25,7 @@ public partial class VisioForeignImageRenderingTests {
                 SourceName = "independent.vdx", VisioOptions = options
             });
             byte[] pdf = result.ToBytes();
-            PdfReadDocument read = PdfReadDocument.Open(pdf);
+            PdfDocument read = PdfDocument.Load(new System.IO.MemoryStream(pdf));
             PdfExtractedImage embedded = Assert.Single(read.Pages.SelectMany(page => page.GetImages()));
             Assert.True(OfficeRasterImageDecoder.TryDecode(expected, out OfficeRasterImage? expectedImage));
             Assert.True(OfficeRasterImageDecoder.TryDecode(embedded.Bytes, out OfficeRasterImage? actualImage));

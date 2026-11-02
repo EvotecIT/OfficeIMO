@@ -12,7 +12,7 @@ The current level is **extended semantic reconstruction**. Normal document conte
 |---|---|---|---|
 | Pages | `IWorkPagesProjection` | `OfficeIMO.Word.IWork` | `ToWordDocument`, `ToWordDocumentResult` |
 | Numbers | `IWorkNumbersProjection` | `OfficeIMO.Excel.IWork` | `ToExcelDocument`, `ToExcelDocumentResult` |
-| Keynote | `IWorkKeynoteProjection` | `OfficeIMO.PowerPoint.IWork` | `ToPowerPointPresentation`, `ToPowerPointPresentationResult` |
+| Keynote | `IWorkKeynoteProjection` | `OfficeIMO.PowerPoint.IWork` | `ToPowerPointDocument`, `ToPowerPointDocumentResult` |
 
 `IWorkSourceDocument.Open` is the shared loading and inspection entry point. It accepts paths, streams, and byte arrays; exposes normalized package entries, IWA payload records, producer build history, previews, diagnostics, and application-specific typed projections; and can be converted more than once with independent destination options. Adapter result APIs retain that same source model beside the generated Office document.
 

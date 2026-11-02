@@ -17,7 +17,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static readonly ISet<uint> SupportedDocumentSummaryPropertyIds =
             new HashSet<uint> { 1, 2, 3, 7, 8, 9, 14, 15 };
 
-        internal static void Apply(PowerPointPresentation presentation,
+        internal static void Apply(PowerPointDocument presentation,
             LegacyPptPackage package) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             if (package == null) throw new ArgumentNullException(nameof(package));
@@ -36,7 +36,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         internal static void ApplyReadOnlyDateOverrides(
-            PowerPointPresentation presentation, LegacyPptPackage package) {
+            PowerPointDocument presentation, LegacyPptPackage package) {
             DateTime? created = null;
             DateTime? modified = null;
             DateTime? lastPrinted = null;
@@ -58,7 +58,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         internal static LegacyPptPropertySetProjection CreateProjection(
-            PowerPointPresentation presentation, LegacyPptPackage package) {
+            PowerPointDocument presentation, LegacyPptPackage package) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             if (package == null) throw new ArgumentNullException(nameof(package));
             bool summarySafe = CanRewriteSummary(package);
@@ -73,7 +73,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         internal static bool TryCreateFreshStreams(
-            PowerPointPresentation presentation,
+            PowerPointDocument presentation,
             out IReadOnlyList<OfficeCompoundStream> streams,
             out string? reason) {
             var result = new List<OfficeCompoundStream>(2);
@@ -97,7 +97,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         internal static bool TryBuildReplacementStreams(
-            PowerPointPresentation presentation,
+            PowerPointDocument presentation,
             LegacyPptPropertySetProjection projection,
             out IReadOnlyDictionary<string, byte[]> streams) {
             var result = new Dictionary<string, byte[]>(

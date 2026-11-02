@@ -15,7 +15,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("Field prefix Ω 😀 ");
         paragraph._paragraph.Append(new SimpleField(new Run(new Text("ResultMarker"))) { Instruction = instruction });
-        byte[] bytes = document.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error), error);
         byte[] word = compound!.Streams["WordDocument"];
         byte[] table = compound.Streams["1Table"];
@@ -32,7 +32,7 @@ public partial class Word {
         WordParagraph paragraph = document.AddParagraph("Nested prefix ");
         paragraph.AddHyperLink("NestedLinkMarker", new Uri("https://example.test/nested-field"), addStyle: true);
         paragraph.Hyperlink!._hyperlink.Append(new SimpleField(new Run(new Text("1"))) { Instruction = "PAGE" });
-        byte[] bytes = document.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error), error);
         byte[] word = compound!.Streams["WordDocument"];
         byte[] table = compound.Streams["1Table"];
@@ -53,19 +53,19 @@ public partial class Word {
     public void LegacyDoc_SaveHyperlinkWritesValidFieldCharacterTable(string story, int fibOffset) {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph;
-        if (story == "cell") paragraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
+        if (story == "cell") paragraph = document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0];
         else if (story == "header") {
             document.AddHeadersAndFooters();
             paragraph = document.Sections[0].Header.Default!.AddParagraph();
         } else if (story == "footnote") {
-            WordParagraph reference = document.AddParagraph("Footnote ").AddFootNote("Note prefix ");
+            WordParagraph reference = document.AddParagraph("Footnote ").AddFootNote("Note prefix ").Paragraph;
             paragraph = reference.FootNote!.Paragraphs![1];
         } else if (story == "endnote") {
-            WordParagraph reference = document.AddParagraph("Endnote ").AddEndNote("Note prefix ");
+            WordParagraph reference = document.AddParagraph("Endnote ").AddEndNote("Note prefix ").Paragraph;
             paragraph = reference.EndNote!.Paragraphs![1];
         } else paragraph = document.AddParagraph("Body prefix ");
         paragraph.AddHyperLink("DOCLinkMarker", new Uri("https://example.test/doc-fields"), addStyle: true);
-        byte[] bytes = document.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error), error);
         byte[] word = compound!.Streams["WordDocument"];
         byte[] table = compound.Streams["1Table"];

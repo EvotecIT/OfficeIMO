@@ -122,10 +122,10 @@ public static class ParallelRowMappingExtensions {
     /// path because those values cannot be copied safely across worker boundaries.
     /// </remarks>
     public static IEnumerable<T> RowsAsParallel<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
         this DbDataReader reader,
         ParallelRowMappingOptions? options = null,
-        CancellationToken cancellationToken = default) where T : new() {
+        CancellationToken cancellationToken = default) {
         if (reader is null) throw new ArgumentNullException(nameof(reader));
         return EnumerateAutomatic<T>(reader, options, cancellationToken);
     }
@@ -171,10 +171,10 @@ public static class ParallelRowMappingExtensions {
     }
 
     private static IEnumerable<T> EnumerateAutomatic<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
         DbDataReader reader,
         ParallelRowMappingOptions? options,
-        CancellationToken cancellationToken) where T : new() {
+        CancellationToken cancellationToken) {
         options ??= new ParallelRowMappingOptions();
         int degreeOfParallelism = options.GetDegreeOfParallelism();
         if (degreeOfParallelism == 1) {

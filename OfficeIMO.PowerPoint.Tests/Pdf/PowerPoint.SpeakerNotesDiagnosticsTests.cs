@@ -16,13 +16,13 @@ public sealed class PowerPointSpeakerNotesDiagnosticsTests {
     [InlineData(PowerPointPdfPageLayout.Handouts, true)]
     public void Pdf_reports_present_speaker_notes_when_the_selected_layout_omits_them(
         PowerPointPdfPageLayout layout, bool includeNotes) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide();
-        slide.AddTextBoxPoints("Visible slide", 20, 20, 250, 40);
+        slide.AddTextBox("Visible slide",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(250),global::OfficeIMO.OfficeLength.Points(40));
         slide.Notes.Text = "PRESENTER-NOTE";
-        var options = new PowerPointToPdfOptions { PageLayout = layout, IncludeSpeakerNotes = includeNotes };
+        var options = new PowerPointPdfExportOptions { PageLayout = layout, IncludeSpeakerNotes = includeNotes };
 
-        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence(options);
         string text = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
         bool omitted = layout == PowerPointPdfPageLayout.Slides || !includeNotes;
         if (omitted) {
@@ -43,11 +43,11 @@ public sealed class PowerPointSpeakerNotesDiagnosticsTests {
     [InlineData(PowerPointPdfPageLayout.Handouts, 6, 10)]
     public void Pdf_reports_enabled_notes_that_exceed_their_rendered_frame(
         PowerPointPdfPageLayout layout, int slidesPerPage, int lines) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide();
-        slide.AddTextBoxPoints("Visible slide", 20, 20, 250, 40);
+        slide.AddTextBox("Visible slide",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(250),global::OfficeIMO.OfficeLength.Points(40));
         slide.Notes.Text = string.Join("\n", Enumerable.Range(1, lines).Select(index => $"PRESENTER-NOTE-{index:000}"));
-        var result = presentation.ToPdfDocumentResult(new PowerPointToPdfOptions {
+        var result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions {
             PageLayout = layout, IncludeSpeakerNotes = true, HandoutSlidesPerPage = slidesPerPage
         });
 
@@ -71,13 +71,13 @@ public sealed class PowerPointSpeakerNotesDiagnosticsTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Pdf_note_omission_diagnostics_follow_the_selected_slides(bool includeHidden) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
-        presentation.AddSlide().AddTextBoxPoints("Visible slide", 20, 20, 250, 40);
+        using PowerPointDocument presentation = PowerPointDocument.Create();
+        presentation.AddSlide().AddTextBox("Visible slide",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(250),global::OfficeIMO.OfficeLength.Points(40));
         PowerPointSlide hidden = presentation.AddSlide();
         hidden.Hidden = true;
         hidden.Notes.Text = "Hidden presenter note";
 
-        var result = presentation.ToPdfDocumentResult(new PowerPointToPdfOptions { IncludeHiddenSlides = includeHidden });
+        var result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions { IncludeHiddenSlides = includeHidden });
 
         if (includeHidden)
             Assert.Equal("Slide 2", Assert.Single(result.Warnings, item => item.Code == "speaker-notes-omitted").Source);

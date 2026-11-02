@@ -27,8 +27,8 @@ public sealed class PowerPointOdpStrictLossRegressionTests {
             .SetAttributeValue(Presentation + "background-visible", "false");
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<PowerPointPresentation> result = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation converted = result.Value;
+        OdfConversionResult<PowerPointDocument> result = source.ToPowerPointDocumentResult();
+        using PowerPointDocument converted = result.Value;
         Assert.Null(converted.Slides[0].GetBackground().Color);
         AssertLoss(source, result, "slide-backgrounds");
     }
@@ -41,14 +41,14 @@ public sealed class PowerPointOdpStrictLossRegressionTests {
             .SetAttributeValue(Fo + "padding-left", "0.2cm");
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<PowerPointPresentation> result = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation converted = result.Value;
+        OdfConversionResult<PowerPointDocument> result = source.ToPowerPointDocumentResult();
+        using PowerPointDocument converted = result.Value;
         AssertLoss(source, result, "shape-appearance");
     }
 
     [Fact]
     public void SemiTransparentPowerPointSlideBackgroundIsNotMappedAsOpaque() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         source.AddSlide(PowerPointSlideLayoutType.Blank);
         var color = new A.RgbColorModelHex { Val = "336699" };
         color.Append(new A.Alpha { Val = 50000 });
@@ -73,8 +73,8 @@ public sealed class PowerPointOdpStrictLossRegressionTests {
             .Add(new XElement(Table + "table", new XAttribute(Table + "name", "NoteTable")));
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<PowerPointPresentation> result = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation converted = result.Value;
+        OdfConversionResult<PowerPointDocument> result = source.ToPowerPointDocumentResult();
+        using PowerPointDocument converted = result.Value;
         AssertLoss(source, result, "speaker-notes");
     }
 
@@ -84,8 +84,8 @@ public sealed class PowerPointOdpStrictLossRegressionTests {
         source.AddSlide().AddLine(OdfLength.Centimeters(5), OdfLength.Centimeters(1),
             OdfLength.Centimeters(1), OdfLength.Centimeters(5));
 
-        OdfConversionResult<PowerPointPresentation> result = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation converted = result.Value;
+        OdfConversionResult<PowerPointDocument> result = source.ToPowerPointDocumentResult();
+        using PowerPointDocument converted = result.Value;
         AssertLoss(source, result, "shape-transforms");
     }
 
@@ -100,8 +100,8 @@ public sealed class PowerPointOdpStrictLossRegressionTests {
         shapes[1].SetAttributeValue(Draw + "z-index", "1");
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<PowerPointPresentation> result = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation converted = result.Value;
+        OdfConversionResult<PowerPointDocument> result = source.ToPowerPointDocumentResult();
+        using PowerPointDocument converted = result.Value;
         AssertLoss(source, result, "shapes");
     }
 
@@ -114,16 +114,16 @@ public sealed class PowerPointOdpStrictLossRegressionTests {
             .SetAttributeValue(Presentation + "transition-change", "automatic");
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<PowerPointPresentation> result = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation converted = result.Value;
+        OdfConversionResult<PowerPointDocument> result = source.ToPowerPointDocumentResult();
+        using PowerPointDocument converted = result.Value;
         AssertLoss(source, result, "slide-transitions");
     }
 
     private static void AssertLoss(OdpPresentation source,
-        OdfConversionResult<PowerPointPresentation> result, string feature) {
+        OdfConversionResult<PowerPointDocument> result, string feature) {
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == feature &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointDocumentResult(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 }

@@ -59,9 +59,9 @@ public sealed class HtmlTextFormattingReviewWave35Tests {
             </section>
             """;
 
-        using PowerPointPresentation imported = HtmlConversionDocument
+        using PowerPointDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointPresentationResult()
+            .ToPowerPointDocumentResult()
             .RequireValue();
         PowerPointTextBox[] boxes = Assert.Single(imported.Slides).TextBoxes.ToArray();
 
@@ -76,7 +76,7 @@ public sealed class HtmlTextFormattingReviewWave35Tests {
     public void HtmlDoubleLineThroughImportsAsNativeWordDoubleStrike() {
         using WordDocument imported = HtmlConversionDocument.Parse("""
             <p><span style="text-decoration-line:line-through;text-decoration-style:double">Double</span></p>
-            """).ToWordDocumentResult().RequireValue();
+            """).ConvertToWordWithEvidence().RequireValue();
 
         WordParagraph run = Assert.Single(imported.Paragraphs);
         Assert.True(run.DoubleStrike);
@@ -93,7 +93,7 @@ public sealed class HtmlTextFormattingReviewWave35Tests {
         WordParagraph smallCaps = source.AddParagraph().AddText("Small caps off").SetCharacterStyleId("InheritedSmallCaps");
         smallCaps._runProperties!.SmallCaps = new SmallCaps { Val = false };
 
-        string html = source.ToHtml(new WordToHtmlOptions { IncludeRunClasses = true });
+        string html = source.ToHtml(new WordHtmlExportOptions { IncludeRunClasses = true });
 
         Assert.Contains("text-transform:none", html, StringComparison.Ordinal);
         Assert.Contains("font-variant:normal", html, StringComparison.Ordinal);
@@ -116,7 +116,7 @@ public sealed class HtmlTextFormattingReviewWave35Tests {
         run._runProperties.Strike = new Strike { Val = false };
         run._runProperties.DoubleStrike = new DoubleStrike { Val = false };
 
-        string html = source.ToHtml(new WordToHtmlOptions { IncludeRunClasses = true });
+        string html = source.ToHtml(new WordHtmlExportOptions { IncludeRunClasses = true });
 
         Assert.Contains("class=\"InheritedDecorations\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("data-officeimo-word-underline", html, StringComparison.Ordinal);

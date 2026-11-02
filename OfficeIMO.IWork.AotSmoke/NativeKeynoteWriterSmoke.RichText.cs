@@ -42,7 +42,7 @@ internal static partial class NativeKeynoteWriterSmoke {
             conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
-        using var saved = PowerPointPresentation.Load(output);
+        using var saved = PowerPointDocument.Load(output);
         Require(saved.Slides.Count == 3 && !saved.ValidateDocument().Any(), "NativeAOT rich-run PPTX did not save/reopen correctly.");
         PowerPointTextRun savedReset = saved.Slides[1].TextBoxes.Single().Paragraphs.SelectMany(paragraph => paragraph.Runs)
             .Single(run => run.Text == " plain");

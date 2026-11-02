@@ -21,7 +21,7 @@ public partial class Word {
         }
 
         InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
-            document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+            document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes());
         Assert.Contains("scan limit", error.Message);
     }
 

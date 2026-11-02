@@ -13,11 +13,11 @@ namespace OfficeIMO.Tests {
         public void CanStyleSeriesFillAndLine() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddChart();
                     chart.SetSeriesFillColor(1, "FF0000")
-                        .SetSeriesLineColor(0, "00FF00", widthPoints: 1);
+                        .SetSeriesLineColor(0, "00FF00", width: OfficeLength.Points(1));
                     presentation.Save();
                 }
 

@@ -28,16 +28,16 @@ internal static partial class PdfWriter {
             // including distributed span minima. Retain the same grid floor after
             // converting a source perimeter width into the enclosed cell grid.
             double minimumWidth = (!style.AutoFitColumns || style.PreserveAuthoredPreferencesAtWidthLimit) &&
-                style.ColumnMinWidthPoints is { } minimums
-                ? minimums.Sum(width => width ?? 0D) + Math.Max(0, minimums.Count - 1) * style.CellSpacing
+                style.ColumnMinWidths?.ConvertAll(static length => length?.ToPoints()) is { } minimums
+                ? minimums.Sum(width => width ?? 0D) + Math.Max(0, minimums.Count - 1) * style.CellSpacing.ToPoints()
                 : 0D;
             double Resolve(double fraction) {
                 if (!(fraction > 0D) || (double.IsNaN(fraction) || double.IsInfinity(fraction))) throw new ArgumentException("A table's relative width must be positive and finite.");
                 double width = referenceWidth * fraction + style.ResolvedWidthAdjustment;
                 return Math.Max(minimumWidth, width);
             }
-            if (style.PreferredWidthFraction.HasValue) resolved.PreferredWidth = Resolve(style.PreferredWidthFraction.Value);
-            if (style.MaxWidthFraction.HasValue) resolved.MaxWidth = Resolve(style.MaxWidthFraction.Value);
+            if (style.PreferredWidthFraction.HasValue) resolved.PreferredWidth = global::OfficeIMO.OfficeLength.Points(Resolve(style.PreferredWidthFraction.Value));
+            if (style.MaxWidthFraction.HasValue) resolved.MaxWidth = global::OfficeIMO.OfficeLength.Points(Resolve(style.MaxWidthFraction.Value));
             resolved.PreferredWidthFraction = null; resolved.MaxWidthFraction = null;
             return resolved;
         }
@@ -92,12 +92,12 @@ internal static partial class PdfWriter {
                 var style = paragraph.Style?.Clone() ?? new PdfParagraphStyle();
                 if (style.AnchoredCanvas != null || paragraph.Runs.Any(run => run.FormField != null))
                     throw new NotSupportedException("Ordered cell paragraphs cannot contain anchored canvases or interactive form fields.");
-                style.FontSize ??= rows.Sizes[row];
+                style.FontSize ??= global::OfficeIMO.OfficeLength.Points(rows.Sizes[row]);
                 style.LineHeight ??= rows.Leadings[row] / rows.Sizes[row];
                 // SpacingBefore is a non-nullable captured value; its default
                 // already is zero. Only a missing after-spacing inherits zero
                 // from the ordinary cell contract rather than page defaults.
-                style.SpacingAfter ??= 0D;
+                style.SpacingAfter ??= global::OfficeIMO.OfficeLength.Points(0D);
                 return (IPdfBlock)new RichParagraphBlock(paragraph.Runs.Select(run => run.WithInheritedFontStyle(rows.Bold[row], false)),
                     paragraph.Align, paragraph.DefaultColor ?? (row < tableStyle.HeaderRowCount ? tableStyle.HeaderTextColor :
                         row >= rows.Heights.Length - tableStyle.FooterRowCount ? tableStyle.FooterTextColor : tableStyle.TextColor), style);

@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel {
             private const int SharedStringIndexValueLength = -2;
 
             private readonly ExcelSheetReader _owner;
-            private readonly ExcelReadOptions _options;
+            private readonly ExcelReaderOptions _options;
             private int _firstColumn;
             private int _fieldCount;
             private Utf8StringCacheEntry[]? _stringCache;
@@ -124,8 +124,8 @@ namespace OfficeIMO.Excel {
                         }
 
                         int fieldCount = lastColumn - firstColumn + 1;
-                        if (firstRow <= 0 || lastRow < firstRow || lastRow > A1.MaxRows
-                            || firstColumn <= 0 || lastColumn < firstColumn || lastColumn > A1.MaxColumns
+                        if (firstRow <= 0 || lastRow < firstRow || lastRow > ExcelA1.MaxRows
+                            || firstColumn <= 0 || lastColumn < firstColumn || lastColumn > ExcelA1.MaxColumns
                             || fieldCount <= 0
                             || fieldCount > owner._opt.MaxDataReaderColumns
                             || fieldCount > owner._opt.MaxDataReaderBufferedCells
@@ -344,8 +344,8 @@ namespace OfficeIMO.Excel {
                 firstColumn = _minimumCellColumn;
                 lastRow = _maximumCellRow;
                 lastColumn = _maximumCellColumn;
-                return firstRow > 0 && lastRow >= firstRow && lastRow <= A1.MaxRows
-                    && firstColumn > 0 && lastColumn >= firstColumn && lastColumn <= A1.MaxColumns;
+                return firstRow > 0 && lastRow >= firstRow && lastRow <= ExcelA1.MaxRows
+                    && firstColumn > 0 && lastColumn >= firstColumn && lastColumn <= ExcelA1.MaxColumns;
             }
 
             internal bool IsCellPresent(int ordinal) {
@@ -1067,7 +1067,7 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                int nextCapacity = Math.Min(A1.MaxRows, checked(currentCapacity * 2));
+                int nextCapacity = Math.Min(ExcelA1.MaxRows, checked(currentCapacity * 2));
                 GrowRowArray(ref _rowIndexes, nextCapacity, _rowCount);
                 int currentCellCount = checked(_rowCount * _fieldCount);
                 int nextCellCapacity = checked(nextCapacity * _fieldCount);

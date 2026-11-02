@@ -10,20 +10,20 @@ namespace OfficeIMO.Tests.Pdf {
     public partial class PdfDocumentBuilderPageOptionsTests {
         [Fact]
         public void HeaderFooterRichText_RendersStylesAndStyledPageTokens() {
-            var options = new PdfOptions {
+            var options = new PdfCreateOptions {
                 CompressContentStreams = false,
                 HeaderFont = PdfStandardFont.Helvetica,
                 FooterFont = PdfStandardFont.Helvetica
             };
             var doc = PdfDocument.Create(options)
                 .Header(header => header.Text(text => text
-                    .Run(PdfTextRun.Bolded("Rich header ", PdfColor.FromRgb(255, 0, 0), fontSize: 14, backgroundColor: PdfColor.FromRgb(255, 255, 0)))
-                    .CurrentPage(PdfTextRun.Italicized(string.Empty, PdfColor.FromRgb(0, 0, 255), fontSize: 11))
+                    .Run(PdfTextRun.Bolded("Rich header ", global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), fontSize: global::OfficeIMO.OfficeLength.Points(14), backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0)))
+                    .CurrentPage(PdfTextRun.Italicized(string.Empty, global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255), fontSize: global::OfficeIMO.OfficeLength.Points(11)))
                     .Text("/")
-                    .TotalPages(PdfTextRun.Underlined(string.Empty, PdfColor.FromRgb(0, 128, 0), fontSize: 11))))
+                    .TotalPages(PdfTextRun.Underlined(string.Empty, global::OfficeIMO.OfficeColor.FromRgb(0, 128, 0), fontSize: global::OfficeIMO.OfficeLength.Points(11)))))
                 .Footer(footer => footer.Text(text => text
-                    .Run(PdfTextRun.Strikethrough("Rich footer ", PdfColor.FromRgb(128, 0, 128), fontSize: 9))
-                    .CurrentPage(PdfTextRun.Superscript(string.Empty, fontSize: 9))))
+                    .Run(PdfTextRun.Strikethrough("Rich footer ", global::OfficeIMO.OfficeColor.FromRgb(128, 0, 128), fontSize: global::OfficeIMO.OfficeLength.Points(9)))
+                    .CurrentPage(PdfTextRun.Superscript(string.Empty, fontSize: global::OfficeIMO.OfficeLength.Points(9)))))
                 .Paragraph(p => p.Text("Body content."));
 
             byte[] bytes = doc.ToBytes();
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests.Pdf {
             }
 
             const string familyName = "Rich Header Family";
-            var options = new PdfOptions {
+            var options = new PdfCreateOptions {
                 CompressContentStreams = false
             }.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(familyName, File.ReadAllBytes(fontPath)));
 
@@ -157,7 +157,7 @@ namespace OfficeIMO.Tests.Pdf {
         public void StyledHeaderZonesAnalyzeEachSegmentsEffectiveFont() {
             const string familyName = "Styled Header Diagnostic Family";
             byte[] font = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont('\u0105', ' ');
-            var options = new PdfOptions()
+            var options = new PdfCreateOptions()
                 .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(familyName, font));
             PdfDocument document = PdfDocument.Create(options)
                 .Header(header => header.StyledZones(
@@ -177,14 +177,14 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void HeaderFooterRichText_RejectsInteractiveAndInlineRuns() {
             var link = PdfTextRun.Link("Link", "https://example.com");
-            var inline = PdfTextRun.Inline(new PdfInlineBox(12, 8));
+            var inline = PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(8)));
 
             Assert.Throws<ArgumentException>(() =>
                 PdfDocument.Create().Header(header => header.Text(text => text.Run(link))));
             Assert.Throws<ArgumentException>(() =>
                 PdfDocument.Create().Footer(footer => footer.Text(text => text.Run(inline))));
             Assert.Throws<ArgumentException>(() =>
-                FooterSegment.PageNumber(PdfTextRun.Tab()));
+                PdfFooterSegment.PageNumber(PdfTextRun.Tab()));
         }
     }
 }

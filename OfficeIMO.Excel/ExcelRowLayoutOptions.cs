@@ -4,9 +4,9 @@ namespace OfficeIMO.Excel {
     /// </summary>
     public sealed class ExcelRowLayoutOptions {
         /// <summary>
-        /// Explicit row height in points. Use <see cref="ClearHeight"/> to remove a custom height.
+        /// Explicit row height as characters or a physical length. Use <see cref="ClearHeight"/> to remove a custom height.
         /// </summary>
-        public double? Height { get; set; }
+        public ExcelColumnWidth? Height { get; set; }
 
         /// <summary>
         /// Clears any custom row height before optional auto-fit is applied.

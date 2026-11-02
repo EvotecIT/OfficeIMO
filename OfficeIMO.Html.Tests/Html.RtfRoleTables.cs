@@ -28,7 +28,7 @@ public class HtmlRtfRoleTables {
         HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
 
         Assert.Equal("cid:layout.css", Assert.Single(result.Report.Diagnostics,
-            diagnostic => diagnostic.Code == "HtmlStylesheetLinkSkipped").Source);
+            diagnostic => diagnostic.Code == "html-stylesheet-link-skipped").Source);
         Assert.Equal(OfficeConversionLossKind.Omission, Assert.Single(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == "HtmlStylesheetElementSkipped").LossKind);
     }

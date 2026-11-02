@@ -23,7 +23,7 @@ namespace OfficeIMO.Excel {
         /// Enumerate the returned sequence while the owning reader is still open.
         /// </summary>
         public IEnumerable<T> ReadObjectsStream<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(string a1Range, CancellationToken ct = default) where T : new() {
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
             if (r1 > r2 || c1 > c2) throw new ArgumentException($"Invalid range '{a1Range}'.");
 
             int rows = r2 - r1 + 1;
@@ -80,7 +80,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (!pendingRows.ContainsKey(rowIndex) && pendingRows.Count >= _opt.MaxPendingTypedRows) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxPendingTypedRows), _opt.MaxPendingTypedRows,
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxPendingTypedRows), _opt.MaxPendingTypedRows,
                     $"Typed row streaming exceeded the configured out-of-order row buffer limit of {_opt.MaxPendingTypedRows.ToString(CultureInfo.InvariantCulture)}.");
             }
 

@@ -15,12 +15,12 @@ internal static class StudioVisualProbe {
         string documentPath = Path.Combine(root, "redaction-review.pdf");
         if (!File.Exists(documentPath)) {
             PdfDocument.Create(compose => {
-                compose.Page(page => page.Size(600, 800).Content(content => {
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)).Content(content => {
                     content.Item(item => item.Paragraph(paragraph => paragraph.Text("Quarterly account review")));
                     content.Item(item => item.Paragraph(paragraph => paragraph.Text("Private account 123-456")));
                     content.Item(item => item.Paragraph(paragraph => paragraph.Text("This public summary should remain readable.")));
                 }));
-                compose.Page(page => page.Size(600, 800).Content(content => {
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)).Content(content => {
                     content.Item(item => item.Paragraph(paragraph => paragraph.Text("Second account")));
                     content.Item(item => item.Paragraph(paragraph => paragraph.Text("Private account 789-012")));
                 }));

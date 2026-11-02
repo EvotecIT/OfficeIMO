@@ -14,15 +14,15 @@ public sealed class RtfPdfWhitespaceRegressionTests {
     [InlineData(true, 3)]
     public void DefaultImportRetainsSourceSpaceAdvancesAcrossFontChanges(bool unrelatedPdfOptions, int spaces) {
         RtfDocument document = CreateDocument(spaces);
-        PdfCore.PdfOptions? caller = unrelatedPdfOptions
-            ? new PdfCore.PdfOptions { CompressContentStreams = false }
+        PdfCore.PdfCreateOptions? caller = unrelatedPdfOptions
+            ? new PdfCore.PdfCreateOptions { CompressContentStreams = false }
             : null;
         var options = new RtfToPdfOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             PdfOptions = caller
         };
 
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
         using PdfPigDocument pdf = PdfPigDocument.Open(result.Value.ToBytes());
         Assert.Equal(1, pdf.NumberOfPages);
         var letters = pdf.GetPage(1).Letters;
@@ -47,9 +47,9 @@ public sealed class RtfPdfWhitespaceRegressionTests {
         PdfCore.PdfTextWhitespaceMode mode, double expectedAdvance) {
         // Repeated spaces distinguish Collapse from both preserving modes.
         RtfDocument document = CreateDocument(spaces: 3);
-        var caller = new PdfCore.PdfOptions { TextWhitespaceMode = mode };
+        var caller = new PdfCore.PdfCreateOptions { TextWhitespaceMode = mode };
 
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(new RtfToPdfOptions {
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new RtfToPdfOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             PdfOptions = caller
         });
@@ -76,7 +76,7 @@ public sealed class RtfPdfWhitespaceRegressionTests {
         document.PageSetup.SetPaperSize(3600, 4800);
         document.PageSetup.SetMargins(400, 400, 400, 400);
 
-        var collapsed = ReadLines(document, new PdfCore.PdfOptions { TextWhitespaceMode = PdfCore.PdfTextWhitespaceMode.Collapse });
+        var collapsed = ReadLines(document, new PdfCore.PdfCreateOptions { TextWhitespaceMode = PdfCore.PdfTextWhitespaceMode.Collapse });
         Assert.Equal(PdfCore.PdfTextWhitespaceMode.Collapse, collapsed.Mode);
         Assert.Equal(new[] { "PREFIXEND-STYLE-", "OVERRIDE" }, collapsed.Lines);
         var imported = ReadLines(document, options: null);
@@ -85,8 +85,8 @@ public sealed class RtfPdfWhitespaceRegressionTests {
         Assert.Equal(new[] { "PREFIX", "END-STYLE-OVERRIDE" }, imported.Lines);
         Assert.Equal(PdfCore.PdfTextWhitespaceMode.Preserve, imported.Mode);
 
-        static (PdfCore.PdfTextWhitespaceMode Mode, string[] Lines) ReadLines(RtfDocument source, PdfCore.PdfOptions? options) {
-            PdfCore.PdfDocumentConversionResult result = source.ToPdfDocumentResult(new RtfToPdfOptions {
+        static (PdfCore.PdfTextWhitespaceMode Mode, string[] Lines) ReadLines(RtfDocument source, PdfCore.PdfCreateOptions? options) {
+            PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(new RtfToPdfOptions {
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
                 PdfOptions = options
             });

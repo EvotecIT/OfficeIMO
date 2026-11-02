@@ -48,11 +48,11 @@ public sealed class WordSmartArtSharedPageTests {
             Assert.True(nodes[labels[3]].Y > nodes[labels[0]].Y);
         }
 
-        var conversion = document.ToPdfDocumentResult();
-        string warningCode = projection == "persisted" ? "NativeSmartArtPersistedLayout" : "NativeSmartArtLayoutApproximated";
+        var conversion = document.ConvertToPdfWithEvidence();
+        string warningCode = projection == "persisted" ? "native-smart-art-persisted-layout" : "native-smart-art-layout-approximated";
         Assert.Contains(conversion.Warnings, warning => warning.Code == warningCode &&
             warning.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "NativeBodySmartArtUnsupported");
+        Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "native-body-smart-art-unsupported");
         AssertSharedSvgPages(document, conversion, labels.Concat(new[] { "Before diagram", "After diagram" }).ToArray(), warningCode);
     }
 
@@ -66,7 +66,7 @@ public sealed class WordSmartArtSharedPageTests {
             new WordImageExportOptions {
                 Policy = new OfficeImageExportPolicy { RequireNoOmissions = true }
             });
-        Assert.Contains(image.Diagnostics, diagnostic => diagnostic.Code == "NativeSmartArtLayoutApproximated" &&
+        Assert.Contains(image.Diagnostics, diagnostic => diagnostic.Code == "native-smart-art-layout-approximated" &&
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
         Assert.DoesNotContain(image.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
         string svg = Encoding.UTF8.GetString(image.Bytes);
@@ -80,10 +80,10 @@ public sealed class WordSmartArtSharedPageTests {
         while (smartArt.NodeCount < 3) smartArt.AddNode("Node");
         string[] labels = SetNodeLabels(smartArt);
         document.MainDocumentPartRoot.DiagramLayoutDefinitionParts.Single().LayoutDefinition!.UniqueId = "urn:officeimo:unknown-layout";
-        var conversion = document.ToPdfDocumentResult();
-        Assert.Contains(conversion.Warnings, warning => warning.Code == "NativeSmartArtLayoutApproximated" &&
+        var conversion = document.ConvertToPdfWithEvidence();
+        Assert.Contains(conversion.Warnings, warning => warning.Code == "native-smart-art-layout-approximated" &&
             warning.Message.Contains("text layout", StringComparison.Ordinal));
-        AssertSharedSvgPages(document, conversion, labels, "NativeSmartArtLayoutApproximated");
+        AssertSharedSvgPages(document, conversion, labels, "native-smart-art-layout-approximated");
     }
 
     [Fact]
@@ -95,9 +95,9 @@ public sealed class WordSmartArtSharedPageTests {
         string modelId = smartArt.GetPersistedLayoutShapes().First(shape => shape.Text == labels[0]).ModelId;
         part.Drawing!.Descendants<DocumentFormat.OpenXml.Office.Drawing.Shape>()
             .First(shape => shape.ModelId?.Value == modelId).Remove();
-        var conversion = document.ToPdfDocumentResult();
-        Assert.Contains(conversion.Warnings, warning => warning.Code == "NativeSmartArtLayoutApproximated");
-        AssertSharedSvgPages(document, conversion, labels, "NativeSmartArtLayoutApproximated");
+        var conversion = document.ConvertToPdfWithEvidence();
+        Assert.Contains(conversion.Warnings, warning => warning.Code == "native-smart-art-layout-approximated");
+        AssertSharedSvgPages(document, conversion, labels, "native-smart-art-layout-approximated");
     }
 
     [Fact]
@@ -108,8 +108,8 @@ public sealed class WordSmartArtSharedPageTests {
         while (smartArt.NodeCount < 3) smartArt.AddNode("Node");
         string[] labels = SetNodeLabels(smartArt);
         document.AddParagraph("AFTER_DIAGRAM");
-        var conversion = document.ToPdfDocumentResult();
-        var read = PdfReadDocument.Open(conversion.ToBytes());
+        var conversion = document.ConvertToPdfWithEvidence();
+        var read = PdfDocument.Load(new System.IO.MemoryStream(conversion.ToBytes()));
         Assert.True(read.Pages.Count > 1);
         int[] diagramPages = read.Pages.Select((page, index) => new { index,
             Text = string.Concat(page.GetTextSpans().Select(span => span.Text)) })
@@ -123,12 +123,12 @@ public sealed class WordSmartArtSharedPageTests {
     }
 
     [Theory]
-    [InlineData(false, WordSmartArtType.BasicProcess, "NativeSmartArtLayoutApproximated")]
-    [InlineData(true, WordSmartArtType.BasicProcess, "NativeSmartArtLayoutApproximated")]
-    [InlineData(false, WordSmartArtType.CustomSmartArt1, "NativeSmartArtPersistedLayout")]
-    [InlineData(true, WordSmartArtType.CustomSmartArt1, "NativeSmartArtPersistedLayout")]
-    [InlineData(false, WordSmartArtType.CustomSmartArt2, "NativeSmartArtPersistedLayout")]
-    [InlineData(true, WordSmartArtType.CustomSmartArt2, "NativeSmartArtPersistedLayout")]
+    [InlineData(false, WordSmartArtType.BasicProcess, "native-smart-art-layout-approximated")]
+    [InlineData(true, WordSmartArtType.BasicProcess, "native-smart-art-layout-approximated")]
+    [InlineData(false, WordSmartArtType.CustomSmartArt1, "native-smart-art-persisted-layout")]
+    [InlineData(true, WordSmartArtType.CustomSmartArt1, "native-smart-art-persisted-layout")]
+    [InlineData(false, WordSmartArtType.CustomSmartArt2, "native-smart-art-persisted-layout")]
+    [InlineData(true, WordSmartArtType.CustomSmartArt2, "native-smart-art-persisted-layout")]
     public void HeaderAndFooterSmartArtEnterSharedRunningContent(bool footer, WordSmartArtType type, string warningCode) {
         using WordDocument document = WordDocument.Create();
         WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
@@ -143,8 +143,8 @@ public sealed class WordSmartArtSharedPageTests {
         document.AddPageBreak();
         document.AddParagraph("Body page two");
         using WordDocument reopened = WordDocument.Load(new System.IO.MemoryStream(document.ToBytes()));
-        var conversion = reopened.ToPdfDocumentResult();
-        Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "NativeHeaderFooterSmartArtUnsupported");
+        var conversion = reopened.ConvertToPdfWithEvidence();
+        Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "native-header-footer-smart-art-unsupported");
         Assert.Contains(conversion.Warnings, warning => warning.Code == warningCode);
         var read = PdfReadDocument.Open(conversion.ToBytes());
         Assert.Equal(2, read.Pages.Count);

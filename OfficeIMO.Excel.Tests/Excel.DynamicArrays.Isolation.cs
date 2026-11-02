@@ -7,8 +7,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void DynamicArrays_CrossSheetReferencesUseTheirOwnSpillsAndValues() {
             using var document = ExcelDocument.Create();
-            var first = document.AddWorksheet("First");
-            var second = document.AddWorksheet("Second");
+            var first = document.AddSheet("First");
+            var second = document.AddSheet("Second");
             first.SetDynamicArrayFormula("G1", "SEQUENCE(2,2)");
             second.CellValue(2, 7, 99);
             second.SetDynamicArrayFormula("J1", "SEQUENCE(2,2,10)");
@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void DynamicArrays_UncachedScalarFormulaBlocksSpill() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.CellFormula(2, 8, "40+2");
             sheet.SetDynamicArrayFormula("G1", "SEQUENCE(2,2)");
             sheet.CellFormula(1, 1, "H2");
@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
         [InlineData(true)]
         public void DynamicArrays_ColumnEditsMoveOwnershipAndRetainResizeEvidence(bool deleting) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, 2);
             sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
             document.RecalculateSupportedFormulas();
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void DynamicArrays_RollbackRestoresOwnershipAndResizeEvidence() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, 2);
             sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
             document.RecalculateSupportedFormulas();
@@ -100,8 +100,8 @@ namespace OfficeIMO.Tests {
         public void DynamicArrays_LoadedSpillRetainsOwnershipAcrossWorksheetMutations(bool unrelatedSheet) {
             using var stream = new System.IO.MemoryStream();
             using (var original = ExcelDocument.Create()) {
-                var sheet = original.AddWorksheet("Data");
-                original.AddWorksheet("Other");
+                var sheet = original.AddSheet("Data");
+                original.AddSheet("Other");
                 sheet.CellValue(1, 1, 2);
                 sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
                 original.RecalculateSupportedFormulas();
@@ -124,7 +124,7 @@ namespace OfficeIMO.Tests {
         public void DynamicArrays_ColumnMutationDoesNotAdoptExternallyChangedLoadedChild() {
             using var stream = new System.IO.MemoryStream();
             using (var original = ExcelDocument.Create()) {
-                var sheet = original.AddWorksheet("Data");
+                var sheet = original.AddSheet("Data");
                 sheet.CellValue(1, 1, 2);
                 sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
                 original.RecalculateSupportedFormulas();

@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_EnforcesAffectedCellBudgetAndReportsAppliedCount() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Header");
             sheet.CellValue(2, 1, 10);
             sheet.CellValue(3, 1, 20);
@@ -72,19 +72,19 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ColumnCellAndMoveMutations_RemapSparklineDestinations() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet columns = document.AddWorksheet("Columns");
+            ExcelSheet columns = document.AddSheet("Columns");
             columns.AddSparklines("A1:B1", "D1");
             columns.InsertColumns(1);
             Assert.Equal("E1", Assert.Single(columns.WorksheetPart.Worksheet
                 .Descendants<X14.Sparkline>()).ReferenceSequence!.Text);
 
-            ExcelSheet cells = document.AddWorksheet("Cells");
+            ExcelSheet cells = document.AddSheet("Cells");
             cells.AddSparklines("A1:B1", "D1");
             cells.InsertCells("A1", ExcelCellShiftDirection.Right);
             Assert.Equal("E1", Assert.Single(cells.WorksheetPart.Worksheet
                 .Descendants<X14.Sparkline>()).ReferenceSequence!.Text);
 
-            ExcelSheet moved = document.AddWorksheet("Moved");
+            ExcelSheet moved = document.AddSheet("Moved");
             moved.AddSparklines("A1:B1", "D1");
             moved.MoveRange("D1", "E1");
             Assert.Equal("E1", Assert.Single(moved.WorksheetPart.Worksheet
@@ -94,18 +94,18 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ColumnCellAndMoveMutations_RemapQueryTableSortRanges() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet columns = document.AddWorksheet("Columns");
+            ExcelSheet columns = document.AddSheet("Columns");
             SortState columnSort = AddQueryTableRefreshSortState(document, columns, "A1:C10");
             columns.InsertColumns(1);
             Assert.Equal("B1:D10", columnSort.Reference!.Value);
             Assert.Equal("B1:B10", Assert.Single(columnSort.Elements<SortCondition>()).Reference!.Value);
 
-            ExcelSheet cells = document.AddWorksheet("Cells");
+            ExcelSheet cells = document.AddSheet("Cells");
             SortState cellSort = AddQueryTableRefreshSortState(document, cells, "A1:C1");
             cells.InsertCells("A1", ExcelCellShiftDirection.Right);
             Assert.Equal("B1:D1", cellSort.Reference!.Value);
 
-            ExcelSheet moved = document.AddWorksheet("Moved");
+            ExcelSheet moved = document.AddSheet("Moved");
             SortState movedSort = AddQueryTableRefreshSortState(document, moved, "A1:C1");
             moved.MoveRange("A1:C1", "B2");
             Assert.Equal("B2:D2", movedSort.Reference!.Value);
@@ -114,7 +114,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_MutationSnapshot_RestoresQueryTableRoots() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             AddQueryTableRefreshSortState(document, sheet, "A1:C10");
             QueryTablePart queryPart = Assert.Single(sheet.WorksheetPart.QueryTableParts);
             using var cancellation = new CancellationTokenSource();

@@ -86,7 +86,7 @@ namespace OfficeIMO.Word {
             }
 
             if (legacyRun.KerningMinimumFontSizeHalfPoints.HasValue) {
-                run.KerningMinimumFontSizePoints = legacyRun.KerningMinimumFontSizeHalfPoints.Value / 2D;
+                run.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(legacyRun.KerningMinimumFontSizeHalfPoints.Value / 2D);
             }
 
             if (legacyRun.CharacterScalePercentage.HasValue) {
@@ -94,7 +94,7 @@ namespace OfficeIMO.Word {
             }
 
             if (legacyRun.CharacterSpacingTwips != null || legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.CharacterSpacing)) {
-                run.Spacing = legacyRun.CharacterSpacingTwips ?? 0;
+                run.Spacing = OfficeLength.Emus((long)(legacyRun.CharacterSpacingTwips ?? 0) * 635);
             }
 
             if (!string.IsNullOrEmpty(legacyRun.Language) || !string.IsNullOrEmpty(legacyRun.EastAsiaLanguage)) {

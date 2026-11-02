@@ -234,7 +234,7 @@ public static partial class HtmlComputedStyleEngine {
             if (string.Equals(propertyName, "color", StringComparison.OrdinalIgnoreCase)
                 && (parsed.Value?.Kind == OfficeIMO.Html.Css.HtmlCssPropertyValueKind.NamedColor
                     || parsed.Value?.Kind == OfficeIMO.Html.Css.HtmlCssPropertyValueKind.HexColor)
-                && OfficeIMO.Drawing.OfficeColor.TryParseCss(value, out OfficeIMO.Drawing.OfficeColor color)) {
+                && OfficeIMO.OfficeColor.TryParseCss(value, out OfficeIMO.OfficeColor color)) {
                 value = FormatComputedColor(color, color.A / 255D);
             }
             var candidate = new StyleDeclaration(propertyName, value, declaration.IsImportant) { DeclarationOrder = order++ };

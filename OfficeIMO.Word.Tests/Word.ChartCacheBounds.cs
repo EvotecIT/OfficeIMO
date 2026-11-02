@@ -11,8 +11,8 @@ public sealed class WordChartCacheBoundsTests {
     [InlineData(true)]
     public void Snapshot_DiscoversLaterCategoriesAndRetainsLongerSeries(bool laterHasLabels) {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartKind.Line, new OfficeChartData(new[] { "A", "B", "C" }, new[] {
-            new OfficeChartSeries("Short", new[] { 1d, 2d, 3d }), new OfficeChartSeries("Long", new[] { 4d, 5d, 6d }) }));
+        var chart = document.AddChart(OfficeChartType.Line,new OfficeChartData(new[] { "A", "B", "C" }, new[] {
+            new OfficeSeries("Short", new[] { 1d, 2d, 3d }), new OfficeSeries("Long", new[] { 4d, 5d, 6d }) }));
         var series = chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().ToArray();
         series[0].GetFirstChild<C.CategoryAxisData>()!.Remove();
         var cache = series[0].GetFirstChild<C.Values>()!.Descendants<C.NumberingCache>().Single();
@@ -32,8 +32,8 @@ public sealed class WordChartCacheBoundsTests {
     [InlineData(true, uint.MaxValue)]
     public void Snapshot_RejectsOversizedCacheInsteadOfTruncatingOrReindexing(bool changeIndex, uint value) {
         using WordDocument document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartKind.Line, new OfficeChartData(new[] { "A", "B" },
-            new[] { new OfficeChartSeries("Status", new[] { 1d, 2d }) }));
+        WordChart chart = document.AddChart(OfficeChartType.Line,new OfficeChartData(new[] { "A", "B" },
+            new[] { new OfficeSeries("Status", new[] { 1d, 2d }) }));
         C.NumberingCache cache = chart.ChartPart!.ChartSpace!.Descendants<C.NumberingCache>().Single();
         if (changeIndex) cache.Elements<C.NumericPoint>().Last().Index = value;
         else cache.PointCount!.Val = value;
@@ -43,11 +43,11 @@ public sealed class WordChartCacheBoundsTests {
     [Fact]
     public void Snapshot_PreservesSparseCachePositionsWithinTheSupportedBound() {
         using WordDocument document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartKind.Line, new OfficeChartData(new[] { "A", "B", "C" },
-            new[] { new OfficeChartSeries("Status", new[] { 1d, 2d, 3d }) }));
+        WordChart chart = document.AddChart(OfficeChartType.Line,new OfficeChartData(new[] { "A", "B", "C" },
+            new[] { new OfficeSeries("Status", new[] { 1d, 2d, 3d }) }));
         C.NumberingCache cache = chart.ChartPart!.ChartSpace!.Descendants<C.NumberingCache>().Single();
         cache.Elements<C.NumericPoint>().ElementAt(1).Remove();
-        Assert.True(chart.TryGetSnapshot(out WordChartSnapshot snapshot));
+        Assert.True(chart.TryGetSnapshot(out WordChartInfo snapshot));
         Assert.Equal(new[] { 1d, 0d, 3d }, snapshot.Data.Series.Single().Values);
     }
 }

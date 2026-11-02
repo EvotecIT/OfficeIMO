@@ -24,7 +24,7 @@ public partial class Word {
     public void SaveAsPdf_EmptySectionBookmarkPrecedesItsParagraphLine(int columns, int size, bool nextPage) {
         using WordDocument source = WordDocument.Create();
         source.Settings.FontFamily = "Arial";
-        source.Settings.FontSize = 12;
+        source.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         W.Body body = source._wordprocessingDocument.MainDocumentPart!.Document.Body!;
         W.SectionProperties final = body.Elements<W.SectionProperties>().Single();
         var first = (W.SectionProperties)final.CloneNode(true);
@@ -40,9 +40,9 @@ public partial class Word {
         source.AddHyperLink("Go to second target", "SecondEmptyTarget");
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         string xml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() });
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code.StartsWith("NativeBookmarkTarget", StringComparison.Ordinal));
-        byte[] bytes = result.ToBytes();
+        using PdfDocument model = document.ToPdf(new WordPdfExportOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() }, out OfficeConversionReport report);
+        Assert.DoesNotContain(report.Diagnostics, diagnostic => diagnostic.Code.StartsWith("native-bookmark-target", StringComparison.Ordinal));
+        byte[] bytes = model.ToBytes(new PdfSaveOptions { AllowLoss = true });
         using var pdf = PdfPigDocument.Open(bytes);
         var logical = PdfDocumentReadResult.Load(bytes);
         var destination = Assert.Single(logical.NamedDestinations, d => d.Name == "EmptySectionTarget");
@@ -89,9 +89,9 @@ public partial class Word {
         }
         AddLine(reference, "A").AddBreak(WordBreakType.Page);
         AddLine(reference, "B");
-        var options = new WordToPdfOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
-        using var actual = PdfPigDocument.Open(document.ToPdfBytes(options));
-        using var expected = PdfPigDocument.Open(reference.ToPdfBytes(options));
+        var options = new WordPdfExportOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
+        using var actual = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        using var expected = PdfPigDocument.Open(reference.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, actual.NumberOfPages);
         for (int page = 1; page <= 2; page++) Assert.Equal(
             expected.GetPage(page).Letters.Select(letter => (letter.Value, letter.StartBaseLine)),
@@ -107,14 +107,13 @@ public partial class Word {
             var result = WordDocument.Create();
             result.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.Word2013;
             result.Settings.FontFamily = "Arial";
-            result.Settings.FontSize = 12;
+            result.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             return result;
         }
         static WordParagraph AddLine(WordDocument target, string text) {
             WordParagraph paragraph = target.AddParagraph(text);
-            paragraph.LineSpacingPoints = 12;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-            paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(12));
+            paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             return paragraph;
         }
     }

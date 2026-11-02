@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel.OpenDocument;
 
 public static partial class ExcelOpenDocumentConversionExtensions {
     private static bool TryCreateOdsCustomValidationCondition(
-        ExcelDataValidationSnapshot validation, out OdsValidationConditionSyntax? condition) {
+        ExcelDataValidationInspectionInfo validation, out OdsValidationConditionSyntax? condition) {
         condition = null;
         if (validation.A1Ranges.Count != 1 || !string.IsNullOrWhiteSpace(validation.Formula2)
             || !string.IsNullOrWhiteSpace(validation.Operator)

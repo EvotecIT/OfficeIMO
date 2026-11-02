@@ -70,6 +70,6 @@ public static partial class PdfOcrExtensions {
     internal static void NormalizeReviewPageSelection(PdfOcrMergeOptions capturedOptions, int pageCount) {
         if (capturedOptions.ReadOptions.PageSelection is not { } selection) return;
         int[] uniquePages = selection.ToPageNumbers(pageCount, "options").Distinct().ToArray();
-        capturedOptions.ReadOptions = PdfReadOptions.WithPageSelection(capturedOptions.ReadOptions, PdfPageSelection.From(uniquePages));
+        capturedOptions.ReadOptions = PdfLoadOptions.WithPageSelection(capturedOptions.ReadOptions, PdfPageSelection.From(uniquePages));
     }
 }

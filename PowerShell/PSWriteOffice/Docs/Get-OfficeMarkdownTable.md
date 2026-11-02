@@ -11,17 +11,17 @@ Gets Markdown tables from a Markdown document.
 ## SYNTAX
 ### Document
 ```powershell
-Get-OfficeMarkdownTable -Document <MarkdownDoc> [-Options <MarkdownReaderOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-AsObject] [<CommonParameters>]
+Get-OfficeMarkdownTable -Document <MarkdownDocument> [-Options <MarkdownLoadOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-AsObject] [<CommonParameters>]
 ```
 
 ### Path
 ```powershell
-Get-OfficeMarkdownTable [-Path] <string> [-Options <MarkdownReaderOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-AsObject] [<CommonParameters>]
+Get-OfficeMarkdownTable [-Path] <string> [-Options <MarkdownLoadOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-AsObject] [<CommonParameters>]
 ```
 
 ### Text
 ```powershell
-Get-OfficeMarkdownTable -Text <string> [-Options <MarkdownReaderOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-AsObject] [<CommonParameters>]
+Get-OfficeMarkdownTable -Text <string> [-Options <MarkdownLoadOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-AsObject] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -31,7 +31,7 @@ Gets Markdown tables from a Markdown document.
 
 ### EXAMPLE 1
 ```powershell
-PS> Get-OfficeMarkdown -Path .\Report.md | Get-OfficeMarkdownTable -AsObject
+PS> Open-OfficeMarkdown -Path .\Report.md | Get-OfficeMarkdownTable -AsObject
 ```
 
 Returns table rows as PowerShell objects using the Markdown header row as property names.
@@ -154,7 +154,7 @@ Accept wildcard characters: False
 Markdown document to inspect.
 
 ```yaml
-Type: MarkdownDoc
+Type: MarkdownDocument
 Parameter Sets: Document
 Aliases: None
 Possible values:
@@ -202,7 +202,7 @@ Accept wildcard characters: False
 Optional reader options used when parsing path or text input.
 
 ```yaml
-Type: MarkdownReaderOptions
+Type: MarkdownLoadOptions
 Parameter Sets: Document, Path, Text
 Aliases: ReaderOptions
 Possible values:
@@ -283,7 +283,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 - `System.String`
 
 ## OUTPUTS

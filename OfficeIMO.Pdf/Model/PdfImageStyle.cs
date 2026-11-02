@@ -10,8 +10,8 @@ public sealed class PdfImageStyle {
     private OfficeImageFit _fit = OfficeImageFit.Stretch;
     private OfficeClipPath? _clipPath;
     private PdfImageSourceCrop? _sourceCrop;
-    private double _spacingBefore;
-    private double _spacingAfter;
+    private global::OfficeIMO.OfficeLength _spacingBefore;
+    private global::OfficeIMO.OfficeLength _spacingAfter;
     private double _rotationAngle;
     private string? _alternativeText;
 
@@ -46,19 +46,19 @@ public sealed class PdfImageStyle {
     }
 
     /// <summary>Vertical space before the image in the surrounding document flow, in points.</summary>
-    public double SpacingBefore {
+    public global::OfficeIMO.OfficeLength SpacingBefore {
         get => _spacingBefore;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(SpacingBefore), "Image spacing before must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(SpacingBefore), "Image spacing before must be a non-negative finite value.");
             _spacingBefore = value;
         }
     }
 
     /// <summary>Vertical space after the image in the surrounding document flow, in points.</summary>
-    public double SpacingAfter {
+    public global::OfficeIMO.OfficeLength SpacingAfter {
         get => _spacingAfter;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(SpacingAfter), "Image spacing after must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(SpacingAfter), "Image spacing after must be a non-negative finite value.");
             _spacingAfter = value;
         }
     }

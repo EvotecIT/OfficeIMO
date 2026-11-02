@@ -101,7 +101,7 @@ public sealed class SetOfficeExcelColumnCommand : PSWriteOffice.Cmdlets.OfficeMu
         }
 
         if (Width.HasValue) {
-            sheet.SetColumnWidth(columnIndex, Width.Value);
+            sheet.SetColumnWidth(columnIndex, ExcelColumnWidth.Characters(Width.Value));
             hasAction = true;
         }
 

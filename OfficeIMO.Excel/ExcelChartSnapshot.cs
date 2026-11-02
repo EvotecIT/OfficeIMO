@@ -6,18 +6,18 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Lightweight chart snapshot that consumers can render without depending on Excel or Open XML chart internals.
     /// </summary>
-    public sealed class ExcelChartSnapshot {
-        internal ExcelChartSnapshot(
+    public sealed class ExcelChartInfo {
+        internal ExcelChartInfo(
             string name,
             string? title,
-            ExcelChartType chartType,
+            OfficeChartType chartType,
             ExcelChartData data,
             int rowIndex,
             int columnIndex,
-            int offsetXPixels,
-            int offsetYPixels,
-            int widthPixels,
-            int heightPixels,
+            OfficeLength offsetX,
+            OfficeLength offsetY,
+            OfficeLength width,
+            OfficeLength height,
             OfficeChartStyle? style = null,
             OfficeChartLayout? layout = null,
             IReadOnlyList<OfficeImageExportDiagnostic>? diagnostics = null,
@@ -31,10 +31,10 @@ namespace OfficeIMO.Excel {
             Data = data ?? throw new ArgumentNullException(nameof(data));
             RowIndex = rowIndex;
             ColumnIndex = columnIndex;
-            OffsetXPixels = offsetXPixels;
-            OffsetYPixels = offsetYPixels;
-            WidthPixels = widthPixels;
-            HeightPixels = heightPixels;
+            OffsetX = offsetX;
+            OffsetY = offsetY;
+            Width = width;
+            Height = height;
             Style = style;
             Layout = layout;
             Diagnostics = diagnostics ?? Array.Empty<OfficeImageExportDiagnostic>();
@@ -51,7 +51,7 @@ namespace OfficeIMO.Excel {
         public string? Title { get; }
 
         /// <summary>Detected chart type.</summary>
-        public ExcelChartType ChartType { get; }
+        public OfficeChartType ChartType { get; }
 
         /// <summary>Cached or worksheet-backed chart data.</summary>
         public ExcelChartData Data { get; }
@@ -62,17 +62,17 @@ namespace OfficeIMO.Excel {
         /// <summary>One-based worksheet column where the chart is anchored when known.</summary>
         public int ColumnIndex { get; }
 
-        /// <summary>Horizontal offset from the anchor column in pixels.</summary>
-        public int OffsetXPixels { get; }
+        /// <summary>Horizontal offset from the anchor column.</summary>
+        public OfficeLength OffsetX { get; }
 
-        /// <summary>Vertical offset from the anchor row in pixels.</summary>
-        public int OffsetYPixels { get; }
+        /// <summary>Vertical offset from the anchor row.</summary>
+        public OfficeLength OffsetY { get; }
 
-        /// <summary>Chart width in pixels when known.</summary>
-        public int WidthPixels { get; }
+        /// <summary>Physical chart width when known.</summary>
+        public OfficeLength Width { get; }
 
-        /// <summary>Chart height in pixels when known.</summary>
-        public int HeightPixels { get; }
+        /// <summary>Physical chart height when known.</summary>
+        public OfficeLength Height { get; }
 
         /// <summary>Shared rendering style metadata extracted from the chart, when available.</summary>
         public OfficeChartStyle? Style { get; }

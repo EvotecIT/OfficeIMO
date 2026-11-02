@@ -20,8 +20,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToPng(options), out OfficeRasterImage? png));
         AssertBackgroundClipPixels(png!);
         Assert.Contains("<clipPath", HtmlConversionDocument.Parse(html).ToSvg(options), StringComparison.Ordinal);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
-        AssertBackgroundClipPixels(OfficeDrawingRasterRenderer.Render(PdfCore.PdfReadDocument.Open(pdf).Pages[0].ToDrawing(), scale: 4D / 3D));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(options))).ToBytes();
+        AssertBackgroundClipPixels(OfficeDrawingRasterRenderer.Render(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).Pages[0].ToDrawing(), scale: 4D / 3D));
     }
 
     [Theory]
@@ -36,8 +36,8 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderOptions options = BackgroundClipOptions();
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
         AssertBackgroundClipPixels(OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing()));
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
-        AssertBackgroundClipPixels(OfficeDrawingRasterRenderer.Render(PdfCore.PdfReadDocument.Open(pdf).Pages[0].ToDrawing(), scale: 4D / 3D));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(options))).ToBytes();
+        AssertBackgroundClipPixels(OfficeDrawingRasterRenderer.Render(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).Pages[0].ToDrawing(), scale: 4D / 3D));
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
     }
 
@@ -73,7 +73,7 @@ public sealed partial class HtmlRenderingTests {
             (fill.X, fill.Y, fill.Width, fill.Height));
         OfficeColor expected = paddingColor ? OfficeColor.Red : OfficeColor.White;
         Assert.Equal(expected, OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing()).GetPixel(8, 20));
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(options))).ToBytes();
         Assert.Equal(expected, OfficeDrawingRasterRenderer.Render(PdfCore.PdfReadDocument.Open(pdf).Pages[0].ToDrawing(), scale: 4D / 3D, background: OfficeColor.White).GetPixel(8, 20));
     }
 

@@ -1,12 +1,17 @@
+using OfficeIMO.Drawing;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 
-namespace OfficeIMO.Drawing;
+namespace OfficeIMO;
 
 /// <summary>
-/// Small immutable RGBA color value used by OfficeIMO packages without external image dependencies.
+/// Immutable literal RGBA color or theme-role reference shared by OfficeIMO packages.
 /// </summary>
+/// <remarks>
+/// RGB byte getters and literal hexadecimal/CSS formatting project normalized channels to bytes.
+/// Use <see cref="ToNormalizedRgb"/> to read the retained normalized RGB values without that projection.
+/// </remarks>
 public readonly partial struct OfficeColor : IEquatable<OfficeColor> {
     private static readonly Dictionary<string, OfficeColor> NamedColors = new Dictionary<string, OfficeColor>(StringComparer.OrdinalIgnoreCase) {
         ["Transparent"] = Transparent,
@@ -161,26 +166,42 @@ public readonly partial struct OfficeColor : IEquatable<OfficeColor> {
     };
 
     /// <summary>
-    /// Creates an RGBA color.
+    /// Creates an RGBA color from byte channels.
     /// </summary>
     public OfficeColor(byte r, byte g, byte b, byte a = 255) {
-        R = r;
-        G = g;
-        B = b;
-        A = a;
+        _r = r;
+        _g = g;
+        _b = b;
+        _a = a;
+        _hasNormalizedRgb = false;
+        _normalizedR = _normalizedG = _normalizedB = 0D;
+        Role = OfficeColorRole.None;
     }
 
-    /// <summary>Red component.</summary>
-    public byte R { get; }
+    // Keep colors unmanaged while retaining exact native RGB channels when byte projection loses precision.
+    private readonly bool _hasNormalizedRgb;
+    private readonly double _normalizedR;
+    private readonly double _normalizedG;
+    private readonly double _normalizedB;
 
-    /// <summary>Green component.</summary>
-    public byte G { get; }
+    /// <summary>Gets the semantic role, or None for a literal.</summary>
+    public OfficeColorRole Role { get; }
 
-    /// <summary>Blue component.</summary>
-    public byte B { get; }
+    /// <summary>Red byte component, projected for normalized literals; resolve theme roles before reading.</summary>
+    public byte R => LiteralComponent(_r);
+    private readonly byte _r;
 
-    /// <summary>Alpha component.</summary>
-    public byte A { get; }
+    /// <summary>Green byte component, projected for normalized literals.</summary>
+    public byte G => LiteralComponent(_g);
+    private readonly byte _g;
+
+    /// <summary>Blue byte component, projected for normalized literals.</summary>
+    public byte B => LiteralComponent(_b);
+    private readonly byte _b;
+
+    /// <summary>Alpha byte component.</summary>
+    public byte A => LiteralComponent(_a);
+    private readonly byte _a;
 
     /// <summary>Creates an opaque color from RGB components.</summary>
     public static OfficeColor FromRgb(byte r, byte g, byte b) => new OfficeColor(r, g, b);
@@ -188,7 +209,7 @@ public readonly partial struct OfficeColor : IEquatable<OfficeColor> {
     /// <summary>Creates a color from RGBA components.</summary>
     public static OfficeColor FromRgba(byte r, byte g, byte b, byte a) => new OfficeColor(r, g, b, a);
 
-    /// <summary>Parses a named color, #RRGGBB, RRGGBB, #RRGGBBAA, or RRGGBBAA.</summary>
+    /// <summary>Parses a theme role, named color, #RRGGBB, RRGGBB, #RRGGBBAA, or RRGGBBAA.</summary>
     public static OfficeColor Parse(string value) {
         if (TryParse(value, out var color)) {
             return color;
@@ -206,7 +227,7 @@ public readonly partial struct OfficeColor : IEquatable<OfficeColor> {
         throw new FormatException($"Invalid hex color value: '{value}'.");
     }
 
-    /// <summary>Tries to parse a named or hexadecimal color value.</summary>
+    /// <summary>Tries to parse a theme role, named or hexadecimal color value.</summary>
     public static bool TryParse(string? value, out OfficeColor color) {
         color = default;
         if (string.IsNullOrWhiteSpace(value)) {
@@ -214,7 +235,7 @@ public readonly partial struct OfficeColor : IEquatable<OfficeColor> {
         }
 
         var trimmed = value!.Trim();
-        if (NamedColors.TryGetValue(trimmed, out color)) {
+        if (TryParseRole(trimmed, out color) || NamedColors.TryGetValue(trimmed, out color)) {
             return true;
         }
 
@@ -254,31 +275,36 @@ public readonly partial struct OfficeColor : IEquatable<OfficeColor> {
         return true;
     }
 
-    /// <summary>Returns RRGGBBAA.</summary>
+    /// <summary>Returns the byte projection as RRGGBBAA; normalized RGB precision is not serialized.</summary>
     public string ToHex() => $"{R:X2}{G:X2}{B:X2}{A:X2}";
 
-    /// <summary>Returns RRGGBB.</summary>
+    /// <summary>Returns the byte projection as RRGGBB; normalized RGB precision is not serialized.</summary>
     public string ToRgbHex() => $"{R:X2}{G:X2}{B:X2}";
 
-    /// <summary>Returns AARRGGBB.</summary>
+    /// <summary>Returns the byte projection as AARRGGBB; normalized RGB precision is not serialized.</summary>
     public string ToArgbHex() => $"{A:X2}{R:X2}{G:X2}{B:X2}";
 
-    /// <summary>Returns a CSS hexadecimal color using #RRGGBB or #RRGGBBAA notation.</summary>
+    /// <summary>Returns the byte projection as a CSS hexadecimal color using #RRGGBB or #RRGGBBAA notation.</summary>
     public string ToCssColor() => A == 255
         ? "#" + ToRgbHex().ToLowerInvariant()
         : "#" + ToHex().ToLowerInvariant();
 
     /// <inheritdoc />
-    public override string ToString() => A == 255 ? $"#{ToRgbHex()}" : $"#{ToHex()}";
+    public override string ToString() => IsThemeRole ? Role.ToString() : A == 255 ? $"#{ToRgbHex()}" : $"#{ToHex()}";
 
     /// <inheritdoc />
-    public bool Equals(OfficeColor other) => R == other.R && G == other.G && B == other.B && A == other.A;
+    public bool Equals(OfficeColor other) => Role == other.Role && _r == other._r && _g == other._g && _b == other._b && _a == other._a
+        && EqualsNormalizedRgb(other);
 
     /// <inheritdoc />
     public override bool Equals(object? obj) => obj is OfficeColor other && Equals(other);
 
     /// <inheritdoc />
-    public override int GetHashCode() => (R << 24) | (G << 16) | (B << 8) | A;
+    public override int GetHashCode() {
+        if (IsThemeRole) return unchecked((int)0x9E3779B9 ^ (int)Role);
+        int hash = (_r << 24) | (_g << 16) | (_b << 8) | _a;
+        return _hasNormalizedRgb ? GetNormalizedRgbHashCode(hash) : hash;
+    }
 
     /// <summary>Equality operator.</summary>
     public static bool operator ==(OfficeColor left, OfficeColor right) => left.Equals(right);

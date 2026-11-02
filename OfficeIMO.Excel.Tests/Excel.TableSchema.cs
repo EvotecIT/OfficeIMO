@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableSchema_RenamesResizesAndRewritesStructuredReferences() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Region");
             sheet.CellValue(1, 2, "Amount");
             sheet.CellValue(2, 1, "EU");
@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableSchema_RejectsDuplicateColumnNamesWithoutMutation() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(2, 1, 1);
@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableSchema_SwapsColumnNamesWithoutCascadingStructuredReferences() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(2, 1, 1);
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableSchema_RejectsResizeOverlappingAnotherTable() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(2, 1, 1);
             sheet.CellValue(1, 3, "B");
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableSchema_ShrinkInvalidatesRemovedStructuredColumn() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(2, 1, 1);
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableSchema_RenamesRowContextStructuredReference() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Amount");
             sheet.CellValue(2, 1, 1);
             sheet.AddTable("A1:A2", true, "Sales", ExcelTableStyle.TableStyleMedium2);
@@ -105,7 +105,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableSchema_ExpansionGeneratesUnusedColumnName() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Column2");
             sheet.CellValue(2, 1, 1);
             sheet.AddTable("A1:A2", true, "Sales", ExcelTableStyle.TableStyleMedium2);
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableSchema_RewritesAndInvalidatesEscapedBracketColumnNames() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Keep");
             sheet.CellValue(1, 2, "Cost [ old");
             sheet.CellValue(2, 1, 1);

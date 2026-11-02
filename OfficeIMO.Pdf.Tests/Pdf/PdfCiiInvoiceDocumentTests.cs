@@ -51,7 +51,7 @@ public class PdfCiiInvoiceDocumentTests {
         stream.Captured![1] ^= 1;
         Assert.Equal(bytes, invoice.ToBytes());
         Assert.Equal("INV-1", invoice.DocumentId);
-        Assert.Equal(bytes, new PdfOptions().UseFacturXDocument(invoice).EmbeddedFiles.Single().Data);
+        Assert.Equal(bytes, new PdfCreateOptions().UseFacturXDocument(invoice).EmbeddedFiles.Single().Data);
     }
 
     [Fact]
@@ -185,8 +185,8 @@ public class PdfCiiInvoiceDocumentTests {
     [Fact]
     public void PdfBridgeUsesTheSameSnapshotAndGroundworkAsByteAttachment() {
         var invoice = Load(Invoice("INV-1")).WithDocumentId("INV-2");
-        var expected = new PdfOptions().UseFacturX(invoice.ToBytes());
-        var actual = new PdfOptions().UseFacturXDocument(invoice);
+        var expected = new PdfCreateOptions().UseFacturX(invoice.ToBytes());
+        var actual = new PdfCreateOptions().UseFacturXDocument(invoice);
         Assert.Equal(expected.EmbeddedFiles.Single().Data, actual.EmbeddedFiles.Single().Data);
         Assert.Equal(expected.FileVersion, actual.FileVersion);
         Assert.Equal(expected.ElectronicInvoiceMetadata!.ConformanceLevel, actual.ElectronicInvoiceMetadata!.ConformanceLevel);

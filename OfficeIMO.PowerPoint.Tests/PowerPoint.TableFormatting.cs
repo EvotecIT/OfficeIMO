@@ -17,16 +17,16 @@ namespace OfficeIMO.Tests {
             const double rowHeightPoints = 30;
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointTable table = slide.AddTable(2, 2, 914400L, 1828800L, 5000000L, 2000000L);
-                    table.SetColumnWidthPoints(0, columnWidthPoints);
-                    table.SetRowHeightPoints(0, rowHeightPoints);
+                    PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Emus(914400L),global::OfficeIMO.OfficeLength.Emus(1828800L),global::OfficeIMO.OfficeLength.Emus(5000000L),global::OfficeIMO.OfficeLength.Emus(2000000L));
+                    table.SetColumnWidth(0,global::OfficeIMO.OfficeLength.Points(columnWidthPoints));
+                    table.SetRowHeight(0,global::OfficeIMO.OfficeLength.Points(rowHeightPoints));
 
                     PowerPointTableCell header = table.GetCell(0, 0);
                     header.Text = "Header";
                     header.Bold = true;
-                    header.FontSize = 14;
+                    header.FontSize = global::OfficeIMO.OfficeLength.Points(14);
                     header.Color = "FFFFFF";
 
                     presentation.Save();

@@ -17,7 +17,7 @@ public sealed partial class PdfRenderStageWorkload {
         if (SourceSha256 != Hash(_source)) throw new InvalidDataException("Immutable source bytes changed.");
         ResetValidationMetrics();
 
-        PdfReadDocument reader = _reader ?? PdfReadDocument.Open(_source);
+        PdfDocument reader = _reader ?? PdfDocument.Load(_source);
         ValidateSource(reader);
         OfficeDrawing[] drawings = _drawings ?? Project(reader);
         var sceneEvidence = new List<object>(PreviewPages);
@@ -122,7 +122,7 @@ public sealed partial class PdfRenderStageWorkload {
         }, new JsonSerializerOptions { WriteIndented = true }));
     }
 
-    private void ValidateSource(PdfReadDocument reader) {
+    private void ValidateSource(PdfDocument reader) {
         if (reader.Pages.Count != Pages) throw new InvalidDataException("Source page count changed.");
         for (int index = 0; index < reader.Pages.Count; index++) {
             (double width, double height) = reader.Pages[index].GetPageSize();
@@ -133,7 +133,7 @@ public sealed partial class PdfRenderStageWorkload {
     }
 
     private void ValidateControlPage(PdfPageRenderResult page, int pageNumber) {
-        if (!page.Succeeded || page.PageNumber != pageNumber || page.Format != PdfPageRenderFormat.Png ||
+        if (!page.Succeeded || page.PageNumber != pageNumber || page.Format != global::OfficeIMO.Drawing.OfficeImageExportFormat.Png ||
             page.Width != PixelWidth || page.Height != PixelHeight || page.CapabilityDiagnostics.Count != 0 || page.Diagnostics.Count != 0) {
             throw new InvalidDataException("Public control changed page order, geometry, success, or diagnostics.");
         }

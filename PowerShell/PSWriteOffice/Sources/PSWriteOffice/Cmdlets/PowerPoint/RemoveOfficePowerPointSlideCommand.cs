@@ -1,40 +1,50 @@
 using System;
+using System.Linq;
 using System.Management.Automation;
 using OfficeIMO.PowerPoint;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Cmdlets.PowerPoint;
 
-/// <summary>Removes a slide by index.</summary>
-/// <para>Supports <c>-WhatIf</c>/<c>-Confirm</c> thanks to <c>SupportsShouldProcess</c>.</para>
-/// <example>
-///   <summary>Delete the first slide.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$ppt = New-OfficePowerPoint -Path .\Examples\Documents\PowerPointRemoveSlide.pptx -NoSave
-/// Add-OfficePowerPointSlide -Presentation $ppt -Layout 1
-/// Add-OfficePowerPointSlide -Presentation $ppt -Layout 1
-/// Remove-OfficePowerPointSlide -Presentation $ppt -Index 0 -Confirm:$false
-/// Close-OfficePowerPoint -Presentation $ppt -Save</code>
-///   <para>Removes the first slide and saves the updated deck.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Remove, "OfficePowerPointSlide", SupportsShouldProcess = true)]
-public class RemoveOfficePowerPointSlideCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
-    /// <summary>Presentation to modify.</summary>
-    [Parameter(Mandatory = true)]
-    public PowerPointPresentation Presentation { get; set; } = null!;
-
-    /// <summary>Zero-based slide index.</summary>
-    [Parameter(Mandatory = true)]
-    public int Index { get; set; }
+/// <summary>Removes selected native slides or one-based slide positions.</summary>
+/// <example><summary>Remove two positions without shifts changing the selection.</summary>
+/// <code>Remove-OfficePowerPointSlide -Document $deck -Slide 1, 3 -Confirm:$false</code></example>
+/// <example><summary>Preview removal of a native slide.</summary>
+/// <code>$slide | Remove-OfficePowerPointSlide -WhatIf</code></example>
+[Cmdlet(VerbsCommon.Remove, "OfficePowerPointSlide", SupportsShouldProcess = true, DefaultParameterSetName = "Slide")]
+[OutputType(typeof(PowerPointDocument))]
+public sealed class RemoveOfficePowerPointSlideCommand : OfficeCmdlet {
+    /// <summary>Return the live document after at least one slide is removed.</summary>
+    [Parameter]
+    public SwitchParameter PassThru { get; set; }
+    /// <summary>Gets or sets the document for numeric selection; omission uses the enclosing scope or native slide owner.</summary>
+    [Parameter, ValidateNotNull]
+    public PowerPointDocument? Document { get; set; }
+    /// <summary>Gets or sets native slides or their one-based positions; each argument array is resolved before removal.</summary>
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true), PowerPointSlideTransformation, ValidateNotNullOrEmpty]
+    public PowerPointSlideSelector[] Slide { get; set; } = Array.Empty<PowerPointSlideSelector>();
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
+        var document = Document ?? OfficeDocumentContext.Find<PowerPointDocument>()
+            ?? Slide.Select(selection => selection.Slide?.OwnerDocument).FirstOrDefault(owner => owner != null);
         try {
-            if (ShouldProcess($"Slide {Index}", "Remove slide")) {
-                Presentation.RemoveSlide(Index);
-                WritePassThru(Presentation);
+            document = ResolveDocument(document);
+            // Resolve the complete selection before mutation, then remove from the end to preserve numeric positions.
+            var selected = Slide.Select(selection => selection.Resolve(document)).Distinct()
+                .OrderByDescending(slide => slide.Index).ToArray();
+            bool changed = false;
+            foreach (PowerPointSlide slide in selected) {
+                int index = slide.Index;
+                if (ShouldProcess("Slide " + (index + 1), "Remove slide")) {
+                    document.RemoveSlide(index);
+                    changed = true;
+                }
             }
-        } catch (Exception ex) {
-            WriteError(new ErrorRecord(ex, "PowerPointRemoveSlideFailed", ErrorCategory.InvalidOperation, Presentation));
+            if (changed && PassThru.IsPresent) WriteObject(document);
+        } catch (ArgumentException error) { InvalidArgument(error, Slide); }
+        catch (Exception error) when (error is not (PipelineStoppedException or ActionPreferenceStopException)) {
+            ItemError(error, "powerpoint-slide-remove-failed", Slide);
         }
     }
 }

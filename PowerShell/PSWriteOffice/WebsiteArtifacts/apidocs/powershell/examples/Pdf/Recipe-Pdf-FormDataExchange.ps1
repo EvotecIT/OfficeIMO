@@ -2,7 +2,7 @@ $form = '.\Change-Request-Form.pdf'
 $xfdf = '.\Change-Request-Form.xfdf'
 $roundTrip = '.\Change-Request-RoundTrip.pdf'
 
-PdfNew -Path $form {
+New-OfficePdf -Path $form {
     PdfHeading 'Change request'
     PdfText 'Owner'
     PdfFormField -Name Owner -Type Text -Value 'Platform' -Width 280

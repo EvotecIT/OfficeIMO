@@ -1,6 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Transactional existing-document AcroForm edit commands.</summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfAcroFormEditSession {
     private readonly List<EditCommand> _commands = new List<EditCommand>();
     private readonly Dictionary<string, JavaScriptContribution> _createdJavaScripts = new Dictionary<string, JavaScriptContribution>(StringComparer.Ordinal);

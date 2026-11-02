@@ -9,8 +9,8 @@ namespace OfficeIMO.Pdf;
 internal static class PdfDefaultAppearanceParser {
     private static readonly char[] Separators = { ' ', '\t', '\r', '\n' };
 
-    public static bool TryReadTextColor(string? defaultAppearance, out PdfColor color) {
-        color = PdfColor.Black;
+    public static bool TryReadTextColor(string? defaultAppearance, out global::OfficeIMO.OfficeColor color) {
+        color = global::OfficeIMO.OfficeColor.Black;
         if (string.IsNullOrWhiteSpace(defaultAppearance)) {
             return false;
         }
@@ -31,7 +31,7 @@ internal static class PdfDefaultAppearanceParser {
                 TryReadNumber(tokens[i - 3], out double red) &&
                 TryReadNumber(tokens[i - 2], out double green) &&
                 TryReadNumber(tokens[i - 1], out double blue)) {
-                color = new PdfColor(ClampColor(red), ClampColor(green), ClampColor(blue));
+                color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(ClampColor(red), ClampColor(green), ClampColor(blue));
                 found = true;
                 continue;
             }
@@ -50,10 +50,10 @@ internal static class PdfDefaultAppearanceParser {
         return found;
     }
 
-    internal static bool TryReadTextColor(string? defaultAppearance, out PdfColor color, CancellationToken cancellationToken) {
+    internal static bool TryReadTextColor(string? defaultAppearance, out global::OfficeIMO.OfficeColor color, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (!cancellationToken.CanBeCanceled) return TryReadTextColor(defaultAppearance, out color);
-        color = PdfColor.Black;
+        color = global::OfficeIMO.OfficeColor.Black;
         if (Guard.IsNullOrWhiteSpaceCancellable(defaultAppearance, cancellationToken)) return false;
 
         bool found = false;
@@ -65,7 +65,7 @@ internal static class PdfDefaultAppearanceParser {
             } else if (token == "rg" && previous3 is not null && previous2 is not null && previous1 is not null &&
                        TryReadNumber(previous3, out double red) && TryReadNumber(previous2, out double green) &&
                        TryReadNumber(previous1, out double blue)) {
-                color = new PdfColor(ClampColor(red), ClampColor(green), ClampColor(blue));
+                color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(ClampColor(red), ClampColor(green), ClampColor(blue));
                 found = true;
             } else if (token == "k" && previous4 is not null && previous3 is not null && previous2 is not null && previous1 is not null &&
                        TryReadNumber(previous4, out double cyan) && TryReadNumber(previous3, out double magenta) &&
@@ -174,14 +174,14 @@ internal static class PdfDefaultAppearanceParser {
         !double.IsNaN(value) &&
         !double.IsInfinity(value);
 
-    private static PdfColor FromGray(double gray) {
+    private static global::OfficeIMO.OfficeColor FromGray(double gray) {
         double component = ClampColor(gray);
-        return new PdfColor(component, component, component);
+        return global::OfficeIMO.OfficeColor.FromNormalizedRgb(component, component, component);
     }
 
-    private static PdfColor FromCmyk(double cyan, double magenta, double yellow, double black) {
+    private static global::OfficeIMO.OfficeColor FromCmyk(double cyan, double magenta, double yellow, double black) {
         double key = ClampColor(black);
-        return new PdfColor(
+        return global::OfficeIMO.OfficeColor.FromNormalizedRgb(
             (1D - ClampColor(cyan)) * (1D - key),
             (1D - ClampColor(magenta)) * (1D - key),
             (1D - ClampColor(yellow)) * (1D - key));

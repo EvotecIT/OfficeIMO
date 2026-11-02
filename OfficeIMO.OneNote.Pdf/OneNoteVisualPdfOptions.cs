@@ -3,7 +3,7 @@ namespace OfficeIMO.OneNote.Pdf;
 /// <summary>Controls visual-preserving PDF generated from the native OneNote page canvas.</summary>
 public sealed class OneNoteVisualPdfOptions {
     /// <summary>PDF generation settings, including encryption and compliance requirements.</summary>
-    public OfficeIMO.Pdf.PdfOptions PdfOptions { get; set; } = new OfficeIMO.Pdf.PdfOptions();
+    public OfficeIMO.Pdf.PdfCreateOptions PdfOptions { get; set; } = new OfficeIMO.Pdf.PdfCreateOptions();
 
     /// <summary>Page rendering options shared with image and HTML export.</summary>
     public OneNotePageRenderingOptions PageRendering { get; set; } = new OneNotePageRenderingOptions();

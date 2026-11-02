@@ -53,10 +53,10 @@ public sealed class PdfEmptyColumnPageBreakTests {
     [InlineData(true, false)]
     [InlineData(true, true)]
     public void ExplicitBreakPreservesASpacingOnlyBodyPage(bool columns, bool nextColumn) {
-        var document = PdfDocument.Create(new PdfOptions { CompressContentStreams = false });
+        var document = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false });
         document.Compose(builder => builder.Page(page => page.Content(body => {
             void Content(PdfContentBuilder content) {
-                content.Spacer(12);
+                content.Spacer(global::OfficeIMO.OfficeLength.Points(12));
                 if (nextColumn) content.ColumnBreak();
                 content.PageBreak(preserveEmptyPage: false);
                 content.Paragraph(paragraph => paragraph.Text("AFTER"));
@@ -71,19 +71,19 @@ public sealed class PdfEmptyColumnPageBreakTests {
     }
 
     private static byte[] Render(int columns, int breaks, bool header, bool preserve) {
-        var document = PdfDocument.Create(new PdfOptions {
-            PageWidth = 500, PageHeight = 400, MarginLeft = 40, MarginRight = 40,
-            MarginTop = 40, MarginBottom = 40, DefaultFontSize = 12, CompressContentStreams = false
+        var document = PdfDocument.Create(new PdfCreateOptions {
+            PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(400), MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), CompressContentStreams = false
         });
         document.Compose(builder => builder.Page(page => {
-            if (header) page.Header(running => running.Content(content => content.Paragraph(paragraph => paragraph.Text("HEADER")), 18));
+            if (header) page.Header(running => running.Content(content => content.Paragraph(paragraph => paragraph.Text("HEADER")), global::OfficeIMO.OfficeLength.Points(18)));
             page.Content(body => body.Columns(content => {
                 for (int index = 0; index < breaks; index++) content.ColumnBreak();
                 content.PageBreak(preserve);
                 content.Paragraph(paragraph => paragraph.Text("AFTER"), style: new PdfParagraphStyle {
-                    LineSpacing = PdfLineSpacing.Exactly(20), SpacingBefore = 0, SpacingAfter = 0, WidowControl = false
+                    LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false
                 });
-            }, new PdfMultiColumnOptions { ColumnCount = columns, Gap = 20, BalanceLastPage = false }));
+            }, new PdfMultiColumnOptions { ColumnCount = columns, Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = false }));
         }));
         return document.ToBytes();
     }

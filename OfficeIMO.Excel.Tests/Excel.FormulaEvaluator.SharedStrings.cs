@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void FormulaEvaluator_StandalonePassReleasesSharedStringsForRetainedWorksheetHandles() {
             using var document = ExcelDocument.Create();
-            var source = document.AddWorksheet("Source");
+            var source = document.AddSheet("Source");
             source.CellValue(1, 1, "Before");
             ExcelSheet? retained = null;
             document.Calculation.RegisterCustomFunction("ECHO", (context, arguments) => {
@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
                 return arguments.Count == 1 ? arguments[0] : null;
             });
             source.CellFormula(1, 3, "ECHO(A1)");
-            var report = document.AddWorksheet("Report");
+            var report = document.AddSheet("Report");
             report.CellFormula(1, 1, "Source!C1");
             report.CellFormula(2, 1, "LEN(Source!A1)");
             Assert.Equal(2, report.RecalculateSupportedFormulas());

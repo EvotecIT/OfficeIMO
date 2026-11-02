@@ -50,7 +50,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText margin = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), text => text.SemanticRole == "page-margin");
         Assert.Equal(page.Width - page.Margins.Left - page.Margins.Right, margin.Width, 3);
         Assert.Equal(margin.LineHeight, margin.Height, 3);
-        string text = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options)),
+        string text = PdfCore.PdfReadDocument.Open((HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(options))).ToBytes(),
             new PdfCore.PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
         Assert.Contains("Generated 1 Oct 2026 at 22:41 UTC", text, StringComparison.Ordinal);
         HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
@@ -76,7 +76,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.InRange(margin.X, 0D, page.Width - margin.Width);
         Assert.InRange(margin.Y, 0D, page.Height - margin.Height);
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(options))).ToBytes();
         PdfCore.PdfReadDocument document = PdfCore.PdfReadDocument.Open(pdf,
             new PdfCore.PdfLoadOptions { IncludeArtifactText = true });
         var marginSpans = Assert.Single(document.Pages).GetTextSpans().Where(span =>

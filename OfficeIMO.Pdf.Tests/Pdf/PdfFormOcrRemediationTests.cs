@@ -16,7 +16,7 @@ public sealed class PdfFormOcrRemediationTests {
     [InlineData(true, false)]
     [InlineData(true, true)]
     public async Task FormPreparationStaysAttachedDuringRecognitionAndOrientationCleanup(bool concurrent, bool orientation) {
-        var source = PdfDocument.Load(PdfDocument.Create().TextField("Name", width: 180, height: 24).ToBytes());
+        var source = PdfDocument.Load(PdfDocument.Create().TextField("Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24)).ToBytes());
         var original = source.ToBytes();
         var entered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var cleaning = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);

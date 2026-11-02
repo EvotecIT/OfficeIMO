@@ -9,7 +9,7 @@ schema: 2.0.0
 Sets a typed zero-based cell value in an OpenDocument spreadsheet.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Set-OfficeOpenDocumentCell [-Value] <Object> -Row <long> -Column <long> [-Sheet <OdsSheet>] [-PassThru] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Zero-based column index.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Emit the updated cell.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Zero-based row index.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Worksheet target. Omit inside Add-OfficeOpenDocumentSheet -Content.
 
 ```yaml
 Type: OdsSheet
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ String, number, decimal, boolean, date, date-time offset, or time span value.
 
 ```yaml
 Type: Object
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

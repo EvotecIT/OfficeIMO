@@ -6,7 +6,7 @@ namespace OfficeIMO.Markdown.Benchmarks;
 
 [MemoryDiagnoser]
 public class HtmlToMarkdownBenchmarks {
-    private HtmlToMarkdownOptions _officeOptions = null!;
+    private MarkdownHtmlImportOptions _officeOptions = null!;
     private ReverseMarkdown.Converter _reverseDefault = null!;
     private string _html = string.Empty;
 
@@ -17,7 +17,7 @@ public class HtmlToMarkdownBenchmarks {
 
     [GlobalSetup]
     public void Setup() {
-        _officeOptions = HtmlToMarkdownOptions.CreateOfficeIMOProfile();
+        _officeOptions = MarkdownHtmlImportOptions.CreateOfficeIMOProfile();
         _reverseDefault = new ReverseMarkdown.Converter();
         _html = HtmlToMarkdownBenchmarkCorpus.Get(CorpusName);
         HtmlToMarkdownBenchmarkValidation.AssertDefaultEquivalent(
@@ -36,9 +36,9 @@ public class HtmlToMarkdownBenchmarks {
 [MemoryDiagnoser]
 public class HtmlToMarkdownOfficeProfileBenchmarks {
     private HtmlConversionDocument _document = null!;
-    private HtmlToMarkdownOptions _officeOptions = null!;
-    private HtmlToMarkdownOptions _githubOptions = null!;
-    private HtmlToMarkdownOptions _commonMarkOptions = null!;
+    private MarkdownHtmlImportOptions _officeOptions = null!;
+    private MarkdownHtmlImportOptions _githubOptions = null!;
+    private MarkdownHtmlImportOptions _commonMarkOptions = null!;
 
     [ParamsSource(nameof(CorpusNames))]
     public string CorpusName { get; set; } = string.Empty;
@@ -47,9 +47,9 @@ public class HtmlToMarkdownOfficeProfileBenchmarks {
 
     [GlobalSetup]
     public void Setup() {
-        _officeOptions = HtmlToMarkdownOptions.CreateOfficeIMOProfile();
-        _githubOptions = HtmlToMarkdownOptions.CreateGitHubFlavoredMarkdownProfile();
-        _commonMarkOptions = HtmlToMarkdownOptions.CreateCommonMarkProfile();
+        _officeOptions = MarkdownHtmlImportOptions.CreateOfficeIMOProfile();
+        _githubOptions = MarkdownHtmlImportOptions.CreateGitHubFlavoredMarkdownProfile();
+        _commonMarkOptions = MarkdownHtmlImportOptions.CreateCommonMarkProfile();
         _document = HtmlConversionDocument.Parse(HtmlToMarkdownBenchmarkCorpus.Get(CorpusName));
         ValidateConverterOutputs(HtmlToMarkdownBenchmarkCorpus.GetExpectedFragment(CorpusName));
     }
@@ -82,22 +82,22 @@ public class HtmlToMarkdownOfficeProfileBenchmarks {
 public class HtmlToMarkdownLargeArticleStageBenchmarks {
     private string _html = string.Empty;
     private HtmlConversionDocument _document = null!;
-    private MarkdownDoc _markdownDocument = null!;
-    private HtmlToMarkdownOptions _options = null!;
+    private MarkdownDocument _markdownDocument = null!;
+    private MarkdownHtmlImportOptions _options = null!;
 
     [GlobalSetup]
     public void Setup() {
         _html = HtmlToMarkdownBenchmarkCorpus.Get("LargeArticle");
-        _options = HtmlToMarkdownOptions.CreateOfficeIMOProfile();
+        _options = MarkdownHtmlImportOptions.CreateOfficeIMOProfile();
         _document = HtmlConversionDocument.Parse(_html);
-        _markdownDocument = _document.ToMarkdownDocument(_options);
+        _markdownDocument = _document.ToMarkdown(_options);
     }
 
     [Benchmark]
     public HtmlConversionDocument ParseHtml() => HtmlConversionDocument.Parse(_html);
 
     [Benchmark]
-    public MarkdownDoc ConvertModel() => _document.ToMarkdownDocument(_options);
+    public MarkdownDocument ConvertModel() => _document.ToMarkdown(_options);
 
     [Benchmark]
     public string RenderModel() => _markdownDocument.ToMarkdown(_options.MarkdownWriteOptions);

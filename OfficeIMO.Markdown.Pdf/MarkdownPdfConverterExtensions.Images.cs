@@ -6,7 +6,7 @@ namespace OfficeIMO.Markdown.Pdf;
 
 // First-party Markdown to PDF conversion helpers.
 public static partial class MarkdownPdfConverterExtensions {
-    private static void RenderImageBlock(PdfCore.PdfDocument pdf, ImageBlock image, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
+    private static void RenderImageBlock(PdfCore.PdfDocument pdf, ImageBlock image, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme) {
         if (!TryReadImageBytes(image.Path, options, out byte[] bytes, out string sourceName, out string warningCode, out string warningMessage)) {
             AddWarning(options, warningCode, image.Path, warningMessage);
             RenderImagePlaceholder(pdf, image.PlainAlt ?? image.Alt ?? image.Path, visualTheme);
@@ -17,8 +17,8 @@ public static partial class MarkdownPdfConverterExtensions {
             pdf,
             bytes,
             sourceName,
-            image.Width,
-            image.Height,
+            image.Width?.ToPoints(),
+            image.Height?.ToPoints(),
             image.PlainAlt ?? image.Alt,
             image.Caption,
             NormalizeAbsoluteLink(image.LinkUrl),
@@ -27,7 +27,7 @@ public static partial class MarkdownPdfConverterExtensions {
             visualTheme);
     }
 
-    private static bool TryRenderImageOnlyParagraph(PdfCore.PdfDocument pdf, InlineSequence inlines, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
+    private static bool TryRenderImageOnlyParagraph(PdfCore.PdfDocument pdf, InlineSequence inlines, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme) {
         if (inlines.Nodes.Count != 1) {
             return false;
         }
@@ -52,7 +52,7 @@ public static partial class MarkdownPdfConverterExtensions {
         string? title,
         string? linkUrl,
         string? linkTitle,
-        MarkdownToPdfOptions options,
+        MarkdownPdfExportOptions options,
         MarkdownPdfStyle visualTheme) {
         if (!TryReadImageBytes(source, options, out byte[] bytes, out string sourceName, out string warningCode, out string warningMessage)) {
             AddWarning(options, warningCode, source, warningMessage);
@@ -84,7 +84,7 @@ public static partial class MarkdownPdfConverterExtensions {
         string? caption,
         string? linkUri,
         string? linkContents,
-        MarkdownToPdfOptions options,
+        MarkdownPdfExportOptions options,
         MarkdownPdfStyle visualTheme) {
         if (!PdfCore.PdfDocument.TryPrepareImageBytes(
                 bytes,
@@ -92,7 +92,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 out OfficeImageInfo? info,
                 out _,
                 out string? unsupportedReason)) {
-            AddWarning(options, "UnsupportedImage", sourceName, "The Markdown image bytes are not supported by the PDF image renderer. " + unsupportedReason);
+            AddWarning(options, "unsupported-image", sourceName, "The Markdown image bytes are not supported by the PDF image renderer. " + unsupportedReason);
             RenderImagePlaceholder(pdf, altText ?? sourceName, visualTheme);
             return;
         }
@@ -147,13 +147,13 @@ public static partial class MarkdownPdfConverterExtensions {
                 .FontSize(figureStyle.CaptionFontSizeSnapshot)
                 .Color(figureStyle.CaptionColorSnapshot)
                 .Text(caption!.Trim());
-        }, align: figureStyle.CaptionAlignSnapshot, defaultColor: figureStyle.CaptionColorSnapshot, style: new PdfCore.PdfParagraphStyle { SpacingBefore = 2, SpacingAfter = 2 });
+        }, align: figureStyle.CaptionAlignSnapshot, defaultColor: figureStyle.CaptionColorSnapshot, style: new PdfCore.PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(2), SpacingAfter = global::OfficeIMO.OfficeLength.Points(2) });
     }
 
-    private static bool TryReadImageBytes(string path, MarkdownToPdfOptions options, out byte[] bytes, out string sourceName, out string warningCode, out string warningMessage) {
+    private static bool TryReadImageBytes(string path, MarkdownPdfExportOptions options, out byte[] bytes, out string sourceName, out string warningCode, out string warningMessage) {
         bytes = Array.Empty<byte>();
         sourceName = string.Empty;
-        warningCode = "UnsupportedImage";
+        warningCode = "unsupported-image";
         warningMessage = "Only resolvable local Markdown images or supported base64 data URI images are embedded in the Markdown PDF adapter.";
 
         if (!options.IncludeImages) {
@@ -197,12 +197,12 @@ public static partial class MarkdownPdfConverterExtensions {
 
     private static bool TryResolveImagePath(
         string path,
-        MarkdownToPdfOptions options,
+        MarkdownPdfExportOptions options,
         out string resolvedPath,
         out string warningCode,
         out string warningMessage) {
         resolvedPath = string.Empty;
-        warningCode = "UnsupportedImage";
+        warningCode = "unsupported-image";
         warningMessage = "Only resolvable local Markdown images or supported base64 data URI images are embedded in the Markdown PDF adapter.";
 
         if (string.IsNullOrWhiteSpace(path) || Uri.TryCreate(path, UriKind.Absolute, out Uri? uri) && !uri.IsFile) {
@@ -232,12 +232,12 @@ public static partial class MarkdownPdfConverterExtensions {
             try {
                 if (!IsPathInsideDirectory(fullPath, options.BaseDirectory!)) {
                     warningCode = "LocalImageOutsideBaseDirectory";
-                    warningMessage = "Local Markdown image paths must resolve inside MarkdownToPdfOptions.BaseDirectory.";
+                    warningMessage = "Local Markdown image paths must resolve inside MarkdownPdfExportOptions.BaseDirectory.";
                     return false;
                 }
             } catch (Exception ex) when (ex is ArgumentException || ex is IOException || ex is NotSupportedException || ex is PathTooLongException || ex is UnauthorizedAccessException) {
                 warningCode = "LocalImageOutsideBaseDirectory";
-                warningMessage = "Local Markdown image paths must resolve safely inside MarkdownToPdfOptions.BaseDirectory.";
+                warningMessage = "Local Markdown image paths must resolve safely inside MarkdownPdfExportOptions.BaseDirectory.";
                 return false;
             }
         }
@@ -293,11 +293,11 @@ public static partial class MarkdownPdfConverterExtensions {
     private static StringComparison GetPathComparison() =>
         Path.DirectorySeparatorChar == '\\' ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
-    private static bool TryReadRemoteImageBytes(Uri uri, MarkdownToPdfOptions options, out byte[] bytes, out string sourceName, out string warningCode, out string warningMessage) {
+    private static bool TryReadRemoteImageBytes(Uri uri, MarkdownPdfExportOptions options, out byte[] bytes, out string sourceName, out string warningCode, out string warningMessage) {
         bytes = Array.Empty<byte>();
         sourceName = uri.ToString();
-        warningCode = "UnsupportedImage";
-        warningMessage = "Remote Markdown images require MarkdownToPdfOptions.RemoteImageResolver so callers can choose their own download, cache, and trust policy.";
+        warningCode = "unsupported-image";
+        warningMessage = "Remote Markdown images require MarkdownPdfExportOptions.RemoteImageResolver so callers can choose their own download, cache, and trust policy.";
 
         if (options.RemoteImageResolver == null) {
             return false;
@@ -327,10 +327,10 @@ public static partial class MarkdownPdfConverterExtensions {
         return true;
     }
 
-    private static bool TryReadDataUriImageBytes(string path, MarkdownToPdfOptions options, out byte[] bytes, out string sourceName, out string warningCode, out string warningMessage) {
+    private static bool TryReadDataUriImageBytes(string path, MarkdownPdfExportOptions options, out byte[] bytes, out string sourceName, out string warningCode, out string warningMessage) {
         bytes = Array.Empty<byte>();
         sourceName = string.Empty;
-        warningCode = "UnsupportedImage";
+        warningCode = "unsupported-image";
         warningMessage = "The Markdown data URI image is not a supported base64 PNG or JPEG image.";
 
         int commaIndex = path.IndexOf(',');
@@ -420,24 +420,24 @@ public static partial class MarkdownPdfConverterExtensions {
         return builder == null ? value : builder.ToString();
     }
 
-    private static double GetImageWidthPoints(OfficeImageInfo? info, MarkdownToPdfOptions options) {
+    private static double GetImageWidthPoints(OfficeImageInfo? info, MarkdownPdfExportOptions options) {
         if (info == null || info.Width <= 0) {
-            return options.DefaultImageWidth;
+            return options.DefaultImageWidth.ToPoints();
         }
 
         return info.Width * 72D / info.DpiX;
     }
 
-    private static double GetImageHeightPoints(OfficeImageInfo? info, double width, MarkdownToPdfOptions options) {
+    private static double GetImageHeightPoints(OfficeImageInfo? info, double width, MarkdownPdfExportOptions options) {
         if (info == null || info.Height <= 0 || info.Width <= 0) {
-            return options.DefaultImageHeight;
+            return options.DefaultImageHeight.ToPoints();
         }
 
         return width * info.Height / info.Width;
     }
 
 
-    private static void AddWarning(MarkdownToPdfOptions options, string code, string source, string message) {
+    private static void AddWarning(MarkdownPdfExportOptions options, string code, string source, string message) {
         var warning = new MarkdownPdfExportWarning(code, source, message);
         options.Warnings.Add(warning);
         options.Report.Add(warning.ToConversionWarning());

@@ -22,8 +22,8 @@ internal static class GfmInventory {
 
     private static GfmInventoryEntry Evaluate(int index, GfmExampleFixture fixture) {
         try {
-            var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(fixture.Markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
-            string actual = result.Document.ToHtmlFragment(GfmHtmlComparison.CreatePlainHtmlOptions());
+            var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(fixture.Markdown, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
+            string actual = result.Document.ToHtml(GfmHtmlComparison.CreatePlainHtmlOptions());
             bool matches = GfmHtmlComparison.Normalize(fixture.Html) == GfmHtmlComparison.Normalize(actual);
 
             return new GfmInventoryEntry(

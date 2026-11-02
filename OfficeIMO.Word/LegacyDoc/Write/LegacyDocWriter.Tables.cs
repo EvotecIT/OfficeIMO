@@ -187,7 +187,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static LegacyDocTablePreferredWidth? ReadSupportedTablePreferredWidth(TableWidth tableWidth) {
-            TableWidthUnitValues? type = tableWidth.Type?.Value;
+            TableWidthUnitValues? type = tableWidth.Type == null ? null : WordTableWidthNative.NativeType(tableWidth);
+            if (tableWidth.Type != null && !type.HasValue)
+                throw new NotSupportedException("Native DOC saving does not support table width type '" + tableWidth.Type.InnerText + "'.");
             string? widthText = tableWidth.Width?.Value;
             if (type == TableWidthUnitValues.Auto) {
                 return null;

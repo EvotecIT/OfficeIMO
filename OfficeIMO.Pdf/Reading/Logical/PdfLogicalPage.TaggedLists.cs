@@ -67,7 +67,7 @@ public sealed partial class PdfLogicalPage {
             result.Add(new PdfLogicalListItem(pageNumber, pair.Key.Level, marker,
                 string.Join(" ", body.Where(static text => text.Length > 0)), lines, body, 0.98D,
                 lines.Where(semantics.ContainsKey).SelectMany(line => semantics[line].Evidence).Distinct().Concat(
-                new[] { new PdfInferenceEvidence("semantic.tagged-list-owner",
+                new[] { new PdfInferenceEvidence("semantic-tagged-list-owner",
                     "The nearest tagged LI structure " + pair.Key.ObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) +
                     " associates its label and body source runs on this page.", 0.99D) }), runs) {
                 CanProjectAsList = group.CanProject

@@ -32,13 +32,13 @@ public sealed partial class IWorkBoundaryTests {
             WordTable target = Assert.Single(reopened.Tables);
             foreach (var expected in defaults) {
                 var cell = target.Rows[expected.Row - 1].Cells[expected.Column - 1];
-                Assert.Equal((short)(expected.Padding * 20), cell.MarginBottomWidth);
+                Assert.Equal((short)(expected.Padding * 20), checked((short?)(cell.MarginBottom?.ToTwips())));
                 Assert.Equal(expected.Vertical == IWorkCellVerticalAlignment.Middle ? WordTableVerticalAlignment.Center : WordTableVerticalAlignment.Bottom,
                     cell.VerticalAlignment);
             }
-            Assert.Equal(new[] { 800, 680, 680, 640 }, target.RowHeight);
-            Assert.Equal((short)40, target.Rows[0].Cells[0].MarginLeftWidth);
-            Assert.Equal((short)0, target.Rows[0].Cells[0].MarginBottomWidth);
+            Assert.Equal(new[] { 800, 680, 680, 640 }, target.RowHeight.Select(height => checked((int)(height?.ToTwips() ?? 0))));
+            Assert.Equal((short)40, checked((short?)(target.Rows[0].Cells[0].MarginLeft?.ToTwips())));
+            Assert.Equal((short)0, checked((short?)(target.Rows[0].Cells[0].MarginBottom?.ToTwips())));
             Assert.Equal(WordTableVerticalAlignment.Bottom, target.Rows[0].Cells[0].VerticalAlignment);
             Assert.Equal(WordTableVerticalAlignment.Top, target.Rows[0].Cells[1].VerticalAlignment);
             Assert.Empty(reopened.ValidateDocument());
@@ -52,17 +52,17 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal("bottom", reopened.Sheets[0].GetCellStyle(4, 1).VerticalAlignment);
             Assert.Equal("top", reopened.Sheets[0].GetCellStyle(1, 2).VerticalAlignment);
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy); table = Assert.Single(result.Projection.Slides[0].Tables);
+            using var result = source.ToPowerPointDocumentResult(policy); table = Assert.Single(result.Projection.Slides[0].Tables);
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = PowerPointPresentation.Load(saved);
+            using var reopened = PowerPointDocument.Load(saved);
             var target = Assert.Single(reopened.Slides[0].Tables);
             foreach (var expected in defaults) {
                 var cell = target.GetCell(expected.Row - 1, expected.Column - 1);
-                Assert.Equal(expected.Padding, cell.PaddingBottomPoints);
+                Assert.Equal(expected.Padding, cell.PaddingBottom?.ToPoints());
                 Assert.Equal(expected.Vertical == IWorkCellVerticalAlignment.Middle ? PowerPointTextVerticalAlignment.Center : PowerPointTextVerticalAlignment.Bottom,
                     cell.VerticalAlignment);
             }
-            Assert.Equal(0, target.GetCell(0, 0).PaddingBottomPoints);
+            Assert.Equal(0, target.GetCell(0, 0).PaddingBottom?.ToPoints());
             Assert.Equal(PowerPointTextVerticalAlignment.Bottom, target.GetCell(0, 0).VerticalAlignment);
             Assert.Equal(PowerPointTextVerticalAlignment.Top, target.GetCell(0, 1).VerticalAlignment);
             Assert.Empty(reopened.ValidateDocument());

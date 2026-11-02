@@ -112,14 +112,14 @@ internal static partial class PdfWriter {
                 bool continues = panel.End > end || partialTable && panel.End == end;
                 double bottom = panel.Style.GetFragmentBottomPadding(continues);
                 if (continues) height += bottom;
-                height += Math.Max(0D, panel.Style.FragmentBottomInset - bottom);
+                height += Math.Max(0D, panel.Style.FragmentBottomInset.ToPoints() - bottom);
             }
             return height - Math.Min(partialTable ? 0D : GetClippableFootnoteSpacing(units, end), Math.Max(0D, height - maximumHeight));
         }
 
         private static double GetClippableFootnoteSpacing(IReadOnlyList<FootnoteUnit> units, int end) =>
             units[end - 1].Panels.Where(panel => panel.End == end && panel.Style.ClipSpacingAfterAtFrameEnd)
-                .Sum(panel => panel.Style.SpacingAfter);
+                .Sum(panel => panel.Style.SpacingAfter.ToPoints());
 
         private bool EnforceFootnoteKeep(IReadOnlyList<FootnoteUnit> units, FootnoteKeepRange range, int start, bool checkCapacity) {
             if (!range.RelaxIfOversized || !checkCapacity) return true;

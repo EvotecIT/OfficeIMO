@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (startColumn + columnCount - 1 > A1.MaxColumns || startRow + rowsCount - 1 > A1.MaxRows) {
+            if (startColumn + columnCount - 1 > ExcelA1.MaxColumns || startRow + rowsCount - 1 > ExcelA1.MaxRows) {
                 return false;
             }
 
@@ -53,7 +53,7 @@ namespace OfficeIMO.Excel {
                     int existingColumnIndex = 0;
                     string? reference = existingCell.CellReference?.Value;
                     if (!string.IsNullOrEmpty(reference)) {
-                        existingColumnIndex = A1.ParseColumnIndexFromCellReference(reference!);
+                        existingColumnIndex = ExcelA1.ParseColumnIndexFromCellReference(reference!);
                     }
 
                     if (existingColumnIndex <= 0) {
@@ -170,7 +170,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (startColumn + columnCount - 1 > A1.MaxColumns || startRow + rowsCount - 1 > A1.MaxRows) {
+            if (startColumn + columnCount - 1 > ExcelA1.MaxColumns || startRow + rowsCount - 1 > ExcelA1.MaxRows) {
                 return false;
             }
 
@@ -208,7 +208,7 @@ namespace OfficeIMO.Excel {
                     int existingColumnIndex = 0;
                     string? reference = existingCell.CellReference?.Value;
                     if (!string.IsNullOrEmpty(reference)) {
-                        existingColumnIndex = A1.ParseColumnIndexFromCellReference(reference!);
+                        existingColumnIndex = ExcelA1.ParseColumnIndexFromCellReference(reference!);
                     }
 
                     if (existingColumnIndex <= 0) {

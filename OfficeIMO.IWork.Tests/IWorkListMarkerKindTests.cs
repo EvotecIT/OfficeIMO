@@ -29,7 +29,7 @@ public sealed partial class IWorkBoundaryTests {
                 using (var result = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false })) Assert.True(result.IsVisualFallback);
                 break;
             default:
-                using (var result = source.ToPowerPointPresentationResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false })) Assert.True(result.IsVisualFallback);
+                using (var result = source.ToPowerPointDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false })) Assert.True(result.IsVisualFallback);
                 break;
         }
         package.Position = 0;
@@ -96,11 +96,11 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(document));
         }
         using (MemoryStream package = ListDeclarationPackage(IWorkDocumentKind.Keynote, fields, inherited: false, indent: 0)) {
-            using var result = IWorkSourceDocument.Open(package).ToPowerPointPresentationResult(policy);
+            using var result = IWorkSourceDocument.Open(package).ToPowerPointDocumentResult(policy);
             Assert.True(result.Report.IsPartialEditableReconstruction);
             using var saved = new MemoryStream();
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = PowerPointPresentation.Load(saved);
+            using var reopened = PowerPointDocument.Load(saved);
             var paragraph = Assert.Single(Assert.Single(reopened.Slides).Tables).GetCell(0, 0).Paragraphs[0];
             Assert.Equal(powerPointScheme, paragraph.NumberingScheme);
             Assert.Equal(1, paragraph.NumberingStartAt);
@@ -143,7 +143,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.False(result.IsVisualFallback);
             using var saved = new MemoryStream();
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             var paragraph = Assert.Single(Assert.Single(Assert.Single(reopened.Slides).TextBoxes).Paragraphs);
             Assert.False(paragraph.IsNumbered);
             Assert.Equal("a", paragraph.BulletCharacter);

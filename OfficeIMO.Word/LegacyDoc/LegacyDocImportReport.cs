@@ -6,7 +6,7 @@ namespace OfficeIMO.Word.LegacyDoc {
     /// <summary>
     /// Compact import summary intended for corpus baselines and preflight checks.
     /// </summary>
-    public sealed class LegacyDocImportReport {
+    internal sealed class LegacyDocImportReport {
         internal LegacyDocImportReport(LegacyDocDocument document) {
             if (document == null) throw new ArgumentNullException(nameof(document));
 

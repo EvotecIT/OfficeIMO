@@ -38,7 +38,7 @@ public partial class Word {
         Assert.Equal(new[] { "First edited", "Second edited" }, boxes.Select(box => box.Paragraphs.Single().Text.TrimEnd('\n')).ToArray());
         Assert.Equal(new[] { "First description", "Second description" }, boxes.Select(box => box.Description).ToArray());
         Assert.Empty(reopened.ValidateDocument());
-        string pdfText = PdfReadDocument.Open(reopened.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false })).ExtractText();
+        string pdfText = PdfReadDocument.Open(reopened.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).ExtractText();
         Assert.Contains("First edited", pdfText);
         Assert.Contains("Second edited", pdfText);
     }

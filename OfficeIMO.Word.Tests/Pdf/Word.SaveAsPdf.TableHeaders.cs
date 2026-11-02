@@ -13,23 +13,26 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
-    [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Header_Row() {
-        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeRepeatingHeaderTable.docx");
-        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeRepeatingHeaderTable.pdf");
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Modern_Header_On_Every_Page_Unless_Disabled(bool repeatHeader) {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeRepeatingHeaderTable-" + repeatHeader + ".docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeRepeatingHeaderTable-" + repeatHeader + ".pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(46, 2);
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
-                    cell.Width = 1440;
-                    cell.WidthType = WordTableWidthUnit.Dxa;
+                    cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
                 }
             }
 
             table.Rows[0].Cells[0].Paragraphs[0].Text = "RepeatHdr";
             table.Rows[0].Cells[1].Paragraphs[0].Text = "ValueHdr";
-            table.RepeatAsHeaderRowAtTheTopOfEachPage = true;
+            if (!repeatHeader) {
+                table.RepeatHeaderRowAtTheTopOfEachPage = false;
+            }
 
             for (int rowIndex = 1; rowIndex < table.Rows.Count; rowIndex++) {
                 table.Rows[rowIndex].Cells[0].Paragraphs[0].Text = "Row " + rowIndex.ToString("D2");
@@ -37,10 +40,10 @@ public partial class Word {
             }
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(260, 220),
-                Margins = PdfCore.PageMargins.Uniform(12)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(12))
             });
         }
 
@@ -48,10 +51,17 @@ public partial class Word {
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.True(pdf.NumberOfPages > 1);
 
-        int repeatedHeaderCount = pdf.GetPages()
-            .SelectMany(page => page.GetWords())
-            .Count(word => word.Text == "RepeatHdr");
-        Assert.True(repeatedHeaderCount >= 2);
+        double headerTop = pdf.GetPage(1).GetWords().Single(word => word.Text == "RepeatHdr").BoundingBox.Top;
+        foreach (var page in pdf.GetPages()) {
+            int expected = repeatHeader || page.Number == 1 ? 1 : 0;
+            Assert.Equal(expected, page.GetWords().Count(word => word.Text == "RepeatHdr"));
+            Assert.Equal(expected, page.GetWords().Count(word => word.Text == "ValueHdr"));
+            if (expected == 1) {
+                Assert.Equal(headerTop, page.GetWords().Single(word => word.Text == "RepeatHdr").BoundingBox.Top, 2);
+            }
+        }
+        Assert.Equal(45, pdf.GetPages().SelectMany(page => page.GetWords())
+            .Count(word => word.Text == "Row"));
     }
 
     [Fact]
@@ -63,8 +73,7 @@ public partial class Word {
             WordTable table = document.AddTable(44, 2);
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
-                    cell.Width = 1440;
-                    cell.WidthType = WordTableWidthUnit.Dxa;
+                    cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
                 }
             }
 
@@ -81,10 +90,10 @@ public partial class Word {
             }
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(260, 220),
-                Margins = PdfCore.PageMargins.Uniform(12)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(12))
             });
         }
 
@@ -114,8 +123,7 @@ public partial class Word {
             table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = false;
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
-                    cell.Width = 1440;
-                    cell.WidthType = WordTableWidthUnit.Dxa;
+                    cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
                 }
             }
 
@@ -127,10 +135,10 @@ public partial class Word {
             }
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(260, 220),
-                Margins = PdfCore.PageMargins.Uniform(12)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(12))
             });
         }
 
@@ -170,10 +178,10 @@ public partial class Word {
             table.Rows[1].Cells[1].Paragraphs[0].Text = "BodyValue";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(360, 220),
-                Margins = PdfCore.PageMargins.Uniform(30)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
             });
         }
 
@@ -215,10 +223,10 @@ public partial class Word {
             table.Rows[2].Cells[1].Paragraphs[0].Text = "TotalValue";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(360, 220),
-                Margins = PdfCore.PageMargins.Uniform(30)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
             });
         }
 
@@ -268,10 +276,10 @@ public partial class Word {
             table.Rows[2].Cells[1].Paragraphs[0].Text = "RichFooterValue";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(420, 240),
-                Margins = PdfCore.PageMargins.Uniform(30)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(240)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
             });
         }
 
@@ -327,10 +335,10 @@ public partial class Word {
             table.Rows[2].Cells[1].Paragraphs[0].Text = "BorderFooterValue";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(420, 240),
-                Margins = PdfCore.PageMargins.Uniform(30)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(240)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
             });
         }
 
@@ -395,10 +403,10 @@ public partial class Word {
             }
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(440, 260),
-                Margins = PdfCore.PageMargins.Uniform(30)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(440),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
             });
         }
 
@@ -447,10 +455,10 @@ public partial class Word {
             table.Rows[1].Cells[2].Paragraphs[0].Text = "LastColumnBottom";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(420, 220),
-                Margins = PdfCore.PageMargins.Uniform(30)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
             });
         }
 
@@ -495,10 +503,10 @@ public partial class Word {
             table.Rows[1].Cells[2].Paragraphs[0].Text = "LastTextBottom";
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(420, 220),
-                Margins = PdfCore.PageMargins.Uniform(30)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
             });
         }
 
@@ -546,10 +554,10 @@ public partial class Word {
             }
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(420, 260),
-                Margins = PdfCore.PageMargins.Uniform(30)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
             });
         }
 
@@ -589,10 +597,10 @@ public partial class Word {
             }
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(360, 240),
-                Margins = PdfCore.PageMargins.Uniform(30)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(240)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
             });
         }
 
@@ -635,10 +643,10 @@ public partial class Word {
             }
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(420, 220),
-                Margins = PdfCore.PageMargins.Uniform(30)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
             });
         }
 

@@ -10,7 +10,7 @@ internal static partial class Paragraphs {
         string filePath = Path.Combine(folderPath, "InlineRunHelper.docx");
         using (var document = OfficeIMO.Markdown.MarkdownReader
             .Parse("Hello **world** and *universe*. Visit <https://example.com>")
-            .ToWordDocument()) {
+            .ToWord()) {
             document.Save(filePath);
             if (openWord) document.OpenInApplication();
         }

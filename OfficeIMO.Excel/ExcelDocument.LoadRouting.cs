@@ -90,13 +90,13 @@ namespace OfficeIMO.Excel {
                     return true;
                 case OfficeCompoundDocumentDetector.DocumentKind.WordDocument:
                     throw new InvalidDataException("The input contains a legacy Word document, not an Excel workbook. Load it with OfficeIMO.Word.WordDocument.");
-                case OfficeCompoundDocumentDetector.DocumentKind.PowerPointPresentation:
-                    throw new InvalidDataException("The input contains a legacy PowerPoint presentation, not an Excel workbook. Load it with OfficeIMO.PowerPoint.PowerPointPresentation.");
+                case OfficeCompoundDocumentDetector.DocumentKind.PowerPointDocument:
+                    throw new InvalidDataException("The input contains a legacy PowerPoint presentation, not an Excel workbook. Load it with OfficeIMO.PowerPoint.PowerPointDocument.");
                 case OfficeCompoundDocumentDetector.DocumentKind.EncryptedOpenXmlPackage:
                     if (encryptedLoad) {
                         return false;
                     }
-                    throw new InvalidDataException("The input is a password-encrypted Office Open XML package. Use ExcelDocument.LoadEncrypted or ExcelDocument.OpenEncryptedDataReader and provide its password.");
+                    throw new InvalidDataException("The input is a password-encrypted Office Open XML package. Use ExcelDocument.Load with ExcelLoadOptions.Password or ExcelDocument.OpenReader with ExcelReaderOptions.Password.");
                 case OfficeCompoundDocumentDetector.DocumentKind.Ambiguous:
                     throw new InvalidDataException("The OLE compound file contains more than one root Office document stream and cannot be routed safely.");
                 default:

@@ -84,7 +84,7 @@ public class PdfAnnotationReviewWorkflowTests {
             OwnerPassword = "owner",
             AllowedPermissions = PdfStandardPermissions.ModifyAnnotations
         };
-        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+        byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
             .TextAnnotation("Restricted parent")
             .Paragraph(paragraph => paragraph.Text("Restricted review page"))
             .ToBytes();

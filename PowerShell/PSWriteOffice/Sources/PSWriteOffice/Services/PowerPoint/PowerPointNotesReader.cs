@@ -9,7 +9,7 @@ public sealed class PowerPointNotesInfo
     /// <summary>The slide the notes belong to.</summary>
     public PowerPointSlide Slide { get; set; } = null!;
 
-    /// <summary>Zero-based slide index when known.</summary>
+    /// <summary>One-based slide position when known.</summary>
     public int SlideIndex { get; set; } = -1;
 
     /// <summary>Whether a notes part already exists on the slide.</summary>
@@ -24,7 +24,7 @@ internal static class PowerPointNotesReader {
         if (slide == null) throw new ArgumentNullException(nameof(slide));
         return new PowerPointNotesInfo {
             Slide = slide,
-            SlideIndex = slideIndex,
+            SlideIndex = slideIndex >= 0 ? slideIndex + 1 : -1,
             HasNotes = slide.HasSpeakerNotes,
             Text = slide.GetSpeakerNotesText()
         };

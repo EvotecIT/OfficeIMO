@@ -64,7 +64,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPageMarginShaping_ZeroAdvanceExportsTheSameSavedPdfAndImageScene() {
         HtmlConversionDocument document = PageMarginZeroAdvanceDocument("max-content");
         HtmlToPdfOptions options = PageMarginShapingOptions(cff: true);
-        PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
         pdf.RequireNoLoss();
         byte[] bytes = pdf.ToBytes();
         pdf.RequireNoLoss();

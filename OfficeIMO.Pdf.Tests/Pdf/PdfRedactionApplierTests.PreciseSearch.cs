@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.DoesNotContain("private", source.Reader.Text(), StringComparison.Ordinal);
             PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
             Assert.False(plan.IsReviewable);
-            Assert.Contains(plan.Findings, finding => finding.Code == "RedactionSearchUnselectedTextIntersection");
+            Assert.Contains(plan.Findings, finding => finding.Code == "redaction-search-unselected-text-intersection");
             Assert.Throws<InvalidOperationException>(() => source.Redactions.Apply(plan));
             Assert.Equal(bytes, source.ToBytes());
         }
@@ -146,7 +146,7 @@ namespace OfficeIMO.Tests.Pdf {
             PdfDocument source = PdfDocument.Load(bytes);
             PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddRegex("^WA"));
             Assert.False(plan.IsReviewable);
-            Assert.Contains(plan.Findings, finding => finding.Code == "RedactionSearchUnselectedTextIntersection");
+            Assert.Contains(plan.Findings, finding => finding.Code == "redaction-search-unselected-text-intersection");
             Assert.Throws<InvalidOperationException>(() => source.Redactions.Apply(plan));
             Assert.Equal(bytes, source.ToBytes());
         }
@@ -273,26 +273,36 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.DoesNotContain("secret", result.Read().Text, StringComparison.Ordinal);
         }
 
-        [Fact]
-        public void PreciseSelectionKeepsWholeLigaturesAndRejectsPartialOnes() {
-            byte[] bytes = BuildType0ToUnicodeLigatureRedactionSource();
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void PreciseSelectionKeepsWholeLigaturesAndRejectsPartialOnes(bool actualText) {
+            byte[] bytes = BuildType0ToUnicodeLigatureRedactionSource(actualText);
             PdfDocument source = PdfDocument.Load(bytes);
             PdfRedactionPlan partial = source.Redactions.Search(PreciseOptions().AddLiteral("f"));
             Assert.False(partial.IsReviewable);
-            Assert.Contains(partial.Findings, finding => finding.Code == "RedactionSearchPartialGlyph");
+            Assert.Contains(partial.Findings, finding => finding.Code == "redaction-search-partial-glyph");
             Assert.Throws<InvalidOperationException>(() => source.Redactions.Apply(partial));
 
-            PdfRedactionPlan whole = source.Redactions.Search(PreciseOptions().AddLiteral("fi"));
+            PdfRedactionPlan whole = source.Redactions.Search(PreciseOptions().AddLiteral(actualText ? "AfiZ" : "fi"));
             Assert.True(whole.IsReviewable, DescribeFindings(whole));
-            string text = source.Redactions.Apply(whole).Read().Text;
+            PdfDocument output = source.Redactions.Apply(whole);
+            string text = output.Read().Text;
             Assert.DoesNotContain("fi", text, StringComparison.Ordinal);
             Assert.Contains("A", text, StringComparison.Ordinal);
             Assert.Contains("Z", text, StringComparison.Ordinal);
+            if (actualText) {
+                Assert.Equal(ReadGlyphEvidence(bytes).Where(glyph => glyph.Y == 680), ReadGlyphEvidence(output.ToBytes()));
+                Assert.DoesNotContain("ActualText", DecodeAllStreams(output.ToBytes()), StringComparison.Ordinal);
+            }
             Assert.Equal(bytes, source.ToBytes());
         }
 
         [Theory]
         [InlineData("/Span << /ActualText (Alpha secret Omega) >> BDC (painted substitute) Tj EMC")]
+        [InlineData("/Span << /ActualText (secret) /MCID 0 >> BDC (secret) Tj EMC")]
+        [InlineData("/Span << /ActualText (secret) >> BDC (secret) Tj (unselected) Tj EMC")]
+        [InlineData("/Span << /ActualText (secret) >> BDC /Span << /ActualText (secret) >> BDC (secret) Tj EMC EMC")]
         [InlineData("q 60 700 m 410 700 l 100 740 l h W n BT /F1 20 Tf 72 720 Td (Alpha secret Omega) Tj ET Q")]
         public void PreciseSelectionBlocksAmbiguousOrClippedSourceText(string content) {
             byte[] bytes = content.StartsWith("q ", StringComparison.Ordinal)
@@ -300,21 +310,21 @@ namespace OfficeIMO.Tests.Pdf {
             PdfDocument source = PdfDocument.Load(bytes);
             PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
             Assert.False(plan.IsReviewable);
-            Assert.Contains(plan.Findings, finding => finding.Code == "RedactionSearchGlyphMappingUnsupported");
+            Assert.Contains(plan.Findings, finding => finding.Code == "redaction-search-glyph-mapping-unsupported");
             Assert.Throws<InvalidOperationException>(() => source.Redactions.Apply(plan));
             Assert.Equal(bytes, source.ToBytes());
         }
 
         [Theory]
         [InlineData("BT /F1 20 Tf -8 Tc 72 720 Td (AB) Tj ET", "A")]
-        [InlineData("BT /F1 12 Tf 14 TL 72 720 Td (Alpha secret) Tj T* (account Omega) Tj ET", "secret account")]
-        [InlineData("BT /F1 20 Tf 72 720 Td [(Alpha ) 120 (secret) -120 ( Omega)] TJ ET", "secret")]
+        [InlineData("BT /F1 20 Tf 72 720 Td (secret) Tj ET BT /F1 20 Tf 72 720 Td (private) Tj ET", "secret")]
+        [InlineData("BT /F1 20 Tf 72 720 Td (Alpha secret) Tj ET BT /F1 20 Tf 72.3 720.2 Td (Alpha sacred) Tj ET", "secret")]
         public void PreciseSelectionBlocksOverlappingUnselectedGlyphs(string content, string literal) {
             byte[] bytes = BuildTextContentRedactionSource(content);
             PdfDocument source = PdfDocument.Load(bytes);
             PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral(literal));
             Assert.False(plan.IsReviewable);
-            Assert.Contains(plan.Findings, finding => finding.Code == "RedactionSearchUnselectedTextIntersection");
+            Assert.Contains(plan.Findings, finding => finding.Code == "redaction-search-unselected-text-intersection");
             Assert.Throws<InvalidOperationException>(() => source.Redactions.Apply(plan));
         }
 

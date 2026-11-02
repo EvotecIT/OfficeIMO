@@ -111,25 +111,25 @@ public sealed class AddOfficePdfBackgroundShapeCommand : PSCmdlet
             switch (Shape)
             {
                 case OfficePdfBackgroundShapeType.Rectangle:
-                    page.BackgroundRectangle(X, Y, RequireWidth(), RequireHeight(), fill, stroke, StrokeWidth, FillOpacity, StrokeOpacity);
+                    page.BackgroundRectangle(global::OfficeIMO.OfficeLength.Points(X), global::OfficeIMO.OfficeLength.Points(Y), global::OfficeIMO.OfficeLength.Points(RequireWidth()), global::OfficeIMO.OfficeLength.Points(RequireHeight()), fill, stroke, global::OfficeIMO.OfficeLength.Points(StrokeWidth), FillOpacity, StrokeOpacity);
                     break;
                 case OfficePdfBackgroundShapeType.RoundedRectangle:
-                    page.BackgroundRoundedRectangle(X, Y, RequireWidth(), RequireHeight(), CornerRadius, fill, stroke, StrokeWidth, FillOpacity, StrokeOpacity);
+                    page.BackgroundRoundedRectangle(global::OfficeIMO.OfficeLength.Points(X), global::OfficeIMO.OfficeLength.Points(Y), global::OfficeIMO.OfficeLength.Points(RequireWidth()), global::OfficeIMO.OfficeLength.Points(RequireHeight()), global::OfficeIMO.OfficeLength.Points(CornerRadius), fill, stroke, global::OfficeIMO.OfficeLength.Points(StrokeWidth), FillOpacity, StrokeOpacity);
                     break;
                 case OfficePdfBackgroundShapeType.Ellipse:
-                    page.BackgroundEllipse(X, Y, RequireWidth(), RequireHeight(), fill, stroke, StrokeWidth, FillOpacity, StrokeOpacity);
+                    page.BackgroundEllipse(global::OfficeIMO.OfficeLength.Points(X), global::OfficeIMO.OfficeLength.Points(Y), global::OfficeIMO.OfficeLength.Points(RequireWidth()), global::OfficeIMO.OfficeLength.Points(RequireHeight()), fill, stroke, global::OfficeIMO.OfficeLength.Points(StrokeWidth), FillOpacity, StrokeOpacity);
                     break;
                 case OfficePdfBackgroundShapeType.TopBand:
-                    page.BackgroundTopBand(RequireHeight(), fill, InsetX, OffsetY, CornerRadius, stroke, StrokeWidth, FillOpacity, StrokeOpacity);
+                    page.BackgroundTopBand(global::OfficeIMO.OfficeLength.Points(RequireHeight()), fill, global::OfficeIMO.OfficeLength.Points(InsetX), global::OfficeIMO.OfficeLength.Points(OffsetY), global::OfficeIMO.OfficeLength.Points(CornerRadius), stroke, global::OfficeIMO.OfficeLength.Points(StrokeWidth), FillOpacity, StrokeOpacity);
                     break;
                 case OfficePdfBackgroundShapeType.BottomBand:
-                    page.BackgroundBottomBand(RequireHeight(), fill, InsetX, OffsetY, CornerRadius, stroke, StrokeWidth, FillOpacity, StrokeOpacity);
+                    page.BackgroundBottomBand(global::OfficeIMO.OfficeLength.Points(RequireHeight()), fill, global::OfficeIMO.OfficeLength.Points(InsetX), global::OfficeIMO.OfficeLength.Points(OffsetY), global::OfficeIMO.OfficeLength.Points(CornerRadius), stroke, global::OfficeIMO.OfficeLength.Points(StrokeWidth), FillOpacity, StrokeOpacity);
                     break;
                 case OfficePdfBackgroundShapeType.LeftBand:
-                    page.BackgroundLeftBand(RequireWidth(), fill, InsetY, OffsetX, CornerRadius, stroke, StrokeWidth, FillOpacity, StrokeOpacity);
+                    page.BackgroundLeftBand(global::OfficeIMO.OfficeLength.Points(RequireWidth()), fill, global::OfficeIMO.OfficeLength.Points(InsetY), global::OfficeIMO.OfficeLength.Points(OffsetX), global::OfficeIMO.OfficeLength.Points(CornerRadius), stroke, global::OfficeIMO.OfficeLength.Points(StrokeWidth), FillOpacity, StrokeOpacity);
                     break;
                 case OfficePdfBackgroundShapeType.RightBand:
-                    page.BackgroundRightBand(RequireWidth(), fill, InsetY, OffsetX, CornerRadius, stroke, StrokeWidth, FillOpacity, StrokeOpacity);
+                    page.BackgroundRightBand(global::OfficeIMO.OfficeLength.Points(RequireWidth()), fill, global::OfficeIMO.OfficeLength.Points(InsetY), global::OfficeIMO.OfficeLength.Points(OffsetX), global::OfficeIMO.OfficeLength.Points(CornerRadius), stroke, global::OfficeIMO.OfficeLength.Points(StrokeWidth), FillOpacity, StrokeOpacity);
                     break;
                 default:
                     throw new PSArgumentOutOfRangeException(nameof(Shape), Shape, "Unsupported PDF background shape type.");

@@ -51,14 +51,13 @@
     <Using Include="System.Xml.Linq" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-    <Reference Include="System.IO.Compression" />
-  </ItemGroup>
-
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Xps.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Xps.Tests" />
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.IO.Compression" />
+  </ItemGroup>
 </Project>

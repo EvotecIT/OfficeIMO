@@ -183,7 +183,7 @@ namespace OfficeIMO.Excel {
                 for (int row = firstRow; row <= lastRow; row++) {
                     for (int column = firstColumn; column <= lastColumn; column++) {
                         if (_formulaDependencyMutationVersions.TryGetValue(
-                                (worksheetPart.Uri, A1.CellReference(row, column)),
+                                (worksheetPart.Uri, ExcelA1.CellReference(row, column)),
                                 out long mutationVersion)
                             && mutationVersion > baseline) {
                             return true;
@@ -196,7 +196,7 @@ namespace OfficeIMO.Excel {
             foreach (KeyValuePair<(Uri WorksheetUri, string CellReference), long> item in _formulaDependencyMutationVersions) {
                 if (item.Value <= baseline
                     || item.Key.WorksheetUri != worksheetPart.Uri
-                    || !A1.TryParseCellReferenceFast(item.Key.CellReference, out int row, out int column)) {
+                    || !ExcelA1.TryParseCellReferenceFast(item.Key.CellReference, out int row, out int column)) {
                     continue;
                 }
                 if (row >= firstRow && row <= lastRow && column >= firstColumn && column <= lastColumn) {

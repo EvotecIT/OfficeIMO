@@ -16,7 +16,7 @@ Describe 'Easy local OCR commands' {
         $languageType = $parameter.ParameterType.GetElementType()
         $languageType.GetEnumNames() | Should -Contain 'English'
         $languageType.GetEnumNames() | Should -Contain 'Polish'
-        (Get-Command New-OfficeDocumentReader).Parameters['OcrLanguage'].ParameterType.FullName |
+        (Get-Command New-OfficeOcrOptions).Parameters['Language'].ParameterType.FullName |
             Should -Be 'OfficeIMO.Ocr.Tesseract.TesseractOcrLanguage[]'
     }
 

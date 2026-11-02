@@ -216,7 +216,7 @@ public sealed class MarkdownNativeDefinitionListDefinition {
 
             var nativeChild = FindNativeChild(children, childNode.AssociatedObject);
             diagnostics.Add(new MarkdownNativeDiagnostic(
-                "native.generated-definition-child",
+                "native-generated-definition-child",
                 "Definition-list child syntax was regenerated from semantic content; any source span is a fallback anchor, not exact parsed source.",
                 MarkdownNativeDiagnosticSeverity.Info,
                 childNode.SourceSpan ?? definitionNode.SourceSpan,

@@ -87,14 +87,14 @@ public sealed class ReaderInspectionResourceLimitEvidenceTests {
         if (extension == "xlsx") {
             using var memory = new MemoryStream();
             using (ExcelDocument document = ExcelDocument.Create(memory)) {
-                ExcelSheet sheet = document.AddWorksheet("Hidden source");
+                ExcelSheet sheet = document.AddSheet("Hidden source");
                 for (int index = 1; index <= 4; index++) sheet.Cell(index, 1, "Hidden source " + index);
                 foreach (var row in document.OpenXmlDocument!.WorkbookPart!.WorksheetParts.Single().Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Row>()) row.Hidden = true;
                 document.Save();
             }
             bytes = memory.ToArray();
         } else if (extension == "pptx") {
-            using var memory = new MemoryStream(); using PowerPointPresentation document = PowerPointPresentation.Create(memory);
+            using var memory = new MemoryStream(); using PowerPointDocument document = PowerPointDocument.Create(memory);
             PowerPointSlide slide = document.AddSlide(); for (int index = 1; index <= 4; index++) slide.AddTextBox("Hidden source " + index).Hidden = true;
             bytes = document.ToBytes();
         } else if (extension == "odp") {

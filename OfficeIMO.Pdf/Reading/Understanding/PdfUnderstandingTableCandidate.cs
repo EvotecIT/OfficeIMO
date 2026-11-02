@@ -9,6 +9,7 @@ public enum PdfTableCoordinateSpace {
 }
 
 /// <summary>Immutable column geometry recovered by a PDF table-detection stage.</summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfUnderstandingTableColumn {
     /// <summary>Creates one table column in the owning candidate's coordinate space.</summary>
     public PdfUnderstandingTableColumn(double from, double to) {
@@ -40,6 +41,7 @@ public sealed class PdfUnderstandingTableColumn {
 /// A table candidate recovered before general page segmentation. The candidate owns its
 /// source lines so later stages can treat the table as one structural object.
 /// </summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfUnderstandingTableCandidate {
     private readonly PdfLogicalVisualBounds? _visualBounds;
 
@@ -160,7 +162,7 @@ public sealed class PdfUnderstandingTableCandidate {
             Confidence, Evidence, consumeWork, cancellationCheck, nativeRuns);
 
     internal static PdfUnderstandingTableCandidate FromStructured(
-        StructuredTable table,
+        PdfStructuredTable table,
         IReadOnlyList<PdfUnderstandingLine> sourceLines,
         double confidence,
         IEnumerable<PdfInferenceEvidence> evidence,
@@ -170,7 +172,7 @@ public sealed class PdfUnderstandingTableCandidate {
         for (int columnIndex = 0; columnIndex < table.Columns.Count; columnIndex++) {
             cancellationCheck();
             consumeWork(1);
-            StructuredTableColumn column = table.Columns[columnIndex];
+            PdfStructuredTableColumn column = table.Columns[columnIndex];
             columns[columnIndex] = new PdfUnderstandingTableColumn(column.From, column.To);
         }
         var rows = new IReadOnlyList<string>[table.Rows.Count];
@@ -256,13 +258,14 @@ public sealed class PdfUnderstandingTableCandidate {
                 ?? Array.Empty<PdfTextSpan>());
     }
 
-    internal StructuredTable ToStructuredTable(PdfReadPage page, Action<long>? consumeWork = null, Action? cancellationCheck = null) {
+    internal PdfStructuredTable ToStructuredTable(PdfReadPage page, Action<long>? consumeWork = null, Action? cancellationCheck = null) {
         cancellationCheck?.Invoke();
         consumeWork?.Invoke(1);
-        var table = new StructuredTable {
+        var table = new PdfStructuredTable {
             Kind = DetectionKind,
             YTop = YTop,
             YBottom = YBottom,
+            HasRuledBounds = Evidence.Any(static item => item.Code == "table-closed-ruling-grid"),
             VisualBounds = _visualBounds
         };
         if (_visualBounds is not null) {
@@ -278,7 +281,7 @@ public sealed class PdfUnderstandingTableCandidate {
             PdfLogicalVisualBounds? visual = column.VisualBounds;
             PdfVisualBounds user = visual is null ? default : page.TransformVisualBoundsToUser(
                 visual.Left, visual.Top, visual.Right, visual.Bottom);
-            table.Columns.Add(new StructuredTableColumn {
+            table.Columns.Add(new PdfStructuredTableColumn {
                 From = visual is null ? column.From : user.Left,
                 To = visual is null ? column.To : user.Right,
                 VisualBounds = visual

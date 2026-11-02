@@ -8,7 +8,7 @@ Recipients do not always need an editable PPTX. Export selected slides or the fu
 
 ## Review surfaces
 
-`Export-OfficePowerPointImage` creates visual slide output. HTML conversion provides another browser-friendly review surface. `Get-OfficePowerPointNotes` separates speaker guidance from visible slide content, while slide summaries and shape inspection support structural checks.
+`Export-OfficeDocumentImage -Path ./review.pptx -OutputDirectory ./slides` creates visual slide output. Add `-Page 1-3` for a selection, or use `ConvertTo-OfficeDocumentImage` for image results without files. HTML conversion provides another browser-friendly review surface. `Get-OfficePowerPointNotes` separates speaker guidance from visible slide content, while slide summaries and shape inspection support structural checks.
 
 Before delivery, verify:
 

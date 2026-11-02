@@ -19,18 +19,19 @@ using OfficeIMO.Html;
 using OfficeIMO.Markdown.Html;
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse("<h1>Hello</h1><p>Body</p>");
-string markdown = source.ToMarkdown();
-MarkdownDoc document = source.ToMarkdownDocument();
+using MarkdownDocument document = source.ToMarkdown();
+string markdown = document.ToMarkdown();
 ```
 
 For multi-target workflows, prepare HTML once and reuse its normalized DOM:
 
 ```csharp
+using OfficeIMO.Markdown;
 using OfficeIMO.Html;
 
-HtmlConversionDocument source = HtmlConversionDocumentBuilder.Build(html);
-string markdown = source.ToMarkdown();
-MarkdownDoc document = source.ToMarkdownDocument();
+HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+using MarkdownDocument document = source.ToMarkdown();
+string markdown = document.ToMarkdown();
 ```
 
 Create a prepared document with `HtmlConversionDocument.Parse(...)`, `Load(...)`, or `LoadAsync(...)`; all three enter through the same bounded parser. Save Markdown through the prepared document's path, stream, and async `SaveAsMarkdown` methods. Adapter-local filtering works on a clone, so converting to Markdown does not mutate the document consumed by Word, RTF, PDF, or image output.
@@ -38,9 +39,11 @@ Create a prepared document with `HtmlConversionDocument.Parse(...)`, `Load(...)`
 ## Options
 
 ```csharp
+using OfficeIMO.Html;
+using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
 
-var options = new HtmlToMarkdownOptions {
+var options = new MarkdownHtmlImportOptions {
     BaseUri = new Uri("https://example.com/docs/"),
     UseBodyContentsOnly = true,
     PreserveUnsupportedBlocks = true,
@@ -49,16 +52,19 @@ var options = new HtmlToMarkdownOptions {
 };
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse("<p><a href=\"guide/start\">Docs</a></p>");
-string markdown = source.ToMarkdown(options);
+using MarkdownDocument document = source.ToMarkdown(options);
+string markdown = document.ToMarkdown();
 ```
 
 ### Compatibility controls
 
 ```csharp
-var options = new HtmlToMarkdownOptions {
+using OfficeIMO.Html;
+using OfficeIMO.Markdown;
+var options = new MarkdownHtmlImportOptions {
     SmartHref = true,
-    UnknownBlockHandling = HtmlUnknownTagHandling.Bypass,
-    UnknownInlineHandling = HtmlUnknownTagHandling.Bypass
+    UnknownBlockHandling = MarkdownHtmlUnknownTagHandling.Bypass,
+    UnknownInlineHandling = MarkdownHtmlUnknownTagHandling.Bypass
 };
 
 options.ExcludeSelectors.Add(".ad, .cookie-banner");
@@ -66,7 +72,8 @@ options.TagAliases["highlight"] = "mark";
 options.PassThroughTags.Add("custom-widget");
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
-string markdown = source.ToMarkdown(options);
+using MarkdownDocument document = source.ToMarkdown(options);
+string markdown = document.ToMarkdown();
 ```
 
 - `SmartHref` emits self-describing links such as `<a href="https://example.com">https://example.com</a>` as plain text.
@@ -96,15 +103,17 @@ EPUB footnote references are converted only when their target is an actual footn
 - Use the portable profile when output should remain friendly to generic Markdown engines.
 
 ```csharp
-var github = HtmlToMarkdownOptions.CreateGitHubFlavoredMarkdownProfile();
+using OfficeIMO.Html;
+using OfficeIMO.Markdown;
+var github = MarkdownHtmlImportOptions.CreateGitHubFlavoredMarkdownProfile();
 string readme = HtmlConversionDocument
     .Parse("<p><a href=\"https://example.com\">https://example.com</a></p>")
-    .ToMarkdown(github);
+    .ToMarkdown(github).ToMarkdown();
 
-var commonMark = HtmlToMarkdownOptions.CreateCommonMarkProfile();
+var commonMark = MarkdownHtmlImportOptions.CreateCommonMarkProfile();
 string portableTable = HtmlConversionDocument
     .Parse("<table><tr><th>Name</th></tr><tr><td>Value</td></tr></table>")
-    .ToMarkdown(commonMark);
+    .ToMarkdown(commonMark).ToMarkdown();
 ```
 
 ## Boundaries

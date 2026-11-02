@@ -46,8 +46,8 @@ public class ExcelDataTableExecutionBenchmarks {
     private byte[] WritePackage(ExcelExecutionMode? mode) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.InsertDataTable(_table, mode: mode);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.WriteData(_table, mode: mode);
             document.Save(stream);
         }
 

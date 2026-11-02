@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
                 document.AddParagraph("Page2");
                 document.Save();
-                document.SaveAsPdf(pdfCustom, new WordToPdfOptions {
+                document.SaveAsPdf(pdfCustom, new WordPdfExportOptions {
                     IncludePageNumbers = true,
                     PageNumberFormat = "Page {current} of {total}"
                 });
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
                 document.AddParagraph("After native page break");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
                 document.AddParagraph("Native section page numbering second page");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = true
                 });
             }
@@ -127,7 +127,7 @@ namespace OfficeIMO.Tests {
                 secondSection.AddParagraph("Restarted section second page");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -171,7 +171,7 @@ namespace OfficeIMO.Tests {
                 secondSection.AddParagraph("Second section second page");
 
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false
                 });
             }
@@ -199,7 +199,7 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
                 document.AddParagraph("Native field footer second page");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     PageNumberFormat = "AUTO {current}/{total}"
                 });
             }
@@ -226,12 +226,12 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddHeadersAndFooters();
                 WordParagraph footerParagraph = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Native roman field footer ");
-                footerParagraph.AddPageNumber(includeTotalPages: true, format: WordFieldFormat.Roman, separator: " / ");
+                footerParagraph.AddPageNumber(includeTotalPages: true, format: WordFieldFormat.UpperRoman, separator: " / ");
                 document.AddParagraph("Native roman field footer first page");
                 document.AddPageBreak();
                 document.AddParagraph("Native roman field footer second page");
                 document.Save();
-                document.SaveAsPdf(pdfPath, new WordToPdfOptions());
+                document.SaveAsPdf(pdfPath, new WordPdfExportOptions());
             }
 
             Assert.True(File.Exists(pdfPath));

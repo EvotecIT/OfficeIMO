@@ -59,8 +59,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.All(generated, item => Assert.Equal(destination, item.LinkUri));
         Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
 
-        byte[] bytes = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
-        PdfCore.PdfReadDocument saved = PdfCore.PdfReadDocument.Open(bytes);
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
+        PdfCore.PdfDocument saved = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(bytes));
         string savedText = string.Concat(saved.Pages.SelectMany(page => page.GetTextSpans()).Select(span => span.Text));
         Assert.Contains("Summary", savedText);
         Assert.Contains("(" + destination + ")", savedText);
@@ -72,8 +72,8 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlCssTable_GeneratedAnonymousRowsHaveDistinctSavedStructureOwners() {
         const string html = "<style>body{margin:0}table{border-spacing:0}table::before{content:'BeforeReference'}"
             + "table::after{content:'AfterReference'}</style><table><tr><td>SourceBody</td></tr></table>";
-        byte[] bytes = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(CssTableOptions()));
-        PdfCore.PdfReadDocument saved = PdfCore.PdfReadDocument.Open(bytes);
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(CssTableOptions()))).ToBytes();
+        PdfCore.PdfDocument saved = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(bytes));
         Assert.Single(saved.TaggedContent!.StructureElements, item => item.StructureType == "Table");
         Assert.Equal(3, saved.TaggedContent.StructureElements.Count(item => item.StructureType == "TR"));
         Assert.Equal(3, saved.TaggedContent.StructureElements.Count(item => item.StructureType == "TD"));

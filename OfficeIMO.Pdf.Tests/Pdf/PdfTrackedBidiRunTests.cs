@@ -48,10 +48,10 @@ public sealed class PdfTrackedBidiRunTests {
                 ManagedTextShapingTestAssets.CreateTrackingTable(new[] { 10D, 20D }, new[] { 0D },
                     new[] { new short[] { -100, 0 } }));
         }
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             TextShapingMode = PdfTextShapingMode.UnicodeScalar,
             CompressContentStreams = false,
-            DefaultFontSize = 12D
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D)
         }.UseFontFamily(new PdfEmbeddedFontFamily("RtlIsolation", font));
         PdfDocument document = PdfDocument.Create(options);
         if (richRuns) {
@@ -61,6 +61,6 @@ public sealed class PdfTrackedBidiRunTests {
         } else {
             document.Paragraph(paragraph => paragraph.Text(Text));
         }
-        return document.ToBytes();
+        return document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 }

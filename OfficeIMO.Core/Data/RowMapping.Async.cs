@@ -15,13 +15,13 @@ namespace OfficeIMO.Data;
 /// <summary>Asynchronous typed row projections for forward-only data readers.</summary>
 public static class DataReaderAsyncMappingExtensions {
     /// <summary>
-    /// Asynchronously projects remaining rows by matching column names to writable public properties.
+    /// Asynchronously projects remaining rows by matching column names to public properties and their constructor parameters.
     /// The caller retains ownership of the reader.
     /// </summary>
     public static IAsyncEnumerable<T> RowsAsAsync<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
         this DbDataReader reader,
-        CancellationToken cancellationToken = default) where T : new() {
+        CancellationToken cancellationToken = default) {
         if (reader is null) throw new ArgumentNullException(nameof(reader));
         return EnumerateAutomatic<T>(reader, cancellationToken);
     }
@@ -53,9 +53,9 @@ public static class DataReaderAsyncMappingExtensions {
     }
 
     private static async IAsyncEnumerable<T> EnumerateAutomatic<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
         DbDataReader reader,
-        [EnumeratorCancellation] CancellationToken cancellationToken) where T : new() {
+        [EnumeratorCancellation] CancellationToken cancellationToken) {
         if (reader.FieldCount == 0) yield break;
 
         DataReaderMappingExtensions.GetConversionOptions(

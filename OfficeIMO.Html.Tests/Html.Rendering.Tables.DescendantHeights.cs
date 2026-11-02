@@ -394,7 +394,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
         string html = "<table style='height:400px'><thead><tr style='height:5%'><td>Header</td></tr></thead><tbody>" + rows
             + "</tbody><tfoot><tr style='height:15%'><td>Footer</td></tr></tfoot></table>" + Following;
         var options = Options();
-        options.PageSize = new OfficePageSize(600D / 96D, 260D / 96D);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(600D / 96D), global::OfficeIMO.OfficeLength.Inches(260D / 96D));
         var result = HtmlConversionDocument.Parse(Source(html)).RenderToPdfResult(HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, options));
         HtmlRenderDocument rendered = result.RenderResult.Document;
 
@@ -413,7 +413,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
     private const string Pixel = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNg+P//HwAF/gL9HjcXBgAAAABJRU5ErkJggg==";
     private const string Following = "<div id='following' style='height:20px;background:red'>Following</div>";
     private static string Source(string html) => "<!doctype html><style>html,body{margin:0;padding:0;font:16px/20px Arial}table{margin:0;width:240px;border-spacing:0;table-layout:fixed}td{padding:0;vertical-align:top}</style>" + html;
-    private static HtmlRenderOptions Options() => new() { AllowSystemFontFallback = false, ViewportWidth = 600, ViewportHeight = 300, PageSize = new OfficePageSize(600D / 96D, 300D / 96D), Margins = HtmlRenderMargins.All(0), UserAgentStyles = HtmlRenderUserAgentStyleMode.Browser, HonorCssPageRules = false };
+    private static HtmlRenderOptions Options() => new() { AllowSystemFontFallback = false, ViewportWidth = 600, ViewportHeight = 300, PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(600D / 96D), global::OfficeIMO.OfficeLength.Inches(300D / 96D)), Margins = HtmlRenderMargins.All(0), UserAgentStyles = HtmlRenderUserAgentStyleMode.Browser, HonorCssPageRules = false };
     private static HtmlRenderDocument Render(string html, HtmlRenderIntentProfile profile = HtmlRenderIntentProfile.PrintPaged) => HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(Source(html)), HtmlRenderRequest.Create(profile, options: Options())).Document;
     private static IEnumerable<HtmlRenderVisual> Visuals(HtmlRenderDocument rendered) => rendered.Pages.SelectMany(page => Enumerate(page.Scene));
     private static IEnumerable<HtmlRenderVisual> Enumerate(IEnumerable<HtmlRenderVisual> visuals) {

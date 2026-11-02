@@ -21,7 +21,7 @@ public sealed class StudioSessionStorageVisualTests {
             var services = ((App)Application.Current!).Services;
             services.Preferences.Update(current => current with { Theme = dark ? StudioThemePreference.Dark : StudioThemePreference.Light });
             string source = Path.Combine(services.Paths.Root, "session-storage.pdf");
-            PdfDocument.Create(builder => builder.Page(page => page.Size(600, 800)
+            PdfDocument.Create(builder => builder.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800))
                 .Content(content => content.Text("The open document remains available during a storage failure.")))).Save(source);
             byte[] original = File.ReadAllBytes(source);
             var window = new MainWindow(services) { Width = width, Height = height };

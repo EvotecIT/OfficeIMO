@@ -10,7 +10,8 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 internal static partial class PdfBenchmarkValidation {
     // This validates the fixed report's existing parsed tag objects, not arbitrary PDF syntax.
     private static void ValidateHtmlLogicalSourceOrder(byte[] bytes, PdfBenchmarkScenario scenario, string engine) {
-        PdfReadDocument source = PdfReadDocument.Open(bytes);
+        using var sourceStream = new MemoryStream(bytes, writable: false);
+        using PdfDocument source = PdfDocument.Load(sourceStream);
         PdfTaggedContentInfo tagged = source.TaggedContent
             ?? throw new InvalidDataException($"{engine} has no report structure tree.");
         int objectLimit = checked(1024 + scenario.PageCount * (scenario.RowsPerPage + 1) * 64);

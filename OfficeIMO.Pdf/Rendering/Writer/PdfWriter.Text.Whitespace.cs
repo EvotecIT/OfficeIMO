@@ -77,7 +77,7 @@ internal static partial class PdfWriter {
             // A literal space can straddle a frame edge. Its remainder has the
             // same font/decorations and only the advance that this fragment owns.
             runs.Add(BuildTextRunFromWrappedSegment(" ", spaceStyle, preserveFootnote: false).WithCharacterSpacing(
-                segment.CharacterSpacing + segment.LeadingSpaceRemainder - segment.LeadingSpaceUnitAdvance));
+                global::OfficeIMO.OfficeLength.Points(segment.CharacterSpacing + segment.LeadingSpaceRemainder - segment.LeadingSpaceUnitAdvance)));
         }
     }
 }

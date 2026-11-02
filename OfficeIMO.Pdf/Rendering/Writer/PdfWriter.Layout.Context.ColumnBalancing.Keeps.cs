@@ -28,13 +28,13 @@ internal static partial class PdfWriter {
             double spacingAfter, double available, IList<IPdfBlock> blocks, int blockIndex, bool keepsNext,
             int minimumTailLines, ref int take, ref double heightSum) {
             if (!keepsNext || ReservesWholeKeepGroup() || take == 0 || lineIndex + take != lineCount) return;
-            double nextHeight = MeasureCurrentFrameKeepNextHeight(blocks, blockIndex + 1, currentOpts.MarginLeft,
-                width, currentOpts.DefaultFontSize, heightSum + spacingAfter);
+            double nextHeight = MeasureCurrentFrameKeepNextHeight(blocks, blockIndex + 1, currentOpts.MarginLeft.ToPoints(),
+                width, currentOpts.DefaultFontSize.ToPoints(), heightSum + spacingAfter);
             int tail = Math.Min(take, Math.Max(1, minimumTailLines));
             double tailHeight = lineHeights.Skip(lineCount - tail).Sum();
             double groupHeight = tailHeight + spacingAfter + nextHeight;
             if (nextHeight <= .001D || heightSum + spacingAfter + nextHeight <= available + .001D ||
-                groupHeight > GetCurrentFramePageStartY() - currentOpts.MarginBottom + .001D) return;
+                groupHeight > GetCurrentFramePageStartY() - currentOpts.MarginBottom.ToPoints() + .001D) return;
             take -= tail;
             heightSum -= tailHeight;
         }

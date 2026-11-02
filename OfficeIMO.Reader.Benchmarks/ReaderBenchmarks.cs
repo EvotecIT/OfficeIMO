@@ -170,10 +170,10 @@ public class ReaderMarkdownPipelineBenchmarks {
     }
 
     [Benchmark]
-    public MarkdownParseResult ParseWithSyntaxTreeAndTables() => MarkdownReader.ParseWithSyntaxTree(_markdown);
+    public MarkdownParseInfo ParseWithSyntaxTreeAndTables() => MarkdownDocument.Parse(_markdown).ParseInfo!;
 
     [Benchmark]
-    public MarkdownParseResult ParseWithSyntaxTreeWithoutTables() => MarkdownReader.ParseWithSyntaxTree(_markdownWithoutTables);
+    public MarkdownParseInfo ParseWithSyntaxTreeWithoutTables() => MarkdownDocument.Parse(_markdownWithoutTables).ParseInfo!;
 
     [Benchmark]
     public ReaderChunk[] ReadHeadingAndTableChunks() =>

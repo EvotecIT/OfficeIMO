@@ -7,13 +7,13 @@ internal static partial class PdfWriter {
         private double GetRunningBodyContinuationReservation() {
             double height = 0D;
             foreach (ContainerRenderScope scope in activeContainerScopes)
-                height += scope.Style.GetFragmentTopPadding(isContinuation: true) + scope.Style.FragmentBottomInset;
+                height += scope.Style.GetFragmentTopPadding(isContinuation: true) + scope.Style.FragmentBottomInset.ToPoints();
             return height;
         }
 
-        private (double X, double Width, double ReservedHeight) GetRunningBodyContinuationFrame(PdfOptions source, int sequenceDepth) {
-            double frameX = source.MarginLeft;
-            double frameWidth = source.PageWidth - source.MarginLeft - source.MarginRight;
+        private (double X, double Width, double ReservedHeight) GetRunningBodyContinuationFrame(PdfCreateOptions source, int sequenceDepth) {
+            double frameX = source.MarginLeft.ToPoints();
+            double frameWidth = source.PageWidth.ToPoints() - source.MarginLeft.ToPoints() - source.MarginRight.ToPoints();
             double reserved = 0D;
             foreach (ContainerRenderScope scope in activeContainerScopes) {
                 int ownerDepth = 0;
@@ -22,13 +22,13 @@ internal static partial class PdfWriter {
                 reserved += scope.Style.GetFragmentTopPadding(isContinuation: true);
                 if (ownerDepth <= sequenceDepth) {
                     var frame = ResolveContainerFrame(scope.Container, scope.Style, frameX, frameWidth);
-                    frameX = frame.X + scope.Style.PaddingX;
+                    frameX = frame.X + scope.Style.PaddingX.ToPoints();
                     frameWidth = frame.ContentWidth;
-                    reserved += scope.Style.FragmentBottomInset;
+                    reserved += scope.Style.FragmentBottomInset.ToPoints();
                 } else {
                     // An exhausted leaf resumes and closes before the first
                     // pending ancestor sibling; its width no longer applies.
-                    reserved += scope.Style.BottomPadding + scope.Style.SpacingAfter;
+                    reserved += scope.Style.BottomPadding + scope.Style.SpacingAfter.ToPoints();
                 }
             }
             return (frameX, frameWidth, reserved);

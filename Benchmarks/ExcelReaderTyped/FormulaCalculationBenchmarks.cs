@@ -19,12 +19,12 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             _expected.Clear();
             _calculated = -1;
             _document = ExcelDocument.Create();
-            var products = _document.AddWorksheet("Products");
+            var products = _document.AddSheet("Products");
             for (int p = 1; p <= 200; p++) {
                 products.CellValue(p + 1, 1, "P" + p);
                 products.CellValue(p + 1, 2, "C" + p % 23);
             }
-            _orders = _document.AddWorksheet("Orders");
+            _orders = _document.AddSheet("Orders");
             int[] counts = new int[23];
             double[] sums = new double[23];
             for (int i = 1; i <= 1000; i++) {

@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents a conditional formatting rule parsed from a legacy BIFF worksheet.
     /// </summary>
-    public sealed class LegacyXlsConditionalFormatting {
+    internal sealed class LegacyXlsConditionalFormatting {
         /// <summary>
         /// Creates a parsed legacy XLS conditional formatting rule.
         /// </summary>
@@ -82,7 +82,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies a supported legacy conditional formatting rule type.
     /// </summary>
-    public enum LegacyXlsConditionalFormattingType {
+    internal enum LegacyXlsConditionalFormattingType {
         /// <summary>
         /// Cell value comparison rule.
         /// </summary>
@@ -97,7 +97,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies a legacy conditional formatting comparison operator.
     /// </summary>
-    public enum LegacyXlsConditionalFormattingOperator {
+    internal enum LegacyXlsConditionalFormattingOperator {
         /// <summary>Between two bounds.</summary>
         Between,
         /// <summary>Not between two bounds.</summary>

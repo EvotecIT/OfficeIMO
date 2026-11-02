@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ModernChart_RemovedWrapperCannotMutateReusedDataAllocation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             ExcelModernChart removed = sheet.AddModernChart(
                 new ExcelChartData(
                     new[] { "A" },
@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
                 new[] { "Changed" },
                 new[] { new ExcelChartSeries("Value", new[] { 99d }) })));
             Assert.Throws<InvalidOperationException>(() => removed.SetTitle("Changed"));
-            Assert.Throws<InvalidOperationException>(() => removed.SetPlacement(2, 2, 300, 200));
+            Assert.Throws<InvalidOperationException>(() => removed.SetPlacement(2, 2, OfficeLength.Pixels(300), OfficeLength.Pixels(200)));
             Assert.Throws<InvalidOperationException>(() => removed.Name = "Changed");
 
             ExcelSheet dataSheet = document[liveRange.SheetName];
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaSearch_ExcludesLetAndLambdaBoundCalls() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellFormula(1, 1, "LET(SUM,LAMBDA(x,x),SUM(1))");
             sheet.CellFormula(2, 1, "LAMBDA(SUM,SUM(1))(LAMBDA(x,x))");
             sheet.CellFormula(3, 1, "SUM(1)");
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_SynchronizeQueryTableFields() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ExcelQueryBackedTableInfo source = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "StructuralQuery",
                 WorksheetName = sheet.Name,

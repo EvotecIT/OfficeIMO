@@ -9,7 +9,7 @@ public static class OfficeTextIntegrityReportSerializer {
     /// <summary>Exports immutable findings and selected indices; source changes are rejected by the review owner.</summary>
     public static string Serialize(OfficeTextIntegrityReview review, string currentText, string sourceName,
         IEnumerable<int>? selectedIndices = null) {
-        ArgumentNullException.ThrowIfNull(review);
+        if (review == null) throw new ArgumentNullException(nameof(review));
         int[] selected = (selectedIndices ?? Array.Empty<int>()).Distinct().OrderBy(index => index).ToArray();
         _ = review.RemoveSelected(currentText, selected);
         var document = new TextIntegrityDocument("officeimo.text-integrity.result.v1", sourceName, "Completed", "UTF-16 code units",

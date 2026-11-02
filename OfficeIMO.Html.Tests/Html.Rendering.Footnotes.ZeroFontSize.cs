@@ -32,7 +32,7 @@ public sealed partial class HtmlRenderingTests {
         AssertFootnoteDestinations(visuals, 1);
         AssertFootnoteDestinations(visuals, 2);
 
-        string pdfText = OfficeIMO.Pdf.PdfReadDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions(options))).ExtractText();
+        string pdfText = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream((document.ToPdf(new HtmlToPdfOptions(options))).ToBytes())).ExtractText();
         Assert.DoesNotContain("HIDDEN", pdfText, StringComparison.Ordinal);
         Assert.Contains("PositiveNote", pdfText, StringComparison.Ordinal);
         Assert.Equal(noteStyle.Length > 0, pdfText.Contains("ZeroNote", StringComparison.Ordinal));
@@ -53,7 +53,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(14D, Assert.Single(text, item => item.Text == "Restored").Font.Size);
         Assert.DoesNotContain(text, item => item.Text.Contains("HIDDEN", StringComparison.Ordinal));
         AssertFootnoteDestinations(visuals, 1);
-        string pdfText = OfficeIMO.Pdf.PdfReadDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions(options))).ExtractText();
+        string pdfText = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream((document.ToPdf(new HtmlToPdfOptions(options))).ToBytes())).ExtractText();
         Assert.Contains("Restored", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain("HIDDEN", pdfText, StringComparison.Ordinal);
     }
@@ -85,7 +85,7 @@ public sealed partial class HtmlRenderingTests {
         if (imageMarker) Assert.True(visuals.OfType<HtmlRenderImage>().Count() >= 2);
         else Assert.Empty(visuals.OfType<HtmlRenderImage>());
         AssertFootnoteDestinations(visuals, 1);
-        string pdfText = OfficeIMO.Pdf.PdfReadDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions(options))).ExtractText();
+        string pdfText = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream((document.ToPdf(new HtmlToPdfOptions(options))).ToBytes())).ExtractText();
         Assert.Contains("Note12", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain("HIDDEN_MARKER", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain("cont.", pdfText, StringComparison.Ordinal);
@@ -106,7 +106,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(text, item => item.Text.Contains("HIDDEN", StringComparison.Ordinal));
         Assert.All(text, item => Assert.True(item.Font.Size > 0D));
         AssertFootnoteDestinations(visuals, 1);
-        string pdfText = OfficeIMO.Pdf.PdfReadDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions(options))).ExtractText();
+        string pdfText = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream((document.ToPdf(new HtmlToPdfOptions(options))).ToBytes())).ExtractText();
         Assert.Contains("Restored", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain("HIDDEN", pdfText, StringComparison.Ordinal);
     }

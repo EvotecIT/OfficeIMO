@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_PartialFormulaRecalculation_KeepsFailedCachedFormulasDirty() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Calc");
+            ExcelSheet sheet = document.AddSheet("Calc");
             sheet.CellValue(1, 1, 1d);
             sheet.CellFormula(1, 2, "A1+1");
             sheet.CellFormula(1, 3, "UNSUPPORTED(A1)");
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_ModernChartSnapshots_WaitForWorkbookWriter() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             ExcelModernChart authored = sheet.AddModernChart(
                 new ExcelChartData(
                     new[] { "A" },

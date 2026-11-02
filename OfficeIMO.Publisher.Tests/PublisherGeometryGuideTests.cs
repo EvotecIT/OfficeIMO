@@ -154,7 +154,7 @@ public sealed class PublisherGeometryGuideTests {
         Assert.Throws<OfficeConversionException>(() => svg.RequireNoLoss());
         var pdf = publication.ToPdfDocumentResult();
         Assert.Contains(publication.ReadReport, pdf.SourceConversionReports);
-        Assert.Equal(publication.Pages.Count, PdfReadDocument.Open(pdf.ToBytes()).Pages.Count);
+        Assert.Equal(publication.Pages.Count, PdfDocument.Load(new System.IO.MemoryStream(pdf.ToBytes())).Pages.Count);
         Assert.NotEmpty(publication.TextStories);
     }
 

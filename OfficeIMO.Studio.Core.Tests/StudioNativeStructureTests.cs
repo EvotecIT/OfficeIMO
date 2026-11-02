@@ -21,7 +21,7 @@ public sealed class StudioNativeStructureTests : IDisposable {
         string path = Path.Combine(_root, name);
         PdfDocument.Create(document => {
             foreach (string text in pages)
-                document.Page(page => page.Size(400, 300).Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(text)))));
+                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300)).Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(text)))));
         }).Save(path);
         return path;
     }
@@ -177,10 +177,10 @@ public sealed class StudioNativeStructureTests : IDisposable {
     [Fact]
     public async Task Tagged_document_resize_capability_matches_the_operation() {
         string path = Path.Combine(_root, "tagged.pdf");
-        PdfDocument.Create(document => document.Page(page => page.Size(400, 300)
+        PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300))
             .Content(content => content.Column(column => column.Item().Paragraph(paragraph => paragraph.Text("Tagged page"))))),
-            new PdfOptions().EnableTaggedPdfCatalogMarkers()).Save(path);
-        Assert.True(PdfDocument.Preflight(File.ReadAllBytes(path)).DocumentInfo!.HasTaggedContent);
+            new PdfCreateOptions().EnableTaggedPdfCatalogMarkers()).Save(path);
+        Assert.True(PdfDocument.Load(path).Inspect().HasTaggedContent);
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
         Assert.True((await document.GetInfoAsync(default)).CanMutatePages);
         StudioNativeStructure structure = await document.GetStructureAsync(default);
@@ -193,8 +193,8 @@ public sealed class StudioNativeStructureTests : IDisposable {
     public async Task Flattening_draws_the_form_into_its_pages() {
         string path = Path.Combine(_root, "form.pdf");
         File.WriteAllBytes(path, PdfDocument.Create(document => document.Content(content => content.Canvas(canvas => {
-            canvas.TextField("Name", "Alex", 72, 72, 200, 24);
-            canvas.CheckBox("Subscribe", true, 72, 120, 16, 16);
+            canvas.TextField("Name", "Alex", global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(24));
+            canvas.CheckBox("Subscribe", true, global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(16), global::OfficeIMO.OfficeLength.Points(16));
         }))).ToBytes());
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
         StudioNativeStructure structure = await document.GetStructureAsync(default);
@@ -289,7 +289,7 @@ public sealed class StudioNativeStructureTests : IDisposable {
         // A one-pixel red PNG.
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC");
         string path = Path.Combine(_root, "images.pdf");
-        File.WriteAllBytes(path, PdfDocument.Create(document => document.Content(content => content.Image(png, 24, 24))).ToBytes());
+        File.WriteAllBytes(path, PdfDocument.Create(document => document.Content(content => content.Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24)))).ToBytes());
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
         string folder = Path.Combine(_root, "images");
 

@@ -3,12 +3,12 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Scaffolds a CONTRIBUTING.md skeleton.
 /// </summary>
-public static class ContributingScaffold {
+public static class MarkdownContributingScaffold {
     /// <summary>Builds a basic CONTRIBUTING document.</summary>
     /// <param name="projectName">Optional project name used in the intro sentence.</param>
-    public static MarkdownDoc Contributing(string? projectName = null) {
+    public static MarkdownDocument Contributing(string? projectName = null) {
         var name = string.IsNullOrWhiteSpace(projectName) ? "this project" : projectName;
-        var md = MarkdownDoc.Create()
+        var md = MarkdownDocument.Create()
             .H1("Contributing")
             .P($"Thanks for considering contributing to {name}!")
             .H2("How to contribute")

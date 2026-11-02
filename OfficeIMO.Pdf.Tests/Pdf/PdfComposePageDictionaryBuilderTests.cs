@@ -368,8 +368,8 @@ namespace OfficeIMO.Tests.Pdf {
                 Array.Empty<(string Name, int Id)>(),
                 Array.Empty<int>(),
                 printProductionPageBoxes: new PdfPrintProductionPageBoxes(
-                    PageMargins.Uniform(9D),
-                    PageMargins.Uniform(3D)));
+                    PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(9D)),
+                    PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(3D))));
 
             Assert.Contains("/TrimBox [9 9 603 783] /BleedBox [3 3 609 789]", page, StringComparison.Ordinal);
         }
@@ -377,8 +377,8 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void PageDictionaryBuilder_RejectsPrintProductionBoxCollapsedBySerialization() {
             var boxes = new PdfPrintProductionPageBoxes(
-                PageMargins.Uniform(49.9996D),
-                PageMargins.Uniform(0D));
+                PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(49.9996D)),
+                PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0D)));
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
                 PdfPageDictionaryBuilder.BuildGeneratedPageDictionary(
@@ -516,20 +516,20 @@ namespace OfficeIMO.Tests.Pdf {
 
             Assert.Equal(
                 "<< /Type /Annot /Subtype /Text /Rect [10 20.5 26 36.5] /Contents <52657669657720286C61796F757429> /Name /Key /C [1 0 0] /Open true >>\n",
-                PdfAnnotationDictionaryBuilder.BuildTextAnnotation(10, 20.5, 26, 36.5, "Review (layout)", PdfTextAnnotationIcon.Key, new PdfColor(1D, 0D, 0D), open: true));
+                PdfAnnotationDictionaryBuilder.BuildTextAnnotation(10, 20.5, 26, 36.5, "Review (layout)", PdfTextAnnotationIcon.Key, global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0D, 0D), open: true));
 
             Assert.Equal(
                 "<< /Type /Annot /Subtype /FreeText /Rect [10 20.5 110 44.25] /Contents <5265766965776572206E6F7465> /DA (/Helv 9.5 Tf 0 0 1 rg) /Border [0 0 0.75] /C [1 0 0] /IC [1 1 0.8] >>\n",
-                PdfAnnotationDictionaryBuilder.BuildFreeTextAnnotation(10, 20.5, 110, 44.25, "Reviewer note", 9.5, new PdfColor(0D, 0D, 1D), new PdfColor(1D, 0D, 0D), 0.75, new PdfColor(1D, 1D, 0.8D)));
+                PdfAnnotationDictionaryBuilder.BuildFreeTextAnnotation(10, 20.5, 110, 44.25, "Reviewer note", 9.5, global::OfficeIMO.OfficeColor.FromNormalizedRgb(0D, 0D, 1D), global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0D, 0D), 0.75, global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 1D, 0.8D)));
             string freeTextAppearance = PdfAnnotationDictionaryBuilder.BuildFreeTextAppearanceContent(
                 70,
                 48,
                 "Reviewer note wraps across words",
                 10,
-                new PdfColor(0D, 0D, 1D),
-                new PdfColor(1D, 0D, 0D),
+                global::OfficeIMO.OfficeColor.FromNormalizedRgb(0D, 0D, 1D),
+                global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0D, 0D),
                 0.75,
-                new PdfColor(1D, 1D, 0.8D),
+                global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 1D, 0.8D),
                 PdfAlign.Center,
                 4D,
                 11D);
@@ -539,7 +539,7 @@ namespace OfficeIMO.Tests.Pdf {
 
             Assert.Equal(
                 "<< /Type /Annot /Subtype /Highlight /Rect [10 20.5 110 44.25] /Contents <496D706F7274616E74> /C [1 0.9 0.1] /QuadPoints [10 44.25 110 44.25 10 20.5 110 20.5] >>\n",
-                PdfAnnotationDictionaryBuilder.BuildHighlightAnnotation(10, 20.5, 110, 44.25, "Important", new PdfColor(1D, 0.9D, 0.1D)));
+                PdfAnnotationDictionaryBuilder.BuildHighlightAnnotation(10, 20.5, 110, 44.25, "Important", global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0.9D, 0.1D)));
 
             Assert.Equal(
                 "<< /Type /Annot /Subtype /Widget /FT /Tx /T <506572736F6E2E4E616D65> /V <416461> /DV <416461> /Rect [10 20.5 110 44.25] /F 4 /DA (/Helv 10 Tf 0 0 0 rg) /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N 12 0 R >> >>\n",
@@ -911,7 +911,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void VisualResourceDictionaryBuilder_SamplesNonlinearPrintGradientTransform() {
-            var options = new PdfOptions().ConfigurePdfXGroundwork(
+            var options = new PdfCreateOptions().ConfigurePdfXGroundwork(
                 PdfComplianceProfile.PdfX4,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
                 "FOGRA51",

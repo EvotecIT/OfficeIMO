@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.Word;
 using OfficeIMO.Word.Pdf;
 using Xunit;
 using PdfCore = OfficeIMO.Pdf;
@@ -13,24 +14,24 @@ public partial class Word {
         Assert.NotEmpty(logical.ListItems);
         Assert.NotEmpty(logical.Tables);
 
-        AssertOmission(logical, new PdfToWordOptions { ImportHeadings = false }, "PdfHeadingsNotImported");
-        AssertOmission(logical, new PdfToWordOptions { ImportParagraphs = false }, "PdfParagraphsNotImported");
-        AssertOmission(logical, new PdfToWordOptions { ImportLists = false }, "PdfListsNotImported");
-        AssertOmission(logical, new PdfToWordOptions { ImportTables = false }, "PdfTablesNotImported");
+        AssertOmission(logical, new WordPdfImportOptions { ImportHeadings = false }, "pdf-headings-not-imported");
+        AssertOmission(logical, new WordPdfImportOptions { ImportParagraphs = false }, "pdf-paragraphs-not-imported");
+        AssertOmission(logical, new WordPdfImportOptions { ImportLists = false }, "pdf-lists-not-imported");
+        AssertOmission(logical, new WordPdfImportOptions { ImportTables = false }, "pdf-tables-not-imported");
     }
 
     [Fact]
     public void PdfSemanticImport_TablesOnlyReportsEveryDisabledTextFamily() {
         PdfCore.PdfDocumentReadResult logical = CreateLogicalDocumentWithAllSemanticFamilies();
-        PdfWordConversionResult result = logical.ToWordDocumentResult(PdfToWordOptions.CreateTablesOnly());
+        PdfWordConversionResult result = logical.ConvertToWordWithEvidence(WordPdfImportOptions.CreateTablesOnly());
 
         using (result.Value) {
             Assert.True(result.HasLoss);
             string[] warningCodes = result.Report.Warnings.Select(static warning => warning.Code).ToArray();
-            Assert.Contains("PdfHeadingsNotImported", warningCodes);
-            Assert.Contains("PdfParagraphsNotImported", warningCodes);
-            Assert.Contains("PdfListsNotImported", warningCodes);
-            Assert.Contains("PdfTextContentNotImported", warningCodes);
+            Assert.Contains("pdf-headings-not-imported", warningCodes);
+            Assert.Contains("pdf-paragraphs-not-imported", warningCodes);
+            Assert.Contains("pdf-lists-not-imported", warningCodes);
+            Assert.Contains("pdf-text-content-not-imported", warningCodes);
         }
     }
 
@@ -49,9 +50,9 @@ public partial class Word {
 
     private static void AssertOmission(
         PdfCore.PdfDocumentReadResult logical,
-        PdfToWordOptions options,
+        WordPdfImportOptions options,
         string warningCode) {
-        PdfWordConversionResult result = logical.ToWordDocumentResult(options);
+        PdfWordConversionResult result = logical.ConvertToWordWithEvidence(options);
         using (result.Value) {
             Assert.True(result.HasLoss);
             Assert.Contains(result.Report.Warnings, warning =>

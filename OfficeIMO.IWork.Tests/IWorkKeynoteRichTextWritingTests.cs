@@ -12,8 +12,8 @@ public sealed class IWorkKeynoteRichTextWritingTests {
             conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
-        using var saved = PowerPointPresentation.Load(output);
-        using var apple = PowerPointPresentation.Load(Fixture("keynote-created-rich-v15.4.pptx"));
+        using var saved = PowerPointDocument.Load(output);
+        using var apple = PowerPointDocument.Load(Fixture("keynote-created-rich-v15.4.pptx"));
         Assert.Equal(3, saved.Slides.Count);
         Assert.Empty(saved.ValidateDocument());
         Assert.Empty(saved.Slides[2].TextBoxes);
@@ -27,13 +27,13 @@ public sealed class IWorkKeynoteRichTextWritingTests {
             Assert.Equal(oracle.Select(r => r.Italic), actual.Select(r => r.Italic));
             Assert.Equal(oracle.Select(r => r.Underline), actual.Select(r => r.Underline));
             Assert.Equal(oracle.Select(r => r.Strikethrough), actual.Select(r => r.Strikethrough));
-            Assert.Equal(oracle.Select(r => r.FontSizePoints), actual.Select(r => r.FontSizePoints));
+            Assert.Equal(oracle.Select(r => r.FontSize), actual.Select(r => r.FontSize));
             // Apple's explicit typeface aliases and theme-backed Arial are separately
             // recorded in the independent range manifest and native font evidence.
-            Assert.Equal(expectedBox.Left, actualBox.Left);
-            Assert.Equal(expectedBox.Top, actualBox.Top);
-            Assert.Equal(expectedBox.Width, actualBox.Width);
-            Assert.Equal(expectedBox.Height, actualBox.Height);
+            Assert.Equal(expectedBox.Left.ToEmus(), actualBox.Left.ToEmus());
+            Assert.Equal(expectedBox.Top.ToEmus(), actualBox.Top.ToEmus());
+            Assert.Equal(expectedBox.Width.ToEmus(), actualBox.Width.ToEmus());
+            Assert.Equal(expectedBox.Height.ToEmus(), actualBox.Height.ToEmus());
         }
     }
 
@@ -56,7 +56,7 @@ public sealed class IWorkKeynoteRichTextWritingTests {
             conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         conversion.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); conversion.Value.Save(output); output.Position = 0;
-        using var reopened = PowerPointPresentation.Load(output);
+        using var reopened = PowerPointDocument.Load(output);
         Assert.Empty(reopened.ValidateDocument());
         Assert.Contains("reset", reopened.Slides[1].TextBoxes.Single().Text);
     }
@@ -94,7 +94,7 @@ public sealed class IWorkKeynoteRichTextWritingTests {
         conversion.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream();
         conversion.Value.Save(output); output.Position = 0;
-        using var reopened = PowerPointPresentation.Load(output);
+        using var reopened = PowerPointDocument.Load(output);
         Assert.Empty(reopened.ValidateDocument());
         PowerPointTextRun[] saved = Assert.Single(reopened.Slides[0].TextBoxes).Paragraphs
             .SelectMany(paragraph => paragraph.Runs).ToArray();
@@ -104,7 +104,7 @@ public sealed class IWorkKeynoteRichTextWritingTests {
         PowerPointTextRun savedReset = Assert.Single(saved, run => run.Text == " plain");
         Assert.False(savedReset.Bold); Assert.False(savedReset.Italic);
         Assert.False(savedReset.Underline); Assert.False(savedReset.Strikethrough);
-        Assert.Equal(24, savedReset.FontSize);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(24), savedReset.FontSize);
         Assert.Equal("000000", savedReset.Color);
         PowerPointTextRun savedLast = Assert.Single(saved, run => run.Text == "Italic");
         Assert.True(savedLast.Italic); Assert.False(savedLast.Bold);

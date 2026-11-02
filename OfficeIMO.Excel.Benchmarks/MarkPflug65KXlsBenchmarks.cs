@@ -27,9 +27,9 @@ public class MarkPflug65KXlsBenchmarks {
 
     [Benchmark]
     public ExcelReadObservation OfficeIMO() {
-        using DbDataReader reader = ExcelDocument.OpenDataReader(
+        using DbDataReader reader = ExcelDocument.OpenReader(
             MarkPflug65KFixture.XlsPath,
-            new ExcelReadOptions { NumericAsDecimal = true });
+            new ExcelReaderOptions { NumericAsDecimal = true });
         return Validate(nameof(OfficeIMO), MarkPflug65KXlsxBenchmarks.Observe(reader));
     }
 

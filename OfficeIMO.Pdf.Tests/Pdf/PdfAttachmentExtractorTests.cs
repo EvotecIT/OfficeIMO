@@ -70,7 +70,7 @@ public class PdfAttachmentExtractorTests {
 
     [Fact]
     public void GeneratedEmbeddedFileNameTreeSortsAttachmentNames() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .AttachFile("z.xml", Encoding.UTF8.GetBytes("<z />"), "application/xml", PdfAssociatedFileRelationship.Data)

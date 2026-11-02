@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes preserve-only CrtLayout12A plot-area layout metadata.
     /// </summary>
-    public sealed class LegacyXlsChartPlotAreaLayout12 {
+    internal sealed class LegacyXlsChartPlotAreaLayout12 {
         internal LegacyXlsChartPlotAreaLayout12(
             uint checksum,
             bool targetsInnerPlotArea,

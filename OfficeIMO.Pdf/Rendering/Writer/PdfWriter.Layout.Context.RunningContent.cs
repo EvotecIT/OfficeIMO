@@ -7,7 +7,7 @@ internal static partial class PdfWriter {
         private readonly RunningContentImageAssets runningAssets;
         private readonly IReadOnlyList<PageNumberInfo>? previousRunningPages;
         private readonly int previousDocumentPages;
-        private readonly Dictionary<(PdfOptions Source, double Top, double Bottom), PdfOptions> runningFrameOptions = new();
+        private readonly Dictionary<(PdfCreateOptions Source, double Top, double Bottom), PdfCreateOptions> runningFrameOptions = new();
         private double? runningFirstBodyHeight;
         private bool runningFirstBodyAllowsFooterOverlap;
         private bool runningFirstBodyAllowsExactOverflow;
@@ -40,7 +40,7 @@ internal static partial class PdfWriter {
             if (activeColumnFlow != null || currentPage?.RunningContentContext is not { } context) return height;
             int variant = currentOpts.GetHeaderFooterVariantPageNumber(context.SectionPageNumber, context.PageNumber);
             return currentOpts.GetRunningContentForPage(variant, isHeader: true)?.AllowTextFallback == true
-                ? height + Math.Max(0D, currentOpts.MarginTop - currentPageBaseOptions.MarginTop) : height;
+                ? height + Math.Max(0D, currentOpts.MarginTop.ToPoints() - currentPageBaseOptions.MarginTop.ToPoints()) : height;
         }
 
         // Imported Word pages can place one body line beside a tall footer even
@@ -48,12 +48,12 @@ internal static partial class PdfWriter {
         // Ordinary PDF flow and the physical body margins retain their bounds.
         private bool CanOverlapRunningFooterWithFirstLine(PdfParagraphStyle? style, double height) =>
             !isRunningContent && style?.AllowFirstLineOverlapWithRunningFooter == true && activeColumnFlow == null &&
-            currentOpts.MarginBottom > currentPageBaseOptions.MarginBottom + .001D &&
-            height <= GetCurrentFramePageStartY() - currentPageBaseOptions.MarginBottom + .001D;
+            currentOpts.MarginBottom.ToPoints() > currentPageBaseOptions.MarginBottom.ToPoints() + .001D &&
+            height <= GetCurrentFramePageStartY() - currentPageBaseOptions.MarginBottom.ToPoints() + .001D;
 
-        private PdfOptions GetRunningFrameOptions(PdfOptions source, double top, double bottom) {
+        private PdfCreateOptions GetRunningFrameOptions(PdfCreateOptions source, double top, double bottom) {
             var key = (source, top, bottom);
-            if (!runningFrameOptions.TryGetValue(key, out PdfOptions? frame)) {
+            if (!runningFrameOptions.TryGetValue(key, out PdfCreateOptions? frame)) {
                 frame = source.CreateRunningContentFrame(top, bottom);
                 runningFrameOptions.Add(key, frame);
             }
@@ -69,7 +69,7 @@ internal static partial class PdfWriter {
             int sectionPages = previousRunningPages != null && pages.Count < previousRunningPages.Count
                 ? previousRunningPages[pages.Count].SectionPages : sectionPage;
             return new PdfRunningContentContext(currentVisiblePageNumber, total, pages.Count + 1,
-                Math.Max(1, previousDocumentPages), sectionPage, sectionPages, width, currentOpts.PageWidth, currentOpts.PageHeight,
+                Math.Max(1, previousDocumentPages), sectionPage, sectionPages, width, currentOpts.PageWidth.ToPoints(), currentOpts.PageHeight.ToPoints(),
                 currentOpts.PageNumberStyle);
         }
 
@@ -88,7 +88,7 @@ internal static partial class PdfWriter {
             PdfRunningContent? header = currentOpts.GetRunningContentForPage(variant, isHeader: true);
             PdfRunningContent? footer = currentOpts.GetRunningContentForPage(variant, isHeader: false);
             if (header == null && footer == null) return;
-            PdfOptions source = currentOpts;
+            PdfCreateOptions source = currentOpts;
             IReadOnlyList<IPdfBlock>? headerBlocks = header == null ? null : MaterializeRunningContent(header, context);
             IReadOnlyList<IPdfBlock>? footerBlocks = footer == null ? null : MaterializeRunningContent(footer, context);
             bool usesPageContext = header?.UsesPageContext == true || footer?.UsesPageContext == true;
@@ -101,9 +101,9 @@ internal static partial class PdfWriter {
             if (fallbackFooter) footer = null;
             double headerHeight = measuredHeader ?? 0D;
             double footerHeight = measuredFooter ?? 0D;
-            double top = Exclusion(header, headerHeight, source.MarginTop);
-            double bottom = Exclusion(footer, footerHeight, source.MarginBottom);
-            if (header?.AllowTextFallback == true && top > source.MarginTop + .001D) {
+            double top = Exclusion(header, headerHeight, source.MarginTop.ToPoints());
+            double bottom = Exclusion(footer, footerHeight, source.MarginBottom.ToPoints());
+            if (header?.AllowTextFallback == true && top > source.MarginTop.ToPoints() + .001D) {
                 double? footerOverlapHeight;
                 double firstBodyHeight;
                 bool allowsExactOverflow;
@@ -117,17 +117,17 @@ internal static partial class PdfWriter {
                 // A supported imported paragraph can retain its header and put
                 // its first line beside the footer. Admission must use the same
                 // physical bottom bound as paragraph flow before dropping it.
-                bool fitsBesideFooter = footerOverlapHeight.HasValue && bottom > source.MarginBottom + .001D &&
-                    footerOverlapHeight.Value <= source.PageHeight - top - source.MarginBottom + .001D;
-                if (!allowsExactOverflow && !fitsBesideFooter && firstBodyHeight <= source.PageHeight - source.MarginTop - source.MarginBottom + .001D &&
-                    source.PageHeight - top - bottom + .001D < firstBodyHeight) {
+                bool fitsBesideFooter = footerOverlapHeight.HasValue && bottom > source.MarginBottom.ToPoints() + .001D &&
+                    footerOverlapHeight.Value <= source.PageHeight.ToPoints() - top - source.MarginBottom.ToPoints() + .001D;
+                if (!allowsExactOverflow && !fitsBesideFooter && firstBodyHeight <= source.PageHeight.ToPoints() - source.MarginTop.ToPoints() - source.MarginBottom.ToPoints() + .001D &&
+                    source.PageHeight.ToPoints() - top - bottom + .001D < firstBodyHeight) {
                     fallbackHeader = true;
                     header = null;
                     headerHeight = 0D;
-                    top = source.MarginTop;
+                    top = source.MarginTop.ToPoints();
                 }
             }
-            if (source.PageHeight - top - bottom <= .001D) {
+            if (source.PageHeight.ToPoints() - top - bottom <= .001D) {
                 // Ordinary imported stories retain styled text projections. Use
                 // them when this page's actual fields and opposite story leave
                 // no body frame; required native flow keeps its strict contract.
@@ -135,16 +135,16 @@ internal static partial class PdfWriter {
                     fallbackHeader = true;
                     header = null;
                     headerHeight = 0D;
-                    top = source.MarginTop;
+                    top = source.MarginTop.ToPoints();
                 }
                 if (footer?.AllowTextFallback == true) {
                     fallbackFooter = true;
                     footer = null;
                     footerHeight = 0D;
-                    bottom = source.MarginBottom;
+                    bottom = source.MarginBottom.ToPoints();
                 }
             }
-            if (source.PageHeight - top - bottom <= .001D)
+            if (source.PageHeight.ToPoints() - top - bottom <= .001D)
                 throw new InvalidOperationException("Running PDF content must leave a positive body content frame.");
             // A fallback is local to this page and variant. Never remove a
             // definition from the shared source or cached geometry frames.
@@ -158,18 +158,18 @@ internal static partial class PdfWriter {
             // measured body frame, but draw projected text from its original
             // physical margin, without mutating shared or cached options.
             if (retainHeaderProjection) {
-                currentOpts.HeaderOffsetY += top - source.MarginTop;
+                currentOpts.HeaderOffsetY += global::OfficeIMO.OfficeLength.Points(top - source.MarginTop.ToPoints());
             }
             if (retainFooterProjection) {
-                currentOpts.FooterOffsetY += bottom - source.MarginBottom;
+                currentOpts.FooterOffsetY += global::OfficeIMO.OfficeLength.Points(bottom - source.MarginBottom.ToPoints());
             }
             currentPage!.Options = currentOpts;
             currentPage.RunningContentContext = context;
             currentPage.HasDynamicRunningContent = usesPageContext;
-            yStart = source.PageHeight - top;
+            yStart = source.PageHeight.ToPoints() - top;
             y = yStart;
             if (header != null && (headerHeight > 0D || headerHasNonFlowTablePaint))
-                RenderRunningContent(source, headerBlocks!, source.PageHeight - header.DistanceFromEdge, headerHeight,
+                RenderRunningContent(source, headerBlocks!, source.PageHeight.ToPoints() - header.DistanceFromEdge, headerHeight,
                     isHeader: true, headerHasNonFlowTablePaint);
             if (footer != null && (footerHeight > 0D || footerHasNonFlowTablePaint))
                 RenderRunningContent(source, footerBlocks!, footer.DistanceFromEdge + footerHeight, footerHeight,
@@ -180,7 +180,7 @@ internal static partial class PdfWriter {
                     : Math.Max(physicalMargin, content.DistanceFromEdge + height + content.BodyGap);
         }
 
-        private double MeasureRunningContentFirstBodyHeight(PdfOptions source, out double? footerOverlapHeight, out bool allowsExactOverflow) {
+        private double MeasureRunningContentFirstBodyHeight(PdfCreateOptions source, out double? footerOverlapHeight, out bool allowsExactOverflow) {
             double? firstVisualFooterOverlapHeight = null;
             bool firstVisualAllowsExactOverflow = false;
             footerOverlapHeight = null;
@@ -212,7 +212,7 @@ internal static partial class PdfWriter {
                     if (block is BookmarkBlock or RunningContentSectionBlock or ColumnBreakBlock) continue;
                     if (block is PageBreakBlock) return 0D;
                     if (block is PageBlock page) return FirstVisual(page.Blocks, frameX, frameWidth, closingPadding) ?? 0D;
-                    double height = MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, source.DefaultFontSize,
+                    double height = MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, source.DefaultFontSize.ToPoints(),
                         allowTableFragments: true, suppressParagraphSpacingBefore: true);
                     if (height <= .001D && block is ContainerBlock or SpacerBlock) continue;
                     double paragraphClosingPadding = 0D;
@@ -224,14 +224,14 @@ internal static partial class PdfWriter {
                         }
                         if (closesSequence) {
                             paragraphClosingPadding = closingPadding;
-                            height = MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, source.DefaultFontSize,
+                            height = MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, source.DefaultFontSize.ToPoints(),
                                 allowTableFragments: true, suppressParagraphSpacingBefore: true, closingPadding: closingPadding);
                         }
                     }
                     if (activeColumnFlow == null && block is RichParagraphBlock paragraph &&
                         EffectiveParagraphStyle(paragraph)?.AllowFirstLineOverlapWithRunningFooter == true)
                         firstVisualFooterOverlapHeight = MeasureParagraphFirstVisual(paragraph, frameX, frameWidth,
-                            source.DefaultFontSize, suppressSpacingBefore: true, closingPadding: paragraphClosingPadding,
+                            source.DefaultFontSize.ToPoints(), suppressSpacingBefore: true, closingPadding: paragraphClosingPadding,
                             reserveSingleLine: true).Height;
                     firstVisualAllowsExactOverflow = CanOverflowImportedExactFirstBlock(block);
                     return height;
@@ -244,16 +244,16 @@ internal static partial class PdfWriter {
             }
         }
 
-        private double? MeasureRunningContent(PdfOptions source, PdfRunningContent definition, IReadOnlyList<IPdfBlock> blocks,
+        private double? MeasureRunningContent(PdfCreateOptions source, PdfRunningContent definition, IReadOnlyList<IPdfBlock> blocks,
             bool isHeader, out bool hasNonFlowTablePaint) {
             hasNonFlowTablePaint = false;
             if (blocks.Count == 0) return 0D;
-            double start = source.PageHeight - definition.DistanceFromEdge;
+            double start = source.PageHeight.ToPoints() - definition.DistanceFromEdge;
             if (start <= 0D) {
                 if (definition.AllowTextFallback) return null;
                 throw new InvalidOperationException("Running PDF content starts outside the page.");
             }
-            PdfOptions frame = GetRunningFrameOptions(source, definition.DistanceFromEdge, 0D);
+            PdfCreateOptions frame = GetRunningFrameOptions(source, definition.DistanceFromEdge, 0D);
             using var measure = new LayoutContext(frame, cancellationToken: cancellationToken,
                 sharedPageContents: pageContents, isRunningContent: true,
                 drawingPatternAnnotations: drawingPatternAnnotations, pictureAnchors: pictureAnchors);
@@ -262,7 +262,7 @@ internal static partial class PdfWriter {
             measure.yStart = start;
             measure.y = start;
             measure.SetPictureStory(isHeader ? "Header" : "Footer", PicturePage, start);
-            double? height = measure.MeasureBlockSequence(blocks, frame.MarginLeft, width, frame.DefaultFontSize);
+            double? height = measure.MeasureBlockSequence(blocks, frame.MarginLeft.ToPoints(), width, frame.DefaultFontSize.ToPoints());
             hasNonFlowTablePaint = measure.measuredNonFlowTablePaint;
             if (!height.HasValue) {
                 if (definition.AllowTextFallback) return null;
@@ -280,14 +280,14 @@ internal static partial class PdfWriter {
             return reservedHeight;
         }
 
-        private void RenderRunningContent(PdfOptions source, IReadOnlyList<IPdfBlock> blocks, double start, double height,
+        private void RenderRunningContent(PdfCreateOptions source, IReadOnlyList<IPdfBlock> blocks, double start, double height,
             bool isHeader, bool hasNonFlowTablePaint) {
             // Match the existing continuation tolerance: exact sums can differ by a
             // floating-point ulp when the final paragraph is tested for available room.
             // Overlay tables paint below the unchanged flow cursor. Let that
             // paint use the physical page while the final y check still enforces
             // the measured flow reservation. Ordinary stories keep their frame.
-            PdfOptions frame = GetRunningFrameOptions(source, source.PageHeight - start,
+            PdfCreateOptions frame = GetRunningFrameOptions(source, source.PageHeight.ToPoints() - start,
                 hasNonFlowTablePaint ? 0D : Math.Max(0D, start - height - .001D));
             using var story = new LayoutContext(frame, cancellationToken: cancellationToken,
                 sharedPageContents: pageContents, isRunningContent: true,
@@ -313,8 +313,8 @@ internal static partial class PdfWriter {
             usedBold |= story.usedBold;
             usedItalic |= story.usedItalic;
             usedBoldItalic |= story.usedBoldItalic;
-            sb.Append("q\n0 0 ").Append(source.PageWidth.ToString("0.###", CultureInfo.InvariantCulture)).Append(' ')
-                .Append(source.PageHeight.ToString("0.###", CultureInfo.InvariantCulture)).Append(" re W n\n")
+            sb.Append("q\n0 0 ").Append(source.PageWidth.ToPoints().ToString("0.###", CultureInfo.InvariantCulture)).Append(' ')
+                .Append(source.PageHeight.ToPoints().ToString("0.###", CultureInfo.InvariantCulture)).Append(" re W n\n")
                 .Append("/Artifact << /Type /Pagination /Subtype /").Append(isHeader ? "Header" : "Footer")
                 .Append(" >> BDC\n").Append(story.sb).Append("EMC\nQ\n");
             // Running stories make a page printable but do not belong to its

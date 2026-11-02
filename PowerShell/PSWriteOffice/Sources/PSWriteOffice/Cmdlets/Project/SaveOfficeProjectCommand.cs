@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Project;
 ///   <summary>Saves a project through the qualified native codec with loss protection.</summary>
 ///   <code>$project | Save-OfficeProject -Path ./delivery.mpp</code>
 /// </example>
-[Cmdlet(VerbsData.Save, "OfficeProject", SupportsShouldProcess = true)]
+[Cmdlet(VerbsData.Save, "OfficeProject", SupportsShouldProcess = true, DefaultParameterSetName = "Document")]
 [OutputType(typeof(ProjectDocument))]
 public sealed class SaveOfficeProjectCommand : PSCmdlet {
     /// <summary>Project to inspect or change.</summary>

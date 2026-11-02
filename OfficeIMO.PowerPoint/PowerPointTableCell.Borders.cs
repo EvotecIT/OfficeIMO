@@ -5,11 +5,11 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.PowerPoint;
 
 public partial class PowerPointTableCell {
-    private static void ValidateBorderStyle(PowerPointTableCellBorders borders, string color, double? widthPoints) {
+    internal static void ValidateBorderStyle(PowerPointTableCellBorders borders, string color, OfficeLength? width) {
         if ((borders & ~(PowerPointTableCellBorders.All | PowerPointTableCellBorders.Diagonals)) != 0)
             throw new ArgumentOutOfRangeException(nameof(borders));
         if (string.IsNullOrWhiteSpace(color)) throw new ArgumentException("Border color cannot be null or empty.", nameof(color));
-        if (widthPoints.HasValue) PowerPointShape.ToDrawingLineWidth(widthPoints.Value, nameof(widthPoints));
+        if (width.HasValue) PowerPointShape.ToDrawingLineWidth(width.Value, nameof(width));
     }
 
     /// <summary>Explicitly hides the selected borders, overriding inherited table styling.

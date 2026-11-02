@@ -39,7 +39,7 @@ public sealed class ExcelLegacyNativePreservationTests {
         using var reloaded = ExcelDocument.Load(new MemoryStream(saved));
         Assert.Equal(value, reloaded.Sheets[0].CellAt(1, 1).GetValue<string>());
         document.Sheets[0].CellValue(1, 1, "Second preserving edit");
-        using var second = ExcelDocument.Load(new MemoryStream(document.ToBytes(ExcelFileFormat.Xls)));
+        using var second = ExcelDocument.Load(new MemoryStream(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls })));
         Assert.Equal("Second preserving edit", second.Sheets[0].CellAt(1, 1).GetValue<string>());
     }
 
@@ -50,7 +50,7 @@ public sealed class ExcelLegacyNativePreservationTests {
         var nativeCell = nativeSheet.Cells.First(cell => cell.Kind == LegacyXlsCellValueKind.Number && !cell.IsFormula);
         using var document = ExcelDocument.Load(Fixture);
         document.Sheets.First(sheet => sheet.Name == nativeSheet.Name).CellValue(nativeCell.Row, nativeCell.Column, 1.25D);
-        using var saved = ExcelDocument.Load(new MemoryStream(document.ToBytes(ExcelFileFormat.Xls)));
+        using var saved = ExcelDocument.Load(new MemoryStream(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls })));
         Assert.True(saved.Sheets.First(sheet => sheet.Name == nativeSheet.Name).TryGetCellText(nativeCell.Row, nativeCell.Column, out string text));
         Assert.Equal("1.25", text);
     }
@@ -61,7 +61,7 @@ public sealed class ExcelLegacyNativePreservationTests {
         var source = LegacyXlsWorkbook.Load(Fixture);
         string value = (string)source.Worksheets.SelectMany(sheet => sheet.Cells).First(cell => cell.Kind == LegacyXlsCellValueKind.Text && !cell.IsFormula && cell.TextFormattingRuns.Count == 0 && cell.Value is string text && text.Length > 0 && text != "Inert preservation control").Value!;
         document.Sheets[0].CellValue(1, 1, value);
-        byte[] bytes = document.ToBytes(ExcelFileFormat.Xls);
+        byte[] bytes = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         using var saved = ExcelDocument.Load(new MemoryStream(bytes));
         Assert.Equal(value, saved.Sheets[0].CellAt(1, 1).GetValue<string>());
         Assert.True(OfficeCompoundFileReader.TryRead(File.ReadAllBytes(Fixture), out OfficeCompoundFile? before, out string? error), error);
@@ -165,7 +165,7 @@ public sealed class ExcelLegacyNativePreservationTests {
         byte[] malformed = OfficeCompoundFileWriter.Rewrite(compound, new Dictionary<string, byte[]> { ["Workbook"] = workbook.ToArray() });
         using var result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(malformed));
         Assert.True(result.HasDocument);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-SST-SHORT");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "xls-biff-sst-short");
     }
 
     [Theory]

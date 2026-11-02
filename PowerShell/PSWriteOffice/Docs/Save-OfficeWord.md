@@ -6,34 +6,58 @@ schema: 2.0.0
 ---
 # Save-OfficeWord
 ## SYNOPSIS
-Saves a Word document without disposing it.
+Saves a live Word document without closing it.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
-Save-OfficeWord [-Document] <WordDocument> [-Path <string>] [-Open] [-Password <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Save-OfficeWord [-Document] <WordDocument> [-Path <string>] [-Password <securestring>] [-AllowLoss] [-Show] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Use Close-OfficeWord -Save when you want to save and dispose the document.
+Uses the supplied path or associated destination. Omitted Password preserves loaded encryption. PassThru returns the saved FileInfo. The document must use explicit persistence.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $doc | Save-OfficeWord
+Save-OfficeWord -Document $document -Path ./Report.docx -PassThru
+            Close-OfficeWord -Document $document
 ```
 
-Persists pending changes and keeps the document open.
+
+### EXAMPLE 2
+```powershell
+$document = Open-OfficeWord -Path ./Protected.docx -Password (Read-Host -AsSecureString)
+$document | Save-OfficeWord
+$document | Close-OfficeWord
+```
+
 
 ## PARAMETERS
 
+### -AllowLoss
+Explicitly accept reported native-save reductions.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Document
-Document to save.
+Live Word document to save.
 
 ```yaml
 Type: WordDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -44,28 +68,12 @@ Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -Open
-Open the document after saving.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: Show
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -PassThru
-Emit the document object for further processing.
+Return the saved FileInfo.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -77,11 +85,11 @@ Accept wildcard characters: False
 ```
 
 ### -Password
-Password used to save the document as an encrypted package.
+Override the output password; omission preserves the document's loaded encryption.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
+Type: SecureString
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -93,12 +101,28 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Optional save-as path.
+Optional new destination; omission uses the associated path.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
-Aliases: FilePath
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Show
+Open the saved file in its registered default application.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Document
+Aliases: None
 Possible values:
 
 Required: False
@@ -117,7 +141,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Word.WordDocument`
+- `System.IO.FileInfo`
 
 ## RELATED LINKS
 

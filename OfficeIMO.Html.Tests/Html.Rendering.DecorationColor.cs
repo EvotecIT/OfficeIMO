@@ -25,9 +25,9 @@ public sealed partial class HtmlRenderingTests {
         string svg = Encoding.UTF8.GetString(
             HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, renderOptions).Bytes);
         var pdfOptions = new HtmlToPdfOptions(renderOptions) {
-            PdfOptions = new OfficeIMO.Pdf.PdfOptions { CompressContentStreams = false }
+            PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions { CompressContentStreams = false }
         };
-        string pdf = Encoding.ASCII.GetString(HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions));
+        string pdf = Encoding.ASCII.GetString((HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes());
 
         Assert.Equal(OfficeColor.Blue, text.Color);
         Assert.Equal(OfficeColor.Red, text.DecorationColor);

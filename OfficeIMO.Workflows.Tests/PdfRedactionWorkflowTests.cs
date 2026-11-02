@@ -206,6 +206,7 @@ public sealed partial class PdfRedactionWorkflowTests {
             InputPath = input,
             Recipe = recipe
         });
+        Assert.True(planned.Succeeded, string.Join(Environment.NewLine, planned.Diagnostics.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message)));
         var decisions = new PdfRedactionDecisionManifest {
             SourceSha256 = planned.SourceSha256,
             RecipeSha256 = planned.RecipeSha256,
@@ -214,18 +215,24 @@ public sealed partial class PdfRedactionWorkflowTests {
         using var validator = new BlockingExternalValidator();
         using var cancellation = new CancellationTokenSource();
 
-        Task<PdfRedactionWorkflowResult> running = runner.RunRedactionAsync(new PdfRedactionWorkflowRequest {
+        // The external validator is synchronous. File I/O may also finish synchronously,
+        // so let the cancelling thread remain free even if no await yields before validation.
+        Task<PdfRedactionWorkflowResult> running = Task.Run(() => runner.RunRedactionAsync(new PdfRedactionWorkflowRequest {
             Mode = PdfRedactionWorkflowMode.ApplyAndVerify,
             InputPath = input,
             OutputPath = output,
             Recipe = recipe,
             Decisions = decisions,
             ExternalValidators = { validator }
-        }, cancellationToken: cancellation.Token);
+        }, cancellationToken: cancellation.Token));
 
-        Assert.True(validator.WaitUntilStarted(TimeSpan.FromSeconds(10)), "The independent validator did not start.");
-        cancellation.Cancel();
-        PdfRedactionWorkflowResult result = await running;
+        PdfRedactionWorkflowResult result;
+        try {
+            Assert.True(validator.WaitUntilStarted(TimeSpan.FromSeconds(10)), "The independent validator did not start.");
+        } finally {
+            cancellation.Cancel();
+            result = await running.WaitAsync(TimeSpan.FromSeconds(30));
+        }
 
         Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
         Assert.False(File.Exists(output));
@@ -454,7 +461,7 @@ public sealed partial class PdfRedactionWorkflowTests {
             Mode = PdfRedactionWorkflowMode.ApplyAndVerify,
             InputPath = input,
             OutputPath = output,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+            ConflictPolicy = OfficePublicationPolicy.Replace,
             Recipe = recipe,
             Decisions = new PdfRedactionDecisionManifest {
                 SourceSha256 = plan.SourceSha256,
@@ -653,7 +660,7 @@ public sealed partial class PdfRedactionWorkflowTests {
             EvidencePath = input,
             Recipe = recipe,
             Decisions = decisions,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            ConflictPolicy = OfficePublicationPolicy.Replace
         });
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
@@ -676,6 +683,7 @@ public sealed partial class PdfRedactionWorkflowTests {
             InputPath = input,
             Recipe = firstRecipe
         });
+        Assert.True(first.Succeeded, string.Join(Environment.NewLine, first.Diagnostics.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message)));
         PdfRedactionWorkflowCandidate candidate = Assert.Single(first.Candidates);
 
         Assert.Equal("account-id", candidate.RuleName);
@@ -799,6 +807,9 @@ public sealed partial class PdfRedactionWorkflowTests {
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
         Assert.False(result.PublishedAtomically);
         Assert.Equal(2, result.Items.Count);
+        Assert.True(result.Items.Any(static item => item.Succeeded),
+            string.Join(Environment.NewLine, result.Items.SelectMany(item => item.Diagnostics)
+                .Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message)));
         Assert.Single(result.Items, static item => item.Succeeded);
         Assert.Single(result.Items, static item => !item.Succeeded);
         Assert.True(File.Exists(Path.Combine(evidenceRoot, "good.redaction.json")));

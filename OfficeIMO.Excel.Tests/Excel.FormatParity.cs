@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         public void Test_FormulaDepth_RoundTripsAcrossPhysicalFormats(ExcelFileFormat format) {
             byte[] bytes;
             using (ExcelDocument document = ExcelDocument.Create()) {
-                ExcelSheet sheet = document.AddWorksheet("Depth");
+                ExcelSheet sheet = document.AddSheet("Depth");
                 sheet.CellValue(4, 1, 1d);
                 sheet.CellFormula(3, 1, "A4+1");
                 sheet.CellFormula(2, 1, "A3+1");

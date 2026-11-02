@@ -30,7 +30,7 @@ public static class VisioDocumentModelExtensions {
             Title = document.Title,
             Author = document.Author
         };
-        VisioInspectionSnapshot snapshot = document.CreateInspectionSnapshot(operation.MaxTableRows);
+        VisioInspectionSnapshot snapshot = document.Inspect(operation.MaxTableRows);
         OfficeDocumentModelBlock[] blocks = BuildBlocks(snapshot, logicalSourceName).ToArray();
         OfficeDocumentModelTable[] tables = BuildTables(snapshot, logicalSourceName, operation.MaxTableRows).ToArray();
         VisioPage[] orderedPages = GetSnapshotOrderedPages(document, snapshot).ToArray();

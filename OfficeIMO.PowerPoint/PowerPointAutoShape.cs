@@ -25,12 +25,13 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Sets the outline color (and optional width in points) and returns the shape for chaining.
+        ///     Sets the outline color (and optional physical width) and returns the shape for chaining.
         /// </summary>
-        public PowerPointAutoShape Stroke(string color, double? widthPoints = null) {
+        public PowerPointAutoShape Stroke(string color, OfficeLength? width = null) {
+            if (width.HasValue) ToDrawingLineWidth(width.Value, nameof(width));
             OutlineColor = color;
-            if (widthPoints != null) {
-                OutlineWidthPoints = widthPoints;
+            if (width.HasValue) {
+                OutlineWidth = width;
             }
             return this;
         }

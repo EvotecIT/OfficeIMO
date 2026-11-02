@@ -32,7 +32,7 @@ internal static partial class NativeKeynoteWriterSmoke {
             conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
-        using var saved = PowerPointPresentation.Load(output);
+        using var saved = PowerPointDocument.Load(output);
         Require(saved.Slides.Count == 3 && !saved.ValidateDocument().Any()
             && saved.Slides[0].Tables.Single().GetCell(1, 2).Text == "1200.5"
             && saved.Slides[1].Tables.Single().GetCell(0, 0).Text == "A😀B\nZażółć — café",
@@ -62,7 +62,7 @@ internal static partial class NativeKeynoteWriterSmoke {
             && table.GetBorders(1, 2).Top is { Width: 2 } && table.GetBorders(3, 3).Top is { Width: 0 },
             "NativeAOT border inheritance, visibility or ordered shared edges differ.");
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         Require(!reopened.ValidateDocument().Any() && converted.Projection.SourceDeclarationIssues.Count == 0
             && converted.Projection.SourceReferenceIssues.Count == 0, "NativeAOT border PPTX or source qualification is incomplete.");
         Console.WriteLine("PASS | native Keynote table borders | native 15.4 source | inherited strokes, region visibility, ordered shared edits, disabled categories and saved/reopened PPTX");

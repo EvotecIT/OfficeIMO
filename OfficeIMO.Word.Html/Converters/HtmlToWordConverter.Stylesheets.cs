@@ -34,15 +34,15 @@ namespace OfficeIMO.Word.Html {
                     ParseCss(stylesheet.Value, url.Href);
                 }
             } catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested) {
-                AddDiagnostic(_options, "StylesheetLoadTimedOut", "Stylesheet resource timed out or was canceled by the resource pipeline and was skipped.", url.Href, ex);
+                AddDiagnostic(_options, "stylesheet-load-timed-out", "Stylesheet resource timed out or was canceled by the resource pipeline and was skipped.", url.Href, ex);
             } catch (OperationCanceledException) {
                 throw;
             } catch (HttpRequestException ex) {
-                AddDiagnostic(_options, "StylesheetTransportFailed", "Stylesheet resource could not be fetched and was skipped.", url.Href, ex);
+                AddDiagnostic(_options, "stylesheet-transport-failed", "Stylesheet resource could not be fetched and was skipped.", url.Href, ex);
             } catch (HtmlConversionLimitException) {
                 throw;
             } catch (Exception ex) {
-                AddDiagnostic(_options, "StylesheetLoadFailed", "Stylesheet resource could not be loaded and was skipped.", url.Href, ex);
+                AddDiagnostic(_options, "stylesheet-load-failed", "Stylesheet resource could not be loaded and was skipped.", url.Href, ex);
             }
         }
 
@@ -75,13 +75,13 @@ namespace OfficeIMO.Word.Html {
             using var request = new HttpRequestMessage(System.Net.Http.HttpMethod.Get, uri);
             using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode) {
-                AddDiagnostic(_options, "StylesheetHttpStatusRejected", "Stylesheet resource returned a non-success status and was skipped.", source, new HttpRequestException($"{(int)response.StatusCode} {response.StatusCode}"));
+                AddDiagnostic(_options, "stylesheet-http-status-rejected", "Stylesheet resource returned a non-success status and was skipped.", source, new HttpRequestException($"{(int)response.StatusCode} {response.StatusCode}"));
                 return null;
             }
 
             var contentType = response.Content.Headers.ContentType?.MediaType;
             if (!IsStylesheetContentTypeAllowed(contentType)) {
-                AddDiagnostic(_options, "StylesheetContentTypeRejected", "Stylesheet resource content type is not allowed and was skipped.", source, new HtmlResourceContentTypeException($"Stylesheet content type '{contentType}' is not allowed."));
+                AddDiagnostic(_options, "stylesheet-content-type-rejected", "Stylesheet resource content type is not allowed and was skipped.", source, new HtmlResourceContentTypeException($"Stylesheet content type '{contentType}' is not allowed."));
                 return null;
             }
 
@@ -92,10 +92,10 @@ namespace OfficeIMO.Word.Html {
             var readLimit = GetCssReadLimit();
             if (readLimit.Limit.HasValue && content.Headers.ContentLength.HasValue && content.Headers.ContentLength.Value > readLimit.Limit.Value) {
                 if (readLimit.LimitedByTotalBudget) {
-                    ThrowLimitExceeded(_options, "CssTotalSizeLimitExceeded", "Total CSS size exceeded the configured conversion limit.", source, _cssBytesUsed + content.Headers.ContentLength.Value, _options.MaxTotalCssBytes!.Value);
+                    ThrowLimitExceeded(_options, "css-total-size-limit-exceeded", "Total CSS size exceeded the configured conversion limit.", source, _cssBytesUsed + content.Headers.ContentLength.Value, _options.MaxTotalCssBytes!.Value);
                 }
 
-                ThrowLimitExceeded(_options, "CssSizeLimitExceeded", "CSS size exceeded the configured conversion limit.", source, content.Headers.ContentLength.Value, readLimit.Limit.Value);
+                ThrowLimitExceeded(_options, "css-size-limit-exceeded", "CSS size exceeded the configured conversion limit.", source, content.Headers.ContentLength.Value, readLimit.Limit.Value);
             }
 
             using var stream = await content.ReadAsStreamAsync().ConfigureAwait(false);
@@ -117,10 +117,10 @@ namespace OfficeIMO.Word.Html {
                 total += read;
                 if (readLimit.Limit.HasValue && total > readLimit.Limit.Value) {
                     if (readLimit.LimitedByTotalBudget) {
-                        ThrowLimitExceeded(_options, "CssTotalSizeLimitExceeded", "Total CSS size exceeded the configured conversion limit.", source, _cssBytesUsed + total, _options.MaxTotalCssBytes!.Value);
+                        ThrowLimitExceeded(_options, "css-total-size-limit-exceeded", "Total CSS size exceeded the configured conversion limit.", source, _cssBytesUsed + total, _options.MaxTotalCssBytes!.Value);
                     }
 
-                    ThrowLimitExceeded(_options, "CssSizeLimitExceeded", "CSS size exceeded the configured conversion limit.", source, total, readLimit.Limit.Value);
+                    ThrowLimitExceeded(_options, "css-size-limit-exceeded", "CSS size exceeded the configured conversion limit.", source, total, readLimit.Limit.Value);
                 }
 
                 memory.Write(buffer, 0, read);
@@ -138,10 +138,10 @@ namespace OfficeIMO.Word.Html {
                 var length = new FileInfo(path).Length;
                 if (length > readLimit.Limit.Value) {
                     if (readLimit.LimitedByTotalBudget) {
-                        ThrowLimitExceeded(_options, "CssTotalSizeLimitExceeded", "Total CSS size exceeded the configured conversion limit.", path, _cssBytesUsed + length, _options.MaxTotalCssBytes!.Value);
+                        ThrowLimitExceeded(_options, "css-total-size-limit-exceeded", "Total CSS size exceeded the configured conversion limit.", path, _cssBytesUsed + length, _options.MaxTotalCssBytes!.Value);
                     }
 
-                    ThrowLimitExceeded(_options, "CssSizeLimitExceeded", "CSS size exceeded the configured conversion limit.", path, length, readLimit.Limit.Value);
+                    ThrowLimitExceeded(_options, "css-size-limit-exceeded", "CSS size exceeded the configured conversion limit.", path, length, readLimit.Limit.Value);
                 }
             }
 
@@ -151,7 +151,7 @@ namespace OfficeIMO.Word.Html {
             } catch (DecoderFallbackException exception) {
                 AddDiagnostic(
                     _options,
-                    "StylesheetEncodingFailed",
+                    "stylesheet-encoding-failed",
                     "Stylesheet resource used an unsupported encoding or invalid byte sequence and was skipped.",
                     path,
                     exception);
@@ -161,13 +161,13 @@ namespace OfficeIMO.Word.Html {
 
         private bool TryApplyStylesheetUriPolicy(Uri uri, string source) {
             if (!IsStylesheetSchemeAllowed(uri.Scheme, out var detail)) {
-                AddDiagnostic(_options, "StylesheetResourceRejectedByPolicy", "Stylesheet resource was skipped because its URI is not allowed by the current stylesheet policy.", source, new HtmlResourcePolicyException(detail));
+                AddDiagnostic(_options, "stylesheet-resource-rejected-by-policy", "Stylesheet resource was skipped because its URI is not allowed by the current stylesheet policy.", source, new HtmlResourcePolicyException(detail));
                 return false;
             }
 
             if (!uri.IsFile && _options.AllowedStylesheetHosts.Count > 0 && !_options.AllowedStylesheetHosts.Contains(uri.Host)) {
                 detail = $"Stylesheet host '{uri.Host}' is not allowed.";
-                AddDiagnostic(_options, "StylesheetResourceRejectedByPolicy", "Stylesheet resource was skipped because its URI is not allowed by the current stylesheet policy.", source, new HtmlResourcePolicyException(detail));
+                AddDiagnostic(_options, "stylesheet-resource-rejected-by-policy", "Stylesheet resource was skipped because its URI is not allowed by the current stylesheet policy.", source, new HtmlResourcePolicyException(detail));
                 return false;
             }
 
@@ -179,7 +179,7 @@ namespace OfficeIMO.Word.Html {
                 return true;
             }
 
-            AddDiagnostic(_options, "StylesheetResourceRejectedByPolicy", "Stylesheet resource was skipped because its URI is not allowed by the current stylesheet policy.", source, new HtmlResourcePolicyException(detail));
+            AddDiagnostic(_options, "stylesheet-resource-rejected-by-policy", "Stylesheet resource was skipped because its URI is not allowed by the current stylesheet policy.", source, new HtmlResourcePolicyException(detail));
             return false;
         }
 
@@ -201,7 +201,7 @@ namespace OfficeIMO.Word.Html {
             return _options.AllowedStylesheetContentTypes.Contains(contentType!.Trim());
         }
 
-        private void ApplyClassStyle(IElement element, WordParagraph paragraph, HtmlToWordOptions options) {
+        private void ApplyClassStyle(IElement element, WordParagraph paragraph, WordHtmlImportOptions options) {
             string? classAttr = element.GetAttribute("class");
             if (string.IsNullOrWhiteSpace(classAttr)) {
                 return;

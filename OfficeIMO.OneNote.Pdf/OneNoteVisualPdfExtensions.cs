@@ -24,7 +24,7 @@ public static class OneNoteVisualPdfExtensions {
     /// <summary>Writes a section as visual PDF and captures failure evidence; cancellation still throws.</summary>
     public static PdfCore.PdfSaveResult SaveAsVisualPdfResult(this OneNoteSection section, string path, OneNoteVisualPdfOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return section.ToVisualPdfDocumentResult(options, cancellationToken).SaveResult(path, cancellationToken); }
+        try { return section.ToVisualPdfDocumentResult(options, cancellationToken).TrySaveWithEvidence(path, cancellationToken); }
         catch (OperationCanceledException) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(path, exception); }
     }
@@ -36,7 +36,7 @@ public static class OneNoteVisualPdfExtensions {
     /// <summary>Converts synchronously, then asynchronously writes a section with structured failure evidence.</summary>
     public static async Task<PdfCore.PdfSaveResult> SaveAsVisualPdfResultAsync(this OneNoteSection section, string path, OneNoteVisualPdfOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return await section.ToVisualPdfDocumentResult(options, cancellationToken).SaveResultAsync(path, cancellationToken).ConfigureAwait(false); }
+        try { return await section.ToVisualPdfDocumentResult(options, cancellationToken).TrySaveWithEvidenceAsync(path, cancellationToken).ConfigureAwait(false); }
         catch (OperationCanceledException) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(path, exception); }
     }
@@ -48,7 +48,7 @@ public static class OneNoteVisualPdfExtensions {
     /// <summary>Writes a section as visual PDF and captures failure evidence; cancellation still throws.</summary>
     public static PdfCore.PdfSaveResult SaveAsVisualPdfResult(this OneNoteSection section, Stream stream, OneNoteVisualPdfOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return section.ToVisualPdfDocumentResult(options, cancellationToken).SaveResult(stream, cancellationToken); }
+        try { return section.ToVisualPdfDocumentResult(options, cancellationToken).TrySaveWithEvidence(stream, cancellationToken); }
         catch (OperationCanceledException) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(null, exception); }
     }
@@ -60,7 +60,7 @@ public static class OneNoteVisualPdfExtensions {
     /// <summary>Converts synchronously, then asynchronously writes a section with structured failure evidence.</summary>
     public static async Task<PdfCore.PdfSaveResult> SaveAsVisualPdfResultAsync(this OneNoteSection section, Stream stream, OneNoteVisualPdfOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return await section.ToVisualPdfDocumentResult(options, cancellationToken).SaveResultAsync(stream, cancellationToken).ConfigureAwait(false); }
+        try { return await section.ToVisualPdfDocumentResult(options, cancellationToken).TrySaveWithEvidenceAsync(stream, cancellationToken).ConfigureAwait(false); }
         catch (OperationCanceledException) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(null, exception); }
     }
@@ -95,7 +95,7 @@ public static class OneNoteVisualPdfExtensions {
     /// <summary>Writes a notebook as visual PDF and captures failure evidence; cancellation still throws.</summary>
     public static PdfCore.PdfSaveResult SaveAsVisualPdfResult(this OneNoteNotebook notebook, string path, OneNoteVisualPdfOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return notebook.ToVisualPdfDocumentResult(options, cancellationToken).SaveResult(path, cancellationToken); }
+        try { return notebook.ToVisualPdfDocumentResult(options, cancellationToken).TrySaveWithEvidence(path, cancellationToken); }
         catch (OperationCanceledException) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(path, exception); }
     }
@@ -107,7 +107,7 @@ public static class OneNoteVisualPdfExtensions {
     /// <summary>Converts synchronously, then asynchronously writes a notebook with structured failure evidence.</summary>
     public static async Task<PdfCore.PdfSaveResult> SaveAsVisualPdfResultAsync(this OneNoteNotebook notebook, string path, OneNoteVisualPdfOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return await notebook.ToVisualPdfDocumentResult(options, cancellationToken).SaveResultAsync(path, cancellationToken).ConfigureAwait(false); }
+        try { return await notebook.ToVisualPdfDocumentResult(options, cancellationToken).TrySaveWithEvidenceAsync(path, cancellationToken).ConfigureAwait(false); }
         catch (OperationCanceledException) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(path, exception); }
     }
@@ -119,7 +119,7 @@ public static class OneNoteVisualPdfExtensions {
     /// <summary>Writes a notebook as visual PDF and captures failure evidence; cancellation still throws.</summary>
     public static PdfCore.PdfSaveResult SaveAsVisualPdfResult(this OneNoteNotebook notebook, Stream stream, OneNoteVisualPdfOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return notebook.ToVisualPdfDocumentResult(options, cancellationToken).SaveResult(stream, cancellationToken); }
+        try { return notebook.ToVisualPdfDocumentResult(options, cancellationToken).TrySaveWithEvidence(stream, cancellationToken); }
         catch (OperationCanceledException) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(null, exception); }
     }
@@ -131,7 +131,7 @@ public static class OneNoteVisualPdfExtensions {
     /// <summary>Converts synchronously, then asynchronously writes a notebook with structured failure evidence.</summary>
     public static async Task<PdfCore.PdfSaveResult> SaveAsVisualPdfResultAsync(this OneNoteNotebook notebook, Stream stream, OneNoteVisualPdfOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return await notebook.ToVisualPdfDocumentResult(options, cancellationToken).SaveResultAsync(stream, cancellationToken).ConfigureAwait(false); }
+        try { return await notebook.ToVisualPdfDocumentResult(options, cancellationToken).TrySaveWithEvidenceAsync(stream, cancellationToken).ConfigureAwait(false); }
         catch (OperationCanceledException) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(null, exception); }
     }

@@ -15,9 +15,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.InvalidPngImage.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
+                ExcelSheet sheet = document.AddSheet("Images");
                 sheet.CellValue(1, 1, "Image");
-                sheet.AddImage(2, 1, CreatePngWithInvalidCrc(), "image/png", widthPixels: 12, heightPixels: 12, name: "InvalidPng");
+                sheet.AddImage(2, 1, CreatePngWithInvalidCrc(), new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(12),
+                    Height = OfficeIMO.OfficeLength.Pixels(12),
+                    Name = "InvalidPng"
+                });
                 document.Save();
             }
 
@@ -38,8 +43,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.InvalidImageDimensions.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
-                sheet.AddImage(1, 1, CreatePngWithLargeNonIhdrFirstChunk(), "image/png", widthPixels: 12, heightPixels: 12, name: "InvalidDimensions");
+                ExcelSheet sheet = document.AddSheet("Images");
+                sheet.AddImage(1, 1, CreatePngWithLargeNonIhdrFirstChunk(), new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(12),
+                    Height = OfficeIMO.OfficeLength.Pixels(12),
+                    Name = "InvalidDimensions"
+                });
                 document.Save();
             }
 
@@ -68,7 +78,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.MixedHeaderFormatting.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Headers");
+                ExcelSheet sheet = document.AddSheet("Headers");
                 sheet.CellValue(1, 1, "Report");
                 sheet.SetHeaderFooter(headerLeft: "&BTotal", headerCenter: "Page &P");
                 document.Save();
@@ -91,7 +101,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.UnsupportedHeaderFont.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Headers");
+                ExcelSheet sheet = document.AddSheet("Headers");
                 sheet.CellValue(1, 1, "Report");
                 sheet.SetHeaderFooter(headerCenter: "&\"UnmappedFont\"Report");
                 document.Save();
@@ -114,7 +124,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.FormulaOutsidePrintArea.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Report");
+                ExcelSheet sheet = document.AddSheet("Report");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "Alpha");
@@ -140,7 +150,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.HiddenRowFormulaCache.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Report");
+                ExcelSheet sheet = document.AddSheet("Report");
                 sheet.CellValue(1, 1, "Ready");
                 sheet.CellFormula(5, 1, "A1+1");
                 sheet.SetRowHidden(5, true);
@@ -163,7 +173,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.PrintTitleColumns.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Report");
+                ExcelSheet sheet = document.AddSheet("Report");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "North");

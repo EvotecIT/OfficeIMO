@@ -23,7 +23,7 @@ public sealed class StudioProviderDocumentTests {
         Assert.Single(workspace.Pages);
         await workspace.RedoAsync(default);
         await workspace.SaveAsync(null, default);
-        Assert.Equal(6, PdfDocument.Load(source.Bytes).Inspect().PageCount);
+        Assert.Equal(6, PdfDocument.Load(new System.IO.MemoryStream(source.Bytes)).Inspect().PageCount);
         Assert.Equal(first.Reads, first.ClosedReads);
         Assert.Equal(second.Reads, second.ClosedReads);
         Assert.Equal(0, first.Writes + second.Writes);
@@ -102,7 +102,7 @@ public sealed class StudioProviderDocumentTests {
         await workspace.SaveAsync(null, default);
         Assert.False(workspace.IsDirty);
         Assert.False(workspace.HasRecovery);
-        Assert.Equal(2, PdfDocument.Load(source.Bytes).Inspect().Pages.Count);
+        Assert.Equal(2, PdfDocument.Load(new System.IO.MemoryStream(source.Bytes)).Inspect().Pages.Count);
         Assert.Equal(source.Reads, source.ClosedReads);
         Assert.Equal(1, source.Writes);
         Assert.Equal(0, source.Disposals);
@@ -170,8 +170,8 @@ public sealed class StudioProviderDocumentTests {
         Assert.Equal(0, destination.Writes);
         allowed = true;
         await workspace.SaveAsync(output, default);
-        Assert.Single(PdfDocument.Load(source.Bytes).Inspect().Pages);
-        Assert.Equal(2, PdfDocument.Load(destination.Bytes).Inspect().Pages.Count);
+        Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(source.Bytes)).Inspect().Pages);
+        Assert.Equal(2, PdfDocument.Load(new System.IO.MemoryStream(destination.Bytes)).Inspect().Pages.Count);
         Assert.Equal(output, workspace.Path);
         Assert.False(workspace.IsDirty);
     }
@@ -304,8 +304,8 @@ public sealed class StudioProviderDocumentTests {
         var extracted = await workspace.ExtractAsync([2], extractedLocation, default,
             outputStream: storage.CreateWorkflowOutput(extractedLocation, new OfficeIMO.Workflows.OfficeWorkflowOutputRecoveryStore(Path.Combine(root.Path, "outputs"))));
         Assert.True(extracted.Succeeded, extracted.Summary);
-        Assert.Equal(2, PdfDocument.Load(protectedCopy.Bytes, new PdfLoadOptions { Password = "reader-password" }).Inspect().Pages.Count);
-        Assert.Single(PdfDocument.Load(extractedCopy.Bytes).Inspect().Pages);
+        Assert.Equal(2, PdfDocument.Load(new System.IO.MemoryStream(protectedCopy.Bytes), new PdfLoadOptions { Password = "reader-password" }).Inspect().Pages.Count);
+        Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(extractedCopy.Bytes)).Inspect().Pages);
         Assert.Equal(0, source.Writes);
         Assert.Equal(location, workspace.Path);
         Assert.False(workspace.IsDirty);
@@ -313,7 +313,7 @@ public sealed class StudioProviderDocumentTests {
 
     internal static byte[] CreatePdf(int count = 1) {
         var document = PdfDocument.Create(compose => {
-            for (int index = 0; index < count; index++) compose.Page(page => page.Size(300, 400));
+            for (int index = 0; index < count; index++) compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)));
         });
         using var stream = new MemoryStream();
         document.Save(stream);

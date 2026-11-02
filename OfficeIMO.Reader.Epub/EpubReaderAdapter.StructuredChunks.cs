@@ -83,7 +83,7 @@ internal static partial class EpubReaderAdapter {
         ReaderHtmlOptions htmlOptions,
         string sourcePath,
         EpubChapter chapter) {
-        HtmlToMarkdownOptions? markdownOptions = htmlOptions.HtmlToMarkdownOptions;
+        MarkdownHtmlImportOptions? markdownOptions = htmlOptions.HtmlToMarkdownOptions;
         if (markdownOptions == null) return;
 
         Func<string, string?> transform = value => ResolveEpubMarkdownReference(sourcePath, chapter, value);

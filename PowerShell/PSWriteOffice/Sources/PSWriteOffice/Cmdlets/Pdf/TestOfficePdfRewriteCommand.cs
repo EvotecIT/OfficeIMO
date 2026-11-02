@@ -5,7 +5,7 @@ using PSWriteOffice.Services.Pdf;
 namespace PSWriteOffice.Cmdlets.Pdf;
 
 /// <summary>Creates a proof report for user-visible signals preserved by a PDF rewrite.</summary>
-[Cmdlet(VerbsDiagnostic.Test, "OfficePdfRewrite")]
+[Cmdlet(VerbsDiagnostic.Test, "OfficePdfRewrite", DefaultParameterSetName = "Path")]
 [OutputType(typeof(PdfRewritePreservationReport))]
 public sealed class TestOfficePdfRewriteCommand : PSCmdlet
 {

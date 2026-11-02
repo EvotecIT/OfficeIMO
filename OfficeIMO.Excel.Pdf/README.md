@@ -14,6 +14,7 @@ dotnet add package OfficeIMO.Excel.Pdf
 ## Quick start
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
 
@@ -26,21 +27,22 @@ workbook.SaveAsPdf("report.pdf");
 ### Export selected sheets with worksheet print settings
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Pdf;
 
 using var workbook = ExcelDocument.Load("monthly-report.xlsx");
 
-var options = new ExcelToPdfOptions {
+var options = new ExcelPdfExportOptions {
     SheetNames = new[] { "Summary", "Revenue", "Costs" },
     UseWorksheetPrintAreas = true,
     UseWorksheetPageSetup = true,
     UseWorksheetHeadersAndFooters = true,
     UseWorksheetPageBreaks = true,
     UseWorksheetPrintTitleColumns = true,
-    PageSize = PageSizes.A4.Landscape(),
-    Margins = PageMargins.UniformCentimeters(1.2)
+    PageSize = PdfPageSizes.A4.Landscape(),
+    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Centimeters(1.2))
 };
 
 workbook.SaveAsPdf("monthly-report.pdf", options);
@@ -49,28 +51,31 @@ workbook.SaveAsPdf("monthly-report.pdf", options);
 ### Export a workbook to bytes or a stream
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
 
 using var workbook = ExcelDocument.Load("statement.xlsx");
 
-byte[] pdfBytes = workbook.ToPdfBytes();
+using var pdf = workbook.ToPdf();
+byte[] pdfBytes = pdf.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
 using var stream = File.Create("statement.pdf");
 workbook.SaveAsPdf(stream);
 ```
 
-PDF export admits at most 1,000,000 dense worksheet positions across its selected ranges by default, including empty positions inside sparse used ranges. Set `ExcelToPdfOptions.MaxMaterializedWorksheetCells` for a trusted workbook when the host has enough memory for a larger export. The converter rejects a range before reading it if the aggregate limit would be exceeded.
+PDF export admits at most 1,000,000 dense worksheet positions across its selected ranges by default, including empty positions inside sparse used ranges. Set `ExcelPdfExportOptions.MaxMaterializedWorksheetCells` for a trusted workbook when the host has enough memory for a larger export. The converter rejects a range before reading it if the aggregate limit would be exceeded.
 
 ### Surface mapping warnings
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Pdf;
 
 using var workbook = ExcelDocument.Load("dashboard.xlsx");
-var options = new ExcelToPdfOptions {
+var options = new ExcelPdfExportOptions {
     IncludeSheetHeadings = true,
     RespectWorksheetHiddenRowsAndColumns = true,
     UseWorksheetCharts = true
@@ -79,78 +84,32 @@ var options = new ExcelToPdfOptions {
 options.TextFallbacks = PdfTextFallbackFeatures.Default;
 options.ResourcePolicy = PdfResourcePolicy.CreateTrustedHost();
 
-var result = workbook.SaveAsPdfResult("dashboard.pdf", options);
-if (!result.Succeeded) {
-    foreach (string diagnostic in result.Diagnostics) {
-        Console.WriteLine(diagnostic);
-    }
+OfficeConversionReport report = workbook.SaveAsPdf("dashboard.pdf", options);
+foreach (OfficeDiagnostic finding in report.Diagnostics) {
+    Console.WriteLine($"{finding.Code}: {finding.Message}");
 }
-
-foreach (var warning in result.Warnings) {
-    Console.WriteLine($"{warning.Source}: {warning.Message}");
-}
-
-result.Report.RequireNoErrorWarnings();
 ```
-
-## Import structured PDF data
-
-```csharp
-using OfficeIMO.Excel.Pdf;
-using OfficeIMO.Pdf;
-
-PdfDocument pdf = PdfDocument.Load("statement.pdf");
-PdfExcelTableImportReport report = pdf.SaveTablesAsExcel("statement-tables.xlsx").RequireSuccess().Report!;
-
-foreach (var table in report.Entries) {
-    Console.WriteLine($"{table.SheetName}: page {table.PageNumber}");
-}
-
-Console.WriteLine($"Non-table page content detected: {report.HasOmittedPageContent}");
-```
-
-### Import only selected PDF pages
-
-```csharp
-using OfficeIMO.Excel.Pdf;
-using OfficeIMO.Pdf;
-
-PdfDocument pdf = PdfDocument.Load("bank-statement.pdf");
-PdfExcelTableImportReport report = pdf.SaveTablesAsExcel(
-    "bank-statement-q1.xlsx",
-    new PdfTablesToExcelOptions {
-        ReadOptions = new PdfReadOptions {
-            PageSelection = PdfPageSelection.Parse("1-3")
-        },
-        MaxRows = 250
-    }).RequireSuccess().Report!;
-
-Console.WriteLine($"Imported {report.Entries.Count} table(s).");
-report.RequireNoLoss(); // rejects row truncation and non-table page content
-```
-
-`ReadOptions` also exposes the canonical Fast/Structured profile and semantic work limits for large or deliberately bounded imports. It is ignored when the source is already a `PdfDocumentReadResult`.
-
-Tables without explicit header evidence retain all source rows, with generated Excel column names. If you have reviewed the source and confirmed its first row as headers, set `UseFirstRowAsHeader = true`. This applies to each logical table with unknown schema; tables with an established header keep their existing body boundary. The import excludes the confirmed header from type detection and `MaxRows`, and records the decision in `PdfExcelTableImportEntry.FirstRowUsedAsHeader`. Recognition results from [standalone images and scanned PDFs](../OfficeIMO.Pdf.Ocr/README.md) use this same importer.
-
-Set `PreserveColumnProportions = true` to retain the detected table's relative column widths, including quarter-turn tables. With the default `AutoFitColumns = true`, auto-fit supplies the total width and detected proportions determine each column's share. With `AutoFitColumns = false`, the total comes from worksheet default widths. If a mapped column would exceed Excel's 255-character width limit, one common scale reduces the total while retaining the proportions. The option is off by default. Missing or invalid geometry keeps the existing widths; `PdfExcelTableImportEntry.ColumnProportionsApplied` records whether the mapping succeeded. These widths use Excel character units and can leave individual values unfitted. They do not guarantee physical PDF dimensions, authored ruling boundaries, or exact printer geometry. PDF-to-ODS uses the same policy through the shared importer, with approximate spreadsheet unit conversion.
-
-Compatible table segments continue across adjacent pages by default. The shared PDF table analysis classifies Boolean, percentage, date-time, time-only, currency, numeric, and text columns with confidence; the import options decide which detected families become typed Excel cells. Consistent currency columns become decimal cells and retain their detected symbol or ISO 4217 code, prefix or suffix placement, source spacing, and each cell's visible fractional precision in the Excel number format. Mixed currency tokens or affix conventions remain text so the import does not silently normalize their meaning.
 
 ## What it maps
 
 - Workbook sheets, selected sheet lists, visible used ranges, print areas, page setup, margins, orientation, and worksheet page breaks.
+- A sheet without stored margins prints with Excel's Normal margins: 0.7 inch left and right, 0.75 inch top and bottom, and 0.3 inch header and footer margins. Header and footer text lines up with the sheet's left and right margins. `Margins` or explicit `PdfOptions` margins override this.
+- A single column wider than the printable width prints once, cut at the page edge, rather than continuing on another page.
 - Repeated print-title rows and columns, headers, footers, page/date/time/sheet/workbook tokens, and supported header/footer images.
 - Cell display values, common number formats, fills, font emphasis, alignment, borders, merged cells, links, row heights, column widths, conditional fills/data bars/icons, and table layout primitives. General alignment follows stored cell types: numeric and date values align right, Booleans align center, and text retains its text alignment. Boolean display uses `TRUE` and `FALSE`.
 - Numeric cell text uses the Excel owner's display formatter, including optional decimal placeholders, single-digit scientific mantissas with exponent sign/case/padding, percentage scaling, grouping, negative sections, quoted/escaped numeric literals, literal percent signs, and the `[Red]` format color. Stored numeric precision is preserved before formatting, including values immediately beside a fraction midpoint. Other format colors are not projected. Imported formats use at most four sections; extra sections do not affect display selection.
 - Text cells and text formula caches retain their text and font color, even when the text looks numeric and the cell has a numeric, date, or elapsed-time format.
 - Supported worksheet images and common chart snapshots through shared OfficeIMO drawing primitives.
-- Deterministic profile presets through `ExcelToPdfOptions.UseProfile(...)`. Applying a profile always resets the complete profile-owned option set, so reusing an options instance is history-independent.
+- Deterministic profile presets through `ExcelPdfExportOptions.UseProfile(...)`. Applying a profile always resets the complete profile-owned option set, so reusing an options instance is history-independent.
 - Shared `TextFallbacks` and `ResourcePolicy` controls for Unicode, symbols, emoji, and host-resource trust. The balanced default uses installed fonts while denying arbitrary local and remote reads; portable deterministic mode is explicit.
 - Source-faithful zero-options output: worksheet-name headings are opt-in through `IncludeSheetHeadings`.
-- Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
+- Per-operation conversion findings through `OfficeConversionReport.Diagnostics`.
 
 Worksheet print areas are exported separately, in their stored order, with each area starting on a new page. Both worksheet layouts honor local A1 cells and ranges, whole-row and whole-column selections, and multiple areas. Content outside the selected areas is excluded. Repeated title rows, first/even/odd headers and footers, and page numbering belong to the worksheet and continue across its areas. Internal links to a cell appearing in several areas target its first exported occurrence. Invalid or external print-area references are rejected instead of widening the selection to the used range.
+
+Worksheets print at the scale their page setup asks for: 100 % unless the sheet stores a manual scale or fit-to-page settings, as in Excel. Content wider or taller than a page is never shrunk silently. Cells continue on further pages, and a chart, picture or shape that crosses a page edge continues on the page that holds the following rows or columns; one that extends past the last row or column gets its own continuation pages.
+
+The worksheet canvas follows Excel's display rules for cell text. Text spills into empty neighbouring cells: left-aligned text to the right, right-aligned text to the left, centred text both ways. It stops at a cell that holds a value and never spills from wrapped, shrink-to-fit, rotated or merged cells. Without a print area, text in the last column can run on to the page edge. Numbers and dates never spill: a General number is rounded to the column width, and any other number or date that does not fit shows `####`. Rows without a stored height grow to fit their largest font and their wrapped text. Formulas saved without a cached result are calculated for the PDF without changing the workbook; formulas the built-in calculator cannot evaluate are exported blank and reported. A pivot table saved without its output cells is calculated from its cache in an in-memory copy, or reported when it cannot be.
 
 Worksheet fit-to-page mode includes retained image, chart, and shape extents before choosing page breaks, and defaults each omitted fit dimension to one page. A zero dimension leaves that axis unlimited. Manual scaling remains active when fit-to-page mode is disabled, even when the file retains cached fit dimensions.
 
@@ -175,6 +134,8 @@ Column character units use the workbook default font. When its registered named 
 `FlowTable` reflows cells into PDF tables and repeats title columns across requested horizontal chunks. Fit-to-height scales cell fonts, padding, and minimum row heights together. Rows can grow to retain their laid-out text, so this mode does not promise worksheet page counts.
 
 Print-title rows can start inside the print area. Canvas automatic pages and both layouts' manual row chunks repeat only title rows reached before the current body segment, including a break within a title block. Flow-table automatic continuation still repeats leading header rows; title rows starting later in a single flowing table are not repeated automatically.
+
+Tagged PDF output preserves structured-table header cells below titles or other worksheet content, including when worksheet cell styles are disabled or the table style is unknown. Only cells inside a source table's enabled header row receive column-header tags. This does not make those rows repeat or change their formatting.
 
 Manual row and column breaks also divide merged cells. Each fragment retains the original cell's full text box for wrapping and alignment, then clips it to that page. Flow-table cell images retain their full-cell placement and clip to each fragment; canvas images retain worksheet coordinates. Outer borders stay at the original merge edges. Diagonal borders retain their full-cell slope on the fragment containing the source anchor. Worksheet formatting keeps Excel's default bottom alignment when the source cell has no explicit alignment. Breaks on constrained fit axes still follow the fit settings.
 
@@ -213,7 +174,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Convert | 1 | 1 | 0 | 0 | 0 | 0 |
+| Convert | 1 | 2 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Excel.Pdf` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

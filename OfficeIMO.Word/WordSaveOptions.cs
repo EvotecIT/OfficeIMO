@@ -18,11 +18,29 @@ namespace OfficeIMO.Word {
     /// Optional behaviors applied during Word document save operations.
     /// </summary>
     public sealed class WordSaveOptions {
+        internal WordSaveOptions Clone() => (WordSaveOptions)MemberwiseClone();
         /// <summary>
         /// Controls saves of documents projected from legacy DOC files when known legacy-only
         /// content cannot be represented by the selected output format. The default blocks the save.
         /// </summary>
-        public OfficeConversionLossPolicy LossPolicy { get; set; } = OfficeConversionLossPolicy.Block;
+        public bool AllowLoss { get; set; }
+
+        internal OfficeConversionLossPolicy LossPolicy {
+            get => AllowLoss ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block;
+            set => AllowLoss = value == OfficeConversionLossPolicy.Allow;
+        }
+
+        /// <summary>Physical DOCX or DOC format for streams and byte output. Paths select their native format by extension.</summary>
+        public WordFileFormat Format { get; set; } = WordFileFormat.Docx;
+
+        private string? _password;
+        private bool _passwordSpecified;
+        /// <summary>Output password. An explicitly assigned null removes encryption; an unset value preserves loaded encryption.</summary>
+        public string? Password {
+            get => _password;
+            set { _password = value; _passwordSpecified = true; }
+        }
+        internal string? ResolvePassword(string? loadedPassword) => _passwordSpecified ? _password : loadedPassword;
 
         /// <summary>
         /// Gets or sets how save operations handle documents carrying digital-signature metadata.
@@ -37,7 +55,10 @@ namespace OfficeIMO.Word {
         internal WordSaveOptions WithLossPolicy(OfficeConversionLossPolicy lossPolicy) {
             return new WordSaveOptions {
                 LossPolicy = lossPolicy,
-                SignedDocumentPolicy = SignedDocumentPolicy
+                SignedDocumentPolicy = SignedDocumentPolicy,
+                Format = Format,
+                _password = _password,
+                _passwordSpecified = _passwordSpecified
             };
         }
     }

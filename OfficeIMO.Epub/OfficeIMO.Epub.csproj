@@ -47,7 +47,6 @@
     <Using Include="System.Xml" />
     <Using Include="System.Xml.Linq" />
   </ItemGroup>
-
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
     <Reference Include="System.IO.Compression" />
   </ItemGroup>

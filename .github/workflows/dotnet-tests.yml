@@ -344,7 +344,8 @@ jobs:
     name: 'Studio workflows and accessibility / ${{ matrix.os }} / ${{ matrix.slice }}'
     if: fromJSON(needs.changes.outputs.suites)['studio-contracts']
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    # A cold Windows engine build can consume 15 minutes before the workflow tests start.
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -1382,6 +1383,8 @@ jobs:
             if ci_project_selected "OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj"; then dotnet restore OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj; fi
             if ci_project_selected "OfficeIMO.DocBook.Tests/OfficeIMO.DocBook.Tests.csproj"; then dotnet restore OfficeIMO.DocBook.Tests/OfficeIMO.DocBook.Tests.csproj; fi
             if ci_project_selected "OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj"; then dotnet restore OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj; fi
+            if ci_project_selected "OfficeIMO.Html.Pdf.Browser.Tests/OfficeIMO.Html.Pdf.Browser.Tests.csproj"; then dotnet restore OfficeIMO.Html.Pdf.Browser.Tests/OfficeIMO.Html.Pdf.Browser.Tests.csproj; fi
+            if ci_project_selected "OfficeIMO.Project.Tests/OfficeIMO.Project.Tests.csproj"; then dotnet restore OfficeIMO.Project.Tests/OfficeIMO.Project.Tests.csproj; fi
             if ci_project_selected "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj"; then dotnet restore OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj; fi
             if ci_project_selected "OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj"; then dotnet restore OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj; fi
             if ci_project_selected "OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj"; then dotnet restore OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj; fi
@@ -1438,6 +1441,8 @@ jobs:
             if ci_project_selected "OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj"; then dotnet build OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
             if ci_project_selected "OfficeIMO.DocBook.Tests/OfficeIMO.DocBook.Tests.csproj"; then dotnet build OfficeIMO.DocBook.Tests/OfficeIMO.DocBook.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
             if ci_project_selected "OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj"; then dotnet build OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
+            if ci_project_selected "OfficeIMO.Html.Pdf.Browser.Tests/OfficeIMO.Html.Pdf.Browser.Tests.csproj"; then dotnet build OfficeIMO.Html.Pdf.Browser.Tests/OfficeIMO.Html.Pdf.Browser.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
+            if ci_project_selected "OfficeIMO.Project.Tests/OfficeIMO.Project.Tests.csproj"; then dotnet build OfficeIMO.Project.Tests/OfficeIMO.Project.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
             if ci_project_selected "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj"; then dotnet build OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
             if ci_project_selected "OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj"; then dotnet build OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
             if ci_project_selected "OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj"; then dotnet build OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
@@ -1608,6 +1613,7 @@ jobs:
               "OfficeIMO.Tests.MarkdownAllSeverityBatch12SecurityTests",
               "OfficeIMO.Tests.MarkdownAllSeverityBatch15SecurityTests",
               "OfficeIMO.Tests.MarkdownAllSeverityBatch21Tests",
+              "OfficeIMO.Markdown.Tests.WordMarkdownOutputAcceptanceTests",
           )
 
           unassigned = [name for name in discovered if not any(partition in name for partition in markdown_partitions)]
@@ -1633,7 +1639,7 @@ jobs:
               ;;
             markdown-suite)
               run_markdown_tests "markdown-suite" 'FullyQualifiedName~OfficeIMO.Tests.MarkdownSuite'
-              run_markdown_tests "markdown-named" 'FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlToMarkdownCompatibilityTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlToMarkdownTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlApiContracts|FullyQualifiedName~OfficeIMO.Tests.Markdown_|FullyQualifiedName~OfficeIMO.Tests.MarkdownTranscript|FullyQualifiedName~OfficeIMO.Tests.MarkdownReaderBomTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownBlankLinesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownDefinitionLinesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownOrderedListsTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownStreamingPreviewTests|FullyQualifiedName~OfficeIMO.Tests.Markdown_Renderer|FullyQualifiedName~OfficeIMO.Tests.Markdown_IntelligenceX|FullyQualifiedName~OfficeIMO.Tests.MarkdownAllSeverityBatch11SecurityTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownAllSeverityBatch12SecurityTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownAllSeverityBatch15SecurityTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownAllSeverityBatch21Tests'
+              run_markdown_tests "markdown-named" 'FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlToMarkdownCompatibilityTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlToMarkdownTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlApiContracts|FullyQualifiedName~OfficeIMO.Tests.Markdown_|FullyQualifiedName~OfficeIMO.Tests.MarkdownTranscript|FullyQualifiedName~OfficeIMO.Tests.MarkdownReaderBomTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownBlankLinesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownDefinitionLinesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownOrderedListsTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownStreamingPreviewTests|FullyQualifiedName~OfficeIMO.Tests.Markdown_Renderer|FullyQualifiedName~OfficeIMO.Tests.Markdown_IntelligenceX|FullyQualifiedName~OfficeIMO.Tests.MarkdownAllSeverityBatch11SecurityTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownAllSeverityBatch12SecurityTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownAllSeverityBatch15SecurityTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownAllSeverityBatch21Tests|FullyQualifiedName~OfficeIMO.Markdown.Tests.WordMarkdownOutputAcceptanceTests'
               ;;
             pdf-visual-inspector)
               export OFFICEIMO_REQUIRE_PDF_RASTERIZER=1
@@ -1674,6 +1680,8 @@ jobs:
               if ci_project_selected "OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj"; then dotnet test OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               if ci_project_selected "OfficeIMO.DocBook.Tests/OfficeIMO.DocBook.Tests.csproj"; then dotnet test OfficeIMO.DocBook.Tests/OfficeIMO.DocBook.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               if ci_project_selected "OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj"; then dotnet test OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
+              if ci_project_selected "OfficeIMO.Html.Pdf.Browser.Tests/OfficeIMO.Html.Pdf.Browser.Tests.csproj"; then dotnet test OfficeIMO.Html.Pdf.Browser.Tests/OfficeIMO.Html.Pdf.Browser.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --filter "Category!=Performance" --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
+              if ci_project_selected "OfficeIMO.Project.Tests/OfficeIMO.Project.Tests.csproj"; then dotnet test OfficeIMO.Project.Tests/OfficeIMO.Project.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --filter "Category!=Performance" --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               run_drawing_tests
               if ci_project_selected "OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj"; then dotnet test OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               run_googleworkspace_tests
@@ -2101,14 +2109,26 @@ jobs:
 
   aot-linux-scenarios:
     needs: changes
-    name: 'NativeAOT Linux / ${{ matrix.group }}'
+    name: 'NativeAOT Linux / ${{ matrix.label }}'
     if: needs.changes.outputs.full == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
-        group: [libraries, iwork, surfaces]
+        include:
+          - group: libraries
+            label: libraries
+            framework: ''
+          - group: iwork
+            label: iwork / net8.0
+            framework: net8.0
+          - group: iwork
+            label: iwork / net10.0
+            framework: net10.0
+          - group: surfaces
+            label: surfaces
+            framework: ''
     env:
       DOTNET_PROCESSOR_COUNT: 2
       MSBUILDDISABLENODEREUSE: 1
@@ -2148,7 +2168,7 @@ jobs:
       - name: Publish and run supported NativeAOT scenarios
         shell: bash
         run: |
-          # Each group starts on a fresh runner, separate from managed analysis.
+          # Each lane starts on a fresh runner; iWork frameworks keep separate native build budgets.
           sample_resources() {
             local sample_sleep_pid=''
             trap 'if [ -n "$sample_sleep_pid" ]; then kill "$sample_sleep_pid" 2>/dev/null || true; wait "$sample_sleep_pid" 2>/dev/null || true; fi; exit 0' TERM
@@ -2164,7 +2184,7 @@ jobs:
           sample_resources & native_sampler_pid=$!
           trap 'kill "$native_sampler_pid" 2>/dev/null || true; wait "$native_sampler_pid" 2>/dev/null || true' EXIT
           pwsh -NoProfile -File ./Build/Test-AotProjectCoverage.ps1 -JsonOutputPath ./artifacts/aot/project-matrix.json
-          pwsh -NoProfile -File ./Build/Test-AotScenarios.ps1 -RuntimeIdentifier linux-x64 -Configuration '${{ env.BUILD_CONFIGURATION }}' -ScenarioGroup '${{ matrix.group }}' -JsonOutputPath './artifacts/aot/linux-x64-${{ matrix.group }}.json'
+          pwsh -NoProfile -File ./Build/Test-AotScenarios.ps1 -RuntimeIdentifier linux-x64 -Configuration '${{ env.BUILD_CONFIGURATION }}' -ScenarioGroup '${{ matrix.group }}' -TargetFramework '${{ matrix.framework }}' -JsonOutputPath './artifacts/aot/linux-x64-${{ matrix.group }}${{ matrix.framework }}.json'
 
       - name: Report final Linux native build resources
         if: always()
@@ -2201,7 +2221,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: nativeaot-linux-x64-${{ matrix.group }}
+          name: nativeaot-linux-x64-${{ matrix.group }}${{ matrix.framework }}
           path: artifacts/aot/*.json
 
   aot-trim-analyzers:

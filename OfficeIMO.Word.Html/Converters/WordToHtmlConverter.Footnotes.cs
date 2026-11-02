@@ -8,7 +8,7 @@ namespace OfficeIMO.Word.Html {
         private static bool TryAppendNoteReference(
             IDocument htmlDoc,
             WordParagraph run,
-            WordToHtmlOptions options,
+            WordHtmlExportOptions options,
             bool processNotes,
             List<INode> nodes,
             List<(int Number, WordFootNote Note)> footnotes,
@@ -85,6 +85,37 @@ namespace OfficeIMO.Word.Html {
             return string.Equals(characterStyleId, HtmlSemanticStyleIds.BlockquoteCite, StringComparison.OrdinalIgnoreCase);
         }
 
+        /// <summary>
+        /// A paragraph is a quotation when its style says so, when it was imported from an HTML
+        /// blockquote, or when it has the quotation shape: a left indent with only a left rule
+        /// and no fill. Other indented paragraphs, including headings, stay paragraphs with margins.
+        /// </summary>
+        private static bool IsBlockQuoteParagraph(WordParagraph paragraph, int headingLevel) {
+            string? styleId = paragraph.StyleId;
+            if (!string.IsNullOrEmpty(styleId) &&
+                (string.Equals(styleId, "Quote", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(styleId, "IntenseQuote", StringComparison.OrdinalIgnoreCase))) {
+                return true;
+            }
+
+            if (HtmlSemanticMetadata.IsMarkedBlockquote(paragraph)) {
+                return true;
+            }
+
+            // An imported blockquote citation is stored as a cite-reference note and survives a save.
+            if (paragraph.IndentationBefore > OfficeLength.Zero && headingLevel == 0 && TryGetBlockquoteCiteAttribute(paragraph, out _)) {
+                return true;
+            }
+
+            if (headingLevel > 0 || !(paragraph.IndentationBefore > OfficeLength.Zero) || paragraph.IndentationAfter > OfficeLength.Zero) {
+                return false;
+            }
+
+            var borders = paragraph.Borders;
+            return borders.LeftStyle != null && borders.TopStyle == null && borders.RightStyle == null &&
+                borders.BottomStyle == null && string.IsNullOrEmpty(paragraph.ShadingFillColorHex);
+        }
+
         private static bool TryGetBlockquoteCiteAttribute(WordParagraph paragraph, out string cite) {
             if (HtmlSemanticMetadata.TryGetBlockquoteCite(paragraph, out cite)) {
                 return true;
@@ -135,7 +166,7 @@ namespace OfficeIMO.Word.Html {
         private static void DiscoverTransitiveNotes(
             List<(int Number, WordFootNote Note)> footnotes, Dictionary<long, int> footnoteMap,
             List<(int Number, WordEndNote Note)> endnotes, Dictionary<long, int> endnoteMap,
-            WordToHtmlOptions options, CancellationToken cancellationToken) {
+            WordHtmlExportOptions options, CancellationToken cancellationToken) {
             int footIndex = 0, endIndex = 0;
             while (footIndex < footnotes.Count || endIndex < endnotes.Count) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -201,7 +232,7 @@ namespace OfficeIMO.Word.Html {
             IDocument htmlDoc,
             IElement body,
             List<(int Number, WordFootNote Note)> footnotes,
-            WordToHtmlOptions options,
+            WordHtmlExportOptions options,
             CancellationToken cancellationToken, AppendWordParagraphHtml appendParagraph, Action resetParagraphFlow) {
             if (!options.ExportFootnotes || footnotes.Count == 0) {
                 return;
@@ -235,7 +266,7 @@ namespace OfficeIMO.Word.Html {
             IDocument htmlDoc,
             IElement body,
             List<(int Number, WordEndNote Note)> endnotes,
-            WordToHtmlOptions options,
+            WordHtmlExportOptions options,
             CancellationToken cancellationToken, AppendWordParagraphHtml appendParagraph, Action resetParagraphFlow) {
             if (!options.ExportEndnotes || endnotes.Count == 0) {
                 return;

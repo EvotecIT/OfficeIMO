@@ -44,7 +44,7 @@ public sealed class OfficeOutputWorkflowTests {
                 OutputDirectory = output,
                 Pages = "3,1",
                 Format = OfficeImageExportFormat.Png,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+                ConflictPolicy = OfficePublicationPolicy.Fail
             });
 
         Assert.True(result.Succeeded, result.Summary);
@@ -70,7 +70,7 @@ public sealed class OfficeOutputWorkflowTests {
             new PdfPageImageExportRequest {
                 InputPath = input,
                 OutputDirectory = output + Path.DirectorySeparatorChar,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+                ConflictPolicy = OfficePublicationPolicy.Fail
             });
 
         Assert.True(result.Succeeded, result.Summary);
@@ -107,7 +107,7 @@ public sealed class OfficeOutputWorkflowTests {
             new PdfPageImageExportRequest {
                 InputPath = input,
                 OutputDirectory = output,
-                Limits = new OfficeWorkflowLimits {
+                Limits = new OfficeOperationLimits {
                     MaximumInputBytes = 16L * 1024L * 1024L,
                     MaximumOutputBytes = 32L
                 }
@@ -140,7 +140,7 @@ public sealed class OfficeOutputWorkflowTests {
             new PdfPageImageExportRequest {
                 InputPath = input,
                 OutputDirectory = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                ConflictPolicy = OfficePublicationPolicy.Replace
             },
             progress,
             cancellation.Token);
@@ -185,7 +185,7 @@ public sealed class OfficeOutputWorkflowTests {
             new PdfPageImageExportRequest {
                 InputPath = input,
                 OutputDirectory = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                ConflictPolicy = OfficePublicationPolicy.Replace
             });
 
         Assert.True(result.Succeeded, result.Summary);
@@ -213,7 +213,7 @@ public sealed class OfficeOutputWorkflowTests {
             new PdfPageImageExportRequest {
                 InputPath = input,
                 OutputDirectory = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                ConflictPolicy = OfficePublicationPolicy.Replace
             });
 
         Assert.True(result.Succeeded, result.Summary);
@@ -240,7 +240,7 @@ public sealed class OfficeOutputWorkflowTests {
             new PdfPageImageExportRequest {
                 InputPath = input,
                 OutputDirectory = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                ConflictPolicy = OfficePublicationPolicy.Replace
             });
 
         Assert.True(result.Succeeded, result.Summary);
@@ -267,7 +267,7 @@ public sealed class OfficeOutputWorkflowTests {
             new PdfPageImageExportRequest {
                 InputPath = input,
                 OutputDirectory = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                ConflictPolicy = OfficePublicationPolicy.Replace
             });
 
         Assert.True(result.Succeeded, result.Summary);
@@ -292,7 +292,7 @@ public sealed class OfficeOutputWorkflowTests {
             new PdfPageImageExportRequest {
                 InputPath = input,
                 OutputDirectory = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                ConflictPolicy = OfficePublicationPolicy.Replace
             });
 
         Assert.True(result.Succeeded, result.Summary);
@@ -316,7 +316,7 @@ public sealed class OfficeOutputWorkflowTests {
             new PdfPageImageExportRequest {
                 InputPath = input,
                 OutputDirectory = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                ConflictPolicy = OfficePublicationPolicy.Replace
             });
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
@@ -342,12 +342,12 @@ public sealed class OfficeOutputWorkflowTests {
         Task<PdfPageImageExportResult> first = runner.ExportPdfPagesAsync(new PdfPageImageExportRequest {
             InputPath = firstInput,
             OutputDirectory = output,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            ConflictPolicy = OfficePublicationPolicy.Replace
         });
         Task<PdfPageImageExportResult> second = runner.ExportPdfPagesAsync(new PdfPageImageExportRequest {
             InputPath = secondInput,
             OutputDirectory = output,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            ConflictPolicy = OfficePublicationPolicy.Replace
         });
         PdfPageImageExportResult[] results = await Task.WhenAll(first, second);
 
@@ -373,7 +373,7 @@ public sealed class OfficeOutputWorkflowTests {
         PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
             Sources = [pdf, image, word],
             OutputPath = output,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            ConflictPolicy = OfficePublicationPolicy.Fail
         });
 
         Assert.True(result.Succeeded, result.Summary);
@@ -398,7 +398,7 @@ public sealed class OfficeOutputWorkflowTests {
             input,
             PdfDocument.Create(
                 compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Protected assembly"))))),
-                new PdfOptions().SetEncryption("open", "owner"))
+                new PdfCreateOptions().SetEncryption("open", "owner"))
                 .ToBytes());
         string output = Path.Combine(scope.Path, "assembled.pdf");
 
@@ -406,7 +406,7 @@ public sealed class OfficeOutputWorkflowTests {
             Sources = [input],
             OutputPath = output,
             PdfPassword = "open",
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            ConflictPolicy = OfficePublicationPolicy.Fail
         });
 
         Assert.True(result.Succeeded, result.Summary);
@@ -427,7 +427,7 @@ public sealed class OfficeOutputWorkflowTests {
         PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
             Sources = [folder],
             OutputPath = output,
-            OutputProfile = OfficeWorkflowOutputProfile.Lightweight
+            OutputProfile = OfficeConversionProfile.Lightweight
         });
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
@@ -461,14 +461,14 @@ public sealed class OfficeOutputWorkflowTests {
         PdfAssemblyResult folderOnly = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
             Sources = [folder],
             OutputPath = Path.Combine(scope.Path, "folder-only.pdf"),
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            ConflictPolicy = OfficePublicationPolicy.Fail
         });
         Assert.True(folderOnly.Succeeded, "Folder-only intake: " + folderOnly.Summary + " | " +
             string.Join("; ", folderOnly.Diagnostics.Select(static item => item.Code + ":" + item.Message)));
         PdfAssemblyResult archiveOnly = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
             Sources = [archivePath],
             OutputPath = Path.Combine(scope.Path, "archive-only.pdf"),
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            ConflictPolicy = OfficePublicationPolicy.Fail
         });
         Assert.True(archiveOnly.Succeeded, "Archive-only intake: " + archiveOnly.Summary);
 
@@ -476,7 +476,7 @@ public sealed class OfficeOutputWorkflowTests {
         PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
             Sources = [folder, archivePath],
             OutputPath = output,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            ConflictPolicy = OfficePublicationPolicy.Fail
         });
 
         Assert.True(result.Succeeded, result.Summary);
@@ -528,7 +528,7 @@ public sealed class OfficeOutputWorkflowTests {
         PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
             Sources = [archivePath],
             OutputPath = output,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail,
+            ConflictPolicy = OfficePublicationPolicy.Fail,
             Options = new PdfAssemblyOptions { IgnoreDiscoveredUnsupportedFiles = false }
         });
 
@@ -566,7 +566,7 @@ public sealed class OfficeOutputWorkflowTests {
         PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
             Sources = [folder],
             OutputPath = output,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail,
+            ConflictPolicy = OfficePublicationPolicy.Fail,
             Options = new PdfAssemblyOptions { IgnoreDiscoveredUnsupportedFiles = false }
         });
 
@@ -606,7 +606,7 @@ public sealed class OfficeOutputWorkflowTests {
             new PdfAssemblyRequest {
                 Sources = [folder],
                 OutputPath = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+                ConflictPolicy = OfficePublicationPolicy.Fail
             },
             new InlineProgress<OfficeWorkflowProgress>(update => {
                 if (removed || update.Stage != "normalize") return;
@@ -640,7 +640,7 @@ public sealed class OfficeOutputWorkflowTests {
             new PdfAssemblyRequest {
                 Sources = [folder],
                 OutputPath = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+                ConflictPolicy = OfficePublicationPolicy.Fail
             },
             new InlineProgress<OfficeWorkflowProgress>(update => {
                 if (removed || update.Stage != "normalize") return;
@@ -674,7 +674,7 @@ public sealed class OfficeOutputWorkflowTests {
             new PdfAssemblyRequest {
                 Sources = [htmlPath],
                 OutputPath = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Fail,
+                ConflictPolicy = OfficePublicationPolicy.Fail,
                 Options = new PdfAssemblyOptions { MaximumDiscoveredEntries = 1 }
             },
             new InlineProgress<OfficeWorkflowProgress>(update => {
@@ -706,7 +706,7 @@ public sealed class OfficeOutputWorkflowTests {
         PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
             Sources = [htmlPath],
             OutputPath = output,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail,
+            ConflictPolicy = OfficePublicationPolicy.Fail,
             Options = new PdfAssemblyOptions { MaximumDiscoveredEntries = 1 }
         });
 
@@ -722,7 +722,7 @@ public sealed class OfficeOutputWorkflowTests {
         Directory.CreateDirectory(folder);
         string htmlPath = Path.Combine(folder, "source.html");
         var html = new StringBuilder("<!doctype html><html><body>");
-        for (int index = 0; index <= OfficeWorkflowHtmlResourceResolver.MaximumReferencedResourceCount; index++) {
+        for (int index = 0; index <= OfficeHtmlResourceResolver.MaximumReferencedResourceCount; index++) {
             string fileName = $"image-{index}.png";
             html.Append("<img src='").Append(fileName).Append("'>");
             await File.WriteAllBytesAsync(Path.Combine(folder, fileName), [0]);
@@ -734,7 +734,7 @@ public sealed class OfficeOutputWorkflowTests {
         PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
             Sources = [htmlPath],
             OutputPath = output,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            ConflictPolicy = OfficePublicationPolicy.Fail
         });
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
@@ -749,20 +749,20 @@ public sealed class OfficeOutputWorkflowTests {
         Directory.CreateDirectory(folder);
         string htmlPath = Path.Combine(folder, "source.html");
         await File.WriteAllTextAsync(htmlPath, "<!doctype html><html><head><link rel='stylesheet' href='style-0.css'></head><body>Depth</body></html>");
-        for (int index = 0; index <= OfficeWorkflowHtmlResourceResolver.MaximumStylesheetImportDepth; index++) {
+        for (int index = 0; index <= OfficeHtmlResourceResolver.MaximumStylesheetImportDepth; index++) {
             await File.WriteAllTextAsync(
                 Path.Combine(folder, $"style-{index}.css"),
                 $"@import url('style-{index + 1}.css'); body {{ color: black; }}");
         }
         await File.WriteAllTextAsync(
-            Path.Combine(folder, $"style-{OfficeWorkflowHtmlResourceResolver.MaximumStylesheetImportDepth + 1}.css"),
+            Path.Combine(folder, $"style-{OfficeHtmlResourceResolver.MaximumStylesheetImportDepth + 1}.css"),
             "body { color: black; }");
 
         string output = Path.Combine(scope.Path, "must-not-exist.pdf");
         PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
             Sources = [htmlPath],
             OutputPath = output,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            ConflictPolicy = OfficePublicationPolicy.Fail
         });
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
@@ -792,7 +792,7 @@ public sealed class OfficeOutputWorkflowTests {
             new PdfAssemblyRequest {
                 Sources = [folder],
                 OutputPath = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+                ConflictPolicy = OfficePublicationPolicy.Fail
             },
             new InlineProgress<OfficeWorkflowProgress>(update => {
                 if (removed || update.Stage != "normalize") return;
@@ -822,7 +822,7 @@ public sealed class OfficeOutputWorkflowTests {
         PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
             Sources = [folder],
             OutputPath = output,
-            Limits = new OfficeWorkflowLimits {
+            Limits = new OfficeOperationLimits {
                 MaximumInputBytes = 1_250L,
                 MaximumOutputBytes = 16L * 1024L * 1024L
             }
@@ -853,7 +853,7 @@ public sealed class OfficeOutputWorkflowTests {
         PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
             Sources = [archivePath],
             OutputPath = output,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail,
+            ConflictPolicy = OfficePublicationPolicy.Fail,
             Options = new PdfAssemblyOptions { IgnoreDiscoveredUnsupportedFiles = false }
         });
 
@@ -973,7 +973,7 @@ public sealed class OfficeOutputWorkflowTests {
         PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
             Sources = [folder],
             OutputPath = output,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            ConflictPolicy = OfficePublicationPolicy.Fail
         });
 
         Assert.True(result.Succeeded, result.Summary);
@@ -997,7 +997,7 @@ public sealed class OfficeOutputWorkflowTests {
             new PdfAssemblyRequest {
                 Sources = [folder],
                 OutputPath = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+                ConflictPolicy = OfficePublicationPolicy.Fail
             },
             new InlineProgress<OfficeWorkflowProgress>(update => {
                 if (replaced || update.Stage != "normalize") return;
@@ -1025,7 +1025,7 @@ public sealed class OfficeOutputWorkflowTests {
             new PdfAssemblyRequest {
                 Sources = [folder],
                 OutputPath = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+                ConflictPolicy = OfficePublicationPolicy.Fail
             },
             new InlineProgress<OfficeWorkflowProgress>(update => {
                 if (replaced || update.Stage != "normalize") return;
@@ -1058,7 +1058,7 @@ public sealed class OfficeOutputWorkflowTests {
             new PdfAssemblyRequest {
                 Sources = [folder],
                 OutputPath = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+                ConflictPolicy = OfficePublicationPolicy.Fail
             },
             new InlineProgress<OfficeWorkflowProgress>(update => {
                 if (replaced || update.Stage != "normalize") return;
@@ -1083,7 +1083,7 @@ public sealed class OfficeOutputWorkflowTests {
         PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
             Sources = [input],
             OutputPath = alias,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            ConflictPolicy = OfficePublicationPolicy.Replace
         });
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
@@ -1108,7 +1108,7 @@ public sealed class OfficeOutputWorkflowTests {
         PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
             Sources = [archivePath],
             OutputPath = output,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            ConflictPolicy = OfficePublicationPolicy.Fail
         });
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
@@ -1130,7 +1130,7 @@ public sealed class OfficeOutputWorkflowTests {
         PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
             Sources = [archivePath],
             OutputPath = output,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            ConflictPolicy = OfficePublicationPolicy.Fail
         });
 
         Assert.True(result.Succeeded, result.Summary);
@@ -1189,7 +1189,7 @@ public sealed class OfficeOutputWorkflowTests {
         PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
             Sources = [input],
             OutputPath = output,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            ConflictPolicy = OfficePublicationPolicy.Replace
         }, progress, cancellation.Token);
 
         Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
@@ -1206,7 +1206,7 @@ public sealed class OfficeOutputWorkflowTests {
             InputPath = input,
             Pages = "2,1",
             PagesPerSheet = 2,
-            PaperSize = PageSizes.A4,
+            PaperSize = PdfPageSizes.A4,
             Orientation = PdfPrintOrientation.Landscape,
             ScaleMode = PdfPrintScaleMode.Fit,
             Margin = 18D
@@ -1214,13 +1214,13 @@ public sealed class OfficeOutputWorkflowTests {
 
         Assert.Equal([2, 1], plan.SelectedPages);
         PdfPrintSheet sheet = Assert.Single(plan.Sheets);
-        Assert.True(sheet.PaperSize.Width > sheet.PaperSize.Height);
+        Assert.True(sheet.PaperSize.Width.ToPoints() > sheet.PaperSize.Height.ToPoints());
         Assert.Equal([2, 1], sheet.Placements.Select(static placement => placement.PageNumber));
         Assert.All(sheet.Placements, placement => {
             Assert.True(placement.X >= 0D);
             Assert.True(placement.Y >= 0D);
-            Assert.True(placement.X + placement.Width <= sheet.PaperSize.Width + 0.01D);
-            Assert.True(placement.Y + placement.Height <= sheet.PaperSize.Height + 0.01D);
+            Assert.True(placement.X + placement.Width <= sheet.PaperSize.Width.ToPoints() + 0.01D);
+            Assert.True(placement.Y + placement.Height <= sheet.PaperSize.Height.ToPoints() + 0.01D);
             Assert.False(placement.IsClipped);
         });
     }
@@ -1233,7 +1233,7 @@ public sealed class OfficeOutputWorkflowTests {
         PdfPrintPlan plan = PdfPrintPlanner.Create(new PdfPrintPlanRequest {
             InputPath = input,
             PagesPerSheet = 2,
-            PaperSize = PageSizes.A4,
+            PaperSize = PdfPageSizes.A4,
             Orientation = PdfPrintOrientation.Portrait,
             ScaleMode = PdfPrintScaleMode.Fill,
             Margin = 18D
@@ -1246,8 +1246,8 @@ public sealed class OfficeOutputWorkflowTests {
             Assert.True(placement.SlotHeight > 0D);
             Assert.True(placement.X < placement.SlotX || placement.Y < placement.SlotY ||
                         placement.Width > placement.SlotWidth || placement.Height > placement.SlotHeight);
-            Assert.True(placement.SlotX + placement.SlotWidth <= sheet.PaperSize.Width);
-            Assert.True(placement.SlotY + placement.SlotHeight <= sheet.PaperSize.Height);
+            Assert.True(placement.SlotX + placement.SlotWidth <= sheet.PaperSize.Width.ToPoints());
+            Assert.True(placement.SlotY + placement.SlotHeight <= sheet.PaperSize.Height.ToPoints());
         });
     }
 
@@ -1259,7 +1259,7 @@ public sealed class OfficeOutputWorkflowTests {
 
         PdfPrintPlan plan = PdfPrintPlanner.Create(new PdfPrintPlanRequest {
             InputPath = input,
-            PaperSize = PageSizes.A4,
+            PaperSize = PdfPageSizes.A4,
             Orientation = PdfPrintOrientation.Automatic,
             ScaleMode = PdfPrintScaleMode.Fit,
             Margin = 18D
@@ -1267,10 +1267,10 @@ public sealed class OfficeOutputWorkflowTests {
 
         PdfPrintSheet sheet = Assert.Single(plan.Sheets);
         PdfPrintPlacement placement = Assert.Single(sheet.Placements);
-        Assert.True(sheet.PaperSize.Width > sheet.PaperSize.Height);
+        Assert.True(sheet.PaperSize.Width.ToPoints() > sheet.PaperSize.Height.ToPoints());
         Assert.True(placement.Width > placement.Height);
-        Assert.True(placement.X + placement.Width <= sheet.PaperSize.Width + 0.01D);
-        Assert.True(placement.Y + placement.Height <= sheet.PaperSize.Height + 0.01D);
+        Assert.True(placement.X + placement.Width <= sheet.PaperSize.Width.ToPoints() + 0.01D);
+        Assert.True(placement.Y + placement.Height <= sheet.PaperSize.Height.ToPoints() + 0.01D);
     }
 
     [Fact]
@@ -1288,7 +1288,7 @@ public sealed class OfficeOutputWorkflowTests {
 
         PdfPrintPlan plan = PdfPrintPlanner.Create(new PdfPrintPlanRequest {
             InputPath = input,
-            PaperSize = new PageSize(1000D, 1000D),
+            PaperSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(1000D),OfficeIMO.OfficeLength.Points(1000D)),
             Orientation = PdfPrintOrientation.Portrait,
             ScaleMode = PdfPrintScaleMode.ActualSize,
             Margin = 0D
@@ -1311,7 +1311,7 @@ public sealed class OfficeOutputWorkflowTests {
         PdfDocument.Create(
                 compose => compose.Page(page => page.Content(content => content.Item(item =>
                     item.Paragraph(paragraph => paragraph.Text("Printable, not copyable"))))),
-                new PdfOptions().SetEncryption(encryption))
+                new PdfCreateOptions().SetEncryption(encryption))
             .Save(input);
 
         PdfPrintPlan plan = PdfPrintPlanner.Create(new PdfPrintPlanRequest {
@@ -1331,7 +1331,7 @@ public sealed class OfficeOutputWorkflowTests {
         PdfDocument.Create(
                 compose => compose.Page(page => page.Content(content => content.Item(item =>
                     item.Paragraph(paragraph => paragraph.Text("Not printable"))))),
-                new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
+                new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
                     OwnerPassword = "owner",
                     AllowedPermissions = PdfStandardPermissions.None
                 }))
@@ -1354,7 +1354,7 @@ public sealed class OfficeOutputWorkflowTests {
         PdfDocument.Create(
                 compose => compose.Page(page => page.Content(content => content.Item(item =>
                     item.Paragraph(paragraph => paragraph.Text("Owner printable"))))),
-                new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
+                new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
                     OwnerPassword = "owner",
                     AllowedPermissions = PdfStandardPermissions.None
                 }))
@@ -1375,7 +1375,7 @@ public sealed class OfficeOutputWorkflowTests {
         PdfDocument.Create(
                 compose => compose.Page(page => page.Content(content => content.Item(item =>
                     item.Paragraph(paragraph => paragraph.Text("Authorized override"))))),
-                new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
+                new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
                     OwnerPassword = "owner",
                     AllowedPermissions = PdfStandardPermissions.None
                 }))
@@ -1397,7 +1397,7 @@ public sealed class OfficeOutputWorkflowTests {
         var request = new PdfPrintPlanRequest {
             InputPath = input,
             PagesPerSheet = 2,
-            PaperSize = PageSizes.A4,
+            PaperSize = PdfPageSizes.A4,
             Orientation = PdfPrintOrientation.Portrait,
             ScaleMode = PdfPrintScaleMode.Fit,
             Margin = 18D
@@ -1497,7 +1497,7 @@ public sealed class OfficeOutputWorkflowTests {
             new PdfPageImageExportRequest {
                 InputPath = input,
                 OutputDirectory = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                ConflictPolicy = OfficePublicationPolicy.Replace
             });
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
@@ -1538,7 +1538,7 @@ public sealed class OfficeOutputWorkflowTests {
         PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
             Sources = [first, second],
             OutputPath = output,
-            Limits = new OfficeWorkflowLimits {
+            Limits = new OfficeOperationLimits {
                 MaximumInputBytes = 16L * 1024L * 1024L,
                 MaximumOutputBytes = 256L
             }
@@ -1559,7 +1559,7 @@ public sealed class OfficeOutputWorkflowTests {
         Assert.Throws<OperationCanceledException>(() => PdfPrintPlanner.Create(
             new PdfPrintPlanRequest { InputPath = input },
             cancellation.Token));
-        await Assert.ThrowsAsync<OperationCanceledException>(() => PdfPrintPlanner.CreateAsync(
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => PdfPrintPlanner.CreateAsync(
             new PdfPrintPlanRequest { InputPath = input },
             cancellation.Token));
     }

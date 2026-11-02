@@ -10,12 +10,12 @@ namespace OfficeIMO.Tests {
         public void ProductPageQuickStart_UsesTheSupportedPublicApi() {
             string filePath = Path.Combine(Path.GetTempPath(), System.Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
                     PowerPointSlide intro = presentation.AddSlide();
-                    intro.AddTitleCm("Product overview", 1.5, 1.2, 22, 1.4);
-                    PowerPointTextBox highlights = intro.AddTextBoxCm(string.Empty, 1.5, 3.0, 12, 5.5);
+                    intro.AddTitle("Product overview",global::OfficeIMO.OfficeLength.Centimeters(1.5),global::OfficeIMO.OfficeLength.Centimeters(1.2),global::OfficeIMO.OfficeLength.Centimeters(22),global::OfficeIMO.OfficeLength.Centimeters(1.4));
+                    PowerPointTextBox highlights = intro.AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Centimeters(1.5),global::OfficeIMO.OfficeLength.Centimeters(3.0),global::OfficeIMO.OfficeLength.Centimeters(12),global::OfficeIMO.OfficeLength.Centimeters(5.5));
                     highlights.AddBullets(new[] {
                         "Revenue grew 18% year over year",
                         "Customer satisfaction reached 94%",
@@ -24,14 +24,13 @@ namespace OfficeIMO.Tests {
 
                     var data = new OfficeChartData(
                         new[] { "Q1", "Q2", "Q3", "Q4" },
-                        new[] { new OfficeChartSeries("Revenue", new[] { 3.2, 3.8, 4.1, 4.9 }) });
+                        new[] { new OfficeSeries("Revenue", new[] { 3.2, 3.8, 4.1, 4.9 }) });
 
                     PowerPointSlide chartSlide = presentation.AddSlide();
-                    chartSlide.AddTitleCm("Revenue by quarter", 1.5, 1.2, 22, 1.4);
-                    chartSlide.AddChartCm(OfficeChartKind.ColumnClustered, data, 1.5, 3.0, 22, 9,
-                            new PowerPointChartAccessibilityOptions {
+                    chartSlide.AddTitle("Revenue by quarter",global::OfficeIMO.OfficeLength.Centimeters(1.5),global::OfficeIMO.OfficeLength.Centimeters(1.2),global::OfficeIMO.OfficeLength.Centimeters(22),global::OfficeIMO.OfficeLength.Centimeters(1.4));
+                    chartSlide.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Centimeters(1.5), Top = global::OfficeIMO.OfficeLength.Centimeters(3.0), Width = global::OfficeIMO.OfficeLength.Centimeters(22), Height = global::OfficeIMO.OfficeLength.Centimeters(9), Accessibility = new PowerPointChartAccessibilityOptions {
                                 AlternativeText = "Quarterly revenue increased from 3.2 to 4.9"
-                            })
+                            } })
                         .SetTitle("2025 revenue")
                         .SetLegend(OfficeChartLegendPosition.Bottom);
 
@@ -39,7 +38,7 @@ namespace OfficeIMO.Tests {
                     Assert.Empty(presentation.ValidateDocument());
                 }
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Load(filePath);
+                using PowerPointDocument reopened = PowerPointDocument.Load(filePath);
                 Assert.Equal(2, reopened.Slides.Count);
                 Assert.Single(reopened.Slides[1].Charts);
             } finally {

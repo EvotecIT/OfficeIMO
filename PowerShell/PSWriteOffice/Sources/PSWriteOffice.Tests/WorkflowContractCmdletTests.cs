@@ -1,7 +1,6 @@
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using OfficeIMO.Project;
-using OfficeIMO.Invoicing;
 using OfficeIMO.Pdf;
 using PSWriteOffice.Cmdlets.Project;
 
@@ -77,47 +76,10 @@ public sealed class WorkflowContractCmdletTests {
                 using var document = OfficeIMO.Word.WordDocument.Load(path);
                 Assert.NotEmpty(document.Tables);
             } else {
-                using var presentation = OfficeIMO.PowerPoint.PowerPointPresentation.Load(path);
+                using var presentation = OfficeIMO.PowerPoint.PowerPointDocument.Load(path);
                 Assert.NotEmpty(presentation.Slides);
             }
         } finally { if (File.Exists(path)) File.Delete(path); }
-    }
-
-    [Fact]
-    public void EditedInvoiceRecalculatesExplicitlyAndRendersItsCapturedXml() {
-        string directory = Path.Combine(Path.GetTempPath(), "officeimo-invoice-workflow-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(directory);
-        try {
-            using var runspace = OpenRunspace();
-            runspace.SessionStateProxy.SetVariable("outputDirectory", directory);
-            using var shell = PowerShell.Create();
-            shell.Runspace = runspace;
-            shell.AddScript("""
-                $seller = New-OfficeInvoiceParty -Name Seller -CountryCode DE -VatId DE123456789
-                $buyer = New-OfficeInvoiceParty -Name Buyer -CountryCode DE
-                $invoice = New-OfficeInvoice -Number INV-001 -IssueDate 2026-10-20 -Seller $seller -Buyer $buyer
-                $invoice | Add-OfficeInvoiceLine -Name Consulting -Quantity 2 -UnitPrice 100 -TaxRate 19
-                $xml = Join-Path $outputDirectory 'source.xml'
-                $pdf = Join-Path $outputDirectory 'invoice.pdf'
-                $invoice | Save-OfficeInvoice -Path $xml
-                $invoice = Get-OfficeInvoice -Path $xml
-                $invoice | Get-OfficeInvoiceLine -Id 1 | Set-OfficeInvoiceLine -Quantity 3
-                $invoice | Set-OfficeInvoice -TaxCurrency PLN -TaxAmountInAccountingCurrency 200
-                $invoice | Set-OfficeInvoice -RecalculateTotals
-                if ($null -ne $invoice.TaxAmountInAccountingCurrency) { throw 'Stale accounting VAT survived recalculation' }
-                $invoice | Set-OfficeInvoice -TaxCurrency $null
-                $invoice | Export-OfficeInvoicePdf -Path $pdf -WhatIf
-                if (Test-Path -LiteralPath $pdf) { throw 'WhatIf wrote a hybrid PDF' }
-                $invoice | Export-OfficeInvoicePdf -Path $pdf
-                Get-OfficePdfAttachment -Path $pdf
-                """);
-            var output = shell.Invoke();
-            AssertNoErrors(shell);
-            var attachment = Assert.IsType<PdfExtractedAttachment>(Assert.Single(output).BaseObject);
-            var embedded = InvoiceParser.Read(attachment.Bytes);
-            Assert.Equal(3m, Assert.Single(embedded.Invoice.Lines).Quantity);
-            Assert.Contains("INV-001", PdfDocument.Load(Path.Combine(directory, "invoice.pdf")).Read().Text);
-        } finally { Directory.Delete(directory, true); }
     }
 
     [Fact]
@@ -135,11 +97,11 @@ public sealed class WorkflowContractCmdletTests {
                     $book = New-OfficeEpub -Title Literal
                     $book | Add-OfficeEpubChapter -Title Opening -Text Safe
                     $book | Save-OfficeEpub -Path 'AuditFiles:/book[1].epub'
-                    Get-Item -LiteralPath 'AuditFiles:/book[1].epub' | Get-OfficeEpub | Get-OfficeEpubChapter
+                    Get-Item -LiteralPath 'AuditFiles:/book[1].epub' | Open-OfficeEpub | Get-OfficeEpubChapter
                     $rejected = $false
-                    try { Get-OfficeEpub -Path 'Env:/PATH' -ErrorAction Stop } catch { $rejected = $_.Exception.Message -like '*filesystem*' }
+                    try { Open-OfficeEpub -Path 'Env:/PATH' -ErrorAction Stop } catch { $rejected = $_.Exception.Message -like '*filesystem*' }
                     if (-not $rejected) { throw 'Non-filesystem provider was accepted' }
-                    foreach ($command in 'Get-OfficeCsv', 'Import-OfficeCsv', 'Get-OfficeDocumentBatch') {
+                    foreach ($command in 'Get-OfficeCsv', 'Import-OfficeCsv', 'Read-OfficeDocument') {
                         $rejected = $false
                         try { & $command -Path 'Env:/*' -ErrorAction Stop } catch { $rejected = $_.Exception.Message -like '*filesystem*' }
                         if (-not $rejected) { throw "$command accepted a non-filesystem discovery provider" }

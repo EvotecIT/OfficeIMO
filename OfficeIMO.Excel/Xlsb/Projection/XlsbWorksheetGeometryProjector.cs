@@ -119,8 +119,8 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             out int lastColumn) {
             firstRow = firstColumn = lastRow = lastColumn = 0;
             if (string.IsNullOrWhiteSpace(reference)) return false;
-            if (A1.TryParseRange(reference!, out firstRow, out firstColumn, out lastRow, out lastColumn)) return true;
-            if (!A1.TryParseCellReferenceFast(reference!, out firstRow, out firstColumn)) return false;
+            if (ExcelA1.TryParseRange(reference!, out firstRow, out firstColumn, out lastRow, out lastColumn)) return true;
+            if (!ExcelA1.TryParseCellReferenceFast(reference!, out firstRow, out firstColumn)) return false;
             lastRow = firstRow;
             lastColumn = firstColumn;
             return true;
@@ -231,7 +231,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             var pane = new Pane {
                 HorizontalSplit = source.HorizontalSplit,
                 VerticalSplit = source.VerticalSplit,
-                TopLeftCell = A1.CellReference(source.TopRow + 1, source.LeftColumn + 1),
+                TopLeftCell = ExcelA1.CellReference(source.TopRow + 1, source.LeftColumn + 1),
                 ActivePane = ToPane(source.ActivePane),
                 State = source.Frozen
                     ? source.FrozenNoSplit ? PaneStateValues.FrozenSplit : PaneStateValues.Frozen

@@ -11,11 +11,11 @@ Creates discoverable renderer and reconstruction settings for general conversion
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficeConversionOptions [-WordOptions <WordToPdfOptions>] [-ExcelOptions <ExcelToPdfOptions>] [-PowerPointOptions <PowerPointToPdfOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-MarkdownOptions <MarkdownToPdfOptions>] [-RtfOptions <RtfToPdfOptions>] [-TextOptions <PdfPlainTextOptions>] [-DrawOptions <OdgToPdfOptions>] [-VisioOptions <VisioToPdfOptions>] [-XpsOptions <XpsToPdfOptions>] [-ChmOptions <ChmConversionOptions>] [-DjVuOptions <DjVuToPdfOptions>] [-PublisherReadOptions <PublisherReadOptions>] [-PublisherPdfOptions <PdfOptions>] [-CompressPdfOutput] [-WorksheetLayout <ExcelPdfWorksheetLayoutMode>] [-PdfHtmlProfile <PdfHtmlProfile>] [-RequireNoLoss] [-AllowLegacyImportLoss] [-PageRange <string>] [-PdfWordMode <PdfWordImportMode>] [-PdfPowerPointMode <PdfPowerPointImportMode>] [-RasterDpi <Double>] [<CommonParameters>]
+New-OfficeConversionOptions [-WordOptions <WordPdfExportOptions>] [-ExcelOptions <ExcelPdfExportOptions>] [-PowerPointOptions <PowerPointPdfExportOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-MarkdownOptions <MarkdownPdfExportOptions>] [-RtfOptions <RtfToPdfOptions>] [-TextOptions <PdfTextImportOptions>] [-DrawOptions <OdgToPdfOptions>] [-VisioOptions <VisioToPdfOptions>] [-XpsOptions <XpsToPdfOptions>] [-ChmOptions <ChmConversionOptions>] [-DjVuOptions <DjVuToPdfOptions>] [-PublisherReadOptions <PublisherReadOptions>] [-PublisherPdfOptions <PdfCreateOptions>] [-CompressPdfOutput] [-WorksheetLayout <ExcelPdfWorksheetLayoutMode>] [-PdfHtmlProfile <PdfHtmlProfile>] [-RequireNoLoss] [-AllowLegacyImportLoss] [-PageRange <string>] [-PdfWordMode <WordPdfImportMode>] [-PdfPowerPointMode <PowerPointPdfImportMode>] [-RasterDpi <Double>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Requires PowerShell 7.4 or newer. Format-specific options apply only to their matching routes.
+Format-specific options apply only to their matching routes.
 
 ## EXAMPLES
 
@@ -112,7 +112,7 @@ Accept wildcard characters: False
 Excel-to-PDF settings from New-OfficeExcelPdfOptions.
 
 ```yaml
-Type: ExcelToPdfOptions
+Type: ExcelPdfExportOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -144,7 +144,7 @@ Accept wildcard characters: False
 Markdown-to-PDF settings from New-OfficeMarkdownPdfOptions.
 
 ```yaml
-Type: MarkdownToPdfOptions
+Type: MarkdownPdfExportOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -192,7 +192,7 @@ Accept wildcard characters: False
 PDF-to-PowerPoint reconstruction or rendered-page strategy.
 
 ```yaml
-Type: PdfPowerPointImportMode
+Type: PowerPointPdfImportMode
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values: VisualPages, EditableTables, HybridVisualAndEditableTables, EditableContent, Auto
@@ -208,7 +208,7 @@ Accept wildcard characters: False
 PDF-to-Word reconstruction or rendered-page strategy.
 
 ```yaml
-Type: PdfWordImportMode
+Type: WordPdfImportMode
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values: EditableContent, VisualPages
@@ -224,7 +224,7 @@ Accept wildcard characters: False
 PowerPoint-to-PDF settings from New-OfficePowerPointPdfOptions.
 
 ```yaml
-Type: PowerPointToPdfOptions
+Type: PowerPointPdfExportOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -240,7 +240,7 @@ Accept wildcard characters: False
 Shared PDF settings for recovered Publisher pages.
 
 ```yaml
-Type: PdfOptions
+Type: PdfCreateOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -320,7 +320,7 @@ Accept wildcard characters: False
 Literal-text settings from New-OfficeTextPdfOptions.
 
 ```yaml
-Type: PdfPlainTextOptions
+Type: PdfTextImportOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -352,7 +352,7 @@ Accept wildcard characters: False
 Word-to-PDF settings from New-OfficeWordPdfOptions.
 
 ```yaml
-Type: WordToPdfOptions
+Type: WordPdfExportOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

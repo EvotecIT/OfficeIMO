@@ -48,7 +48,7 @@ namespace OfficeIMO.Excel {
         /// <param name="convert">Optional custom converter. If null, uses culture-aware conversion.</param>
         /// <param name="ct">Cancellation token.</param>
         public IEnumerable<T[]> ReadRowsAs<T>(string a1Range, Func<object, T>? convert = null, CancellationToken ct = default) {
-            var (r1, _, _, _) = A1.ParseRange(a1Range);
+            var (r1, _, _, _) = ExcelA1.ParseRange(a1Range);
             bool canCancel = ct.CanBeCanceled;
             int offset = 0;
             foreach (var row in ReadRows(a1Range, ct)) {

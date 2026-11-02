@@ -42,15 +42,15 @@ public class RtfWordTabStopTests {
     public void DirectTabListKeepsLaterDefaultTabGeometryThroughWordConversion() {
         RtfDocument source = CreateDirectTabSource(out RtfParagraph paragraph, "body");
         paragraph.AddText("A\tB\tC").SetFontSize(12);
-        using PdfPigDocument direct = PdfPigDocument.Open(source.ToPdfBytes(new RtfToPdfOptions {
+        using PdfPigDocument direct = PdfPigDocument.Open((source.ToPdf(new RtfToPdfOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
-        }));
+        })).ToBytes());
         using WordDocument word = source.ToWordDocument();
-        using PdfPigDocument composed = PdfPigDocument.Open(word.ToPdfBytes(new WordToPdfOptions {
+        using PdfPigDocument composed = PdfPigDocument.Open((word.ToPdf(new WordPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
-        }));
+        })).ToBytes());
         var directLetters = direct.GetPage(1).Letters;
         var composedLetters = composed.GetPage(1).Letters;
         double DirectX(string text) => Assert.Single(directLetters, item => item.Value == text).StartBaseLine.X;
@@ -146,8 +146,8 @@ public class RtfWordTabStopTests {
             new TabStop { Position = 1440, Val = TabStopValues.Clear }));
         word._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
         WordParagraph paragraph = word.AddParagraph("Direct\tTab");
-        paragraph.AddTabStop(2880, WordTabAlignment.Decimal, WordTabLeader.Hyphen);
-        paragraph.AddTabStop(720, WordTabAlignment.Clear);
+        paragraph.AddTabStop(OfficeLength.Emus(2880L * 635), WordTabAlignment.Decimal, WordTabLeader.Hyphen);
+        paragraph.AddTabStop(OfficeLength.Emus(720L * 635), WordTabAlignment.Clear);
         string before = word._document.OuterXml;
         string styleBefore = style.OuterXml;
 

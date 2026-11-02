@@ -140,7 +140,10 @@ public static class ReaderTableExportMaterializer {
                     continue;
                 }
 
-                ReaderFileCommit.WriteAllBytes(outputPath, Utf8NoBom.GetBytes(payload), effectiveOptions.Overwrite);
+                if (!ReaderFileCommit.WriteAllBytes(outputPath, Utf8NoBom.GetBytes(payload), effectiveOptions.Overwrite)) {
+                    results.Add(Skipped(export, format, fileName, outputPath, "Destination file exists or is being committed."));
+                    continue;
+                }
                 results.Add(new ReaderTableMaterializedExport {
                     Export = export,
                     Format = format,

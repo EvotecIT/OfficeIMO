@@ -15,14 +15,30 @@ public enum MarkdownCalloutTitleMode {
 /// while <see cref="BlockParserExtensions"/> and <see cref="InlineParserExtensions"/> control opt-in
 /// syntax such as OfficeIMO callouts, TOC placeholders, footnotes, or custom inline tokens.
 /// </summary>
-public sealed class MarkdownReaderOptions {
+public sealed class MarkdownLoadOptions {
+    /// <summary>Retains syntax and source bindings. False selects semantic-only parsing for large reads.</summary>
+    public bool CaptureSyntaxTree { get; set; } = true;
+
+    /// <summary>Creates bounded parser settings for documents from outside.</summary>
+    public static MarkdownLoadOptions UntrustedDefaults => new MarkdownLoadOptions {
+        MaxInputBytes = 32L * 1024L * 1024L,
+        MaxInputCharacters = 8 * 1024 * 1024,
+        MaxNestingDepth = 64,
+        RestrictUrlSchemes = true,
+        AllowProtocolRelativeUrls = false
+    };
+    /// <summary>Maximum buffered source bytes, or null for an explicitly unbounded source.</summary>
+    public long? MaxInputBytes { get; set; }
+    /// <summary>Source encoding. A byte-order mark takes precedence; null uses UTF-8.</summary>
+    public Encoding? Encoding { get; set; }
+
     /// <summary>
     /// Creates a new OfficeIMO-flavored reader configuration with the built-in block syntax extensions registered.
     /// </summary>
-    public MarkdownReaderOptions() : this(seedBuiltInBlockParserExtensions: true) {
+    public MarkdownLoadOptions() : this(seedBuiltInBlockParserExtensions: true) {
     }
 
-    private MarkdownReaderOptions(bool seedBuiltInBlockParserExtensions) {
+    private MarkdownLoadOptions(bool seedBuiltInBlockParserExtensions) {
         if (seedBuiltInBlockParserExtensions) {
             MarkdownReaderBuiltInExtensions.RegisterOfficeIMODefaults(this);
         }
@@ -41,7 +57,7 @@ public sealed class MarkdownReaderOptions {
     }
 
     /// <summary>Creates a reader configuration for the requested dialect/profile.</summary>
-    public static MarkdownReaderOptions CreateProfile(MarkdownDialectProfile profile) =>
+    public static MarkdownLoadOptions CreateProfile(MarkdownDialectProfile profile) =>
         profile switch {
             MarkdownDialectProfile.OfficeIMO => CreateOfficeIMOProfile(),
             MarkdownDialectProfile.CommonMark => CreateCommonMarkProfile(),
@@ -54,13 +70,14 @@ public sealed class MarkdownReaderOptions {
     /// Creates the explicit OfficeIMO profile. This mirrors the library defaults and keeps host-oriented
     /// extensions such as callouts, TOC placeholders, and footnotes enabled.
     /// </summary>
-    public static MarkdownReaderOptions CreateOfficeIMOProfile() => new MarkdownReaderOptions();
+    public static MarkdownLoadOptions CreateOfficeIMOProfile() => new MarkdownLoadOptions();
 
     /// <summary>
     /// Creates an independent copy of the current reader configuration, including profile toggles and extension registrations.
     /// </summary>
-    public MarkdownReaderOptions Clone() {
-        var clone = new MarkdownReaderOptions(seedBuiltInBlockParserExtensions: false) {
+    public MarkdownLoadOptions Clone() {
+        var clone = new MarkdownLoadOptions(seedBuiltInBlockParserExtensions: false) {
+            CaptureSyntaxTree = CaptureSyntaxTree,
             FrontMatter = FrontMatter,
             Callouts = Callouts,
             CalloutTitleMode = CalloutTitleMode,
@@ -135,6 +152,8 @@ public sealed class MarkdownReaderOptions {
                 : (string[])AllowedUrlSchemes.Clone(),
             InputNormalization = CloneInputNormalizationOptions(InputNormalization),
             PreserveTrivia = PreserveTrivia,
+            MaxInputBytes = MaxInputBytes,
+            Encoding = Encoding,
             MaxInputCharacters = MaxInputCharacters,
             MaxNestingDepth = MaxNestingDepth
         };
@@ -151,8 +170,8 @@ public sealed class MarkdownReaderOptions {
     /// Creates a CommonMark-style core profile. This disables OfficeIMO-only and GFM-style extensions such as
     /// front matter, task lists, tables, definition lists, TOC placeholders, and footnotes.
     /// </summary>
-    public static MarkdownReaderOptions CreateCommonMarkProfile() {
-        return new MarkdownReaderOptions(seedBuiltInBlockParserExtensions: false) {
+    public static MarkdownLoadOptions CreateCommonMarkProfile() {
+        return new MarkdownLoadOptions(seedBuiltInBlockParserExtensions: false) {
             FrontMatter = false,
             Callouts = false,
             TaskLists = false,
@@ -180,8 +199,8 @@ public sealed class MarkdownReaderOptions {
     /// Creates a GitHub Flavored Markdown-style profile. This keeps CommonMark core behavior plus
     /// tables, task lists, and footnotes, while disabling OfficeIMO-only callouts and TOC placeholders.
     /// </summary>
-    public static MarkdownReaderOptions CreateGitHubFlavoredMarkdownProfile() {
-        var options = new MarkdownReaderOptions(seedBuiltInBlockParserExtensions: false) {
+    public static MarkdownLoadOptions CreateGitHubFlavoredMarkdownProfile() {
+        var options = new MarkdownLoadOptions(seedBuiltInBlockParserExtensions: false) {
             FrontMatter = false,
             Callouts = false,
             TaskLists = true,
@@ -227,8 +246,8 @@ public sealed class MarkdownReaderOptions {
     /// OfficeIMO-specific extensions such as Docs-style callouts, TOC placeholders, and footnotes are disabled.
     /// Explicit Markdown links, angle-bracket autolinks, and plain unordered lists continue to work.
     /// </summary>
-    public static MarkdownReaderOptions CreatePortableProfile() {
-        return new MarkdownReaderOptions(seedBuiltInBlockParserExtensions: false) {
+    public static MarkdownLoadOptions CreatePortableProfile() {
+        return new MarkdownLoadOptions(seedBuiltInBlockParserExtensions: false) {
             Callouts = false,
             TaskLists = false,
             TocPlaceholders = false,
@@ -568,7 +587,7 @@ public sealed class MarkdownReaderOptions {
     /// </summary>
     /// <example>
     /// <code>
-    /// var options = new MarkdownReaderOptions {
+    /// var options = new MarkdownLoadOptions {
     ///     HtmlBlocks = false,
     ///     InlineHtml = false,
     /// };
@@ -633,7 +652,7 @@ public sealed class MarkdownReaderOptions {
     /// <summary>
     /// When <c>true</c>, syntax-backed parse results retain the raw markdown input beside the normalized source
     /// text used for source spans. This is groundwork for lossless trivia/roundtrip support; semantic
-    /// <see cref="MarkdownDoc.ToMarkdown(MarkdownWriteOptions?)"/> output remains normalized markdown generation.
+    /// <see cref="MarkdownDocument.ToMarkdown(MarkdownSaveOptions?)"/> output remains normalized markdown generation.
     /// </summary>
     public bool PreserveTrivia { get; set; } = false;
 
@@ -680,11 +699,11 @@ public sealed class MarkdownReaderOptions {
     /// </summary>
     /// <example>
     /// <code>
-    /// var options = MarkdownReaderOptions.CreatePortableProfile();
+    /// var options = MarkdownLoadOptions.CreatePortableProfile();
     /// options.DocumentTransforms.Add(
     ///     new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.GenericSemanticFence));
     ///
-    /// var document = MarkdownReader.Parse(markdown, options);
+    /// var document = MarkdownDocument.Parse(markdown, options);
     /// </code>
     /// </example>
     public List<IMarkdownDocumentTransform> DocumentTransforms { get; } = new();

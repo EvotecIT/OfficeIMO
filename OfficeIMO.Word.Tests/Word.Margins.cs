@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Section 6");
 
                 section2.Margins.Type = WordMargin.Office2003Default;
-                section2.Margins.Bottom = 15;
+                section2.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(0.75D);
                 section.Margins.Type = WordMargin.Office2003Default;
 
                 Assert.True(document.Sections[0].Margins.Type == WordMargin.Normal);
@@ -90,20 +90,20 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithSectionsPageMarginsCentimeters.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
 
-                document.Sections[0].Margins.BottomCentimeters = 2.30;
-                document.Sections[0].Margins.TopCentimeters = 5.50;
-                document.Sections[0].Margins.LeftCentimeters = 3.01;
-                document.Sections[0].Margins.RightCentimeters = 3.05;
+                document.Sections[0].Margins.Bottom = global::OfficeIMO.OfficeLength.Centimeters(2.3D);
+                document.Sections[0].Margins.Top = global::OfficeIMO.OfficeLength.Centimeters(5.5D);
+                document.Sections[0].Margins.Left = global::OfficeIMO.OfficeLength.Centimeters(3.01D);
+                document.Sections[0].Margins.Right = global::OfficeIMO.OfficeLength.Centimeters(3.05D);
 
-                Assert.True(document.Sections[0].Margins.BottomCentimeters == 2.3);
-                Assert.True(document.Sections[0].Margins.TopCentimeters == 5.5);
-                Assert.True(document.Sections[0].Margins.LeftCentimeters == 3.01);
-                Assert.True(document.Sections[0].Margins.RightCentimeters == 3.05);
+                Assert.InRange(Math.Abs(document.Sections[0].Margins.Bottom!.Value.ToCentimeters() - 2.3), 0, 0.001);
+                Assert.InRange(Math.Abs(document.Sections[0].Margins.Top!.Value.ToCentimeters() - 5.5), 0, 0.001);
+                Assert.InRange(Math.Abs(document.Sections[0].Margins.Left!.Value.ToCentimeters() - 3.01), 0, 0.001);
+                Assert.InRange(Math.Abs(document.Sections[0].Margins.Right!.Value.ToCentimeters() - 3.05), 0, 0.001);
 
-                Assert.True(document.Sections[0].Margins.Bottom == 1304);
-                Assert.True(document.Sections[0].Margins.Top == 3118);
-                Assert.True(document.Sections[0].Margins.Left == 1707);
-                Assert.True(document.Sections[0].Margins.Right == 1729);
+                Assert.True(checked((int?)(document.Sections[0].Margins.Bottom?.ToTwips())) == 1304);
+                Assert.True(checked((int?)(document.Sections[0].Margins.Top?.ToTwips())) == 3118);
+                Assert.True(checked((uint)(document.Sections[0].Margins.Left.GetValueOrDefault().ToTwips())) == 1706);
+                Assert.True(checked((uint)(document.Sections[0].Margins.Right.GetValueOrDefault().ToTwips())) == 1729);
 
 
 
@@ -119,18 +119,18 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create();
 
             Assert.Equal(WordMargin.Normal, document.Sections[0].Margins.Type);
-            Assert.Equal<UInt32>(1440U, document.Sections[0].Margins.Left);
-            Assert.Equal<UInt32>(1440U, document.Sections[0].Margins.Right);
-            Assert.Equal(1440, document.Sections[0].Margins.Top);
-            Assert.Equal(1440, document.Sections[0].Margins.Bottom);
+            Assert.Equal<UInt32>(1440U, checked((uint)(document.Sections[0].Margins.Left.GetValueOrDefault().ToTwips())));
+            Assert.Equal<UInt32>(1440U, checked((uint)(document.Sections[0].Margins.Right.GetValueOrDefault().ToTwips())));
+            Assert.Equal(1440, checked((int?)(document.Sections[0].Margins.Top?.ToTwips())));
+            Assert.Equal(1440, checked((int?)(document.Sections[0].Margins.Bottom?.ToTwips())));
 
             var section = document.AddSection();
 
             Assert.Equal(WordMargin.Normal, section.Margins.Type);
-            Assert.Equal<UInt32>(1440U, section.Margins.Left);
-            Assert.Equal<UInt32>(1440U, section.Margins.Right);
-            Assert.Equal(1440, section.Margins.Top);
-            Assert.Equal(1440, section.Margins.Bottom);
+            Assert.Equal<UInt32>(1440U, checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())));
+            Assert.Equal<UInt32>(1440U, checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips())));
+            Assert.Equal(1440, checked((int?)(section.Margins.Top?.ToTwips())));
+            Assert.Equal(1440, checked((int?)(section.Margins.Bottom?.ToTwips())));
         }
     }
 

@@ -2,8 +2,8 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
-    private static InlineSequence ParseJoinedParagraphLines(List<string> lines, MarkdownReaderOptions options, MarkdownReaderState? state) {
+internal static partial class MarkdownReader {
+    private static InlineSequence ParseJoinedParagraphLines(List<string> lines, MarkdownLoadOptions options, MarkdownReaderState? state) {
         var text = JoinParagraphLines(lines, options, out var softBreaks);
         return ParseInlines(text, options, state, CreateSemanticLineBreakMap(text, softBreaks));
     }
@@ -16,7 +16,7 @@ public static partial class MarkdownReader {
         return new MarkdownInlineSourceMap(Array.Empty<MarkdownSourcePoint?>(), null, tokens);
     }
 
-    private static (string Text, MarkdownInlineSourceMap? SourceMap) JoinTrimmedParagraphLines(List<string> lines, MarkdownReaderOptions options) {
+    private static (string Text, MarkdownInlineSourceMap? SourceMap) JoinTrimmedParagraphLines(List<string> lines, MarkdownLoadOptions options) {
         var text = JoinParagraphLines(lines, options, out var softBreaks);
         var sourceMap = CreateSemanticLineBreakMap(text, softBreaks);
         var trimmed = text.Trim();
@@ -24,7 +24,7 @@ public static partial class MarkdownReader {
         return (trimmed, sourceMap?.Slice(start, trimmed.Length));
     }
 
-    private static string JoinParagraphLines(List<string> lines, MarkdownReaderOptions options, out List<int>? softBreaks,
+    private static string JoinParagraphLines(List<string> lines, MarkdownLoadOptions options, out List<int>? softBreaks,
         MarkdownReaderState? state = null, int absoluteLineOffset = 0) {
         softBreaks = null;
         if (lines.Count == 1) {
@@ -74,7 +74,7 @@ public static partial class MarkdownReader {
     private static (string Text, MarkdownInlineSourceMap? SourceMap) JoinParagraphLinesWithSourceMap(
         List<string> lines,
         int absoluteLineOffset,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState? state,
         IReadOnlyList<int>? lineStartColumns = null) {
         if (state?.SourceTextMap == null) {
@@ -178,7 +178,7 @@ public static partial class MarkdownReader {
 
     private static (string Text, MarkdownInlineSourceMap? SourceMap) JoinParagraphSourceLinesWithSourceMap(
         List<MarkdownSourceLineSlice> lines,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState? state) {
         if (lines == null || lines.Count == 0) {
             return (string.Empty, null);
@@ -294,7 +294,7 @@ public static partial class MarkdownReader {
         return (text, new MarkdownInlineSourceMap(points, tokenSpans, tokenLiterals));
     }
 
-    private static string JoinParagraphSourceLines(List<MarkdownSourceLineSlice> lines, MarkdownReaderOptions options, out List<int>? softBreaks) {
+    private static string JoinParagraphSourceLines(List<MarkdownSourceLineSlice> lines, MarkdownLoadOptions options, out List<int>? softBreaks) {
         softBreaks = null;
         if (lines == null || lines.Count == 0) {
             return string.Empty;
@@ -443,7 +443,7 @@ public static partial class MarkdownReader {
         return Math.Max(startColumn, sourceColumn - 1);
     }
 
-    private static string ConsumeTrailingBackslashHardBreak(string trimmed, MarkdownReaderOptions options, out bool hardBreak) {
+    private static string ConsumeTrailingBackslashHardBreak(string trimmed, MarkdownLoadOptions options, out bool hardBreak) {
         hardBreak = false;
         if (options == null || !options.BackslashHardBreaks) return trimmed ?? string.Empty;
         if (string.IsNullOrEmpty(trimmed)) return string.Empty;
@@ -456,7 +456,7 @@ public static partial class MarkdownReader {
         string raw,
         int absoluteLine,
         int startColumn,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownSourceTextMap? sourceTextMap,
         bool hasFollowingLine,
         bool preserveLineEndingInsideInlineSpan = false,

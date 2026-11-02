@@ -13,6 +13,9 @@ internal static class PdfOutputLimitErrors {
         return exception;
     }
 
-    internal static bool IsOutputLimitExceeded(Exception exception) =>
-        exception is InvalidDataException invalidDataException && invalidDataException.Data.Contains(Marker);
+    internal static bool IsOutputLimitExceeded(Exception exception) {
+        for (Exception? current = exception; current != null; current = current.InnerException)
+            if (current is InvalidDataException && current.Data.Contains(Marker)) return true;
+        return false;
+    }
 }

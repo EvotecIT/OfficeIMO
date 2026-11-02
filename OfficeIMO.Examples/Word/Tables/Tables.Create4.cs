@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Tables {
@@ -28,17 +28,17 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Border Left Style: " + wordTable.Rows[1].Cells[0].Borders.LeftStyle);
 
                 wordTable.Rows[1].Cells[1].Borders.LeftStyle = WordBorderStyle.Dotted;
-                wordTable.Rows[1].Cells[1].Borders.LeftColorHex = OfficeIMO.Drawing.OfficeColor.OrangeRed.ToRgbHex();
+                wordTable.Rows[1].Cells[1].Borders.LeftColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
 
                 wordTable.Rows[2].Cells[1].Borders.LeftStyle = WordBorderStyle.Double;
                 wordTable.Rows[2].Cells[1].Borders.LeftColor = Color.Gold;
-                wordTable.Rows[2].Cells[1].Borders.LeftSize = 24;
+                wordTable.Rows[2].Cells[1].Borders.LeftSize = OfficeLength.Points(3);
 
                 Console.WriteLine("Border Left Style: " + wordTable.Rows[1].Cells[1].Borders.LeftStyle);
                 Console.WriteLine("Border Left Color: " + wordTable.Rows[1].Cells[1].Borders.LeftColorHex);
 
                 wordTable.Rows[2].Cells[1].Borders.TopLeftToBottomRightColor = Color.Aqua;
-                wordTable.Rows[2].Cells[1].Borders.TopLeftToBottomRightSize = 24;
+                wordTable.Rows[2].Cells[1].Borders.TopLeftToBottomRightSize = OfficeLength.Points(3);
                 wordTable.Rows[2].Cells[1].Borders.TopLeftToBottomRightStyle = WordBorderStyle.Dotted;
 
                 document.AddParagraph();

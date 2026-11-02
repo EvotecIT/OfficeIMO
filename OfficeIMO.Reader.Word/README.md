@@ -46,12 +46,15 @@ limit on process memory or every decoder's actual work.
 Rich `list-item` blocks carry the resolved Word marker in `OfficeDocumentBlock.Marker`,
 including authored starts, Roman or lettered formats, continuation, and explicit restarts.
 Portable bullet symbols are retained, and invisible list markers are empty.
-The values come from `WordParagraphSnapshot.ListMarker`; inspection snapshots also expose
-the numeric counter of an ordered item through `WordParagraphSnapshot.ListIndex`.
+The values come from `WordParagraphInfo.ListMarker`; inspection snapshots also expose
+the numeric counter of an ordered item through `WordParagraphInfo.ListIndex`.
 Inspection and ingestion reject list markers longer than 4,096 characters or more than
 4,194,304 generated marker characters in a document with an `InvalidDataException`.
 
 ```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Word;
+
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddWordHandler()
     .Build();
@@ -60,6 +63,9 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 To add best-effort page locations for search and citations:
 
 ```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Word;
+
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddWordHandler(new ReaderWordOptions {
         IncludePageLocations = true
@@ -85,6 +91,11 @@ when fonts, metrics, or unsupported layout features differ, so the option is dis
 Selected WordPerfect, WordStar, Ami Pro, Lotus Word Pro, Works/Write, and Word for DOS sources are included in `OfficeIMO.Word` but remain opt-in at the Reader registration boundary:
 
 ```csharp
+using OfficeIMO;
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Word;
+using OfficeIMO.Word.Legacy;
+
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddWordAndLegacyHandlers(new LegacyWordImportOptions {
         Limits = new OfficeLegacyImportLimits { MaxInputBytes = 64 * 1024 * 1024 }

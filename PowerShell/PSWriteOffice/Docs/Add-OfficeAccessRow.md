@@ -9,7 +9,7 @@ schema: 2.0.0
 Appends PowerShell objects or dictionaries using the declared field types.
 
 ## SYNTAX
-### __AllParameterSets
+### Table (Default)
 ```powershell
 Add-OfficeAccessRow [-InputObject] <psobject[]> -Table <AccessTable> [-PassThru] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ One row; omitted properties remain absent, and explicit null remains null.
 
 ```yaml
 Type: PSObject[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Table
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Return the created or changed object.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Table
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Destination table in a newly created model.
 
 ```yaml
 Type: AccessTable
-Parameter Sets: __AllParameterSets
+Parameter Sets: Table
 Aliases: None
 Possible values:
 

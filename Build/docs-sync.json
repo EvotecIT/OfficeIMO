@@ -2,6 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/main/Schemas/powerforge.docsync.schema.json",
   "rootPath": "..",
   "files": [
+    "README.md",
     "OfficeIMO.Word/README.md",
     "OfficeIMO.Excel/README.md"
   ]

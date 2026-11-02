@@ -1,13 +1,14 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     /// <summary>Creates a deep copy of the options.</summary>
-    public PdfOptions Clone() {
+    public PdfCreateOptions Clone() {
         ValidateEmbeddedFileLimits();
-        var clone = new PdfOptions {
+        var clone = new PdfCreateOptions {
             PageWidth = PageWidth,
             PageHeight = PageHeight,
-            BackgroundColor = BackgroundColor,
+            _backgroundColor = _backgroundColor,
+            _hasExplicitBackgroundColor = _hasExplicitBackgroundColor,
             TextWatermark = _textWatermark?.Clone(),
             FirstPageTextWatermark = _firstPageTextWatermark?.Clone(),
             EvenPageTextWatermark = _evenPageTextWatermark?.Clone(),
@@ -21,13 +22,13 @@ public sealed partial class PdfOptions {
             PageBorder = _pageBorder?.Clone(),
             PageBackgroundImage = _pageBackgroundImage?.Clone(),
             PageBackgroundShapes = ClonePageBackgroundShapes(_pageBackgroundShapes),
-            MarginLeft = MarginLeft,
-            MarginRight = MarginRight,
+            _marginLeft = _marginLeft,
+            _marginRight = _marginRight,
             MirrorMargins = MirrorMargins,
-            MarginTop = MarginTop,
-            MarginBottom = MarginBottom,
-            DefaultFont = DefaultFont,
-            DefaultFontSize = DefaultFontSize,
+            _marginTop = _marginTop,
+            _marginBottom = _marginBottom,
+            _defaultFont = _defaultFont,
+            _defaultFontSize = _defaultFontSize,
             UseFontUnitTextLayout = UseFontUnitTextLayout,
             _textWhitespaceMode = _textWhitespaceMode,
             _hasExplicitTextWhitespaceConfiguration = _hasExplicitTextWhitespaceConfiguration,
@@ -95,6 +96,10 @@ public sealed partial class PdfOptions {
             _diagnosticsReport = _diagnosticsReport,
             _diagnosticsConverter = _diagnosticsConverter,
             _embeddedFonts = CloneEmbeddedFonts(_embeddedFonts),
+            _embedDefaultFonts = _embedDefaultFonts,
+            _defaultFontsUseStandardMetrics = _defaultFontsUseStandardMetrics,
+            _defaultFontEmbeddingAttempts = _defaultFontEmbeddingAttempts == null ? null : new HashSet<PdfStandardFont>(_defaultFontEmbeddingAttempts),
+            _defaultEmbeddedFontFamilies = _defaultEmbeddedFontFamilies == null ? null : new HashSet<PdfStandardFont>(_defaultEmbeddedFontFamilies),
             _fallbackOwnedFontFamilies = _fallbackOwnedFontFamilies == null
                 ? null : new HashSet<PdfStandardFont>(_fallbackOwnedFontFamilies),
             _automaticFallbackOwnedNamedFamilyKeys = _automaticFallbackOwnedNamedFamilyKeys == null
@@ -134,12 +139,12 @@ public sealed partial class PdfOptions {
             EvenPageFooterFormat = EvenPageFooterFormat,
             FooterFont = FooterFont,
             FooterFontFamily = FooterFontFamily,
-            FooterFontSize = FooterFontSize,
+            _footerFontSize = _footerFontSize,
             FooterTextColor = FooterTextColor,
             FooterAlign = FooterAlign,
             FooterOffsetY = FooterOffsetY,
             PageNumberStyle = PageNumberStyle,
-            DefaultTextColor = DefaultTextColor,
+            _defaultTextColor = _defaultTextColor,
             DefaultParagraphStyle = _defaultParagraphStyle?.Clone(),
             DefaultHeadingStyles = _defaultHeadingStyles?.Clone(),
             DefaultListStyle = _defaultListStyle?.Clone(),
@@ -159,12 +164,12 @@ public sealed partial class PdfOptions {
                 ShowTableRowBoxes = Debug.ShowTableRowBoxes,
                 ShowTableColumnGuides = Debug.ShowTableColumnGuides
             },
-            _headerSegments = _headerSegments is null ? null : new System.Collections.Generic.List<FooterSegment>(_headerSegments),
-            _firstPageHeaderSegments = _firstPageHeaderSegments is null ? null : new System.Collections.Generic.List<FooterSegment>(_firstPageHeaderSegments),
-            _evenPageHeaderSegments = _evenPageHeaderSegments is null ? null : new System.Collections.Generic.List<FooterSegment>(_evenPageHeaderSegments),
-            FooterSegments = _footerSegments is null ? null : new System.Collections.Generic.List<FooterSegment>(_footerSegments),
-            FirstPageFooterSegments = _firstPageFooterSegments is null ? null : new System.Collections.Generic.List<FooterSegment>(_firstPageFooterSegments),
-            EvenPageFooterSegments = _evenPageFooterSegments is null ? null : new System.Collections.Generic.List<FooterSegment>(_evenPageFooterSegments),
+            _headerSegments = _headerSegments is null ? null : new System.Collections.Generic.List<PdfFooterSegment>(_headerSegments),
+            _firstPageHeaderSegments = _firstPageHeaderSegments is null ? null : new System.Collections.Generic.List<PdfFooterSegment>(_firstPageHeaderSegments),
+            _evenPageHeaderSegments = _evenPageHeaderSegments is null ? null : new System.Collections.Generic.List<PdfFooterSegment>(_evenPageHeaderSegments),
+            FooterSegments = _footerSegments is null ? null : new System.Collections.Generic.List<PdfFooterSegment>(_footerSegments),
+            FirstPageFooterSegments = _firstPageFooterSegments is null ? null : new System.Collections.Generic.List<PdfFooterSegment>(_firstPageFooterSegments),
+            EvenPageFooterSegments = _evenPageFooterSegments is null ? null : new System.Collections.Generic.List<PdfFooterSegment>(_evenPageFooterSegments),
             _headerLeftFormat = _headerLeftFormat,
             _headerCenterFormat = _headerCenterFormat,
             _headerRightFormat = _headerRightFormat,
@@ -202,6 +207,10 @@ public sealed partial class PdfOptions {
             _firstPageFooterShapes = CloneHeaderFooterShapes(_firstPageFooterShapes),
             _evenPageFooterShapes = CloneHeaderFooterShapes(_evenPageFooterShapes)
         };
+        clone._theme = _theme;
+        clone._useOfficeThemeDefaults = _useOfficeThemeDefaults;
+        clone._hasExplicitDefaultFontSize = _hasExplicitDefaultFontSize;
+        clone._hasExplicitFooterFontSize = _hasExplicitFooterFontSize;
         clone._useAutomaticPdfXProductionMetadata = _useAutomaticPdfXProductionMetadata;
         clone._defaultTableStyle = _defaultTableStyle?.Clone();
         clone._hasExplicitDefaultTableStyle = _hasExplicitDefaultTableStyle;

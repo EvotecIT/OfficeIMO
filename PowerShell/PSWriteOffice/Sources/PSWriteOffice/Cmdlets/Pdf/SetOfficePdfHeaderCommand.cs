@@ -89,7 +89,7 @@ public sealed class SetOfficePdfHeaderCommand : PSCmdlet
             ApplyAlignment(header);
             if (FontSize.HasValue)
             {
-                header.FontSize(FontSize.Value);
+                header.FontSize(global::OfficeIMO.OfficeLength.Points(FontSize.Value));
             }
             if (compose != null)
             {

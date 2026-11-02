@@ -4,18 +4,17 @@ using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
-using OfficeIMO.Excel.Fluent;
 using Xunit;
 
 namespace OfficeIMO.Tests;
-
-public sealed class ExcelAllSeverityBatch15SecurityTests {
+public sealed class ExcelAllSeverityBatch15SecurityTests
+{
     [Fact]
     public void FastSheetReaderIgnoresLookalikeElementsAndWrongRelationshipNamespaces() {
         string path = Path.Combine(Path.GetTempPath(), "officeimo-sheet-fast-" + Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                document.AddWorksheet("Data").CellValue(1, 1, "safe");
+                document.AddSheet("Data").CellValue(1, 1, "safe");
                 document.Save();
             }
 
@@ -62,7 +61,7 @@ public sealed class ExcelAllSeverityBatch15SecurityTests {
     [Fact]
     public void UncachedSheetReadsDoNotMutateSharedSheetIdState() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        document.AddWorksheet("Data");
+        document.AddSheet("Data");
         document.SheetCachingEnabled = false;
 
         Parallel.For(0, 200, _ => Assert.Single(document.Sheets));
@@ -71,7 +70,7 @@ public sealed class ExcelAllSeverityBatch15SecurityTests {
     [Fact]
     public void TableTotalsRetainLastCaseInsensitiveDuplicate() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Name");
         sheet.CellValue(1, 2, "Value");
         sheet.CellValue(2, 1, "A");
@@ -88,17 +87,19 @@ public sealed class ExcelAllSeverityBatch15SecurityTests {
     }
 
     [Fact]
-    public void SummarizeOverflowFitsMoreIntoSingleAvailableColumn() {
+    public void SummarizeOverflowFitsMoreIntoSingleAvailableColumn()
+    {
         string path = Path.Combine(Path.GetTempPath(), "officeimo-summary-one-column-" + Guid.NewGuid().ToString("N") + ".xlsx");
-        try {
-            using (ExcelDocument document = ExcelDocument.Create(path)) {
-                document.Compose("Report", composer => {
-                    composer.Columns(2, columns => columns[0].TableFrom(
-                        new[] { new WideRow("Alpha", 1, 2) }, title: "Wide"),
-                        columnWidth: 1,
-                        overflow: OverflowMode.Summarize);
-                    composer.Finish(autoFitColumns: false);
-                });
+        try
+        {
+            using (ExcelDocument document = ExcelDocument.Create(path))
+            {
+                {
+                    var reportBuilder1 = document.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                    (reportBuilder1).Columns(2, columns => columns[0].AddTable(new[] { new WideRow("Alpha", 1, 2) }, title: "Wide"), columnWidth: 1, overflow: ExcelReportOverflowMode.Summarize);
+                    (reportBuilder1).Finish(autoFitColumns: false);
+                }
+
                 document.Save();
             }
 
@@ -106,53 +107,49 @@ public sealed class ExcelAllSeverityBatch15SecurityTests {
             Table table = Assert.Single(package.WorkbookPart!.WorksheetParts.First().TableDefinitionParts).Table!;
             Assert.Equal("A2:A3", table.Reference!.Value);
             Assert.Equal("More", Assert.Single(table.TableColumns!.Elements<TableColumn>()).Name!.Value);
-        } finally {
-            if (File.Exists(path)) File.Delete(path);
+        }
+        finally
+        {
+            if (File.Exists(path))
+                File.Delete(path);
         }
     }
 
     [Theory]
-    [InlineData(OverflowMode.Shrink)]
-    [InlineData(OverflowMode.Summarize)]
-    public void FixedGridOverflowReducesColumnsBeforeWorksheetBoundaryCheck(OverflowMode overflowMode) {
+    [InlineData(ExcelReportOverflowMode.Shrink)]
+    [InlineData(ExcelReportOverflowMode.Summarize)]
+    public void FixedGridOverflowReducesColumnsBeforeWorksheetBoundaryCheck(ExcelReportOverflowMode overflowMode)
+    {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
-        var composer = new SheetComposer.ColumnComposer(sheet, new SheetTheme(), 1, A1.MaxColumns);
+        ExcelSheet sheet = document.AddSheet("Data");
+        var composer = new ExcelReportBuilder.ColumnComposer(sheet, new ExcelReportOptions(), 1, ExcelA1.MaxColumns);
         composer.SetGridConstraints(3, overflowMode);
-
-        string range = composer.TableFrom(new[] { new WideRow("Alpha", 1, 2) });
-
+        string range = composer.AddTable(new[] { new WideRow("Alpha", 1, 2) }).Range!;
         Assert.Equal("XFD1:XFD2", range);
     }
 
     [Theory]
-    [InlineData(OverflowMode.Shrink)]
-    [InlineData(OverflowMode.Summarize)]
-    public void FixedGridOverflowChargesCellLimitAgainstRenderedColumns(OverflowMode overflowMode) {
+    [InlineData(ExcelReportOverflowMode.Shrink)]
+    [InlineData(ExcelReportOverflowMode.Summarize)]
+    public void FixedGridOverflowChargesCellLimitAgainstRenderedColumns(ExcelReportOverflowMode overflowMode)
+    {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
-        var composer = new SheetComposer.ColumnComposer(sheet, new SheetTheme(), 1, 1);
+        ExcelSheet sheet = document.AddSheet("Data");
+        var composer = new ExcelReportBuilder.ColumnComposer(sheet, new ExcelReportOptions(), 1, 1);
         composer.SetGridConstraints(1, overflowMode);
-
-        string range = composer.TableFrom(
-            new[] { new WideRow("Alpha", 1, 2) },
-            configure: options => options.MaxCells = 2);
-
+        string range = composer.AddTable(new[] { new WideRow("Alpha", 1, 2) }, configure: options => options.MaxCells = 2).Range!;
         Assert.Equal("A1:A2", range);
     }
 
     [Fact]
-    public void EmptyObjectTablesUseSingleCellFallbackWithoutChargingInferredHeaders() {
+    public void EmptyObjectTablesUseSingleCellFallbackWithoutChargingInferredHeaders()
+    {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        var rootComposer = new SheetComposer(document, "Root", new SheetTheme());
-        ExcelSheet columnSheet = document.AddWorksheet("Column");
-        var columnComposer = new SheetComposer.ColumnComposer(columnSheet, new SheetTheme(), 2, 2);
-
-        string rootRange = rootComposer.TableFrom(
-            Array.Empty<WideRow>(), configure: options => options.MaxCells = 1);
-        string columnRange = columnComposer.TableFrom(
-            Array.Empty<WideRow>(), configure: options => options.MaxCells = 1);
-
+        var rootComposer = document.AddSheet("Root", ExcelSheetNameValidationMode.Sanitize).Report(new ExcelReportOptions());
+        ExcelSheet columnSheet = document.AddSheet("Column");
+        var columnComposer = new ExcelReportBuilder.ColumnComposer(columnSheet, new ExcelReportOptions(), 2, 2);
+        string rootRange = rootComposer.AddTable(Array.Empty<WideRow>(), configure: options => options.MaxCells = 1).Range!;
+        string columnRange = columnComposer.AddTable(Array.Empty<WideRow>(), configure: options => options.MaxCells = 1).Range!;
         Assert.Equal("A1:A1", rootRange);
         Assert.Equal("B2:B2", columnRange);
     }
@@ -160,7 +157,7 @@ public sealed class ExcelAllSeverityBatch15SecurityTests {
     [Fact]
     public void ParallelRowAutoFitAndRowMutationsSerializeOpenXmlTraversal() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         for (int row = 1; row <= 100; row++) sheet.CellValue(row, 1, "row " + row);
 
         Parallel.Invoke(

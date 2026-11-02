@@ -15,8 +15,7 @@ public static partial class PowerPointIWorkConverter {
         double height = QuantizePositiveEmuPoints(TableAxisExtent(source.RowCount,
             source.RowHeights, source.DefaultRowHeight, source.Geometry?.HeightPoints,
             Math.Max(36d, 24d * source.RowCount)));
-        PowerPointTable table = slide.AddTablePoints(source.RowCount, source.ColumnCount,
-            left, top, width, height);
+        PowerPointTable table = slide.AddTable(source.RowCount,source.ColumnCount,            global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(height));
         table.AltText = source.AccessibilityDescription;
         table.Rotation = source.Geometry?.RotationDegrees ?? 0d;
         // Native region styles are expanded below. Destination heading and
@@ -38,10 +37,10 @@ public static partial class PowerPointIWorkConverter {
                     else fillTarget.FillColor = fill.Color!.RgbHex;
                 }
                 if (source.GetPadding(row, column) is { } padding) {
-                    fillTarget.PaddingLeftPoints = padding.LeftPoints;
-                    fillTarget.PaddingTopPoints = padding.TopPoints;
-                    fillTarget.PaddingRightPoints = padding.RightPoints;
-                    fillTarget.PaddingBottomPoints = padding.BottomPoints;
+                    fillTarget.PaddingLeft = global::OfficeIMO.OfficeLength.Points(padding.LeftPoints);
+                    fillTarget.PaddingTop = global::OfficeIMO.OfficeLength.Points(padding.TopPoints);
+                    fillTarget.PaddingRight = global::OfficeIMO.OfficeLength.Points(padding.RightPoints);
+                    fillTarget.PaddingBottom = global::OfficeIMO.OfficeLength.Points(padding.BottomPoints);
                 }
                 if (source.GetVerticalAlignment(row, column) is { } vertical) fillTarget.VerticalAlignment = vertical switch {
                     IWorkCellVerticalAlignment.Top => PowerPointTextVerticalAlignment.Top,
@@ -91,9 +90,9 @@ public static partial class PowerPointIWorkConverter {
                 merge.LastRow - 1, merge.LastColumn - 1);
         }
         ApplyAxisSizing(source.ColumnCount, source.ColumnWidths, source.DefaultColumnWidth,
-            source.Geometry?.WidthPoints, width, table.SetColumnWidthPoints, cancellationToken);
+            source.Geometry?.WidthPoints, width, (index, value) => table.SetColumnWidth(index, OfficeIMO.OfficeLength.Points(value)), cancellationToken);
         ApplyAxisSizing(source.RowCount, source.RowHeights, source.DefaultRowHeight,
-            source.Geometry?.HeightPoints, height, table.SetRowHeightPoints, cancellationToken);
+            source.Geometry?.HeightPoints, height, (index, value) => table.SetRowHeight(index, OfficeIMO.OfficeLength.Points(value)), cancellationToken);
     }
 
     private static IEnumerable<IWorkParagraphStyle> TableParagraphStyles(IWorkTable table) =>

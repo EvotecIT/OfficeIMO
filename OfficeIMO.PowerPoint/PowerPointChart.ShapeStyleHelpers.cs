@@ -11,10 +11,10 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.PowerPoint {
         //     Represents a chart on a slide.
         public partial class PowerPointChart : PowerPointShape {
-        private static void ApplyTextStyle(A.TextCharacterPropertiesType runProps, double? fontSizePoints, bool? bold,
+        private static void ApplyTextStyle(A.TextCharacterPropertiesType runProps, OfficeLength? fontSize, bool? bold,
             bool? italic, string? color, string? fontName) {
-            if (fontSizePoints != null) {
-                runProps.FontSize = PowerPointTextDefaults.ToDrawingFontSize(fontSizePoints, nameof(fontSizePoints));
+            if (fontSize != null) {
+                runProps.FontSize = PowerPointTextDefaults.ToDrawingFontSize(fontSize?.ToPoints(), nameof(fontSize));
             }
             if (bold != null) {
                 runProps.Bold = bold.Value;
@@ -38,8 +38,8 @@ namespace OfficeIMO.PowerPoint {
             runProps.RemoveAllChildren<A.LatinFont>();
         }
 
-        private static void ValidateTextStyle(double? fontSizePoints, string? color, string? fontName) {
-            _ = PowerPointTextDefaults.ToDrawingFontSize(fontSizePoints, nameof(fontSizePoints));
+        private static void ValidateTextStyle(OfficeLength? fontSize, string? color, string? fontName) {
+            _ = PowerPointTextDefaults.ToDrawingFontSize(fontSize?.ToPoints(), nameof(fontSize));
             if (color != null && string.IsNullOrWhiteSpace(color)) {
                 throw new ArgumentException("Color cannot be empty.", nameof(color));
             }
@@ -57,25 +57,25 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void ValidateAxisGridlinesStyle(string? lineColor, double? lineWidthPoints) {
+        private static void ValidateAxisGridlinesStyle(string? lineColor, OfficeLength? lineWidth) {
             if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
                 throw new ArgumentException("Gridline color cannot be empty.", nameof(lineColor));
             }
-            if (lineWidthPoints != null && lineWidthPoints <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(lineWidthPoints));
+            if (lineWidth != null && lineWidth <= OfficeLength.Zero) {
+                throw new ArgumentOutOfRangeException(nameof(lineWidth));
             }
         }
 
-        private static void ValidateDataLabelLeaderLines(string? lineColor, double? lineWidthPoints) {
+        private static void ValidateDataLabelLeaderLines(string? lineColor, OfficeLength? lineWidth) {
             if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
                 throw new ArgumentException("Leader line color cannot be empty.", nameof(lineColor));
             }
-            if (lineWidthPoints != null && lineWidthPoints <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(lineWidthPoints));
+            if (lineWidth != null && lineWidth <= OfficeLength.Zero) {
+                throw new ArgumentOutOfRangeException(nameof(lineWidth));
             }
         }
 
-        private static void ValidateAreaStyle(string? fillColor, string? lineColor, double? lineWidthPoints,
+        private static void ValidateAreaStyle(string? fillColor, string? lineColor, OfficeLength? lineWidth,
             bool noFill, bool noLine) {
             if (fillColor != null && string.IsNullOrWhiteSpace(fillColor)) {
                 throw new ArgumentException("Fill color cannot be empty.", nameof(fillColor));
@@ -83,19 +83,19 @@ namespace OfficeIMO.PowerPoint {
             if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
                 throw new ArgumentException("Line color cannot be empty.", nameof(lineColor));
             }
-            if (lineWidthPoints != null && lineWidthPoints <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(lineWidthPoints));
+            if (lineWidth != null && lineWidth <= OfficeLength.Zero) {
+                throw new ArgumentOutOfRangeException(nameof(lineWidth));
             }
             if (noFill && fillColor != null) {
                 throw new ArgumentException("Cannot set both fill color and noFill.", nameof(noFill));
             }
-            if (noLine && (lineColor != null || lineWidthPoints != null)) {
+            if (noLine && (lineColor != null || lineWidth != null)) {
                 throw new ArgumentException("Cannot set line color/width when noLine is true.", nameof(noLine));
             }
         }
 
         private static void ValidateTrendline(OfficeChartTrendlineType type, int? order, int? period,
-            double? forward, double? backward, string? lineColor, double? lineWidthPoints) {
+            double? forward, double? backward, string? lineColor, OfficeLength? lineWidth) {
             if (order != null && (order <= 0 || order > byte.MaxValue)) {
                 throw new ArgumentOutOfRangeException(nameof(order));
             }
@@ -111,8 +111,8 @@ namespace OfficeIMO.PowerPoint {
             if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
                 throw new ArgumentException("Trendline color cannot be empty.", nameof(lineColor));
             }
-            if (lineWidthPoints != null && lineWidthPoints <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(lineWidthPoints));
+            if (lineWidth != null && lineWidth <= OfficeLength.Zero) {
+                throw new ArgumentOutOfRangeException(nameof(lineWidth));
             }
 
             bool isPolynomial = type == OfficeChartTrendlineType.Polynomial;
@@ -180,7 +180,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void ApplyLine(OpenXmlCompositeElement props, string color, double? widthPoints) {
+        private static void ApplyLine(OpenXmlCompositeElement props, string color, OfficeLength? width) {
             A.Outline outline = props.GetFirstChild<A.Outline>() ?? new A.Outline();
             outline.RemoveAllChildren<A.SolidFill>();
             outline.RemoveAllChildren<A.NoFill>();
@@ -191,8 +191,8 @@ namespace OfficeIMO.PowerPoint {
             outline.AddChild(
                 new A.SolidFill(
                     new A.RgbColorModelHex { Val = color }), true);
-            if (widthPoints != null) {
-                outline.Width = (int)Math.Round(widthPoints.Value * 12700d);
+            if (width != null) {
+                outline.Width = checked((int)width.Value.ToEmus());
             }
 
             if (outline.Parent == null) {
@@ -200,8 +200,8 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void ApplyOptionalLine(OpenXmlCompositeElement props, string? color, double? widthPoints) {
-            if (color == null && widthPoints == null) {
+        private static void ApplyOptionalLine(OpenXmlCompositeElement props, string? color, OfficeLength? width) {
+            if (color == null && width == null) {
                 return;
             }
 
@@ -212,8 +212,8 @@ namespace OfficeIMO.PowerPoint {
                     new A.SolidFill(
                         new A.RgbColorModelHex { Val = color }), true);
             }
-            if (widthPoints != null) {
-                outline.Width = (int)Math.Round(widthPoints.Value * 12700d);
+            if (width != null) {
+                outline.Width = checked((int)width.Value.ToEmus());
             }
 
             if (outline.Parent == null) {
@@ -222,13 +222,13 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void ApplyGridlines(OpenXmlCompositeElement axis, bool showMajor, bool showMinor,
-            string? lineColor, double? lineWidthPoints) {
-            ApplyGridline<C.MajorGridlines>(axis, showMajor, lineColor, lineWidthPoints);
-            ApplyGridline<C.MinorGridlines>(axis, showMinor, lineColor, lineWidthPoints);
+            string? lineColor, OfficeLength? lineWidth) {
+            ApplyGridline<C.MajorGridlines>(axis, showMajor, lineColor, lineWidth);
+            ApplyGridline<C.MinorGridlines>(axis, showMinor, lineColor, lineWidth);
         }
 
         private static void ApplyAreaStyle(OpenXmlCompositeElement props, string? fillColor, string? lineColor,
-            double? lineWidthPoints, bool noFill, bool noLine) {
+            OfficeLength? lineWidth, bool noFill, bool noLine) {
             if (noFill) {
                 ApplyNoFill(props);
             } else if (fillColor != null) {
@@ -237,13 +237,13 @@ namespace OfficeIMO.PowerPoint {
 
             if (noLine) {
                 ApplyNoLine(props);
-            } else if (lineColor != null || lineWidthPoints != null) {
-                ApplyOptionalLine(props, lineColor, lineWidthPoints);
+            } else if (lineColor != null || lineWidth != null) {
+                ApplyOptionalLine(props, lineColor, lineWidth);
             }
         }
 
         private static void ApplyGridline<TGridlines>(OpenXmlCompositeElement axis, bool show,
-            string? lineColor, double? lineWidthPoints) where TGridlines : OpenXmlCompositeElement, new() {
+            string? lineColor, OfficeLength? lineWidth) where TGridlines : OpenXmlCompositeElement, new() {
             TGridlines? gridlines = axis.GetFirstChild<TGridlines>();
             if (!show) {
                 gridlines?.Remove();
@@ -251,9 +251,9 @@ namespace OfficeIMO.PowerPoint {
             }
 
             gridlines ??= new TGridlines();
-            if (lineColor != null || lineWidthPoints != null) {
+            if (lineColor != null || lineWidth != null) {
                 C.ChartShapeProperties props = gridlines.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
-                ApplyOptionalLine(props, lineColor, lineWidthPoints);
+                ApplyOptionalLine(props, lineColor, lineWidth);
                 if (props.Parent == null) {
                     gridlines.Append(props);
                 }
@@ -266,7 +266,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static void ApplyTrendline(OpenXmlCompositeElement series, OfficeChartTrendlineType type, int? order, int? period,
             double? forward, double? backward, double? intercept, bool displayEquation, bool displayRSquared,
-            string? lineColor, double? lineWidthPoints) {
+            string? lineColor, OfficeLength? lineWidth) {
             if (!IsTrendlineSupportedSeries(series)) {
                 throw new InvalidOperationException("Trendlines are only supported for line, bar/column, area, and scatter series.");
             }
@@ -274,9 +274,9 @@ namespace OfficeIMO.PowerPoint {
             series.RemoveAllChildren<C.Trendline>();
             C.Trendline trendline = new C.Trendline();
 
-            if (lineColor != null || lineWidthPoints != null) {
+            if (lineColor != null || lineWidth != null) {
                 C.ChartShapeProperties props = new C.ChartShapeProperties();
-                ApplyOptionalLine(props, lineColor, lineWidthPoints);
+                ApplyOptionalLine(props, lineColor, lineWidth);
                 trendline.Append(props);
             }
 
@@ -518,19 +518,19 @@ namespace OfficeIMO.PowerPoint {
             return runProps;
         }
 
-        private static void ApplyMarker(C.Marker marker, OfficeChartMarkerShape style, int? size, string? fillColor, string? lineColor, double? lineWidthPoints) {
+        private static void ApplyMarker(C.Marker marker, OfficeChartMarkerShape style, OfficeLength? size, string? fillColor, string? lineColor, OfficeLength? lineWidth) {
             marker.Symbol = new C.Symbol { Val = style.ToOpenXml() };
             if (size != null) {
-                marker.Size = new C.Size { Val = (byte)size.Value };
+                marker.Size = new C.Size { Val = checked((byte)decimal.Round(size.Value.ToEmus() / 12700m, 0, MidpointRounding.AwayFromZero)) };
             }
 
-            if (fillColor != null || lineColor != null || lineWidthPoints != null) {
+            if (fillColor != null || lineColor != null || lineWidth != null) {
                 C.ChartShapeProperties props = marker.ChartShapeProperties ?? new C.ChartShapeProperties();
                 if (fillColor != null) {
                     ApplySolidFill(props, fillColor);
                 }
-                if (lineColor != null || lineWidthPoints != null) {
-                    ApplyOptionalLine(props, lineColor, lineWidthPoints);
+                if (lineColor != null || lineWidth != null) {
+                    ApplyOptionalLine(props, lineColor, lineWidth);
                 }
                 if (props.Parent == null) {
                     marker.Append(props);

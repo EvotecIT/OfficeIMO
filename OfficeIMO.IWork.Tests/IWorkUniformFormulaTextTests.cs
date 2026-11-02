@@ -28,7 +28,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal("Styled", sheet.CellAt(1, 1).GetValue<string>());
         var style = sheet.GetCellStyle(1, 1);
         Assert.True(style.Bold); Assert.True(style.Italic); Assert.True(style.Underline); Assert.True(style.Strikethrough);
-        Assert.Equal(18, style.FontSize); Assert.Equal("Courier New", style.FontName);
+        Assert.Equal(18, style.FontSize?.ToPoints()); Assert.Equal("Courier New", style.FontName);
     }
 
     [Fact]

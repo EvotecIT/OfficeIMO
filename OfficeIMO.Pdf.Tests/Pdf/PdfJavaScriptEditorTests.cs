@@ -208,7 +208,7 @@ public class PdfJavaScriptEditorTests {
 
     [Fact]
     public void Edit_ExplicitlyBlocksEncryptedInputsEvenWithOwnerAuthorization() {
-        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Encrypted JavaScript edit"))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(source, new PdfLoadOptions { Password = "owner" });

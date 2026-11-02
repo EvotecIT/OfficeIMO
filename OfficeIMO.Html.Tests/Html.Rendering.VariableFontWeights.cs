@@ -44,7 +44,7 @@ public sealed class HtmlVariableFontWeightTests {
         HtmlConversionDocument source = CreateDocument(700);
         var explicitOptions = new HtmlToPdfOptions();
         explicitOptions.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 700F };
-        Assert.Equal(source.ToPdfBytes(new HtmlToPdfOptions()), source.ToPdfBytes(explicitOptions));
+        Assert.Equal((source.ToPdf(new HtmlToPdfOptions())).ToBytes(), (source.ToPdf(explicitOptions)).ToBytes());
     }
 
     private static HtmlConversionDocument CreateDocument(int weight) {

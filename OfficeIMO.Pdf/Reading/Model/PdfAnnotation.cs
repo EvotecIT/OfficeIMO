@@ -1,6 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Generic page annotation metadata read from a PDF page.</summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfAnnotation {
     private const int InvisibleFlag = 1;
     private const int HiddenFlag = 2;
@@ -13,7 +14,7 @@ public sealed class PdfAnnotation {
     private const int ToggleNoViewFlag = 256;
     private const int LockedContentsFlag = 512;
 
-    internal PdfAnnotation(int? objectNumber, int? pageNumber, string subtype, string? contents, double x1, double y1, double x2, double y2, bool hasNormalAppearance, string? actionType = null, IReadOnlyList<PdfAnnotationAdditionalAction>? additionalActions = null, IReadOnlyList<PdfAnnotationChainedAction>? chainedActions = null, int? flags = null, string? name = null, string? title = null, string? modified = null, IReadOnlyList<double>? color = null, string? defaultAppearance = null, string? defaultStyle = null, string? richContents = null, string? richContentsPlainText = null, double? effectiveFontSize = null, PdfColor? effectiveTextColor = null, PdfAlign? effectiveTextAlign = null, IReadOnlyList<double>? interiorColor = null, double? opacity = null, double? borderWidth = null, string? borderStyle = null, IReadOnlyList<double>? borderDashPattern = null, string? borderEffectStyle = null, double? borderEffectIntensity = null, IReadOnlyList<double>? rectangleDifferences = null, IReadOnlyList<double>? calloutLine = null, string? calloutLineEnding = null, string? lineStartEnding = null, string? lineEndEnding = null, IReadOnlyList<double>? quadPoints = null, IReadOnlyList<double>? lineCoordinates = null, IReadOnlyList<double>? vertices = null, IReadOnlyList<IReadOnlyList<double>>? inkList = null, PdfAnnotationReviewInfo? review = null, PdfObject? normalAppearanceObject = null, string? appearanceState = null, PdfDictionary? sourceDictionary = null, bool hasReadableRectangle = true) {
+    internal PdfAnnotation(int? objectNumber, int? pageNumber, string subtype, string? contents, double x1, double y1, double x2, double y2, bool hasNormalAppearance, string? actionType = null, IReadOnlyList<PdfAnnotationAdditionalAction>? additionalActions = null, IReadOnlyList<PdfAnnotationChainedAction>? chainedActions = null, int? flags = null, string? name = null, string? title = null, string? modified = null, IReadOnlyList<double>? color = null, string? defaultAppearance = null, string? defaultStyle = null, string? richContents = null, string? richContentsPlainText = null, double? effectiveFontSize = null, global::OfficeIMO.OfficeColor? effectiveTextColor = null, PdfAlign? effectiveTextAlign = null, IReadOnlyList<double>? interiorColor = null, double? opacity = null, double? borderWidth = null, string? borderStyle = null, IReadOnlyList<double>? borderDashPattern = null, string? borderEffectStyle = null, double? borderEffectIntensity = null, IReadOnlyList<double>? rectangleDifferences = null, IReadOnlyList<double>? calloutLine = null, string? calloutLineEnding = null, string? lineStartEnding = null, string? lineEndEnding = null, IReadOnlyList<double>? quadPoints = null, IReadOnlyList<double>? lineCoordinates = null, IReadOnlyList<double>? vertices = null, IReadOnlyList<IReadOnlyList<double>>? inkList = null, PdfAnnotationReviewInfo? review = null, PdfObject? normalAppearanceObject = null, string? appearanceState = null, PdfDictionary? sourceDictionary = null, bool hasReadableRectangle = true) {
         ObjectNumber = objectNumber;
         PageNumber = pageNumber;
         Subtype = subtype;
@@ -73,24 +74,24 @@ public sealed class PdfAnnotation {
     /// <summary>Optional annotation contents metadata from /Contents.</summary>
     public string? Contents { get; }
 
-    /// <summary>Left edge of the annotation rectangle in PDF points.</summary>
+    /// <summary>Left edge of the annotation rectangle in page user-space units.</summary>
     public double X1 { get; }
 
-    /// <summary>Bottom edge of the annotation rectangle in PDF points.</summary>
+    /// <summary>Bottom edge of the annotation rectangle in page user-space units.</summary>
     public double Y1 { get; }
 
-    /// <summary>Right edge of the annotation rectangle in PDF points.</summary>
+    /// <summary>Right edge of the annotation rectangle in page user-space units.</summary>
     public double X2 { get; }
 
-    /// <summary>Top edge of the annotation rectangle in PDF points.</summary>
+    /// <summary>Top edge of the annotation rectangle in page user-space units.</summary>
     public double Y2 { get; }
 
     internal bool HasReadableRectangle { get; }
 
-    /// <summary>Rectangle width in PDF points.</summary>
+    /// <summary>Rectangle width in page user-space units.</summary>
     public double Width => X2 - X1;
 
-    /// <summary>Rectangle height in PDF points.</summary>
+    /// <summary>Rectangle height in page user-space units.</summary>
     public double Height => Y2 - Y1;
 
     /// <summary>True when the annotation dictionary exposes a normal appearance stream through /AP /N.</summary>
@@ -139,7 +140,7 @@ public sealed class PdfAnnotation {
     public double? EffectiveFontSize { get; }
 
     /// <summary>Effective FreeText text color resolved from /DA or /DS, when readable.</summary>
-    public PdfColor? EffectiveTextColor { get; }
+    public global::OfficeIMO.OfficeColor? EffectiveTextColor { get; }
 
     /// <summary>Effective FreeText text alignment resolved from /Q or /DS, when readable.</summary>
     public PdfAlign? EffectiveTextAlign { get; }

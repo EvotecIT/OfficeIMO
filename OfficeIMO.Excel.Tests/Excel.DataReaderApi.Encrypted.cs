@@ -22,10 +22,10 @@ public partial class Excel {
         var limit = Assert.Throws<OfficeInspectionResourceLimitException>(() => OfficeEncryption.DecryptPackage(
             encrypted, "hunter2", CancellationToken.None, plain.Length - 1));
         Assert.Equal("encryption", limit.Owner); Assert.Equal("MaximumDecryptedPackageBytes", limit.LimitName); Assert.Equal(plain.Length - 1, limit.Maximum);
-        using ExcelWorkbookDataReader expected = ExcelDocument.OpenDataReader(plain,
-            new ExcelReadOptions { HasHeaderRow = false });
+        using ExcelWorkbookDataReader expected = ExcelDocument.OpenReader(plain,
+            new ExcelReaderOptions { HasHeaderRow = false });
         using ExcelWorkbookDataReader actual = ExcelDocument.OpenEncryptedDataReader(encrypted, "hunter2",
-            new ExcelReadOptions { HasHeaderRow = false });
+            new ExcelReaderOptions { HasHeaderRow = false });
         Assert.Equal(CaptureEncryptedReader(expected), CaptureEncryptedReader(actual));
     }
 
@@ -42,7 +42,7 @@ public partial class Excel {
             ? new MemoryStream(prefixed, writable: false) { Position = prefixLength }
             : new NonSeekableReadStream(encrypted);
         using (ExcelWorkbookDataReader reader = ExcelDocument.OpenEncryptedDataReader(
-            source, "hunter2", new ExcelReadOptions { MaxInputBytes = limit })) {
+            source, "hunter2", new ExcelReaderOptions { MaxInputBytes = limit })) {
             Assert.True(reader.Read());
             Assert.Equal(1, reader.GetInt32(0));
             if (seekable) Assert.Equal(prefixLength, source.Position);
@@ -102,10 +102,10 @@ public partial class Excel {
     [Fact]
     public async Task EncryptedReader_BoundsInputAndRestoresStreamsOnLimitFailure() {
         byte[] encrypted = EncryptedReaderFixture("xlsx");
-        var options = new ExcelReadOptions { MaxInputBytes = encrypted.Length - 1 };
+        var options = new ExcelReaderOptions { MaxInputBytes = encrypted.Length - 1 };
         var limit = Assert.Throws<OfficeInspectionResourceLimitException>(() => ExcelDocument.OpenEncryptedDataReader(encrypted, "hunter2", options));
         Assert.Equal("excel", limit.Owner);
-        Assert.Equal(nameof(ExcelReadOptions.MaxInputBytes), limit.LimitName);
+        Assert.Equal(nameof(ExcelReaderOptions.MaxInputBytes), limit.LimitName);
         Assert.Equal(encrypted.Length - 1, limit.Maximum);
         using var source = new MemoryStream(encrypted, writable: false);
         Assert.Throws<OfficeInspectionResourceLimitException>(() => ExcelDocument.OpenEncryptedDataReader(source, "hunter2", options));
@@ -122,7 +122,7 @@ public partial class Excel {
         byte[] encrypted = EncryptedReaderFixture("xlsx");
         var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         using var source = new AsyncOpeningReadStream(encrypted, seekable: true) { ReadGate = gate.Task };
-        var options = new ExcelReadOptions { HasHeaderRow = false };
+        var options = new ExcelReaderOptions { HasHeaderRow = false };
         Task<ExcelWorkbookDataReader> opening = ExcelDocument.OpenEncryptedDataReaderAsync(source, "hunter2", options);
         Assert.False(opening.IsCompleted);
         options.MaxInputBytes = 1;
@@ -130,8 +130,8 @@ public partial class Excel {
         options.HasHeaderRow = true;
         gate.SetResult(true);
         using ExcelWorkbookDataReader actual = await opening;
-        using ExcelWorkbookDataReader expected = ExcelDocument.OpenDataReader(
-            File.ReadAllBytes(EncryptedReaderFixturePath("xlsx", plain: true)), new ExcelReadOptions { HasHeaderRow = false });
+        using ExcelWorkbookDataReader expected = ExcelDocument.OpenReader(
+            File.ReadAllBytes(EncryptedReaderFixturePath("xlsx", plain: true)), new ExcelReaderOptions { HasHeaderRow = false });
         Assert.Equal(CaptureEncryptedReader(expected), CaptureEncryptedReader(actual));
         Assert.True(source.AsyncReads > 0);
         Assert.Equal(0, source.Position);
@@ -147,7 +147,7 @@ public partial class Excel {
         using var openingCancellation = new CancellationTokenSource();
         using var source = new MemoryStream(EncryptedReaderFixture("xlsx"), writable: false);
         using ExcelWorkbookDataReader reader = await ExcelDocument.OpenEncryptedDataReaderAsync(source, "hunter2",
-            new ExcelReadOptions { CancellationToken = optionsCancellation.Token }, openingCancellation.Token);
+            new ExcelReaderOptions { CancellationToken = optionsCancellation.Token }, openingCancellation.Token);
         (optionsToken ? optionsCancellation : openingCancellation).Cancel();
         Assert.ThrowsAny<OperationCanceledException>(() => reader.Read());
         Assert.True(source.CanRead);

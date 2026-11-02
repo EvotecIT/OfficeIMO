@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
         private bool RangeReachesDeclaredWorksheetEnd(int lastRow) {
             return CanStreamWorksheetPart()
                 && TryGetWorksheetDimensionReferenceFromXml(out string dimensionReference)
-                && A1.TryParseRange(dimensionReference, out _, out _, out int dimensionLastRow, out _)
+                && ExcelA1.TryParseRange(dimensionReference, out _, out _, out int dimensionLastRow, out _)
                 && lastRow >= dimensionLastRow;
         }
 

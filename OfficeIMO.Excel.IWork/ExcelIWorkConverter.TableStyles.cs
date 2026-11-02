@@ -37,7 +37,7 @@ public static partial class ExcelIWorkConverter {
                 if (text.Italic.HasValue) sheet.CellItalic(row, column, text.Italic.Value);
                 if (text.Underline.HasValue) sheet.CellUnderline(row, column, text.Underline.Value);
                 if (text.Strikethrough.HasValue) sheet.CellStrikethrough(row, column, text.Strikethrough.Value);
-                if (text.FontSizePoints.HasValue) cell.SetFontSize(text.FontSizePoints.Value);
+                if (text.FontSizePoints.HasValue) cell.SetFontSize(global::OfficeIMO.OfficeLength.Points(text.FontSizePoints.Value));
                 if (!string.IsNullOrWhiteSpace(text.FontName)) cell.SetFontName(text.FontName!);
                 if (text.Color != null) cell.SetFontColor(text.Color.RgbHex);
                 if (style.Alignment is { } alignment) sheet.CellAlign(row, column, alignment switch {

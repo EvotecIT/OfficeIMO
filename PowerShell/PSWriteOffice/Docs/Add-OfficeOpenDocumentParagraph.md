@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a paragraph to an OpenDocument text document.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeOpenDocumentParagraph [-Text] <string> [-Document <OdtDocument>] [-PassThru] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ OpenDocument text document. Omit inside New-OfficeOpenDocument -Content.
 
 ```yaml
 Type: OdtDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Emit the created paragraph.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Paragraph text.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

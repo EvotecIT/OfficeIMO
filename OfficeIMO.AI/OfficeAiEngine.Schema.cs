@@ -45,7 +45,7 @@ public sealed partial class OfficeAiEngine {
         for (int index = 0; index < fields.Count; index++) {
             string key = FieldKey(index);
             fieldProperties[key] = new JsonObject { ["$ref"] = "#/$defs/fieldValue" };
-            required.Add(key);
+            required.Add((JsonNode?)JsonValue.Create(key));
         }
         // Stable keys enforce one value per requested field without restricting caller names to
         // the string literals accepted by strict-output providers (which can reject quoted keys).
@@ -66,7 +66,7 @@ public sealed partial class OfficeAiEngine {
             string rowDefinition = "row" + width;
             definitions[rowDefinition] = new JsonObject { ["type"] = "array", ["minItems"] = width, ["maxItems"] = width,
                 ["items"] = Reference("text") };
-            shapes.Add(new JsonObject {
+            shapes.Add((JsonNode)new JsonObject {
                 ["type"] = "object", ["additionalProperties"] = false,
                 ["properties"] = new JsonObject {
                     ["title"] = Reference("text"), ["columns"] = Reference(rowDefinition),

@@ -3,16 +3,16 @@ namespace OfficeIMO.Latex.Markdown.Tests;
 public sealed class LatexRequestedReviewTests {
     [Fact]
     public void StrikePackageDoesNotReplaceOrdinaryEmphasis() {
-        var result = MarkdownReader.Parse("*Italic marker* and ~~Removed marker~~").ToLatexDocumentResult();
+        var result = MarkdownDocument.Parse("*Italic marker* and ~~Removed marker~~").ToLatexDocumentResult();
         Assert.Contains(result.Value.Commands, command => command.Name == "usepackage" &&
             command.GetRequiredArgument(0)?.Content == "ulem" && command.GetOptionalArgument(0)?.Content == "normalem");
-        Assert.Contains("*Italic marker*", result.Value.ToMarkdownDocument().ToMarkdown(), StringComparison.Ordinal);
-        Assert.Contains("~~Removed marker~~", result.Value.ToMarkdownDocument().ToMarkdown(), StringComparison.Ordinal);
+        Assert.Contains("*Italic marker*", ((result.Value.ToMarkdownDocument().ToMarkdown())), StringComparison.Ordinal);
+        Assert.Contains("~~Removed marker~~", ((result.Value.ToMarkdownDocument().ToMarkdown())), StringComparison.Ordinal);
     }
 
     [Fact]
     public void NonSequentialAuthoredMarkersAreDiagnosed() {
-        var result = MarkdownReader.Parse("1. first\n3. third\n").ToLatexDocumentResult();
+        var result = MarkdownDocument.Parse("1. first\n3. third\n").ToLatexDocumentResult();
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "MDLATEX022");
         Assert.Contains("third", result.Source, StringComparison.Ordinal);
     }
@@ -20,11 +20,13 @@ public sealed class LatexRequestedReviewTests {
     [Fact]
     public void LinkMetadataAndHighlightSimplificationAreReportedWithoutLosingVisibleContent() {
         var inlines = new InlineSequence().Link("Visible", "https://example.test", "tooltip", "_blank", "noopener").Highlight("Highlighted");
-        var result = MarkdownDoc.Create().Add(new ParagraphBlock(inlines)).ToLatexDocumentResult();
+        using var addedDocument = MarkdownDocument.Create();
+        addedDocument.Add(new ParagraphBlock(inlines));
+        var result = addedDocument.ToLatexDocumentResult();
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "MDLATEX027");
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "MDLATEX028");
-        Assert.Contains("[Visible](https://example.test)", result.Value.ToMarkdownDocument().ToMarkdown(), StringComparison.Ordinal);
-        Assert.Contains("**Highlighted**", result.Value.ToMarkdownDocument().ToMarkdown(), StringComparison.Ordinal);
+        Assert.Contains("[Visible](https://example.test)", ((result.Value.ToMarkdownDocument().ToMarkdown())), StringComparison.Ordinal);
+        Assert.Contains("**Highlighted**", ((result.Value.ToMarkdownDocument().ToMarkdown())), StringComparison.Ordinal);
     }
 
     [Theory]
@@ -33,7 +35,9 @@ public sealed class LatexRequestedReviewTests {
     [InlineData("before\\end% comment\n{verbatim}\\section{Literal}after")]
     [InlineData(@"before\end{ verbatim }\section{Literal}after")]
     public void RecognizedVerbatimClosingFormsCannotActivateLiteralCode(string content) {
-        var result = MarkdownDoc.Create().Add(new CodeBlock("text", content)).ToLatexDocumentResult();
+        using var addedDocument = MarkdownDocument.Create();
+        addedDocument.Add(new CodeBlock("text", content));
+        var result = addedDocument.ToLatexDocumentResult();
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "MDLATEX021");
         Assert.Empty(result.Value.Headings);
         Assert.DoesNotContain(result.Value.Diagnostics, diagnostic => diagnostic.Code == "LATEX005");
@@ -44,29 +48,29 @@ public sealed class LatexRequestedReviewTests {
 
     [Fact]
     public void PromotedTitleAndFragmentLinksRetainFormattingLabelsAndVisibleText() {
-        var markdown = MarkdownReader.Parse("# A **rich** title {#intro}\n\n[Read **title**](#intro)", new MarkdownReaderOptions { GenericAttributes = true });
+        var markdown = MarkdownDocument.Parse("# A **rich** title {#intro}\n\n[Read **title**](#intro)", new MarkdownLoadOptions { GenericAttributes = true });
         var result = markdown.ToLatexDocumentResult();
         Assert.False(result.Report.HasLoss);
         Assert.Contains(@"\title{A \textbf{rich} title}", result.Source, StringComparison.Ordinal);
         Assert.Contains(result.Value.Labels, label => label.Name == "intro");
-        Assert.Contains("[Read **title**](#intro)", result.Value.ToMarkdownDocument().ToMarkdown(), StringComparison.Ordinal);
+        Assert.Contains("[Read **title**](#intro)", ((result.Value.ToMarkdownDocument().ToMarkdown())), StringComparison.Ordinal);
         Assert.NotEmpty(result.Value.ToPdfBytes());
     }
 
     [Fact]
     public void LooseListParagraphsRemainInOrder() {
-        var markdown = MarkdownReader.Parse("- First paragraph\n\n  IMPORTANT SECOND PARAGRAPH\n\n  - Nested item\n");
+        var markdown = MarkdownDocument.Parse("- First paragraph\n\n  IMPORTANT SECOND PARAGRAPH\n\n  - Nested item\n");
         string source = markdown.ToLatexDocumentResult().Source;
         int first = source.IndexOf("First paragraph", StringComparison.Ordinal);
         int second = source.IndexOf("IMPORTANT SECOND PARAGRAPH", StringComparison.Ordinal);
         int nested = source.IndexOf("Nested item", StringComparison.Ordinal);
         Assert.True(first >= 0 && second > first && nested > second);
-        Assert.Contains("IMPORTANT SECOND PARAGRAPH", LatexDocument.Parse(source).ToMarkdownDocument().ToMarkdown(), StringComparison.Ordinal);
+        Assert.Contains("IMPORTANT SECOND PARAGRAPH", ((LatexDocument.Parse(source).ToMarkdownDocument().ToMarkdown())), StringComparison.Ordinal);
     }
 
     [Fact]
     public void ReverseLossReportsCoverCustomNumberingTaskStateCalloutAndImageMetadata() {
-        var document = MarkdownReader.Parse("5. first\n6. second\n\n- [x] done\n- [ ] pending\n");
+        var document = MarkdownDocument.Parse("5. first\n6. second\n\n- [x] done\n- [ ] pending\n");
         document.Callout("warning", "Retained title", "Body");
         document.Add(new ImageBlock("figure.png", "alternate", "title"));
         var result = document.ToLatexDocumentResult();
@@ -86,7 +90,7 @@ public sealed class LatexRequestedReviewTests {
     public void NonHeadingLabelsProduceWorkingPdfDestinations(string body, string marker) {
         var document = LatexDocument.Parse(@"\documentclass{article}\begin{document}" + body + @"\end{document}");
         byte[] bytes = document.ToPdfBytes();
-        Assert.Contains(marker, OfficeIMO.Pdf.PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains(marker, OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(bytes)).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -94,7 +98,7 @@ public sealed class LatexRequestedReviewTests {
         var document = LatexDocument.Parse(@"\documentclass{article}\begin{document}See \ref{missing:x}\end{document}");
         var result = document.ToPdfDocumentResult();
         byte[] bytes = result.Value.ToBytes();
-        Assert.Contains("missing:x", OfficeIMO.Pdf.PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("missing:x", OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(bytes)).ExtractText(), StringComparison.Ordinal);
         Assert.Contains(result.Warnings, warning => warning.Code == "UnresolvedInternalLink");
     }
 
@@ -104,7 +108,7 @@ public sealed class LatexRequestedReviewTests {
     public void ProjectionDoesNotExposeInertSourceAfterDocumentEnd(string trailer) {
         var document = LatexDocument.Parse(@"\documentclass{article}\begin{document}Public\end{document}" + trailer);
         Assert.Equal("Public", Assert.IsType<MarkdownTextRun>(Assert.Single(Assert.Single(document.ToMarkdownDocument().Blocks.OfType<ParagraphBlock>()).Inlines.Nodes)).Text);
-        string text = OfficeIMO.Pdf.PdfReadDocument.Open(document.ToPdfBytes()).ExtractText();
+        string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(document.ToPdfBytes())).ExtractText();
         Assert.Contains("Public", text, StringComparison.Ordinal);
         Assert.DoesNotContain("TRAILING", text, StringComparison.Ordinal);
     }

@@ -2,7 +2,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Represents the FILENAME field code.
     /// </summary>
-    public class FileNameField : WordFieldCode {
+    public class WordFileNameField : WordFieldCode {
         /// <summary>
         /// When true, the full path of the file is included (\\p switch).
         /// </summary>

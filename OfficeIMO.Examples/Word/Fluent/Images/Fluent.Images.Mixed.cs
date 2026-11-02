@@ -2,30 +2,34 @@ using System;
 using System.IO;
 using OfficeIMO;
 using OfficeIMO.Word;
-using OfficeIMO.Word.Fluent;
 
-namespace OfficeIMO.Examples.Word {
-    internal static partial class FluentDocument {
-        public static void Example_FluentImagesMixed(string folderPath, bool openWord) {
+namespace OfficeIMO.Examples.Word
+{
+    internal static partial class FluentDocument
+    {
+        public static void Example_FluentImagesMixed(string folderPath, bool openWord)
+        {
             Console.WriteLine("[*] Creating document with mixed images");
             string filePath = Path.Combine(folderPath, "FluentMixedImages.docx");
             string imagesPath = Path.Combine(Directory.GetCurrentDirectory(), "Images");
+            using (WordDocument document = WordDocument.Create(filePath))
+            {
+                {
+                    var paragraph1 = document.AddParagraph();
+                    paragraph1 = paragraph1.AddText("Company report with ");
+                    paragraph1.AddImage(Path.Combine(imagesPath, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(24), OfficeIMO.OfficeLength.Pixels(24), options: new OfficeIMO.Word.WordImageOptions { Description = "" });
+                    paragraph1 = paragraph1.AddText(" logo");
+                    var image3 = document.AddParagraph().AddImage(Path.Combine(imagesPath, "Kulek.jpg"));
+                    image3.Width = OfficeIMO.OfficeLength.Pixels(500);
+                    image3.WrapText = WordImageTextWrapping.Square;
+                    image3.Paragraph.SetAlignment(WordParagraphAlignment.Center);
+                }
 
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AsFluent()
-                    .Paragraph(p => p
-                        .Text("Company report with ")
-                        .InlineImage(Path.Combine(imagesPath, "EvotecLogo.png"), widthPx: 24, heightPx: 24)
-                        .Text(" logo"))
-                    .Image(img => img
-                        .Add(Path.Combine(imagesPath, "Kulek.jpg"))
-                        .Size(500)
-                        .Wrap(WordImageTextWrapping.Square)
-                        .Align(WordParagraphAlignment.Center))
-                    .End();
                 document.Save();
             }
-            if (openWord) ExampleFileLauncher.Open(filePath);
+
+            if (openWord)
+                ExampleFileLauncher.Open(filePath);
         }
     }
 }

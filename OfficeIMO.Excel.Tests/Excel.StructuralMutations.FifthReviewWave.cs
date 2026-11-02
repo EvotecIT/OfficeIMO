@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_MutationSnapshot_RestoresThreadedCommentsAndChartsheetChartExRoots() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
+            ExcelSheet data = document.AddSheet("Data");
             data.AddThreadedComment("B1", "Keep", "Tester");
             WorksheetThreadedCommentsPart threadedPart = Assert.Single(data.WorksheetPart.WorksheetThreadedCommentsParts);
 
@@ -37,11 +37,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralMutations_RejectAffectedThreeDimensionalReferencesOnly() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet first = document.AddWorksheet("Q1");
-            ExcelSheet second = document.AddWorksheet("Q2");
-            ExcelSheet third = document.AddWorksheet("Q3");
-            ExcelSheet fourth = document.AddWorksheet("Q4");
-            ExcelSheet outside = document.AddWorksheet("Outside");
+            ExcelSheet first = document.AddSheet("Q1");
+            ExcelSheet second = document.AddSheet("Q2");
+            ExcelSheet third = document.AddSheet("Q3");
+            ExcelSheet fourth = document.AddSheet("Q4");
+            ExcelSheet outside = document.AddSheet("Outside");
             fourth.CellValue(1, 2, 1);
             ExtendedChartPart chartPart = AddChartsheetExtendedFormula(
                 document,

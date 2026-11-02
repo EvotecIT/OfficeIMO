@@ -187,6 +187,10 @@ namespace OfficeIMO.Excel {
 
         internal bool HasPendingDirectCellValues => _pendingDirectCellValueSheet != null;
 
+        /// <summary>The workbook will be written by a direct package writer that bypasses the cell model.</summary>
+        internal bool UsesDirectPackageWriter => _directDataSetSaveCandidate?.IsValid == true
+            || HasDeferredDirectDataSetImport || HasUnmaterializedDirectDataSetRows;
+
         internal ExcelSheet? PendingDirectCellValueSheet => _pendingDirectCellValueSheet;
 
         internal void RefreshDeferredDirectDataSetDateSystem(ExcelDateSystem dateSystem) {
@@ -211,7 +215,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 ExcelSheet sheet = TryGetExistingSheet(sheetModel.SheetName)
-                    ?? AddWorksheet(sheetModel.SheetName, ExcelSheetNameValidationMode.Strict);
+                    ?? AddSheet(sheetModel.SheetName, ExcelSheetNameValidationMode.Strict);
                 if (sheetModel.Range.Length == 0) {
                     continue;
                 }
@@ -273,6 +277,9 @@ namespace OfficeIMO.Excel {
                             style: sheetModel.TableStyle,
                             includeAutoFilter: sheetModel.IncludeAutoFilter,
                             ct: cancellationToken);
+                        if (!sheetModel.IncludeHeaders && tableRange.Length > 0) {
+                            sheet.SetTableSchema(tableRange, sheetModel.Table.CreateColumnNameArray());
+                        }
                     }
 
                     if (tableRange.Length > 0) {
@@ -340,7 +347,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                string column = A1.ColumnIndexToLetters(i + 1);
+                string column = ExcelA1.ColumnIndexToLetters(i + 1);
                 sheet.FormatRange(
                     column + startRow.ToString(CultureInfo.InvariantCulture) + ":" + column + endRow.ToString(CultureInfo.InvariantCulture),
                     numberFormat!);
@@ -466,7 +473,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static Cell GetOrCreateDirectOverlayCell(Row row, int rowIndex, int columnIndex) {
-            string reference = A1.CellReference(rowIndex, columnIndex);
+            string reference = ExcelA1.CellReference(rowIndex, columnIndex);
             Cell? insertAfter = null;
             foreach (Cell cell in row.Elements<Cell>()) {
                 if (string.Equals(cell.CellReference?.Value, reference, StringComparison.Ordinal)) {

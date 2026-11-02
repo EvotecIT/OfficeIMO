@@ -7,14 +7,13 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class ProjectCharter {
     internal static void Create(string folder) {
         using WordDocument document = WordDocument.Create(Path.Combine(folder, "example.docx"));
-        document.Settings.FontFamily = "Carlito";
-        document.Settings.FontSize = 11;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);
         document.BuiltinDocumentProperties.Title = "Project charter";
         document.AddParagraph("Project charter").Style = WordParagraphStyles.Heading1;
         document.AddParagraph("NORTHWIND / CUSTOMER PORTAL / VERSION 1.0");
         document.AddParagraph("Give the delivery team one agreed reference for the outcome, scope, and acceptance decision.");
 
-        document.AddParagraph("Outcome and boundaries").AddBookmark("Scope").Style = WordParagraphStyles.Heading2;
+        document.AddParagraph("Outcome and boundaries").AddBookmark("Scope").Paragraph.Style = WordParagraphStyles.Heading2;
         WordList scope = document.AddList(WordListStyle.Bulleted);
         scope.AddItem("Provide a single place to submit and track service requests.");
         scope.AddItem("Include request history and a clear escalation path.");
@@ -39,18 +38,17 @@ internal static class ProjectCharter {
         document.AddParagraph("Success measure").Style = WordParagraphStyles.Heading2;
         document.AddParagraph("At least 90% of pilot requests reach the right team without manual reassignment.");
         foreach (WordParagraph paragraph in document.Paragraphs) {
-            paragraph.FontFamily = "Carlito";
-            paragraph.FontSize = 11;
-            paragraph.LineSpacingAfterPoints = 7;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(11);
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(7D);
             if (paragraph.Style == WordParagraphStyles.Heading1) {
-                paragraph.FontSize = 26;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(26);
                 paragraph.Bold = true;
-                paragraph.LineSpacingAfterPoints = 12;
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(12D);
             } else if (paragraph.Style == WordParagraphStyles.Heading2) {
-                paragraph.FontSize = 15;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(15);
                 paragraph.Bold = true;
-                paragraph.LineSpacingBeforePoints = 12;
-                paragraph.LineSpacingAfterPoints = 6;
+                paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
             }
         }
         foreach (WordTable styledTable in document.Tables) {
@@ -58,16 +56,16 @@ internal static class ProjectCharter {
             styledTable.SetColumnWidthsPercentage(25, 22, 53);
             foreach (var row in styledTable.Rows) {
                 foreach (var cell in row.Cells) {
-                    cell.MarginTopCentimeters = 0.10;
-                    cell.MarginBottomCentimeters = 0.10;
+                    cell.MarginTop = global::OfficeIMO.OfficeLength.Centimeters(0.1D);
+                    cell.MarginBottom = global::OfficeIMO.OfficeLength.Centimeters(0.1D);
                     foreach (var paragraph in cell.Paragraphs) {
-                        paragraph.FontFamily = "Carlito";
-                        paragraph.FontSize = 11;
-                        paragraph.LineSpacingAfterPoints = 3;
+                        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(11);
+                        paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(3D);
                     }
                 }
             }
         }
+        WorkflowFooter.Add(document, "Project charter");
         document.Save();
     }
 }

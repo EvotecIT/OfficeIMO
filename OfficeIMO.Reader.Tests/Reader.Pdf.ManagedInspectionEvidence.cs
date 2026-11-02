@@ -18,7 +18,7 @@ public sealed class ReaderPdfManagedInspectionEvidenceTests {
     [InlineData(true, true)]
     public void FailedSelectionsDoNotRenumberLaterRepeatedReadablePages(bool lean, bool chunksOnly) {
         var reader = new OfficeDocumentReaderBuilder().AddPdfHandler(new ReaderPdfOptions {
-            ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(2, 1, 1) }
+            ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(2, 1, 1) }
         }).Build();
         var options = new ReaderOptions { Inspection = new ReaderInspectionOptions(),
             Projection = lean ? ReaderProjection.TextAndMetadata : ReaderProjection.Full };
@@ -45,7 +45,7 @@ public sealed class ReaderPdfManagedInspectionEvidenceTests {
     [InlineData(true)]
     public void LoadedInspectionKeepsNativeSelectionsWithoutReopeningItsSource(bool lean) {
         PdfInspectionReadResult inspection = PdfDocument.Load(BuildMixedPdf(decoratedReadablePage: true)).ReadForInspection(
-            new PdfReadOptions { PageSelection = PdfPageSelection.From(2, 1, 1) });
+            new PdfLoadOptions { PageSelection = PdfPageSelection.From(2, 1, 1) });
         OfficeDocumentReadResult result = inspection.ReadDocument("not-an-input-file.pdf", new ReaderOptions {
             Projection = lean ? ReaderProjection.TextAndMetadata : ReaderProjection.Full
         });
@@ -66,7 +66,7 @@ public sealed class ReaderPdfManagedInspectionEvidenceTests {
             Assert.All(result.Pages[1].Blocks, block => Assert.Equal(2, block.Location.SourceBlockIndex));
         }
         Assert.Throws<ArgumentException>(() => inspection.ReadDocument(pdfOptions: new ReaderPdfOptions {
-            ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(1) }
+            ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(1) }
         }));
     }
 
@@ -76,7 +76,7 @@ public sealed class ReaderPdfManagedInspectionEvidenceTests {
     public void ImageOccurrencesKeepSelectionIdentityThroughTheVisualReader(bool chunkByPage) {
         var reader = new OfficeDocumentReaderBuilder().AddPdfHandler(new ReaderPdfOptions {
             ChunkByPage = chunkByPage,
-            ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(2, 1, 1) }
+            ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(2, 1, 1) }
         }).Build();
         ReaderVisual[] visuals = reader.ReadVisuals(BuildMixedPdf(decoratedReadablePage: true), "selected.pdf",
             new ReaderOptions { Inspection = new ReaderInspectionOptions() }).ToArray();
@@ -99,7 +99,7 @@ public sealed class ReaderPdfManagedInspectionEvidenceTests {
             : new PdfReadLimits { MaxContentOperations = 1 };
         var reader = new OfficeDocumentReaderBuilder().AddPdfHandler(new ReaderPdfOptions {
             LoadOptions = new PdfLoadOptions { Limits = limits },
-            ReadOptions = new PdfReadOptions { PageSelection = PdfPageSelection.From(1) }
+            ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(1) }
         }).Build();
         var options = new ReaderOptions { Inspection = inspection ? new ReaderInspectionOptions() : null };
         ReaderAdmissionLimitException direct = Assert.Throws<ReaderAdmissionLimitException>(() => reader.ReadDocument(bytes, "bounded.pdf", options));

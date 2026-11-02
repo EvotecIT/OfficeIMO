@@ -7,18 +7,18 @@ using OfficeIMO.OpenXml.Internal;
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointUtils {
         internal const int MaximumSharedChartPoints = OfficeOpenXmlChartWriter.MaximumSharedChartPoints;
-        internal static void ValidateSharedChartData(OfficeChartData data, OfficeChartKind kind) =>
+        internal static void ValidateSharedChartData(OfficeChartData data, OfficeChartType kind) =>
             OfficeOpenXmlChartWriter.ValidateSharedChartData(data, kind);
         internal static void ValidateSharedWorkbookDimensions(int categoryCount, int seriesCount, long totalPoints) =>
             OfficeOpenXmlChartWriter.ValidateSharedWorkbookDimensions(categoryCount, seriesCount, totalPoints);
         internal static void ValidateBubbleWorkbookDimensions(int seriesCount, int maximumPoints, long totalPoints) =>
             OfficeOpenXmlChartWriter.ValidateBubbleWorkbookDimensions(seriesCount, maximumPoints, totalPoints);
-        internal static void PopulateSharedChart(ChartPart part, string relationship, OfficeChartData data, OfficeChartKind kind) =>
+        internal static void PopulateSharedChart(ChartPart part, string relationship, OfficeChartData data, OfficeChartType kind) =>
             OfficeOpenXmlChartWriter.PopulateSharedChart(part, relationship, data, kind);
-        internal static void UpdateSharedChartData(ChartPart part, OfficeChartData data, OfficeChartKind kind) =>
+        internal static void UpdateSharedChartData(ChartPart part, OfficeChartData data, OfficeChartType kind) =>
             OfficeOpenXmlChartWriter.UpdateSharedChartData(part, data, kind);
         internal static byte[] BuildBubbleChartWorkbook(OfficeChartData data) =>
-            OfficeOpenXmlChartWriter.BuildWorkbook(data, OfficeChartKind.Bubble);
+            OfficeOpenXmlChartWriter.BuildWorkbook(data, OfficeChartType.Bubble);
         internal static PowerPointChartData ToPowerPointChartData(OfficeChartData data) =>
             new(data.Categories, data.Series.Select(series =>
                 new PowerPointChartSeries(series.Name, series.Values)));

@@ -7,7 +7,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             "application/vnd.ms-office.vbaProject";
 
         private static void AddPackagePartFindings(
-            PowerPointPresentation presentation,
+            PowerPointDocument presentation,
             ICollection<LegacyPptWriteFinding> findings) {
             PresentationDocument document = presentation.OpenXmlDocument;
             OpenXmlPart[] parts = EnumeratePackageParts(document).ToArray();
@@ -15,28 +15,28 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (parts.Any(IsCustomXmlPart)) {
                 findings.Add(new LegacyPptWriteFinding(
                     LegacyPptFeature.CustomXml,
-                    "PPT-WRITE-CUSTOM-XML",
+                    "ppt-write-custom-xml",
                     "Open XML custom XML parts have no PowerPoint 97-2003 binary representation."));
             }
 
             if (parts.Any(IsActiveXPart)) {
                 findings.Add(new LegacyPptWriteFinding(
                     LegacyPptFeature.ActiveX,
-                    "PPT-WRITE-ACTIVEX",
+                    "ppt-write-activex",
                     "Open XML ActiveX control parts cannot be converted safely to binary PowerPoint controls."));
             }
 
             if (parts.Any(IsWebExtensionPart)) {
                 findings.Add(new LegacyPptWriteFinding(
                     LegacyPptFeature.UnknownRecordsAndStreams,
-                    "PPT-WRITE-WEB-EXTENSION",
+                    "ppt-write-web-extension",
                     "Web extensions and task panes have no PowerPoint 97-2003 binary representation."));
             }
 
             if (parts.OfType<ExtendedPart>().Any(IsExtendedVbaProject)) {
                 findings.Add(new LegacyPptWriteFinding(
                     LegacyPptFeature.VbaProjects,
-                    "PPT-WRITE-VBA-EXTENDED-PART",
+                    "ppt-write-vba-extended-part",
                     "A VBA project stored as an untyped package part cannot be encoded safely by the binary writer."));
             }
 
@@ -47,7 +47,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (hasOpenXmlSignature) {
                 findings.Add(new LegacyPptWriteFinding(
                     LegacyPptFeature.DigitalSignatures,
-                    "PPT-WRITE-OPENXML-SIGNATURE",
+                    "ppt-write-openxml-signature",
                     "Open XML digital signatures cannot be translated into binary PowerPoint signature carriers."));
             }
 
@@ -120,7 +120,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (unknown.Length > 0) {
                 findings.Add(new LegacyPptWriteFinding(
                     LegacyPptFeature.UnknownRecordsAndStreams,
-                    "PPT-WRITE-EXTENDED-PART",
+                    "ppt-write-extended-part",
                     $"The presentation contains {unknown.Length} unrecognized Open XML extended package part(s) that the binary writer cannot preserve."));
             }
 
@@ -138,7 +138,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
             findings.Add(new LegacyPptWriteFinding(
                 LegacyPptFeature.UnknownRecordsAndStreams,
-                "PPT-WRITE-PACKAGE-PART",
+                "ppt-write-package-part",
                 $"The presentation contains {typed.Length} typed Open XML package part(s) outside the binary writer's consumed or explicitly converted contract."));
         }
 
@@ -177,7 +177,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             or EmbeddedPackagePart;
 
         private static void AddUnmappedEmbeddedPartFinding(
-            PowerPointPresentation presentation,
+            PowerPointDocument presentation,
             IReadOnlyCollection<OpenXmlPart> parts,
             ICollection<LegacyPptWriteFinding> findings) {
             var mapped = new HashSet<OpenXmlPart>(presentation.Slides
@@ -200,7 +200,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
             findings.Add(new LegacyPptWriteFinding(
                 LegacyPptFeature.UnknownRecordsAndStreams,
-                "PPT-WRITE-EMBEDDED-PACKAGE",
+                "ppt-write-embedded-package",
                 $"The presentation contains {count} embedded package or object part(s) that are not mapped to an editable OLE object or converted chart."));
         }
 
@@ -229,19 +229,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (linkedOle > 0) {
                 findings.Add(new LegacyPptWriteFinding(
                     LegacyPptFeature.LinkedOle,
-                    "PPT-WRITE-LINKED-OLE",
+                    "ppt-write-linked-ole",
                     $"The presentation contains {linkedOle} external OLE relationship(s) whose link and cache semantics cannot be converted safely."));
             }
             if (linkedMedia > 0) {
                 findings.Add(new LegacyPptWriteFinding(
                     LegacyPptFeature.LinkedMedia,
-                    "PPT-WRITE-LINKED-MEDIA",
+                    "ppt-write-linked-media",
                     $"The presentation contains {linkedMedia} external media relationship(s) whose path and playback semantics cannot be converted safely."));
             }
             if (other > 0) {
                 findings.Add(new LegacyPptWriteFinding(
                     LegacyPptFeature.UnknownRecordsAndStreams,
-                    "PPT-WRITE-EXTERNAL-RELATIONSHIP",
+                    "ppt-write-external-relationship",
                     $"The presentation contains {other} external package relationship(s) outside supported hyperlink actions."));
             }
         }

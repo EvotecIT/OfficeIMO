@@ -8,15 +8,15 @@ The repository-level [compatibility matrix](../Docs/officeimo.markdown.compatibi
 
 ### CommonMark
 
-Use `MarkdownReaderOptions.CreateCommonMarkProfile()` when standards grammar and HTML shape matter more than OfficeIMO convenience behavior. The profile disables OfficeIMO-only callouts, task-list promotion, front matter, bare URL/email discovery, and standalone image-block promotion unless the caller opts into them.
+Use `MarkdownLoadOptions.CreateCommonMarkProfile()` when standards grammar and HTML shape matter more than OfficeIMO convenience behavior. The profile disables OfficeIMO-only callouts, task-list promotion, front matter, bare URL/email discovery, and standalone image-block promotion unless the caller opts into them.
 
 ### GitHub Flavored Markdown
 
-Use `MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile()` for tables, task lists, strikethrough, autolinks, and the repository's tracked GFM behavior. Pair it with `HtmlOptions.CreateGitHubFlavoredMarkdownProfile()` when GitHub-oriented HTML details and dangerous-tag filtering are required.
+Use `MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile()` for tables, task lists, strikethrough, autolinks, and the repository's tracked GFM behavior. Pair it with `MarkdownHtmlExportOptions.CreateGitHubFlavoredMarkdownProfile()` when GitHub-oriented HTML details and dangerous-tag filtering are required.
 
 ### Portable
 
-Use `MarkdownReaderOptions.CreatePortableProfile()` for explicit links, angle autolinks, plain lists, and conservative cross-renderer behavior. Bare URLs, plain-email links, task-list promotion, and OfficeIMO callouts remain disabled.
+Use `MarkdownLoadOptions.CreatePortableProfile()` for explicit links, angle autolinks, plain lists, and conservative cross-renderer behavior. Bare URLs, plain-email links, task-list promotion, and OfficeIMO callouts remain disabled.
 
 ### OfficeIMO
 
@@ -31,7 +31,7 @@ The default profile enables OfficeIMO conveniences such as typed image blocks, c
 
 ## Source and round-trip behavior
 
-- `MarkdownDoc` is the semantic editing model.
+- `MarkdownDocument` is the semantic editing model.
 - `MarkdownParseResult.FinalSyntaxTree` is the source-oriented structural model.
 - Normalized source slices are available for span-backed nodes.
 - `PreserveTrivia` retains original input for lossless workflows.

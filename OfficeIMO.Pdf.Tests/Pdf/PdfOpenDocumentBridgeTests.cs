@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.PowerPoint;
 using OfficeIMO.OpenDocument.Odp.Pdf;
 using OfficeIMO.OpenDocument.Ods.Pdf;
 using OfficeIMO.OpenDocument.Odt.Pdf;
@@ -31,7 +32,7 @@ public sealed class PdfOpenDocumentBridgeTests {
     [Fact]
     public void PdfToOdt_ReportsLostFormInteractivityThroughTheCombinedLossGate() {
         byte[] source = PdfCore.PdfDocument.Create()
-            .TextField("Approval", width: 120, value: "Ready")
+            .TextField("Approval", width: global::OfficeIMO.OfficeLength.Points(120), value: "Ready")
             .ToBytes();
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Load(source);
 
@@ -39,7 +40,7 @@ public sealed class PdfOpenDocumentBridgeTests {
 
         Assert.True(result.HasLoss);
         Assert.Contains(result.Report.PdfReport.Warnings, warning =>
-            warning.Code == "PdfFormWidgetPlaceholder" &&
+            warning.Code == "pdf-form-widget-placeholder" &&
             warning.Severity == PdfCore.PdfConversionWarningSeverity.Warning);
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
     }
@@ -66,14 +67,14 @@ public sealed class PdfOpenDocumentBridgeTests {
 
     [Fact]
     public void PdfToOdp_DefaultsToEditableContentAndProducesValidOdfPackage() {
-        byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .H1("First page")
             .Table(new[] {
@@ -81,10 +82,10 @@ public sealed class PdfOpenDocumentBridgeTests {
                 new[] { "Ready", "Yes", "Current" },
                 new[] { "Loss", "Reported", "Current" }
             }, style: new PdfCore.PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 100, 100, 120 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(120) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .PageBreak()
             .H1("Second page")
@@ -93,7 +94,7 @@ public sealed class PdfOpenDocumentBridgeTests {
 
         PdfOdpConversionResult result = pdf.ToOdpPresentationResult();
 
-        Assert.Equal(PdfPowerPointImportMode.EditableContent, result.Report.PdfReport.Mode);
+        Assert.Equal(PowerPointPdfImportMode.EditableContent, result.Report.PdfReport.Mode);
         Assert.Equal(2, result.Value.Slides.Count);
         Assert.Equal(2, result.Report.PdfReport.EditablePages.Count);
         Assert.All(result.Report.PdfReport.EditablePages, page => Assert.True(page.TextBoxCount >= 1));

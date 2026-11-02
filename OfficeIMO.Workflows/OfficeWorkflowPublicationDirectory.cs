@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using Microsoft.Win32.SafeHandles;
 using System.Runtime.InteropServices;
 
@@ -24,8 +25,8 @@ internal sealed class OfficeWorkflowPublicationDirectory : IDisposable {
     internal static OfficeWorkflowPublicationDirectory Open(string destinationPath) {
         string directory = Path.GetDirectoryName(Path.GetFullPath(destinationPath))
             ?? throw new ArgumentException("Output path requires a directory.", nameof(destinationPath));
-        if (OperatingSystem.IsWindows()) return OpenWindows(directory);
-        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) return OpenUnix(directory);
+        if (OfficeRuntimeCompatibility.IsWindows) return OpenWindows(directory);
+        if (OfficeRuntimeCompatibility.IsLinux || OfficeRuntimeCompatibility.IsMacOS) return OpenUnix(directory);
         throw new PlatformNotSupportedException("Secure redaction publication requires Windows, Linux, or macOS.");
     }
 
@@ -102,7 +103,7 @@ internal sealed class OfficeWorkflowPublicationDirectory : IDisposable {
 
     private int UnixRenameNoReplace(string source, string destination) {
         try {
-            return OperatingSystem.IsMacOS()
+            return OfficeRuntimeCompatibility.IsMacOS
                 ? MacRenameAtExclusive(UnixFd, source, UnixFd, destination, 4)
                 : LinuxRenameAtNoReplace(UnixFd, source, UnixFd, destination, 1);
         } catch (EntryPointNotFoundException exception) {
@@ -123,9 +124,9 @@ internal sealed class OfficeWorkflowPublicationDirectory : IDisposable {
         if (descriptor < 0) throw UnixError("open root directory", directory);
         var current = new SafeFileHandle(new IntPtr(descriptor), ownsHandle: true);
         try {
-            string relative = Path.GetRelativePath(Path.DirectorySeparatorChar.ToString(), directory);
+            string relative = OfficeRuntimeCompatibility.GetRelativePath(Path.DirectorySeparatorChar.ToString(), directory);
             if (relative != ".") {
-                foreach (string segment in relative.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)) {
+                foreach (string segment in relative.Split(new[] { Path.DirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries)) {
                     ValidateName(segment);
                     int parent = checked((int)current.DangerousGetHandle().ToInt64());
                     int child = UnixOpenAt(parent, segment, flags, 0);
@@ -154,9 +155,9 @@ internal sealed class OfficeWorkflowPublicationDirectory : IDisposable {
         try {
             locks.Add(OpenLockedWindowsDirectory(root));
             string current = root;
-            string relative = Path.GetRelativePath(root, directory);
+            string relative = OfficeRuntimeCompatibility.GetRelativePath(root, directory);
             if (relative != ".") {
-                foreach (string segment in relative.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)) {
+                foreach (string segment in relative.Split(new[] { Path.DirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries)) {
                     ValidateName(segment);
                     current = Path.Combine(current, segment);
                     Directory.CreateDirectory(current);
@@ -191,7 +192,7 @@ internal sealed class OfficeWorkflowPublicationDirectory : IDisposable {
         if (full.Length < 248 || full.StartsWith(@"\\?\", StringComparison.Ordinal) ||
             full.StartsWith(@"\\.\", StringComparison.Ordinal)) return full;
         return full.StartsWith(@"\\", StringComparison.Ordinal)
-            ? @"\\?\UNC\" + full[2..] : @"\\?\" + full;
+            ? @"\\?\UNC\" + full.Substring(2) : @"\\?\" + full;
     }
 
     private static void ValidateName(string name) {
@@ -200,11 +201,11 @@ internal sealed class OfficeWorkflowPublicationDirectory : IDisposable {
             throw new ArgumentException("Publication operation requires one file or directory name.", nameof(name));
     }
 
-    private static int UnixDirectory => OperatingSystem.IsMacOS() ? 0x00100000 : 0x00010000;
-    private static int UnixNoFollow => OperatingSystem.IsMacOS() ? 0x00000100 : 0x00020000;
-    private static int UnixCloseOnExec => OperatingSystem.IsMacOS() ? 0x01000000 : 0x00080000;
-    private static int UnixCreate => OperatingSystem.IsMacOS() ? 0x00000200 : 0x00000040;
-    private static int UnixExclusive => OperatingSystem.IsMacOS() ? 0x00000800 : 0x00000080;
+    private static int UnixDirectory => OfficeRuntimeCompatibility.IsMacOS ? 0x00100000 : 0x00010000;
+    private static int UnixNoFollow => OfficeRuntimeCompatibility.IsMacOS ? 0x00000100 : 0x00020000;
+    private static int UnixCloseOnExec => OfficeRuntimeCompatibility.IsMacOS ? 0x01000000 : 0x00080000;
+    private static int UnixCreate => OfficeRuntimeCompatibility.IsMacOS ? 0x00000200 : 0x00000040;
+    private static int UnixExclusive => OfficeRuntimeCompatibility.IsMacOS ? 0x00000800 : 0x00000080;
     private const int UnixWriteOnly = 1;
     private const int ErrorNoEntry = 2;
     private const int ErrorAlreadyExists = 17;

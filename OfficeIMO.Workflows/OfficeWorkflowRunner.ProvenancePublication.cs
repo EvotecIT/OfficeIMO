@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using System.Security.Cryptography;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Provenance;
@@ -26,7 +27,7 @@ public sealed partial class OfficeWorkflowRunner {
 
         internal long Length { get; }
         private byte[] Sha256 { get; }
-        internal string Sha256Hex => System.Convert.ToHexString(Sha256).ToLowerInvariant();
+        internal string Sha256Hex => OfficeRuntimeCompatibility.ToHexString(Sha256).ToLowerInvariant();
 
         internal static StagedArtifactFingerprint Capture(
             string path,
@@ -85,7 +86,7 @@ public sealed partial class OfficeWorkflowRunner {
                 byte[] sha256 = ComputeHash(stream, cancellationToken);
                 if (expectedLength.HasValue &&
                     (stream.Length != expectedLength.Value ||
-                     !CryptographicOperations.FixedTimeEquals(sha256, expectedSha256!))) {
+                     !OfficeRuntimeCompatibility.FixedTimeEquals(sha256, expectedSha256!))) {
                     throw new InvalidDataException(
                         "The staged provenance artifact did not match the bytes returned by its format owner.");
                 }
@@ -145,7 +146,7 @@ public sealed partial class OfficeWorkflowRunner {
                 ".officeimo-provenance-rollback-" + Guid.NewGuid().ToString("N") + ".tmp");
             bool moved = false;
             try {
-                File.Move(path, quarantinePath, overwrite: false);
+                File.Move(path, quarantinePath);
                 moved = true;
                 bool matches;
                 using (FileStream stream = OpenForIdentity(quarantinePath)) {
@@ -157,7 +158,7 @@ public sealed partial class OfficeWorkflowRunner {
                     return;
                 }
 
-                File.Move(quarantinePath, path, overwrite: false);
+                File.Move(quarantinePath, path);
                 moved = false;
             } catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException or IOException or UnauthorizedAccessException) {
                 // Never delete a known destination pathname after a failed identity check. If a
@@ -166,7 +167,7 @@ public sealed partial class OfficeWorkflowRunner {
                 if (moved && File.Exists(quarantinePath)) {
                     try {
                         if (!File.Exists(path)) {
-                            File.Move(quarantinePath, path, overwrite: false);
+                            File.Move(quarantinePath, path);
                             moved = false;
                         }
                     } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) { }
@@ -199,7 +200,7 @@ public sealed partial class OfficeWorkflowRunner {
                 if (!string.Equals(physicalIdentity, _physicalIdentity, StringComparison.Ordinal)) return false;
             }
             byte[] currentHash = ComputeHash(stream, cancellationToken);
-            return CryptographicOperations.FixedTimeEquals(currentHash, Sha256);
+            return OfficeRuntimeCompatibility.FixedTimeEquals(currentHash, Sha256);
         }
 
         private static FileStream OpenForIdentity(string path) => new(
@@ -226,11 +227,11 @@ public sealed partial class OfficeWorkflowRunner {
     private static async Task<string> PublishVerifiedAsync(
         string stagingPath,
         string requestedPath,
-        OfficeWorkflowConflictPolicy policy,
+        OfficePublicationPolicy policy,
         SortedSet<string>? blockedOutputIdentities,
         string? ownReservedOutputIdentity,
         StagedArtifactFingerprint staged,
-        IOfficeWorkflowPublicationGuard? guard,
+        IOfficePublicationGuard? guard,
         OfficeProvenanceFileSnapshot? expectedDisplacedInput,
         long maximumBytes,
         CancellationToken cancellationToken,
@@ -246,17 +247,17 @@ public sealed partial class OfficeWorkflowRunner {
 
             string publishedPath;
             switch (policy) {
-                case OfficeWorkflowConflictPolicy.Fail:
+                case OfficePublicationPolicy.Fail:
                     EnsureBatchCandidateDoesNotOverlapAnotherRequest(requestedPath);
                     await EnsurePublicationAllowedAsync(guard, requestedPath, false, cancellationToken).ConfigureAwait(false);
-                    File.Move(stagingPath, requestedPath, overwrite: false);
+                    File.Move(stagingPath, requestedPath);
                     publishedPath = requestedPath;
                     PinAndFinalize(publishedPath);
                     break;
-                case OfficeWorkflowConflictPolicy.Rename:
+                case OfficePublicationPolicy.Rename:
                     publishedPath = await PublishRenamedAsync().ConfigureAwait(false);
                     break;
-                case OfficeWorkflowConflictPolicy.Replace:
+                case OfficePublicationPolicy.Replace:
                     publishedPath = await PublishReplacementAsync().ConfigureAwait(false);
                     break;
                 default:
@@ -321,7 +322,7 @@ public sealed partial class OfficeWorkflowRunner {
                 }
                 if (!await CanPublishAsync(guard, candidate, false, cancellationToken).ConfigureAwait(false)) continue;
                 try {
-                    File.Move(stagingPath, candidate, overwrite: false);
+                    File.Move(stagingPath, candidate);
                 } catch (IOException) when (File.Exists(candidate) || Directory.Exists(candidate)) {
                     // Another request owns this candidate. Try the next deterministic suffix.
                     continue;
@@ -342,7 +343,7 @@ public sealed partial class OfficeWorkflowRunner {
                 }
                 bool destinationAppeared = false;
                 try {
-                    File.Move(stagingPath, requestedPath, overwrite: false);
+                    File.Move(stagingPath, requestedPath);
                 } catch (IOException) when (File.Exists(requestedPath)) {
                     // The destination appeared during the claim. Validate and replace it below.
                     destinationAppeared = true;

@@ -9,8 +9,8 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Theory]
-        [InlineData(false, "XLS-BIFF-SST-SHORT")]
-        [InlineData(true, "XLS-BIFF-SST-STRING-INVALID")]
+        [InlineData(false, "xls-biff-sst-short")]
+        [InlineData(true, "xls-biff-sst-string-invalid")]
         public void LegacyXls_Load_ClassifiesUnreadSharedStringsAsOmissions(bool invalidString, string code) {
             byte[] sst = invalidString
                 ? new byte[] { 1, 0, 0, 0, 1, 0, 0, 0, 5, 0, 0, 0x41 }
@@ -34,8 +34,8 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
-        [InlineData(false, "XLS-BIFF-BOUNDSHEET-SHORT")]
-        [InlineData(true, "XLS-BIFF-BOUNDSHEET-INVALID")]
+        [InlineData(false, "xls-biff-boundsheet-short")]
+        [InlineData(true, "xls-biff-boundsheet-invalid")]
         public void LegacyXls_Load_ClassifiesUnreadBoundSheetsAsOmissions(bool invalidName, string code) {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateWorkbookWithBrokenBoundSheet(invalidName);
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -62,14 +62,14 @@ namespace OfficeIMO.Tests {
                 new MemoryStream(compound), new LegacyXlsImportOptions { ReportUnsupportedContent = false });
             Assert.True(result.HasDocument);
             Assert.Contains(result.FidelityDiagnostics, diagnostic =>
-                diagnostic.Code == "XLS-BIFF-SHEET-OFFSET-INVALID"
+                diagnostic.Code == "xls-biff-sheet-offset-invalid"
                 && diagnostic.LossKind == OfficeConversionLossKind.Omission);
             Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
         }
 
         [Theory]
-        [InlineData(false, "XLS-BIFF-SUPBOOK-SHORT")]
-        [InlineData(true, "XLS-BIFF-SUPBOOK-INVALID")]
+        [InlineData(false, "xls-biff-supbook-short")]
+        [InlineData(true, "xls-biff-supbook-invalid")]
         public void LegacyXls_Load_ClassifiesUnreadExternalLinksAsOmissions(bool invalidTarget, string code) {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateWorkbookWithBrokenSupBook(invalidTarget);
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-SST-STRING-INVALID");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-sst-string-invalid");
             Assert.DoesNotContain(legacy.Diagnostics, d => d.RecordType == (ushort)BiffRecordType.Continue);
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             Assert.Contains(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1 && Equals(cell.Value, "AlphaBeta"));
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-SST-STRING-INVALID");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-sst-string-invalid");
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             Assert.Contains(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1 && Equals(cell.Value, "RichText"));
             Assert.Contains(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2 && Equals(cell.Value, "Plain"));
@@ -146,7 +146,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-SST-STRING-INVALID");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-sst-string-invalid");
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             Assert.Contains(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1 && Equals(cell.Value, "RichText"));
             Assert.Contains(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2 && Equals(cell.Value, "Plain"));

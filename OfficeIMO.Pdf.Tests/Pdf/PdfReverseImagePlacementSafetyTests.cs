@@ -1,3 +1,6 @@
+using OfficeIMO.Pdf.Word;
+using OfficeIMO.Pdf.Excel;
+using OfficeIMO.Pdf.PowerPoint;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Pdf;
@@ -16,32 +19,32 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             .Canvas(canvas => canvas.Effect(
                 OfficeIMO.Drawing.OfficeTransform.Identity,
                 0D,
-                effect => effect.Image(Png, 20D, 30D, 80D, 40D)))
+                effect => effect.Image(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(40D))))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
         Assert.Equal(0D, Assert.Single(Assert.Single(logical.Pages).Images).Placements[0].Opacity);
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             Assert.Empty(word.Value.Images);
             Assert.Contains(word.Report.Warnings, static warning =>
-                warning.Code == "PdfInvisibleImagePlacementSuppressed" &&
+                warning.Code == "pdf-invisible-image-placement-suppressed" &&
                 warning.LossKind == OfficeConversionLossKind.None);
         }
 
         PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
         Assert.DoesNotContain("data:image/", html.Value, StringComparison.Ordinal);
         Assert.Contains(html.Report.Warnings, static warning =>
-            warning.Code == "InvisibleImagePlacementSuppressed" &&
+            warning.Code == OfficeDiagnosticCodes.InvisibleImagePlacementSuppressed &&
             warning.LossKind == OfficeConversionLossKind.None);
 
-        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
-            PdfToPowerPointOptions.CreateEditableContent());
+        PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
+            PowerPointPdfImportOptions.CreateEditableContent());
         using (powerPoint.Value) {
             Assert.Empty(powerPoint.Value.Slides.SelectMany(static slide => slide.Pictures));
             Assert.Equal(0, Assert.Single(powerPoint.Report.EditablePages).OmittedImageCount);
             Assert.Contains(powerPoint.Report.Warnings, static warning =>
-                warning.Code == "PdfInvisibleImagePlacementSuppressed" &&
+                warning.Code == "pdf-invisible-image-placement-suppressed" &&
                 warning.LossKind == OfficeConversionLossKind.None);
         }
     }
@@ -52,7 +55,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             .Canvas(canvas => canvas.Effect(
                 OfficeIMO.Drawing.OfficeTransform.Identity,
                 0D,
-                effect => effect.Image(Png, 20D, 30D, 80D, 40D)))
+                effect => effect.Image(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(40D))))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(invisible);
         Assert.Single(Assert.Single(logical.Pages).Images);
@@ -63,9 +66,9 @@ public sealed class PdfReverseImagePlacementSafetyTests {
 
         Assert.False(html.HasLoss);
         Assert.DoesNotContain(html.Report.Warnings, static warning =>
-            warning.Code is "PdfImagesOmitted" or "PdfSemanticLayoutReflowed");
+            warning.Code is OfficeDiagnosticCodes.PdfImagesOmitted or OfficeDiagnosticCodes.PdfSemanticLayoutReflowed);
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult(new PdfToWordOptions {
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new WordPdfImportOptions {
             ImportImages = false,
             IncludeImagePlaceholders = false
         });
@@ -74,7 +77,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             Assert.Contains(word.Value.Paragraphs, static paragraph =>
                 paragraph.Text == "No supported PDF content detected.");
             Assert.DoesNotContain(word.Report.Warnings, static warning =>
-                warning.Code is "PdfImageSkipped" or "PdfEditableLayoutReconstructed");
+                warning.Code is "pdf-image-skipped" or "pdf-editable-layout-reconstructed");
         }
     }
 
@@ -88,11 +91,11 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             .Canvas(canvas => canvas.Effect(
                 OfficeIMO.Drawing.OfficeTransform.Identity,
                 0D,
-                effect => effect.Image(Png, 20D, 30D, 80D, 40D)))
+                effect => effect.Image(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(40D))))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult(new PdfToWordOptions {
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new WordPdfImportOptions {
             PreserveSourcePageSize = preserveSourcePageSize,
             IncludeEmptyPages = false
         });
@@ -103,7 +106,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             Assert.Empty(word.Value.PageBreaks);
             Assert.Single(word.Value.Sections);
             Assert.Contains(word.Report.Warnings, static warning =>
-                warning.Code == "PdfInvisibleImagePlacementSuppressed" &&
+                warning.Code == "pdf-invisible-image-placement-suppressed" &&
                 warning.LossKind == OfficeConversionLossKind.None);
         }
     }
@@ -116,13 +119,13 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             .Canvas(canvas => canvas.Effect(
                 OfficeIMO.Drawing.OfficeTransform.Identity,
                 0D,
-                effect => effect.Image(Png, 20D, 30D, 80D, 40D)))
+                effect => effect.Image(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(40D))))
             .PageBreak()
             .Paragraph(paragraph => paragraph.Text("Visible second page"))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult(new PdfToWordOptions {
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new WordPdfImportOptions {
             PreserveSourcePageSize = preserveSourcePageSize,
             IncludeEmptyPages = false
         });
@@ -133,7 +136,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             Assert.Empty(word.Value.PageBreaks);
             Assert.Single(word.Value.Sections);
             Assert.Contains(word.Report.Warnings, static warning =>
-                warning.Code == "PdfInvisibleImagePlacementSuppressed" &&
+                warning.Code == "pdf-invisible-image-placement-suppressed" &&
                 warning.LossKind == OfficeConversionLossKind.None);
         }
     }
@@ -147,7 +150,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.Equal(3, logical.Pages.Count);
         Assert.Single(logical.Pages[1].Images);
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult(new PdfToWordOptions {
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new WordPdfImportOptions {
             PreserveSourcePageSize = preserveSourcePageSize,
             IncludeImagePlaceholders = false,
             IncludeEmptyPages = false
@@ -158,7 +161,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             Assert.Empty(word.Value.Images);
             Assert.Equal(preserveSourcePageSize ? 2 : 1, word.Value.Sections.Count);
             Assert.Equal(preserveSourcePageSize ? 0 : 1, word.Value.PageBreaks.Count);
-            Assert.Contains(word.Report.Warnings, static warning => warning.Code == "PdfImageEmbeddingSkipped");
+            Assert.Contains(word.Report.Warnings, static warning => warning.Code == "pdf-image-embedding-skipped");
         }
     }
 
@@ -182,7 +185,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.Equal(0, options.EmittedImagePlaceholderCount);
         Assert.False(options.Report.HasLoss);
         Assert.Contains(options.Report.Warnings, static warning =>
-            warning.Code == "UnplacedImageResourceNotEmbedded" &&
+            warning.Code == OfficeDiagnosticCodes.UnplacedImageResourceNotEmbedded &&
             warning.LossKind == OfficeConversionLossKind.None);
     }
 
@@ -195,14 +198,14 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.Single(Assert.Single(logical.Pages).Images);
         Assert.Equal(0, PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical).ImageCount);
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             Assert.Empty(word.Value.Images);
             Assert.False(word.HasLoss);
             Assert.Contains(word.Value.Paragraphs, static paragraph =>
                 paragraph.Text == "No supported PDF content detected.");
             Assert.Contains(word.Report.Warnings, static warning =>
-                warning.Code == "PdfNonVisibleImagePlacementSuppressed" &&
+                warning.Code == "pdf-non-visible-image-placement-suppressed" &&
                 warning.LossKind == OfficeConversionLossKind.None);
         }
 
@@ -212,33 +215,33 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.Equal(0, html.Summary.ImagePlaceholderCount);
         Assert.False(html.HasLoss);
         Assert.Contains(html.Report.Warnings, static warning =>
-            warning.Code == "NonVisibleImagePlacementSuppressed" &&
+            warning.Code == OfficeDiagnosticCodes.NonVisibleImagePlacementSuppressed &&
             warning.LossKind == OfficeConversionLossKind.None);
 
-        PdfPowerPointConversionResult editable = logical.ToPowerPointPresentationResult(
-            PdfToPowerPointOptions.CreateEditableContent());
+        PdfPowerPointConversionResult editable = logical.ConvertToPowerPointWithEvidence(
+            PowerPointPdfImportOptions.CreateEditableContent());
         using (editable.Value) {
             Assert.Empty(editable.Value.Slides.SelectMany(static slide => slide.Pictures));
             Assert.Equal(0, Assert.Single(editable.Report.EditablePages).OmittedImageCount);
             Assert.DoesNotContain(editable.Report.Warnings, static warning =>
                 warning.LossKind == OfficeConversionLossKind.Omission);
             Assert.Contains(editable.Report.Warnings, static warning =>
-                warning.Code == "PdfNonVisibleImagePlacementSuppressed" &&
+                warning.Code == "pdf-non-visible-image-placement-suppressed" &&
                 warning.LossKind == OfficeConversionLossKind.None);
         }
 
-        PdfExcelTableImportResult excel = logical.ImportTablesToExcelDocumentResult();
+        PdfExcelTableImportResult excel = logical.ConvertToExcelWithEvidence();
         using (excel.Value) {
             Assert.False(excel.HasLoss);
             Assert.Equal(0, excel.Report.SourceScope.ImageCount);
         }
 
-        PdfPowerPointConversionResult tables = logical.ToPowerPointPresentationResult(
-            PdfToPowerPointOptions.CreateEditableTables());
+        PdfPowerPointConversionResult tables = logical.ConvertToPowerPointWithEvidence(
+            PowerPointPdfImportOptions.CreateEditableTables());
         using (tables.Value) {
             Assert.False(tables.HasLoss);
             Assert.Equal(0, tables.Report.SourceScope.ImageCount);
-            Assert.DoesNotContain(tables.Report.Warnings, static warning => warning.Code == "PdfImagesNotEditable");
+            Assert.DoesNotContain(tables.Report.Warnings, static warning => warning.Code == "pdf-images-not-editable");
         }
     }
 
@@ -249,14 +252,14 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             imageMask: true));
         Assert.True(Assert.Single(Assert.Single(logical.Pages).Images).SourceImage.IsImageMask);
 
-        PdfPowerPointConversionResult editable = logical.ToPowerPointPresentationResult(
-            PdfToPowerPointOptions.CreateEditableContent());
+        PdfPowerPointConversionResult editable = logical.ConvertToPowerPointWithEvidence(
+            PowerPointPdfImportOptions.CreateEditableContent());
         using (editable.Value) {
             Assert.Equal(0, Assert.Single(editable.Report.EditablePages).OmittedImageCount);
             Assert.DoesNotContain(editable.Report.Warnings, static warning =>
                 warning.LossKind == OfficeConversionLossKind.Omission);
             Assert.Contains(editable.Report.Warnings, static warning =>
-                warning.Code == "PdfNonVisibleImagePlacementSuppressed" &&
+                warning.Code == "pdf-non-visible-image-placement-suppressed" &&
                 warning.LossKind == OfficeConversionLossKind.None);
         }
     }
@@ -265,22 +268,22 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     public void ClippedImagePlacementsNeverEmbedRawPixelsAcrossEditableAdapters() {
         byte[] source = CreateDocument()
             .Canvas(canvas => canvas.Clip(
-                40D,
-                40D,
-                20D,
-                20D,
-                clipped => clipped.Image(Png, 20D, 20D, 80D, 60D)))
+                global::OfficeIMO.OfficeLength.Points(40D),
+                global::OfficeIMO.OfficeLength.Points(40D),
+                global::OfficeIMO.OfficeLength.Points(20D),
+                global::OfficeIMO.OfficeLength.Points(20D),
+                clipped => clipped.Image(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(60D))))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
         PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
         Assert.NotNull(placement.Clip);
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             Assert.Empty(word.Value.Images);
             Assert.True(word.HasLoss);
             Assert.Contains(word.Report.Warnings, static warning =>
-                warning.Code == "PdfImageClipNotSafelyEditable" &&
+                warning.Code == "pdf-image-clip-not-safely-editable" &&
                 warning.LossKind == OfficeConversionLossKind.Omission);
         }
 
@@ -288,16 +291,16 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.DoesNotContain("data:image/", html.Value, StringComparison.Ordinal);
         Assert.True(html.HasLoss);
         Assert.Contains(html.Report.Warnings, static warning =>
-            warning.Code == "ImageClipNotSafelyEditable" &&
+            warning.Code == OfficeDiagnosticCodes.ImageClipNotSafelyEditable &&
             warning.LossKind == OfficeConversionLossKind.Omission);
 
-        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
-            PdfToPowerPointOptions.CreateEditableContent());
+        PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
+            PowerPointPdfImportOptions.CreateEditableContent());
         using (powerPoint.Value) {
             Assert.Empty(powerPoint.Value.Slides.SelectMany(static slide => slide.Pictures));
             Assert.True(powerPoint.HasLoss);
             Assert.Contains(powerPoint.Report.Warnings, static warning =>
-                warning.Code == "PdfImageClipNotSafelyEditable" &&
+                warning.Code == "pdf-image-clip-not-safely-editable" &&
                 warning.LossKind == OfficeConversionLossKind.Omission);
         }
     }
@@ -313,13 +316,13 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.False(placement.IsAxisAligned);
 
         AssertRawImageOmittedAcrossEditableAdapters(logical,
-            "PdfImageTransformNotSafelyEditable", "ImageTransformNotSafelyEditable");
+            "pdf-image-transform-not-safely-editable", OfficeDiagnosticCodes.ImageTransformNotSafelyEditable);
 
-        PdfHtmlConversionResult positioned = PdfDocument.Load(source)
+        PdfHtmlConversionResult positioned = PdfDocument.Load(new System.IO.MemoryStream(source))
             .ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
         Assert.DoesNotContain("data:image/", positioned.Value, StringComparison.Ordinal);
         Assert.Contains(positioned.Report.Warnings, static warning =>
-            warning.Code == "ImageTransformNotSafelyEditable" &&
+            warning.Code == OfficeDiagnosticCodes.ImageTransformNotSafelyEditable &&
             warning.LossKind == OfficeConversionLossKind.Omission);
     }
 
@@ -334,31 +337,31 @@ public sealed class PdfReverseImagePlacementSafetyTests {
 
         AssertRawImageOmittedAcrossEditableAdapters(
             logical,
-            "PdfImageClipNotSafelyEditable",
-            "ImageClipNotSafelyEditable");
+            "pdf-image-clip-not-safely-editable",
+            OfficeDiagnosticCodes.ImageClipNotSafelyEditable);
     }
 
     [Fact]
     public void PositionedPageAppearanceNeverEmbedsPixelsHiddenByImageClipping() {
         byte[] source = CreateDocument()
             .Canvas(canvas => canvas.Clip(
-                40D,
-                40D,
-                20D,
-                20D,
-                clipped => clipped.Image(Png, 20D, 20D, 80D, 60D)))
+                global::OfficeIMO.OfficeLength.Points(40D),
+                global::OfficeIMO.OfficeLength.Points(40D),
+                global::OfficeIMO.OfficeLength.Points(20D),
+                global::OfficeIMO.OfficeLength.Points(20D),
+                clipped => clipped.Image(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(60D))))
             .ToBytes();
 
-        PdfHtmlConversionResult html = PdfDocument.Load(source)
+        PdfHtmlConversionResult html = PdfDocument.Load(new System.IO.MemoryStream(source))
             .ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
 
         Assert.DoesNotContain("pdf-page-appearance", html.Value, StringComparison.Ordinal);
         Assert.DoesNotContain("data:image/", html.Value, StringComparison.Ordinal);
         Assert.Contains(html.Report.Warnings, static warning =>
-            warning.Code == "PageAppearanceUnsafeImageFallback" &&
+            warning.Code == OfficeDiagnosticCodes.PageAppearanceUnsafeImageFallback &&
             warning.LossKind == OfficeConversionLossKind.None);
         Assert.Contains(html.Report.Warnings, static warning =>
-            warning.Code == "ImageClipNotSafelyEditable" &&
+            warning.Code == OfficeDiagnosticCodes.ImageClipNotSafelyEditable &&
             warning.LossKind == OfficeConversionLossKind.Omission);
     }
 
@@ -376,7 +379,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         int hashCount = 0;
         PdfHtmlConverterExtensions.ImagePayloadHashObserverForTesting = () => hashCount++;
         try {
-            PdfHtmlConversionResult html = PdfDocument.Load(source)
+            PdfHtmlConversionResult html = PdfDocument.Load(new System.IO.MemoryStream(source))
                 .ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
             Assert.Contains("pdf-page-appearance", html.Value, StringComparison.Ordinal);
         } finally {
@@ -392,7 +395,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         using var cancellation = new System.Threading.CancellationTokenSource();
         PdfHtmlConverterExtensions.ImagePayloadHashObserverForTesting = cancellation.Cancel;
         try {
-            Assert.Throws<OperationCanceledException>(() => PdfDocument.Load(source)
+            Assert.Throws<OperationCanceledException>(() => PdfDocument.Load(new System.IO.MemoryStream(source))
                 .ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile(), cancellation.Token));
         } finally {
             PdfHtmlConverterExtensions.ImagePayloadHashObserverForTesting = null;
@@ -402,7 +405,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     [Fact]
     public void PositionedPageAppearanceChargesInterpolatedDecodedImagesToOneAggregatePixelBudget() {
         byte[] tiff = OfficeIMO.Drawing.OfficeRasterImageEncoder.Encode(
-            new OfficeIMO.Drawing.OfficeRasterImage(300, 200, OfficeIMO.Drawing.OfficeColor.Red),
+            new OfficeIMO.Drawing.OfficeRasterImage(300, 200, OfficeIMO.OfficeColor.Red),
             OfficeIMO.Drawing.OfficeImageExportFormat.Tiff);
         PdfExtractedImage first = new PdfExtractedImage(
             1, "Im1", 5, 300, 200, 24, "DeviceRGB", string.Empty,
@@ -424,7 +427,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
         Assert.NotNull(placement.Clip);
 
-        AssertRawImageOmittedAcrossEditableAdapters(logical, "PdfImageClipNotSafelyEditable", "ImageClipNotSafelyEditable");
+        AssertRawImageOmittedAcrossEditableAdapters(logical, "pdf-image-clip-not-safely-editable", OfficeDiagnosticCodes.ImageClipNotSafelyEditable);
     }
 
     [Fact]
@@ -432,11 +435,11 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         const string content = "q 0 0 80 120 re W n 40 0 0 80 20 20 cm /Im1 Do Q\n";
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(content, pageEntries: "/Rotate 90"));
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             Assert.Single(word.Value.Images);
             Assert.DoesNotContain(word.Report.Warnings, static warning =>
-                warning.Code == "PdfImageClipNotSafelyEditable");
+                warning.Code == "pdf-image-clip-not-safely-editable");
         }
     }
 
@@ -447,26 +450,26 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.True(placement.HasUnsupportedBlendMode);
         Assert.False(placement.HasUnsupportedPaintState);
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             Assert.Empty(word.Value.Images);
             Assert.Contains(word.Report.Warnings, static warning =>
-                warning.Code == "PdfImageUnsupportedBlendModeNotSafelyEditable" &&
+                warning.Code == "pdf-image-unsupported-blend-mode-not-safely-editable" &&
                 warning.LossKind == OfficeConversionLossKind.Omission);
         }
 
         PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
         Assert.DoesNotContain("data:image/", html.Value, StringComparison.Ordinal);
         Assert.Contains(html.Report.Warnings, static warning =>
-            warning.Code == "ImageUnsupportedBlendModeNotSafelyEditable" &&
+            warning.Code == OfficeDiagnosticCodes.ImageUnsupportedBlendModeNotSafelyEditable &&
             warning.LossKind == OfficeConversionLossKind.Omission);
 
-        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
-            PdfToPowerPointOptions.CreateEditableContent());
+        PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
+            PowerPointPdfImportOptions.CreateEditableContent());
         using (powerPoint.Value) {
             Assert.Empty(powerPoint.Value.Slides.SelectMany(static slide => slide.Pictures));
             Assert.Contains(powerPoint.Report.Warnings, static warning =>
-                warning.Code == "PdfImageUnsupportedBlendModeNotSafelyEditable" &&
+                warning.Code == "pdf-image-unsupported-blend-mode-not-safely-editable" &&
                 warning.LossKind == OfficeConversionLossKind.Omission);
         }
     }
@@ -479,11 +482,11 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.False(placement.HasUnsupportedBlendMode);
         Assert.True(placement.HasUnsupportedPaintState);
         Assert.False(placement.HasUnsupportedImagePaintEffect);
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             Assert.Single(word.Value.Images);
             Assert.DoesNotContain(word.Report.Warnings, static warning =>
-                warning.Code == "PdfImageUnsupportedBlendModeNotSafelyEditable");
+                warning.Code == "pdf-image-unsupported-blend-mode-not-safely-editable");
         }
     }
 
@@ -493,11 +496,11 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
 
         Assert.False(placement.HasUnsupportedBlendMode);
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             Assert.Single(word.Value.Images);
             Assert.DoesNotContain(word.Report.Warnings, static warning =>
-                warning.Code == "PdfImageUnsupportedBlendModeNotSafelyEditable");
+                warning.Code == "pdf-image-unsupported-blend-mode-not-safely-editable");
         }
     }
 
@@ -524,7 +527,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
 
         Assert.True(placement.HasUnsupportedPaintState);
         Assert.True(placement.HasUnsupportedImagePaintEffect);
-        AssertRawImageOmittedAcrossEditableAdapters(logical, "PdfImagePaintEffectNotSafelyEditable", "ImagePaintEffectNotSafelyEditable");
+        AssertRawImageOmittedAcrossEditableAdapters(logical, "pdf-image-paint-effect-not-safely-editable", OfficeDiagnosticCodes.ImagePaintEffectNotSafelyEditable);
     }
 
     [Fact]
@@ -536,11 +539,11 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
 
         Assert.False(placement.HasUnsupportedImagePaintEffect);
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             Assert.Single(word.Value.Images);
             Assert.DoesNotContain(word.Report.Warnings, static warning =>
-                warning.Code == "PdfImagePaintEffectNotSafelyEditable");
+                warning.Code == "pdf-image-paint-effect-not-safely-editable");
         }
     }
 
@@ -570,7 +573,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
 
         Assert.True(placement.HasUnsupportedImagePaintEffect);
-        AssertRawImageOmittedAcrossEditableAdapters(logical, "PdfImagePaintEffectNotSafelyEditable", "ImagePaintEffectNotSafelyEditable");
+        AssertRawImageOmittedAcrossEditableAdapters(logical, "pdf-image-paint-effect-not-safely-editable", OfficeDiagnosticCodes.ImagePaintEffectNotSafelyEditable);
     }
 
     [Fact]
@@ -579,7 +582,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
 
         Assert.False(placement.HasUnsupportedImagePaintEffect);
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             Assert.Single(word.Value.Images);
         }
@@ -591,11 +594,11 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
 
         Assert.False(placement.HasUnsupportedImagePaintEffect);
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             Assert.Single(word.Value.Images);
             Assert.DoesNotContain(word.Report.Warnings, static warning =>
-                warning.Code == "PdfImagePaintEffectNotSafelyEditable");
+                warning.Code == "pdf-image-paint-effect-not-safely-editable");
         }
     }
 
@@ -615,8 +618,8 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.True(placement.HasUnsupportedImagePaintEffect);
         AssertRawImageOmittedAcrossEditableAdapters(
             logical,
-            "PdfImagePaintEffectNotSafelyEditable",
-            "ImagePaintEffectNotSafelyEditable");
+            "pdf-image-paint-effect-not-safely-editable",
+            OfficeDiagnosticCodes.ImagePaintEffectNotSafelyEditable);
     }
 
     [Fact]
@@ -627,11 +630,11 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
 
         Assert.False(placement.HasUnsupportedImagePaintEffect);
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             Assert.Single(word.Value.Images);
             Assert.DoesNotContain(word.Report.Warnings, static warning =>
-                warning.Code == "PdfImagePaintEffectNotSafelyEditable");
+                warning.Code == "pdf-image-paint-effect-not-safely-editable");
         }
     }
 
@@ -644,28 +647,27 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
 
         Assert.True(placement.HasUnsupportedImagePaintEffect);
-        AssertRawImageOmittedAcrossEditableAdapters(logical, "PdfImagePaintEffectNotSafelyEditable", "ImagePaintEffectNotSafelyEditable");
+        AssertRawImageOmittedAcrossEditableAdapters(logical, "pdf-image-paint-effect-not-safely-editable", OfficeDiagnosticCodes.ImagePaintEffectNotSafelyEditable);
     }
 
     [Fact]
     public void FloatingPositionAndNaturalImageSizeCanBeSelectedIndependently() {
         byte[] source = CreateDocument()
-            .Canvas(canvas => canvas.Image(Png, 20D, 30D, 80D, 40D))
+            .Canvas(canvas => canvas.Image(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(40D)))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult(new PdfToWordOptions {
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new WordPdfImportOptions {
             PreserveImagePlacementPosition = true,
             PreserveImagePlacementSize = false
         });
         using (word.Value) {
             OfficeIMO.Word.WordImage image = Assert.Single(word.Value.Images);
             Assert.Equal(OfficeIMO.Word.WordImageTextWrapping.InFrontOfText, image.WrapText);
-            Assert.Equal(8D, image.Width);
-            Assert.Equal(4D, image.Height);
+            Assert.Equal(8D, (image.Width?.ToPixels()));
+            Assert.Equal(4D, (image.Height?.ToPixels()));
             OfficeIMO.Word.WordParagraph anchor = Assert.Single(word.Value.Paragraphs);
-            Assert.Equal(OfficeIMO.Word.WordLineSpacingRule.Exact, anchor.LineSpacingRule);
-            Assert.Equal(1, anchor.LineSpacing);
+            Assert.Equal(OfficeIMO.Word.WordLineSpacing.Exact(OfficeLength.Points(0.05)), anchor.LineSpacing);
         }
     }
 
@@ -675,11 +677,11 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             "q 80 0 0 40 20 30 cm /Im1 Do Q\n",
             pageEntries: "/UserUnit 2"));
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             OfficeIMO.Word.WordImage image = Assert.Single(word.Value.Images);
-            Assert.Equal(80D * 2D * 96D / 72D, image.Width!.Value, 6);
-            Assert.Equal(40D * 2D * 96D / 72D, image.Height!.Value, 6);
+            Assert.Equal(80D * 2D * 96D / 72D, (image.Width?.ToPixels())!.Value, 6);
+            Assert.Equal(40D * 2D * 96D / 72D, (image.Height?.ToPixels())!.Value, 6);
         }
 
         PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
@@ -693,14 +695,14 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             "q 80 0 0 40 1700 30 cm /Im1 Do Q\n",
             mediaBox: "[0 0 2000 800]"));
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             using var serialized = new MemoryStream(word.Value.ToBytes());
             using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
             OfficeIMO.Word.WordImage image = Assert.Single(reopened.Images);
             Assert.Equal(OfficeIMO.Word.WordImageTextWrapping.InLineWithText, image.WrapText);
             Assert.Contains(word.Report.Warnings, static warning =>
-                warning.Code == "PdfSourcePageSizeNotApplied");
+                warning.Code == "pdf-source-page-size-not-applied");
         }
     }
 
@@ -710,13 +712,13 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             "BT /F1 0.01 Tf 0 50 Td (Tiny page) Tj ET\n",
             mediaBox: "[0 0 0.024 100]"));
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             OfficeIMO.Word.WordSection section = Assert.Single(word.Value.Sections);
-            Assert.True(section.PageSettings.Width > 0);
-            Assert.True(section.PageSettings.Height > 0);
+            Assert.True(checked((uint?)(section.PageSettings.Width?.ToTwips())) > 0);
+            Assert.True(checked((uint?)(section.PageSettings.Height?.ToTwips())) > 0);
             Assert.Contains(word.Report.Warnings, static warning =>
-                warning.Code == "PdfSourcePageSizeNotApplied" &&
+                warning.Code == "pdf-source-page-size-not-applied" &&
                 warning.LossKind == OfficeConversionLossKind.Approximation);
         }
     }
@@ -726,7 +728,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(
             "q 80 0 0 40 20 30 cm /Im1 Do Q\n"));
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult(new PdfToWordOptions {
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new WordPdfImportOptions {
             PreserveSourcePageSize = false
         });
         using (word.Value) {
@@ -743,27 +745,27 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         const string marker = "Scaled user unit text";
         byte[] source = WithUserUnit(
             CreateDocument()
-                .Paragraph(paragraph => paragraph.FontSize(10D).Text(marker))
+                .Paragraph(paragraph => paragraph.FontSize(global::OfficeIMO.OfficeLength.Points(10D)).Text(marker))
                 .ToBytes(),
             2D);
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             OfficeIMO.Word.WordParagraph paragraph = Assert.Single(
                 word.Value.Paragraphs,
                 candidate => candidate.Text.Contains(marker, StringComparison.Ordinal));
-            Assert.Equal(20D, paragraph.FontSizePoints);
+            Assert.Equal(20D, paragraph.FontSize?.ToPoints());
         }
 
-        PdfWordConversionResult unscaled = logical.ToWordDocumentResult(new PdfToWordOptions {
+        PdfWordConversionResult unscaled = logical.ConvertToWordWithEvidence(new WordPdfImportOptions {
             PreserveSourcePageSize = false
         });
         using (unscaled.Value) {
             OfficeIMO.Word.WordParagraph paragraph = Assert.Single(
                 unscaled.Value.Paragraphs,
                 candidate => candidate.Text.Contains(marker, StringComparison.Ordinal));
-            Assert.Equal(10D, paragraph.FontSizePoints);
+            Assert.Equal(10D, paragraph.FontSize?.ToPoints());
         }
     }
 
@@ -776,14 +778,14 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             pageEntries: "/UserUnit 75000"));
         Assert.Equal(50000D, Assert.Single(Assert.Single(logical.Pages).TextBlocks).FontSize);
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             using var serialized = new MemoryStream(word.Value.ToBytes());
             using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
             OfficeIMO.Word.WordParagraph paragraph = Assert.Single(
                 reopened.Paragraphs,
                 candidate => candidate.Text.Contains(marker, StringComparison.Ordinal));
-            Assert.Equal(4000D, paragraph.FontSizePoints);
+            Assert.Equal(4000D, paragraph.FontSize?.ToPoints());
         }
     }
 
@@ -793,23 +795,23 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         const string secondMarker = "Second page typography";
         byte[] source = WithPageUserUnit(
             CreateDocument()
-                .Paragraph(paragraph => paragraph.FontSize(10D).Text(firstMarker))
+                .Paragraph(paragraph => paragraph.FontSize(global::OfficeIMO.OfficeLength.Points(10D)).Text(firstMarker))
                 .PageBreak()
-                .Paragraph(paragraph => paragraph.FontSize(10D).Text(secondMarker))
+                .Paragraph(paragraph => paragraph.FontSize(global::OfficeIMO.OfficeLength.Points(10D)).Text(secondMarker))
                 .ToBytes(),
             pageNumber: 2,
             userUnit: 2D);
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult(new PdfToWordOptions {
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new WordPdfImportOptions {
             PreservePageBreaks = false,
             PreserveSourcePageSize = true
         });
         using (word.Value) {
             Assert.Equal(10D, Assert.Single(word.Value.Paragraphs,
-                paragraph => paragraph.Text.Contains(firstMarker, StringComparison.Ordinal)).FontSizePoints);
+                paragraph => paragraph.Text.Contains(firstMarker, StringComparison.Ordinal)).FontSize?.ToPoints());
             Assert.Equal(10D, Assert.Single(word.Value.Paragraphs,
-                paragraph => paragraph.Text.Contains(secondMarker, StringComparison.Ordinal)).FontSizePoints);
+                paragraph => paragraph.Text.Contains(secondMarker, StringComparison.Ordinal)).FontSize?.ToPoints());
             Assert.Single(word.Value.Sections);
         }
     }
@@ -826,14 +828,16 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             2D);
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
         Assert.NotEmpty(logical.Tables);
+        // Cells keep the source cell font size, scaled by the page user unit.
+        double sourceFontSize = logical.Pages[0].TextBlocks.First(static block => block.Text.Contains("Service", StringComparison.Ordinal)).FontSize;
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult(PdfToWordOptions.CreateTablesOnly());
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(WordPdfImportOptions.CreateTablesOnly());
         using (word.Value) {
             using var serialized = new MemoryStream(word.Value.ToBytes());
             using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
             OfficeIMO.Word.WordTable table = Assert.Single(reopened.Tables);
-            Assert.All(table.Rows.SelectMany(static row => row.Cells), static cell =>
-                Assert.All(cell.Paragraphs, static paragraph => Assert.Equal(22D, paragraph.FontSizePoints)));
+            Assert.All(table.Rows.SelectMany(static row => row.Cells), cell =>
+                Assert.All(cell.Paragraphs, paragraph => Assert.Equal(sourceFontSize * 2D, paragraph.FontSize?.ToPoints())));
         }
     }
 
@@ -852,13 +856,13 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
         Assert.NotEmpty(logical.Tables);
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult(PdfToWordOptions.CreateTablesOnly());
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(WordPdfImportOptions.CreateTablesOnly());
         using (word.Value) {
             using var serialized = new MemoryStream(word.Value.ToBytes());
             using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
             OfficeIMO.Word.WordTable table = Assert.Single(reopened.Tables);
             Assert.All(table.Rows.SelectMany(static row => row.Cells), static cell =>
-                Assert.All(cell.Paragraphs, static paragraph => Assert.Equal(4000D, paragraph.FontSizePoints)));
+                Assert.All(cell.Paragraphs, static paragraph => Assert.Equal(4000D, paragraph.FontSize?.ToPoints())));
         }
     }
 
@@ -872,7 +876,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         bool expectedVerticalFlip) {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(content));
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             using var serialized = new MemoryStream(word.Value.ToBytes());
             using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
@@ -881,12 +885,12 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             Assert.Equal(expectedVerticalFlip, image.VerticalFlip);
         }
 
-        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
-            PdfToPowerPointOptions.CreateEditableContent());
+        PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
+            PowerPointPdfImportOptions.CreateEditableContent());
         using (powerPoint.Value) {
             using var serialized = new MemoryStream(powerPoint.Value.ToBytes());
-            using OfficeIMO.PowerPoint.PowerPointPresentation reopened =
-                OfficeIMO.PowerPoint.PowerPointPresentation.Load(serialized);
+            using OfficeIMO.PowerPoint.PowerPointDocument reopened =
+                OfficeIMO.PowerPoint.PowerPointDocument.Load(serialized);
             OfficeIMO.PowerPoint.PowerPointPicture picture = Assert.Single(Assert.Single(reopened.Slides).Pictures);
             Assert.Equal(expectedHorizontalFlip, picture.HorizontalFlip);
             Assert.Equal(expectedVerticalFlip, picture.VerticalFlip);
@@ -917,7 +921,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             PdfHtmlConversionResult html = logical.ToHtmlResult(options);
             Assert.DoesNotContain("data:image/", html.Value, StringComparison.Ordinal);
             Assert.Contains(html.Report.Warnings, static warning =>
-                warning.Code == "ImagePageRotationNotSafelyEditable" &&
+                warning.Code == OfficeDiagnosticCodes.ImagePageRotationNotSafelyEditable &&
                 warning.LossKind == OfficeConversionLossKind.Omission);
         }
     }
@@ -930,13 +934,13 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfLogicalPage page = Assert.Single(logical.Pages);
         Assert.Equal(2, page.Images.Count);
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new WordPdfImportOptions { PreserveImagePlacementPosition = true });
         using (word.Value) {
             using var serialized = new MemoryStream(word.Value.ToBytes());
             using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
             Assert.Equal(2, reopened.Images.Count);
-            OfficeIMO.Word.WordImage front = Assert.Single(reopened.Images, static image => image.Width > 100D);
-            OfficeIMO.Word.WordImage back = Assert.Single(reopened.Images, static image => image.Width < 100D);
+            OfficeIMO.Word.WordImage front = Assert.Single(reopened.Images, static image => image.Width?.ToPixels() > 100D);
+            OfficeIMO.Word.WordImage back = Assert.Single(reopened.Images, static image => image.Width?.ToPixels() < 100D);
             Assert.True(front.ZOrder > back.ZOrder);
         }
     }
@@ -950,12 +954,12 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             "q 80 0 0 40 20 30 cm /Im1 Do Q\n",
             pageEntries: "/Rotate " + pageRotation.ToString(System.Globalization.CultureInfo.InvariantCulture)));
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             OfficeIMO.Word.WordImage image = Assert.Single(word.Value.Images);
             Assert.Equal(pageRotation, image.Rotation);
-            Assert.Equal(80D * 96D / 72D, image.Width!.Value, 6);
-            Assert.Equal(40D * 96D / 72D, image.Height!.Value, 6);
+            Assert.Equal(80D * 96D / 72D, (image.Width?.ToPixels())!.Value, 6);
+            Assert.Equal(40D * 96D / 72D, (image.Height?.ToPixels())!.Value, 6);
 
             using var stream = new MemoryStream(word.Value.ToBytes());
             using DocumentFormat.OpenXml.Packaging.WordprocessingDocument package =
@@ -977,32 +981,32 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfLogicalPage page = Assert.Single(logical.Pages);
         PdfVisualBounds visual = page.TransformBoundsToVisual(20D, 30D, 100D, 70D);
 
-        PdfPowerPointConversionResult result = logical.ToPowerPointPresentationResult(
-            PdfToPowerPointOptions.CreateEditableContent());
+        PdfPowerPointConversionResult result = logical.ConvertToPowerPointWithEvidence(
+            PowerPointPdfImportOptions.CreateEditableContent());
         byte[] bytes;
         using (result.Value) {
             bytes = result.Value.ToBytes();
         }
 
         using var presentationStream = new MemoryStream(bytes);
-        using OfficeIMO.PowerPoint.PowerPointPresentation presentation =
-            OfficeIMO.PowerPoint.PowerPointPresentation.Load(presentationStream);
+        using OfficeIMO.PowerPoint.PowerPointDocument presentation =
+            OfficeIMO.PowerPoint.PowerPointDocument.Load(presentationStream);
         OfficeIMO.PowerPoint.PowerPointPicture picture = Assert.Single(Assert.Single(presentation.Slides).Pictures);
-        double scale = presentation.SlideSize.WidthPoints / 160D;
+        double scale = presentation.SlideSize.Width.ToPoints() / 160D;
         Assert.Equal(pageRotation, picture.Rotation);
-        Assert.Equal(80D * scale, picture.WidthPoints, 4);
-        Assert.Equal(40D * scale, picture.HeightPoints, 4);
-        Assert.Equal((visual.Left + visual.Width / 2D) * scale, picture.LeftPoints + picture.WidthPoints / 2D, 4);
-        Assert.Equal((visual.Top + visual.Height / 2D) * scale, picture.TopPoints + picture.HeightPoints / 2D, 4);
+        Assert.Equal(80D * scale, picture.Width.ToPoints(), 4);
+        Assert.Equal(40D * scale, picture.Height.ToPoints(), 4);
+        Assert.Equal((visual.Left + visual.Width / 2D) * scale, picture.Left.ToPoints() + picture.Width.ToPoints() / 2D, 4);
+        Assert.Equal((visual.Top + visual.Height / 2D) * scale, picture.Top.ToPoints() + picture.Height.ToPoints() / 2D, 4);
     }
 
     [Fact]
     public void FloatingImagePaintedBeforeOverlappingTextStaysBehindTheText() {
         byte[] source = CreateDocument()
             .Canvas(canvas => canvas
-                .Image(Png, 20D, 30D, 120D, 80D)
-                .Text("Foreground invoice text", 30D, 50D, 100D, 24D, fontSize: 14D))
-            .ToBytes();
+                .Image(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(80D))
+                .Text("Foreground invoice text", global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(24D), fontSize: global::OfficeIMO.OfficeLength.Points(14D)))
+            .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
         PdfLogicalPage page = Assert.Single(logical.Pages);
         PdfImagePlacement placement = Assert.Single(Assert.Single(page.Images).Placements);
@@ -1010,7 +1014,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.NotEmpty(textSpans);
         Assert.All(textSpans, text => Assert.True(placement.PaintOrder < text.PaintOrder));
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             Assert.Equal(
                 OfficeIMO.Word.WordImageTextWrapping.BehindText,
@@ -1022,9 +1026,9 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     public void FloatingImagePaintedAfterOverlappingTextStaysInFrontOfTheText() {
         byte[] source = CreateDocument()
             .Canvas(canvas => canvas
-                .Text("Background invoice text", 30D, 50D, 100D, 24D, fontSize: 14D)
-                .Image(Png, 20D, 30D, 120D, 80D))
-            .ToBytes();
+                .Text("Background invoice text", global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(24D), fontSize: global::OfficeIMO.OfficeLength.Points(14D))
+                .Image(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(80D)))
+            .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
         PdfLogicalPage page = Assert.Single(logical.Pages);
         PdfImagePlacement placement = Assert.Single(Assert.Single(page.Images).Placements);
@@ -1032,7 +1036,9 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.NotEmpty(textSpans);
         Assert.All(textSpans, text => Assert.True(text.PaintOrder < placement.PaintOrder));
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        // An image painted over text floats only when positioned placement is requested; by default it is
+        // placed inline so reflowed text stays readable.
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new WordPdfImportOptions { PreserveImagePlacementPosition = true });
         using (word.Value) {
             Assert.Equal(
                 OfficeIMO.Word.WordImageTextWrapping.InFrontOfText,
@@ -1044,10 +1050,10 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     public void FloatingImageInterleavedWithOverlappingTextReportsApproximation() {
         byte[] source = CreateDocument()
             .Canvas(canvas => canvas
-                .Text("Background invoice text", 30D, 50D, 100D, 24D, fontSize: 14D)
-                .Image(Png, 20D, 30D, 120D, 80D)
-                .Text("Foreground invoice text", 30D, 50D, 100D, 24D, fontSize: 14D))
-            .ToBytes();
+                .Text("Background invoice text", global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(24D), fontSize: global::OfficeIMO.OfficeLength.Points(14D))
+                .Image(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(80D))
+                .Text("Foreground invoice text", global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(24D), fontSize: global::OfficeIMO.OfficeLength.Points(14D)))
+            .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
         PdfLogicalPage page = Assert.Single(logical.Pages);
         PdfImagePlacement placement = Assert.Single(Assert.Single(page.Images).Placements);
@@ -1055,13 +1061,13 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.Contains(textSpans, text => text.PaintOrder < placement.PaintOrder);
         Assert.Contains(textSpans, text => text.PaintOrder > placement.PaintOrder);
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             Assert.Equal(
                 OfficeIMO.Word.WordImageTextWrapping.BehindText,
                 Assert.Single(word.Value.Images).WrapText);
             Assert.Contains(word.Report.Warnings, static warning =>
-                warning.Code == "PdfImageTextPaintOrderApproximated" &&
+                warning.Code == "pdf-image-text-paint-order-approximated" &&
                 warning.LossKind == OfficeConversionLossKind.Approximation);
         }
     }
@@ -1072,42 +1078,42 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             .Canvas(canvas => canvas.Effect(
                 OfficeIMO.Drawing.OfficeTransform.Identity,
                 0.5D,
-                effect => effect.Image(Png, 20D, 30D, 80D, 40D)))
+                effect => effect.Image(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(40D))))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             Assert.Equal(50, Assert.Single(word.Value.Images).Transparency);
             Assert.Contains(word.Report.Warnings, static warning =>
-                warning.Code == "PdfImageOpacityMapped" &&
+                warning.Code == "pdf-image-opacity-mapped" &&
                 warning.LossKind == OfficeConversionLossKind.None);
         }
 
         PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
         Assert.Contains("style=\"opacity:0.5;\"", html.Value, StringComparison.Ordinal);
         Assert.Contains(html.Report.Warnings, static warning =>
-            warning.Code == "ImageOpacityMapped" &&
+            warning.Code == OfficeDiagnosticCodes.ImageOpacityMapped &&
             warning.LossKind == OfficeConversionLossKind.None);
 
         PdfToHtmlOptions semanticPlaceholderOptions = PdfToHtmlOptions.CreateSemanticProfile();
         semanticPlaceholderOptions.ImageExportMode = PdfHtmlImageExportMode.PlaceholderOnly;
         PdfHtmlConversionResult semanticPlaceholder = logical.ToHtmlResult(semanticPlaceholderOptions);
         Assert.DoesNotContain(semanticPlaceholder.Report.Warnings, static warning =>
-            warning.Code is "ImageOpacityMapped" or "ImageBlendModeApproximated");
+            warning.Code is OfficeDiagnosticCodes.ImageOpacityMapped or OfficeDiagnosticCodes.ImageBlendModeApproximated);
 
         PdfToHtmlOptions positionedPlaceholderOptions = PdfToHtmlOptions.CreatePositionedReviewProfile();
         positionedPlaceholderOptions.ImageExportMode = PdfHtmlImageExportMode.PlaceholderOnly;
         PdfHtmlConversionResult positionedPlaceholder = logical.ToHtmlResult(positionedPlaceholderOptions);
         Assert.DoesNotContain(positionedPlaceholder.Report.Warnings, static warning =>
-            warning.Code is "ImageOpacityMapped" or "ImageBlendModeApproximated");
+            warning.Code is OfficeDiagnosticCodes.ImageOpacityMapped or OfficeDiagnosticCodes.ImageBlendModeApproximated);
 
-        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
-            PdfToPowerPointOptions.CreateEditableContent());
+        PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
+            PowerPointPdfImportOptions.CreateEditableContent());
         using (powerPoint.Value) {
             Assert.Equal(50, Assert.Single(Assert.Single(powerPoint.Value.Slides).Pictures).FillTransparency);
             Assert.Contains(powerPoint.Report.Warnings, static warning =>
-                warning.Code == "PdfImageOpacityMapped" &&
+                warning.Code == "pdf-image-opacity-mapped" &&
                 warning.LossKind == OfficeConversionLossKind.None);
         }
     }
@@ -1120,23 +1126,23 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
         Assert.Equal(0.0000004D, Assert.Single(Assert.Single(logical.Pages).Images).Placements[0].Opacity, 10);
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             Assert.Equal(100, Assert.Single(word.Value.Images).Transparency);
             Assert.Contains(word.Report.Warnings, static warning =>
-                warning.Code == "PdfImageOpacityMapped" &&
+                warning.Code == "pdf-image-opacity-mapped" &&
                 warning.LossKind == OfficeConversionLossKind.Omission &&
                 warning.Details["MappedTransparencyPercent"] == "100");
             Assert.True(word.Report.HasLoss);
             Assert.Throws<InvalidOperationException>(() => word.RequireNoLoss());
         }
 
-        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
-            PdfToPowerPointOptions.CreateEditableContent());
+        PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
+            PowerPointPdfImportOptions.CreateEditableContent());
         using (powerPoint.Value) {
             Assert.Equal(100, Assert.Single(Assert.Single(powerPoint.Value.Slides).Pictures).FillTransparency);
             Assert.Contains(powerPoint.Report.Warnings, static warning =>
-                warning.Code == "PdfImageOpacityMapped" &&
+                warning.Code == "pdf-image-opacity-mapped" &&
                 warning.LossKind == OfficeConversionLossKind.Omission &&
                 warning.Details["MappedTransparencyPercent"] == "100");
             Assert.True(powerPoint.Report.HasLoss);
@@ -1146,13 +1152,13 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfHtmlConversionResult semanticHtml = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
         Assert.Contains("opacity:4E-07;", semanticHtml.Value, StringComparison.Ordinal);
         Assert.Contains(semanticHtml.Report.Warnings, static warning =>
-            warning.Code == "ImageOpacityMapped" &&
+            warning.Code == OfficeDiagnosticCodes.ImageOpacityMapped &&
             warning.LossKind == OfficeConversionLossKind.None);
 
         PdfHtmlConversionResult positionedHtml = logical.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
         Assert.Contains("opacity:4E-07;", positionedHtml.Value, StringComparison.Ordinal);
         Assert.Contains(positionedHtml.Report.Warnings, static warning =>
-            warning.Code == "ImageOpacityMapped" &&
+            warning.Code == OfficeDiagnosticCodes.ImageOpacityMapped &&
             warning.LossKind == OfficeConversionLossKind.None);
     }
 
@@ -1164,12 +1170,12 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             imageMask: true));
         Assert.Equal(0.5D, Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements).Opacity);
 
-        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
-            PdfToPowerPointOptions.CreateEditableContent());
+        PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
+            PowerPointPdfImportOptions.CreateEditableContent());
         using (powerPoint.Value) {
             Assert.Empty(powerPoint.Value.Slides.SelectMany(static slide => slide.Pictures));
             Assert.DoesNotContain(powerPoint.Report.Warnings, static warning =>
-                warning.Code is "PdfImageOpacityMapped" or "PdfImageBlendModeApproximated");
+                warning.Code is "pdf-image-opacity-mapped" or "pdf-image-blend-mode-approximated");
         }
     }
 
@@ -1195,15 +1201,15 @@ public sealed class PdfReverseImagePlacementSafetyTests {
 
         AssertRawImageOmittedAcrossEditableAdapters(
             logical,
-            "PdfImageDecodeNotSafelyEditable",
-            "ImageDecodeNotSafelyEditable");
+            "pdf-image-decode-not-safely-editable",
+            OfficeDiagnosticCodes.ImageDecodeNotSafelyEditable);
 
-        PdfHtmlConversionResult positioned = PdfDocument.Load(source)
+        PdfHtmlConversionResult positioned = PdfDocument.Load(new System.IO.MemoryStream(source))
             .ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
         Assert.DoesNotContain("data:image/", positioned.Value, StringComparison.Ordinal);
         Assert.DoesNotContain("pdf-page-appearance", positioned.Value, StringComparison.Ordinal);
         Assert.Contains(positioned.Report.Warnings, static warning =>
-            warning.Code == "PageAppearanceUnsafeImageFallback" &&
+            warning.Code == OfficeDiagnosticCodes.PageAppearanceUnsafeImageFallback &&
             warning.LossKind == OfficeConversionLossKind.None);
     }
 
@@ -1230,30 +1236,30 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
         Assert.DoesNotContain("data:image/jp2;base64,", html.Value, StringComparison.Ordinal);
         Assert.Contains(html.Report.Warnings, static warning =>
-            warning.Code == "ImageDataUnavailable" && warning.LossKind == OfficeConversionLossKind.Omission);
-        Assert.DoesNotContain(html.Report.Warnings, static warning => warning.Code == "ImageDecodeNotSafelyEditable");
+            warning.Code == OfficeDiagnosticCodes.ImageDataUnavailable && warning.LossKind == OfficeConversionLossKind.Omission);
+        Assert.DoesNotContain(html.Report.Warnings, static warning => warning.Code == OfficeDiagnosticCodes.ImageDecodeNotSafelyEditable);
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             using var serialized = new MemoryStream(word.Value.ToBytes());
             using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
             Assert.Single(reopened.Images);
             Assert.Equal(jpx, Assert.Single(reopened.GetImageBytes()));
             Assert.Empty(reopened.ValidateDocument());
-            Assert.DoesNotContain(word.Report.Warnings, static warning => warning.Code == "PdfImageDecodeNotSafelyEditable");
+            Assert.DoesNotContain(word.Report.Warnings, static warning => warning.Code == "pdf-image-decode-not-safely-editable");
         }
 
-        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
-            PdfToPowerPointOptions.CreateEditableContent());
+        PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
+            PowerPointPdfImportOptions.CreateEditableContent());
         using (powerPoint.Value) {
             using var serialized = new MemoryStream(powerPoint.Value.ToBytes());
-            using OfficeIMO.PowerPoint.PowerPointPresentation reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(serialized);
+            using OfficeIMO.PowerPoint.PowerPointDocument reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(serialized);
             OfficeIMO.PowerPoint.PowerPointPicture picture = Assert.Single(
                 reopened.Slides.SelectMany(static slide => slide.Pictures));
             Assert.Equal("image/jp2", picture.ContentType);
             Assert.Equal(jpx, picture.GetImageBytes());
             Assert.Empty(reopened.ValidateDocument());
-            Assert.DoesNotContain(powerPoint.Report.Warnings, static warning => warning.Code == "PdfImageDecodeNotSafelyEditable");
+            Assert.DoesNotContain(powerPoint.Report.Warnings, static warning => warning.Code == "pdf-image-decode-not-safely-editable");
         }
     }
 
@@ -1280,8 +1286,8 @@ public sealed class PdfReverseImagePlacementSafetyTests {
 
         AssertRawImageOmittedAcrossEditableAdapters(
             logical,
-            "PdfImageDecodeNotSafelyEditable",
-            "ImageDecodeNotSafelyEditable");
+            "pdf-image-decode-not-safely-editable",
+            OfficeDiagnosticCodes.ImageDecodeNotSafelyEditable);
     }
 
     [Fact]
@@ -1373,35 +1379,35 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
         Assert.DoesNotContain("data:image/jp2;base64,", html.Value, StringComparison.Ordinal);
         Assert.Contains(html.Report.Warnings, static warning =>
-            warning.Code == "ImageDataUnavailable" && warning.LossKind == OfficeConversionLossKind.Omission);
-        Assert.DoesNotContain(html.Report.Warnings, static warning => warning.Code == "ImageDecodeNotSafelyEditable");
+            warning.Code == OfficeDiagnosticCodes.ImageDataUnavailable && warning.LossKind == OfficeConversionLossKind.Omission);
+        Assert.DoesNotContain(html.Report.Warnings, static warning => warning.Code == OfficeDiagnosticCodes.ImageDecodeNotSafelyEditable);
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
-            Assert.DoesNotContain(word.Report.Warnings, static warning => warning.Code == "PdfImageDecodeNotSafelyEditable");
+            Assert.DoesNotContain(word.Report.Warnings, static warning => warning.Code == "pdf-image-decode-not-safely-editable");
         }
 
-        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
-            PdfToPowerPointOptions.CreateEditableContent());
+        PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
+            PowerPointPdfImportOptions.CreateEditableContent());
         using (powerPoint.Value) {
-            Assert.DoesNotContain(powerPoint.Report.Warnings, static warning => warning.Code == "PdfImageDecodeNotSafelyEditable");
+            Assert.DoesNotContain(powerPoint.Report.Warnings, static warning => warning.Code == "pdf-image-decode-not-safely-editable");
         }
     }
 
-    private static PdfDocument CreateDocument() => PdfDocument.Create(new PdfOptions {
-        PageWidth = 160D,
-        PageHeight = 160D,
-        MarginLeft = 0D,
-        MarginRight = 0D,
-        MarginTop = 0D,
-        MarginBottom = 0D
+    private static PdfDocument CreateDocument() => PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+        PageWidth = global::OfficeIMO.OfficeLength.Points(160D),
+        PageHeight = global::OfficeIMO.OfficeLength.Points(160D),
+        MarginLeft = global::OfficeIMO.OfficeLength.Points(0D),
+        MarginRight = global::OfficeIMO.OfficeLength.Points(0D),
+        MarginTop = global::OfficeIMO.OfficeLength.Points(0D),
+        MarginBottom = global::OfficeIMO.OfficeLength.Points(0D)
     });
 
     private static void AssertRawImageOmittedAcrossEditableAdapters(
         PdfDocumentReadResult logical,
         string officeWarningCode,
         string htmlWarningCode) {
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             Assert.Empty(word.Value.Images);
             Assert.Contains(word.Report.Warnings, warning =>
@@ -1413,8 +1419,8 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.Contains(html.Report.Warnings, warning =>
             warning.Code == htmlWarningCode && warning.LossKind == OfficeConversionLossKind.Omission);
 
-        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
-            PdfToPowerPointOptions.CreateEditableContent());
+        PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
+            PowerPointPdfImportOptions.CreateEditableContent());
         using (powerPoint.Value) {
             Assert.Empty(powerPoint.Value.Slides.SelectMany(static slide => slide.Pictures));
             Assert.Contains(powerPoint.Report.Warnings, warning =>
@@ -1428,14 +1434,14 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.DoesNotContain("data:image/j2c", html.Value, StringComparison.Ordinal);
         Assert.True(html.HasLoss);
 
-        PdfWordConversionResult word = logical.ToWordDocumentResult();
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             Assert.Empty(word.Value.Images);
             Assert.True(word.HasLoss);
         }
 
-        PdfPowerPointConversionResult powerPoint = logical.ToPowerPointPresentationResult(
-            PdfToPowerPointOptions.CreateEditableContent());
+        PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
+            PowerPointPdfImportOptions.CreateEditableContent());
         using (powerPoint.Value) {
             Assert.Empty(powerPoint.Value.Slides.SelectMany(static slide => slide.Pictures));
             Assert.True(powerPoint.HasLoss);

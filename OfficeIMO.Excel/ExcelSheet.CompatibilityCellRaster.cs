@@ -57,7 +57,7 @@ public partial class ExcelSheet {
                 for (int columnIndex = 0; columnIndex < width; columnIndex++) {
                     string color = argbPixels[rowOffset + columnIndex];
                     row.Append(new Cell {
-                        CellReference = A1.ColumnIndexToLetters(columnIndex + 1) + (rowIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        CellReference = ExcelA1.ColumnIndexToLetters(columnIndex + 1) + (rowIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture),
                         StyleIndex = styleByColor[color]
                     });
                 }

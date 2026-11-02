@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create(filePath);
 
             var paragraph1 = document.AddParagraph();
-            paragraph1.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+            paragraph1.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
 
             var paragraph2 = document.AddParagraph();
             var clone = paragraph1.Image!.Clone(paragraph2);

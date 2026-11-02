@@ -132,7 +132,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
             }
 
-            if (block.Height <= ResolvePageBodyBottom(pages.Count + 1, pageGeometry) - y && !HasInternalForcedBreak(block)) {
+            // A bottom margin that adjoins the page break is truncated, as in browsers, so a block whose content
+            // fits does not open an empty page for its trailing margin alone.
+            double truncatableMargin = block.HasCollapsibleMargins ? Math.Max(0D, Math.Min(block.CollapsibleMarginBottom, block.Height)) : 0D;
+            if (block.Height - truncatableMargin <= ResolvePageBodyBottom(pages.Count + 1, pageGeometry) - y && !HasInternalForcedBreak(block)) {
                 AddTranslatedVisuals(visuals, block.Visuals, pageGeometry.Margins.Left, y, block);
                 RecordRunningStringAssignments(block, 0D, block.Height, y);
                 y += block.Height;

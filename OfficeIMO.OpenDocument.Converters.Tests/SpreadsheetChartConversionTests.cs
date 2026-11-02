@@ -15,10 +15,10 @@ namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class SpreadsheetChartConversionTests {
     [Theory]
-    [InlineData("column", ExcelChartType.ColumnClustered)]
-    [InlineData("bar", ExcelChartType.BarClustered)]
-    [InlineData("line", ExcelChartType.Line)]
-    public void ExcelProducedOdsChartConvertsToReopenableXlsx(string kind, ExcelChartType expectedType) {
+    [InlineData("column", OfficeChartType.ColumnClustered)]
+    [InlineData("bar", OfficeChartType.BarClustered)]
+    [InlineData("line", OfficeChartType.Line)]
+    public void ExcelProducedOdsChartConvertsToReopenableXlsx(string kind, OfficeChartType expectedType) {
         string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "microsoft-excel-" + kind + "-chart.ods");
         OdsDocument source = OdsDocument.Load(path);
         OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
@@ -28,8 +28,8 @@ public sealed class SpreadsheetChartConversionTests {
             && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
         Assert.DoesNotContain(result.Report.Mappings, mapping => mapping.Feature == "source-embedded-objects");
         ExcelChart chart = Assert.Single(converted["Data"].Charts);
-        Assert.Equal(14.5, converted["Data"].DefaultRowHeight);
-        Assert.Equal(8.43, converted["Data"].DefaultColumnWidth);
+        Assert.Equal(OfficeIMO.Excel.ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(14.5)), converted["Data"].DefaultRowHeight);
+        Assert.Equal(OfficeIMO.Excel.ExcelColumnWidth.Characters(8.43), converted["Data"].DefaultColumnWidth);
         Assert.Equal(expectedType, chart.ChartType);
         Assert.Equal("Sales", chart.Title);
         Assert.True(chart.TryGetData(out ExcelChartData data));
@@ -70,7 +70,7 @@ public sealed class SpreadsheetChartConversionTests {
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
         using ExcelDocument converted = source.ToExcelDocumentResult().Value;
-        Assert.Equal(ExcelChartType.ColumnClustered, Assert.Single(converted["Data"].Charts).ChartType);
+        Assert.Equal(OfficeChartType.ColumnClustered, Assert.Single(converted["Data"].Charts).ChartType);
     }
 
     [Fact]

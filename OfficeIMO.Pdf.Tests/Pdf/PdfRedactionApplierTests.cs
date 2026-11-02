@@ -10,7 +10,7 @@ public partial class PdfRedactionApplierTests {
     [Fact]
     public void Apply_RemovesWatermarkActualTextWithItsPaintedGlyphs() {
         const string secret = "Watermark secret";
-        byte[] source = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Watermark(secret, fontSize: 36, rotationAngle: 0)
             .Paragraph(paragraph => paragraph.Text("Public body"))
             .ToBytes();
@@ -126,7 +126,8 @@ public partial class PdfRedactionApplierTests {
 
         PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, new[] { area });
         Assert.True(plan.HasMatches);
-        Assert.Contains(plan.Matches, match => match.Text != null && match.Text.Contains("Secret account", StringComparison.Ordinal));
+        Assert.Contains(plan.Matches, static match => match.Kind == PdfRedactionMatchKind.TextBlock);
+        Assert.All(plan.Matches, static match => Assert.Null(match.Text));
 
         byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
         string text = PdfTextExtractor.ExtractAllText(redacted);
@@ -307,7 +308,7 @@ public partial class PdfRedactionApplierTests {
     public void Apply_PreservesGeneratedEmbeddedType0FontOutsidePartialRedaction() {
         const string text = "Alpha office secret affinity Omega";
         string fontPath = Assert.IsType<string>(PdfComplianceTestFonts.FindBundledOpenTypeCffFont());
-        byte[] source = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .UseFontFamily("Redaction Embedded", fontPath)
             .Paragraph(paragraph => paragraph.Text(text))
             .ToBytes();
@@ -865,10 +866,10 @@ public partial class PdfRedactionApplierTests {
         PdfRedactionPlan plan = PdfRedactionPlanner.Search(source,
             new PdfRedactionSearchOptions().AddLiteral("secret"));
 
-        Assert.Equal("literal:secret", Assert.Single(plan.SearchCriteria));
+        string description = Assert.Single(plan.SearchCriteria);
         Assert.IsNotType<string[]>(plan.SearchCriteria);
         Assert.Throws<NotSupportedException>(() => ((IList<string>)plan.SearchCriteria)[0] = "field:other");
-        Assert.Equal("literal:secret", Assert.Single(plan.SearchCriteria));
+        Assert.Equal(description, Assert.Single(plan.SearchCriteria));
     }
 
     [Fact]
@@ -912,7 +913,7 @@ public partial class PdfRedactionApplierTests {
             source, new PdfRedactionSearchOptions().AddLiteral("secret"));
         var displaced = new PdfRedactionArea(1, 480D, 30D, 20D, 20D, searched.Areas[0].Label);
         var plan = new PdfRedactionPlan(searched.Preflight, new[] { displaced }, searched.Matches,
-            searched.Findings, searched.SearchCriteria, searched.SourceSha256,
+            searched.Findings, searched.RequestedSearchCriteria, searched.SourceSha256,
             searched.PageIdentities, searched.ReviewedTextObjectScopes, searched.SearchMatchCase);
 
         InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => PdfRedactionApplier.Apply(source, plan));
@@ -926,7 +927,7 @@ public partial class PdfRedactionApplierTests {
             source, new PdfRedactionSearchOptions().AddRegex("sec.et"));
         var displaced = new PdfRedactionArea(1, 480D, 30D, 20D, 20D, searched.Areas[0].Label);
         var plan = new PdfRedactionPlan(searched.Preflight, new[] { displaced }, searched.Matches,
-            searched.Findings, searched.SearchCriteria, searched.SourceSha256,
+            searched.Findings, searched.RequestedSearchCriteria, searched.SourceSha256,
             searched.PageIdentities, searched.ReviewedTextObjectScopes, searched.SearchMatchCase,
             searched.SearchRegexOptions, searched.SearchRegexTimeout);
 
@@ -944,7 +945,7 @@ public partial class PdfRedactionApplierTests {
         var firstCriterionOnly = new PdfRedactionArea(alphaBounds.PageNumber, alphaBounds.X, alphaBounds.Y,
             alphaBounds.Width, alphaBounds.Height, searched.Areas[0].Label);
         var plan = new PdfRedactionPlan(searched.Preflight, new[] { firstCriterionOnly }, searched.Matches,
-            searched.Findings, searched.SearchCriteria, searched.SourceSha256,
+            searched.Findings, searched.RequestedSearchCriteria, searched.SourceSha256,
             searched.PageIdentities, searched.ReviewedTextObjectScopes, searched.SearchMatchCase);
 
         InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => PdfRedactionApplier.Apply(source, plan));
@@ -1199,7 +1200,7 @@ public partial class PdfRedactionApplierTests {
     }
 
     private static byte[] BuildRedactionSource() {
-        return PdfDocument.Create(new PdfOptions {
+        return PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .Paragraph(paragraph => paragraph.Text("Visible before"))
@@ -1442,8 +1443,11 @@ public partial class PdfRedactionApplierTests {
         return BuildPdf(objects, rootObjectNumber: 1);
     }
 
-    private static byte[] BuildType0ToUnicodeLigatureRedactionSource() {
-        const string content = "BT\n/F1 20 Tf\n72 720 Td\n<000100020003> Tj\nET\n";
+    private static byte[] BuildType0ToUnicodeLigatureRedactionSource(bool actualText = false) {
+        string content = actualText
+            ? "BT /F1 20 Tf 72 720 Td <0001> Tj /Span << /ActualText (fi) >> BDC <0002> Tj EMC <0003> Tj ET " +
+              "BT /F1 20 Tf 72 680 Td <00010003> Tj ET"
+            : "BT\n/F1 20 Tf\n72 720 Td\n<000100020003> Tj\nET\n";
         const string cmap = "/CIDInit /ProcSet findresource begin\n" +
             "12 dict begin\n" +
             "begincmap\n" +

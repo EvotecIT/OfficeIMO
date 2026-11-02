@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests;
 public sealed class PowerPointAllSeverityBatch13SecurityTests {
     [Fact]
     public void AddTableStopsUnboundedSourceEnumerationAtConfiguredLimit() {
-        using PowerPointPresentation presentation = PowerPointPresentation
+        using PowerPointDocument presentation = PowerPointDocument
             .Create();
         PowerPointSlide slide = presentation.AddSlide();
 
@@ -22,7 +22,7 @@ public sealed class PowerPointAllSeverityBatch13SecurityTests {
 
     [Fact]
     public void AddTableStopsUnboundedNestedExpansionAtConfiguredLimit() {
-        using PowerPointPresentation presentation = PowerPointPresentation
+        using PowerPointDocument presentation = PowerPointDocument
             .Create();
         PowerPointSlide slide = presentation.AddSlide();
         var rows = new[] {
@@ -41,7 +41,7 @@ public sealed class PowerPointAllSeverityBatch13SecurityTests {
 
     [Fact]
     public void AddTableHonorsPerCollectionLimitDuringNestedExpansion() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide();
         var rows = new[] { new NestedRow { Name = "item", Values = InfiniteValues() } };
 

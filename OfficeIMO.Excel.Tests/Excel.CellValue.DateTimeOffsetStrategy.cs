@@ -15,13 +15,13 @@ namespace OfficeIMO.Tests {
         public void UpfrontDirectSaveRejectionDoesNotRepeatDateConversion(string route) {
             using var source = new MemoryStream();
             using var document = ExcelDocument.Create(source);
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             int row = 1;
             if (route == "dom") {
                 sheet.CellValue(1, 1, "Existing\nmultiline cell");
                 row = 2;
             } else if (route == "multipleSheets") {
-                document.AddWorksheet("Other");
+                document.AddSheet("Other");
             } else if (route == "outsideA1") {
                 row = 2;
             } else if (route == "overwrite" || route == "skipRow") {

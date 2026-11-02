@@ -8,11 +8,11 @@ internal static partial class PdfPageEditor {
     /// Creates a new PDF with selected pages scaled into the supplied target page size.
     /// If no page numbers are supplied, all pages are resized.
     /// </summary>
-    public static byte[] ResizePages(byte[] pdf, PageSize pageSize, params int[] pageNumbers) {
+    public static byte[] ResizePages(byte[] pdf, PdfPageSize pageSize, params int[] pageNumbers) {
         return ResizePages(pdf, new PdfPageResizeOptions(pageSize), readOptions: null, pageNumbers);
     }
 
-    internal static byte[] ResizePages(byte[] pdf, PageSize pageSize, PdfLoadOptions? readOptions, params int[] pageNumbers) =>
+    internal static byte[] ResizePages(byte[] pdf, PdfPageSize pageSize, PdfLoadOptions? readOptions, params int[] pageNumbers) =>
         ResizePages(pdf, new PdfPageResizeOptions(pageSize), readOptions, pageNumbers);
 
     /// <summary>
@@ -81,8 +81,8 @@ internal static partial class PdfPageEditor {
             additionalObjects.Add(new PdfPageExtractor.AdditionalObject(suffixPseudoObjectNumber, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("\nQ\n"))));
 
             var pageOverrides = new Dictionary<string, PdfObject>(StringComparer.Ordinal) {
-                ["MediaBox"] = CreatePageBoxArray(0D, 0D, options.PageSize.Width, options.PageSize.Height),
-                ["CropBox"] = CreatePageBoxArray(0D, 0D, options.PageSize.Width, options.PageSize.Height),
+                ["MediaBox"] = CreatePageBoxArray(0D, 0D, options.PageSize.Width.ToPoints(), options.PageSize.Height.ToPoints()),
+                ["CropBox"] = CreatePageBoxArray(0D, 0D, options.PageSize.Width.ToPoints(), options.PageSize.Height.ToPoints()),
                 ["UserUnit"] = new PdfNumber(1D),
                 ["Rotate"] = new PdfNumber(0D),
                 ["Contents"] = BuildResizedContentsArray(
@@ -123,7 +123,7 @@ internal static partial class PdfPageEditor {
     }
 
     /// <summary>Creates a new PDF with selected pages scaled into the supplied target page size from a readable stream.</summary>
-    public static byte[] ResizePages(Stream stream, PageSize pageSize, params int[] pageNumbers) {
+    public static byte[] ResizePages(Stream stream, PdfPageSize pageSize, params int[] pageNumbers) {
         return ResizePages(ReadStream(stream, nameof(stream)), pageSize, pageNumbers);
     }
 
@@ -133,7 +133,7 @@ internal static partial class PdfPageEditor {
     }
 
     /// <summary>Writes a new PDF with selected pages scaled into the supplied target page size.</summary>
-    public static void ResizePages(byte[] pdf, Stream outputStream, PageSize pageSize, params int[] pageNumbers) {
+    public static void ResizePages(byte[] pdf, Stream outputStream, PdfPageSize pageSize, params int[] pageNumbers) {
         WriteOutput(outputStream, ResizePages(pdf, pageSize, pageNumbers));
     }
 
@@ -143,7 +143,7 @@ internal static partial class PdfPageEditor {
     }
 
     /// <summary>Writes a new PDF with selected pages scaled into the supplied target page size from a readable stream.</summary>
-    public static void ResizePages(Stream inputStream, Stream outputStream, PageSize pageSize, params int[] pageNumbers) {
+    public static void ResizePages(Stream inputStream, Stream outputStream, PdfPageSize pageSize, params int[] pageNumbers) {
         WriteOutput(outputStream, ResizePages(inputStream, pageSize, pageNumbers));
     }
 
@@ -153,7 +153,7 @@ internal static partial class PdfPageEditor {
     }
 
     /// <summary>Writes a new PDF file with selected pages scaled into the supplied target page size.</summary>
-    public static void ResizePages(string inputPath, string outputPath, PageSize pageSize, params int[] pageNumbers) {
+    public static void ResizePages(string inputPath, string outputPath, PdfPageSize pageSize, params int[] pageNumbers) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNull(outputPath, nameof(outputPath));
 
@@ -171,7 +171,7 @@ internal static partial class PdfPageEditor {
     }
 
     /// <summary>Creates a new PDF with selected pages scaled into the supplied target page size from a file path.</summary>
-    public static byte[] ResizePages(string inputPath, PageSize pageSize, params int[] pageNumbers) {
+    public static byte[] ResizePages(string inputPath, PdfPageSize pageSize, params int[] pageNumbers) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         return ResizePages(ReadPath(inputPath), pageSize, pageNumbers);
     }
@@ -183,7 +183,7 @@ internal static partial class PdfPageEditor {
     }
 
     /// <summary>Creates a new PDF with the inclusive one-based page range scaled into the supplied target page size.</summary>
-    public static byte[] ResizePageRange(byte[] pdf, PageSize pageSize, int firstPage, int lastPage) {
+    public static byte[] ResizePageRange(byte[] pdf, PdfPageSize pageSize, int firstPage, int lastPage) {
         return ResizePages(pdf, pageSize, BuildInclusivePageRange(firstPage, lastPage, nameof(lastPage)));
     }
 
@@ -193,7 +193,7 @@ internal static partial class PdfPageEditor {
     }
 
     /// <summary>Creates a new PDF with the supplied page ranges scaled into the supplied target page size.</summary>
-    public static byte[] ResizePageRanges(byte[] pdf, PageSize pageSize, params PdfPageRange[] pageRanges) {
+    public static byte[] ResizePageRanges(byte[] pdf, PdfPageSize pageSize, params PdfPageRange[] pageRanges) {
         return ResizePages(pdf, pageSize, ExpandPageRangesDistinct(pageRanges, nameof(pageRanges)));
     }
 
@@ -258,8 +258,8 @@ internal static partial class PdfPageEditor {
         return new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes(content));
     }
 
-    private static void AddNormalizedProductionBoxes(Dictionary<string, PdfObject> pageOverrides, PdfPageGeometry geometry, PageSize pageSize) {
-        PdfArray targetBox = CreatePageBoxArray(0D, 0D, pageSize.Width, pageSize.Height);
+    private static void AddNormalizedProductionBoxes(Dictionary<string, PdfObject> pageOverrides, PdfPageGeometry geometry, PdfPageSize pageSize) {
+        PdfArray targetBox = CreatePageBoxArray(0D, 0D, pageSize.Width.ToPoints(), pageSize.Height.ToPoints());
         if (geometry.BleedBox is not null) {
             pageOverrides["BleedBox"] = ClonePageBoxArray(targetBox);
         }
@@ -843,9 +843,9 @@ internal static partial class PdfPageEditor {
     }
 
     private static PageResizeTransform CalculateResizeTransform(int pageObjectNumber, double sourceLeft, double sourceBottom, double sourceWidth, double sourceHeight, int rotationDegrees, PdfPageResizeOptions options) {
-        double margin = options.Margin;
-        double availableWidth = options.PageSize.Width - margin * 2D;
-        double availableHeight = options.PageSize.Height - margin * 2D;
+        double margin = options.Margin.ToPoints();
+        double availableWidth = options.PageSize.Width.ToPoints() - margin * 2D;
+        double availableHeight = options.PageSize.Height.ToPoints() - margin * 2D;
         double visualSourceWidth = rotationDegrees == 90 || rotationDegrees == 270 ? sourceHeight : sourceWidth;
         double visualSourceHeight = rotationDegrees == 90 || rotationDegrees == 270 ? sourceWidth : sourceHeight;
         double scaleX = availableWidth / visualSourceWidth;
@@ -951,13 +951,13 @@ internal static partial class PdfPageEditor {
     }
 
     private static void ValidateResizeOptions(PdfPageResizeOptions options) {
-        Guard.Positive(options.PageSize.Width, nameof(options));
-        Guard.Positive(options.PageSize.Height, nameof(options));
-        if (!IsFinite(options.Margin) || options.Margin < 0D) {
+        Guard.Positive(options.PageSize.Width.ToPoints(), nameof(options));
+        Guard.Positive(options.PageSize.Height.ToPoints(), nameof(options));
+        if (!IsFinite(options.Margin.ToPoints()) || options.Margin.ToPoints() < 0D) {
             throw new ArgumentOutOfRangeException(nameof(options), "Resize margin must be a finite non-negative number.");
         }
 
-        if (options.Margin * 2D >= options.PageSize.Width || options.Margin * 2D >= options.PageSize.Height) {
+        if (options.Margin.ToPoints() * 2D >= options.PageSize.Width.ToPoints() || options.Margin.ToPoints() * 2D >= options.PageSize.Height.ToPoints()) {
             throw new ArgumentOutOfRangeException(nameof(options), "Resize margin must leave a positive content area.");
         }
     }

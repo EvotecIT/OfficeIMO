@@ -13,15 +13,15 @@ namespace OfficeIMO.Tests {
         public void SetRowHeightsEvenly_UsesTableHeight() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(rows: 3, columns: 2, left: 0, top: 0, width: 4000, height: 9000);
+                PowerPointTable table = slide.AddTable(rows: 3,columns: 2,left: global::OfficeIMO.OfficeLength.Emus(0),top: global::OfficeIMO.OfficeLength.Emus(0),width: global::OfficeIMO.OfficeLength.Emus(4000),height: global::OfficeIMO.OfficeLength.Emus(9000));
 
                 table.SetRowHeightsEvenly();
 
-                Assert.Equal(3000, table.GetRowHeight(0));
-                Assert.Equal(3000, table.GetRowHeight(1));
-                Assert.Equal(3000, table.GetRowHeight(2));
+                Assert.Equal(3000, (table.GetRowHeight(0)).ToEmus());
+                Assert.Equal(3000, (table.GetRowHeight(1)).ToEmus());
+                Assert.Equal(3000, (table.GetRowHeight(2)).ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -33,13 +33,13 @@ namespace OfficeIMO.Tests {
         public void AddTable_InitializesRowHeightsFromRequestedHeight() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(rows: 3, columns: 2, left: 0, top: 0, width: 4000, height: 9000);
+                PowerPointTable table = slide.AddTable(rows: 3,columns: 2,left: global::OfficeIMO.OfficeLength.Emus(0),top: global::OfficeIMO.OfficeLength.Emus(0),width: global::OfficeIMO.OfficeLength.Emus(4000),height: global::OfficeIMO.OfficeLength.Emus(9000));
 
-                Assert.Equal(3000, table.GetRowHeight(0));
-                Assert.Equal(3000, table.GetRowHeight(1));
-                Assert.Equal(3000, table.GetRowHeight(2));
+                Assert.Equal(3000, (table.GetRowHeight(0)).ToEmus());
+                Assert.Equal(3000, (table.GetRowHeight(1)).ToEmus());
+                Assert.Equal(3000, (table.GetRowHeight(2)).ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -51,14 +51,14 @@ namespace OfficeIMO.Tests {
         public void SetRowHeightsByRatio_UsesTableHeight() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(rows: 2, columns: 1, left: 0, top: 0, width: 4000, height: 9000);
+                PowerPointTable table = slide.AddTable(rows: 2,columns: 1,left: global::OfficeIMO.OfficeLength.Emus(0),top: global::OfficeIMO.OfficeLength.Emus(0),width: global::OfficeIMO.OfficeLength.Emus(4000),height: global::OfficeIMO.OfficeLength.Emus(9000));
 
                 table.SetRowHeightsByRatio(1, 2);
 
-                Assert.Equal(3000, table.GetRowHeight(0));
-                Assert.Equal(6000, table.GetRowHeight(1));
+                Assert.Equal(3000, (table.GetRowHeight(0)).ToEmus());
+                Assert.Equal(6000, (table.GetRowHeight(1)).ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -70,15 +70,15 @@ namespace OfficeIMO.Tests {
         public void TableSizeGetters_ReturnUnits() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(rows: 1, columns: 1, left: 0, top: 0, width: 4000, height: 2000);
+                PowerPointTable table = slide.AddTable(rows: 1,columns: 1,left: global::OfficeIMO.OfficeLength.Emus(0),top: global::OfficeIMO.OfficeLength.Emus(0),width: global::OfficeIMO.OfficeLength.Emus(4000),height: global::OfficeIMO.OfficeLength.Emus(2000));
 
-                table.SetColumnWidthPoints(0, 72);
-                table.SetRowHeightCm(0, 1.0);
+                table.SetColumnWidth(0,global::OfficeIMO.OfficeLength.Points(72));
+                table.SetRowHeight(0,global::OfficeIMO.OfficeLength.Centimeters(1.0));
 
-                Assert.Equal(72, table.GetColumnWidthPoints(0), 3);
-                Assert.Equal(1.0, table.GetRowHeightCm(0), 3);
+                Assert.Equal(72, (table.GetColumnWidth(0)).ToPoints(), 3);
+                Assert.Equal(1.0, (table.GetRowHeight(0)).ToCentimeters(), 3);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -90,9 +90,9 @@ namespace OfficeIMO.Tests {
         public void SetCellAlignment_AppliesToRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(rows: 2, columns: 2, left: 0, top: 0, width: 4000, height: 3000);
+                PowerPointTable table = slide.AddTable(rows: 2,columns: 2,left: global::OfficeIMO.OfficeLength.Emus(0),top: global::OfficeIMO.OfficeLength.Emus(0),width: global::OfficeIMO.OfficeLength.Emus(4000),height: global::OfficeIMO.OfficeLength.Emus(3000));
 
                 table.SetCellAlignment(PowerPointTextAlignment.Center, PowerPointTextVerticalAlignment.Center,
                     startRow: 0, endRow: 0, startColumn: 0, endColumn: 1);
@@ -111,17 +111,17 @@ namespace OfficeIMO.Tests {
         public void SetCellPaddingCm_AppliesToAllCells() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(rows: 1, columns: 2, left: 0, top: 0, width: 4000, height: 2000);
+                PowerPointTable table = slide.AddTable(rows: 1,columns: 2,left: global::OfficeIMO.OfficeLength.Emus(0),top: global::OfficeIMO.OfficeLength.Emus(0),width: global::OfficeIMO.OfficeLength.Emus(4000),height: global::OfficeIMO.OfficeLength.Emus(2000));
 
-                table.SetCellPaddingCm(0.5, 0.5, 0.5, 0.5);
+                table.SetCellPadding(global::OfficeIMO.OfficeLength.Centimeters(0.5), global::OfficeIMO.OfficeLength.Centimeters(0.5), global::OfficeIMO.OfficeLength.Centimeters(0.5), global::OfficeIMO.OfficeLength.Centimeters(0.5));
 
                 PowerPointTableCell cell = table.GetCell(0, 0);
-                Assert.Equal(0.5, cell.PaddingLeftCm!.Value, 3);
-                Assert.Equal(0.5, cell.PaddingTopCm!.Value, 3);
-                Assert.Equal(0.5, cell.PaddingRightCm!.Value, 3);
-                Assert.Equal(0.5, cell.PaddingBottomCm!.Value, 3);
+                Assert.Equal(0.5, cell.PaddingLeft!.Value.ToCentimeters(), 3);
+                Assert.Equal(0.5, cell.PaddingTop!.Value.ToCentimeters(), 3);
+                Assert.Equal(0.5, cell.PaddingRight!.Value.ToCentimeters(), 3);
+                Assert.Equal(0.5, cell.PaddingBottom!.Value.ToCentimeters(), 3);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -133,11 +133,11 @@ namespace OfficeIMO.Tests {
         public void SetCellBorders_AppliesToAllCells() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(rows: 1, columns: 1, left: 0, top: 0, width: 4000, height: 2000);
+                PowerPointTable table = slide.AddTable(rows: 1,columns: 1,left: global::OfficeIMO.OfficeLength.Emus(0),top: global::OfficeIMO.OfficeLength.Emus(0),width: global::OfficeIMO.OfficeLength.Emus(4000),height: global::OfficeIMO.OfficeLength.Emus(2000));
 
-                table.SetCellBorders(PowerPointTableCellBorders.All, "FF0000", widthPoints: 1);
+                table.SetCellBorders(PowerPointTableCellBorders.All, "FF0000", width: global::OfficeIMO.OfficeLength.Points(1));
 
                 Assert.Equal("FF0000", table.GetCell(0, 0).BorderColor);
             } finally {
@@ -151,11 +151,11 @@ namespace OfficeIMO.Tests {
         public void SetCellBorders_WithDash_WritesPresetDash() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointTable table = slide.AddTable(rows: 1, columns: 1, left: 0, top: 0, width: 4000, height: 2000);
+                    PowerPointTable table = slide.AddTable(rows: 1,columns: 1,left: global::OfficeIMO.OfficeLength.Emus(0),top: global::OfficeIMO.OfficeLength.Emus(0),width: global::OfficeIMO.OfficeLength.Emus(4000),height: global::OfficeIMO.OfficeLength.Emus(2000));
 
-                    table.SetCellBorders(PowerPointTableCellBorders.All, "FF0000", widthPoints: 1,
+                    table.SetCellBorders(PowerPointTableCellBorders.All, "FF0000", width: global::OfficeIMO.OfficeLength.Points(1),
                         dash: PowerPointLineDashStyle.Dash);
                     presentation.Save();
                 }

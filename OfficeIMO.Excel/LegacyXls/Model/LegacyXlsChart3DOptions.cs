@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes decoded Chart3d options preserved from a BIFF chart stream.
     /// </summary>
-    public sealed class LegacyXlsChart3DOptions {
+    internal sealed class LegacyXlsChart3DOptions {
         internal LegacyXlsChart3DOptions(
             short rotationDegrees,
             short elevationDegrees,

@@ -76,8 +76,8 @@ public partial class Word {
     public void SaveAsPdf_HiddenMarkChainRetainsFirstAlignmentAndFinalSpacing(bool nativeDoc) {
         using WordDocument source = CreateJoinedParagraphDocument();
         WordParagraph alpha = source.AddParagraph("ALPHA"); alpha.ParagraphAlignment = WordParagraphAlignment.Right;
-        alpha.LineSpacingBeforePoints = 20; alpha.LineSpacingAfterPoints = 80; HideJoinMark(alpha, true);
-        WordParagraph beta = source.AddParagraph("BETA"); beta.LineSpacingBeforePoints = 80; beta.LineSpacingAfterPoints = 20;
+        alpha.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(20D); alpha.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(80D); HideJoinMark(alpha, true);
+        WordParagraph beta = source.AddParagraph("BETA"); beta.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(80D); beta.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(20D);
         source.AddParagraph("SECOND");
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
         using var pdf = OpenJoinedParagraphPdf(document);
@@ -122,9 +122,9 @@ public partial class Word {
         using WordDocument document = CreateJoinedParagraphDocument();
         WordParagraph alpha = document.AddParagraph("ALPHA"); HideJoinMark(alpha, true);
         document.AddParagraph("BETA").PageBreakBeforeOverride = true;
-        var options = new WordToPdfOptions { IncludePageNumbers = false,
+        var options = new WordPdfExportOptions { IncludePageNumbers = false,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Contains("ALPHA", pdf.GetPage(1).Text); Assert.Contains("BETA", pdf.GetPage(2).Text);
     }
@@ -135,14 +135,14 @@ public partial class Word {
         WordParagraph alpha = document.AddParagraph("ALPHA"); HideJoinMark(alpha, true);
         alpha._paragraph.ParagraphProperties!.AddChild(new W.Shading { Fill = "FFCC00", Val = W.ShadingPatternValues.Clear }, true);
         document.AddParagraph("BETA");
-        var options = new WordToPdfOptions { IncludePageNumbers = false,
+        var options = new WordPdfExportOptions { IncludePageNumbers = false,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
-        var result = document.ToPdfDocumentResult(options);
+        var result = document.ConvertToPdfWithEvidence(options);
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
         Assert.Contains("ALPHA", pdf.GetPage(1).Text); Assert.Contains("BETA", pdf.GetPage(1).Text);
         Assert.True(pdf.GetPage(1).Letters.First(l => l.Value == "A").StartBaseLine.Y >
             Assert.Single(pdf.GetPage(1).Letters, l => l.Value == "B").StartBaseLine.Y);
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeHiddenParagraphJoinUnsupported");
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-hidden-paragraph-join-unsupported");
     }
 
     [Fact]
@@ -223,6 +223,6 @@ public partial class Word {
         Assert.Equal(2, pdf.GetPage(1).Letters.Count(letter => letter.Value == (endnote ? "i" : "1")));
     }
 
-    private static PdfPigDocument OpenJoinedParagraphPdf(WordDocument document) => PdfPigDocument.Open(document.ToPdfBytes(
-        new WordToPdfOptions { IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() }));
+    private static PdfPigDocument OpenJoinedParagraphPdf(WordDocument document) => PdfPigDocument.Open(document.ToPdf(
+        new WordPdfExportOptions { IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
 }

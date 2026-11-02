@@ -95,7 +95,7 @@ public sealed class PdfSearchableOcrReviewTests {
         Assert.Equal(original, unchanged.Document.ToBytes());
     }
 
-    private static byte[] Source() => PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).ToBytes();
+    private static byte[] Source() => PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).ToBytes();
 
     [Fact]
     public async Task ReviewCorrectionsPreserveSourceEvidenceGeometryAndIndependentText() {

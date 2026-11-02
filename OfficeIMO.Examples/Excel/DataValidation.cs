@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = Path.Combine(folderPath, "DataValidation.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
 
                 sheet.ValidationWholeNumber("A1:A10", ExcelDataValidationOperator.Between, 1, 10);
                 sheet.ValidationDecimal("B1:B10", ExcelDataValidationOperator.GreaterThan, 5.5);

@@ -40,11 +40,11 @@ public sealed partial class InvoiceWorkbenchViewModel {
             InputPath = InputPath, InputStream = _storage?.CreateWorkflowInput(InputPath), Operation = operation,
             OutputPath = output, Target = target, SourceEdits = edits,
             ValidationRelease = RequireStandards ? target?.Release ?? SelectedRelease.Value : null,
-            Layout = layout.Clone(), PublicationGuard = _guard, ConflictPolicy = OfficeWorkflowConflictPolicy.Rename
+            Layout = layout.Clone(), PublicationGuard = _guard, ConflictPolicy = OfficePublicationPolicy.Rename
         };
     }
     /// <summary>Reads the chosen font through storage, so a font picked from Files or a sandboxed folder can be embedded.</summary>
-    private async Task<PdfOptions?> LoadFontOptionsAsync(string fontPath, CancellationToken token) {
+    private async Task<PdfCreateOptions?> LoadFontOptionsAsync(string fontPath, CancellationToken token) {
         if (fontPath.Length == 0) return null;
         const long limit = 16 * 1024 * 1024;
         byte[] font;
@@ -55,7 +55,7 @@ public sealed partial class InvoiceWorkbenchViewModel {
             font = (await _storage.ReadSnapshotAsync(fontPath, token, limit).ConfigureAwait(true)).Bytes;
         }
         if (font.Length is <= 0 or > (int)limit) throw new ArgumentException(T("FontLimit", "The embedded font must contain between one byte and 16 MiB."));
-        return new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, font, "Invoice font")
+        return new PdfCreateOptions().EmbedStandardFont(PdfStandardFont.Helvetica, font, "Invoice font")
             .EmbedStandardFont(PdfStandardFont.HelveticaBold, font, "Invoice font");
     }
 

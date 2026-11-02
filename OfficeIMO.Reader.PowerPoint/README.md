@@ -20,7 +20,7 @@ Its direct OfficeIMO dependencies are Reader.Core, PowerPoint and Core.
 
 With `OfficeIMO.Reader.PowerPoint` imported, call
 `presentation.ReadDocument(sourceName, options, formatOptions, cancellationToken)`
-on a caller-owned `PowerPointPresentation`. It uses the canonical Reader mapping,
+on a caller-owned `PowerPointDocument`. It uses the canonical Reader mapping,
 snapshots both option sets and enforces the projection's output budgets. `Full`
 is the default. The presentation remains open for subsequent
 `InspectEmbeddedPayloads` reads.

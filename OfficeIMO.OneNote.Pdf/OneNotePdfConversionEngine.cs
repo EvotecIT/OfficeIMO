@@ -23,12 +23,12 @@ internal static class OneNotePdfConversionEngine {
 
     private static PdfCore.PdfDocumentConversionResult ConvertProjection(
         OneNoteMarkdownConversionResult projection,
-        MarkdownToPdfOptions pdfOptions, System.Threading.CancellationToken cancellationToken) {
+        MarkdownPdfExportOptions pdfOptions, System.Threading.CancellationToken cancellationToken) {
         if (pdfOptions.TextFallbacks != PdfCore.PdfTextFallbackFeatures.None) {
             pdfOptions.TextFallbacks |= PdfCore.PdfTextFallbackFeatures.MultilingualFonts;
         }
 
-        PdfCore.PdfDocumentConversionResult result = projection.Value.ToPdfDocumentResult(pdfOptions, cancellationToken);
+        PdfCore.PdfDocumentConversionResult result = projection.Value.ConvertToPdfWithEvidence(pdfOptions, cancellationToken);
         return result.WithSourceConversionReport(projection.Report);
     }
 }

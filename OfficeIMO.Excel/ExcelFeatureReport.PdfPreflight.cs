@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void AddUnsupportedHeaderFooterImages(ExcelSheet.ExcelHeaderFooterSnapshot headerFooter, string sheetName, ref int count, List<string> details) {
+        private static void AddUnsupportedHeaderFooterImages(ExcelSheet.ExcelHeaderFooterInfo headerFooter, string sheetName, ref int count, List<string> details) {
             AddUnsupportedHeaderFooterImage(headerFooter.HeaderLeftImage, sheetName, "header left", ref count, details);
             AddUnsupportedHeaderFooterImage(headerFooter.HeaderCenterImage, sheetName, "header center", ref count, details);
             AddUnsupportedHeaderFooterImage(headerFooter.HeaderRightImage, sheetName, "header right", ref count, details);
@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel {
             AddUnsupportedHeaderFooterImage(headerFooter.FooterRightImage, sheetName, "footer right", ref count, details);
         }
 
-        private static void AddUnsupportedHeaderFooterImage(ExcelSheet.ExcelHeaderFooterImageSnapshot? image, string sheetName, string location, ref int count, List<string> details) {
+        private static void AddUnsupportedHeaderFooterImage(ExcelSheet.ExcelHeaderFooterImageInfo? image, string sheetName, string location, ref int count, List<string> details) {
             if (image == null || IsPdfSupportedHeaderFooterImage(image, out string reason)) {
                 return;
             }
@@ -155,7 +155,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (!TryGetTopLeftCellReference(cellReference, out string normalizedCellReference)
-                || !A1.TryParseCellReferenceFast(normalizedCellReference, out int targetRow, out int targetColumn)) {
+                || !ExcelA1.TryParseCellReferenceFast(normalizedCellReference, out int targetRow, out int targetColumn)) {
                 reason = $"target cell '{cellReference}' is not a supported A1 reference.";
                 return false;
             }
@@ -176,7 +176,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (targetRow < firstRow || targetRow > lastRow || targetColumn < firstColumn || targetColumn > lastColumn) {
-                reason = $"target cell '{sheetName}!{normalizedCellReference}' is outside the default PDF exported range {A1.CellReference(firstRow, firstColumn)}:{A1.CellReference(lastRow, lastColumn)}.";
+                reason = $"target cell '{sheetName}!{normalizedCellReference}' is outside the default PDF exported range {ExcelA1.CellReference(firstRow, firstColumn)}:{ExcelA1.CellReference(lastRow, lastColumn)}.";
                 return false;
             }
 
@@ -192,7 +192,7 @@ namespace OfficeIMO.Excel {
 
             foreach (var cell in worksheetPart.Worksheet?.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>() ?? Enumerable.Empty<DocumentFormat.OpenXml.Spreadsheet.Cell>()) {
                 string? reference = cell.CellReference?.Value;
-                if (!A1.TryParseCellReferenceFast(reference, out int row, out int column)) {
+                if (!ExcelA1.TryParseCellReferenceFast(reference, out int row, out int column)) {
                     continue;
                 }
 
@@ -212,66 +212,66 @@ namespace OfficeIMO.Excel {
             }
 
             string token = referenceToken.Trim().Replace("$", string.Empty);
-            if (A1.TryParseRange(token, out int firstRow, out int firstColumn, out _, out _)) {
-                cellReference = A1.CellReference(firstRow, firstColumn);
+            if (ExcelA1.TryParseRange(token, out int firstRow, out int firstColumn, out _, out _)) {
+                cellReference = ExcelA1.CellReference(firstRow, firstColumn);
                 return true;
             }
 
-            if (!A1.TryParseCellReferenceFast(token, out int row, out int column)) {
+            if (!ExcelA1.TryParseCellReferenceFast(token, out int row, out int column)) {
                 return false;
             }
 
-            cellReference = A1.CellReference(row, column);
+            cellReference = ExcelA1.CellReference(row, column);
             return true;
         }
 
-        private static bool IsPdfSupportedChartType(ExcelChartType chartType) {
+        private static bool IsPdfSupportedChartType(OfficeChartType chartType) {
             switch (chartType) {
-                case ExcelChartType.ColumnClustered:
-                case ExcelChartType.Column3DClustered:
-                case ExcelChartType.ColumnStacked:
-                case ExcelChartType.Column3DStacked:
-                case ExcelChartType.ColumnStacked100:
-                case ExcelChartType.Column3DStacked100:
-                case ExcelChartType.BarClustered:
-                case ExcelChartType.Bar3DClustered:
-                case ExcelChartType.BarStacked:
-                case ExcelChartType.Bar3DStacked:
-                case ExcelChartType.BarStacked100:
-                case ExcelChartType.Bar3DStacked100:
-                case ExcelChartType.Line:
-                case ExcelChartType.Line3D:
-                case ExcelChartType.LineStacked:
-                case ExcelChartType.LineStacked100:
-                case ExcelChartType.Area:
-                case ExcelChartType.Area3D:
-                case ExcelChartType.AreaStacked:
-                case ExcelChartType.Area3DStacked:
-                case ExcelChartType.AreaStacked100:
-                case ExcelChartType.Area3DStacked100:
-                case ExcelChartType.Scatter:
-                case ExcelChartType.Radar:
-                case ExcelChartType.Pie:
-                case ExcelChartType.Pie3D:
-                case ExcelChartType.PieOfPie:
-                case ExcelChartType.BarOfPie:
-                case ExcelChartType.Doughnut:
-                case ExcelChartType.Stock:
-                case ExcelChartType.Surface:
-                case ExcelChartType.SurfaceWireframe:
-                case ExcelChartType.SurfaceContour:
-                case ExcelChartType.SurfaceContourWireframe:
+                case OfficeChartType.ColumnClustered:
+                case OfficeChartType.Column3DClustered:
+                case OfficeChartType.ColumnStacked:
+                case OfficeChartType.Column3DStacked:
+                case OfficeChartType.ColumnStacked100:
+                case OfficeChartType.Column3DStacked100:
+                case OfficeChartType.BarClustered:
+                case OfficeChartType.Bar3DClustered:
+                case OfficeChartType.BarStacked:
+                case OfficeChartType.Bar3DStacked:
+                case OfficeChartType.BarStacked100:
+                case OfficeChartType.Bar3DStacked100:
+                case OfficeChartType.Line:
+                case OfficeChartType.Line3D:
+                case OfficeChartType.LineStacked:
+                case OfficeChartType.LineStacked100:
+                case OfficeChartType.Area:
+                case OfficeChartType.Area3D:
+                case OfficeChartType.AreaStacked:
+                case OfficeChartType.Area3DStacked:
+                case OfficeChartType.AreaStacked100:
+                case OfficeChartType.Area3DStacked100:
+                case OfficeChartType.Scatter:
+                case OfficeChartType.Radar:
+                case OfficeChartType.Pie:
+                case OfficeChartType.Pie3D:
+                case OfficeChartType.PieOfPie:
+                case OfficeChartType.BarOfPie:
+                case OfficeChartType.Doughnut:
+                case OfficeChartType.Stock:
+                case OfficeChartType.Surface:
+                case OfficeChartType.SurfaceWireframe:
+                case OfficeChartType.SurfaceContour:
+                case OfficeChartType.SurfaceContourWireframe:
                     return true;
                 default:
                     return false;
             }
         }
 
-        private static bool HasRenderablePdfChartData(ExcelChartSnapshot snapshot) {
+        private static bool HasRenderablePdfChartData(ExcelChartInfo snapshot) {
             return snapshot.Data.Categories.Count > 0 && snapshot.Data.Series.Count > 0;
         }
 
-        private static List<string> GetPdfUnsupportedComboChartDetails(ExcelChartSnapshot snapshot, string sheetName) {
+        private static List<string> GetPdfUnsupportedComboChartDetails(ExcelChartInfo snapshot, string sheetName) {
             var details = new List<string>();
             bool hasMixedSeries = snapshot.Data.Series.Any(series =>
                 series.ChartType.HasValue && series.ChartType.Value != snapshot.ChartType);
@@ -285,7 +285,7 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (ExcelChartSeries series in snapshot.Data.Series) {
-                ExcelChartType effectiveType = series.ChartType ?? snapshot.ChartType;
+                OfficeChartType effectiveType = series.ChartType ?? snapshot.ChartType;
                 if (effectiveType == snapshot.ChartType) {
                     continue;
                 }
@@ -327,7 +327,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static string GetChartDisplayName(ExcelChartSnapshot snapshot) {
+        private static string GetChartDisplayName(ExcelChartInfo snapshot) {
             if (!string.IsNullOrWhiteSpace(snapshot.Title)) {
                 return snapshot.Title!;
             }
@@ -341,7 +341,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (image.WidthPixels <= 0 || image.HeightPixels <= 0) {
+            if (image.Width <= OfficeLength.Zero || image.Height <= OfficeLength.Zero) {
                 reason = "image has non-positive dimensions.";
                 return false;
             }
@@ -366,13 +366,13 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool IsPdfSupportedHeaderFooterImage(ExcelSheet.ExcelHeaderFooterImageSnapshot image, out string reason) {
+        private static bool IsPdfSupportedHeaderFooterImage(ExcelSheet.ExcelHeaderFooterImageInfo image, out string reason) {
             if (!IsPdfSupportedImageContentType(image.ContentType)) {
                 reason = $"content type '{image.ContentType}' is not supported by the first-party PDF image writer.";
                 return false;
             }
 
-            if (image.WidthPoints <= 0 || image.HeightPoints <= 0) {
+            if (image.Width <= OfficeLength.Zero || image.Height <= OfficeLength.Zero) {
                 reason = "image has non-positive dimensions.";
                 return false;
             }

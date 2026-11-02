@@ -16,6 +16,7 @@ public sealed partial class OfficeDocumentReader {
         IEnumerable<string> paths,
         ReaderFolderOptions? folderOptions = null,
         CancellationToken cancellationToken = default) {
+        folderOptions ??= _defaultReadOptions.FolderOptions;
         return Scope(DocumentReaderEngine.EnumerateDocumentPaths(paths, folderOptions, cancellationToken));
     }
 }

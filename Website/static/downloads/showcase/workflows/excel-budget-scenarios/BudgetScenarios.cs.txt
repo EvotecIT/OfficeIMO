@@ -8,10 +8,10 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class BudgetScenarios {
     internal static void Create(string folder) {
         using ExcelDocument document = ExcelDocument.Create(Path.Combine(folder, "example.xlsx"));
-        ExcelSheet sheet = document.AddWorksheet("Scenarios");
+        ExcelSheet sheet = document.AddSheet("Scenarios");
         sheet.MergeRange("A1:F1");
         sheet.Cell(1, 1, "Budget scenarios / next quarter");
-        sheet.CellFontSize(1, 1, 20);
+        sheet.CellFontSize(1, 1, global::OfficeIMO.OfficeLength.Points(20));
         sheet.CellBold(1, 1, true);
         sheet.CellFontColor(1, 1, "17365D");
         sheet.MergeRange("A2:F2");
@@ -23,7 +23,7 @@ internal static class BudgetScenarios {
             sheet.CellBackground(4, column + 1, "17365D");
             sheet.CellFontColor(4, column + 1, "FFFFFF");
             sheet.CellBold(4, column + 1, true);
-            sheet.SetColumnWidth(column + 1, column == 0 ? 25 : 20);
+            sheet.SetColumnWidth(column + 1, ExcelColumnWidth.Characters(column == 0 ? 25 : 20));
         }
         string[] labels = { "Conservative", "Expected", "Growth" };
         for (int index = 0; index < labels.Length; index++) {

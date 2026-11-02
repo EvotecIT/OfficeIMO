@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.ThrowsAny<NotSupportedException>(() => PdfReadDocument.Open(source).ExtractText());
             PdfRedactionPlan plan = PdfDocument.Load(source).Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("秘密"));
             Assert.False(plan.IsReviewable);
-            Assert.Contains(plan.Findings, static finding => finding.Code == "RedactionSearchTextMappingUnsupported");
+            Assert.Contains(plan.Findings, static finding => finding.Code == "redaction-search-text-mapping-unsupported");
         }
 
         [Theory]

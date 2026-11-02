@@ -145,7 +145,7 @@ public class PdfStampAnnotationEditorTests {
                 Contents = "Reviewed stamp",
                 Title = "OfficeIMO reviewer",
                 Name = "review-stamp-1",
-                FillColor = new PdfColor(1, 0.95, 0.9)
+                FillColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(1, 0.95, 0.9)
             });
 
         PdfAnnotation stamp = Assert.Single(PdfInspector.Inspect(result.Bytes).GetAnnotationsBySubtype("Stamp"));
@@ -202,7 +202,7 @@ public class PdfStampAnnotationEditorTests {
 
     [Fact]
     public void EncryptedStampAnnotationUsesAuthenticatedAppendContext() {
-        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Encrypted stamp source"))
             .ToBytes();
         var readOptions = new PdfLoadOptions { Password = "owner" };

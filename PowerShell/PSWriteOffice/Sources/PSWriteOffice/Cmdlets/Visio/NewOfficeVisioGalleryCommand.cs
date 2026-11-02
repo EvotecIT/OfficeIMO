@@ -12,7 +12,7 @@ namespace PSWriteOffice.Cmdlets.Visio;
 ///     Select-Object Name, FilePath, IsClean</code>
 ///   <para>Creates polished, editable Visio samples for flowcharts, architecture, network, timeline, swimlane, org chart, and graph diagrams.</para>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficeVisioGallery")]
+[Cmdlet(VerbsCommon.New, "OfficeVisioGallery", DefaultParameterSetName = "OutputDirectory")]
 [Alias("New-VisioGallery")]
 [OutputType(typeof(VisioGalleryResult))]
 public sealed class NewOfficeVisioGalleryCommand : PSCmdlet

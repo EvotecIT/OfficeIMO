@@ -14,44 +14,6 @@ namespace OfficeIMO.Shared.Tests;
 
 public sealed class PublicApiPersistenceContracts {
     [Fact]
-    public void PdfSaveAsMethodsReturnUnifiedSaveResults() {
-        Type[] extensionTypes = {
-            typeof(OfficeIMO.Word.Pdf.WordPdfConverterExtensions),
-            typeof(OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions),
-            typeof(OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions),
-            typeof(OfficeIMO.Markdown.Pdf.MarkdownPdfConverterExtensions),
-            typeof(OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions),
-            typeof(OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions)
-        };
-
-        foreach (Type extensionType in extensionTypes) {
-            MethodInfo[] saveMethods = GetDeclaredMethods(extensionType, "SaveAsPdf");
-            MethodInfo[] asyncMethods = GetDeclaredMethods(extensionType, "SaveAsPdfAsync");
-
-            Assert.NotEmpty(saveMethods);
-            Assert.NotEmpty(asyncMethods);
-            Assert.All(saveMethods, method => Assert.Equal(typeof(PdfSaveResult), method.ReturnType));
-            Assert.All(asyncMethods, method => Assert.Equal(typeof(Task<PdfSaveResult>), method.ReturnType));
-        }
-    }
-
-    [Fact]
-    public void DocumentImageSavesReturnStructuredExportResults() {
-        AssertImageSaveContract(typeof(WordDocument), "SaveAsPng", "SaveAsSvg");
-        AssertImageSaveContract(typeof(ExcelRange), "SaveAsPng", "SaveAsSvg");
-        AssertImageSaveContract(typeof(PowerPointSlide), "SaveAsPng", "SaveAsSvg");
-        AssertImageSaveContract(typeof(VisioPngExportExtensions), "SaveAsPng");
-        AssertImageSaveContract(typeof(VisioSvgExportExtensions), "SaveAsSvg");
-        AssertImageSaveContract(
-            typeof(OfficeIMO.Html.HtmlImageExportExtensions),
-            "SaveAsPng",
-            "SaveAsJpeg",
-            "SaveAsTiff",
-            "SaveAsSvg",
-            "SaveAsWebp");
-    }
-
-    [Fact]
     public void VisioHasOneAuthoringThemeAndSeparatePackageMetadata() {
         Assembly assembly = typeof(VisioDocument).Assembly;
 

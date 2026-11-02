@@ -199,9 +199,9 @@ public sealed partial class TableBlock {
         var cells = new string[columnCount];
         for (int i = 0; i < columnCount; i++) {
             cells[i] = GetAlignment(i) switch {
-                ColumnAlignment.Left => ":---",
-                ColumnAlignment.Center => ":---:",
-                ColumnAlignment.Right => "---:",
+                MarkdownColumnAlignment.Left => ":---",
+                MarkdownColumnAlignment.Center => ":---:",
+                MarkdownColumnAlignment.Right => "---:",
                 _ => "---"
             };
         }

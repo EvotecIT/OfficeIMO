@@ -44,13 +44,13 @@ internal static partial class PdfWriter {
             int columns = GetTableColumnCount(table);
             ValidateFlowTable(table, style, columns);
             var columnLayout = ResolveTableColumnLayout(table, currentOpts, style, columns, frameWidth,
-                GetTableBodyFontSize(style, currentOpts.DefaultFontSize), style.HeaderRowCount,
+                GetTableBodyFontSize(style, currentOpts.DefaultFontSize.ToPoints()), style.HeaderRowCount,
                 table.Rows.Count - style.FooterRowCount);
             double gap = GetTableCellSpacing(style);
             var rows = PrepareFlowTableRows(table, style, columns, columnLayout.Widths, gap, gap,
                 style.HeaderRowCount, table.Rows.Count - style.FooterRowCount);
             var cellFlows = PrepareContainedTableCells(table, style, rows, columnLayout.Widths, gap);
-            double radius = ResolveTableCornerRadius(style.CornerRadius, columnLayout.Width,
+            double radius = ResolveTableCornerRadius(style.CornerRadius.ToPoints(), columnLayout.Width,
                 logicalTopBoundary ? rows.Heights[0] : double.PositiveInfinity,
                 logicalBottomBoundary ? rows.Heights[rows.Heights.Length - 1] : double.PositiveInfinity,
                 columnLayout.Widths[0], columnLayout.Widths[columnLayout.Widths.Length - 1]);

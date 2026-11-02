@@ -1,0 +1,12 @@
+{
+  "package": "OfficeIMO.Workflows.IWork",
+  "changes": [],
+  "extraChanges": [
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "The project gains netstandard2.0 and the existing Windows-only net472 targeting convention while retaining net8.0/net10.0. Pages, Numbers and Keynote conversion routes register directly into OfficeConverter on every target. Shared runtime compatibility helpers preserve batch cancellation and bounded parallel execution on older frameworks. Source conversion calls and native load/save options migrate to the canonical Tier 1 API."
+    }
+  ],
+  "applicationStatus": "All 158 tests pass against netstandard2.0 libraries on a net8.0 host; both modern target suites pass. Windows .NET Framework execution remains pending."
+}

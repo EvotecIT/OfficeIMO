@@ -19,11 +19,11 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox text = slide.AddTextBox("Test");
-                slide.AddPicture(imagePath);
-                slide.AddTable(2, 2);
+                slide.AddImage(imagePath);
+                slide.AddTable(2,2);
                 slide.AddChart();
                 slide.Notes.Text = "Notes";
 
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointSlide slide = presentation.Slides.Single();
                 Assert.Equal("FF0000", slide.BackgroundColor);
                 Assert.Equal(PowerPointSlideTransition.Fade, slide.Transition);
@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.Transition = PowerPointSlideTransition.Morph;
 
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
                     Assert.Empty(presentation.ValidateDocument());
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides.Single();
                     Assert.Equal(PowerPointSlideTransition.Morph, slide.Transition);
                     Assert.Empty(presentation.ValidateDocument());
@@ -91,8 +91,8 @@ namespace OfficeIMO.Tests {
             byte[] audio = { 82, 73, 70, 70, 4, 0, 0, 0, 87, 65, 86, 69 };
 
             try {
-                using (PowerPointPresentation presentation =
-                       PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation =
+                       PowerPointDocument.Create(filePath)) {
                     PowerPointSlide start = presentation.AddSlide();
                     start.Transition = PowerPointSlideTransition.Fade;
                     start.TransitionSpeed = PowerPointSlideTransitionSpeed.Fast;
@@ -114,8 +114,8 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using PowerPointPresentation reopened =
-                    PowerPointPresentation.Load(filePath);
+                using PowerPointDocument reopened =
+                    PowerPointDocument.Load(filePath);
                 PowerPointSlide startSlide = reopened.Slides[0];
                 PowerPointSlide stopSlide = reopened.Slides[1];
                 Assert.Equal(PowerPointSlideTransition.Morph,
@@ -186,7 +186,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlideTransition[] transitions = Enum.GetValues(typeof(PowerPointSlideTransition)).Cast<PowerPointSlideTransition>().ToArray();
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     foreach (PowerPointSlideTransition transition in transitions) {
                         PowerPointSlide slide = presentation.AddSlide();
                         slide.AddTitle(transition.ToString());
@@ -197,7 +197,7 @@ namespace OfficeIMO.Tests {
                     Assert.Empty(presentation.ValidateDocument());
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     PowerPointSlide[] slides = presentation.Slides.ToArray();
                     Assert.Equal(transitions.Length, slides.Length);
 
@@ -221,7 +221,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.Transition = PowerPointSlideTransition.Fade;
                     slide.TransitionSpeed = PowerPointSlideTransitionSpeed.Fast;
@@ -233,7 +233,7 @@ namespace OfficeIMO.Tests {
                     Assert.Empty(presentation.ValidateDocument());
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides.Single();
                     Assert.Equal(PowerPointSlideTransition.Fade, slide.Transition);
                     Assert.Equal(PowerPointSlideTransitionSpeed.Fast, slide.TransitionSpeed);
@@ -264,7 +264,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.Transition = PowerPointSlideTransition.Fade;
                     slide.TransitionSpeed = PowerPointSlideTransitionSpeed.Slow;
@@ -277,7 +277,7 @@ namespace OfficeIMO.Tests {
                     Assert.Empty(presentation.ValidateDocument());
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides.Single();
                     Assert.Equal(PowerPointSlideTransition.PushLeft, slide.Transition);
                     Assert.Equal(PowerPointSlideTransitionSpeed.Slow, slide.TransitionSpeed);
@@ -298,7 +298,7 @@ namespace OfficeIMO.Tests {
             string imagePath = AppendPathSegment(imagesDirectory, "BackgroundImage.png");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.SetBackgroundImage(imagePath);
                     slide.Transition = PowerPointSlideTransition.Morph;
@@ -319,7 +319,7 @@ namespace OfficeIMO.Tests {
                     Assert.Empty(presentation.ValidateDocument());
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     Assert.Equal(PowerPointSlideTransition.Flash, presentation.Slides[0].Transition);
                     Assert.Equal("112233", presentation.Slides[0].BackgroundColor);
                     Assert.Equal("Updated notes", presentation.Slides[0].Notes.Text);
@@ -351,7 +351,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     for (int i = 0; i < 3; i++) {
                         slide.AddChart();
@@ -361,7 +361,7 @@ namespace OfficeIMO.Tests {
                     Assert.Empty(presentation.ValidateDocument());
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides.Single();
                     Assert.Equal(3, slide.Charts.Count());
                     Assert.Empty(presentation.ValidateDocument());
@@ -412,9 +412,9 @@ namespace OfficeIMO.Tests {
         public void ImportedMaximumAxisIdDoesNotExhaustLaterChartAuthoring() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
-                    presentation.AddSlide().AddChart(OfficeChartKind.ColumnClustered,
-                        new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 1d }) }));
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
+                    presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered,
+                        new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 1d }) }));
                     ChartSpace chart = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!;
                     uint oldId = chart.Descendants<AxisId>().First().Val!.Value;
                     foreach (AxisId axis in chart.Descendants<AxisId>().Where(axis => axis.Val?.Value == oldId))
@@ -422,9 +422,9 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using PowerPointPresentation imported = PowerPointPresentation.Load(filePath);
-                imported.AddSlide().AddChart(OfficeChartKind.ColumnClustered,
-                    new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("New", new[] { 2d }) }));
+                using PowerPointDocument imported = PowerPointDocument.Load(filePath);
+                imported.AddSlide().AddChart(OfficeChartType.ColumnClustered,
+                    new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("New", new[] { 2d }) }));
                 Assert.All(imported.Slides.Last().SlidePart.ChartParts.Single().ChartSpace!.Descendants<AxisId>(),
                     axis => Assert.NotEqual(uint.MaxValue, axis.Val!.Value));
             } finally {
@@ -438,7 +438,7 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.SetBackgroundImage(imagePath);
                     slide.BackgroundColor = "112233";
@@ -447,7 +447,7 @@ namespace OfficeIMO.Tests {
                     Assert.Empty(presentation.ValidateDocument());
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides.Single();
                     Assert.Equal("112233", slide.BackgroundColor);
                     Assert.Empty(presentation.ValidateDocument());
@@ -473,7 +473,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.BackgroundColor = "112233";
                     slide.SetBackgroundGradient("112233", "445566");
@@ -510,7 +510,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.SetBackgroundGradient("112233", "445566", 45d);
 
@@ -542,7 +542,7 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.SetBackgroundImage(imagePath);
                     slide.BackgroundColor = null;
@@ -574,7 +574,7 @@ namespace OfficeIMO.Tests {
             string replacementImage = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "Kulek.jpg");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.SetBackgroundImage(originalImage);
                     slide.SetBackgroundImage(replacementImage);
@@ -603,7 +603,7 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.SetBackgroundImage(imagePath);
                     slide.ClearBackgroundImage();
@@ -633,7 +633,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.Notes.Text = "seed";
                     presentation.Save();
@@ -653,7 +653,7 @@ namespace OfficeIMO.Tests {
                     document.PresentationPart!.SlideParts.First().NotesSlidePart!.NotesSlide!.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     Assert.Equal($"Alpha Beta{Environment.NewLine}Gamma{Environment.NewLine}Delta",
                         presentation.Slides.Single().Notes.Text);
                 }
@@ -669,13 +669,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.Notes.Text = "Old";
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     presentation.Slides.Single().Notes.Text = "First line\r\nSecond line";
                     presentation.Save();
                 }

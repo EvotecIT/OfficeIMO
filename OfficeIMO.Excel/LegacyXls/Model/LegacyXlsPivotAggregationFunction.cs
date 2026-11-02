@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies the aggregation function stored in an SXDI PivotTable data item record.
     /// </summary>
-    public enum LegacyXlsPivotAggregationFunction {
+    internal enum LegacyXlsPivotAggregationFunction {
         /// <summary>Sum of values.</summary>
         Sum = 0,
 

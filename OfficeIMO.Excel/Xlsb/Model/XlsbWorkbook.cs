@@ -33,6 +33,8 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal string? VbaProjectPartName { get; set; }
 
+        internal string? ThemePartName { get; set; }
+
         internal IReadOnlyList<XlsbDefinedName> DefinedNames => _definedNames;
 
         internal IReadOnlyList<XlsbExternalSheetReference> ExternalSheetReferences => _externalSheetReferences;
@@ -55,7 +57,7 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal string? StylesheetPartName { get; set; }
 
-        internal void AddWorksheet(XlsbSheet worksheet) => _worksheets.Add(worksheet);
+        internal void AddSheet(XlsbSheet worksheet) => _worksheets.Add(worksheet);
 
         internal void AddDefinedName(XlsbDefinedName definedName) {
             _definedNames.Add(definedName);

@@ -11,7 +11,7 @@ public partial class PdfPageFootnoteTests {
     [Fact]
     public void SplitTableRowReservesTheNoteOnlyOnItsActualReferencePage() {
         var options = Options();
-        options.PageHeight = 260;
+        options.PageHeight = global::OfficeIMO.OfficeLength.Points(260);
         var document = PdfDocument.Create(options);
         var note = document.Content.DefineFootnote(body => {
             body.Text("TableNoteFirst", style: Style());
@@ -58,7 +58,7 @@ public partial class PdfPageFootnoteTests {
     [Fact]
     public void KeptTableAdmitsBothReferencesBeforeGreedilyExpandingItsFirstNote() {
         var options = Options();
-        options.PageHeight = 260;
+        options.PageHeight = global::OfficeIMO.OfficeLength.Points(260);
         var document = PdfDocument.Create(options);
         var first = document.Content.DefineFootnote(body => {
             for (int index = 0; index < 20; index++) body.Text("LongTableNote" + index.ToString("00"), style: Style());
@@ -86,7 +86,7 @@ public partial class PdfPageFootnoteTests {
     [Fact]
     public void MergedTableCellSchedulesItsLateReferenceFromTheAdmittedSpanFragment() {
         var options = Options();
-        options.PageHeight = 260;
+        options.PageHeight = global::OfficeIMO.OfficeLength.Points(260);
         var document = PdfDocument.Create(options);
         var note = document.Content.DefineFootnote(body => {
             body.Text("MergedNoteFirst", style: Style());
@@ -114,7 +114,7 @@ public partial class PdfPageFootnoteTests {
         options.MaxGeneratedPages = 4;
         var document = PdfDocument.Create(options);
         var note = document.Content.DefineFootnote(body => body.Text("CannotFit", style: new PdfParagraphStyle {
-            FontSize = 8, LineSpacing = PdfLineSpacing.Exactly(110), SpacingBefore = 0, SpacingAfter = 0
+            FontSize = global::OfficeIMO.OfficeLength.Points(8), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(110)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         }));
         document.Content.Table(new[] { new[] {
             new PdfTableCell(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) })
@@ -124,9 +124,9 @@ public partial class PdfPageFootnoteTests {
     }
 
     private static PdfTableStyle FootnoteTableStyle() => new() {
-        HeaderRowCount = 0, FontSize = 8, LineHeight = 1.25D,
-        CellPaddingX = 0, CellPaddingY = 0, MinRowHeight = 0,
-        SpacingBefore = 0, SpacingAfter = 0, BorderWidth = 0, RowSeparatorWidth = 0
+        HeaderRowCount = 0, FontSize = global::OfficeIMO.OfficeLength.Points(8), LineHeight = 1.25D,
+        CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), MinRowHeight = global::OfficeIMO.OfficeLength.Points(0),
+        SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), BorderWidth = global::OfficeIMO.OfficeLength.Points(0), RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0)
     };
 
     private static IReadOnlyList<PdfTextRun> TableReferenceLines(int count, int referenceLine,

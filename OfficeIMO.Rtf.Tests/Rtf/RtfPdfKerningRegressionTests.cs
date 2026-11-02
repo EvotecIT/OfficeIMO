@@ -103,9 +103,9 @@ public sealed class RtfPdfKerningRegressionTests {
         RtfToPdfOptions? options = null) {
         string before = source.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
         RtfToPdfOptions caller = options ?? PortableOptions(12);
-        PdfCore.PdfOptions callerPdfOptions = caller.PdfOptions!;
+        PdfCore.PdfCreateOptions callerPdfOptions = caller.PdfOptions!;
         Assert.True(callerPdfOptions.TextKerning);
-        PdfCore.PdfDocumentConversionResult result = source.ToPdfDocumentResult(caller);
+        PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(caller);
         Assert.True(callerPdfOptions.TextKerning);
         byte[] bytes = result.ToBytes();
         if (Environment.GetEnvironmentVariable("OFFICEIMO_PDF_VISUAL_OUTPUT") is { Length: > 0 } output) {
@@ -139,9 +139,9 @@ public sealed class RtfPdfKerningRegressionTests {
 
     private static RtfToPdfOptions PortableOptions(double fontSize) => new RtfToPdfOptions {
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
-        PdfOptions = new PdfCore.PdfOptions {
+        PdfOptions = new PdfCore.PdfCreateOptions {
             DefaultFont = PdfCore.PdfStandardFont.Helvetica,
-            DefaultFontSize = fontSize,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(fontSize),
             TextKerning = true
         }
     };

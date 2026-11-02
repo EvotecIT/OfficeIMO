@@ -86,7 +86,7 @@ public class PdfCmsSignatureValidationTests {
         Assert.Equal("CryptographicInvalid", report.ProofStatus);
         Assert.Equal(PdfCryptographicValidationStatus.Valid, cryptographic.MathematicalSignatureStatus);
         Assert.Equal(PdfCryptographicValidationStatus.Invalid, cryptographic.MessageDigestStatus);
-        Assert.Contains(report.Findings, finding => finding.Code == "CmsDigestMismatch");
+        Assert.Contains(report.Findings, finding => finding.Code == "cms-digest-mismatch");
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public class PdfCmsSignatureValidationTests {
 
         Assert.Equal(PdfCryptographicValidationStatus.Invalid, result.MathematicalSignatureStatus);
         Assert.Equal(PdfCryptographicValidationStatus.Invalid, result.MessageDigestStatus);
-        Assert.Contains(result.Findings, finding => finding.Code == "CmsDetachedContentExpected");
+        Assert.Contains(result.Findings, finding => finding.Code == "cms-detached-content-expected");
     }
 
     [Fact]
@@ -149,7 +149,7 @@ public class PdfCmsSignatureValidationTests {
         PdfSignatureCryptographicResult result = Assert.Single(PdfSignatureValidator.Validate(signedPdf, provider).Signatures).CryptographicResult!;
 
         Assert.Equal(PdfCryptographicValidationStatus.Invalid, result.MathematicalSignatureStatus);
-        Assert.Contains(result.Findings, finding => finding.Code == "CmsSignerMissing");
+        Assert.Contains(result.Findings, finding => finding.Code == "cms-signer-missing");
     }
 
     [Fact]
@@ -191,7 +191,7 @@ public class PdfCmsSignatureValidationTests {
         Assert.Equal(PdfCryptographicValidationStatus.Valid, result.CertificateChainStatus);
         Assert.Equal(PdfCryptographicValidationStatus.Invalid, result.TimestampStatus);
         Assert.Contains(result.Findings, finding => finding.Code == "CertificateChainUntrusted" && finding.Message.Contains("TSA", StringComparison.Ordinal));
-        Assert.Contains(result.Findings, finding => finding.Code == "SignatureTimestampInvalid");
+        Assert.Contains(result.Findings, finding => finding.Code == "signature-timestamp-invalid");
     }
 
     [Fact]

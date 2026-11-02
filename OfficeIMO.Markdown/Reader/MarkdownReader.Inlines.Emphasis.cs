@@ -1,6 +1,6 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private enum FrameKind {
         Root,
         Italic,

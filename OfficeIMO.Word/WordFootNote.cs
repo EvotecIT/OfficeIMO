@@ -6,6 +6,9 @@ namespace OfficeIMO.Word {
     /// Manages footnotes within a Word document.
     /// </summary>
     public partial class WordFootNote : WordElement {
+        /// <summary>Gets the paragraph handle containing this note's reference run.</summary>
+        public WordParagraph Paragraph => new WordParagraph(_document, _paragraph, _run);
+
         private WordDocument _document;
         private readonly Paragraph _paragraph;
         private readonly Run _run;
@@ -72,7 +75,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        internal static WordParagraph AddFootNote(WordDocument document, WordParagraph wordParagraph, WordParagraph footerWordParagraph) {
+        internal static WordFootNote AddFootNote(WordDocument document, WordParagraph wordParagraph, WordParagraph footerWordParagraph) {
             if (wordParagraph._paragraph.Ancestors().Any(ancestor => ancestor is Header || ancestor is Footer)) {
                 throw new InvalidOperationException("Footnotes cannot be added to header or footer paragraphs.");
             }
@@ -102,7 +105,7 @@ namespace OfficeIMO.Word {
             }
             footNotesPart.Footnotes!.Append(footNote);
 
-            return newWordParagraph;
+            return new WordFootNote(document, newWordParagraph._paragraph, newWordParagraph._run!, footnoteReference);
         }
 
         internal static long GetNextFootNotesReferenceId(WordDocument document) {

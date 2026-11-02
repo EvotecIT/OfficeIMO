@@ -41,14 +41,14 @@ public sealed partial class IWorkBoundaryTests {
             conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly,
                 AllowPartialEditableReconstruction = true });
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         var paragraphs = Assert.Single(Assert.Single(reopened.Slides).Tables).GetCell(0, 0).Paragraphs;
         Assert.All(paragraphs, paragraph => {
-            Assert.Equal(11, paragraph.BulletSizePoints);
+            Assert.Equal(11, paragraph.BulletSize?.ToPoints());
             Assert.Null(paragraph.BulletSizePercent);
-            Assert.Equal(16.5d, paragraph.LeftMarginPoints);
-            Assert.Equal(-16.5d, paragraph.IndentPoints);
-            Assert.All(paragraph.Runs.Where(run => run.Text.Length > 0), run => Assert.Equal(12, run.FontSize));
+            Assert.Equal(16.5d, paragraph.LeftMargin?.ToPoints());
+            Assert.Equal(-16.5d, paragraph.Indent?.ToPoints());
+            Assert.All(paragraph.Runs.Where(run => run.Text.Length > 0), run => Assert.Equal(12, run.FontSize?.ToPoints()));
         });
         Assert.Equal(new[] { "Calibri", "Times New Roman" }, paragraphs.Select(paragraph => paragraph.BulletFontName));
         Assert.Empty(reopened.ValidateDocument());

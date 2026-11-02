@@ -11,7 +11,7 @@ using OfficeIMO.Provenance;
 namespace OfficeIMO.ContentSafety;
 
 /// <summary>Shared bounded collector used by format-owned content-safety adapters.</summary>
-public sealed class OfficeContentSafetyBuilder {
+internal sealed class OfficeContentSafetyBuilder {
     private readonly string _format;
     private readonly OfficeContentSafetyOptions _options;
     private readonly OfficeContentInstructionBudget _instructionBudget;

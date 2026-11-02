@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RejectsWorkbookOwnedPivotConsolidationDeletion() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(5, 1).SetValue(1);
             sheet.CellAt(6, 1).SetValue(2);
             PivotTableCacheDefinitionPart cachePart =
@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreservesBackslashPrefixedDefinedNames() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellFormula(1, 1, @"\A5+1");
 
             sheet.InsertRows(5);

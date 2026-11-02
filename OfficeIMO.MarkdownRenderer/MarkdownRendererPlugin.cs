@@ -13,11 +13,11 @@ public sealed class MarkdownRendererPlugin {
     private readonly IReadOnlyList<IMarkdownDocumentTransform> _readerDocumentTransforms;
     private readonly IReadOnlyList<IMarkdownDocumentTransform> _htmlDocumentTransforms;
     private readonly IReadOnlyList<IMarkdownDocumentTransform> _rendererDocumentTransforms;
-    private readonly IReadOnlyList<HtmlElementBlockConverter> _htmlElementBlockConverters;
-    private readonly IReadOnlyList<HtmlInlineElementConverter> _htmlInlineElementConverters;
+    private readonly IReadOnlyList<MarkdownHtmlBlockConverter> _htmlElementBlockConverters;
+    private readonly IReadOnlyList<MarkdownHtmlInlineConverter> _htmlInlineElementConverters;
     private readonly IReadOnlyList<MarkdownVisualElementRoundTripHint> _visualElementRoundTripHints;
     private readonly Action<MarkdownRendererOptions> _apply;
-    private readonly Action<MarkdownReaderOptions> _applyReader;
+    private readonly Action<MarkdownLoadOptions> _applyReader;
 
     /// <summary>
     /// Creates a plugin from one or more fenced-block renderer factories.
@@ -28,12 +28,12 @@ public sealed class MarkdownRendererPlugin {
         IEnumerable<MarkdownFenceOptionSchema>? fenceOptionSchemas = null,
         IEnumerable<IMarkdownDocumentTransform>? readerDocumentTransforms = null,
         IEnumerable<IMarkdownDocumentTransform>? htmlDocumentTransforms = null,
-        IEnumerable<HtmlElementBlockConverter>? htmlElementBlockConverters = null,
-        IEnumerable<HtmlInlineElementConverter>? htmlInlineElementConverters = null,
+        IEnumerable<MarkdownHtmlBlockConverter>? htmlElementBlockConverters = null,
+        IEnumerable<MarkdownHtmlInlineConverter>? htmlInlineElementConverters = null,
         IEnumerable<MarkdownVisualElementRoundTripHint>? visualElementRoundTripHints = null,
         IEnumerable<IMarkdownDocumentTransform>? rendererDocumentTransforms = null,
         Action<MarkdownRendererOptions>? apply = null,
-        Action<MarkdownReaderOptions>? applyReader = null) {
+        Action<MarkdownLoadOptions>? applyReader = null) {
         if (string.IsNullOrWhiteSpace(name)) {
             throw new ArgumentException("Plugin name is required.", nameof(name));
         }
@@ -79,12 +79,12 @@ public sealed class MarkdownRendererPlugin {
         IEnumerable<MarkdownFenceOptionSchema>? fenceOptionSchemas = null,
         IEnumerable<IMarkdownDocumentTransform>? readerDocumentTransforms = null,
         IEnumerable<IMarkdownDocumentTransform>? htmlDocumentTransforms = null,
-        IEnumerable<HtmlElementBlockConverter>? htmlElementBlockConverters = null,
-        IEnumerable<HtmlInlineElementConverter>? htmlInlineElementConverters = null,
+        IEnumerable<MarkdownHtmlBlockConverter>? htmlElementBlockConverters = null,
+        IEnumerable<MarkdownHtmlInlineConverter>? htmlInlineElementConverters = null,
         IEnumerable<MarkdownVisualElementRoundTripHint>? visualElementRoundTripHints = null,
         IEnumerable<IMarkdownDocumentTransform>? rendererDocumentTransforms = null,
         Action<MarkdownRendererOptions>? apply = null,
-        Action<MarkdownReaderOptions>? applyReader = null) {
+        Action<MarkdownLoadOptions>? applyReader = null) {
         if (string.IsNullOrWhiteSpace(name)) {
             throw new ArgumentException("Plugin name is required.", nameof(name));
         }
@@ -117,11 +117,11 @@ public sealed class MarkdownRendererPlugin {
         var readerDocumentTransformsList = new List<IMarkdownDocumentTransform>();
         var htmlDocumentTransformsList = new List<IMarkdownDocumentTransform>();
         var rendererDocumentTransformsList = new List<IMarkdownDocumentTransform>();
-        var htmlElementBlockConvertersList = new List<HtmlElementBlockConverter>();
-        var htmlInlineElementConvertersList = new List<HtmlInlineElementConverter>();
+        var htmlElementBlockConvertersList = new List<MarkdownHtmlBlockConverter>();
+        var htmlInlineElementConvertersList = new List<MarkdownHtmlInlineConverter>();
         var roundTripHints = new List<MarkdownVisualElementRoundTripHint>();
         var childApplyActions = new List<Action<MarkdownRendererOptions>>();
-        var childReaderApplyActions = new List<Action<MarkdownReaderOptions>>();
+        var childReaderApplyActions = new List<Action<MarkdownLoadOptions>>();
         foreach (var plugin in normalizedPlugins) {
             AddRegistrations(registrations, plugin._registrations);
             AddSchemas(schemas, plugin._fenceOptionSchemas);
@@ -204,14 +204,14 @@ public sealed class MarkdownRendererPlugin {
 
     /// <summary>
     /// Reader-side document transforms contributed by this plugin.
-    /// Hosts can register these on <see cref="MarkdownReaderOptions.DocumentTransforms"/>
+    /// Hosts can register these on <see cref="MarkdownLoadOptions.DocumentTransforms"/>
     /// when they want source parsing aligned with the plugin contract.
     /// </summary>
     public IReadOnlyList<IMarkdownDocumentTransform> ReaderDocumentTransforms => _readerDocumentTransforms;
 
     /// <summary>
     /// HTML-to-markdown document transforms contributed by this plugin.
-    /// Hosts can register these on <c>HtmlToMarkdownOptions.DocumentTransforms</c>
+    /// Hosts can register these on <c>MarkdownHtmlImportOptions.DocumentTransforms</c>
     /// when they want HTML ingestion aligned with the plugin contract.
     /// </summary>
     public IReadOnlyList<IMarkdownDocumentTransform> HtmlDocumentTransforms => _htmlDocumentTransforms;
@@ -225,21 +225,21 @@ public sealed class MarkdownRendererPlugin {
 
     /// <summary>
     /// HTML-to-markdown custom element block converters contributed by this plugin.
-    /// Hosts can register these on <c>HtmlToMarkdownOptions.ElementBlockConverters</c>
+    /// Hosts can register these on <c>MarkdownHtmlImportOptions.ElementBlockConverters</c>
     /// when they want HTML element decoding aligned with the plugin contract.
     /// </summary>
-    public IReadOnlyList<HtmlElementBlockConverter> HtmlElementBlockConverters => _htmlElementBlockConverters;
+    public IReadOnlyList<MarkdownHtmlBlockConverter> HtmlElementBlockConverters => _htmlElementBlockConverters;
 
     /// <summary>
     /// HTML-to-markdown custom inline element converters contributed by this plugin.
-    /// Hosts can register these on <c>HtmlToMarkdownOptions.InlineElementConverters</c>
+    /// Hosts can register these on <c>MarkdownHtmlImportOptions.InlineElementConverters</c>
     /// when they want inline HTML decoding aligned with the plugin contract.
     /// </summary>
-    public IReadOnlyList<HtmlInlineElementConverter> HtmlInlineElementConverters => _htmlInlineElementConverters;
+    public IReadOnlyList<MarkdownHtmlInlineConverter> HtmlInlineElementConverters => _htmlInlineElementConverters;
 
     /// <summary>
     /// Shared visual-host HTML round-trip hints contributed by this plugin.
-    /// Hosts can register these on <c>HtmlToMarkdownOptions.VisualElementRoundTripHints</c>
+    /// Hosts can register these on <c>MarkdownHtmlImportOptions.VisualElementRoundTripHints</c>
     /// when they want HTML-to-AST recovery aligned with the plugin contract.
     /// </summary>
     public IReadOnlyList<MarkdownVisualElementRoundTripHint> VisualElementRoundTripHints => _visualElementRoundTripHints;
@@ -390,14 +390,14 @@ public sealed class MarkdownRendererPlugin {
         return normalized.AsReadOnly();
     }
 
-    private static IReadOnlyList<HtmlElementBlockConverter> NormalizeHtmlElementBlockConverters(IEnumerable<HtmlElementBlockConverter>? converters) {
-        var normalized = new List<HtmlElementBlockConverter>();
+    private static IReadOnlyList<MarkdownHtmlBlockConverter> NormalizeHtmlElementBlockConverters(IEnumerable<MarkdownHtmlBlockConverter>? converters) {
+        var normalized = new List<MarkdownHtmlBlockConverter>();
         AddHtmlElementBlockConverters(normalized, converters);
         return normalized.AsReadOnly();
     }
 
-    private static IReadOnlyList<HtmlInlineElementConverter> NormalizeHtmlInlineElementConverters(IEnumerable<HtmlInlineElementConverter>? converters) {
-        var normalized = new List<HtmlInlineElementConverter>();
+    private static IReadOnlyList<MarkdownHtmlInlineConverter> NormalizeHtmlInlineElementConverters(IEnumerable<MarkdownHtmlInlineConverter>? converters) {
+        var normalized = new List<MarkdownHtmlInlineConverter>();
         AddHtmlInlineElementConverters(normalized, converters);
         return normalized.AsReadOnly();
     }
@@ -528,7 +528,7 @@ public sealed class MarkdownRendererPlugin {
         }
     }
 
-    private static void AddHtmlElementBlockConverters(ICollection<HtmlElementBlockConverter> target, IEnumerable<HtmlElementBlockConverter>? converters) {
+    private static void AddHtmlElementBlockConverters(ICollection<MarkdownHtmlBlockConverter> target, IEnumerable<MarkdownHtmlBlockConverter>? converters) {
         if (converters == null) {
             return;
         }
@@ -552,7 +552,7 @@ public sealed class MarkdownRendererPlugin {
         }
     }
 
-    private static void AddHtmlInlineElementConverters(ICollection<HtmlInlineElementConverter> target, IEnumerable<HtmlInlineElementConverter>? converters) {
+    private static void AddHtmlInlineElementConverters(ICollection<MarkdownHtmlInlineConverter> target, IEnumerable<MarkdownHtmlInlineConverter>? converters) {
         if (converters == null) {
             return;
         }
@@ -596,7 +596,7 @@ public sealed class MarkdownRendererPlugin {
         public Func<MarkdownFencedCodeBlockRenderer> Factory { get; }
     }
 
-    internal void ApplyReader(MarkdownReaderOptions options) {
+    internal void ApplyReader(MarkdownLoadOptions options) {
         if (options == null) {
             throw new ArgumentNullException(nameof(options));
         }
@@ -611,7 +611,7 @@ public sealed class MarkdownRendererPlugin {
         _applyReader(options);
     }
 
-    internal bool ReaderContractMatches(MarkdownReaderOptions options) {
+    internal bool ReaderContractMatches(MarkdownLoadOptions options) {
         if (options == null) {
             return false;
         }

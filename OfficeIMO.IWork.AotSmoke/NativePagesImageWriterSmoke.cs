@@ -50,8 +50,8 @@ internal static class NativePagesImageWriterSmoke {
         using var saved = WordDocument.Load(output);
         Require(saved.Images.Count == 3 && saved.Tables.Count == 1 && !saved.ValidateDocument().Any(),
             "Pages images or table were lost in saved DOCX.");
-        Require(Math.Abs(saved.Images[0].Width!.Value - firstWidth * 96 / 72) < 1e-6
-            && Math.Abs(saved.Images[0].Height!.Value - 160) < 1e-6,
+        Require(Math.Abs((saved.Images[0].Width?.ToPixels())!.Value - firstWidth * 96 / 72) < 1e-6
+            && Math.Abs((saved.Images[0].Height?.ToPixels())!.Value - 160) < 1e-6,
             "The inline frame lost its point dimensions in Word's pixel API.");
         for (int index = 0; index < 3; index++) {
             Require(saved.Images[index].ToBytes().SequenceEqual(projection.Images[index].GetBytes())

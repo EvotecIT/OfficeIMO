@@ -15,6 +15,9 @@ public sealed partial class PdfDocumentRedactions {
         options.CancellationToken.ThrowIfCancellationRequested();
         if (options.MaximumAnnotations <= 0 || options.MaximumAnnotations > 64) throw new ArgumentOutOfRangeException(nameof(options), "MaximumAnnotations must be from 1 through 64.");
         if (options.Region.Areas.Count > options.MaximumAnnotations) throw new InvalidOperationException("The redaction region exceeds the configured annotation limit.");
+        // An annotation records only a rectangle, which would remove whatever else the search mark touches.
+        if (options.Region.Areas.Any(static area => area.RequiresGlyphRewrite))
+            throw new InvalidOperationException("A search mark can't be saved as a redaction annotation because it removes exact characters, not a rectangle. Apply it directly, or draw the area by hand.");
         PdfDocument current = _document;
         for (int index = 0; index < options.Region.Areas.Count; index++) {
             options.CancellationToken.ThrowIfCancellationRequested();
@@ -97,11 +100,11 @@ public sealed partial class PdfDocumentRedactions {
         _document.ApplyRedactionsWithEvidence(plan, applyOptions, verificationOptions, layoutOptions, options);
 
     /// <summary>Attempts to apply redactions and returns preflight diagnostics when blocked.</summary>
-    public PdfOperationResult<PdfDocument> ApplyResult(IEnumerable<PdfRedactionArea> areas, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) =>
+    internal PdfOperationResult<PdfDocument> ApplyResult(IEnumerable<PdfRedactionArea> areas, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) =>
         _document.TryApplyRedactions(areas, applyOptions, layoutOptions, options);
 
     /// <summary>Attempts to apply a reviewed plan and returns diagnostics instead of throwing when the mutation is blocked or fails.</summary>
-    public PdfOperationResult<PdfRedactionApplyResult> ApplyWithEvidenceResult(
+    internal PdfOperationResult<PdfRedactionApplyResult> ApplyWithEvidenceResult(
         PdfRedactionPlan plan,
         PdfRedactionApplyOptions? applyOptions = null,
         PdfRedactionVerificationOptions? verificationOptions = null,

@@ -11,7 +11,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedFormWidgetsEmitStructureReferences() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -38,7 +38,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedListItemsEmitLabelAndBodyStructureReferencesWithPageScopedMcids() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -69,15 +69,15 @@ public partial class PdfDocumentComplianceAssessmentTests {
     public void TaggedSplitListItemKeepsContinuationBodiesUnderOneListItem() {
         string longItem = string.Join(" ", Enumerable.Repeat("Continuation text keeps one logical list item", 18));
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = 170,
-                PageHeight = 150,
-                MarginLeft = 24,
-                MarginRight = 24,
-                MarginTop = 24,
-                MarginBottom = 24,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(170),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(150),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .TaggedPdfCatalogMarkers()
             .Bullets(new[] { longItem })
@@ -93,7 +93,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedRowColumnListItemsEmitLabelAndBodyStructureReferences() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -121,10 +121,10 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedTableCellsEmitStructureReferencesWithPageScopedMcids() {
-        PdfTableStyle style = TableStyles.Minimal();
+        PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -155,19 +155,19 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedSplitTableRowKeepsContinuationCellsUnderOneTableRow() {
-        PdfTableStyle style = TableStyles.Minimal();
+        PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         string longCell = string.Join(" ", Enumerable.Repeat("Continuation table row keeps one logical row", 22));
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = 170,
-                PageHeight = 150,
-                MarginLeft = 24,
-                MarginRight = 24,
-                MarginTop = 24,
-                MarginBottom = 24,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(170),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(150),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .TaggedPdfCatalogMarkers()
             .Table(new[] {
@@ -185,10 +185,10 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedLinkedTableCellWrapsTextInLinkStructure() {
-        PdfTableStyle style = TableStyles.Minimal();
+        PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -211,10 +211,10 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedRowColumnLinkedTableCellWrapsTextInLinkStructure() {
-        PdfTableStyle style = TableStyles.Minimal();
+        PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -241,15 +241,15 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedTableDataBarsEmitArtifactMarkedContent() {
-        PdfTableStyle style = TableStyles.Minimal();
+        PdfTableStyle style = PdfTableStyles.Minimal();
         style.CellDataBars = new Dictionary<(int Row, int Column), PdfCellDataBar> {
             [(1, 1)] = new PdfCellDataBar {
                 Ratio = 0.75,
-                Color = PdfColor.FromRgb(34, 197, 94)
+                Color = global::OfficeIMO.OfficeColor.FromRgb(34, 197, 94)
             }
         };
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -268,15 +268,15 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedTableCellIconsEmitArtifactMarkedContent() {
-        PdfTableStyle style = TableStyles.Minimal();
+        PdfTableStyle style = PdfTableStyles.Minimal();
         style.CellIcons = new Dictionary<(int Row, int Column), PdfCellIcon> {
             [(1, 1)] = new PdfCellIcon {
                 Kind = PdfCellIconKind.Circle,
-                Color = PdfColor.FromRgb(34, 197, 94)
+                Color = global::OfficeIMO.OfficeColor.FromRgb(34, 197, 94)
             }
         };
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -295,15 +295,15 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedRowColumnTableCellIconsEmitArtifactMarkedContent() {
-        PdfTableStyle style = TableStyles.Minimal();
+        PdfTableStyle style = PdfTableStyles.Minimal();
         style.CellIcons = new Dictionary<(int Row, int Column), PdfCellIcon> {
             [(1, 1)] = new PdfCellIcon {
                 Kind = PdfCellIconKind.TriangleUp,
-                Color = PdfColor.FromRgb(14, 165, 233)
+                Color = global::OfficeIMO.OfficeColor.FromRgb(14, 165, 233)
             }
         };
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -327,10 +327,10 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedMergedTableCellsEmitSpanStructureAttributes() {
-        PdfTableStyle style = TableStyles.Minimal();
+        PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -360,11 +360,11 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedTableCaptionEmitsCaptionStructureReferences() {
-        PdfTableStyle style = TableStyles.Minimal();
+        PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
         style.Caption = "Table 1. Status signals";
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -386,11 +386,11 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedTableAlternativeTextEmitsTableStructureAltText() {
-        PdfTableStyle style = TableStyles.Minimal();
+        PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
         style.AlternativeText = "Quarterly status summary";
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -409,11 +409,11 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedRowColumnTableCaptionEmitsCaptionStructureReferences() {
-        PdfTableStyle style = TableStyles.Minimal();
+        PdfTableStyle style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
         style.Caption = "Table 1. Column signals";
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()

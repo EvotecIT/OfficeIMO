@@ -194,8 +194,8 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderOptions options = ColumnPageBandOptions();
         options.Mode = HtmlRenderMode.Paged;
         options.HonorCssPageRules = false;
-        options.PageSize = new OfficePageSize(400D / HtmlRenderOptions.CssPixelsPerInch,
-            200D / HtmlRenderOptions.CssPixelsPerInch);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(400D / HtmlRenderOptions.CssPixelsPerInch),
+            global::OfficeIMO.OfficeLength.Inches(200D / HtmlRenderOptions.CssPixelsPerInch));
         string html = ColumnBreakSource("<p>BREAK-ONE</p><p style='" + declaration
             + "'>BREAK-TWO</p><p>BREAK-THREE</p>");
 
@@ -214,8 +214,8 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderOptions options = ColumnPageBandOptions();
         options.Mode = HtmlRenderMode.Paged;
         options.HonorCssPageRules = false;
-        options.PageSize = new OfficePageSize(400D / HtmlRenderOptions.CssPixelsPerInch,
-            200D / HtmlRenderOptions.CssPixelsPerInch);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(400D / HtmlRenderOptions.CssPixelsPerInch),
+            global::OfficeIMO.OfficeLength.Inches(200D / HtmlRenderOptions.CssPixelsPerInch));
         string table = tableEntry
             ? "<table style='break-before:column'><tr style='break-before:page'><td>BREAK-ONE</td></tr><tr>"
             : "<table><tr style='break-after:column'><td>BREAK-ONE</td></tr><tr style='break-before:page'>";

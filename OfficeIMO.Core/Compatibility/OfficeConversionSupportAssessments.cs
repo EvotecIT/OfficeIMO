@@ -9,6 +9,15 @@ internal sealed record OfficeConversionSupportAssessment(
 
 internal static class OfficeConversionSupportAssessments {
     internal static OfficeConversionSupportAssessment Get(string routeId) {
+        if (routeId.StartsWith("native-", StringComparison.Ordinal)) return Targeted(
+            "Native format conversion fixtures exercise package types, source carriers, compatibility modes, encryption, loss rejection and reopened artifacts through the owning format codecs.",
+            "The route is not a promise that every source feature can be written to every destination generation. Unsupported native structures and formats are rejected or reported according to explicit compatibility and loss policy.");
+        if (routeId is "xls-pdf" or "xlsb-pdf" or "ppt-pdf") return Targeted(
+            "Native binary import and existing PDF adapter fixtures cover recovered editable content and separately reported rendering findings.",
+            "Binary source projection is bounded and incomplete. Unsupported source records, preserved-only content and PDF layout approximations remain explicit findings; native application visual equivalence is not promised.");
+        if (routeId is "email-pdf" or "epub-pdf" or "reader-visio-pdf") return Targeted(
+            "Reader projection fixtures cover searchable email text, EPUB chapter order, Visio semantic fallback and policy findings in reopened PDF output.",
+            "Source-neutral semantic projection only. Attachments, pagination, resources, forms and source layout follow explicit projection policies and diagnostics; this route does not promise native visual equivalence.");
         if (routeId is "pages-pdf" or "numbers-pdf" or "keynote-pdf") return Targeted(
             "Composed workflow contracts retain complete editable iWork reconstruction and PDF-stage evidence, reopen the staged PDF, and enforce source identity, cancellation, and output limits.",
             "Requires the complete editable subset. Partial reconstructions, embedded previews, selection/clipping, and PDF-stage content omissions are rejected. Pagination, fonts, character spacing, and other rendering approximations remain reported; Apple visual equivalence is fixture-specific.");

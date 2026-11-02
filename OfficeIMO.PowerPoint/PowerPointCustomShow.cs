@@ -10,10 +10,10 @@ namespace OfficeIMO.PowerPoint {
     ///     Represents an editable named slide sequence in a PowerPoint presentation.
     /// </summary>
     public sealed class PowerPointCustomShow {
-        private readonly PowerPointPresentation _presentation;
+        private readonly PowerPointDocument _presentation;
         private readonly P.CustomShow _customShow;
 
-        internal PowerPointCustomShow(PowerPointPresentation presentation,
+        internal PowerPointCustomShow(PowerPointDocument presentation,
             P.CustomShow customShow) {
             _presentation = presentation ?? throw new ArgumentNullException(nameof(presentation));
             _customShow = customShow ?? throw new ArgumentNullException(nameof(customShow));
@@ -63,7 +63,7 @@ namespace OfficeIMO.PowerPoint {
         internal P.CustomShow OpenXmlElement => _customShow;
     }
 
-    public sealed partial class PowerPointPresentation {
+    public sealed partial class PowerPointDocument {
         /// <summary>Gets the custom shows in package order.</summary>
         public IReadOnlyList<PowerPointCustomShow> CustomShows {
             get {

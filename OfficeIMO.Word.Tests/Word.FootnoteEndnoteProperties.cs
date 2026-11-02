@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
             Assert.Null(document.Sections[1].FootnoteSettings.NumberingRestart);
             Assert.Null(document.Sections[1].EndnoteSettings.NumberingRestart);
             Assert.Empty(document.ValidateDocument());
-            using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Docx)));
+            using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx })));
             Assert.Equal(WordNoteNumberRestart.EachSection, restored.Sections[0].FootnoteSettings.NumberingRestart);
             Assert.Equal(WordNoteNumberRestart.EachSection, restored.Sections[0].EndnoteSettings.NumberingRestart);
         }

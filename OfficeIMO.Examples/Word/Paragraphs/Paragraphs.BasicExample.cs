@@ -1,7 +1,7 @@
 using System;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word;
 
@@ -13,10 +13,10 @@ internal static partial class Paragraphs {
         using (WordDocument document = WordDocument.Create(filePath)) {
             var paragraph = document.AddParagraph("Basic paragraph - Page 4");
             paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-            paragraph.Color = OfficeIMO.Drawing.OfficeColor.Blue;
+            paragraph.Color = OfficeIMO.OfficeColor.Blue;
             paragraph.AddText(" This is continutation in the same line");
             paragraph.AddBreak(WordBreakType.TextWrapping);
-            paragraph.AddText(" This is continuation, in another line").SetUnderline(WordUnderlineStyle.Double).SetFontSize(15).SetColor(Color.Yellow).SetHighlight(WordHighlightColor.DarkGreen);
+            paragraph.AddText(" This is continuation, in another line").SetUnderline(WordUnderlineStyle.Double).SetFontSize(global::OfficeIMO.OfficeLength.Points(15)).SetColor(Color.Yellow).SetHighlight(WordHighlightColor.DarkGreen);
 
             var paragraph1 = document.AddParagraph("Here's another paragraph ").AddText(" which continues here, but will continue in another line ").AddBreak(WordBreakType.TextWrapping).AddText("to confirm that breaks with TextWrapping is working properly");
 

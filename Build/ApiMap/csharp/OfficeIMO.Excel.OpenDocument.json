@@ -1,0 +1,28 @@
+{
+  "package": "OfficeIMO.Excel.OpenDocument",
+  "summary": "Image adapter consumers use the single options type from their rendering package.",
+  "changes": [
+    {
+      "old": "ExcelOpenDocumentImageExportExtensions.ExportImages(OdsDocument, OfficeImageExportFormat, ExcelWorkbookImageExportOptions, ExcelOpenDocumentConversionOptions, CancellationToken)",
+      "new": "ExcelOpenDocumentImageExportExtensions.ExportImages(OdsDocument, OfficeImageExportFormat, ExcelImageExportOptions, ExcelOpenDocumentConversionOptions, CancellationToken)",
+      "file": "OfficeIMO.Excel.OpenDocument/ExcelOpenDocumentImageExportExtensions.cs",
+      "kind": "method",
+      "action": "merge",
+      "category": "options",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "The rendering package now exposes one image options type. The adapter preserves source conversion, selection, diagnostic attachment and cancellation behavior."
+    },
+    {
+      "old": "ExcelOpenDocumentImageExportExtensions.ExportImages(OdsDocument, OfficeImageExportFormat, OfficeImageExportConsumer, ExcelWorkbookImageExportOptions, ExcelOpenDocumentConversionOptions, CancellationToken)",
+      "new": "ExcelOpenDocumentImageExportExtensions.ExportImages(OdsDocument, OfficeImageExportFormat, OfficeImageExportConsumer, ExcelImageExportOptions, ExcelOpenDocumentConversionOptions, CancellationToken)",
+      "file": "OfficeIMO.Excel.OpenDocument/ExcelOpenDocumentImageExportExtensions.cs",
+      "kind": "method",
+      "action": "merge",
+      "category": "options",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "The rendering package now exposes one image options type. The adapter preserves source conversion, selection, diagnostic attachment and cancellation behavior."
+    }
+  ]
+}

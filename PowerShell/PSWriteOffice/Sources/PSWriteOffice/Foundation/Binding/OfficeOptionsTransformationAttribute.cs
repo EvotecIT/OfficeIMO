@@ -1,0 +1,66 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Management.Automation;
+using System.Reflection;
+
+namespace PSWriteOffice.Foundation;
+
+/// <summary>Maps a hashtable to an existing typed options contract, rejecting unknown or read-only properties.</summary>
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+public sealed class OfficeOptionsTransformationAttribute : ArgumentTransformationAttribute {
+    /// <summary>Creates a binder for a concrete options type with a public parameterless constructor.</summary>
+    public OfficeOptionsTransformationAttribute(Type optionsType) {
+        OptionsType = optionsType ?? throw new ArgumentNullException(nameof(optionsType));
+        if (optionsType.IsAbstract || optionsType.IsInterface || optionsType.GetConstructor(Type.EmptyTypes) == null)
+            throw new ArgumentException("Options must have a public parameterless constructor.", nameof(optionsType));
+    }
+    /// <summary>Gets the command's options type.</summary>
+    public Type OptionsType { get; }
+    /// <inheritdoc />
+    public override object Transform(EngineIntrinsics engineIntrinsics, object inputData) {
+        object? value = OfficeArgumentValue.Unwrap(inputData);
+        if (value != null && OptionsType.IsInstanceOfType(value)) return value;
+        if (value is not IDictionary dictionary) throw OfficeArgumentValue.Invalid("Expected a typed options object or hashtable.");
+        return ApplyTo(engineIntrinsics, Activator.CreateInstance(OptionsType)!, dictionary);
+    }
+
+    /// <summary>Applies an already captured override without replacing unrelated adapter settings.</summary>
+    internal object ApplyTo(EngineIntrinsics engineIntrinsics, object result, IDictionary dictionary) {
+        if (!OptionsType.IsInstanceOfType(result)) throw new ArgumentException("The destination must have the binder's options type.", nameof(result));
+        var properties = new Dictionary<string, PropertyInfo>(StringComparer.OrdinalIgnoreCase);
+        foreach (var property in OptionsType.GetProperties(BindingFlags.Public | BindingFlags.Instance)) {
+            if (property.SetMethod?.IsPublic == true && property.GetIndexParameters().Length == 0) properties[property.Name] = property;
+        }
+        foreach (DictionaryEntry entry in dictionary) {
+            if (entry.Key is not string key || !properties.TryGetValue(key, out var property))
+                throw OfficeArgumentValue.Invalid($"Unknown or read-only {OptionsType.Name} option '{entry.Key}'.");
+            try {
+                var input = OfficeArgumentValue.Unwrap(entry.Value);
+                object? converted = input;
+                // Preserve native null/reset semantics; PowerShell converts null strings to empty strings.
+                if (input == null && (!property.PropertyType.IsValueType || Nullable.GetUnderlyingType(property.PropertyType) != null)) converted = null;
+                else if (property.PropertyType == typeof(OfficeIMO.Pdf.PdfPageSelection)) converted = OfficePageRange.From(input!).Selection;
+                else if (property.PropertyType == typeof(OfficeIMO.OfficeLength)) converted = new OfficeLengthTransformationAttribute().Transform(engineIntrinsics, input!);
+                else if (property.PropertyType == typeof(OfficeIMO.OfficeColor)) converted = new OfficeColorTransformationAttribute().Transform(engineIntrinsics, input!);
+                else if ((Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType) is var geometry &&
+                    (geometry == typeof(OfficeIMO.Pdf.PdfPageSize) || geometry == typeof(OfficeIMO.Drawing.OfficePageSize)))
+                    converted = new OfficePageSizeTransformationAttribute(geometry).Transform(engineIntrinsics, input!);
+                else if (property.PropertyType.IsGenericType &&
+                    (property.PropertyType.GetGenericTypeDefinition() == typeof(IReadOnlyList<>) ||
+                     property.PropertyType.GetGenericTypeDefinition() == typeof(IReadOnlyCollection<>)))
+                    converted = LanguagePrimitives.ConvertTo(input, property.PropertyType.GetGenericArguments()[0].MakeArrayType(), CultureInfo.InvariantCulture);
+                else if (input is IDictionary nested && property.PropertyType.IsClass && property.PropertyType != typeof(string) &&
+                    property.PropertyType.GetConstructor(Type.EmptyTypes) != null && !typeof(IDictionary).IsAssignableFrom(property.PropertyType))
+                    converted = new OfficeOptionsTransformationAttribute(property.PropertyType).ApplyTo(engineIntrinsics,
+                        property.GetValue(result) ?? Activator.CreateInstance(property.PropertyType)!, nested);
+                else converted = LanguagePrimitives.ConvertTo(input, property.PropertyType, CultureInfo.InvariantCulture);
+                property.SetValue(result, converted);
+            } catch (Exception error) when (error is PSInvalidCastException or ArgumentException or TargetInvocationException) {
+                throw OfficeArgumentValue.Invalid($"Invalid value for {OptionsType.Name}.{property.Name}: {error.InnerException?.Message ?? error.Message}");
+            }
+        }
+        return result;
+    }
+}

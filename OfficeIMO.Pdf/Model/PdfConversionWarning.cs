@@ -44,7 +44,7 @@ public sealed class PdfConversionWarning {
             throw new ArgumentOutOfRangeException(nameof(lossKind));
         }
         Converter = string.IsNullOrWhiteSpace(converter) ? "OfficeIMO.Pdf" : converter;
-        Code = string.IsNullOrWhiteSpace(code) ? "PdfConversionWarning" : code;
+        Code = string.IsNullOrWhiteSpace(code) ? "pdf-conversion-warning" : code;
         Source = source ?? string.Empty;
         Message = message ?? string.Empty;
         Severity = severity;

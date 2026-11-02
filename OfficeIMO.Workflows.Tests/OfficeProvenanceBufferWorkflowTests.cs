@@ -24,12 +24,12 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         }
         string excelPath = Path.Combine(scope.Path, "qualified.xlsx");
         using (ExcelDocument document = ExcelDocument.Create(excelPath)) {
-            document.AddWorksheet("Data").Cell(1, 1, "Qualified workbook");
+            document.AddSheet("Data").Cell(1, 1, "Qualified workbook");
             document.Save();
         }
         string powerPointPath = Path.Combine(scope.Path, "qualified.pptx");
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(powerPointPath)) {
-            presentation.AddSlide().AddTextBoxPoints("Qualified presentation", 20, 20, 300, 60);
+        using (PowerPointDocument presentation = PowerPointDocument.Create(powerPointPath)) {
+            presentation.AddSlide().AddTextBox("Qualified presentation",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(60));
             presentation.Save();
         }
 
@@ -167,11 +167,11 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         }
         string excel = Path.Combine(scope.Path, "report.xlsx");
         using (var document = ExcelDocument.Create(excel)) {
-            document.AddWorksheet("Data").Cell(1, 1, "Preserved content"); document.Save();
+            document.AddSheet("Data").Cell(1, 1, "Preserved content"); document.Save();
         }
         string deck = Path.Combine(scope.Path, "report.pptx");
-        using (var presentation = PowerPointPresentation.Create(deck)) {
-            presentation.AddSlide().AddTextBoxPoints("Preserved content", 20, 20, 300, 60); presentation.Save();
+        using (var presentation = PowerPointDocument.Create(deck)) {
+            presentation.AddSlide().AddTextBox("Preserved content",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(60)); presentation.Save();
         }
         foreach (string path in new[] { word, excel, deck }) {
             byte[] bytes = File.ReadAllBytes(path);

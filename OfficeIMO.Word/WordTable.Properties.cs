@@ -5,178 +5,6 @@ namespace OfficeIMO.Word {
     // properties controlling its appearance and behavior.
     public partial class WordTable {
         /// <summary>
-        /// Rebuilds the table grid (w:tblGrid) using DXA widths derived from
-        /// current column width values/types and the table preferred width.
-        /// Many consumers (Word Online, Google Docs) rely primarily on tblGrid
-        /// when laying out columns and ignore cell tcW percentages. Keeping
-        /// tblGrid in sync avoids the observed 50/50 column issue.
-        /// </summary>
-        private void RefreshTblGridFromColumnWidths() {
-            if (_suppressGridRefresh) return;
-            _suppressGridRefresh = true;
-            try {
-                // We need both the number of columns and the configured column widths
-                if (Rows.Count == 0) return;
-                int columnCount = _table.GetFirstChild<TableGrid>()?.OfType<GridColumn>().Count()
-                                   ?? Rows.Max(r => r.Cells.Count);
-                if (columnCount <= 0) columnCount = Rows[0].CellsCount;
-
-                // If nothing to base on, do nothing
-                var colWidths = GetBestAvailableColumnWidths(out var detectedType, columnCount);
-                if (colWidths == null || colWidths.Count == 0) return;
-                // If we managed to detect a concrete type for widths, prefer it when ColumnWidthType is missing
-                if (ColumnWidthType == null && detectedType != null) {
-                    ColumnWidthType = detectedType;
-                }
-
-                // Ensure list size matches column count by trimming or padding evenly
-                if (colWidths.Count > columnCount) {
-                    colWidths = colWidths.Take(columnCount).ToList();
-                } else if (colWidths.Count < columnCount) {
-                    // Pad missing columns with an even share of remaining width
-                    int missing = columnCount - colWidths.Count;
-                    int add = 0;
-                    if (ColumnWidthType == WordTableWidthUnit.Pct) {
-                        int used = colWidths.Sum();
-                        add = Math.Max(0, (5000 - used) / Math.Max(1, missing));
-                    } else {
-                        // When widths are DXA, split remaining table width if we can estimate it,
-                        // otherwise reuse last value (keeps behaviour stable)
-                        add = colWidths.Count > 0 ? colWidths[colWidths.Count - 1] : 2400;
-                    }
-                    for (int i = 0; i < missing; i++) colWidths.Add(add);
-                }
-
-                // Compute the target table width in DXA
-                int tableWidthDxa = EstimateTableWidthInDxa();
-
-                // Convert each column width to DXA
-                List<int> gridDxa = new List<int>(columnCount);
-                if (ColumnWidthType == WordTableWidthUnit.Pct) {
-                    // values are stored in 1/50 %, so 5000 == 100%
-                    int totalPct = Math.Max(1, colWidths.Sum());
-                    // Scale to the table width so that the sum matches the table width
-                    int allocated = 0;
-                    for (int i = 0; i < columnCount; i++) {
-                        int dxa = (int)Math.Round((double)tableWidthDxa * colWidths[i] / totalPct);
-                        // Accumulate and fix rounding on the last column
-                        if (i == columnCount - 1) dxa = Math.Max(0, tableWidthDxa - allocated);
-                        allocated += dxa;
-                        gridDxa.Add(Math.Max(1, dxa));
-                    }
-                } else if (ColumnWidthType == WordTableWidthUnit.Dxa) {
-                    // DXA widths behave differently depending on whether the table itself
-                    // has an explicit preferred width:
-                    //   - For tables with explicit tblW (Pct or Dxa), Word normalizes the DXA
-                    //     column widths so that their sum matches the table width.
-                    //   - For Auto-width tables (tblW type="auto" or missing/zero), Word leaves
-                    //     tblGrid columns equal to the raw DXA cell widths.
-                    bool hasExplicitTableWidth =
-                        (this.WidthType == WordTableWidthUnit.Dxa && (this.Width ?? 0) > 0)
-                        || (this.WidthType == WordTableWidthUnit.Pct && (this.Width ?? 0) > 0);
-
-                    if (!hasExplicitTableWidth) {
-                        // Match Word's behaviour for pure auto tables: carry DXA widths directly.
-                        foreach (var w in colWidths) {
-                            gridDxa.Add(Math.Max(1, w));
-                        }
-                    } else {
-                        // Normalize DXA widths so the sum matches the table container width.
-                        // This keeps explicit-width tables consistent in Online/Google Docs.
-                        int sum = Math.Max(1, colWidths.Sum());
-                        int target = Math.Max(1, tableWidthDxa);
-                        int allocated = 0;
-                        for (int i = 0; i < columnCount; i++) {
-                            int dxa = (int)Math.Round((double)target * colWidths[i] / sum);
-                            if (i == columnCount - 1) dxa = Math.Max(0, target - allocated);
-                            allocated += dxa;
-                            gridDxa.Add(Math.Max(1, dxa));
-                        }
-                    }
-                } else {
-                    // Auto/other: distribute evenly within the estimated table width
-                    int baseWidth = columnCount == 0 ? 0 : tableWidthDxa / columnCount;
-                    int remainder = tableWidthDxa - baseWidth * columnCount;
-                    for (int i = 0; i < columnCount; i++) gridDxa.Add(baseWidth + (i == columnCount - 1 ? remainder : 0));
-                }
-
-                // Write/replace tblGrid with computed DXA widths
-                TableGrid? tableGrid = _table.GetFirstChild<TableGrid>();
-                if (tableGrid == null) {
-                    _table.InsertAfter(new TableGrid(), _tableProperties);
-                    tableGrid = _table.GetFirstChild<TableGrid>();
-                }
-                if (tableGrid == null) return; // safety
-
-                tableGrid.RemoveAllChildren();
-                foreach (var dxa in gridDxa) {
-                    tableGrid.Append(new GridColumn { Width = dxa.ToString() });
-                }
-            } catch {
-                // Never throw from a setter; layout will still be valid in Word desktop.
-            }
-            finally { _suppressGridRefresh = false; }
-        }
-
-        /// <summary>
-        /// Attempts to derive a complete set of column widths and their unit by scanning rows.
-        /// Prefer any row that has widths for all columns; fall back to the first row with any widths.
-        /// </summary>
-        private List<int> GetBestAvailableColumnWidths(out WordTableWidthUnit? detectedType, int expectedColumns) {
-            detectedType = ColumnWidthType; // start with the table-level hint
-
-            if (Rows.Count == 0) return new List<int>();
-            int cols = expectedColumns > 0 ? expectedColumns : Rows.Max(r => r.Cells.Count);
-            List<int>? candidate = null;
-            WordTableWidthUnit? candidateType = null;
-
-            foreach (var row in Rows) {
-                var rowCells = row.Cells;
-                var w = new List<int>();
-                WordTableWidthUnit? typeForRow = null;
-                bool allPresent = true;
-                for (int i = 0; i < System.Math.Min(cols, rowCells.Count); i++) {
-                    var cell = rowCells[i];
-                    var wv = cell.Width;
-                    if (wv == null) { allPresent = false; w.Add(0); continue; }
-                    w.Add(wv.Value);
-                    // Remember the first non-null type encountered
-                    typeForRow ??= cell.WidthType;
-                }
-                while (w.Count < cols) { w.Add(0); allPresent = false; }
-                if (w.Any(x => x != 0)) {
-                    if (allPresent) {
-                        detectedType = typeForRow ?? detectedType;
-                        return w;
-                    }
-                    if (candidate == null) { candidate = w; candidateType = typeForRow; }
-                }
-            }
-
-            if (candidate != null) {
-                detectedType ??= candidateType;
-                // Replace zeros with an even share
-                int missing = candidate.Count(x => x == 0);
-                if (missing > 0) {
-                    if ((detectedType ?? ColumnWidthType) == WordTableWidthUnit.Pct) {
-                        int used = candidate.Where(x => x > 0).Sum();
-                        int add = Math.Max(0, (5000 - used) / missing);
-                        for (int i = 0; i < candidate.Count; i++) if (candidate[i] == 0) candidate[i] = add;
-                    } else {
-                        int even = EstimateTableWidthInDxa() / Math.Max(1, candidate.Count);
-                        for (int i = 0; i < candidate.Count; i++) if (candidate[i] == 0) candidate[i] = even;
-                    }
-                }
-                return candidate;
-            }
-
-            // No widths anywhere – distribute evenly
-            int evenDxa = EstimateTableWidthInDxa() / Math.Max(1, cols);
-            detectedType = WordTableWidthUnit.Dxa;
-            return Enumerable.Repeat(evenDxa, cols).ToList();
-        }
-
-        /// <summary>
         /// Exposed for internal callers in this assembly that change table structure
         /// (e.g., InsertColumn) and need to update the tblGrid.
         /// </summary>
@@ -184,17 +12,17 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Estimates the effective table width in DXA (twips) based on
-        /// Table.Width/WidthType and the section page width/margins.
+        /// Table.Width and the section page width/margins.
         /// </summary>
         internal int EstimateTableWidthInDxa() {
             // For nested tables, use the containing cell's width as the reference
             if (GetWidthHostCell() != null) {
                 int container = EstimateContainingCellContentWidthInDxa();
-                if (this.WidthType == WordTableWidthUnit.Dxa && (this.Width ?? 0) > 0) {
-                    return Math.Min(this.Width!.Value, container);
+                if (WordTableWidthNative.ResolveType(_tableProperties?.TableWidth) == TableWidthUnitValues.Dxa && TableWidthNativeValue > 0) {
+                    return Math.Min(TableWidthNativeValue, container);
                 }
-                if (this.WidthType == WordTableWidthUnit.Pct && (this.Width ?? 0) > 0) {
-                    int desired = (int)Math.Round((double)container * this.Width!.Value / 5000);
+                if (WordTableWidthNative.ResolveType(_tableProperties?.TableWidth) == TableWidthUnitValues.Pct && TableWidthFraction > 0) {
+                    int desired = (int)Math.Round((double)container * TableWidthFraction);
                     return Math.Min(desired, container);
                 }
                 // Auto or unspecified => fit to container
@@ -203,18 +31,18 @@ namespace OfficeIMO.Word {
 
             // A loaded shared header/footer may have several different layout widths.
             // Its existing grid is already the resolved table width, including tblW percent.
-            if (this.WidthType != WordTableWidthUnit.Dxa && GetUnscopedStoryGridWidth() is int storyWidth)
+            if (WordTableWidthNative.ResolveType(_tableProperties?.TableWidth) != TableWidthUnitValues.Dxa && GetUnscopedStoryGridWidth() is int storyWidth)
                 return storyWidth;
 
             // Non-nested: default to page content area as reference
             int contentWidth = EstimateContentAreaWidthInDxa();
 
-            if (this.WidthType == WordTableWidthUnit.Dxa && (this.Width ?? 0) > 0) {
-                return this.Width!.Value;
+            if (WordTableWidthNative.ResolveType(_tableProperties?.TableWidth) == TableWidthUnitValues.Dxa && TableWidthNativeValue > 0) {
+                return TableWidthNativeValue;
             }
-            if (this.WidthType == WordTableWidthUnit.Pct && (this.Width ?? 0) > 0) {
+            if (WordTableWidthNative.ResolveType(_tableProperties?.TableWidth) == TableWidthUnitValues.Pct && TableWidthFraction > 0) {
                 // Width is in 1/50 %, 5000 == 100%
-                return (int)Math.Round((double)contentWidth * this.Width!.Value / 5000);
+                return (int)Math.Round((double)contentWidth * TableWidthFraction);
             }
             // Auto or unspecified
             return contentWidth;
@@ -238,9 +66,9 @@ namespace OfficeIMO.Word {
                 var section = ResolveOwningSection();
                 if (section != null) {
                     var page = section.PageSettings;
-                    var width = (int)(page.Width ?? WordPageSizes.A4.WidthTwips);
-                    var left = (int)section.Margins.Left;
-                    var right = (int)section.Margins.Right;
+                    var width = (int)(checked((uint?)(page.Width?.ToTwips())) ?? checked((uint)(WordPageSizes.A4.Width.ToTwips())));
+                    var left = (int)checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips()));
+                    var right = (int)checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips()));
                     int content = Math.Max(0, width - left - right);
                     return content > 0 ? content : 9000; // fallback ~6.25"
                 }
@@ -469,108 +297,63 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Sets or gets grid columns width (not really doing anything as far as I can see)
-        /// </summary>
-        public List<int> GridColumnWidth {
-            get {
-                var listReturn = new List<int>();
-                TableGrid? tableGrid = _table.GetFirstChild<TableGrid>();
-                if (tableGrid != null) {
-                    var list = tableGrid.OfType<GridColumn>();
-                    foreach (var column in list) {
-                        if (column.Width != null && column.Width.Value != null) {
-                            listReturn.Add(int.Parse(column.Width.Value));
-                        }
-                    }
-                }
-                return listReturn;
-            }
+        /// <summary>Gets or sets physical grid geometry independently of preferred widths.</summary>
+        public List<global::OfficeIMO.OfficeLength> GridColumnWidth {
+            get => _table.GetFirstChild<TableGrid>()?.Elements<GridColumn>()
+                .Where(column => column.Width?.Value != null)
+                .Select(column => global::OfficeIMO.OfficeLength.Emus(checked((long)int.Parse(column.Width!.Value!, System.Globalization.CultureInfo.InvariantCulture) * 635)))
+                .ToList() ?? new List<global::OfficeIMO.OfficeLength>();
             set {
-                TableGrid? tableGrid = _table.GetFirstChild<TableGrid>();
-                if (tableGrid != null) {
-                    tableGrid.RemoveAllChildren();
-                } else {
-                    _table.InsertAfter(new TableGrid(), _tableProperties);
-                    tableGrid = _table.GetFirstChild<TableGrid>();
+                if (value == null) throw new ArgumentNullException(nameof(value));
+                // Validate the complete update before replacing the native grid.
+                var columns = value.Select(width => new GridColumn {
+                    Width = WordTableWidth.Length(width).ToNativeValue().ToString(System.Globalization.CultureInfo.InvariantCulture)
+                }).ToArray();
+                TableGrid? grid = _table.GetFirstChild<TableGrid>();
+                if (grid == null) {
+                    CheckTableProperties();
+                    grid = new TableGrid();
+                    _table.InsertAfter(grid, _tableProperties);
                 }
-                if (tableGrid != null) {
-                    foreach (var columnWidth in value) {
-                        tableGrid.Append(new GridColumn { Width = columnWidth.ToString() });
-                    }
-                }
+                grid.RemoveAllChildren<GridColumn>();
+                grid.Append(columns);
             }
         }
 
-        /// <summary>
-        /// Gets or sets column width for a whole table simplifying setup of column width
-        /// Please note that it assumes first row has the same width as the rest of rows
-        /// which may give false positives if there are multiple values set differently.
-        /// </summary>
-        public List<int> ColumnWidth {
-            get {
-                var listReturn = new List<int>();
-                // we assume the first row has the same widths as all rows, which may or may not be true
-                for (int cellIndex = 0; cellIndex < this.Rows[0].CellsCount; cellIndex++) {
-                    var width = this.Rows[0].Cells[cellIndex].Width;
-                    if (width.HasValue) {
-                        listReturn.Add(width.Value);
-                    }
-                }
-                return listReturn;
-            }
+        /// <summary>Gets first-row positional cell preferences, including absent slots, or applies preferences to each row.</summary>
+        /// <remarks>Each item retains its own interpretation. Rows with fewer cells keep their existing shape;
+        /// this collection addresses physical cells, not merged logical grid slots.</remarks>
+        public List<WordTableWidth?> ColumnWidth {
+            get => Rows.Count == 0 ? new List<WordTableWidth?>() : Rows[0].Cells.Select(cell => cell.Width).ToList();
             set {
-                for (int cellIndex = 0; cellIndex < value.Count; cellIndex++) {
-                    foreach (var row in this.Rows) {
-                        row.Cells[cellIndex].Width = value[cellIndex];
-                    }
-                }
-                // Keep tblGrid in sync for non-desktop renderers
-                if (!_suppressGridRefresh) RefreshTblGridFromColumnWidths();
+                if (value == null) throw new ArgumentNullException(nameof(value));
+                if (Rows.Any(row => row.Cells.Count < value.Count))
+                    throw new ArgumentException("Column preferences exceed a row's physical cell count.", nameof(value));
+                bool suppressed = _suppressGridRefresh;
+                _suppressGridRefresh = true;
+                try {
+                    foreach (var row in Rows)
+                        for (int i = 0; i < value.Count; i++) row.Cells[i].Width = value[i];
+                } finally { _suppressGridRefresh = suppressed; }
+                if (!suppressed) RefreshTblGridFromColumnWidths();
             }
         }
 
-        /// <summary>
-        /// Gets or sets the column width type for a whole table simplifying setup of column width
-        /// </summary>
-        public WordTableWidthUnit? ColumnWidthType {
-            get {
-                var listReturn = new List<WordTableWidthUnit?>();
-                // we assume the first row has the same widths as all rows, which may or may not be true
-                for (int cellIndex = 0; cellIndex < this.Rows[0].CellsCount; cellIndex++) {
-                    listReturn.Add(this.Rows[0].Cells[cellIndex].WidthType);
-                }
-                // we assume all cells have the same width type, which may or may not be true
-                return listReturn[0];
-            }
+        /// <summary>Gets declared row heights, including absent constraints, or applies exact heights in row order.</summary>
+        /// <remarks>Null removes a row's height constraint. All values are checked before any row is changed.</remarks>
+        public List<OfficeLength?> RowHeight {
+            get => Rows.Select(row => row.Height).ToList();
             set {
-                foreach (var row in this.Rows) {
-                    foreach (var cell in row.Cells) {
-                        cell.WidthType = value;
-                    }
+                if (value == null) throw new ArgumentNullException(nameof(value));
+                if (value.Count > Rows.Count)
+                    throw new ArgumentException("Row heights exceed the table's row count.", nameof(value));
+                foreach (OfficeLength? height in value) {
+                    if (height < OfficeLength.Zero)
+                        throw new ArgumentOutOfRangeException(nameof(value), "Row height cannot be negative.");
+                    if (height.HasValue) _ = checked((int)height.Value.ToTwips());
                 }
-                // Update tblGrid to reflect width type changes (Pct -> DXA conversion)
-                if (!_suppressGridRefresh) RefreshTblGridFromColumnWidths();
+                for (int index = 0; index < value.Count; index++) Rows[index].Height = value[index];
             }
-        }
-
-        /// <summary>
-        /// Get or set row heights for the table
-        /// </summary>
-        public List<int> RowHeight {
-            get {
-                var listReturn = new List<int>();
-                for (int rowIndex = 0; rowIndex < this.Rows.Count; rowIndex++) {
-                    listReturn.Add(this.Rows[rowIndex].Height ?? 0);
-                }
-                return listReturn;
-            }
-            set {
-                for (int rowIndex = 0; rowIndex < value.Count; rowIndex++) {
-                    this.Rows[rowIndex].Height = value[rowIndex];
-                }
-            }
-
         }
 
         /// <summary>

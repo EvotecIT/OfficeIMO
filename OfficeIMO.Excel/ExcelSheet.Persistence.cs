@@ -22,6 +22,8 @@ namespace OfficeIMO.Excel {
             internal readonly HashSet<OpenXmlPart> PartSaves = new();
             internal readonly Dictionary<VmlDrawingPart, XDocument> CommentVmlDocuments = new();
             internal bool RequiresSavePreparation;
+            /// <summary>Print settings on this sheet were chosen by the table defaults, not by the caller.</summary>
+            internal bool OwnsTablePrintDefaults;
         }
 
         /// <summary>

@@ -40,7 +40,7 @@ public sealed class XpsTiffTwelveBitTests {
             var direct = OfficeDrawingRasterRenderer.Render(page.ToDrawing(), background: OfficeColor.White);
             Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.Svg), out var drawing));
             var svgImage = OfficeDrawingRasterRenderer.Render(drawing!, background: OfficeColor.White);
-            var pdfPage = Assert.Single(PdfReadDocument.Open(loaded.ToPdf()).Pages);
+            var pdfPage = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(loaded.ToPdf())).Pages);
             var pdfImage = OfficeDrawingRasterRenderer.Render(pdfPage.ToDrawing(), scale: 4D / 3D, background: OfficeColor.White);
             for (int y = 0; y < 19; y++) for (int x = 0; x < 35; x++) {
                 int at = (y * 35 + x) * 3;

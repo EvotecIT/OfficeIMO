@@ -7,7 +7,7 @@ using System.Text;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        private bool TryProcessRubyElement(IElement element, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
+        private bool TryProcessRubyElement(IElement element, WordSection section, WordHtmlImportOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
             if (!TryExtractRubyPairs(element, out var pairs, out bool approximated)) {
                 return false;
             }
@@ -19,7 +19,7 @@ namespace OfficeIMO.Word.Html {
             if (approximated) {
                 AddDiagnostic(
                     options,
-                    "HtmlRubyPairingApproximation",
+                    "html-ruby-pairing-approximation",
                     "Ruby base and annotation segments could not be paired one-to-one and were combined into one Word ruby run.",
                     "ruby",
                     lossKind: OfficeConversionLossKind.Approximation);
@@ -27,7 +27,7 @@ namespace OfficeIMO.Word.Html {
             return true;
         }
 
-        private static Run CreateRubyContainer(RubyPair pair, TextFormatting formatting, HtmlToWordOptions options) =>
+        private static Run CreateRubyContainer(RubyPair pair, TextFormatting formatting, WordHtmlImportOptions options) =>
             new(new Ruby(
                 new RubyProperties(
                     new RubyAlign { Val = RubyAlignValues.Center },
@@ -99,7 +99,7 @@ namespace OfficeIMO.Word.Html {
             IElement? element,
             string fallbackText,
             TextFormatting formatting,
-            HtmlToWordOptions options) {
+            WordHtmlImportOptions options) {
             var state = new RubyTextEmissionState();
             if (element == null) {
                 Run? fallback = CreateRubyTextRun(fallbackText, formatting, options, state);
@@ -121,7 +121,7 @@ namespace OfficeIMO.Word.Html {
         private static IEnumerable<Run> CreateRubyRuns(
             IEnumerable<INode> nodes,
             TextFormatting formatting,
-            HtmlToWordOptions options,
+            WordHtmlImportOptions options,
             RubyTextEmissionState state) {
             foreach (INode node in nodes) {
                 if (node is IText textNode) {
@@ -145,7 +145,7 @@ namespace OfficeIMO.Word.Html {
         private static Run? CreateRubyTextRun(
             string text,
             TextFormatting formatting,
-            HtmlToWordOptions options,
+            WordHtmlImportOptions options,
             RubyTextEmissionState state) {
             if (text.Length == 0) return null;
 
@@ -233,7 +233,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static Run CreateRubyRun(string text, TextFormatting formatting, HtmlToWordOptions options) {
+        private static Run CreateRubyRun(string text, TextFormatting formatting, WordHtmlImportOptions options) {
             var run = new Run();
             var properties = CreateRubyRunProperties(formatting, options);
             if (properties.HasChildren || properties.HasAttributes) {
@@ -243,7 +243,7 @@ namespace OfficeIMO.Word.Html {
             return run;
         }
 
-        private static RunProperties CreateRubyRunProperties(TextFormatting formatting, HtmlToWordOptions options) {
+        private static RunProperties CreateRubyRunProperties(TextFormatting formatting, WordHtmlImportOptions options) {
             var properties = new RunProperties();
             if (formatting.Bold) properties.AppendChild(new Bold());
             if (formatting.Italic) properties.AppendChild(new Italic());
@@ -254,7 +254,7 @@ namespace OfficeIMO.Word.Html {
             if (!string.IsNullOrEmpty(formatting.ColorHex)) properties.AppendChild(new Color { Val = formatting.ColorHex!.TrimStart('#') });
             if (formatting.Highlight.HasValue) properties.AppendChild(new Highlight { Val = formatting.Highlight.Value });
             if (!string.IsNullOrWhiteSpace(formatting.BackgroundColorHex)) {
-                if (options.TextBackgroundMode == HtmlTextBackgroundMode.ExactShading) {
+                if (options.TextBackgroundMode == WordHtmlTextBackgroundMode.ExactShading) {
                     properties.AppendChild(new Shading {
                         Val = ShadingPatternValues.Clear,
                         Fill = formatting.BackgroundColorHex!.TrimStart('#').ToUpperInvariant()
@@ -264,7 +264,7 @@ namespace OfficeIMO.Word.Html {
                 }
             }
             if (formatting.Marked) properties.AppendChild(new RunStyle { Val = HtmlSemanticStyleIds.MarkedText });
-            if (formatting.FontSize.HasValue) properties.AppendChild(new FontSize { Val = (formatting.FontSize.Value * 2).ToString(CultureInfo.InvariantCulture) });
+            if (formatting.FontSize.HasValue) properties.AppendChild(new FontSize { Val = ((int)Math.Round(formatting.FontSize.Value * 2d, MidpointRounding.AwayFromZero)).ToString(CultureInfo.InvariantCulture) });
             if (formatting.Caps == WordCapsStyle.SmallCaps) properties.AppendChild(new SmallCaps());
             if (formatting.Caps == WordCapsStyle.Caps) properties.AppendChild(new Caps());
             if (formatting.LetterSpacing.HasValue) properties.AppendChild(new Spacing { Val = formatting.LetterSpacing.Value });

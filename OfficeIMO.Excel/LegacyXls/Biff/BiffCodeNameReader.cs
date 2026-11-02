@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 if (value.Length > 31) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-CODENAME-LENGTH-INVALID",
+                        "xls-biff-codename-length-invalid",
                         "The CodeName record contains a VBA object name longer than 31 characters.",
                         sheetName: sheetName,
                         recordOffset: record.Offset,
@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             } catch (InvalidDataException ex) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-CODENAME-INVALID",
+                    "xls-biff-codename-invalid",
                     $"The CodeName record could not be read. {ex.Message}",
                     sheetName: sheetName,
                     recordOffset: record.Offset,

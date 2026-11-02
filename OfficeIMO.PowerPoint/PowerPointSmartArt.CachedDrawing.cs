@@ -171,9 +171,9 @@ namespace OfficeIMO.PowerPoint {
             internal Shape Resolve(Shape shape) {
                 foreach (OpenXmlElement color in shape.Descendants().Where(IsColor).ToList()) {
                     if (color.Parent is A.LineReference or A.FillReference or A.EffectReference or A.FontReference) continue;
-                    OfficeIMO.Drawing.OfficeColor? resolved = OfficeIMO.OpenXml.Internal.OfficeOpenXmlThemeColorResolver
+                    OfficeIMO.OfficeColor? resolved = OfficeIMO.OpenXml.Internal.OfficeOpenXmlThemeColorResolver
                         .ResolveColor(color, _scheme, colorMap: _colorMap);
-                    if (resolved is not OfficeIMO.Drawing.OfficeColor value) continue;
+                    if (resolved is not OfficeIMO.OfficeColor value) continue;
                     var literal = new A.RgbColorModelHex { Val = value.ToRgbHex() };
                     if (value.A < 255) literal.Append(new A.Alpha { Val = (int)Math.Round(value.A * 100000D / 255D) });
                     color.Parent!.ReplaceChild(literal, color);

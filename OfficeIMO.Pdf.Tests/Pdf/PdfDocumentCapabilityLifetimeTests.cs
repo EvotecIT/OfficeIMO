@@ -41,10 +41,11 @@ public sealed class PdfDocumentCapabilityLifetimeTests {
 
         Assert.NotSame(first.Options, second.Options);
 
-        first.Options.MarginLeft = 11;
+        double originalMargin = second.Options.MarginLeft.ToPoints();
+        first.Options.MarginLeft = global::OfficeIMO.OfficeLength.Points(11);
 
-        Assert.Equal(11, first.Options.MarginLeft);
-        Assert.Equal(72, second.Options.MarginLeft);
+        Assert.Equal(11, first.Options.MarginLeft.ToPoints());
+        Assert.Equal(originalMargin, second.Options.MarginLeft.ToPoints());
     }
 
     [Fact]

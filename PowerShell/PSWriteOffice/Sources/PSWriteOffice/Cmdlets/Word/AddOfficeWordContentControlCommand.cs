@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>Add-OfficeWordParagraph { Add-OfficeWordContentControl -Text 'Client' -Alias 'ClientName' }</code>
 ///   <para>Creates a content control with the specified text.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordContentControl")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordContentControl", DefaultParameterSetName = "Default")]
 [Alias("WordContentControl")]
 [OutputType(typeof(WordStructuredDocumentTag))]
 public sealed class AddOfficeWordContentControlCommand : PSCmdlet

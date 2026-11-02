@@ -9,7 +9,7 @@ using OfficeIMO.OpenDocument;
 namespace OfficeIMO.Word.OpenDocument;
 
 public static partial class WordOpenDocumentConversionExtensions {
-    private static void ConvertTable(WordTableSnapshot source, OdtDocument targetDocument,
+    private static void ConvertTable(WordTableInfo source, OdtDocument targetDocument,
         WordOpenDocumentConversionOptions options, OdfImageValidationBudget imageValidationBudget,
         ref int hyperlinks, ref int images, ref int unsupportedImages,
         ref int bookmarks, NoteMappingStats notes) {
@@ -17,8 +17,8 @@ public static partial class WordOpenDocumentConversionExtensions {
         int columns = Math.Max(1, source.ColumnCount);
         OdtTable target = targetDocument.AddTable(rows, columns, source.Title);
         var covered = new bool[rows, columns];
-        foreach (WordTableRowSnapshot row in source.Rows) {
-            foreach (WordTableCellSnapshot cell in row.Cells) {
+        foreach (WordTableRowInfo row in source.Rows) {
+            foreach (WordTableCellInfo cell in row.Cells) {
                 int column = cell.ColumnIndex;
                 if (row.RowIndex < 0 || row.RowIndex >= rows || column < 0 || column >= columns || covered[row.RowIndex, column]) continue;
                 OdtTableCell targetCell = target.Cell(row.RowIndex, column);

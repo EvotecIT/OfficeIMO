@@ -293,7 +293,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 colorHex = null;
             }
 
-            if (!LegacyDocColorPalette.TryGetIcoForHex(colorHex, out _)) {
+            if (!LegacyDocPaletteProjection.CanResolveColor(colorHex)) {
                 throw new NotSupportedException("Native DOC saving supports section page borders only with Word 97-2003 palette colors.");
             }
 
@@ -742,7 +742,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 throw new NotSupportedException($"Native DOC saving does not support section page border style '{border.Style}'.");
             }
 
-            if (!LegacyDocColorPalette.TryGetIcoForHex(border.ColorHex, out byte colorIndex)) {
+            if (!LegacyDocPaletteProjection.TryResolveColor(border.ColorHex, "page border", out byte colorIndex)) {
                 throw new NotSupportedException("Native DOC saving supports section page borders only with Word 97-2003 palette colors.");
             }
 

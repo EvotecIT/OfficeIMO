@@ -307,7 +307,7 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
     /// <summary>Renders the converted PDF while observing cancellation.</summary>
     public byte[] ToBytes(System.Threading.CancellationToken cancellationToken) {
         try {
-            return Value.ToBytes(cancellationToken);
+            return Value.SerializeBytes(cancellationToken);
         } finally {
             RefreshConversionReport();
         }
@@ -328,7 +328,7 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
     public PdfSaveResult Save(Stream stream, System.Threading.CancellationToken cancellationToken) {
         PdfSaveResult result;
         try {
-            result = Value.Save(stream, cancellationToken);
+            result = Value.SaveWithEvidence(stream, cancellationToken);
         } finally {
             RefreshConversionReport();
         }
@@ -352,7 +352,7 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
     public PdfSaveResult Save(string path, System.Threading.CancellationToken cancellationToken) {
         PdfSaveResult result;
         try {
-            result = Value.Save(path, cancellationToken);
+            result = Value.SaveWithEvidence(path, cancellationToken);
         } finally {
             RefreshConversionReport();
         }
@@ -370,10 +370,10 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
     /// <summary>
     /// Attempts to write the generated PDF document to the supplied stream and returns output diagnostics instead of throwing.
     /// </summary>
-    public PdfSaveResult SaveResult(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
+    internal PdfSaveResult TrySaveWithEvidence(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
         PdfSaveResult result;
         try {
-            result = Value.SaveResult(stream, cancellationToken);
+            result = Value.TrySaveWithEvidence(stream, cancellationToken);
         } finally {
             RefreshConversionReport();
         }
@@ -383,10 +383,10 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
     /// <summary>
     /// Attempts to write the generated PDF document to the supplied file path and returns output diagnostics instead of throwing.
     /// </summary>
-    public PdfSaveResult SaveResult(string path, System.Threading.CancellationToken cancellationToken = default) {
+    internal PdfSaveResult TrySaveWithEvidence(string path, System.Threading.CancellationToken cancellationToken = default) {
         PdfSaveResult result;
         try {
-            result = Value.SaveResult(path, cancellationToken);
+            result = Value.TrySaveWithEvidence(path, cancellationToken);
         } finally {
             RefreshConversionReport();
         }
@@ -399,7 +399,7 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
     public async System.Threading.Tasks.Task<PdfSaveResult> SaveAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
         PdfSaveResult result;
         try {
-            result = await Value.SaveAsync(stream, cancellationToken).ConfigureAwait(false);
+            result = await Value.SaveWithEvidenceAsync(stream, cancellationToken).ConfigureAwait(false);
         } finally {
             RefreshConversionReport();
         }
@@ -420,7 +420,7 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
     public async System.Threading.Tasks.Task<PdfSaveResult> SaveAsync(string path, System.Threading.CancellationToken cancellationToken = default) {
         PdfSaveResult result;
         try {
-            result = await Value.SaveAsync(path, cancellationToken).ConfigureAwait(false);
+            result = await Value.SaveWithEvidenceAsync(path, cancellationToken).ConfigureAwait(false);
         } finally {
             RefreshConversionReport();
         }
@@ -435,21 +435,21 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
         return result.WithOutputPath(fullPath);
     }
 
-    private (byte[] Bytes, PdfSaveResult Result) StageLossless(
-        System.Threading.CancellationToken cancellationToken) {
-        RequireNoLoss();
+    internal (byte[] Bytes, PdfSaveResult Result) StageLossless(
+        System.Threading.CancellationToken cancellationToken, Action<PdfSaveResult?>? accept = null) {
+        if (accept == null) RequireNoLoss(); else accept(null);
         using var staging = new MemoryStream();
         PdfSaveResult result = Save(staging, cancellationToken);
-        result.RequireNoLoss();
+        if (accept == null) result.RequireNoLoss(); else accept(result);
         return (staging.ToArray(), result);
     }
 
-    private async System.Threading.Tasks.Task<(byte[] Bytes, PdfSaveResult Result)> StageLosslessAsync(
-        System.Threading.CancellationToken cancellationToken) {
-        RequireNoLoss();
+    internal async System.Threading.Tasks.Task<(byte[] Bytes, PdfSaveResult Result)> StageLosslessAsync(
+        System.Threading.CancellationToken cancellationToken, Action<PdfSaveResult?>? accept = null) {
+        if (accept == null) RequireNoLoss(); else accept(null);
         using var staging = new MemoryStream();
         PdfSaveResult result = await SaveAsync(staging, cancellationToken).ConfigureAwait(false);
-        result.RequireNoLoss();
+        if (accept == null) result.RequireNoLoss(); else accept(result);
         return (staging.ToArray(), result);
     }
 
@@ -463,21 +463,21 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
     /// <summary>
     /// Attempts to asynchronously write the generated PDF document to the supplied stream and returns output diagnostics instead of throwing.
     /// </summary>
-    public System.Threading.Tasks.Task<PdfSaveResult> SaveResultAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
+    internal System.Threading.Tasks.Task<PdfSaveResult> TrySaveWithEvidenceAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
         return TrySaveAsyncCore(stream, cancellationToken);
     }
 
     /// <summary>
     /// Attempts to asynchronously write the generated PDF document to the supplied file path and returns output diagnostics instead of throwing.
     /// </summary>
-    public System.Threading.Tasks.Task<PdfSaveResult> SaveResultAsync(string path, System.Threading.CancellationToken cancellationToken = default) {
+    internal System.Threading.Tasks.Task<PdfSaveResult> TrySaveWithEvidenceAsync(string path, System.Threading.CancellationToken cancellationToken = default) {
         return TrySaveAsyncCore(path, cancellationToken);
     }
 
     private async System.Threading.Tasks.Task<PdfSaveResult> TrySaveAsyncCore(Stream stream, System.Threading.CancellationToken cancellationToken) {
         PdfSaveResult result;
         try {
-            result = await Value.SaveResultAsync(stream, cancellationToken).ConfigureAwait(false);
+            result = await Value.TrySaveWithEvidenceAsync(stream, cancellationToken).ConfigureAwait(false);
         } finally {
             RefreshConversionReport();
         }
@@ -487,7 +487,7 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
     private async System.Threading.Tasks.Task<PdfSaveResult> TrySaveAsyncCore(string path, System.Threading.CancellationToken cancellationToken) {
         PdfSaveResult result;
         try {
-            result = await Value.SaveResultAsync(path, cancellationToken).ConfigureAwait(false);
+            result = await Value.TrySaveWithEvidenceAsync(path, cancellationToken).ConfigureAwait(false);
         } finally {
             RefreshConversionReport();
         }

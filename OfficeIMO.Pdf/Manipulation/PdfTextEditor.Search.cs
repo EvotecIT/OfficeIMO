@@ -8,6 +8,7 @@ internal static partial class PdfTextEditor {
         Func<TextSearchUnit, IEnumerable<TextSearchRange>>? findRanges = null,
         bool includeUnsafeSpans = false, int maximumHits = int.MaxValue,
         Action<int, int, IReadOnlyList<TextSearchHit>>? pageSearched = null,
+        bool hiddenOptionalContentOnly = false,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(text, nameof(text));
@@ -31,7 +32,8 @@ internal static partial class PdfTextEditor {
             PdfReadPage page = document.Pages[pageNumber - 1];
             (double originX, double originY) = page.GetPageBoundaryOrigin();
             double pageHeight = page.GetPageSize().Height;
-            PdfTextSpan[] spans = (includeUnsafeSpans ? page.GetGlyphTextSpans(cancellationToken: cancellationToken) : page.GetTextSpans(cancellationToken))
+            PdfTextSpan[] spans = (hiddenOptionalContentOnly ? (IReadOnlyList<PdfTextSpan>)GetHiddenLayerGlyphSpans(page, cancellationToken)
+                    : includeUnsafeSpans ? page.GetGlyphTextSpans(cancellationToken: cancellationToken) : page.GetTextSpans(cancellationToken))
                 .Where(span => includeUnsafeSpans
                     ? !string.IsNullOrEmpty(span.Text)
                     : IsFindSpan(span, snapshot.IncludeTextRenderingMode3, pageHeight))
@@ -105,13 +107,20 @@ internal static partial class PdfTextEditor {
         return hits;
     }
 
+    private static PdfTextSpan[] GetHiddenLayerGlyphSpans(PdfReadPage page, CancellationToken cancellationToken) {
+        var visible = new HashSet<PdfContentOrderKey>(page.GetGlyphTextSpans(cancellationToken: cancellationToken)
+            .Select(static span => span.ContentOrderKey).OfType<PdfContentOrderKey>());
+        return page.GetGlyphTextSpans(includeHiddenOptionalContent: true, cancellationToken: cancellationToken)
+            .Where(span => span.ContentOrderKey is not PdfContentOrderKey key || !visible.Contains(key)).ToArray();
+    }
+
     private static List<int[]> SplitTableSearchFlows(ref List<TextLayoutEngine.TextLine> lines,
         IReadOnlyList<PdfTextSpan> spans,
-        List<StructuredTable> tables, int maxFlowComparisons, ref long flowComparisons,
+        List<PdfStructuredTable> tables, int maxFlowComparisons, ref long flowComparisons,
         Action<long> chargeTableWork) {
         var cells = new Dictionary<PdfTextSpan, (int Table, int Row, int Column)>();
         for (int tableIndex = 0; tableIndex < tables.Count; tableIndex++) {
-            StructuredTable table = tables[tableIndex];
+            PdfStructuredTable table = tables[tableIndex];
             var rowBySpan = new Dictionary<PdfTextSpan, int>();
             for (int rowIndex = 0; rowIndex < table.SourceLines.Count; rowIndex++) {
                 foreach (PdfTextSpan span in table.SourceLines[rowIndex].Spans) rowBySpan[span] = rowIndex;
@@ -141,7 +150,7 @@ internal static partial class PdfTextEditor {
                 int row = FindNearestIndex(anchors, span.Y, chargeTableWork);
                 if (Math.Abs(anchors[row] - span.Y) > rowPitch / 2D) continue;
                 int column = FindNearestIndex(columnCenters, span.X, chargeTableWork);
-                StructuredTableColumn columnBounds = table.Columns[column];
+                PdfStructuredTableColumn columnBounds = table.Columns[column];
                 if (span.X < Math.Min(columnBounds.From, columnBounds.To) - 2D ||
                     span.X > Math.Max(columnBounds.From, columnBounds.To) + 2D) continue;
                 cells[span] = (tableIndex, row, column);

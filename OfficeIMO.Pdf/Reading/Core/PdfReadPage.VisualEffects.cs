@@ -775,9 +775,15 @@ public sealed partial class PdfReadPage {
 
     private IReadOnlyList<PdfPageDrawingEffectTransition> GetGraphicsEffectTransitions(Matrix2D pageTransform, double pageHeight, PageContentBudget? pageContentBudget = null) {
         pageContentBudget ??= new PageContentBudget(this);
+        return GetGraphicsEffectTransitions(GetContentStreamContent(pageContentBudget), pageTransform, pageHeight, pageContentBudget);
+    }
+
+    // Reuse the caller's decoded root content without charging its bytes again.
+    // Invoked forms retain their ordinary per-invocation decode accounting.
+    private IReadOnlyList<PdfPageDrawingEffectTransition> GetGraphicsEffectTransitions(string content,
+        Matrix2D pageTransform, double pageHeight, PageContentBudget pageContentBudget) {
         var transitions = new List<PdfPageDrawingEffectTransition>();
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
-        string content = GetContentStreamContent(pageContentBudget);
         if (content.Length == 0) return Array.Empty<PdfPageDrawingEffectTransition>();
         var activeForms = new HashSet<PdfStream>();
         CollectGraphicsEffectTransitions(

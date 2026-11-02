@@ -66,7 +66,7 @@ public sealed class IWorkNativePreservationTests {
             conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction();
         using var outputStream = new MemoryStream(); converted.Value.Save(outputStream); outputStream.Position = 0;
-        using var reopened = PowerPointPresentation.Load(outputStream);
+        using var reopened = PowerPointDocument.Load(outputStream);
         Assert.Empty(reopened.ValidateDocument()); Assert.Equal(source.ReadKeynote().Slides.Count, reopened.Slides.Count);
         session.MoveKeynoteImage(image.SourceIdentity, (float)image.Geometry.LeftPoints, (float)image.Geometry.TopPoints);
         Assert.Equal(source.ComputePackageContentHash(), session.SaveBytesResult().Report.OutputPackageContentHash);
@@ -197,7 +197,7 @@ public sealed class IWorkNativePreservationTests {
         for (int i = 0; i < originalImages.Length; i++) Assert.Equal(originalImages[i].GetBytes(), nativeImages[i].GetBytes());
         using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(path, conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction(); using var stream = new MemoryStream(); result.Value.Save(stream); stream.Position = 0;
-        using var saved = PowerPointPresentation.Load(stream); Assert.Equal(3, saved.Slides.Count); Assert.Empty(saved.ValidateDocument());
+        using var saved = PowerPointDocument.Load(stream); Assert.Equal(3, saved.Slides.Count); Assert.Empty(saved.ValidateDocument());
     }
 
     [Fact]

@@ -1,3 +1,6 @@
+using OfficeIMO.Pdf.Word;
+using OfficeIMO.Pdf.Excel;
+using OfficeIMO.Pdf.PowerPoint;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,7 +24,7 @@ public sealed class PdfConversionCancellationTests {
         cancellation.Cancel();
         PdfToHtmlOptions options = CreateHtmlOptions(glyphStage);
 
-        Assert.Throws<OperationCanceledException>(() => PdfDocument.Load(source).ToHtml(options, cancellation.Token));
+        Assert.Throws<OperationCanceledException>(() => PdfDocument.Load(new System.IO.MemoryStream(source)).ToHtml(options, cancellation.Token));
 
         Assert.False(glyphStage.WasCalled);
     }
@@ -36,7 +39,7 @@ public sealed class PdfConversionCancellationTests {
         cancellation.Cancel();
         PdfToHtmlOptions options = CreateHtmlOptions(glyphStage);
 
-        Assert.Throws<OperationCanceledException>(() => PdfDocument.Load(source).ToHtmlResult(options, cancellation.Token));
+        Assert.Throws<OperationCanceledException>(() => PdfDocument.Load(new System.IO.MemoryStream(source)).ToHtmlResult(options, cancellation.Token));
 
         Assert.False(glyphStage.WasCalled);
     }
@@ -51,15 +54,15 @@ public sealed class PdfConversionCancellationTests {
         cancellation.Cancel();
         PdfToHtmlOptions options = CreateHtmlOptions(glyphStage);
 
-        await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            PdfDocument.Load(source).SaveAsHtmlAsync(Stream.Null, options, cancellation.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            PdfDocument.Load(new System.IO.MemoryStream(source)).SaveAsHtmlAsync(Stream.Null, options, cancellation.Token));
 
         Assert.False(glyphStage.WasCalled);
     }
 
     private static PdfToHtmlOptions CreateHtmlOptions(
         IPdfGlyphDecodingStage glyphStage) => new() {
-            ReadOptions = new PdfReadOptions {
+            ReadOptions = new PdfLoadOptions {
                 Profile = PdfReadProfile.Structured,
                 Pipeline = new PdfUnderstandingPipelineOptions { GlyphDecoding = glyphStage }
             }
@@ -74,13 +77,13 @@ public sealed class PdfConversionCancellationTests {
         cancellation.Cancel();
 
         Assert.Throws<OperationCanceledException>(() => {
-            _ = PdfDocument.Load(source).ToWordDocumentResult(new PdfToWordOptions(), cancellation.Token);
+            _ = PdfDocument.Load(new System.IO.MemoryStream(source)).ConvertToWordWithEvidence(new WordPdfImportOptions(), cancellation.Token);
         });
         Assert.Throws<OperationCanceledException>(() => {
-            _ = PdfDocument.Load(source).ImportTablesToExcelDocumentResult(new PdfTablesToExcelOptions(), cancellation.Token);
+            _ = PdfDocument.Load(new System.IO.MemoryStream(source)).ConvertToExcelWithEvidence(new ExcelPdfImportOptions(), cancellation.Token);
         });
         Assert.Throws<OperationCanceledException>(() => {
-            _ = PdfDocument.Load(source).ToPowerPointPresentationResult(new PdfToPowerPointOptions(), cancellation.Token);
+            _ = PdfDocument.Load(new System.IO.MemoryStream(source)).ConvertToPowerPointWithEvidence(new PowerPointPdfImportOptions(), cancellation.Token);
         });
     }
 
@@ -89,7 +92,7 @@ public sealed class PdfConversionCancellationTests {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Cancellation must reach inspection and table grouping"))
             .ToBytes();
-        PdfDocument document = PdfDocument.Load(source);
+        PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(source));
         PdfDocumentReadResult logical = document.Read();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();

@@ -30,7 +30,7 @@ accepting a conversion; successful saving does not imply native fidelity.
 
 `ToPdfDocument()`, `ToPdfBytes()` and `SaveAsPdf()` provide convenience routes.
 Path and caller-stream saves return `PdfSaveResult`; stream output remains open.
-All routes accept cancellation and optional `PdfOptions`, which are cloned for
+All routes accept cancellation and optional `PdfCreateOptions`, which are cloned for
 the operation. Refer to the [Publisher support contract](../OfficeIMO.Publisher/SUPPORT.md)
 for profile and reconstruction limits, including linked text flow and native
 metafile placeholders.

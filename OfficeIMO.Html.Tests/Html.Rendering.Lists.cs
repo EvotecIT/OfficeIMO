@@ -25,13 +25,13 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText[] markers = texts.Where(text => text.Source == "list-marker").ToArray();
         HtmlRenderText first = Assert.Single(texts, text => text.Text == "First");
         string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(options))).ToBytes();
 
         Assert.Equal(new[] { "[IV] ", "[VII] " }, markers.Select(marker => marker.Text));
         Assert.All(markers, marker => Assert.Equal(OfficeColor.Red, marker.Color));
         Assert.True(markers[0].X < first.X);
         Assert.Contains("#FF0000", svg, StringComparison.Ordinal);
-        Assert.Contains("SecondPdf", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("SecondPdf", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(list-style-position:outside)"));
         Assert.True(HtmlComputedStyleEngine.TryParsePseudoElementSelector("li::marker", out string host, out HtmlPseudoElementKind kind));
         Assert.Equal("li", host);
@@ -86,7 +86,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.InRange(Math.Abs(markers[1].Y - second.Y), 0D, 1D);
         Assert.True(markers[1].Y > markers[0].Y);
         Assert.Contains("Second point", PdfCore.PdfReadDocument.Open(
-            HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options))).ExtractText(), StringComparison.Ordinal);
+            (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(options))).ToBytes()).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -161,7 +161,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderImage image = Assert.Single(visuals.OfType<HtmlRenderImage>());
         HtmlRenderText fallback = Assert.Single(visuals.OfType<HtmlRenderText>(), text => text.Source == "list-marker");
         string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(options))).ToBytes();
 
         Assert.Equal(6D, image.Width, 3);
         Assert.Equal(4D, image.Height, 3);
@@ -173,7 +173,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(Enumerable.Range(0, svgRaster.Height).Any(y =>
             Enumerable.Range(0, svgRaster.Width).Any(x => svgRaster.GetPixel(x, y) == markerPixel)),
             "The exported SVG must paint the source marker's distinct RGB pixels.");
-        Assert.Contains("ImagePdf", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("ImagePdf", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(list-style-image:url('marker.png'))"));
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(list-style-image:linear-gradient(red,blue))"));
     }

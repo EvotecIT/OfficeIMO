@@ -6,7 +6,7 @@ namespace OfficeIMO.Markdown;
 public sealed class MarkdownInlineHtmlRenderContext {
     private readonly MarkdownBodyRenderContext? _bodyContext;
 
-    internal MarkdownInlineHtmlRenderContext(HtmlOptions options, MarkdownBodyRenderContext? bodyContext) {
+    internal MarkdownInlineHtmlRenderContext(MarkdownHtmlExportOptions options, MarkdownBodyRenderContext? bodyContext) {
         Options = options ?? throw new ArgumentNullException(nameof(options));
         _bodyContext = bodyContext;
     }
@@ -14,7 +14,7 @@ public sealed class MarkdownInlineHtmlRenderContext {
     /// <summary>
     /// Active HTML rendering options.
     /// </summary>
-    public HtmlOptions Options { get; }
+    public MarkdownHtmlExportOptions Options { get; }
 
     /// <summary>
     /// Top-level blocks being rendered for the current body, or an empty list when no body context is active.
@@ -34,13 +34,13 @@ public sealed class MarkdownInlineHtmlRenderContext {
     /// <summary>
     /// Returns the anchor id of the nearest preceding heading according to the supplied TOC options.
     /// </summary>
-    public string? GetPrecedingHeadingAnchor(int blockIndex, TocOptions options) =>
+    public string? GetPrecedingHeadingAnchor(int blockIndex, MarkdownTocOptions options) =>
         _bodyContext?.GetPrecedingHeadingAnchor(blockIndex, options);
 
     /// <summary>
     /// Builds TOC-style heading entries relative to a specific top-level block index using the supplied TOC options.
     /// </summary>
-    public IReadOnlyList<TocBlock.Entry> BuildTocEntries(int blockIndex, TocOptions options, string? titleAnchor = null) =>
+    public IReadOnlyList<TocBlock.Entry> BuildTocEntries(int blockIndex, MarkdownTocOptions options, string? titleAnchor = null) =>
         _bodyContext?.BuildTocEntries(blockIndex, options, titleAnchor) ?? Array.Empty<TocBlock.Entry>();
 
     /// <summary>

@@ -9,37 +9,29 @@ namespace OfficeIMO.Examples.Pdf {
             var rows = new[] {
                 new[] { "Signal", "State", "Notes" },
                 new[] { "Header", "Repeated", "The first row should stay readable without relying on a domain-specific preset." },
-                new[] { "Flow", "Generic", "Borders, row separators, and spacing should reveal the preset shape at raster level." }
+                new[] { "Flow", "Generic", "Borders, row separators and spacing distinguish each preset when viewed or printed." }
             };
 
             PdfDocument doc = PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Table Style Gallery", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
-                .Paragraph(p => p.Text("Generic Word-style table names rendered by OfficeIMO.Pdf without invoice or report-specific behavior."))), new PdfOptions {
-                    DefaultFont = PdfStandardFont.Helvetica,
-                    DefaultFontSize = 9.5,
-                    DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
-                    HeaderFont = PdfStandardFont.Helvetica,
-                    HeaderFontSize = 8,
+                .H1("Table Style Gallery", PdfAlign.Left)
+                .Paragraph(p => p.Text("Generic Word-style table names rendered by OfficeIMO.Pdf without invoice or report-specific behavior."))), new PdfCreateOptions {
                     HeaderFormat = "OfficeIMO.Pdf Word-like table styles",
                     HeaderAlign = PdfAlign.Left,
                     ShowHeader = true,
-                    FooterFont = PdfStandardFont.Helvetica,
-                    FooterFontSize = 8,
-                    FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
                     FooterAlign = PdfAlign.Right,
                     ShowPageNumbers = true
                 })
                 .Meta(title: "OfficeIMO.Pdf Table Style Gallery", author: "OfficeIMO");
 
-            foreach (string styleName in TableStyles.SupportedWordStyleNames) {
-                PdfTableStyle style = TableStyles.FromWordTableStyle(styleName);
+            foreach (string styleName in PdfTableStyles.SupportedWordStyleNames) {
+                PdfTableStyle style = PdfTableStyles.FromWordTableStyle(styleName);
                 style.Caption = styleName;
-                style.CaptionColor = PdfColor.FromRgb(80, 90, 100);
-                style.CaptionFontSize = 8.5;
-                style.CaptionSpacingAfter = 4;
-                style.SpacingBefore = 6;
-                style.SpacingAfter = 6;
-                style.ColumnWidthPoints = new List<double?> { 76, 70, 300 };
+                style.CaptionColor = OfficeColor.FromRgb(80, 90, 100);
+                style.CaptionFontSize = OfficeLength.Points(8.5);
+                style.CaptionSpacingAfter = OfficeLength.Points(4);
+                style.SpacingBefore = OfficeLength.Points(6);
+                style.SpacingAfter = OfficeLength.Points(6);
+                style.ColumnWidthWeights = new List<double> { 76, 70, 300 };
                 style.AutoFitColumns = false;
                 style.Alignments = new List<PdfColumnAlign> {
                     PdfColumnAlign.Left,

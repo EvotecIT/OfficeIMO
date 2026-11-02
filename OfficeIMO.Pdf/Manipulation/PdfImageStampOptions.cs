@@ -8,10 +8,8 @@ public sealed class PdfImageStampOptions {
     public System.Threading.CancellationToken CancellationToken { get; set; }
 
     private int[]? _pageNumbers;
-    private double? _x;
-    private double? _y;
-    private double? _width;
-    private double? _height;
+    private global::OfficeIMO.OfficeLength? _width;
+    private global::OfficeIMO.OfficeLength? _height;
     private double _rotationDegrees;
 
     /// <summary>Maximum encoded image bytes accepted for a stamp or watermark. Defaults to 128 MiB.</summary>
@@ -54,45 +52,35 @@ public sealed class PdfImageStampOptions {
     }
 
     /// <summary>
-    /// X coordinate of the image origin in PDF points. When null, a sensible default is used.
+    /// Physical X coordinate of the image origin from the unrotated PDF origin.
+    /// When null, stamps use 36 points and watermarks center in the effective page box.
     /// </summary>
-    public double? X {
-        get => _x;
-        set {
-            ValidateOptionalFinite(value, nameof(X), "Image stamp X coordinate must be finite.");
-            _x = value;
-        }
-    }
+    public global::OfficeIMO.OfficeLength? X { get; set; }
 
     /// <summary>
-    /// Y coordinate of the image origin in PDF points. When null, a sensible default is used.
+    /// Physical Y coordinate of the image origin from the unrotated PDF origin.
+    /// When null, stamps use 36 points and watermarks center in the effective page box.
     /// </summary>
-    public double? Y {
-        get => _y;
-        set {
-            ValidateOptionalFinite(value, nameof(Y), "Image stamp Y coordinate must be finite.");
-            _y = value;
-        }
-    }
+    public global::OfficeIMO.OfficeLength? Y { get; set; }
 
     /// <summary>
-    /// Width of the stamped image in PDF points. When null, the image pixel width is used.
+    /// Physical width of the stamped image. When null, each image pixel contributes one point.
     /// </summary>
-    public double? Width {
+    public global::OfficeIMO.OfficeLength? Width {
         get => _width;
         set {
-            ValidateOptionalPositiveFinite(value, nameof(Width), "Image stamp width must be a positive finite value.");
+            ValidateOptionalPositive(value, nameof(Width), "Image stamp width must be a positive finite value.");
             _width = value;
         }
     }
 
     /// <summary>
-    /// Height of the stamped image in PDF points. When null, the image pixel height is used.
+    /// Physical height of the stamped image. When null, each image pixel contributes one point.
     /// </summary>
-    public double? Height {
+    public global::OfficeIMO.OfficeLength? Height {
         get => _height;
         set {
-            ValidateOptionalPositiveFinite(value, nameof(Height), "Image stamp height must be a positive finite value.");
+            ValidateOptionalPositive(value, nameof(Height), "Image stamp height must be a positive finite value.");
             _height = value;
         }
     }
@@ -113,14 +101,8 @@ public sealed class PdfImageStampOptions {
     /// </summary>
     public bool BehindContent { get; set; }
 
-    private static void ValidateOptionalFinite(double? value, string paramName, string message) {
-        if (value.HasValue) {
-            ValidateFinite(value.Value, paramName, message);
-        }
-    }
-
-    private static void ValidateOptionalPositiveFinite(double? value, string paramName, string message) {
-        if (value.HasValue && (value.Value <= 0 || double.IsNaN(value.Value) || double.IsInfinity(value.Value))) {
+    private static void ValidateOptionalPositive(global::OfficeIMO.OfficeLength? value, string paramName, string message) {
+        if (value.HasValue && value.Value.ToEmus() <= 0) {
             throw new System.ArgumentOutOfRangeException(paramName, message);
         }
     }

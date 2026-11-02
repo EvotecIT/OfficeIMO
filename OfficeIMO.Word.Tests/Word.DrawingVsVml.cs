@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 using V = DocumentFormat.OpenXml.Vml;
 using Xunit;
 using Path = System.IO.Path;
@@ -19,13 +19,13 @@ namespace OfficeIMO.Tests {
                 string source = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
                 byte[] expected = File.ReadAllBytes(source);
                 using var document = WordDocument.Create();
-                document.AddParagraph().AddImageVml(source, 24.5D, 12.25D);
-                document.AddParagraph().AddImageVml(source);
+                document.AddParagraph().AddImage(source, OfficeIMO.OfficeLength.Points(24.5D), OfficeIMO.OfficeLength.Points(12.25D), options: new OfficeIMO.Word.WordImageOptions { Vml = true });
+                document.AddParagraph().AddImage(source, options: new OfficeIMO.Word.WordImageOptions { Vml = true });
                 var header = document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
                 WordImage image;
                 using (var input = new MemoryStream(expected, writable: false)) {
                     input.Position = 3;
-                    image = header.AddParagraph().InsertImageVml(input, "stream.png", 24.5D, 12.25D, "Stream image");
+                    image = header.AddParagraph().AddImage(input, "stream.png", OfficeLength.Points(24.5D), OfficeLength.Points(12.25D), new WordImageOptions { Vml = true, Description = "Stream image" });
                     Assert.True(input.CanRead);
                     Assert.Equal(3L, input.Position);
                 }
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
             string output = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
             try {
                 using (WordDocument document = WordDocument.Create(output)) {
-                    document.AddImageVml(source);
+                    document.AddImage(source, options: new OfficeIMO.Word.WordImageOptions { Vml = true });
                     document.Save();
                 }
                 string expected;
@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
             string output = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
             try {
                 using (WordDocument document = WordDocument.Create(output)) {
-                    document.AddImageVml(source);
+                    document.AddImage(source, options: new OfficeIMO.Word.WordImageOptions { Vml = true });
                     WordImage image = Assert.Single(document.Images);
                     Assert.Equal(Path.GetFileName(source), image.FileName);
                     image.FileName = "renamed.png";
@@ -104,9 +104,9 @@ namespace OfficeIMO.Tests {
             string drawingFile = Path.Combine(_directoryWithFiles, "DrawingCounts.docx");
             using (WordDocument doc = WordDocument.Create(drawingFile)) {
                 doc.AddParagraph().AddImage(img);
-                doc.AddShapeDrawing(WordShapeType.Ellipse, 40, 40);
-                doc.AddShapeDrawing(WordShapeType.Rectangle, 60, 30);
-                doc.AddShapeDrawing(WordShapeType.RoundedRectangle, 50, 30);
+                doc.AddShapeDrawing(WordShapeType.Ellipse, OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40));
+                doc.AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(30));
+                doc.AddShapeDrawing(WordShapeType.RoundedRectangle, OfficeIMO.OfficeLength.Points(50), OfficeIMO.OfficeLength.Points(30));
                 doc.AddTextBox("Text");
                 doc.Save();
             }
@@ -118,10 +118,10 @@ namespace OfficeIMO.Tests {
 
             string vmlFile = Path.Combine(_directoryWithFiles, "VmlCounts.docx");
             using (WordDocument doc = WordDocument.Create(vmlFile)) {
-                doc.AddImageVml(img);
-                doc.AddShape(WordShapeType.Ellipse, 40, 40, Color.Red, Color.Blue);
-                doc.AddShape(WordShapeType.Rectangle, 60, 30, Color.Green, Color.Black);
-                doc.AddShape(WordShapeType.RoundedRectangle, 50, 30, Color.Yellow, Color.Black, 1, arcSize: 0.3);
+                doc.AddImage(img, options: new OfficeIMO.Word.WordImageOptions { Vml = true });
+                doc.AddShape(WordShapeType.Ellipse, OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40), Color.Red, Color.Blue);
+                doc.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(30), Color.Green, Color.Black);
+                doc.AddShape(WordShapeType.RoundedRectangle, OfficeIMO.OfficeLength.Points(50), OfficeIMO.OfficeLength.Points(30), Color.Yellow, Color.Black, OfficeIMO.OfficeLength.Points(1), arcSize: 0.3);
                 doc.AddTextBoxVml("Text");
                 doc.Save();
             }

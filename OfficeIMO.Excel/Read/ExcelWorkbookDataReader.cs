@@ -33,9 +33,9 @@ namespace OfficeIMO.Excel {
         bool IDataReaderMappingMetadata.RequireAllColumnsMapped => _requireAllColumnsMapped;
         DataMappingErrorValuePolicy IDataReaderMappingErrorMetadata.MappingErrorValuePolicy => _mappingErrorValuePolicy;
         IDataReaderFastValueSource? IDataReaderFastValueSource.FastValueSource =>
-            (_current as IDataReaderFastValueSource)?.FastValueSource;
+            (CurrentReader as IDataReaderFastValueSource)?.FastValueSource;
         bool IDataReaderFastValueSource.TryGetUtf8Value(int ordinal, out ArraySegment<byte> value) {
-            if (_current is IDataReaderFastValueSource source) {
+            if (CurrentReader is IDataReaderFastValueSource source) {
                 return source.TryGetUtf8Value(ordinal, out value);
             }
 
@@ -44,7 +44,7 @@ namespace OfficeIMO.Excel {
         }
 
         bool IDataReaderFastValueSource.TryGetInt64(int ordinal, out long value) {
-            if (_current is IDataReaderFastValueSource source) {
+            if (CurrentReader is IDataReaderFastValueSource source) {
                 return source.TryGetInt64(ordinal, out value);
             }
 
@@ -53,7 +53,7 @@ namespace OfficeIMO.Excel {
         }
 
         bool IDataReaderFastValueSource.TryGetDouble(int ordinal, out double value) {
-            if (_current is IDataReaderFastValueSource source) {
+            if (CurrentReader is IDataReaderFastValueSource source) {
                 return source.TryGetDouble(ordinal, out value);
             }
 
@@ -62,7 +62,7 @@ namespace OfficeIMO.Excel {
         }
 
         bool IDataReaderFastValueSource.TryGetDateTime(int ordinal, out DateTime value) {
-            if (_current is IDataReaderFastValueSource source) {
+            if (CurrentReader is IDataReaderFastValueSource source) {
                 return source.TryGetDateTime(ordinal, out value);
             }
 
@@ -74,7 +74,6 @@ namespace OfficeIMO.Excel {
         private readonly bool _requireAllColumnsMapped;
         private readonly DataMappingErrorValuePolicy _mappingErrorValuePolicy;
         private readonly CancellationToken _cancellationToken;
-        private DbDataReader _current;
         private CancellationTokenSource? _currentSheetCancellationSource;
         private int _resultIndex;
         private bool _closed;
@@ -102,7 +101,7 @@ namespace OfficeIMO.Excel {
             _requireAllColumnsMapped = requireAllColumnsMapped;
             _mappingErrorValuePolicy = mappingErrorValuePolicy;
             _cancellationToken = cancellationToken;
-            _current = _openSheet(0, cancellationToken);
+
         }
 
         internal ExcelWorkbookDataReader OwnLifetime(IDisposable lifetime) {
@@ -110,11 +109,11 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
-        internal static ExcelWorkbookDataReader OpenOpenXml(string path, ExcelReadOptions options) {
+        internal static ExcelWorkbookDataReader OpenOpenXml(string path, ExcelReaderOptions options) {
             if (CanUseNativeOpenXmlPath(options)
                 && string.Equals(Path.GetExtension(path), ".xlsx", StringComparison.OrdinalIgnoreCase)) {
                 try {
-                    return CreateNativeOpenXml(XlsxTabularWorkbook.Open(path, options), options);
+                    return CreateNativeOpenXml(XlsxTabularWorkbook.Open(path, options), options, () => ExcelDocumentReader.Open(path, options));
                 } catch (XlsxTabularFastPathNotSupportedException) {
                     // Unusual package and worksheet shapes retain the complete SDK path.
                 }
@@ -123,7 +122,7 @@ namespace OfficeIMO.Excel {
             return CreateOpenXml(ExcelDocumentReader.Open(path, options), options);
         }
 
-        internal static IReadOnlyList<string> ReadSheetNames(string path, ExcelReadOptions options) {
+        internal static IReadOnlyList<string> ReadSheetNames(string path, ExcelReaderOptions options) {
             options.CancellationToken.ThrowIfCancellationRequested();
             string extension = Path.GetExtension(path).ToLowerInvariant();
             IReadOnlyList<string> names = extension switch {
@@ -146,7 +145,7 @@ namespace OfficeIMO.Excel {
 
         private static IReadOnlyList<string> ReadOpenXmlSheetNames(
             string path,
-            ExcelReadOptions options) {
+            ExcelReaderOptions options) {
             try {
                 return XlsxTabularWorkbook.ReadSheetNames(path, options);
             } catch (XlsxTabularFastPathNotSupportedException) {
@@ -159,10 +158,10 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal static ExcelWorkbookDataReader OpenOpenXml(byte[] bytes, ExcelReadOptions options) {
+        internal static ExcelWorkbookDataReader OpenOpenXml(byte[] bytes, ExcelReaderOptions options) {
             if (CanUseNativeOpenXmlPath(options)) {
                 try {
-                    return CreateNativeOpenXml(XlsxTabularWorkbook.Open(bytes, options), options);
+                    return CreateNativeOpenXml(XlsxTabularWorkbook.Open(bytes, options), options, () => ExcelDocumentReader.Open(bytes, options));
                 } catch (XlsxTabularFastPathNotSupportedException) {
                     // Unusual package and worksheet shapes retain the complete SDK path.
                 }
@@ -171,20 +170,20 @@ namespace OfficeIMO.Excel {
             return CreateOpenXml(ExcelDocumentReader.Open(bytes, options), options);
         }
 
-        internal static ExcelWorkbookDataReader WrapOpenXml(ExcelDocumentReader owner, ExcelReadOptions options) =>
+        internal static ExcelWorkbookDataReader WrapOpenXml(ExcelDocumentReader owner, ExcelReaderOptions options) =>
             CreateOpenXml(owner, options);
 
-        internal static ExcelWorkbookDataReader OpenBinary(string path, ExcelReadOptions options) =>
+        internal static ExcelWorkbookDataReader OpenBinary(string path, ExcelReaderOptions options) =>
             string.IsNullOrWhiteSpace(options.A1Range)
                 ? CreateBinary(XlsbTabularWorkbook.Open(path, options, options.CancellationToken), options)
                 : OpenProjectedBinary(path, options);
 
-        internal static ExcelWorkbookDataReader OpenBinary(byte[] bytes, ExcelReadOptions options) =>
+        internal static ExcelWorkbookDataReader OpenBinary(byte[] bytes, ExcelReaderOptions options) =>
             string.IsNullOrWhiteSpace(options.A1Range)
                 ? CreateBinary(XlsbTabularWorkbook.Open(bytes, options, options.CancellationToken), options)
                 : OpenProjectedBinary(bytes, options);
 
-        private static ExcelWorkbookDataReader OpenProjectedBinary(string path, ExcelReadOptions options) {
+        private static ExcelWorkbookDataReader OpenProjectedBinary(string path, ExcelReaderOptions options) {
             options.CancellationToken.ThrowIfCancellationRequested();
             ExcelDocument document = ExcelDocument.Load(path, CreateProjectedBinaryLoadOptions(options));
             try {
@@ -196,7 +195,7 @@ namespace OfficeIMO.Excel {
             return WrapProjectedBinary(document, options);
         }
 
-        private static ExcelWorkbookDataReader OpenProjectedBinary(byte[] bytes, ExcelReadOptions options) {
+        private static ExcelWorkbookDataReader OpenProjectedBinary(byte[] bytes, ExcelReaderOptions options) {
             options.CancellationToken.ThrowIfCancellationRequested();
             using var stream = new MemoryStream(bytes, writable: false);
             ExcelDocument document = ExcelDocument.Load(stream, CreateProjectedBinaryLoadOptions(options));
@@ -209,7 +208,7 @@ namespace OfficeIMO.Excel {
             return WrapProjectedBinary(document, options);
         }
 
-        private static ExcelLoadOptions CreateProjectedBinaryLoadOptions(ExcelReadOptions options) =>
+        private static ExcelLoadOptions CreateProjectedBinaryLoadOptions(ExcelReaderOptions options) =>
             new() {
                 AccessMode = DocumentAccessMode.ReadOnly,
                 PersistenceMode = DocumentPersistenceMode.Explicit,
@@ -227,7 +226,7 @@ namespace OfficeIMO.Excel {
                 }
             };
 
-        private static ExcelWorkbookDataReader WrapProjectedBinary(ExcelDocument document, ExcelReadOptions options) {
+        private static ExcelWorkbookDataReader WrapProjectedBinary(ExcelDocument document, ExcelReaderOptions options) {
             ExcelDocumentReader? readerOwner = null;
             try {
                 readerOwner = ExcelDocumentReader.Wrap(document._spreadSheetDocument, options);
@@ -240,7 +239,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal static ExcelWorkbookDataReader OpenLegacy(string path, ExcelReadOptions options) {
+        internal static ExcelWorkbookDataReader OpenLegacy(string path, ExcelReaderOptions options) {
             if (CanUseLegacyFastPath(options)) {
                 try {
                     return CreateLegacy(
@@ -260,7 +259,7 @@ namespace OfficeIMO.Excel {
             return OpenLegacyCore(bytes, path, options);
         }
 
-        internal static ExcelWorkbookDataReader OpenLegacy(byte[] bytes, ExcelReadOptions options) {
+        internal static ExcelWorkbookDataReader OpenLegacy(byte[] bytes, ExcelReaderOptions options) {
             if (CanUseLegacyFastPath(options)) {
                 try {
                     return CreateLegacy(
@@ -274,7 +273,7 @@ namespace OfficeIMO.Excel {
             return OpenLegacyCore(bytes, sourcePath: null, options);
         }
 
-        private static bool CanUseLegacyFastPath(ExcelReadOptions options) =>
+        private static bool CanUseLegacyFastPath(ExcelReaderOptions options) =>
             string.IsNullOrWhiteSpace(options.A1Range)
             && options.CellValueConverter == null
             && options.UseCachedFormulaResult;
@@ -282,7 +281,7 @@ namespace OfficeIMO.Excel {
         private static ExcelWorkbookDataReader OpenLegacyCore(
             byte[] bytes,
             string? sourcePath,
-            ExcelReadOptions options) {
+            ExcelReaderOptions options) {
             LegacyXlsImportOptions importOptions = CreateLegacyImportOptions(options);
             return CreateLegacy(
                 ExcelDocument.LoadLegacyXlsFromNormalFlow(
@@ -297,7 +296,7 @@ namespace OfficeIMO.Excel {
 
         internal static void ValidateLegacyFormulaProjection(
             LegacyXlsWorkbook workbook,
-            ExcelReadOptions options) {
+            ExcelReaderOptions options) {
             if (options.UseCachedFormulaResult) {
                 return;
             }
@@ -308,7 +307,7 @@ namespace OfficeIMO.Excel {
                 options);
             (int r1, int c1, int r2, int c2)? range = string.IsNullOrWhiteSpace(options.A1Range)
                 ? null
-                : A1.ParseRange(options.A1Range!);
+                : ExcelA1.ParseRange(options.A1Range!);
             foreach (SheetSelection selection in sheets) {
                 options.CancellationToken.ThrowIfCancellationRequested();
                 LegacyXlsWorksheet worksheet = workbook.Worksheets[selection.WorkbookIndex];
@@ -328,7 +327,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    string reference = A1.CellReference(cell.Row, cell.Column);
+                    string reference = ExcelA1.CellReference(cell.Row, cell.Column);
                     throw new NotSupportedException(
                         $"Legacy XLS formula text cannot be projected for '{worksheet.Name}'!{reference}. " +
                         "UseCachedFormulaResult=false cannot return the cached value as ordinary data.");
@@ -336,7 +335,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal static LegacyXlsImportOptions CreateLegacyImportOptions(ExcelReadOptions options) =>
+        internal static LegacyXlsImportOptions CreateLegacyImportOptions(ExcelReaderOptions options) =>
             new() {
                 MaxInputBytes = options.MaxInputBytes > int.MaxValue
                     ? int.MaxValue
@@ -346,7 +345,7 @@ namespace OfficeIMO.Excel {
 
         private static ExcelWorkbookDataReader CreateLegacy(
             ExcelDocument document,
-            ExcelReadOptions options) {
+            ExcelReaderOptions options) {
             ExcelDocumentReader? readerOwner = null;
             try {
                 options.CancellationToken.ThrowIfCancellationRequested();
@@ -362,7 +361,7 @@ namespace OfficeIMO.Excel {
 
         private static ExcelWorkbookDataReader CreateOpenXml(
             ExcelDocumentReader owner,
-            ExcelReadOptions options,
+            ExcelReaderOptions options,
             IDisposable? additionalOwner = null) {
             IDisposable lifetime = additionalOwner == null
                 ? owner
@@ -392,7 +391,8 @@ namespace OfficeIMO.Excel {
 
         private static ExcelWorkbookDataReader CreateNativeOpenXml(
             XlsxTabularWorkbook owner,
-            ExcelReadOptions options) {
+            ExcelReaderOptions options, Func<ExcelDocumentReader> openFallback) {
+            var lifetime = new NativeOpenXmlLifetime(owner, openFallback);
             try {
                 ValidateUniqueSheetNames(owner.TableNames, options.CancellationToken);
                 IReadOnlyList<SheetSelection> sheets = SelectSheets(owner.TableNames, options);
@@ -403,30 +403,27 @@ namespace OfficeIMO.Excel {
 
                 return new ExcelWorkbookDataReader(
                     sheets,
-                    (index, cancellationToken) => owner.OpenTable(
-                        sheets[index].Name,
-                        options.HasHeaderRow,
-                        cancellationToken),
-                    owner,
+                    (index, cancellationToken) => lifetime.OpenSheet(sheets[index].Name, options, cancellationToken),
+                    lifetime,
                     options.Culture,
                     options.TypeConverter,
                     options.StrictTypedMapping,
                     options.MappingErrorValuePolicy,
                     options.CancellationToken);
             } catch {
-                owner.Dispose();
+                lifetime.Dispose();
                 throw;
             }
         }
 
-        private static bool CanUseNativeOpenXmlPath(ExcelReadOptions options) =>
+        private static bool CanUseNativeOpenXmlPath(ExcelReaderOptions options) =>
             options.CellValueConverter == null
             && (options.InferSchema || string.IsNullOrWhiteSpace(options.A1Range));
 
         private static DbDataReader OpenOpenXmlSheet(
             ExcelDocumentReader owner,
             string sheetName,
-            ExcelReadOptions options,
+            ExcelReaderOptions options,
             CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
             ExcelSheetReader sheet = owner.GetSheet(sheetName);
@@ -445,7 +442,7 @@ namespace OfficeIMO.Excel {
 
         private static ExcelWorkbookDataReader CreateBinary(
             XlsbTabularWorkbook owner,
-            ExcelReadOptions options) {
+            ExcelReaderOptions options) {
             try {
                 IReadOnlyList<SheetSelection> sheets = SelectSheets(owner.TableNames, options);
                 return new ExcelWorkbookDataReader(
@@ -469,7 +466,7 @@ namespace OfficeIMO.Excel {
 
         private static ExcelWorkbookDataReader CreateLegacy(
             LegacyXlsTabularWorkbook owner,
-            ExcelReadOptions options) {
+            ExcelReaderOptions options) {
             try {
                 IReadOnlyList<SheetSelection> sheets = SelectSheets(owner.TableNames, options);
                 return new ExcelWorkbookDataReader(
@@ -506,7 +503,7 @@ namespace OfficeIMO.Excel {
 
         private static IReadOnlyList<SheetSelection> SelectSheets(
             IReadOnlyList<string> sheetNames,
-            ExcelReadOptions options) {
+            ExcelReaderOptions options) {
             if (!string.IsNullOrWhiteSpace(options.SheetName) && options.SheetIndex.HasValue) {
                 throw new ArgumentException("SheetName and SheetIndex cannot be used together.", nameof(options));
             }
@@ -573,10 +570,10 @@ namespace OfficeIMO.Excel {
                 throw;
             }
 
-            _current.Dispose();
+            _activeReader?.Dispose();
             _currentSheetCancellationSource?.Dispose();
             _currentSheetCancellationSource = null;
-            _current = nextReader;
+            CurrentReader = nextReader;
             _resultIndex = nextResultIndex;
             return true;
         }
@@ -619,9 +616,9 @@ namespace OfficeIMO.Excel {
                 cancellationToken.ThrowIfCancellationRequested();
                 _cancellationToken.ThrowIfCancellationRequested();
 
-                _current.Dispose();
+                _activeReader?.Dispose();
                 _currentSheetCancellationSource?.Dispose();
-                _current = nextReader;
+                CurrentReader = nextReader;
                 _currentSheetCancellationSource = sheetCancellationSource;
                 nextReader = null;
                 _resultIndex = nextResultIndex;
@@ -662,7 +659,7 @@ namespace OfficeIMO.Excel {
         private void CloseAfterSheetOpenFailure() {
             _closed = true;
             try {
-                _current.Dispose();
+                _activeReader?.Dispose();
             } catch {
                 // Preserve the worksheet-open failure while attempting complete cleanup.
             }
@@ -684,7 +681,7 @@ namespace OfficeIMO.Excel {
 
             _closed = true;
             try {
-                _current.Dispose();
+                _activeReader?.Dispose();
             } finally {
                 try {
                     _currentSheetCancellationSource?.Dispose();
@@ -706,48 +703,48 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc />
 
-        public override object this[int ordinal] => _current[ordinal];
+        public override object this[int ordinal] => CurrentReader[ordinal];
         /// <inheritdoc />
-        public override object this[string name] => _current[name];
+        public override object this[string name] => CurrentReader[name];
         /// <inheritdoc />
-        public override int Depth => _current.Depth;
+        public override int Depth => CurrentReader.Depth;
         /// <inheritdoc />
-        public override int FieldCount => _current.FieldCount;
+        public override int FieldCount => CurrentReader.FieldCount;
         /// <inheritdoc />
-        public override bool HasRows => _current.HasRows;
+        public override bool HasRows => CurrentReader.HasRows;
         /// <inheritdoc />
-        public override bool IsClosed => _closed || _current.IsClosed;
+        public override bool IsClosed => _closed || _activeReader?.IsClosed == true;
         /// <inheritdoc />
-        public override int RecordsAffected => _current.RecordsAffected;
+        public override int RecordsAffected => CurrentReader.RecordsAffected;
         /// <inheritdoc />
-        public override int VisibleFieldCount => _current.VisibleFieldCount;
+        public override int VisibleFieldCount => CurrentReader.VisibleFieldCount;
         /// <inheritdoc />
-        public override bool GetBoolean(int ordinal) => _current.GetBoolean(ordinal);
+        public override bool GetBoolean(int ordinal) => CurrentReader.GetBoolean(ordinal);
         /// <inheritdoc />
-        public override byte GetByte(int ordinal) => _current.GetByte(ordinal);
+        public override byte GetByte(int ordinal) => CurrentReader.GetByte(ordinal);
         /// <inheritdoc />
         public override long GetBytes(int ordinal, long dataOffset, byte[]? buffer, int bufferOffset, int length) =>
-            _current.GetBytes(ordinal, dataOffset, buffer, bufferOffset, length);
+            CurrentReader.GetBytes(ordinal, dataOffset, buffer, bufferOffset, length);
         /// <inheritdoc />
-        public override char GetChar(int ordinal) => _current.GetChar(ordinal);
+        public override char GetChar(int ordinal) => CurrentReader.GetChar(ordinal);
         /// <inheritdoc />
         public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length) =>
-            _current.GetChars(ordinal, dataOffset, buffer, bufferOffset, length);
+            CurrentReader.GetChars(ordinal, dataOffset, buffer, bufferOffset, length);
         /// <inheritdoc />
-        public override string GetDataTypeName(int ordinal) => _current.GetDataTypeName(ordinal);
+        public override string GetDataTypeName(int ordinal) => CurrentReader.GetDataTypeName(ordinal);
         /// <inheritdoc />
-        public override DateTime GetDateTime(int ordinal) => _current.GetDateTime(ordinal);
+        public override DateTime GetDateTime(int ordinal) => CurrentReader.GetDateTime(ordinal);
         /// <inheritdoc />
-        public override decimal GetDecimal(int ordinal) => _current.GetDecimal(ordinal);
+        public override decimal GetDecimal(int ordinal) => CurrentReader.GetDecimal(ordinal);
         /// <inheritdoc />
-        public override double GetDouble(int ordinal) => _current.GetDouble(ordinal);
+        public override double GetDouble(int ordinal) => CurrentReader.GetDouble(ordinal);
         /// <inheritdoc />
-        public override IEnumerator GetEnumerator() => _current.GetEnumerator();
+        public override IEnumerator GetEnumerator() => CurrentReader.GetEnumerator();
         /// <inheritdoc />
 #if NET8_0_OR_GREATER
         [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)]
 #endif
-        public override Type GetFieldType(int ordinal) => _current.GetFieldType(ordinal);
+        public override Type GetFieldType(int ordinal) => CurrentReader.GetFieldType(ordinal);
 
         /// <inheritdoc />
 
@@ -784,32 +781,32 @@ namespace OfficeIMO.Excel {
 
         /// <inheritdoc />
 
-        public override float GetFloat(int ordinal) => _current.GetFloat(ordinal);
+        public override float GetFloat(int ordinal) => CurrentReader.GetFloat(ordinal);
         /// <inheritdoc />
-        public override Guid GetGuid(int ordinal) => _current.GetGuid(ordinal);
+        public override Guid GetGuid(int ordinal) => CurrentReader.GetGuid(ordinal);
         /// <inheritdoc />
-        public override short GetInt16(int ordinal) => _current.GetInt16(ordinal);
+        public override short GetInt16(int ordinal) => CurrentReader.GetInt16(ordinal);
         /// <inheritdoc />
-        public override int GetInt32(int ordinal) => _current.GetInt32(ordinal);
+        public override int GetInt32(int ordinal) => CurrentReader.GetInt32(ordinal);
         /// <inheritdoc />
-        public override long GetInt64(int ordinal) => _current.GetInt64(ordinal);
+        public override long GetInt64(int ordinal) => CurrentReader.GetInt64(ordinal);
         /// <inheritdoc />
-        public override string GetName(int ordinal) => _current.GetName(ordinal);
+        public override string GetName(int ordinal) => CurrentReader.GetName(ordinal);
         /// <inheritdoc />
-        public override int GetOrdinal(string name) => _current.GetOrdinal(name);
+        public override int GetOrdinal(string name) => CurrentReader.GetOrdinal(name);
         /// <inheritdoc />
-        public override string GetString(int ordinal) => _current.GetString(ordinal);
+        public override string GetString(int ordinal) => CurrentReader.GetString(ordinal);
         /// <inheritdoc />
-        public override object GetValue(int ordinal) => _current.GetValue(ordinal);
+        public override object GetValue(int ordinal) => CurrentReader.GetValue(ordinal);
         /// <inheritdoc />
-        public override int GetValues(object[] values) => _current.GetValues(values);
+        public override int GetValues(object[] values) => CurrentReader.GetValues(values);
         /// <inheritdoc />
-        public override bool IsDBNull(int ordinal) => _current.IsDBNull(ordinal);
+        public override bool IsDBNull(int ordinal) => CurrentReader.IsDBNull(ordinal);
         /// <inheritdoc />
         public override bool Read() {
             ThrowIfClosed();
             _cancellationToken.ThrowIfCancellationRequested();
-            return _current.Read();
+            return CurrentReader.Read();
         }
         /// <inheritdoc />
         public override async Task<bool> ReadAsync(CancellationToken cancellationToken) {
@@ -819,13 +816,13 @@ namespace OfficeIMO.Excel {
                 out CancellationToken effectiveToken);
             try {
                 effectiveToken.ThrowIfCancellationRequested();
-                return await _current.ReadAsync(effectiveToken).ConfigureAwait(false);
+                return await GetCurrentReader(effectiveToken).ReadAsync(effectiveToken).ConfigureAwait(false);
             } finally {
                 linkedSource?.Dispose();
             }
         }
         /// <inheritdoc />
-        public override DataTable? GetSchemaTable() => _current.GetSchemaTable();
+        public override DataTable? GetSchemaTable() => CurrentReader.GetSchemaTable();
 
         private void ThrowIfClosed() {
             if (IsClosed) {

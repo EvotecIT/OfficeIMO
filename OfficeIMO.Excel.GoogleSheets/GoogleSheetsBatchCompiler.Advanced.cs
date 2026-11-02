@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
     internal static partial class GoogleSheetsBatchCompiler {
         private const string ChartDataSheetName = "_OfficeIMO_ChartData";
 
-        private static void AppendDimensionGroups(GoogleSheetsBatch batch, ExcelWorksheetSnapshot worksheet) {
+        private static void AppendDimensionGroups(GoogleSheetsBatch batch, ExcelWorksheetInfo worksheet) {
             AppendDimensionGroups(
                 batch,
                 worksheet.Name,
@@ -138,13 +138,13 @@ namespace OfficeIMO.Excel.GoogleSheets {
             }
 
             string normalized = value.Replace("$", string.Empty);
-            if (!A1.TryParseRange(normalized, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+            if (!ExcelA1.TryParseRange(normalized, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                 return range;
             }
 
             return prefix
-                + "$" + A1.ColumnIndexToLetters(firstColumn) + "$" + firstRow.ToString(CultureInfo.InvariantCulture)
-                + ":$" + A1.ColumnIndexToLetters(lastColumn) + "$" + lastRow.ToString(CultureInfo.InvariantCulture);
+                + "$" + ExcelA1.ColumnIndexToLetters(firstColumn) + "$" + firstRow.ToString(CultureInfo.InvariantCulture)
+                + ":$" + ExcelA1.ColumnIndexToLetters(lastColumn) + "$" + lastRow.ToString(CultureInfo.InvariantCulture);
         }
 
         private static string FirstCell(string range) {
@@ -184,13 +184,13 @@ namespace OfficeIMO.Excel.GoogleSheets {
         private static void AppendCharts(
             GoogleSheetsBatch batch,
             ExcelSheet sourceSheet,
-            ExcelWorksheetSnapshot worksheet,
+            ExcelWorksheetInfo worksheet,
             TranslationReport report,
             UnsupportedFeatureMode policy) {
             foreach (ExcelChart chart in sourceSheet.Charts) {
-                if (!chart.TryGetSnapshot(out ExcelChartSnapshot snapshot)
+                if (!chart.TryGetSnapshot(out ExcelChartInfo snapshot)
                     || !TryMapChartType(snapshot.ChartType, out string chartType)) {
-                    HandleAdvancedUnsupported(report, "Charts", "SHEETS.CHART.UNSUPPORTED", snapshot?.Name ?? "chart", policy);
+                    HandleAdvancedUnsupported(report, "Charts", global::OfficeIMO.OfficeDiagnosticCodes.SheetsChartUnsupported, snapshot?.Name ?? "chart", policy);
                     continue;
                 }
 
@@ -199,7 +199,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     HandleAdvancedUnsupported(
                         report,
                         "Charts",
-                        "SHEETS.CHART.SCATTER_X_VALUES_UNSUPPORTED",
+                        global::OfficeIMO.OfficeDiagnosticCodes.SheetsChartScatterXValuesUnsupported,
                         snapshot.Name,
                         policy);
                     continue;
@@ -210,7 +210,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     HandleAdvancedUnsupported(
                         report,
                         "Charts",
-                        "SHEETS.CHART.SERIES_LENGTH_UNSUPPORTED",
+                        global::OfficeIMO.OfficeDiagnosticCodes.SheetsChartSeriesLengthUnsupported,
                         snapshot.Name,
                         policy);
                     continue;
@@ -327,14 +327,14 @@ namespace OfficeIMO.Excel.GoogleSheets {
             }
         }
 
-        private static bool TryMapChartType(ExcelChartType type, out string chartType) {
+        private static bool TryMapChartType(OfficeChartType type, out string chartType) {
             chartType = type switch {
-                ExcelChartType.ColumnClustered or ExcelChartType.ColumnStacked or ExcelChartType.ColumnStacked100 => "COLUMN",
-                ExcelChartType.BarClustered or ExcelChartType.BarStacked or ExcelChartType.BarStacked100 => "BAR",
-                ExcelChartType.Line or ExcelChartType.LineStacked or ExcelChartType.LineStacked100 => "LINE",
-                ExcelChartType.Area or ExcelChartType.AreaStacked or ExcelChartType.AreaStacked100 => "AREA",
-                ExcelChartType.Pie or ExcelChartType.Doughnut => "PIE",
-                ExcelChartType.Scatter => "SCATTER",
+                OfficeChartType.ColumnClustered or OfficeChartType.ColumnStacked or OfficeChartType.ColumnStacked100 => "COLUMN",
+                OfficeChartType.BarClustered or OfficeChartType.BarStacked or OfficeChartType.BarStacked100 => "BAR",
+                OfficeChartType.Line or OfficeChartType.LineStacked or OfficeChartType.LineStacked100 => "LINE",
+                OfficeChartType.Area or OfficeChartType.AreaStacked or OfficeChartType.AreaStacked100 => "AREA",
+                OfficeChartType.Pie or OfficeChartType.Doughnut => "PIE",
+                OfficeChartType.Scatter => "SCATTER",
                 _ => string.Empty,
             };
             return chartType.Length > 0;
@@ -352,7 +352,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
         private static IReadOnlyList<NativePivotCompilation> CompilePivotTables(
             ExcelSheet sourceSheet,
-            ExcelWorkbookSnapshot workbook,
+            ExcelWorkbookInfo workbook,
             TranslationReport report,
             UnsupportedFeatureMode policy) {
             var compilations = new List<NativePivotCompilation>();
@@ -363,7 +363,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     || string.IsNullOrWhiteSpace(pivot.SourceSheet) || string.IsNullOrWhiteSpace(pivot.SourceRange)
                     || !TryGetDestination(pivot.Location, out int destinationRow, out int destinationColumn)
                     || !TryBuildPivotFields(pivot, workbook, out var rows, out var columns, out var values)) {
-                    HandleAdvancedUnsupported(report, "PivotTables", "SHEETS.PIVOT_TABLE.UNSUPPORTED", pivot.Name, policy);
+                    HandleAdvancedUnsupported(report, "PivotTables", global::OfficeIMO.OfficeDiagnosticCodes.SheetsPivotTableUnsupported, pivot.Name, policy);
                     continue;
                 }
                 var request = new GoogleSheetsAddPivotTableRequest {
@@ -385,17 +385,17 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
         private static bool TryBuildPivotFields(
             ExcelPivotTableInfo pivot,
-            ExcelWorkbookSnapshot workbook,
+            ExcelWorkbookInfo workbook,
             out IReadOnlyList<GoogleSheetsPivotGroup> rows,
             out IReadOnlyList<GoogleSheetsPivotGroup> columns,
             out IReadOnlyList<GoogleSheetsPivotValue> values) {
             rows = Array.Empty<GoogleSheetsPivotGroup>();
             columns = Array.Empty<GoogleSheetsPivotGroup>();
             values = Array.Empty<GoogleSheetsPivotValue>();
-            ExcelWorksheetSnapshot? source = workbook.Worksheets.FirstOrDefault(sheet => string.Equals(sheet.Name, pivot.SourceSheet, StringComparison.OrdinalIgnoreCase));
-            if (source == null || !A1.TryParseRange(pivot.SourceRange!, out int startRow, out int startColumn, out _, out int endColumn)) return false;
+            ExcelWorksheetInfo? source = workbook.Worksheets.FirstOrDefault(sheet => string.Equals(sheet.Name, pivot.SourceSheet, StringComparison.OrdinalIgnoreCase));
+            if (source == null || !ExcelA1.TryParseRange(pivot.SourceRange!, out int startRow, out int startColumn, out _, out int endColumn)) return false;
             var headers = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            foreach (ExcelCellSnapshot cell in source.Cells.Where(cell =>
+            foreach (ExcelCellInfo cell in source.Cells.Where(cell =>
                          cell.Row == startRow
                          && cell.Column >= startColumn
                          && cell.Column <= endColumn)) {
@@ -421,7 +421,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             row = column = 0;
             if (string.IsNullOrWhiteSpace(location)) return false;
             string first = location!.Split(':')[0].Replace("$", string.Empty);
-            (int parsedRow, int parsedColumn) = A1.ParseCellRef(first);
+            (int parsedRow, int parsedColumn) = ExcelA1.ParseCellRef(first);
             if (parsedRow <= 0 || parsedColumn <= 0) return false;
             row = parsedRow - 1;
             column = parsedColumn - 1;

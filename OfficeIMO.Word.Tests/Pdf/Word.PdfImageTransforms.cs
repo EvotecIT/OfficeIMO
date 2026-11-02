@@ -29,9 +29,9 @@ public sealed class WordPdfImageTransformTests {
             _ => document.AddParagraph()
         };
         using var pixels = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(4, 2));
-        WordImage image = paragraph.InsertImage(pixels, "image.png", 80, 40, description: "Transformed picture");
-        image.CropLeft = 25000; image.CropTop = 12500;
-        image.CropRight = 12500; image.CropBottom = 25000;
+        WordImage image = paragraph.AddImage(pixels, "image.png", OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40), options: new OfficeIMO.Word.WordImageOptions { Description = "Transformed picture" });
+        image.CropLeftRatio = ((double?)(25000)) / 100000D; image.CropTopRatio = ((double?)(12500)) / 100000D;
+        image.CropRightRatio = ((double?)(12500)) / 100000D; image.CropBottomRatio = ((double?)(25000)) / 100000D;
         image.Rotation = rotation;
         image.HorizontalFlip = horizontal;
         image.VerticalFlip = vertical;
@@ -39,8 +39,8 @@ public sealed class WordPdfImageTransformTests {
             image.WrapText = context == "background" ? WordImageTextWrapping.BehindText : WordImageTextWrapping.InFrontOfText;
             image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
             image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-            image.HorizontalPositionOffset = 144L * 12700;
-            image.VerticalPositionOffset = 180L * 12700;
+            image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(144L * 12700);
+            image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(180L * 12700);
             if (context == "simple-position") {
                 image._Image.Anchor!.SimplePos = true;
                 image._Image.Anchor.SimplePosition!.X = 144L * 12700;
@@ -50,11 +50,11 @@ public sealed class WordPdfImageTransformTests {
         using var source = new MemoryStream(document.ToBytes());
         using WordDocument loaded = WordDocument.Load(source);
         string original = loaded._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        var options = new WordToPdfOptions { IncludePageNumbers = false };
+        var options = new WordPdfExportOptions { IncludePageNumbers = false };
         if (context.StartsWith("simple-", StringComparison.Ordinal))
-            options.PdfOptions = new PdfCore.PdfOptions { HeaderFontSize = 10, FooterFontSize = 10 };
-        PdfCore.PdfDocumentConversionResult conversion = loaded.ToPdfDocumentResult(options);
-        byte[] pdf = conversion.Value.ToBytes();
+            options.PdfOptions = new PdfCore.PdfCreateOptions { HeaderFontSize = global::OfficeIMO.OfficeLength.Points(10), FooterFontSize = global::OfficeIMO.OfficeLength.Points(10) };
+        PdfCore.PdfDocumentConversionResult conversion = loaded.ConvertToPdfWithEvidence(options);
+        byte[] pdf = conversion.ToBytes();
         PdfCore.PdfImagePlacement placement = Assert.Single(PdfCore.PdfImageExtractor.ExtractImagePlacements(pdf));
 
         // 60 by 30 points is the authored visible frame; each crop axis leaves 62.5% of the source.
@@ -67,7 +67,7 @@ public sealed class WordPdfImageTransformTests {
         Assert.Equal(Math.Cos(radians) * scaleY, placement.D, 3);
         Assert.NotNull(placement.Clip);
         Assert.Equal(original, loaded._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "NativeAnchoredImageFlowed");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "native-anchored-image-flowed");
         if (context is "foreground" or "background" or "simple-position") {
             double centerX = 174D;
             PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(pdf);

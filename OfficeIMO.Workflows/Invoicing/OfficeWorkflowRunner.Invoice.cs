@@ -1,15 +1,21 @@
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Internal;
 using OfficeIMO.Invoicing;
+#if NET8_0_OR_GREATER
 using OfficeIMO.Invoicing.Validation;
+#endif
 
 namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner : IOfficeInvoiceWorkflowRunner {
     /// <summary>Executes shared invoice operations through bounded source snapshots and the existing local/provider publication owner.</summary>
     public async Task<OfficeInvoiceStorageWorkflowResult> RunInvoiceAsync(OfficeInvoiceStorageWorkflowRequest request,
-        InvoiceValidator? validator = null, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(request);
+
+#if NET8_0_OR_GREATER
+        InvoiceValidator? validator = null,
+#endif
+        CancellationToken cancellationToken = default) {
+        if (request == null) throw new ArgumentNullException(nameof(request));
         var diagnostics = new List<OfficeWorkflowDiagnostic>();
         var inputs = new WorkflowInputSnapshots();
         OfficeInvoiceWorkflowResult? workflow = null;
@@ -26,7 +32,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeInvoiceWorkflowRunner 
             OfficeInvoiceWorkflowRequest.ValidateContract(operation, target, release, edits);
             if (operation != OfficeInvoiceWorkflowOperation.EditSource && edits != null)
                 throw new ArgumentException("Source replacements require EditSource.");
-            if (!Enum.IsDefined(policy)) throw new ArgumentOutOfRangeException(nameof(request.ConflictPolicy));
+            if (!OfficeRuntimeCompatibility.IsDefined(policy)) throw new ArgumentOutOfRangeException(nameof(request.ConflictPolicy));
             if (maximumInput is <= 0 or > InvoiceProfileDeclaration.MaximumXmlBytes || maximumOutput <= 0)
                 throw new ArgumentException("Invoice input must be bounded to 16 MiB and output requires a positive byte limit.");
             bool writes = operation is OfficeInvoiceWorkflowOperation.Convert or OfficeInvoiceWorkflowOperation.EditSource or
@@ -36,14 +42,14 @@ public sealed partial class OfficeWorkflowRunner : IOfficeInvoiceWorkflowRunner 
                 ? ValidateLocalOutput(request.OutputPath) : OfficeStorageIdentity.Normalize(request.OutputPath);
             if (writes != (output != null) || !writes && outputStream != null)
                 throw new ArgumentException("Only writing invoice operations require and accept an output destination.");
-            if (outputStream != null && policy != OfficeWorkflowConflictPolicy.Replace)
+            if (outputStream != null && policy != OfficePublicationPolicy.Replace)
                 throw new ArgumentException("Provider output requires Replace after direct-write confirmation.");
             if (writes) {
                 string extension = operation is OfficeInvoiceWorkflowOperation.Convert or OfficeInvoiceWorkflowOperation.EditSource ? ".xml" : ".pdf";
                 if (!string.Equals(Path.GetExtension(outputStream?.Name ?? output), extension, StringComparison.OrdinalIgnoreCase))
                     throw new ArgumentException("The output filename requires " + extension + " for the selected invoice operation.");
                 if (OfficeStorageIdentity.AreEquivalent(input, output!)) throw new IOException("Invoice output must be separate from its source.");
-                if (outputStream == null && policy == OfficeWorkflowConflictPolicy.Fail && (File.Exists(output) || Directory.Exists(output)))
+                if (outputStream == null && policy == OfficePublicationPolicy.Fail && (File.Exists(output) || Directory.Exists(output)))
                     throw new IOException("Invoice output already exists.");
             }
             inputStream ??= new OfficeWorkflowStreamInput(Path.GetFileName(input), token => {
@@ -53,13 +59,17 @@ public sealed partial class OfficeWorkflowRunner : IOfficeInvoiceWorkflowRunner 
             });
             string snapshot = await inputs.CaptureOneAsync(input, inputStream, maximumInput, cancellationToken).ConfigureAwait(false);
             var guard = inputs.Guard(hostGuard, maximumInput, [input], outputStream);
-            byte[] xml = await File.ReadAllBytesAsync(snapshot, cancellationToken).ConfigureAwait(false);
+            byte[] xml = await OfficeRuntimeCompatibility.ReadAllBytesAsync(snapshot, cancellationToken).ConfigureAwait(false);
             var memory = operation == OfficeInvoiceWorkflowOperation.EditSource
                 ? OfficeInvoiceWorkflowRequest.ForSourceEdit(xml, edits!, release, inputStream.Name)
                 : new OfficeInvoiceWorkflowRequest(xml, operation, target, release, layout, pdfOptions, inputStream.Name);
             workflow = (await OfficeInvoiceBufferWorkflow.RunBatchAsync([memory], new() {
                 MaximumInputBytes = maximumInput, MaximumOutputBytes = maximumOutput
-            }, validator, cancellationToken).ConfigureAwait(false))[0];
+            },
+#if NET8_0_OR_GREATER
+            validator,
+#endif
+            cancellationToken).ConfigureAwait(false))[0];
             if (!workflow.Succeeded) return Result(OfficeWorkflowStatus.Failed, null, "Invoice execution failed; no artifact was published.");
             if (!writes) return Result(OfficeWorkflowStatus.Completed, null, "Invoice operation completed. Check the separate model and standards findings.");
             cancellationToken.ThrowIfCancellationRequested();
@@ -67,7 +77,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeInvoiceWorkflowRunner 
                 : providerDirectory = OfficeTemporaryDirectory.Create("officeimo-invoice-output-");
             Directory.CreateDirectory(directory);
             staging = Path.Combine(directory, ".invoice-" + Guid.NewGuid().ToString("N") + ".tmp");
-            await File.WriteAllBytesAsync(staging, workflow.ToOutputBytes()!, cancellationToken).ConfigureAwait(false);
+            await OfficeRuntimeCompatibility.WriteAllBytesAsync(staging, workflow.ToOutputBytes()!, cancellationToken).ConfigureAwait(false);
             inputs.Dispose();
             if (outputStream != null) {
                 var outcome = await PublishProviderArtifactAsync(staging, output!, outputStream, maximumOutput, guard, () => {

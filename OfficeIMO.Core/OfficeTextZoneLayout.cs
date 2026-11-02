@@ -5,7 +5,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Describes reusable bounded text zones inside a horizontal rendering area.
 /// </summary>
-public sealed class OfficeTextZoneLayout {
+internal sealed class OfficeTextZoneLayout {
     private OfficeTextZoneLayout(OfficeTextZone left, OfficeTextZone center, OfficeTextZone right) {
         Left = left;
         Center = center;
@@ -61,7 +61,7 @@ public sealed class OfficeTextZoneLayout {
 /// <summary>
 /// Describes one bounded text zone and the anchor coordinate for its text alignment.
 /// </summary>
-public readonly struct OfficeTextZone {
+internal readonly struct OfficeTextZone {
     /// <summary>
     /// Initializes a new bounded text zone.
     /// </summary>

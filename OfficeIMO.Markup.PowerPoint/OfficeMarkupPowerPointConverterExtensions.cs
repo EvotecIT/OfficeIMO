@@ -7,17 +7,17 @@ namespace OfficeIMO.Markup.PowerPoint;
 /// <summary>Typed OfficeIMO Markup to PowerPoint conversion helpers.</summary>
 public static class OfficeMarkupPowerPointConverterExtensions {
     /// <summary>Converts presentation-profile markup to an editable detached presentation.</summary>
-    public static PowerPointPresentation ToPowerPointPresentation(
+    public static PowerPointDocument ToPowerPointDocument(
         this OfficeMarkupDocument document,
         MarkupToPowerPointOptions? options = null) {
-        OfficeMarkupPowerPointConversionResult result = document.ToPowerPointPresentationResult(options);
+        OfficeMarkupPowerPointConversionResult result = document.ToPowerPointDocumentResult(options);
         if (result.Succeeded) return result.Value;
         result.Value.Dispose();
         return result.RequireValue();
     }
 
     /// <summary>Converts presentation-profile markup and returns the presentation with structured evidence.</summary>
-    public static OfficeMarkupPowerPointConversionResult ToPowerPointPresentationResult(
+    public static OfficeMarkupPowerPointConversionResult ToPowerPointDocumentResult(
         this OfficeMarkupDocument document,
         MarkupToPowerPointOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
@@ -31,7 +31,7 @@ public static class OfficeMarkupPowerPointConverterExtensions {
         this OfficeMarkupDocument document,
         string path,
         MarkupToPowerPointOptions? options = null) {
-        OfficeMarkupPowerPointConversionResult result = document.ToPowerPointPresentationResult(options);
+        OfficeMarkupPowerPointConversionResult result = document.ToPowerPointDocumentResult(options);
         using (result.Value) result.RequireValue().Save(path);
         return result.Report;
     }
@@ -41,7 +41,7 @@ public static class OfficeMarkupPowerPointConverterExtensions {
         this OfficeMarkupDocument document,
         Stream stream,
         MarkupToPowerPointOptions? options = null) {
-        OfficeMarkupPowerPointConversionResult result = document.ToPowerPointPresentationResult(options);
+        OfficeMarkupPowerPointConversionResult result = document.ToPowerPointDocumentResult(options);
         using (result.Value) result.RequireValue().Save(stream);
         return result.Report;
     }
@@ -53,7 +53,7 @@ public static class OfficeMarkupPowerPointConverterExtensions {
         MarkupToPowerPointOptions? options = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        OfficeMarkupPowerPointConversionResult result = document.ToPowerPointPresentationResult(options);
+        OfficeMarkupPowerPointConversionResult result = document.ToPowerPointDocumentResult(options);
         using (result.Value) await result.RequireValue().SaveAsync(path, cancellationToken).ConfigureAwait(false);
         return result.Report;
     }
@@ -65,7 +65,7 @@ public static class OfficeMarkupPowerPointConverterExtensions {
         MarkupToPowerPointOptions? options = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        OfficeMarkupPowerPointConversionResult result = document.ToPowerPointPresentationResult(options);
+        OfficeMarkupPowerPointConversionResult result = document.ToPowerPointDocumentResult(options);
         using (result.Value) await result.RequireValue().SaveAsync(stream, cancellationToken).ConfigureAwait(false);
         return result.Report;
     }

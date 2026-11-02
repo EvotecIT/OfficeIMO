@@ -66,7 +66,7 @@ public sealed partial class PdfTaggedMergeTests {
         Assert.Contains("Plain attachment", independent.GetPage(2 - taggedPage).Text);
     }
 
-    private static byte[] Report(string title, string language) => PdfDocument.Create(new PdfOptions {
+    private static byte[] Report(string title, string language) => PdfDocument.Create(new PdfCreateOptions {
         Language = language
     }).TaggedPdfCatalogMarkers().H1(title + " report")
         .Paragraph(paragraph => paragraph.Text(title + " report details")).ToBytes();

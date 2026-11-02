@@ -27,9 +27,22 @@ public sealed partial class PdfDocumentPages {
         return BookmarkPageRanges(_document.ReadOptions, default, bookmarkTitles);
     }
 
-    private IReadOnlyList<PdfBookmarkPageRange> BookmarkPageRanges(PdfLoadOptions? options, CancellationToken cancellationToken, params string[] bookmarkTitles) {
+    /// <summary>Returns sections at a one-based outline level, retaining nested pages up to the next bookmark at the same or an outer level.</summary>
+    public IReadOnlyList<PdfBookmarkPageRange> BookmarkPageRanges(int level, params string[] bookmarkTitles) =>
+        BookmarkPageRanges(level, CancellationToken.None, bookmarkTitles);
+
+    /// <summary>Returns outline-level sections with cancellation and optional exact title selection.</summary>
+    public IReadOnlyList<PdfBookmarkPageRange> BookmarkPageRanges(int level, CancellationToken cancellationToken, params string[] bookmarkTitles) {
+        if (level < 1) throw new ArgumentOutOfRangeException(nameof(level), "Outline levels are one-based.");
+        return GetBookmarkPageRanges(_document.ReadOptions, level, cancellationToken, bookmarkTitles);
+    }
+
+    private IReadOnlyList<PdfBookmarkPageRange> BookmarkPageRanges(PdfLoadOptions? options, CancellationToken cancellationToken, params string[] bookmarkTitles) =>
+        GetBookmarkPageRanges(options, null, cancellationToken, bookmarkTitles);
+
+    private IReadOnlyList<PdfBookmarkPageRange> GetBookmarkPageRanges(PdfLoadOptions? options, int? level, CancellationToken cancellationToken, params string[] bookmarkTitles) {
         PdfDocumentInfo info = _document.Inspect(options, cancellationToken);
-        PdfBookmarkPageRange[] allRanges = BuildBookmarkPageRanges(info, cancellationToken);
+        PdfBookmarkPageRange[] allRanges = BuildBookmarkPageRanges(info, cancellationToken, level);
         if (bookmarkTitles is null || bookmarkTitles.Length == 0) {
             return allRanges;
         }
@@ -74,21 +87,21 @@ public sealed partial class PdfDocumentPages {
     /// <summary>
     /// Attempts to create one PDF per page, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfDocument>> SplitResult(PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfDocument>> SplitResult(PdfLoadOptions? options = null) {
         return TryPageExtractionOperation<IReadOnlyList<PdfDocument>>("Split pages", effectiveOptions => Split(effectiveOptions), options);
     }
 
     /// <summary>
     /// Attempts to create PDFs containing consecutive groups of the requested page count.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfDocument>> SplitResult(int pagesPerDocument, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfDocument>> SplitResult(int pagesPerDocument, PdfLoadOptions? options = null) {
         return TryPageExtractionOperation<IReadOnlyList<PdfDocument>>("Split page groups", effectiveOptions => Split(pagesPerDocument, effectiveOptions), options);
     }
 
     /// <summary>
     /// Attempts to create one PDF for each supplied page selection.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfDocument>> SplitResult(IReadOnlyList<PdfPageSelection> selections, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfDocument>> SplitResult(IReadOnlyList<PdfPageSelection> selections, PdfLoadOptions? options = null) {
         Guard.NotNull(selections, nameof(selections));
         if (selections.Count == 0) {
             return TryPageExtractionOperation<IReadOnlyList<PdfDocument>>(
@@ -103,7 +116,7 @@ public sealed partial class PdfDocumentPages {
     /// <summary>
     /// Attempts to create one PDF for each supplied inclusive page range, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfDocument>> SplitResult(IEnumerable<PdfPageRange> pageRanges, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfDocument>> SplitResult(IEnumerable<PdfPageRange> pageRanges, PdfLoadOptions? options = null) {
         Guard.NotNull(pageRanges, nameof(pageRanges));
         return TryPageExtractionOperation<IReadOnlyList<PdfDocument>>("Split page ranges", effectiveOptions => Split(pageRanges, effectiveOptions), options);
     }
@@ -111,14 +124,14 @@ public sealed partial class PdfDocumentPages {
     /// <summary>
     /// Attempts to create one PDF for each parsed page range, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfDocument>> SplitResult(string pageRanges, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfDocument>> SplitResult(string pageRanges, PdfLoadOptions? options = null) {
         return TryPageExtractionOperation<IReadOnlyList<PdfDocument>>("Split page ranges", effectiveOptions => Split(PdfPageRange.ParseMany(pageRanges), effectiveOptions), options);
     }
 
     /// <summary>
     /// Attempts to create one PDF for each outline/bookmark-derived page range.
     /// </summary>
-    public PdfOperationResult<IReadOnlyList<PdfDocument>> SplitByBookmarksResult(IReadOnlyList<string>? bookmarkTitles = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<IReadOnlyList<PdfDocument>> SplitByBookmarksResult(IReadOnlyList<string>? bookmarkTitles = null, PdfLoadOptions? options = null) {
         return TryPageExtractionOperation<IReadOnlyList<PdfDocument>>(
             "Split bookmarks",
             effectiveOptions => SplitByBookmarks(effectiveOptions, default, bookmarkTitles is null ? Array.Empty<string>() : bookmarkTitles.ToArray()),
@@ -153,7 +166,7 @@ public sealed partial class PdfDocumentPages {
     /// <summary>
     /// Attempts to create a new PDF with selected pages deleted, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> DeleteResult(PdfPageSelection selection, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> DeleteResult(PdfPageSelection selection, PdfLoadOptions? options = null) {
         Guard.NotNull(selection, nameof(selection));
         return _document.TryMutationOperation("Delete pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages, () => Delete(selection, options ?? _document.ReadOptions), options);
     }
@@ -168,7 +181,7 @@ public sealed partial class PdfDocumentPages {
     /// <summary>
     /// Attempts to create a new PDF with pages described by page ranges deleted, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> DeleteResult(string pageRanges, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> DeleteResult(string pageRanges, PdfLoadOptions? options = null) {
         return _document.TryMutationOperation("Delete pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages, () => Delete(PdfPageSelection.Parse(pageRanges), options ?? _document.ReadOptions), options);
     }
 
@@ -200,7 +213,7 @@ public sealed partial class PdfDocumentPages {
     /// <summary>
     /// Attempts to create a new PDF with every page copied in the selected one-based order, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> ReorderResult(PdfPageSelection selection, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> ReorderResult(PdfPageSelection selection, PdfLoadOptions? options = null) {
         Guard.NotNull(selection, nameof(selection));
         return _document.TryMutationOperation("Reorder pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages, () => Reorder(selection, options ?? _document.ReadOptions), options);
     }
@@ -208,7 +221,7 @@ public sealed partial class PdfDocumentPages {
     /// <summary>
     /// Attempts to create a new PDF with pages copied in parsed page-range order, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> ReorderResult(string pageRanges, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> ReorderResult(string pageRanges, PdfLoadOptions? options = null) {
         return _document.TryMutationOperation("Reorder pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages, () => Reorder(PdfPageSelection.Parse(pageRanges), options ?? _document.ReadOptions), options);
     }
 
@@ -240,7 +253,7 @@ public sealed partial class PdfDocumentPages {
     /// <summary>
     /// Attempts to create a new PDF with selected pages duplicated, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> DuplicateResult(PdfPageSelection selection, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> DuplicateResult(PdfPageSelection selection, PdfLoadOptions? options = null) {
         Guard.NotNull(selection, nameof(selection));
         return _document.TryMutationOperation("Duplicate pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages, () => Duplicate(selection, options ?? _document.ReadOptions), options);
     }
@@ -255,7 +268,7 @@ public sealed partial class PdfDocumentPages {
     /// <summary>
     /// Attempts to create a new PDF with parsed page ranges duplicated, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> DuplicateResult(string pageRanges, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> DuplicateResult(string pageRanges, PdfLoadOptions? options = null) {
         return _document.TryMutationOperation("Duplicate pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages, () => Duplicate(PdfPageSelection.Parse(pageRanges), options ?? _document.ReadOptions), options);
     }
 
@@ -290,7 +303,7 @@ public sealed partial class PdfDocumentPages {
     /// <summary>
     /// Attempts to create a new PDF with selected pages moved before the supplied one-based page number, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> MoveResult(int insertBeforePageNumber, PdfPageSelection selection, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> MoveResult(int insertBeforePageNumber, PdfPageSelection selection, PdfLoadOptions? options = null) {
         Guard.NotNull(selection, nameof(selection));
         return _document.TryMutationOperation("Move pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages, () => Move(insertBeforePageNumber, selection, options ?? _document.ReadOptions), options);
     }
@@ -306,7 +319,7 @@ public sealed partial class PdfDocumentPages {
     /// <summary>
     /// Attempts to create a new PDF with parsed page ranges moved before the supplied one-based page number, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> MoveResult(int insertBeforePageNumber, string pageRanges, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> MoveResult(int insertBeforePageNumber, string pageRanges, PdfLoadOptions? options = null) {
         return _document.TryMutationOperation("Move pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages, () => Move(insertBeforePageNumber, PdfPageSelection.Parse(pageRanges), options ?? _document.ReadOptions), options);
     }
 
@@ -338,7 +351,7 @@ public sealed partial class PdfDocumentPages {
     /// <summary>
     /// Attempts to create a new PDF with selected pages rotated, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> RotateResult(int rotationDegrees, PdfPageSelection selection, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> RotateResult(int rotationDegrees, PdfPageSelection selection, PdfLoadOptions? options = null) {
         Guard.NotNull(selection, nameof(selection));
         return _document.TryMutationOperation("Rotate pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.RotatePages, () => Rotate(rotationDegrees, selection, options ?? _document.ReadOptions), options);
     }
@@ -353,7 +366,7 @@ public sealed partial class PdfDocumentPages {
     /// <summary>
     /// Attempts to create a new PDF with parsed page ranges rotated, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> RotateResult(int rotationDegrees, string pageRanges, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> RotateResult(int rotationDegrees, string pageRanges, PdfLoadOptions? options = null) {
         return _document.TryMutationOperation("Rotate pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.RotatePages, () => Rotate(rotationDegrees, PdfPageSelection.Parse(pageRanges), options ?? _document.ReadOptions), options);
     }
 
@@ -363,7 +376,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     /// <summary>Resizes selected pages to the supplied page size.</summary>
-    public PdfDocument Resize(PageSize pageSize, params int[] pageNumbers) {
+    public PdfDocument Resize(PdfPageSize pageSize, params int[] pageNumbers) {
         return _document.ApplyMutation(input => PdfPageEditor.ResizePages(input, pageSize, _document.ReadOptions, pageNumbers));
     }
 
@@ -405,14 +418,14 @@ public sealed partial class PdfDocumentPages {
     public PdfDocument SetArtBox(double left, double bottom, double right, double top, params int[] pageNumbers) =>
         SetPageBox(PdfPageBoundaryBox.ArtBox, left, bottom, right, top, pageNumbers);
 
-    private static PdfBookmarkPageRange[] BuildBookmarkPageRanges(PdfDocumentInfo info, CancellationToken cancellationToken) {
+    private static PdfBookmarkPageRange[] BuildBookmarkPageRanges(PdfDocumentInfo info, CancellationToken cancellationToken, int? level = null) {
         var outlines = new List<PdfOutlineItem>();
         FlattenOutlines(info.Outlines, outlines, cancellationToken);
 
         var anchors = new List<PdfOutlineItem>();
         for (int i = 0; i < outlines.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (outlines[i].PageNumber.HasValue) {
+            if ((!level.HasValue || outlines[i].Level <= level.Value) && outlines[i].PageNumber.HasValue) {
                 int pageNumber = outlines[i].PageNumber!.Value;
                 if (pageNumber >= 1 && pageNumber <= info.PageCount) {
                     anchors.Add(outlines[i]);
@@ -432,6 +445,7 @@ public sealed partial class PdfDocumentPages {
         for (int i = 0; i < anchors.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfOutlineItem anchor = anchors[i];
+            if (level.HasValue && anchor.Level != level.Value) continue;
             int firstPage = anchor.PageNumber!.Value;
             int lastPage = info.PageCount;
             for (int j = i + 1; j < anchors.Count; j++) {

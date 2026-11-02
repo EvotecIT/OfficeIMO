@@ -4,10 +4,10 @@ namespace OfficeIMO.Rtf.Pdf;
 
 internal static partial class RtfPdfConverter {
     private static void RenderContinuousSectionBlocks(RtfDocument document, RtfSection section, int sectionIndex,
-        PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state, PdfCore.PdfOptions defaults,
-        bool canContinueRunningStories, ref RtfSection currentPageSection, ref PdfCore.PdfOptions currentPageOptions) {
+        PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state, PdfCore.PdfCreateOptions defaults,
+        bool canContinueRunningStories, ref RtfSection currentPageSection, ref PdfCore.PdfCreateOptions currentPageOptions) {
         if (canContinueRunningStories && TryPrepareContinuousRunningStoryOptions(document, section,
-            currentPageSection, currentPageOptions, defaults, options, out PdfCore.PdfOptions? nextPageOptions)) {
+            currentPageSection, currentPageOptions, defaults, options, out PdfCore.PdfCreateOptions? nextPageOptions)) {
             var page = new PdfCore.PdfPageBuilder(pdf, nextPageOptions!);
             ApplySectionHeaderFooters(document, section, page, pdf, options, state);
             // A source section can begin partway through a physical page. The
@@ -43,8 +43,8 @@ internal static partial class RtfPdfConverter {
                 inline is RtfBreak { Kind: not RtfBreakKind.Column }));
 
     private static bool TryPrepareContinuousRunningStoryOptions(RtfDocument document, RtfSection section,
-        RtfSection previousSection, PdfCore.PdfOptions previousOptions, PdfCore.PdfOptions defaults,
-        RtfToPdfOptions options, out PdfCore.PdfOptions? nextPageOptions) {
+        RtfSection previousSection, PdfCore.PdfCreateOptions previousOptions, PdfCore.PdfCreateOptions defaults,
+        RtfToPdfOptions options, out PdfCore.PdfCreateOptions? nextPageOptions) {
         nextPageOptions = null;
         if (!options.IncludeHeaderFooters ||
             HasRunningStoryPresentationOverrides(options.PdfOptions, isFooter: false) ||
@@ -72,7 +72,7 @@ internal static partial class RtfPdfConverter {
 
         // Reuse normal section setup on detached options. This neither adds
         // a PageBlock nor switches the current physical options or cursor.
-        PdfCore.PdfOptions requested = defaults.Clone();
+        PdfCore.PdfCreateOptions requested = defaults.Clone();
         ApplyPageSetup(document, section, requested, defaults);
         if (requested.PageWidth != previousOptions.PageWidth || requested.PageHeight != previousOptions.PageHeight ||
             requested.MarginLeft != previousOptions.MarginLeft || requested.MarginRight != previousOptions.MarginRight ||

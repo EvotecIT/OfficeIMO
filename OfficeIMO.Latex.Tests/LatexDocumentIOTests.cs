@@ -51,7 +51,7 @@ public sealed class LatexDocumentIOTests {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             document.SaveAsync(output, cancellationToken: cancellation.Token));
 
         Assert.Equal(new byte[] { 1, 2, 3 }, output.ToArray());

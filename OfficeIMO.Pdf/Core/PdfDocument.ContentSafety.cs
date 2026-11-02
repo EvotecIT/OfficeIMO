@@ -7,7 +7,7 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
     /// <summary>Inspects decoded PDF text for exact paint, clipping, geometry, contrast, and Unicode evidence.</summary>
-    public static OfficeContentSafetyReport InspectContentSafety(
+    internal static OfficeContentSafetyReport InspectContentSafety(
         string filePath,
         OfficeContentSafetyOptions? options = null,
         PdfLoadOptions? readOptions = null) {
@@ -17,7 +17,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Inspects encoded PDF bytes without treating concealment as evidence of AI authorship.</summary>
-    public static OfficeContentSafetyReport InspectContentSafety(
+    internal static OfficeContentSafetyReport InspectContentSafety(
         byte[] pdf,
         OfficeContentSafetyOptions? options = null,
         PdfLoadOptions? readOptions = null) {
@@ -119,7 +119,7 @@ public sealed partial class PdfDocument {
                 } else if (span.Advance <= 0.01D || span.FontSize <= 0D) {
                     kind = OfficeContentConcealmentKind.ZeroDimension;
                     evidence = "The decoded PDF text span has zero or near-zero painted geometry.";
-                } else if (span.FontSize <= builder.Options.MaximumTinyFontSizePoints) {
+                } else if (span.FontSize <= builder.Options.MaximumTinyFontSize.ToPoints()) {
                     kind = OfficeContentConcealmentKind.TinyText;
                     evidence = "The decoded PDF font size is " + span.FontSize.ToString("0.###", CultureInfo.InvariantCulture) + "pt.";
                 } else if (IsPdfSpanOffCanvas(span, pageWidth, pageHeight)) {
@@ -254,7 +254,7 @@ public sealed partial class PdfDocument {
             if (currentValues is not null &&
                 reportedValueOwners.Add(valueOwnerKey) &&
                 (hiddenChoiceExportValue ||
-                 !HasVisibleWidgetForValueOwner(document, formFields, fieldIndex, defaultValue: false, concealedAnnotationObjectNumbers, widgetAppearanceBudgets, builder.Options.MaximumTinyFontSizePoints))) {
+                 !HasVisibleWidgetForValueOwner(document, formFields, fieldIndex, defaultValue: false, concealedAnnotationObjectNumbers, widgetAppearanceBudgets, builder.Options.MaximumTinyFontSize.ToPoints()))) {
                 builder.Add(
                     OfficeContentConcealmentKind.HiddenByProperty,
                     OfficeContentSafetyRisk.ContextDependent,
@@ -274,7 +274,7 @@ public sealed partial class PdfDocument {
                 !string.Equals(defaultValues, currentValues, StringComparison.Ordinal) &&
                 (distinctStoredDefault ||
                  hiddenChoiceDefaultExportValue ||
-                 !HasVisibleWidgetForValueOwner(document, formFields, fieldIndex, defaultValue: true, concealedAnnotationObjectNumbers, widgetAppearanceBudgets, builder.Options.MaximumTinyFontSizePoints)) &&
+                 !HasVisibleWidgetForValueOwner(document, formFields, fieldIndex, defaultValue: true, concealedAnnotationObjectNumbers, widgetAppearanceBudgets, builder.Options.MaximumTinyFontSize.ToPoints())) &&
                 reportedDefaultValueOwners.Add(defaultValueOwnerKey)) {
                 builder.Add(
                     OfficeContentConcealmentKind.HiddenByProperty,

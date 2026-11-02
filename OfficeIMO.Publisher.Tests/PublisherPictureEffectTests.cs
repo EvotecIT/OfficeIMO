@@ -23,7 +23,7 @@ public sealed class PublisherPictureEffectTests {
         var pdf = document.ToPdfDocumentResult();
         Assert.Contains(document.ReadReport, pdf.SourceConversionReports);
         Assert.True(pdf.HasLoss);
-        Assert.Equal(document.Pages.Count, PdfReadDocument.Open(pdf.ToBytes()).Pages.Count);
+        Assert.Equal(document.Pages.Count, PdfDocument.Load(new System.IO.MemoryStream(pdf.ToBytes())).Pages.Count);
         Assert.True(codec.Calls > 0);
     }
 

@@ -20,7 +20,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Regenerate a TOC in an existing document object.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Report.docx
+///   <code>$doc = Open-OfficeWord -Path .\Report.docx
 /// $doc | Update-OfficeWordTableOfContents -Regenerate
 /// $doc | Save-OfficeWord -Path .\Report-RegeneratedToc.docx</code>
 ///   <para>Uses OfficeIMO's regenerate path, then saves the updated document.</para>

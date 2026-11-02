@@ -48,7 +48,7 @@ public sealed class BookManuscriptImporterTests {
 
     [Fact]
     public async Task MarkdownImportPreservesHeadingsListsTablesCodeAndFootnoteLinks() {
-        var markdown = MarkdownDoc.Parse("---\ntitle: A manuscript\nlanguage: pl\nauthor: Writer\n---\n# Opening\n\n[Next](#closing) and a note[^a].\n\n- List item\n\n| Name | Value |\n| --- | --- |\n| A | B |\n\n```cs\nvar answer = 42;\n```\n\n# Closing\n\nFinal text.\n\n[^a]: A preserved footnote.");
+        var markdown = MarkdownDocument.Parse("---\ntitle: A manuscript\nlanguage: pl\nauthor: Writer\n---\n# Opening\n\n[Next](#closing) and a note[^a].\n\n- List item\n\n| Name | Value |\n| --- | --- |\n| A | B |\n\n```cs\nvar answer = 42;\n```\n\n# Closing\n\nFinal text.\n\n[^a]: A preserved footnote.");
         EpubManuscriptResult result = await BookManuscriptImporter.ImportMarkdownAsync(markdown, new EpubManuscriptOptions());
         Assert.True(result.Succeeded, string.Join("; ", result.Report.FidelityDiagnostics.Select(item => item.Message)));
         Assert.Equal("A manuscript", result.Publication.Title);

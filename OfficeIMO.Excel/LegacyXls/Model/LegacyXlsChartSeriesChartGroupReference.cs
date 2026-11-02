@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes a SerToCrt link from a chart series to its containing chart group.
     /// </summary>
-    public sealed class LegacyXlsChartSeriesChartGroupReference {
+    internal sealed class LegacyXlsChartSeriesChartGroupReference {
         internal LegacyXlsChartSeriesChartGroupReference(ushort chartGroupIndex) {
             ChartGroupIndex = chartGroupIndex;
         }

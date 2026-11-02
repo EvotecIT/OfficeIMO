@@ -12,7 +12,7 @@ public sealed class SpreadsheetCustomValidationConversionTests {
     [Fact]
     public void RelativeCellComparisonRoundTripsWithItsBaseCell() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data Set");
+        ExcelSheet sheet = source.AddSheet("Data Set");
         sheet.ValidationCustomFormula("C5:C7", "C5>0", allowBlank: false,
             errorTitle: "Positive", errorMessage: "Enter a positive number.");
 
@@ -42,8 +42,8 @@ public sealed class SpreadsheetCustomValidationConversionTests {
     [Fact]
     public void FunctionsAndDisjointCustomRangesRemainExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
-        source.AddWorksheet("Other");
+        ExcelSheet sheet = source.AddSheet("Data");
+        source.AddSheet("Other");
         sheet.ValidationCustomFormula("C1:C2", "SUM(A1:B1)>10");
         sheet.ValidationCustomFormula("E1 E3", "E1>0");
         sheet.ValidationCustomFormula("G1", "Other!A1>0");
@@ -72,7 +72,7 @@ public sealed class SpreadsheetCustomValidationConversionTests {
     [InlineData("AND(ISNUMBER(D4),NOT(ISBLANK(E4)))")]
     public void TextAndCellComparisonOperandsRoundTrip(string formula) {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.ValidationCustomFormula("D4", formula);
 
         OdfConversionResult<OdsDocument> toOds = source.ToOpenDocumentResult();
@@ -102,7 +102,7 @@ public sealed class SpreadsheetCustomValidationConversionTests {
     [Fact]
     public void MalformedCustomComparisonRemainsExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
-        source.AddWorksheet("Data").ValidationCustomFormula("C5", "C5>0()");
+        source.AddSheet("Data").ValidationCustomFormula("C5", "C5>0()");
 
         OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
         Assert.Empty(result.Value.Validations);
@@ -125,7 +125,7 @@ public sealed class SpreadsheetCustomValidationConversionTests {
     [InlineData("ISBLANK(\"text\")")]
     public void UnsupportedBooleanCustomFormulaRemainsExplicitLoss(string formula) {
         using ExcelDocument source = ExcelDocument.Create();
-        source.AddWorksheet("Data").ValidationCustomFormula("C5", formula);
+        source.AddSheet("Data").ValidationCustomFormula("C5", formula);
 
         OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
         Assert.Empty(result.Value.Validations);

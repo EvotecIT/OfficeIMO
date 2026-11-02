@@ -14,7 +14,7 @@ public sealed class FootnoteRefInline : MarkdownInline, IRenderableMarkdownInlin
         var encodedLabel = HtmlTextEncoder.Encode(Label, options);
         return $"<sup id=\"fnref:{encodedLabel}\"><a href=\"#fn:{encodedLabel}\">{encodedLabel}</a></sup>";
     }
-    string IContextualHtmlMarkdownInline.RenderHtml(HtmlOptions options) {
+    string IContextualHtmlMarkdownInline.RenderHtml(MarkdownHtmlExportOptions options) {
         if (options?.GitHubFootnoteHtml != true) {
             return RenderHtml();
         }

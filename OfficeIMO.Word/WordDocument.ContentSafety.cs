@@ -13,12 +13,12 @@ namespace OfficeIMO.Word;
 
 public partial class WordDocument {
     /// <summary>Inspects DOCX-family content that remains machine-readable while hidden or outside the primary document story.</summary>
-    public static OfficeContentSafetyReport InspectContentSafety(
+    internal static OfficeContentSafetyReport InspectContentSafety(
         string filePath,
         OfficeContentSafetyOptions? options = null) => InspectContentSafety(filePath, options, CancellationToken.None);
 
     /// <summary>Inspects a saved Word package with cancellation during bounded input reading and text traversal.</summary>
-    public static OfficeContentSafetyReport InspectContentSafety(
+    internal static OfficeContentSafetyReport InspectContentSafety(
         string filePath, OfficeContentSafetyOptions? options, CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
@@ -26,12 +26,12 @@ public partial class WordDocument {
     }
 
     /// <summary>Inspects encoded DOCX, DOCM, DOTX, or DOTM bytes.</summary>
-    public static OfficeContentSafetyReport InspectContentSafety(
+    internal static OfficeContentSafetyReport InspectContentSafety(
         byte[] documentBytes,
         OfficeContentSafetyOptions? options = null) => InspectContentSafety(documentBytes, options, CancellationToken.None);
 
     /// <summary>Inspects encoded Word content while observing cancellation between native text surfaces.</summary>
-    public static OfficeContentSafetyReport InspectContentSafety(
+    internal static OfficeContentSafetyReport InspectContentSafety(
         byte[] documentBytes, OfficeContentSafetyOptions? options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (documentBytes == null) throw new ArgumentNullException(nameof(documentBytes));
@@ -134,7 +134,7 @@ public partial class WordDocument {
                 } else if (run.Ancestors<W.DeletedRun>().Any()) {
                     kind = OfficeContentConcealmentKind.HiddenByProperty;
                     evidence = "The run is retained as deleted revision content and is not ordinary current text.";
-                } else if (style.FontSizePoints.HasValue && style.FontSizePoints.Value <= builder.Options.MaximumTinyFontSizePoints) {
+                } else if (style.FontSizePoints.HasValue && style.FontSizePoints.Value <= builder.Options.MaximumTinyFontSize.ToPoints()) {
                     kind = OfficeContentConcealmentKind.TinyText;
                     evidence = "The effective Word font size is " + style.FontSizePoints.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt.";
                 } else if (HasZeroDrawingExtent(run)) {

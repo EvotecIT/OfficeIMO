@@ -22,26 +22,6 @@ internal static class WordTextRunService
         }
     }
 
-    internal static WordParagraph AddText(
-        WordParagraph paragraph,
-        string text,
-        bool bold,
-        bool italic,
-        WordUnderlineStyle? underline,
-        bool strike,
-        string? color,
-        double? fontSize,
-        string? fontName)
-    {
-        var run = paragraph.AddFormattedText(text, bold, italic);
-        if (underline.HasValue)
-        {
-            run.SetUnderline(underline.Value);
-        }
-        ApplyAdditionalStyle(run, strike, color, null, fontSize, fontName);
-        return run;
-    }
-
     private static void ApplyRun(WordParagraph paragraph, OfficeTextRunSpec spec)
     {
         if (spec.IsLineBreak)
@@ -120,7 +100,7 @@ internal static class WordTextRunService
 
         if (fontSize.HasValue)
         {
-            run.FontSizePoints = fontSize.Value;
+            run.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(fontName))

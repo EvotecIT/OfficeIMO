@@ -21,14 +21,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeChartRenderingResult result = OfficeChartDrawingRenderer.RenderWithQuality(new OfficeChartSnapshot(
             "Quality chart",
             "Quality Report",
-            OfficeChartKind.Line,
+            OfficeChartType.Line,
             new OfficeChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 12D, 18D, 24D })
+                    new OfficeSeries("Actual", new[] { 12D, 18D, 24D })
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D));
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D)));
 
         Assert.NotNull(result.Drawing);
         Assert.NotNull(result.QualityReport);
@@ -42,14 +42,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Native extent chart",
             "Native Extents",
-            OfficeChartKind.Line,
+            OfficeChartType.Line,
             new OfficeChartData(
                 new[] { "Q1", "Q2" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 1D, 2D })
+                    new OfficeSeries("Actual", new[] { 1D, 2D })
                 }),
-            widthPoints: 180D,
-            heightPoints: 118D));
+width: global::OfficeIMO.OfficeLength.Points(180D),
+height: global::OfficeIMO.OfficeLength.Points(118D)));
 
         Assert.Equal(240D, drawing.Width);
         Assert.Equal(150D, drawing.Height);
@@ -60,14 +60,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Title padding chart",
             "Padded Title",
-            OfficeChartKind.Pie,
+            OfficeChartType.Pie,
             new OfficeChartData(
                 new[] { "Passed", "Failed" },
                 new[] {
-                    new OfficeChartSeries("Outcomes", new[] { 4D, 2D })
+                    new OfficeSeries("Outcomes", new[] { 4D, 2D })
                 }),
-            widthPoints: 320D,
-            heightPoints: 200D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(200D),
             layout: new OfficeChartLayout(
                 showDataLabels: true,
                 showDataLabelValues: true,
@@ -81,8 +81,8 @@ public class PdfDocumentChartDrawingTests {
     [Fact]
     public void ScatterRange_IncludesSharedXValuesWhenSeriesMixExplicitAndSharedCoordinates() {
         var series = new[] {
-            new OfficeChartSeries("Explicit", new[] { 4D, 5D }, new[] { 10D, 20D }),
-            new OfficeChartSeries("Shared", new[] { 1D, 2D })
+            new OfficeSeries("Explicit", new[] { 4D, 5D }, new[] { 10D, 20D }),
+            new OfficeSeries("Shared", new[] { 1D, 2D })
         };
         MethodInfo method = typeof(OfficeChartDrawingRenderer).GetMethod("GetScatterXRange", BindingFlags.NonPublic | BindingFlags.Static)!;
 
@@ -97,8 +97,8 @@ public class PdfDocumentChartDrawingTests {
     [Fact]
     public void PercentStackedRange_PreservesNegativeStacksBelowZero() {
         var series = new[] {
-            new OfficeChartSeries("Positive", new[] { 6D, 4D }),
-            new OfficeChartSeries("Negative", new[] { -3D, 2D })
+            new OfficeSeries("Positive", new[] { 6D, 4D }),
+            new OfficeSeries("Negative", new[] { -3D, 2D })
         };
         MethodInfo method = typeof(OfficeChartDrawingRenderer).GetMethod("GetPercentStackedSeriesRange", BindingFlags.NonPublic | BindingFlags.Static)!;
 
@@ -180,7 +180,7 @@ public class PdfDocumentChartDrawingTests {
         var chart = new Chart(plotArea);
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        TargetInvocationException exception = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 1 }));
+        TargetInvocationException exception = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartType.ColumnClustered, 1 }));
 
         Assert.Contains("point index", exception.InnerException?.Message);
     }
@@ -192,7 +192,7 @@ public class PdfDocumentChartDrawingTests {
             new BarGrouping { Val = BarGroupingValues.Clustered },
             CreateBarSeries(0U, new[] { "Q1", "Q2" }, new[] { 1D, 2D }),
             CreateBarSeries(1U, new[] { "Q1", "Q2", "Q3", "Q4" }, new[] { 3D, 4D, 5D, 6D }));
-        OfficeChartKind kind = OfficeChartKind.ColumnClustered;
+        OfficeChartType kind = OfficeChartType.ColumnClustered;
 
         var series = WordPdfConverterExtensions.ExtractNativeWordChartSeries(new Chart(), chart, kind,
             new Dictionary<A.SchemeColorValues, OfficeColor>(), null, out IReadOnlyList<string> categories);
@@ -210,7 +210,7 @@ public class PdfDocumentChartDrawingTests {
             chart.Append(CreateBarSeries(index, new[] { "Q1" }, new[] { 1D }));
         }
 
-        OfficeChartKind kind = OfficeChartKind.ColumnClustered;
+        OfficeChartType kind = OfficeChartType.ColumnClustered;
 
         Exception exception = Assert.ThrowsAny<Exception>(() => ExtractNativeWordChartSeries(new Chart(), chart, kind));
 
@@ -228,11 +228,11 @@ public class PdfDocumentChartDrawingTests {
             new BarDirection { Val = BarDirectionValues.Column },
             new BarGrouping { Val = BarGroupingValues.Clustered },
             barSeries);
-        OfficeChartKind kind = OfficeChartKind.ColumnClustered;
+        OfficeChartType kind = OfficeChartType.ColumnClustered;
 
         var series = ExtractNativeWordChartSeries(new Chart(), chart, kind);
 
-        OfficeChartSeries extracted = Assert.Single(series);
+        OfficeSeries extracted = Assert.Single(series);
         Assert.NotNull(extracted.PointColors);
         Assert.Null(extracted.PointColors![0]);
         Assert.Equal(highlight, extracted.PointColors[1]);
@@ -245,11 +245,11 @@ public class PdfDocumentChartDrawingTests {
             new BarGrouping { Val = BarGroupingValues.Clustered },
             new VaryColors { Val = true },
             CreateBarSeries(0U, new[] { "Q1", "Q2", "Q3" }, new[] { 1D, 2D, 3D }));
-        OfficeChartKind kind = OfficeChartKind.ColumnClustered;
+        OfficeChartType kind = OfficeChartType.ColumnClustered;
 
         var series = ExtractNativeWordChartSeries(new Chart(), chart, kind);
 
-        OfficeChartSeries extracted = Assert.Single(series);
+        OfficeSeries extracted = Assert.Single(series);
         Assert.NotNull(extracted.PointColors);
         Assert.Equal(OfficeChartDrawingRenderer.GetSeriesColor(0), extracted.PointColors![0]);
         Assert.Equal(OfficeChartDrawingRenderer.GetSeriesColor(1), extracted.PointColors[1]);
@@ -262,7 +262,7 @@ public class PdfDocumentChartDrawingTests {
         var hidden = CreateLineSeries(1U, new[] { "Q1", "Q2" }, new[] { 3D, 4D });
         hidden.InsertBefore(new Marker(new Symbol { Val = MarkerStyleValues.None }), hidden.GetFirstChild<CategoryAxisData>());
         var chart = new LineChart(visible, hidden);
-        OfficeChartKind kind = OfficeChartKind.Line;
+        OfficeChartType kind = OfficeChartType.Line;
 
         var series = ExtractNativeWordChartSeries(new Chart(), chart, kind);
 
@@ -280,7 +280,7 @@ public class PdfDocumentChartDrawingTests {
             new Legend(new LegendPosition { Val = LegendPositionValues.Top }));
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 2 })!;
+        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartType.ColumnClustered, 2 })!;
 
         Assert.NotNull(layout);
         Assert.True(layout!.ShowLegend);
@@ -296,7 +296,7 @@ public class PdfDocumentChartDrawingTests {
         var chart = new Chart(plotArea);
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 1 })!;
+        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartType.ColumnClustered, 1 })!;
 
         Assert.NotNull(layout);
         Assert.True(layout!.ShowDataLabels);
@@ -313,7 +313,7 @@ public class PdfDocumentChartDrawingTests {
         var chart = new Chart(plotArea);
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 1 })!;
+        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartType.ColumnClustered, 1 })!;
 
         Assert.NotNull(layout);
         Assert.True(layout!.ShowDataLabels);
@@ -336,7 +336,7 @@ public class PdfDocumentChartDrawingTests {
         var chart = new Chart(plotArea);
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 2 })!;
+        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartType.ColumnClustered, 2 })!;
 
         Assert.NotNull(layout);
         Assert.True(layout!.ShowDataLabels);
@@ -357,7 +357,7 @@ public class PdfDocumentChartDrawingTests {
                 new Overlay { Val = true }));
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 2 })!;
+        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartType.ColumnClustered, 2 })!;
 
         Assert.NotNull(layout);
         Assert.True(layout!.ShowLegend);
@@ -371,12 +371,12 @@ public class PdfDocumentChartDrawingTests {
         var scatterElement = new ScatterChart(new ScatterStyle { Val = ScatterStyleValues.Marker });
         var scatterPlotArea = new PlotArea(scatterElement);
         var scatterChart = new Chart(scatterPlotArea);
-        var scatterLayout = (OfficeChartLayout?)method.Invoke(null, new object[] { scatterChart, scatterElement, scatterPlotArea, OfficeChartKind.Scatter, 2 })!;
+        var scatterLayout = (OfficeChartLayout?)method.Invoke(null, new object[] { scatterChart, scatterElement, scatterPlotArea, OfficeChartType.Scatter, 2 })!;
 
         var radarElement = new RadarChart(new RadarStyle { Val = RadarStyleValues.Standard });
         var radarPlotArea = new PlotArea(radarElement);
         var radarChart = new Chart(radarPlotArea);
-        var radarLayout = (OfficeChartLayout?)method.Invoke(null, new object[] { radarChart, radarElement, radarPlotArea, OfficeChartKind.Radar, 3 })!;
+        var radarLayout = (OfficeChartLayout?)method.Invoke(null, new object[] { radarChart, radarElement, radarPlotArea, OfficeChartType.Radar, 3 })!;
 
         Assert.NotNull(scatterLayout);
         Assert.False(scatterLayout!.ConnectScatterPoints);
@@ -389,14 +389,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Scatter",
             "Scatter Axis",
-            OfficeChartKind.Scatter,
+            OfficeChartType.Scatter,
             new OfficeChartData(
                 new[] { "Alpha", "Beta", "Gamma" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 3D, 4D, 5D }, new[] { 1D, 10D, 100D })
+                    new OfficeSeries("Actual", new[] { 3D, 4D, 5D }, new[] { 1D, 10D, 100D })
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D));
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D)));
 
         var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
 
@@ -413,14 +413,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Marker scatter",
             "Marker Scatter",
-            OfficeChartKind.Scatter,
+            OfficeChartType.Scatter,
             new OfficeChartData(
                 new[] { "1", "2", "3" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 10D, 12D, 11D }, new[] { 1D, 2D, 3D }, seriesColor)
+                    new OfficeSeries("Actual", new[] { 10D, 12D, 11D }, new[] { 1D, 2D, 3D }, seriesColor)
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             layout: new OfficeChartLayout(connectScatterPoints: false)));
 
         Assert.DoesNotContain(drawing.Shapes, shape =>
@@ -438,14 +438,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Line width",
             "Line Width",
-            OfficeChartKind.Line,
+            OfficeChartType.Line,
             new OfficeChartData(
                 new[] { "Jan", "Feb", "Mar" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 10D, 14D, 12D }, null, seriesColor, null, showMarkers: false, strokeWidth: 4D)
+                    new OfficeSeries("Actual", new[] { 10D, 14D, 12D }, null, seriesColor, null, showMarkers: false, strokeWidth: global::OfficeIMO.OfficeLength.Points(4D))
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D));
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D)));
 
         Assert.Contains(drawing.Shapes, shape =>
             shape.Shape.Kind == OfficeShapeKind.Line &&
@@ -459,14 +459,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Line dash",
             "Line Dash",
-            OfficeChartKind.Line,
+            OfficeChartType.Line,
             new OfficeChartData(
                 new[] { "Jan", "Feb", "Mar" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 10D, 14D, 12D }, null, seriesColor, null, showMarkers: false, strokeWidth: 4D, strokeDashStyle: OfficeStrokeDashStyle.DashDot)
+                    new OfficeSeries("Actual", new[] { 10D, 14D, 12D }, null, seriesColor, null, showMarkers: false, strokeWidth: global::OfficeIMO.OfficeLength.Points(4D), strokeDashStyle: OfficeStrokeDashStyle.DashDot)
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D));
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D)));
 
         Assert.Contains(drawing.Shapes, shape =>
             shape.Shape.Kind == OfficeShapeKind.Line &&
@@ -482,15 +482,15 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Marker symbols",
             "Marker Symbols",
-            OfficeChartKind.Line,
+            OfficeChartType.Line,
             new OfficeChartData(
                 new[] { "Jan", "Feb", "Mar" },
                 new[] {
-                    new OfficeChartSeries("Plus", new[] { 10D, 14D, 12D }, null, OfficeColor.ParseHex("#2563EB"), null, showMarkers: true, connectLine: false, markerSize: 12, markerShape: OfficeChartMarkerShape.Plus, markerOutlineColor: plusColor, markerOutlineWidth: 2D),
-                    new OfficeChartSeries("X", new[] { 12D, 16D, 13D }, null, OfficeColor.ParseHex("#16A34A"), null, showMarkers: true, connectLine: false, markerSize: 12, markerShape: OfficeChartMarkerShape.X, markerOutlineColor: xColor, markerOutlineWidth: 2D)
+                    new OfficeSeries("Plus", new[] { 10D, 14D, 12D }, null, OfficeColor.ParseHex("#2563EB"), null, showMarkers: true, connectLine: false, markerSize: global::OfficeIMO.OfficeLength.Points(12), markerShape: OfficeChartMarkerShape.Plus, markerOutlineColor: plusColor, markerOutlineWidth: global::OfficeIMO.OfficeLength.Points(2D)),
+                    new OfficeSeries("X", new[] { 12D, 16D, 13D }, null, OfficeColor.ParseHex("#16A34A"), null, showMarkers: true, connectLine: false, markerSize: global::OfficeIMO.OfficeLength.Points(12), markerShape: OfficeChartMarkerShape.X, markerOutlineColor: xColor, markerOutlineWidth: global::OfficeIMO.OfficeLength.Points(2D))
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D));
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D)));
 
         Assert.True(drawing.Shapes.Count(shape =>
             shape.Shape.Kind == OfficeShapeKind.Line &&
@@ -510,16 +510,16 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "More marker symbols",
             "More Marker Symbols",
-            OfficeChartKind.Line,
+            OfficeChartType.Line,
             new OfficeChartData(
                 new[] { "Jan", "Feb", "Mar" },
                 new[] {
-                    new OfficeChartSeries("Dash", new[] { 10D, 14D, 12D }, null, OfficeColor.ParseHex("#2563EB"), null, showMarkers: true, connectLine: false, markerSize: 12, markerShape: OfficeChartMarkerShape.Dash, markerOutlineColor: dashColor, markerOutlineWidth: 2D),
-                    new OfficeChartSeries("Dot", new[] { 12D, 16D, 13D }, null, dotColor, null, showMarkers: true, connectLine: false, markerSize: 12, markerShape: OfficeChartMarkerShape.Dot),
-                    new OfficeChartSeries("Star", new[] { 13D, 15D, 14D }, null, starColor, null, showMarkers: true, connectLine: false, markerSize: 12, markerShape: OfficeChartMarkerShape.Star)
+                    new OfficeSeries("Dash", new[] { 10D, 14D, 12D }, null, OfficeColor.ParseHex("#2563EB"), null, showMarkers: true, connectLine: false, markerSize: global::OfficeIMO.OfficeLength.Points(12), markerShape: OfficeChartMarkerShape.Dash, markerOutlineColor: dashColor, markerOutlineWidth: global::OfficeIMO.OfficeLength.Points(2D)),
+                    new OfficeSeries("Dot", new[] { 12D, 16D, 13D }, null, dotColor, null, showMarkers: true, connectLine: false, markerSize: global::OfficeIMO.OfficeLength.Points(12), markerShape: OfficeChartMarkerShape.Dot),
+                    new OfficeSeries("Star", new[] { 13D, 15D, 14D }, null, starColor, null, showMarkers: true, connectLine: false, markerSize: global::OfficeIMO.OfficeLength.Points(12), markerShape: OfficeChartMarkerShape.Star)
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D));
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D)));
 
         Assert.True(drawing.Shapes.Count(shape =>
             shape.Shape.Kind == OfficeShapeKind.Line &&
@@ -539,14 +539,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Line radar",
             "Line Radar",
-            OfficeChartKind.Radar,
+            OfficeChartType.Radar,
             new OfficeChartData(
                 new[] { "A", "B", "C" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 10D, 12D, 11D }, null, seriesColor, null, showMarkers: true, strokeDashStyle: OfficeStrokeDashStyle.DashDot)
+                    new OfficeSeries("Actual", new[] { 10D, 12D, 11D }, null, seriesColor, null, showMarkers: true, strokeDashStyle: OfficeStrokeDashStyle.DashDot)
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             layout: new OfficeChartLayout(fillRadarSeries: false)));
 
         Assert.DoesNotContain(drawing.Shapes, shape =>
@@ -567,14 +567,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "No grid",
             "No Grid",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 10D, 12D, 11D })
+                    new OfficeSeries("Actual", new[] { 10D, 12D, 11D })
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             style: new OfficeChartStyle(showGridLines: false)));
 
         Assert.DoesNotContain(drawing.Shapes, shape =>
@@ -655,14 +655,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Percent labels",
             "Percent Labels",
-            OfficeChartKind.Pie,
+            OfficeChartType.Pie,
             new OfficeChartData(
                 new[] { "Passed", "Failed" },
                 new[] {
-                    new OfficeChartSeries("Results", new[] { 1D, 0D })
+                    new OfficeSeries("Results", new[] { 1D, 0D })
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             layout: new OfficeChartLayout(
                 showDataLabels: true,
                 showDataLabelPercentages: true,
@@ -677,14 +677,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Pie labels",
             "Rule Results",
-            OfficeChartKind.Pie,
+            OfficeChartType.Pie,
             new OfficeChartData(
                 new[] { "Passed", "Failed", "Skipped" },
                 new[] {
-                    new OfficeChartSeries("Results", new[] { 1D, 0D, 0D })
+                    new OfficeSeries("Results", new[] { 1D, 0D, 0D })
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             layout: new OfficeChartLayout(
                 showDataLabels: true,
                 showDataLabelValues: true,
@@ -705,14 +705,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Column labels",
             "Revenue Labels",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1", "Q2" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 10D, 20D })
+                    new OfficeSeries("Actual", new[] { 10D, 20D })
                 }),
-            widthPoints: 300D,
-            heightPoints: 180D,
+width: global::OfficeIMO.OfficeLength.Points(300D),
+height: global::OfficeIMO.OfficeLength.Points(180D),
             layout: new OfficeChartLayout(
                 showDataLabels: true,
                 showDataLabelValues: true,
@@ -732,14 +732,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Formatted labels",
             "Formatted Labels",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1", "Q2" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 1234.5D, 9876.5D })
+                    new OfficeSeries("Actual", new[] { 1234.5D, 9876.5D })
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             layout: new OfficeChartLayout(
                 showDataLabels: true,
                 showDataLabelValues: true,
@@ -757,14 +757,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Formatted axis",
             "Formatted Axis",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1", "Q2" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 1000D, 2000D })
+                    new OfficeSeries("Actual", new[] { 1000D, 2000D })
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             layout: new OfficeChartLayout(axisNumberFormat: "#,##0.0")));
 
         var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(label => label.Text).ToList();
@@ -781,14 +781,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Axis titles",
             "Axis Titles",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1", "Q2" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 10D, 20D })
+                    new OfficeSeries("Actual", new[] { 10D, 20D })
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             layout: new OfficeChartLayout(
                 categoryAxisTitle: "Quarter",
                 valueAxisTitle: "Revenue")));
@@ -799,7 +799,8 @@ public class PdfDocumentChartDrawingTests {
 
         Assert.True(categoryTitle.Y > valueTitle.Y, "Expected horizontal axis title below the plot and value axis title near the value-axis labels.");
         Assert.Equal(OfficeTextAlignment.Center, categoryTitle.Alignment);
-        Assert.Equal(OfficeTextAlignment.Left, valueTitle.Alignment);
+        Assert.Equal(OfficeTextAlignment.Center, valueTitle.Alignment);
+        Assert.Equal(-90D, valueTitle.RotationDegrees);
     }
 
     [Fact]
@@ -807,15 +808,15 @@ public class PdfDocumentChartDrawingTests {
         var data = new OfficeChartData(
             new[] { "Q1", "Q2" },
             new[] {
-                new OfficeChartSeries("Actual", new[] { 10D, 20D })
+                new OfficeSeries("Actual", new[] { 10D, 20D })
             });
         var outsideDrawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Outside labels",
             "Outside Labels",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             data,
-            widthPoints: 300D,
-            heightPoints: 180D,
+width: global::OfficeIMO.OfficeLength.Points(300D),
+height: global::OfficeIMO.OfficeLength.Points(180D),
             layout: new OfficeChartLayout(
                 showDataLabels: true,
                 showDataLabelValues: true,
@@ -824,10 +825,10 @@ public class PdfDocumentChartDrawingTests {
         var centerDrawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Center labels",
             "Center Labels",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             data,
-            widthPoints: 300D,
-            heightPoints: 180D,
+width: global::OfficeIMO.OfficeLength.Points(300D),
+height: global::OfficeIMO.OfficeLength.Points(180D),
             layout: new OfficeChartLayout(
                 showDataLabels: true,
                 showDataLabelValues: true,
@@ -845,14 +846,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Single point",
             "Line Marker",
-            OfficeChartKind.Line,
+            OfficeChartType.Line,
             new OfficeChartData(
                 new[] { "Only" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 42D })
+                    new OfficeSeries("Actual", new[] { 42D })
                 }),
-            widthPoints: 220D,
-            heightPoints: 140D));
+width: global::OfficeIMO.OfficeLength.Points(220D),
+height: global::OfficeIMO.OfficeLength.Points(140D)));
 
         Assert.Contains(drawing.Shapes, shape =>
             shape.Shape.Kind == OfficeShapeKind.Ellipse &&
@@ -865,28 +866,28 @@ public class PdfDocumentChartDrawingTests {
         OfficeChartData data = new OfficeChartData(
             new[] { "Q1", "Q2", "Q3" },
             new[] {
-                new OfficeChartSeries("Actual", new[] { 12D, 18D, 24D })
+                new OfficeSeries("Actual", new[] { 12D, 18D, 24D }, null, null, null, showMarkers: true)
             });
-        OfficeDrawing defaultDrawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+        OfficeDrawing visibleDrawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Line markers",
             "Line Markers",
-            OfficeChartKind.Line,
+            OfficeChartType.Line,
             data,
-            widthPoints: 300D,
-            heightPoints: 180D));
+width: global::OfficeIMO.OfficeLength.Points(300D),
+height: global::OfficeIMO.OfficeLength.Points(180D)));
         OfficeDrawing suppressedDrawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Line no markers",
             "Line No Markers",
-            OfficeChartKind.Line,
+            OfficeChartType.Line,
             data,
-            widthPoints: 300D,
-            heightPoints: 180D,
+width: global::OfficeIMO.OfficeLength.Points(300D),
+height: global::OfficeIMO.OfficeLength.Points(180D),
             layout: new OfficeChartLayout(showMarkers: false)));
 
-        int defaultMarkers = defaultDrawing.Shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Ellipse && shape.Shape.Width == 4D && shape.Shape.Height == 4D);
+        int visibleMarkers = visibleDrawing.Shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Ellipse && shape.Shape.Width == 4D && shape.Shape.Height == 4D);
         int suppressedMarkers = suppressedDrawing.Shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Ellipse && shape.Shape.Width == 4D && shape.Shape.Height == 4D);
 
-        Assert.Equal(3, defaultMarkers);
+        Assert.Equal(3, visibleMarkers);
         Assert.Equal(0, suppressedMarkers);
     }
 
@@ -895,14 +896,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Single bar",
             "One Category",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Only" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 42D })
+                    new OfficeSeries("Actual", new[] { 42D })
                 }),
-            widthPoints: 220D,
-            heightPoints: 140D));
+width: global::OfficeIMO.OfficeLength.Points(220D),
+height: global::OfficeIMO.OfficeLength.Points(140D)));
 
         Assert.Contains(drawing.Shapes, shape =>
             shape.Shape.Kind == OfficeShapeKind.Rectangle &&
@@ -920,14 +921,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Plot style",
             "Plot Style",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1", "Q2" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 10D, 20D })
+                    new OfficeSeries("Actual", new[] { 10D, 20D })
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             style: new OfficeChartStyle(
                 plotAreaBackgroundColor: plotFill,
                 plotAreaBorderColor: plotBorder)));
@@ -949,14 +950,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Area borders",
             "Area Borders",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1", "Q2" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 10D, 20D })
+                    new OfficeSeries("Actual", new[] { 10D, 20D })
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             style: new OfficeChartStyle(
                 borderColor: chartBorder,
                 plotAreaBorderColor: plotBorder,
@@ -987,14 +988,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Axis style",
             "Axis Style",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1", "Q2" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 10D, 20D })
+                    new OfficeSeries("Actual", new[] { 10D, 20D })
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             style: new OfficeChartStyle(
                 categoryAxisColor: categoryAxisColor,
                 valueAxisColor: valueAxisColor,
@@ -1038,19 +1039,19 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Point colors",
             "Per Point",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1", "Q2" },
                 new[] {
-                    new OfficeChartSeries(
+                    new OfficeSeries(
                         "Actual",
                         new[] { 10D, 20D },
                         null,
                         OfficeColor.Black,
                         new OfficeColor?[] { OfficeColor.ParseHex("#2FB344"), OfficeColor.ParseHex("#F76707") })
                 }),
-            widthPoints: 220D,
-            heightPoints: 140D));
+width: global::OfficeIMO.OfficeLength.Points(220D),
+height: global::OfficeIMO.OfficeLength.Points(140D)));
 
         var barColors = drawing.Shapes
             .Where(shape => shape.Shape.Kind == OfficeShapeKind.Rectangle && shape.Shape.StrokeWidth == 0D)
@@ -1067,18 +1068,18 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Pie series color",
             "Pie Series",
-            OfficeChartKind.Pie,
+            OfficeChartType.Pie,
             new OfficeChartData(
                 new[] { "Passed", "Failed" },
                 new[] {
-                    new OfficeChartSeries(
+                    new OfficeSeries(
                         "Outcome",
                         new[] { 42D, 30D },
                         null,
                         seriesColor)
                 }),
-            widthPoints: 260D,
-            heightPoints: 180D));
+width: global::OfficeIMO.OfficeLength.Points(260D),
+height: global::OfficeIMO.OfficeLength.Points(180D)));
 
         Assert.Contains(drawing.Shapes, shape =>
             shape.Shape.Kind == OfficeShapeKind.Polygon &&
@@ -1096,19 +1097,19 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Pie point legend",
             "Pie Legend",
-            OfficeChartKind.Pie,
+            OfficeChartType.Pie,
             new OfficeChartData(
                 new[] { "Passed", "Failed" },
                 new[] {
-                    new OfficeChartSeries(
+                    new OfficeSeries(
                         "Outcome",
                         new[] { 42D, 30D },
                         null,
                         OfficeColor.ParseHex("#2563EB"),
                         new OfficeColor?[] { passed, failed })
                 }),
-            widthPoints: 260D,
-            heightPoints: 180D,
+width: global::OfficeIMO.OfficeLength.Points(260D),
+height: global::OfficeIMO.OfficeLength.Points(180D),
             layout: new OfficeChartLayout(
                 showLegend: true,
                 legendPosition: OfficeChartLegendPosition.Top)));
@@ -1127,14 +1128,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Pie hidden legend",
             "Pie Legend",
-            OfficeChartKind.Pie,
+            OfficeChartType.Pie,
             new OfficeChartData(
                 new[] { "Passed", "Failed", "Skipped" },
                 new[] {
-                    new OfficeChartSeries("Outcome", new[] { 42D, 30D, 3D })
+                    new OfficeSeries("Outcome", new[] { 42D, 30D, 3D })
                 }),
-            widthPoints: 260D,
-            heightPoints: 180D,
+width: global::OfficeIMO.OfficeLength.Points(260D),
+height: global::OfficeIMO.OfficeLength.Points(180D),
             layout: new OfficeChartLayout(hiddenCategoryLegendIndexes: new[] { 1 })));
 
         IReadOnlyList<string> labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
@@ -1155,14 +1156,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Pie hidden legend lookup",
             "Pie Legend",
-            OfficeChartKind.Pie,
+            OfficeChartType.Pie,
             new OfficeChartData(
                 categories,
                 new[] {
-                    new OfficeChartSeries("Outcome", values)
+                    new OfficeSeries("Outcome", values)
                 }),
-            widthPoints: 300D,
-            heightPoints: 200D,
+width: global::OfficeIMO.OfficeLength.Points(300D),
+height: global::OfficeIMO.OfficeLength.Points(200D),
             layout: new OfficeChartLayout(
                 showLegend: true,
                 legendPosition: OfficeChartLegendPosition.Top,
@@ -1181,14 +1182,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Pie hidden legend colors",
             "Pie Legend",
-            OfficeChartKind.Pie,
+            OfficeChartType.Pie,
             new OfficeChartData(
                 new[] { "Hidden", "Passed", "Failed" },
                 new[] {
-                    new OfficeChartSeries("Outcome", new[] { 1D, 42D, 30D })
+                    new OfficeSeries("Outcome", new[] { 1D, 42D, 30D })
                 }),
-            widthPoints: 260D,
-            heightPoints: 180D,
+width: global::OfficeIMO.OfficeLength.Points(260D),
+height: global::OfficeIMO.OfficeLength.Points(180D),
             style: style,
             layout: new OfficeChartLayout(
                 showLegend: true,
@@ -1211,18 +1212,18 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Doughnut series color",
             "Doughnut Series",
-            OfficeChartKind.Doughnut,
+            OfficeChartType.Doughnut,
             new OfficeChartData(
                 new[] { "Passed", "Failed" },
                 new[] {
-                    new OfficeChartSeries(
+                    new OfficeSeries(
                         "Outcome",
                         new[] { 42D, 30D },
                         null,
                         seriesColor)
                 }),
-            widthPoints: 260D,
-            heightPoints: 180D));
+width: global::OfficeIMO.OfficeLength.Points(260D),
+height: global::OfficeIMO.OfficeLength.Points(180D)));
 
         Assert.Contains(drawing.Shapes, shape =>
             shape.Shape.Kind == OfficeShapeKind.Polygon &&
@@ -1238,15 +1239,15 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Doughnut source labels",
             "Doughnut Labels",
-            OfficeChartKind.Doughnut,
+            OfficeChartType.Doughnut,
             new OfficeChartData(
                 new[] { "Passed", "Failed" },
                 new[] {
-                    new OfficeChartSeries("Empty", new[] { 0D, 0D }),
-                    new OfficeChartSeries("Outcome", new[] { 42D, 30D })
+                    new OfficeSeries("Empty", new[] { 0D, 0D }),
+                    new OfficeSeries("Outcome", new[] { 42D, 30D })
                 }),
-            widthPoints: 260D,
-            heightPoints: 180D,
+width: global::OfficeIMO.OfficeLength.Points(260D),
+height: global::OfficeIMO.OfficeLength.Points(180D),
             layout: new OfficeChartLayout(
                 showLegend: false,
                 showDataLabels: true,
@@ -1264,14 +1265,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Tiny chart",
             "Tiny",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 1D })
+                    new OfficeSeries("Actual", new[] { 1D })
                 }),
-            widthPoints: 50D,
-            heightPoints: 40D));
+width: global::OfficeIMO.OfficeLength.Points(50D),
+height: global::OfficeIMO.OfficeLength.Points(40D)));
 
         Assert.True(drawing.Width >= 240D);
         Assert.True(drawing.Height >= 150D);
@@ -1283,19 +1284,19 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Line point colors",
             "Line Points",
-            OfficeChartKind.Line,
+            OfficeChartType.Line,
             new OfficeChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new OfficeChartSeries(
+                    new OfficeSeries(
                         "Actual",
                         new[] { 10D, 20D, 14D },
                         null,
                         OfficeColor.ParseHex("#2563EB"),
                         new OfficeColor?[] { null, highlight, null })
                 }),
-            widthPoints: 260D,
-            heightPoints: 160D));
+width: global::OfficeIMO.OfficeLength.Points(260D),
+height: global::OfficeIMO.OfficeLength.Points(160D)));
 
         Assert.Contains(drawing.Shapes, shape =>
             shape.Shape.Kind == OfficeShapeKind.Ellipse &&
@@ -1310,12 +1311,12 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Zero label chart",
             "Zero Labels",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1" },
-                new[] { new OfficeChartSeries("Actual", new[] { 0D }) }),
-            widthPoints: 260D,
-            heightPoints: 160D,
+                new[] { new OfficeSeries("Actual", new[] { 0D }) }),
+width: global::OfficeIMO.OfficeLength.Points(260D),
+height: global::OfficeIMO.OfficeLength.Points(160D),
             layout: new OfficeChartLayout(
                 showDataLabels: true,
                 showDataLabelValues: true)));
@@ -1340,12 +1341,12 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing columnDrawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Blank column values",
             "Blank Values",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1", "Blank", "Q3", "Zero" },
-                new[] { new OfficeChartSeries("Actual", new[] { 10D, double.NaN, 20D, 0D }, null, seriesColor) }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+                new[] { new OfficeSeries("Actual", new[] { 10D, double.NaN, 20D, 0D }, null, seriesColor) }),
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             layout: layout));
 
         var columnBars = columnDrawing.Shapes
@@ -1364,12 +1365,12 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing lineDrawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Blank line values",
             "Blank Values",
-            OfficeChartKind.Line,
+            OfficeChartType.Line,
             new OfficeChartData(
                 new[] { "Q1", "Blank", "Q3" },
-                new[] { new OfficeChartSeries("Actual", new[] { 10D, double.NaN, 20D }, null, seriesColor) }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+                new[] { new OfficeSeries("Actual", new[] { 10D, double.NaN, 20D }, null, seriesColor) }),
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             layout: layout));
 
         Assert.DoesNotContain(lineDrawing.Shapes, shape =>
@@ -1389,12 +1390,12 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Signed label chart",
             "Signed Labels",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1" },
-                new[] { new OfficeChartSeries("Actual", new[] { -1234D }) }),
-            widthPoints: 260D,
-            heightPoints: 160D,
+                new[] { new OfficeSeries("Actual", new[] { -1234D }) }),
+width: global::OfficeIMO.OfficeLength.Points(260D),
+height: global::OfficeIMO.OfficeLength.Points(160D),
             layout: new OfficeChartLayout(
                 showDataLabels: true,
                 showDataLabelValues: true,
@@ -1411,15 +1412,15 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Percent stacked chart",
             "Percent Axis",
-            OfficeChartKind.ColumnStacked100,
+            OfficeChartType.ColumnStacked100,
             new OfficeChartData(
                 new[] { "Q1" },
                 new[] {
-                    new OfficeChartSeries("Passed", new[] { 8D }),
-                    new OfficeChartSeries("Failed", new[] { 2D })
+                    new OfficeSeries("Passed", new[] { 8D }),
+                    new OfficeSeries("Failed", new[] { 2D })
                 }),
-            widthPoints: 260D,
-            heightPoints: 160D));
+width: global::OfficeIMO.OfficeLength.Points(260D),
+height: global::OfficeIMO.OfficeLength.Points(160D)));
 
         var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
 
@@ -1433,15 +1434,15 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Scatter labels",
             "Scatter Labels",
-            OfficeChartKind.Scatter,
+            OfficeChartType.Scatter,
             new OfficeChartData(
                 new[] { "1", "2" },
                 new[] {
-                    new OfficeChartSeries("First", new[] { 4D, 5D }, new[] { 1D, 2D }),
-                    new OfficeChartSeries("Second", new[] { 6D, 7D }, new[] { 10D, 20D })
+                    new OfficeSeries("First", new[] { 4D, 5D }, new[] { 1D, 2D }),
+                    new OfficeSeries("Second", new[] { 6D, 7D }, new[] { 10D, 20D })
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             layout: new OfficeChartLayout(
                 showDataLabels: true,
                 showDataLabelValues: true,
@@ -1459,12 +1460,12 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Radar labels",
             "Radar Labels",
-            OfficeChartKind.Radar,
+            OfficeChartType.Radar,
             new OfficeChartData(
                 new[] { "Security", "Reliability", "UX" },
-                new[] { new OfficeChartSeries("Current", new[] { 7D, 6D, 5D }) }),
-            widthPoints: 280D,
-            heightPoints: 180D,
+                new[] { new OfficeSeries("Current", new[] { 7D, 6D, 5D }) }),
+width: global::OfficeIMO.OfficeLength.Points(280D),
+height: global::OfficeIMO.OfficeLength.Points(180D),
             layout: new OfficeChartLayout(
                 showDataLabels: true,
                 showDataLabelValues: true)));
@@ -1481,12 +1482,12 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Negative labels",
             "Negative Labels",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1" },
-                new[] { new OfficeChartSeries("Actual", new[] { -10D }) }),
-            widthPoints: 260D,
-            heightPoints: 160D,
+                new[] { new OfficeSeries("Actual", new[] { -10D }) }),
+width: global::OfficeIMO.OfficeLength.Points(260D),
+height: global::OfficeIMO.OfficeLength.Points(160D),
             layout: new OfficeChartLayout(
                 showDataLabels: true,
                 showDataLabelValues: true,
@@ -1500,12 +1501,12 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Affix labels",
             "Affix Labels",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1", "Q2", "Q3" },
-                new[] { new OfficeChartSeries("Actual", new[] { 1234D, -25D, 0D }) }),
-            widthPoints: 280D,
-            heightPoints: 180D,
+                new[] { new OfficeSeries("Actual", new[] { 1234D, -25D, 0D }) }),
+width: global::OfficeIMO.OfficeLength.Points(280D),
+height: global::OfficeIMO.OfficeLength.Points(180D),
             layout: new OfficeChartLayout(
                 showDataLabels: true,
                 showDataLabelValues: true,
@@ -1523,12 +1524,12 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Optional decimal labels",
             "Optional Decimal Labels",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1", "Q2", "Q3" },
-                new[] { new OfficeChartSeries("Actual", new[] { 1.2D, 1.25D, 1D }) }),
-            widthPoints: 280D,
-            heightPoints: 180D,
+                new[] { new OfficeSeries("Actual", new[] { 1.2D, 1.25D, 1D }) }),
+width: global::OfficeIMO.OfficeLength.Points(280D),
+height: global::OfficeIMO.OfficeLength.Points(180D),
             layout: new OfficeChartLayout(
                 showDataLabels: true,
                 showDataLabelValues: true,
@@ -1550,15 +1551,15 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Line marker visibility",
             "Line Markers",
-            OfficeChartKind.Line,
+            OfficeChartType.Line,
             new OfficeChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new OfficeChartSeries("Hidden", new[] { 10D, 20D, 14D }, null, hiddenColor, null, showMarkers: false),
-                    new OfficeChartSeries("Visible", new[] { 12D, 18D, 16D }, null, visibleColor, null, showMarkers: true)
+                    new OfficeSeries("Hidden", new[] { 10D, 20D, 14D }, null, hiddenColor, null, showMarkers: false),
+                    new OfficeSeries("Visible", new[] { 12D, 18D, 16D }, null, visibleColor, null, showMarkers: true)
                 }),
-            widthPoints: 260D,
-            heightPoints: 160D,
+width: global::OfficeIMO.OfficeLength.Points(260D),
+height: global::OfficeIMO.OfficeLength.Points(160D),
             layout: new OfficeChartLayout(showMarkers: true)));
 
         Assert.DoesNotContain(drawing.Shapes, shape =>
@@ -1576,14 +1577,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Transparent chart",
             null,
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 12D })
+                    new OfficeSeries("Actual", new[] { 12D })
                 }),
-            widthPoints: 180D,
-            heightPoints: 120D,
+width: global::OfficeIMO.OfficeLength.Points(180D),
+height: global::OfficeIMO.OfficeLength.Points(120D),
             style: style));
 
         OfficeDrawingShape background = drawing.Shapes[0];
@@ -1598,14 +1599,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Borderless chart",
             null,
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 12D })
+                    new OfficeSeries("Actual", new[] { 12D })
                 }),
-            widthPoints: 180D,
-            heightPoints: 120D,
+width: global::OfficeIMO.OfficeLength.Points(180D),
+height: global::OfficeIMO.OfficeLength.Points(120D),
             style: style));
 
         OfficeDrawingShape background = drawing.Shapes[0];
@@ -1627,14 +1628,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Scoped labels",
             null,
-            OfficeChartKind.Pie,
+            OfficeChartType.Pie,
             new OfficeChartData(
                 new[] { "HiddenLabel", "VisibleLabel" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 1D, 2D })
+                    new OfficeSeries("Actual", new[] { 1D, 2D })
                 }),
-            widthPoints: 220D,
-            heightPoints: 150D,
+width: global::OfficeIMO.OfficeLength.Points(220D),
+height: global::OfficeIMO.OfficeLength.Points(150D),
             layout: layout));
 
         string text = string.Join(" ", drawing.Elements.OfType<OfficeDrawingText>().Select(item => item.Text));
@@ -1651,7 +1652,7 @@ public class PdfDocumentChartDrawingTests {
             CreateBarSeries(0U, new[] { "Q1" }, new[] { 1D }));
         var plotArea = new PlotArea(chartElement);
 
-        OfficeChartStyle style = CreateNativeWordChartStyle(chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 1, 1);
+        OfficeChartStyle style = CreateNativeWordChartStyle(chart, chartElement, plotArea, OfficeChartType.ColumnClustered, 1, 1);
 
         Assert.False(style.ShowBackground);
     }
@@ -1665,7 +1666,7 @@ public class PdfDocumentChartDrawingTests {
             CreateBarSeries(0U, new[] { "Q1" }, new[] { 1D }));
         var plotArea = new PlotArea(chartElement);
 
-        OfficeChartStyle style = CreateNativeWordChartStyle(chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 1, 1);
+        OfficeChartStyle style = CreateNativeWordChartStyle(chart, chartElement, plotArea, OfficeChartType.ColumnClustered, 1, 1);
 
         Assert.True(style.ShowBackground);
         Assert.True(style.ShowBorder);
@@ -1683,7 +1684,7 @@ public class PdfDocumentChartDrawingTests {
             CreateBarSeries(0U, new[] { "Q1" }, new[] { 1D }));
         var plotArea = new PlotArea(chartElement);
 
-        OfficeChartStyle style = CreateNativeWordChartStyle(chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 1, 1);
+        OfficeChartStyle style = CreateNativeWordChartStyle(chart, chartElement, plotArea, OfficeChartType.ColumnClustered, 1, 1);
 
         Assert.False(style.ShowBorder);
     }
@@ -1696,7 +1697,7 @@ public class PdfDocumentChartDrawingTests {
             CreatePieSeries(0U, new[] { "A", "B", "C" }, new[] { 1D, 2D, 3D }));
         var plotArea = new PlotArea(chartElement);
 
-        OfficeChartStyle style = CreateNativeWordChartStyle(chart, chartElement, plotArea, OfficeChartKind.Pie, 3, 1);
+        OfficeChartStyle style = CreateNativeWordChartStyle(chart, chartElement, plotArea, OfficeChartType.Pie, 3, 1);
 
         Assert.Equal(style.Palette[0], style.Palette[1]);
         Assert.Equal(style.Palette[0], style.Palette[2]);
@@ -1721,7 +1722,7 @@ public class PdfDocumentChartDrawingTests {
             visibleSeries);
         var plotArea = new PlotArea(chartElement);
 
-        OfficeChartStyle style = CreateNativeWordChartStyle(chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 1, 1);
+        OfficeChartStyle style = CreateNativeWordChartStyle(chart, chartElement, plotArea, OfficeChartType.ColumnClustered, 1, 1);
 
         Assert.NotEqual(skippedColor, style.Palette[0]);
         Assert.Equal(visibleColor, style.Palette[0]);
@@ -1740,19 +1741,19 @@ public class PdfDocumentChartDrawingTests {
             outerSeries,
             innerSeries);
 
-        IReadOnlyList<OfficeChartSeries> series = ExtractNativeWordChartSeries(new Chart(), doughnutChart, OfficeChartKind.Doughnut);
+        IReadOnlyList<OfficeSeries> series = ExtractNativeWordChartSeries(new Chart(), doughnutChart, OfficeChartType.Doughnut);
 
         Assert.Equal(2, series.Count);
         Assert.Equal(outerColor, series[0].Color);
         Assert.Equal(innerColor, series[1].Color);
     }
 
-    private static IReadOnlyList<OfficeChartSeries> ExtractNativeWordChartSeries(Chart chart, OpenXmlElement chartElement, OfficeChartKind chartKind) {
+    private static IReadOnlyList<OfficeSeries> ExtractNativeWordChartSeries(Chart chart, OpenXmlElement chartElement, OfficeChartType chartKind) {
         return WordPdfConverterExtensions.ExtractNativeWordChartSeries(chart, chartElement, chartKind,
             new Dictionary<A.SchemeColorValues, OfficeColor>(), null, out _);
     }
 
-    private static OfficeChartStyle CreateNativeWordChartStyle(Chart chart, OpenXmlElement chartElement, PlotArea plotArea, OfficeChartKind chartKind, int categoryCount, int seriesCount) {
+    private static OfficeChartStyle CreateNativeWordChartStyle(Chart chart, OpenXmlElement chartElement, PlotArea plotArea, OfficeChartType chartKind, int categoryCount, int seriesCount) {
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartStyle", BindingFlags.NonPublic | BindingFlags.Static)!;
         return (OfficeChartStyle)method.Invoke(null, new object[] {
             chart,
@@ -1831,14 +1832,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Scatter",
             "Finite Points",
-            OfficeChartKind.Scatter,
+            OfficeChartType.Scatter,
             new OfficeChartData(
                 new[] { "1", "2", "3" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 3D, 4D, 5D }, new[] { 1D, double.NaN, 3D })
+                    new OfficeSeries("Actual", new[] { 3D, 4D, 5D }, new[] { 1D, double.NaN, 3D })
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D));
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D)));
 
         int markerCount = drawing.Shapes.Count(shape =>
             shape.Shape.Kind == OfficeShapeKind.Ellipse &&
@@ -1853,19 +1854,19 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Scatter point colors",
             "Scatter Points",
-            OfficeChartKind.Scatter,
+            OfficeChartType.Scatter,
             new OfficeChartData(
                 new[] { "1", "2", "3" },
                 new[] {
-                    new OfficeChartSeries(
+                    new OfficeSeries(
                         "Actual",
                         new[] { 3D, 4D, 5D },
                         new[] { 1D, double.NaN, 3D },
                         OfficeColor.ParseHex("#2563EB"),
                         new OfficeColor?[] { null, highlight, OfficeColor.ParseHex("#F76707") })
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D));
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D)));
 
         Assert.DoesNotContain(drawing.Shapes, shape =>
             shape.Shape.Kind == OfficeShapeKind.Ellipse &&
@@ -1882,8 +1883,8 @@ public class PdfDocumentChartDrawingTests {
     [Fact]
     public void FlowDrawing_UsesSharedChartLayoutForDenseLabelsAndLegend() {
         string[] categories = Enumerable.Range(1, 12).Select(index => "M" + index.ToString("00", System.Globalization.CultureInfo.InvariantCulture)).ToArray();
-        OfficeChartSeries[] series = Enumerable.Range(1, 6)
-            .Select(index => new OfficeChartSeries(
+        OfficeSeries[] series = Enumerable.Range(1, 6)
+            .Select(index => new OfficeSeries(
                 "Series " + index.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 categories.Select((_, category) => 8D + index * 2D + category).ToArray()))
             .ToArray();
@@ -1900,10 +1901,10 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Dense chart",
             "Dense Layout",
-            OfficeChartKind.Line,
+            OfficeChartType.Line,
             new OfficeChartData(categories, series),
-            widthPoints: 360D,
-            heightPoints: 210D,
+width: global::OfficeIMO.OfficeLength.Points(360D),
+height: global::OfficeIMO.OfficeLength.Points(210D),
             layout: layout));
 
         var textBoxes = drawing.Elements.OfType<OfficeDrawingText>().ToList();
@@ -1917,13 +1918,13 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawingQualityReport report = OfficeDrawingQualityAnalyzer.Analyze(drawing);
         Assert.False(report.HasIssues, string.Join("; ", report.Issues.Select(issue => issue.ToString())));
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 460,
-                PageHeight = 310,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(460),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(310),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 CompressContentStreams = false
             })
             .Drawing(drawing, PdfAlign.Left)
@@ -1945,14 +1946,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Dense chart",
             "Dense Labels",
-            OfficeChartKind.Line,
+            OfficeChartType.Line,
             new OfficeChartData(
                 categories,
                 new[] {
-                    new OfficeChartSeries("Actual", categories.Select((_, index) => 10D + index).ToArray())
+                    new OfficeSeries("Actual", categories.Select((_, index) => 10D + index).ToArray())
                 }),
-            widthPoints: 300D,
-            heightPoints: 180D,
+width: global::OfficeIMO.OfficeLength.Points(300D),
+height: global::OfficeIMO.OfficeLength.Points(180D),
             layout: new OfficeChartLayout(maximumCategoryAxisLabels: 12)));
 
         var categoryLabels = drawing.Elements
@@ -1971,14 +1972,14 @@ public class PdfDocumentChartDrawingTests {
         OfficeChartRenderingResult result = OfficeChartDrawingRenderer.RenderWithQuality(new OfficeChartSnapshot(
             "Strict dense chart",
             "Strict Labels",
-            OfficeChartKind.Line,
+            OfficeChartType.Line,
             new OfficeChartData(
                 categories,
                 new[] {
-                    new OfficeChartSeries("Actual", categories.Select((_, index) => 10D + index).ToArray())
+                    new OfficeSeries("Actual", categories.Select((_, index) => 10D + index).ToArray())
                 }),
-            widthPoints: 300D,
-            heightPoints: 180D,
+width: global::OfficeIMO.OfficeLength.Points(300D),
+height: global::OfficeIMO.OfficeLength.Points(180D),
             layout: new OfficeChartLayout(maximumCategoryAxisLabels: 12, preventLabelOverlap: false)));
 
         Assert.Contains(result.QualityReport.Issues, issue => issue.Kind == OfficeDrawingQualityIssueKind.TextOverlap);
@@ -2008,15 +2009,15 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Styled chart",
             "Styled Revenue",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 12D, 18D, 24D }),
-                    new OfficeChartSeries("Target", new[] { 10D, 20D, 26D })
+                    new OfficeSeries("Actual", new[] { 12D, 18D, 24D }),
+                    new OfficeSeries("Target", new[] { 10D, 20D, 26D })
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             style: style,
             layout: new OfficeChartLayout(
                 showDataLabels: true,
@@ -2056,13 +2057,13 @@ public class PdfDocumentChartDrawingTests {
         Assert.True(axisTitle.Font.IsBold);
         Assert.False(axisTitle.Font.IsItalic);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 420,
-                PageHeight = 280,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(280),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 CompressContentStreams = false
             })
             .Drawing(drawing, PdfAlign.Left)
@@ -2088,15 +2089,15 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Bottom legend chart",
             "Bottom Legend",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 12D, 18D, 24D }),
-                    new OfficeChartSeries("Target", new[] { 10D, 20D, 26D })
+                    new OfficeSeries("Actual", new[] { 12D, 18D, 24D }),
+                    new OfficeSeries("Target", new[] { 10D, 20D, 26D })
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             layout: new OfficeChartLayout(legendPosition: OfficeChartLegendPosition.Bottom)));
 
         OfficeDrawingText actual = drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Actual");
@@ -2115,15 +2116,15 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Bottom legend color chart",
             "Bottom Legend Colors",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 12D, 18D, 24D }, null, actualColor),
-                    new OfficeChartSeries("Target", new[] { 10D, 20D, 26D }, null, targetColor)
+                    new OfficeSeries("Actual", new[] { 12D, 18D, 24D }, null, actualColor),
+                    new OfficeSeries("Target", new[] { 10D, 20D, 26D }, null, targetColor)
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             layout: new OfficeChartLayout(legendPosition: OfficeChartLegendPosition.Bottom)));
 
         Assert.Contains(drawing.Shapes, shape =>
@@ -2145,15 +2146,15 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Left legend chart",
             "Left Legend",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 12D, 18D, 24D }),
-                    new OfficeChartSeries("Target", new[] { 10D, 20D, 26D })
+                    new OfficeSeries("Actual", new[] { 12D, 18D, 24D }),
+                    new OfficeSeries("Target", new[] { 10D, 20D, 26D })
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             layout: new OfficeChartLayout(legendPosition: OfficeChartLegendPosition.Left)));
 
         OfficeDrawingText actual = drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Actual");
@@ -2168,24 +2169,24 @@ public class PdfDocumentChartDrawingTests {
         var data = new OfficeChartData(
             new[] { "Q1", "Q2", "Q3" },
             new[] {
-                new OfficeChartSeries("Actual", new[] { 12D, 18D, 24D }),
-                new OfficeChartSeries("Target", new[] { 10D, 20D, 26D })
+                new OfficeSeries("Actual", new[] { 12D, 18D, 24D }),
+                new OfficeSeries("Target", new[] { 10D, 20D, 26D })
             });
         OfficeDrawing reserved = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Reserved legend chart",
             "Reserved Legend",
-            OfficeChartKind.Line,
+            OfficeChartType.Line,
             data,
-            widthPoints: 320D,
-            heightPoints: 190D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             layout: new OfficeChartLayout(legendPosition: OfficeChartLegendPosition.Right)));
         OfficeDrawing overlay = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Overlay legend chart",
             "Overlay Legend",
-            OfficeChartKind.Line,
+            OfficeChartType.Line,
             data,
-            widthPoints: 320D,
-            heightPoints: 190D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             layout: new OfficeChartLayout(overlayLegend: true, legendPosition: OfficeChartLegendPosition.Right)));
 
         double reservedAxisWidth = GetLongestAxisLineWidth(reserved);
@@ -2200,15 +2201,15 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Hidden axes chart",
             "Hidden Axes",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1", "Q2" },
                 new[] {
-                    new OfficeChartSeries("HiddenLegend", new[] { 12D, 18D }, null, OfficeColor.ParseHex("#4472c4"), null, showMarkers: true, showInLegend: false),
-                    new OfficeChartSeries("VisibleLegend", new[] { 10D, 16D }, null, OfficeColor.ParseHex("#70ad47"))
+                    new OfficeSeries("HiddenLegend", new[] { 12D, 18D }, null, OfficeColor.ParseHex("#4472c4"), null, showMarkers: true, showInLegend: false),
+                    new OfficeSeries("VisibleLegend", new[] { 10D, 16D }, null, OfficeColor.ParseHex("#70ad47"))
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             layout: new OfficeChartLayout(
                 showCategoryAxis: false,
                 showValueAxis: false)));
@@ -2230,15 +2231,15 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Risk bars",
             "Risk Exposure",
-            OfficeChartKind.BarClustered,
+            OfficeChartType.BarClustered,
             new OfficeChartData(
                 new[] { "Low", "Medium", "High" },
                 new[] {
-                    new OfficeChartSeries("Current", new[] { 4D, 9D, 14D }),
-                    new OfficeChartSeries("Target", new[] { 3D, 8D, 12D })
+                    new OfficeSeries("Current", new[] { 4D, 9D, 14D }),
+                    new OfficeSeries("Target", new[] { 3D, 8D, 12D })
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D));
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D)));
 
         var categoryLabels = drawing.Elements
             .OfType<OfficeDrawingText>()
@@ -2256,16 +2257,16 @@ public class PdfDocumentChartDrawingTests {
             shape.Shape.StrokeWidth == 0.5D &&
             shape.Shape.Width > 20D &&
             shape.Shape.Height <= 1D);
-        Assert.Equal(3, verticalGridLines);
+        Assert.Equal(2, verticalGridLines); // Nice ticks at 0, 5, 10 and 15 leave two inner gridlines.
         Assert.Equal(0, horizontalGridLines);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 420,
-                PageHeight = 280,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(280),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 CompressContentStreams = false
             })
             .Drawing(drawing, PdfAlign.Left)
@@ -2287,23 +2288,23 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Capability radar",
             "Capability Radar",
-            OfficeChartKind.Radar,
+            OfficeChartType.Radar,
             new OfficeChartData(
                 new[] { "Security", "Reliability", "UX", "Speed", "Cost" },
                 new[] {
-                    new OfficeChartSeries("Current", new[] { 7D, 6D, 5D, 8D, 4D }),
-                    new OfficeChartSeries("Target", new[] { 9D, 8D, 7D, 9D, 6D })
+                    new OfficeSeries("Current", new[] { 7D, 6D, 5D, 8D, 4D }),
+                    new OfficeSeries("Target", new[] { 9D, 8D, 7D, 9D, 6D })
                 }),
-            widthPoints: 340D,
-            heightPoints: 210D));
+width: global::OfficeIMO.OfficeLength.Points(340D),
+height: global::OfficeIMO.OfficeLength.Points(210D)));
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 440,
-                PageHeight = 300,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(440),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(300),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 CompressContentStreams = false
             })
             .Drawing(drawing, PdfAlign.Left)
@@ -2326,19 +2327,19 @@ public class PdfDocumentChartDrawingTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Radar point colors",
             "Radar Points",
-            OfficeChartKind.Radar,
+            OfficeChartType.Radar,
             new OfficeChartData(
                 new[] { "Security", "Reliability", "UX", "Speed" },
                 new[] {
-                    new OfficeChartSeries(
+                    new OfficeSeries(
                         "Current",
                         new[] { 7D, 6D, 5D, 8D },
                         null,
                         OfficeColor.ParseHex("#2563EB"),
                         new OfficeColor?[] { null, null, highlight, null })
                 }),
-            widthPoints: 300D,
-            heightPoints: 190D));
+width: global::OfficeIMO.OfficeLength.Points(300D),
+height: global::OfficeIMO.OfficeLength.Points(190D)));
 
         Assert.Contains(drawing.Shapes, shape =>
             shape.Shape.Kind == OfficeShapeKind.Ellipse &&

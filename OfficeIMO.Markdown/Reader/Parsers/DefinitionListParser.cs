@@ -1,10 +1,10 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private const int DefinitionContinuationIndentOffset = 2;
 
     internal sealed class DefinitionListParser : IMarkdownBlockParser {
-        public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
+        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (!options.DefinitionLists) return false;
             if (TryParseMarkdigDefinitionList(lines, ref i, options, doc, state)) return true;
             if (!ShouldTreatAsDefinitionLine(lines, i, options)) return false;
@@ -143,8 +143,8 @@ public static partial class MarkdownReader {
     private static bool TryParseMarkdigDefinitionList(
         string[] lines,
         ref int i,
-        MarkdownReaderOptions options,
-        MarkdownDoc doc,
+        MarkdownLoadOptions options,
+        MarkdownDocument doc,
         MarkdownReaderState state) {
         if (lines == null || i < 0 || i >= lines.Length) {
             return false;
@@ -259,7 +259,7 @@ public static partial class MarkdownReader {
     private static bool TryCollectMarkdigDefinitionTerms(
         string[] lines,
         int startIndex,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state,
         out int markerIndex,
         out List<ParsedDefinitionTermLine> terms) {
@@ -287,7 +287,7 @@ public static partial class MarkdownReader {
     private static ParsedDefinitionTermLine CreateMarkdigDefinitionTerm(
         string line,
         int zeroBasedLineIndex,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state) {
         int termStartIndex = 0;
         while (termStartIndex < line.Length && char.IsWhiteSpace(line[termStartIndex])) {
@@ -346,7 +346,7 @@ public static partial class MarkdownReader {
             consumedWhitespace);
     }
 
-    private static bool IsMarkdigDefinitionTermCandidate(string[] lines, int index, MarkdownReaderOptions options, MarkdownReaderState state) {
+    private static bool IsMarkdigDefinitionTermCandidate(string[] lines, int index, MarkdownLoadOptions options, MarkdownReaderState state) {
         if (lines == null || index < 0 || index >= lines.Length) return false;
         var line = lines[index] ?? string.Empty;
         if (string.IsNullOrWhiteSpace(line)) return false;
@@ -407,7 +407,7 @@ public static partial class MarkdownReader {
         ref int index,
         int markerIndent,
         int definitionStartIndex,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state,
         out MarkdownSyntaxNode? markerNode,
         out MarkdownSyntaxNode? definitionNode) {
@@ -514,7 +514,7 @@ public static partial class MarkdownReader {
         public MarkdownSourceSpan? Span { get; private set; }
         public DefinitionListTerm TermObject { get; private set; } = new DefinitionListTerm();
 
-        public void Bind(MarkdownReaderOptions options, MarkdownReaderState state) {
+        public void Bind(MarkdownLoadOptions options, MarkdownReaderState state) {
             int lineNumber = state.SourceLineOffset + ZeroBasedLineIndex + 1;
             var sourceMap = BuildInlineSourceMapForSingleLine(Literal, lineNumber, StartIndex + 1, state);
             Inlines = ParseInlines(Literal, options, state, sourceMap);
@@ -541,7 +541,7 @@ public static partial class MarkdownReader {
         List<MarkdownSourceLineSlice> definitionSourceLines,
         List<MarkdownSourceSpan> continuationIndentSourceSpans,
         MarkdownReaderState state,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         bool allowLazyContinuation) {
         if (lines == null || definitionSourceLines == null) {
             return false;
@@ -640,7 +640,7 @@ public static partial class MarkdownReader {
         string[] lines,
         int index,
         List<MarkdownSourceLineSlice> definitionSourceLines,
-        MarkdownReaderOptions options) {
+        MarkdownLoadOptions options) {
         if (lines == null || index < 0 || index >= lines.Length) {
             return false;
         }
@@ -682,7 +682,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool PreviousDefinitionLineStopsLazyContinuation(List<MarkdownSourceLineSlice> definitionSourceLines, MarkdownReaderOptions options) {
+    private static bool PreviousDefinitionLineStopsLazyContinuation(List<MarkdownSourceLineSlice> definitionSourceLines, MarkdownLoadOptions options) {
         if (definitionSourceLines == null || definitionSourceLines.Count == 0) {
             return false;
         }
@@ -767,7 +767,7 @@ public static partial class MarkdownReader {
         return false;
     }
 
-    private static bool CurrentLineInterruptsNestedDefinitionBlock(string line, MarkdownReaderOptions options) {
+    private static bool CurrentLineInterruptsNestedDefinitionBlock(string line, MarkdownLoadOptions options) {
         if (string.IsNullOrWhiteSpace(line)) {
             return false;
         }
@@ -780,7 +780,7 @@ public static partial class MarkdownReader {
             trimmed.StartsWith(">", StringComparison.Ordinal);
     }
 
-    private static bool CurrentLineStartsListBlock(string line, MarkdownReaderOptions options) {
+    private static bool CurrentLineStartsListBlock(string line, MarkdownLoadOptions options) {
         if (string.IsNullOrWhiteSpace(line)) {
             return false;
         }
@@ -805,7 +805,7 @@ public static partial class MarkdownReader {
 
     private static (IReadOnlyList<IMarkdownBlock> Blocks, IReadOnlyList<MarkdownSyntaxNode> SyntaxChildren) ParseDefinitionBody(
         List<MarkdownSourceLineSlice> definitionSourceLines,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state) {
         if (definitionSourceLines == null || definitionSourceLines.Count == 0) {
             return (Array.Empty<IMarkdownBlock>(), Array.Empty<MarkdownSyntaxNode>());
@@ -955,7 +955,7 @@ public static partial class MarkdownReader {
 
     private static bool ShouldParseDefinitionBodyAsLiteralParagraph(
         List<MarkdownSourceLineSlice> definitionSourceLines,
-        MarkdownReaderOptions options) {
+        MarkdownLoadOptions options) {
         if (options?.Tables == true || definitionSourceLines == null || definitionSourceLines.Count < 2) {
             return false;
         }

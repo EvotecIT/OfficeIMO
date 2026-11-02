@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests {
             using var package = new MemoryStream(); document.Save(package);
             var reopened = Assert.Single(VisioDocument.Load(package).Pages);
             Assert.Equal(page.Connectors.Select(connector => connector.LineColor), reopened.Connectors.Select(connector => connector.LineColor));
-            page.Connectors[1].LineColor = OfficeIMO.Drawing.OfficeColor.FromRgba(255, 0, 0, 255);
+            page.Connectors[1].LineColor = OfficeIMO.OfficeColor.FromRgba(255, 0, 0, 255);
             using var edited = new MemoryStream(); document.Save(edited);
             Assert.Equal(255, Assert.Single(VisioDocument.Load(edited).Pages).Connectors[1].LineColor.A);
             edited.Position = 0;

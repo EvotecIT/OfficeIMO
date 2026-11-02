@@ -7,10 +7,12 @@ internal static partial class PdfWriter {
             TableCellTextLayout lines, int rowIndex, int sourceStartLine, int requestedLineCount,
             double cellX, double cellTop, double cellWidth, double cellHeight, double rowSize,
             double rowLeading, double runFontSizeScale, bool rowUsesBold, bool renderAsHeader,
-            bool wholeRowSegment, bool suppressCellObjects, PdfColor? textColor,
+            bool wholeRowSegment, bool suppressCellObjects, global::OfficeIMO.OfficeColor? textColor,
             int? rowStructureElementIndex, PageStructElement? rowStructureElement = null,
             int? fragmentRowSpan = null, bool includeNamedDestination = true, double? verticalOffsetOverride = null) {
             int c = cell.Column;
+            string headerScope = GetTableCellHeaderScope(style, rowIndex, c, renderAsHeader);
+            renderAsHeader = headerScope.Length != 0;
             double textClipBleed = style.ClipTextToCellBounds ? 0D : TableCellClipBleed;
             double cellPadLeft = GetTableCellPaddingLeft(style, rowIndex, c);
             double cellPadRight = GetTableCellPaddingRight(style, rowIndex, c);
@@ -73,9 +75,9 @@ internal static partial class PdfWriter {
                 if (cellHasLinkTarget && emitGeneratedStructure && currentPage != null) {
                     PageStructElement? cellElement = rowStructureElement == null
                         ? null
-                        : RegisterStructureContainer(structureType, rowStructureElement, renderAsHeader ? "Column" : string.Empty, tableColumnSpan, tableRowSpan, logicalOrder: c);
+                        : RegisterStructureContainer(structureType, rowStructureElement, headerScope, tableColumnSpan, tableRowSpan, logicalOrder: c);
                     int? cellElementIndex = cellElement == null
-                        ? RegisterStructureContainer(structureType, rowStructureElementIndex, renderAsHeader ? "Column" : string.Empty, tableColumnSpan, tableRowSpan, logicalOrder: c)
+                        ? RegisterStructureContainer(structureType, rowStructureElementIndex, headerScope, tableColumnSpan, tableRowSpan, logicalOrder: c)
                         : null;
                     markedStructureType = "Link";
                     markedContentId = cellElement == null
@@ -84,12 +86,12 @@ internal static partial class PdfWriter {
                     cellLinkStructElementIndex = FindStructElementIndex(currentPage, markedContentId, markedStructureType);
                 } else {
                     markedContentId = rowStructureElement == null
-                        ? RegisterTextStructureElement(structureType, rowStructureElementIndex, renderAsHeader ? "Column" : string.Empty, tableColumnSpan, tableRowSpan, logicalOrder: c)
-                        : RegisterTextStructureElement(structureType, rowStructureElement, renderAsHeader ? "Column" : string.Empty, tableColumnSpan, tableRowSpan, logicalOrder: c);
+                        ? RegisterTextStructureElement(structureType, rowStructureElementIndex, headerScope, tableColumnSpan, tableRowSpan, logicalOrder: c)
+                        : RegisterTextStructureElement(structureType, rowStructureElement, headerScope, tableColumnSpan, tableRowSpan, logicalOrder: c);
                 }
 
                 if (cell.TextRotation == 0)
-                    ReportRichPaintDiagnostics("TableCell", "PdfTableCell[" + rowIndex + "," + c + "]", paragraph,
+                    ReportRichPaintDiagnostics(PaintDiagnosticCodes.TableCell, "PdfTableCell[" + rowIndex + "," + c + "]", paragraph,
                         visibleLines, visibleHeights, firstBaseline, rowSize, rowLeading, contentFrame.Left + cellPadLeft, innerW,
                         new TableCellContentFrame(textClipX, inkClip.Top + textClipBleed, textClipWidth, inkClip.Height + 2D * textClipBleed),
                         alignments: visibleAlignments, offsets: visibleXOffsets, widths: visibleWidths, baselineFont: cellFont);
@@ -119,11 +121,11 @@ internal static partial class PdfWriter {
                     int rowSpan = fragmentRowSpan ?? (wholeRowSegment ? cell.RowSpan : 1);
                     if (rowStructureElement == null) {
                         int? cellIndex = RegisterStructureContainer(structureType, rowStructureElementIndex,
-                            renderAsHeader ? "Column" : string.Empty, cell.ColumnSpan, rowSpan, logicalOrder: c);
+                            headerScope, cell.ColumnSpan, rowSpan, logicalOrder: c);
                         cellLinkStructElementIndex = RegisterStructureContainer("Link", cellIndex);
                     } else {
                         PageStructElement? cellElement = RegisterStructureContainer(structureType, rowStructureElement,
-                            renderAsHeader ? "Column" : string.Empty, cell.ColumnSpan, rowSpan, logicalOrder: c);
+                            headerScope, cell.ColumnSpan, rowSpan, logicalOrder: c);
                         PageStructElement? linkElement = RegisterStructureContainer("Link", cellElement);
                         if (linkElement != null) cellLinkStructElementIndex = currentPage.StructElements.IndexOf(linkElement);
                     }

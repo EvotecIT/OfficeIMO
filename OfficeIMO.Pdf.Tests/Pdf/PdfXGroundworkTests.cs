@@ -20,14 +20,14 @@ public class PdfXGroundworkTests {
     [Fact]
     public void PdfX4GroundworkEmitsTruthfulPrintProductionPrimitivesWithoutClaimingConformance() {
         byte[] cmykProfile = IccMabTestProfiles.CreateCmykLab8Bidirectional();
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfXGroundwork(
                 PdfComplianceProfile.PdfX4,
                 cmykProfile,
                 "FOGRA51",
                 PdfTrappingStatus.False);
         options.CompressContentStreams = false;
-        options.BackgroundColor = PdfColor.Gray;
+        options.BackgroundColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D);
 
         byte[] pdf = PdfDocument.Create(options)
             .Meta(title: "PDF/X-4 groundwork", author: "OfficeIMO")
@@ -39,7 +39,7 @@ public class PdfXGroundworkTests {
         PdfComplianceReadinessReport readback = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfX4, pdf);
         PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
         PdfPrintProductionStructureEvidence structure = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
         Assert.True(OfficeIccColorProfile.TryCreate(cmykProfile, out OfficeIccColorProfile? profile));
         Assert.True(profile!.TryDeriveNeutralBlack(OfficeColor.FromRgb(128, 128, 128), options.PdfXRenderingIntent, out double neutralBlack));
         string expectedNeutralOperator = "0 0 0 " + neutralBlack.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture) + " k";
@@ -93,7 +93,7 @@ public class PdfXGroundworkTests {
 
     [Fact]
     public void PdfXFlattenedAnnotationAppearancesAreConvertedToPrintColorSpace() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfXGroundwork(
                 PdfComplianceProfile.PdfX4,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
@@ -107,14 +107,14 @@ public class PdfXGroundworkTests {
                 "CMYK reviewer note",
                 width: 140,
                 height: 44,
-                textColor: new PdfColor(0.15D, 0.35D, 0.75D),
-                borderColor: new PdfColor(0.8D, 0.2D, 0.1D),
-                fillColor: new PdfColor(0.9D, 0.95D, 1D))
+                textColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.15D, 0.35D, 0.75D),
+                borderColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.8D, 0.2D, 0.1D),
+                fillColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.95D, 1D))
             .HighlightAnnotation(
                 "CMYK highlight",
                 width: 120,
                 height: 14,
-                color: new PdfColor(1D, 0.9D, 0.1D))
+                color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0.9D, 0.1D))
             .ToBytes();
 
         PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
@@ -126,7 +126,7 @@ public class PdfXGroundworkTests {
 
     [Fact]
     public void PdfXColorNormalizationPreservesPdfLexicalContents() {
-        var options = new PdfOptions().ConfigurePdfXGroundwork(
+        var options = new PdfCreateOptions().ConfigurePdfXGroundwork(
             PdfComplianceProfile.PdfX4,
             IccMabTestProfiles.CreateCmykLab8Bidirectional(),
             "FOGRA51",
@@ -151,7 +151,7 @@ public class PdfXGroundworkTests {
     [Fact]
     public void PdfXNeutralAxisUsesTheOutputProfilesBlackTone() {
         byte[] profileBytes = IccMabTestProfiles.CreateCmykLab8Bidirectional();
-        var options = new PdfOptions().ConfigurePdfXGroundwork(
+        var options = new PdfCreateOptions().ConfigurePdfXGroundwork(
             PdfComplianceProfile.PdfX4,
             profileBytes,
             "FOGRA51",
@@ -174,7 +174,7 @@ public class PdfXGroundworkTests {
     public void PdfXExactArtifactIsInternallyReadyOnlyWithProductionBoxesAndEmbeddedFonts() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) return;
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfXGroundwork(
                 PdfComplianceProfile.PdfX4,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
@@ -203,7 +203,7 @@ public class PdfXGroundworkTests {
     public void PdfXStructureInspectorAcceptsEmbeddedOpenTypeCffFontPrograms() {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         if (fontPath == null) return;
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfXGroundwork(
                 PdfComplianceProfile.PdfX4,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
@@ -294,7 +294,7 @@ public class PdfXGroundworkTests {
 
     [Fact]
     public void PdfXGeneratedAndExactPoliciesRejectLinks() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfXGroundwork(
                 PdfComplianceProfile.PdfX4,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
@@ -314,16 +314,16 @@ public class PdfXGroundworkTests {
     [Fact]
     public void PrintProductionPageBoxesRequireBleedToContainTrim() {
         Assert.Throws<ArgumentException>(() => new PdfPrintProductionPageBoxes(
-            PageMargins.Uniform(3D),
-            PageMargins.Uniform(6D)));
+            PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(3D)),
+            PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(6D))));
 
-        var options = new PdfOptions {
-            PageWidth = 100D,
-            PageHeight = 100D,
-            Margins = PageMargins.Uniform(0D),
+        var options = new PdfCreateOptions {
+            PageWidth = global::OfficeIMO.OfficeLength.Points(100D),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(100D),
+            Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0D)),
             PrintProductionPageBoxes = new PdfPrintProductionPageBoxes(
-                new PageMargins(60D, 0D, 40D, 0D),
-                PageMargins.Uniform(0D))
+                new PdfPageMargins(OfficeIMO.OfficeLength.Points(60D),OfficeIMO.OfficeLength.Points(0D),OfficeIMO.OfficeLength.Points(40D),OfficeIMO.OfficeLength.Points(0D)),
+                PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0D)))
         };
 
         Assert.Throws<InvalidOperationException>(() => PdfDocument.Create(options)
@@ -333,9 +333,9 @@ public class PdfXGroundworkTests {
 
     [Fact]
     public void PrintProductionPageBoxesUseTheMediaBoxPrecision() {
-        var options = new PdfOptions {
-            PageWidth = 595.276D,
-            PageHeight = 841.89D
+        var options = new PdfCreateOptions {
+            PageWidth = global::OfficeIMO.OfficeLength.Points(595.276D),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(841.89D)
         }.ConfigurePdfXGroundwork(
             PdfComplianceProfile.PdfX4,
             IccMabTestProfiles.CreateCmykLab8Bidirectional(),
@@ -361,7 +361,7 @@ public class PdfXGroundworkTests {
         var raster = new OfficeRasterImage(1, 1);
         raster.SetPixel(0, 0, OfficeColor.FromRgba(20, 40, 60, 96));
         byte[] png = OfficePngWriter.Encode(raster);
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfXGroundwork(
                 PdfComplianceProfile.PdfX1A2003,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
@@ -387,14 +387,14 @@ public class PdfXGroundworkTests {
 
     [Fact]
     public void PdfXRasterConversionDoesNotDependOnVectorConversion() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfXGroundwork(
                 PdfComplianceProfile.PdfX4,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
                 "FOGRA51");
         options.CompressContentStreams = false;
         options.ConvertVectorColorsToPdfXPrintCondition = false;
-        options.BackgroundColor = PdfColor.Gray;
+        options.BackgroundColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D);
 
         byte[] pdf = PdfDocument.Create(options)
             .Image(PdfPngTestImages.CreateRgbPng(12, 34, 56), 12, 12)
@@ -412,7 +412,7 @@ public class PdfXGroundworkTests {
     public void PdfXCmykJpegIsDecodedAndConvertedInsteadOfRelabeled() {
         byte[] cmykJpeg = Convert.FromBase64String(
             "/9j/7gAOQWRvYmUAZAAAAAAA/9sAQwABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEB/8AAFAgAAQABBEMRAE0RAFkRAEsRAP/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/aAA4EQwBNAFkASwAAPwD+/iv8/wDr/P8A6/v4r//Z");
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfXGroundwork(
                 PdfComplianceProfile.PdfX4,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
@@ -443,7 +443,7 @@ public class PdfXGroundworkTests {
             IccMabTestProfiles.CreateCmykLab8Bidirectional());
         byte[] taggedGif = AddGifIccApplicationExtension(Convert.FromBase64String(
             "R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs="));
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfXGroundwork(
                 PdfComplianceProfile.PdfX4,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
@@ -523,7 +523,7 @@ public class PdfXGroundworkTests {
 
     [Fact]
     public void PdfXGroundworkRejectsEncryptionRegardlessOfConfigurationOrder() {
-        PdfOptions options = new PdfOptions()
+        PdfCreateOptions options = new PdfCreateOptions()
             .ConfigurePdfXGroundwork(
                 PdfComplianceProfile.PdfX4,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
@@ -535,7 +535,7 @@ public class PdfXGroundworkTests {
 
     [Fact]
     public void PdfXReadbackRejectsIccHeaderAndComponentCountMismatch() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfXGroundwork(
                 PdfComplianceProfile.PdfX4,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
@@ -550,7 +550,7 @@ public class PdfXGroundworkTests {
 
     [Fact]
     public void PdfXReadbackRejectsHeaderOnlyIccWithoutOutputTransform() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfXGroundwork(
                 PdfComplianceProfile.PdfX4,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
@@ -567,7 +567,7 @@ public class PdfXGroundworkTests {
     [InlineData("/Type /Metadatz /Subtype /XML")]
     [InlineData("/Type /Metadata /Subtype /XYZ")]
     public void PdfXReadbackRequiresAnXmlMetadataStream(string replacement) {
-        var options = new PdfOptions().ConfigurePdfXGroundwork(
+        var options = new PdfCreateOptions().ConfigurePdfXGroundwork(
             PdfComplianceProfile.PdfX4,
             IccMabTestProfiles.CreateCmykLab8Bidirectional(),
             "FOGRA51");
@@ -583,14 +583,14 @@ public class PdfXGroundworkTests {
 
     [Fact]
     public void PdfXReadbackRequiresExactlyOnePdfXOutputIntent() {
-        var options = new PdfOptions().ConfigurePdfXGroundwork(
+        var options = new PdfCreateOptions().ConfigurePdfXGroundwork(
             PdfComplianceProfile.PdfX4,
             IccMabTestProfiles.CreateCmykLab8Bidirectional(),
             "FOGRA51");
         PdfDocumentInfo info = PdfInspector.Inspect(PdfDocument.Create(options).ToBytes());
         PdfOutputIntentInfo intent = Assert.Single(info.OutputIntents);
         PdfOutputIntentInfo pdfAIntent = Assert.Single(PdfInspector.Inspect(
-            PdfDocument.Create(new PdfOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B)).ToBytes())
+            PdfDocument.Create(new PdfCreateOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B)).ToBytes())
             .OutputIntents);
 
         Assert.True(PdfComplianceAnalyzer.TryGetSinglePdfXOutputIntent(info.OutputIntents, out PdfOutputIntentInfo? selected));
@@ -603,7 +603,7 @@ public class PdfXGroundworkTests {
 
     [Fact]
     public void PdfXReadbackRequiresOutputIntentDictionaryType() {
-        var options = new PdfOptions().ConfigurePdfXGroundwork(
+        var options = new PdfCreateOptions().ConfigurePdfXGroundwork(
             PdfComplianceProfile.PdfX4,
             IccMabTestProfiles.CreateCmykLab8Bidirectional(),
             "FOGRA51");
@@ -982,7 +982,7 @@ public class PdfXGroundworkTests {
 
     [Fact]
     public void PdfXFormalGenerationFailsClosedWhenEmbeddedFontCoverageIsMissing() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfX(
                 PdfComplianceProfile.PdfX1A2003,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
@@ -1007,11 +1007,11 @@ public class PdfXGroundworkTests {
     public void PdfXFormalConfigurationRequiresBooleanTrappingStatus() {
         byte[] profile = IccMabTestProfiles.CreateCmykLab8Bidirectional();
 
-        var options = new PdfOptions().ConfigurePdfX(
+        var options = new PdfCreateOptions().ConfigurePdfX(
             PdfComplianceProfile.PdfX4,
             profile,
             "FOGRA51");
-        ArgumentException exception = Assert.Throws<ArgumentException>(() => new PdfOptions().ConfigurePdfX(
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => new PdfCreateOptions().ConfigurePdfX(
             PdfComplianceProfile.PdfX4,
             profile,
             "FOGRA51",
@@ -1023,7 +1023,7 @@ public class PdfXGroundworkTests {
 
     [Fact]
     public void PdfXReadinessRejectsUnknownTrappingStatus() {
-        var options = new PdfOptions().ConfigurePdfXGroundwork(
+        var options = new PdfCreateOptions().ConfigurePdfXGroundwork(
             PdfComplianceProfile.PdfX4,
             IccMabTestProfiles.CreateCmykLab8Bidirectional(),
             "FOGRA51",
@@ -1045,7 +1045,7 @@ public class PdfXGroundworkTests {
             ? PdfComplianceTestFonts.FindBundledTrueTypeFont()
             : PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfX(
                 profile,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
@@ -1077,7 +1077,7 @@ public class PdfXGroundworkTests {
             "proof");
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfX(
                 PdfComplianceProfile.PdfX4,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
@@ -1109,7 +1109,7 @@ public class PdfXGroundworkTests {
     public void PdfXAutomaticProductionIdentityIsScopedToEachDocument() {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfX(
                 PdfComplianceProfile.PdfX4,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
@@ -1136,7 +1136,7 @@ public class PdfXGroundworkTests {
             new Guid("6ad44c01-cdb5-4a3e-a310-2346af838ba5"),
             new Guid("1a814373-f8ca-4b2b-b9e0-0b6553485b03"));
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions().SetPdfXProductionMetadata(metadata)).ToBytes();
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetPdfXProductionMetadata(metadata)).ToBytes();
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
 
         Assert.True(info.XmpMetadata!.IsWellFormedXml);
@@ -1243,7 +1243,7 @@ public class PdfXGroundworkTests {
 
     [Fact]
     public void PdfXFormalStreamFailureDoesNotOverwriteTheDestination() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfX(
                 PdfComplianceProfile.PdfX4,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
@@ -1264,7 +1264,7 @@ public class PdfXGroundworkTests {
     public async Task PdfXFormalAsyncCommitDoesNotReportCancellationAfterReplacingSeekableDestination() {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfX(
                 PdfComplianceProfile.PdfX4,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
@@ -1279,7 +1279,7 @@ public class PdfXGroundworkTests {
         PdfSaveResult result = await PdfDocument.Create(options)
             .Meta(title: "Committed PDF/X artifact")
             .Paragraph(paragraph => paragraph.Text("Cancellation begins only after the staged commit starts."))
-            .SaveAsync(destination, cancellation.Token);
+            .SaveWithEvidenceAsync(destination, cancellationToken: cancellation.Token);
 
         Assert.True(result.Succeeded);
         Assert.True(cancellation.IsCancellationRequested);
@@ -1292,7 +1292,7 @@ public class PdfXGroundworkTests {
     public async Task PdfXFormalAsyncPathSaveStopsDuringDeferredLayoutAndPreservesDestination() {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfX(
                 PdfComplianceProfile.PdfX4,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
@@ -1309,7 +1309,7 @@ public class PdfXGroundworkTests {
             PdfDocument document = PdfDocument.Create(options).TableDeferred(CreateRows, batchSize: 1);
 
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-                document.SaveAsync(path, cancellation.Token));
+                document.SaveAsync(path, cancellationToken: cancellation.Token));
 
             Assert.InRange(rowsEnumerated, 2, 3);
             Assert.Equal(original, File.ReadAllBytes(path));
@@ -1343,7 +1343,7 @@ public class PdfXGroundworkTests {
             Assert.Equal(4, components.Length);
             Assert.All(components, component => Assert.InRange(component, 0D, 1D));
         }
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfX(
                 PdfComplianceProfile.PdfX4,
                 profileBytes,
@@ -1365,7 +1365,7 @@ public class PdfXGroundworkTests {
         Assert.Throws<ArgumentException>(() =>
             PdfOutputIntent.CreatePdfX(CreateMinimalIccProfile("RGB "), "sRGB"));
 
-        PdfOutputIntent clone = new PdfOptions()
+        PdfOutputIntent clone = new PdfCreateOptions()
             .SetPdfXOutputIntent(IccMabTestProfiles.CreateCmykLab8Bidirectional(), "FOGRA51")
             .Clone()
             .OutputIntent!;
@@ -1388,7 +1388,7 @@ public class PdfXGroundworkTests {
 
     [Fact]
     public void PdfXReadbackRejectsNonOutputDeviceIccProfile() {
-        var options = new PdfOptions().ConfigurePdfXGroundwork(
+        var options = new PdfCreateOptions().ConfigurePdfXGroundwork(
             PdfComplianceProfile.PdfX4,
             IccMabTestProfiles.CreateCmykLab8Bidirectional(),
             "FOGRA51",
@@ -1404,7 +1404,7 @@ public class PdfXGroundworkTests {
     [Fact]
     public void PdfXGenerationGateRejectsMutatedNonOutputDeviceIntent() {
         byte[] validProfile = IccMabTestProfiles.CreateCmykLab8Bidirectional();
-        var options = new PdfOptions().ConfigurePdfX(PdfComplianceProfile.PdfX4, validProfile, "FOGRA51");
+        var options = new PdfCreateOptions().ConfigurePdfX(PdfComplianceProfile.PdfX4, validProfile, "FOGRA51");
         byte[] inputProfile = (byte[])validProfile.Clone();
         WriteAscii(inputProfile, 12, "scnr");
         options.OutputIntent = new PdfOutputIntent(
@@ -1446,7 +1446,7 @@ public class PdfXGroundworkTests {
             new DateTimeOffset(2026, 8, 24, 13, 5, 0, TimeSpan.Zero),
             new Guid("f16a3ee3-645f-4114-b478-210d114f5265"),
             new Guid("1dd6877b-87c6-4949-adde-49795d8e3c22"));
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfX(
                 PdfComplianceProfile.PdfX4,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),

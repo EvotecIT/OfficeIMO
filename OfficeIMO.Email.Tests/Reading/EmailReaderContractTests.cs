@@ -9,7 +9,7 @@ public sealed class EmailReaderContractTests {
     public void EmailDocumentToStreamMatchesToBytesAndStartsAtBeginning() {
         var document = new EmailDocument { Subject = "Lifecycle" };
 
-        using MemoryStream stream = document.ToStream();
+        using MemoryStream stream = new System.IO.MemoryStream(document.ToBytes());
 
         Assert.Equal(0, stream.Position);
         Assert.Equal(document.ToBytes(), stream.ToArray());

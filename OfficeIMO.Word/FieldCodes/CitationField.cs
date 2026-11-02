@@ -2,7 +2,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Represents the CITATION field code.
     /// </summary>
-    public class CitationField : WordFieldCode {
+    public class WordCitationField : WordFieldCode {
         /// <summary>
         /// Tag of the source to cite.
         /// </summary>

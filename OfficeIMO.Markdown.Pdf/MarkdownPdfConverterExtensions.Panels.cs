@@ -6,7 +6,7 @@ namespace OfficeIMO.Markdown.Pdf;
 
 // First-party Markdown to PDF conversion helpers.
 public static partial class MarkdownPdfConverterExtensions {
-    private static void RenderQuoteBlock(PdfCore.PdfDocument pdf, QuoteBlock quote, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
+    private static void RenderQuoteBlock(PdfCore.PdfDocument pdf, QuoteBlock quote, MarkdownDocument document, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme) {
         if (quote.ChildBlocks.Count > 0) {
             RenderBlocksWithPanelRuns(pdf, quote.ChildBlocks, document, options, visualTheme, visualTheme.QuotePanelStyleSnapshot);
             return;
@@ -25,8 +25,8 @@ public static partial class MarkdownPdfConverterExtensions {
     private static void RenderBlocksWithPanelRuns(
         PdfCore.PdfDocument pdf,
         IReadOnlyList<IMarkdownBlock> blocks,
-        MarkdownDoc document,
-        MarkdownToPdfOptions options,
+        MarkdownDocument document,
+        MarkdownPdfExportOptions options,
         MarkdownPdfStyle visualTheme,
         PdfCore.PdfPanelStyle panelStyle,
         Action<PdfCore.PdfContentBuilder>? renderFirstPanelHeader = null) {
@@ -55,8 +55,8 @@ public static partial class MarkdownPdfConverterExtensions {
     private static void FlushPanelBlocks(
         PdfCore.PdfDocument pdf,
         List<IMarkdownBlock> panelBlocks,
-        MarkdownDoc document,
-        MarkdownToPdfOptions options,
+        MarkdownDocument document,
+        MarkdownPdfExportOptions options,
         MarkdownPdfStyle visualTheme,
         PdfCore.PdfPanelStyle panelStyle,
         Action<PdfCore.PdfContentBuilder>? renderFirstPanelHeader,

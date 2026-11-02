@@ -1,260 +1,150 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Management.Automation;
+using System.Net;
+using System.Security;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using OfficeIMO.Reader;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Models.Reader;
 using PSWriteOffice.Services.Reader;
 
 namespace PSWriteOffice.Cmdlets.Reader;
 
-/// <summary>Searches one Reader result or every supported document below file and folder paths.</summary>
-/// <example>
-///   <summary>Search a mixed document folder without constructing .NET option objects.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>Search-OfficeDocument -Path .\Evidence -Recurse -Query 'retention period'</code>
-///   <para>Automatically reads supported Word, Excel, PowerPoint, PDF, email, PST, OST, and other registered formats.</para>
-/// </example>
-/// <example>
-///   <summary>Remove the default document, store-item, and result ceilings.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>Search-OfficeDocument -Path .\Evidence -Recurse -Query 'invoice' -NoDocumentLimit -AllStoreItems -AllResults</code>
-///   <para>Unlimited modes are explicit because very large stores and document collections can consume substantial resources.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Search, "OfficeDocument", DefaultParameterSetName = DocumentParameterSet)]
-[OutputType(typeof(OfficeDocumentSearchResult), typeof(OfficeDocumentSearchMatch))]
-public sealed class SearchOfficeDocumentCommand : AsyncPSCmdlet
-{
-    private const string DocumentParameterSet = "Document";
-    private const string PathParameterSet = "Path";
+/// <summary>Finds regular-expression or literal matches across supported files and folders.</summary>
+/// <example><summary>Find invoice identifiers in a mixed folder.</summary>
+/// <code>Search-OfficeDocument ./Reports -Recurse -Pattern 'INV-\d+'</code></example>
+/// <example><summary>Find literal text in an already read document.</summary>
+/// <code>Read-OfficeDocument ./Report.docx | Search-OfficeDocument -Pattern 'retention period' -SimpleMatch</code></example>
+[Cmdlet(VerbsCommon.Search, "OfficeDocument", DefaultParameterSetName = "Path")]
+[OutputType(typeof(OfficeDocumentSearchMatch))]
+public sealed class SearchOfficeDocumentCommand : OfficeInputCmdlet {
     private readonly List<string> _paths = new();
     private bool _documentLimitReached;
 
-    /// <summary>Normalized document returned by Get-OfficeDocument.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = DocumentParameterSet)]
+    /// <summary>Normalized document to search without rereading a file.</summary>
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "InputObject")]
     public OfficeDocumentReadResult InputObject { get; set; } = null!;
 
-    /// <summary>File, directory, or wildcard path to search.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = PathParameterSet)]
-    [Alias("FullName", "FilePath")]
-    public string[] Path { get; set; } = Array.Empty<string>();
-
-    /// <summary>Text to find in normalized document blocks.</summary>
+    /// <summary>One or more regular expressions, or literal strings with SimpleMatch.</summary>
     [Parameter(Mandatory = true, Position = 1)]
     [ValidateNotNullOrEmpty]
-    public string Query { get; set; } = string.Empty;
-
-    /// <summary>Use case-sensitive ordinal matching.</summary>
-    [Parameter]
-    public SwitchParameter MatchCase { get; set; }
-
-    /// <summary>Return only occurrences surrounded by non-word characters.</summary>
-    [Parameter]
-    public SwitchParameter WholeWord { get; set; }
-
-    /// <summary>Maximum occurrences returned per document. The default is 1,000.</summary>
-    [Parameter]
-    [Alias("MaxResultsPerDocument")]
-    [ValidateRange(1, int.MaxValue)]
-    public int MaximumResults { get; set; } = 1000;
-
-    /// <summary>Return every occurrence from each document instead of applying the default result ceiling.</summary>
-    [Parameter]
-    public SwitchParameter AllResults { get; set; }
-
-    /// <summary>Search subdirectories.</summary>
-    [Parameter(ParameterSetName = PathParameterSet)]
+    public string[] Pattern { get; set; } = Array.Empty<string>();
+    /// <summary>Treat patterns as literal text.</summary>
+    [Parameter] public SwitchParameter SimpleMatch { get; set; }
+    /// <summary>Use case-sensitive matching.</summary>
+    [Parameter] public SwitchParameter CaseSensitive { get; set; }
+    /// <summary>Accept matches only at word boundaries.</summary>
+    [Parameter] public SwitchParameter WholeWord { get; set; }
+    /// <summary>Maximum total matches per document across all patterns; zero means no limit.</summary>
+    [Parameter] [ValidateRange(0, int.MaxValue)] public int MaximumResults { get; set; } = 1000;
+    /// <summary>Include subfolders.</summary>
+    [Parameter(ParameterSetName = "Path")] [Parameter(ParameterSetName = "LiteralPath")]
     public SwitchParameter Recurse { get; set; }
-
-    /// <summary>Optional extensions to include. Registered Reader formats are used automatically when omitted.</summary>
-    [Parameter(ParameterSetName = PathParameterSet)]
-    [Alias("Extensions")]
+    /// <summary>Selected source extensions, with or without leading dots.</summary>
+    [Parameter(ParameterSetName = "Path")] [Parameter(ParameterSetName = "LiteralPath")]
     public string[]? Extension { get; set; }
-
-    /// <summary>Maximum documents accepted in one search. The default is 500.</summary>
-    [Parameter(ParameterSetName = PathParameterSet)]
-    [ValidateRange(1, int.MaxValue)]
-    public int? MaxDocuments { get; set; }
-
-    /// <summary>Remove the document-count ceiling.</summary>
-    [Parameter(ParameterSetName = PathParameterSet)]
-    public SwitchParameter NoDocumentLimit { get; set; }
-
-    /// <summary>Maximum PST, OST, OLM, or EMLX items projected from each store. The default is 1,000.</summary>
-    [Parameter(ParameterSetName = PathParameterSet)]
-    [ValidateRange(1, int.MaxValue)]
-    public int? MaxStoreItems { get; set; }
-
-    /// <summary>Project every matching item from each email store.</summary>
-    [Parameter(ParameterSetName = PathParameterSet)]
-    public SwitchParameter AllStoreItems { get; set; }
-
-    /// <summary>Maximum document reads in flight.</summary>
-    [Parameter(ParameterSetName = PathParameterSet)]
-    [ValidateRange(1, 64)]
-    public int? MaxDegreeOfParallelism { get; set; }
-
+    /// <summary>Maximum selected files; zero means no limit.</summary>
+    [Parameter(ParameterSetName = "Path")] [Parameter(ParameterSetName = "LiteralPath")]
+    [ValidateRange(0, int.MaxValue)] public int MaximumFiles { get; set; } = 500;
+    /// <summary>Maximum items projected from each mail store; zero means all.</summary>
+    [Parameter(ParameterSetName = "Path")] [Parameter(ParameterSetName = "LiteralPath")]
+    [ValidateRange(0, int.MaxValue)] public int MaximumStoreItems { get; set; } = 1000;
     /// <summary>Compute Word and RTF page locations when supported.</summary>
-    [Parameter(ParameterSetName = PathParameterSet)]
+    [Parameter(ParameterSetName = "Path")] [Parameter(ParameterSetName = "LiteralPath")]
     public SwitchParameter IncludePageLocations { get; set; }
-
-    /// <summary>Terminate the search when one document cannot be read. The default reports the error and continues.</summary>
-    [Parameter(ParameterSetName = PathParameterSet)]
-    public SwitchParameter StopOnError { get; set; }
-
-    /// <summary>Advanced immutable Reader configured by a .NET host or New-OfficeDocumentReader.</summary>
-    [Parameter(ParameterSetName = PathParameterSet, DontShow = true)]
+    /// <summary>Use an immutable, caller-configured Reader.</summary>
+    [Parameter(ParameterSetName = "Path")] [Parameter(ParameterSetName = "LiteralPath")]
     public OfficeDocumentReader? Reader { get; set; }
+    /// <summary>Open password for encrypted sources.</summary>
+    [Parameter(ParameterSetName = "Path")] [Parameter(ParameterSetName = "LiteralPath")]
+    [OfficePasswordTransformation] public SecureString? Password { get; set; }
 
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        ValidateLimitParameters();
-        if (ParameterSetName == DocumentParameterSet)
-        {
-            WriteObject(SearchDocument(InputObject));
-            return;
-        }
-
-        foreach (var path in Path)
-        {
-            _paths.AddRange(ReaderCommandUtilities.ResolvePaths(this, path));
-        }
-    }
-
-    /// <inheritdoc />
-    protected override async Task EndProcessingAsync()
-    {
-        if (ParameterSetName != PathParameterSet || _paths.Count == 0)
-        {
-            return;
-        }
-
-        var batchOptions = new ReaderBatchOptions
-        {
-            MaxDocuments = NoDocumentLimit.IsPresent ? int.MaxValue : MaxDocuments ?? 500,
-            MaxDegreeOfParallelism = MaxDegreeOfParallelism
-        };
-        var configuration = ReaderCommandUtilities.BuildSearchConfiguration(
-            IncludePageLocations.IsPresent,
-            AllStoreItems.IsPresent ? int.MaxValue : MaxStoreItems);
-        var reader = Reader ?? (configuration.HandlerOptions == null && !MaxDegreeOfParallelism.HasValue
-            ? ReaderCommandUtilities.Reader
-            : ReaderCommandUtilities.CreateReader(
-                configuration.HandlerOptions,
-                MaxDegreeOfParallelism));
-        ReaderCommandUtilities.ValidateBatchConcurrency(reader, batchOptions);
-        var folderOptions = ReaderCommandUtilities.BuildFolderOptions(
-            Recurse.IsPresent,
-            maxFiles: int.MaxValue,
-            maxTotalBytes: null,
-            Extension);
-        var expandedPaths = reader.EnumerateDocumentPaths(_paths, folderOptions, CancelToken);
-        var documentPaths = ReaderCommandUtilities.CollectDocumentPaths(
-            expandedPaths,
-            batchOptions.MaxDocuments,
-            folderOptions.Extensions,
-            out _documentLimitReached);
-        if (_documentLimitReached)
-        {
-            WriteWarning($"Document search reached the configured document ceiling ({batchOptions.MaxDocuments}). " +
-                         "Use -MaxDocuments to raise it or -NoDocumentLimit to remove it.");
-        }
-
-        await reader.ReadDocumentsAsCompletedAsync(
-            documentPaths,
-            WriteOutcome,
-            configuration.ReaderOptions,
-            batchOptions,
-            CancelToken).ConfigureAwait(false);
-    }
-
-    private OfficeDocumentSearchResult SearchDocument(OfficeDocumentReadResult document)
-    {
-        return document.Search(Query, new OfficeDocumentSearchOptions
-        {
-            MatchCase = MatchCase.IsPresent,
-            WholeWord = WholeWord.IsPresent,
-            MaximumResults = AllResults.IsPresent ? int.MaxValue : MaximumResults
-        });
-    }
-
-    private void WriteOutcome(ReaderDocumentReadOutcome outcome)
-    {
-        if (!outcome.Succeeded)
-        {
-            if (StopOnError.IsPresent)
-            {
-                throw outcome.Error!;
+    protected override Task BeginProcessingAsync() {
+        foreach (string pattern in Pattern) {
+            if (string.IsNullOrEmpty(pattern)) throw new PSArgumentException("Patterns cannot be empty.");
+            if (!SimpleMatch) {
+                try { _ = new Regex(pattern, RegexOptions.CultureInvariant, new OfficeDocumentSearchOptions().RegularExpressionTimeout); }
+                catch (ArgumentException error) { throw new PSArgumentException("Invalid regular expression: " + error.Message, error); }
             }
-
-            WriteError(new ErrorRecord(
-                outcome.Error!,
-                "OfficeDocumentSearchReadFailed",
-                ErrorCategory.ReadError,
-                outcome.Path));
-            return;
         }
+        return Task.CompletedTask;
+    }
 
-        OfficeDocumentReadResult document = outcome.Document!;
-        OfficeDocumentSearchResult result = SearchDocument(document);
-        bool sourceLimitReached = ReaderCommandUtilities.HasSourceLimit(document);
-        foreach (OfficeDocumentSearchHit hit in result.Hits)
-        {
-            string text = hit.Block.Text ?? string.Empty;
-            int safeStart = Math.Max(0, Math.Min(hit.StartIndex, text.Length));
-            int safeLength = Math.Max(0, Math.Min(hit.Length, text.Length - safeStart));
-            WriteObject(new OfficeDocumentSearchMatch(
-                document.Source?.Path ?? outcome.Path,
-                document.Kind.ToString(),
-                Query,
-                hit.Block.Location?.Path,
-                text,
-                text.Substring(safeStart, safeLength),
-                hit.StartIndex,
-                hit.Length,
-                hit.Pages
-                    .Where(static page => page.Number.HasValue)
-                    .Select(static page => page.Number!.Value)
-                    .Distinct()
-                    .OrderBy(static page => page)
-                    .ToArray(),
-                _documentLimitReached,
-                sourceLimitReached,
-                result.MaximumResultsReached));
-        }
+    /// <inheritdoc />
+    protected override Task ProcessRecordAsync() {
+        if (ParameterSetName == "InputObject") {
+            try { WriteMatches(InputObject, InputObject.Source?.Path ?? string.Empty); }
+            catch (RegexMatchTimeoutException error) { WriteError(OfficeError.Create(error, "search-timeout", InputObject)); }
+        } else _paths.AddRange(ResolveInputs(allowDirectory: true));
+        return Task.CompletedTask;
+    }
 
-        if (sourceLimitReached)
-        {
-            WriteWarning($"Document processing reached a configured source limit and may be partial: {outcome.Path}");
-        }
-        if (result.MaximumResultsReached)
-        {
-            WriteWarning($"Search reached the per-document result ceiling for: {outcome.Path}");
+    /// <inheritdoc />
+    protected override async Task EndProcessingAsync() {
+        if (ParameterSetName == "InputObject" || _paths.Count == 0) return;
+        if (Reader != null && (IncludePageLocations || MyInvocation.BoundParameters.ContainsKey(nameof(MaximumStoreItems))))
+            throw new PSArgumentException("Configure page locations and mail-store limits when creating a caller-provided immutable Reader.");
+        var configuration = ReaderCommandUtilities.BuildSearchConfiguration(IncludePageLocations,
+            Reader == null ? (MaximumStoreItems == 0 ? int.MaxValue : MaximumStoreItems) : null);
+        var readOptions = Reader?.DefaultOptions ?? configuration.ReaderOptions;
+        readOptions.ComputeHashes = false;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(Password))) readOptions.OpenPassword = Password == null ? null : new NetworkCredential(string.Empty, Password).Password;
+        var reader = Reader ?? ReaderCommandUtilities.CreateReader(configuration.HandlerOptions, ThrottleLimit);
+        int fileCeiling = MyInvocation.BoundParameters.ContainsKey(nameof(MaximumFiles)) ? MaximumFiles : Math.Max(1, readOptions.FolderOptions?.MaxFiles ?? MaximumFiles);
+        long? byteCeiling = readOptions.FolderOptions?.MaxTotalBytes;
+        var batch = new ReaderBatchOptions { MaxDocuments = fileCeiling == 0 ? int.MaxValue : fileCeiling,
+            MaxDegreeOfParallelism = byteCeiling.HasValue ? 1 : ThrottleLimit, MaxTotalBytes = byteCeiling };
+        ReaderCommandUtilities.ValidateBatchConcurrency(reader, batch);
+        var folder = OfficeReadConfiguration.CreateFolder(readOptions,
+            MyInvocation.BoundParameters.ContainsKey(nameof(Recurse)) ? (bool)Recurse : (bool?)null,
+            Extension, MyInvocation.BoundParameters.ContainsKey(nameof(Extension)));
+        var paths = ReaderCommandUtilities.CollectDocumentPaths(reader.EnumerateDocumentPaths(_paths, folder, CancelToken),
+            batch.MaxDocuments, folder.Extensions, out _documentLimitReached);
+        if (_documentLimitReached) WriteWarning($"Document selection reached MaximumFiles ({fileCeiling}). Use zero for no limit.");
+        int completed = 0;
+        try {
+            await reader.ReadDocumentsAsCompletedAsync(paths, outcome => {
+                if (!outcome.Succeeded) WriteError(OfficeError.Create(outcome.Error!, "input-unreadable", outcome.Path));
+                else {
+                    try { WriteMatches(outcome.Document!, outcome.Path); }
+                    catch (RegexMatchTimeoutException error) { WriteError(OfficeError.Create(error, "search-timeout", outcome.Path)); }
+                }
+                WriteProgress(new ProgressRecord(0, "Search documents", $"{System.Threading.Interlocked.Increment(ref completed)} completed"));
+            }, readOptions, batch, CancelToken);
+        } finally {
+            readOptions.OpenPassword = null;
+            WriteProgress(new ProgressRecord(0, "Search documents", "Finished") { RecordType = ProgressRecordType.Completed });
         }
     }
 
-    private void ValidateLimitParameters()
-    {
-        if (NoDocumentLimit.IsPresent && MaxDocuments.HasValue)
-        {
-            throw new PSArgumentException("Specify either -MaxDocuments or -NoDocumentLimit, not both.");
+    private void WriteMatches(OfficeDocumentReadResult document, string path) {
+        int remaining = MaximumResults == 0 ? int.MaxValue : MaximumResults;
+        bool sourceLimit = ReaderCommandUtilities.HasSourceLimit(document);
+        var matches = new List<(string Pattern, OfficeDocumentSearchHit Hit)>();
+        foreach (string pattern in Pattern) {
+            CancelToken.ThrowIfCancellationRequested();
+            var result = document.Search(pattern, new OfficeDocumentSearchOptions {
+                UseRegularExpressions = !SimpleMatch, MatchCase = CaseSensitive, WholeWord = WholeWord, MaximumResults = remaining
+            }, CancelToken);
+            matches.AddRange(result.Hits.Select(hit => (pattern, hit)));
+            remaining -= result.Hits.Count;
+            if (remaining == 0) break;
         }
-        if (AllStoreItems.IsPresent && MaxStoreItems.HasValue)
-        {
-            throw new PSArgumentException("Specify either -MaxStoreItems or -AllStoreItems, not both.");
+        bool limited = remaining == 0;
+        foreach (var match in matches) {
+            CancelToken.ThrowIfCancellationRequested();
+            var hit = match.Hit;
+            WriteObject(new OfficeDocumentSearchMatch(document.Source?.Path ?? path, document.Kind.ToString(), match.Pattern,
+                hit.Block.Location?.Path, hit.Block.Text ?? string.Empty,
+                (hit.Block.Text ?? string.Empty).Substring(hit.StartIndex, hit.Length), hit.StartIndex, hit.Length,
+                hit.Pages.Where(page => page.Number.HasValue).Select(page => page.Number!.Value).Distinct().OrderBy(page => page).ToArray(),
+                _documentLimitReached, sourceLimit, limited));
         }
-        if (AllResults.IsPresent && MyInvocation.BoundParameters.ContainsKey(nameof(MaximumResults)))
-        {
-            throw new PSArgumentException("Specify either -MaximumResults or -AllResults, not both.");
-        }
-        if (Reader != null &&
-            (MaxStoreItems.HasValue || AllStoreItems.IsPresent || IncludePageLocations.IsPresent))
-        {
-            throw new PSArgumentException(
-                "-MaxStoreItems, -AllStoreItems, and -IncludePageLocations cannot alter a caller-provided immutable Reader.");
-        }
+        if (limited) WriteWarning($"Search reached MaximumResults for: {path}");
+        if (sourceLimit) WriteWarning($"Document processing reached a source limit and may be partial: {path}");
     }
 }

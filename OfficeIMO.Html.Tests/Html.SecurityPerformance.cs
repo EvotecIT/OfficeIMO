@@ -25,7 +25,7 @@ public partial class Html {
             html.Append("<p style=\"background-color:rgba(255,0,0,0.5)\">Text</p>");
         }
         html.Append("</div>");
-        HtmlToWordOptions options = HtmlToWordOptions.CreateUntrustedHtmlProfile();
+        WordHtmlImportOptions options = WordHtmlImportOptions.CreateUntrustedHtmlProfile();
         var converter = new HtmlToWordConverter();
 
         using WordDocument document = await converter.ConvertAsync(
@@ -58,7 +58,7 @@ public partial class Html {
             html.Append("<td>Cell</td>");
         }
         html.Append("</tr></table></div>");
-        HtmlToWordOptions options = HtmlToWordOptions.CreateUntrustedHtmlProfile();
+        WordHtmlImportOptions options = WordHtmlImportOptions.CreateUntrustedHtmlProfile();
         var converter = new HtmlToWordConverter();
 
         using WordDocument document = await converter.ConvertAsync(
@@ -111,7 +111,7 @@ public partial class Html {
 
         using WordDocument document = await converter.ConvertAsync(
             HtmlConversionDocument.Parse(html).CreateNativeDocumentForConversion(),
-            HtmlToWordOptions.CreateUntrustedHtmlProfile());
+            WordHtmlImportOptions.CreateUntrustedHtmlProfile());
 
         Assert.Equal(3, document.Images.Count);
         var field = typeof(HtmlToWordConverter).GetField(
@@ -128,7 +128,7 @@ public partial class Html {
             int expectedWidth = Assert.IsType<int>(estimateMethod!.Invoke(
                 null,
                 new object[] { document, table.Rows[0].Cells[index]._tableCell }));
-            Assert.Equal(expectedWidth / 15D, document.Images[index].Width!.Value, precision: 3);
+            Assert.Equal(expectedWidth / 15D, (document.Images[index].Width?.ToPixels())!.Value, precision: 3);
         }
     }
 }

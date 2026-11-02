@@ -16,7 +16,7 @@ public partial class Word {
             .Elements<AbstractNum>().Single().Elements<Level>().First();
         level.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(new Bold());
         level.PreviousParagraphProperties = new PreviousParagraphProperties(new ContextualSpacing { Val = true });
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         Assert.True(OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error), error);
         byte[] word = compound!.Streams["WordDocument"], table = (byte[])compound.Streams["1Table"].Clone();
         int firstLevel = BitConverter.ToInt32(word, 0x2E2) + BitConverter.ToInt32(word, 0x2E6);
@@ -29,6 +29,6 @@ public partial class Word {
         byte[] altered = OfficeCompoundFileWriter.Rewrite(compound, new Dictionary<string, byte[]> { ["1Table"] = table });
         using WordDocument reopened = WordDocument.Load(new MemoryStream(altered));
         Assert.Contains(reopened.LegacyDocUnsupportedFeatures, feature => feature.Kind == LegacyDocUnsupportedFeatureKind.Numbering);
-        Assert.Throws<NotSupportedException>(() => reopened.ToBytes(WordFileFormat.Doc));
+        Assert.Throws<NotSupportedException>(() => reopened.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
     }
 }

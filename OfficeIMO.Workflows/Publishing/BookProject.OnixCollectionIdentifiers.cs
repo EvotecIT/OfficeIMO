@@ -24,8 +24,8 @@ public sealed partial class BookProject {
         string withoutFragment = fragment < 0 ? value : value.Substring(0, fragment);
         int query = withoutFragment.IndexOf("?=", StringComparison.Ordinal);
         bool queryValid = query < 0 || Regex.IsMatch(withoutFragment.Substring(query + 2),
-            "\\A" + pchar + tail + "\\z", RegexOptions.CultureInvariant | RegexOptions.NonBacktracking);
-        if (!queryValid || !Regex.IsMatch(value, pattern, RegexOptions.CultureInvariant | RegexOptions.NonBacktracking))
+            "\\A" + pchar + tail + "\\z", OnixUrnRegexOptions, TimeSpan.FromSeconds(1));
+        if (!queryValid || !Regex.IsMatch(value, pattern, OnixUrnRegexOptions, TimeSpan.FromSeconds(1)))
             throw new ArgumentException("Supply a full URN using RFC 8141 syntax.", nameof(value));
         return value;
     }
@@ -51,4 +51,9 @@ public sealed partial class BookProject {
             throw new ArgumentException("The ARK resolver URL must contain /ark:/ followed by a numeric authority and nonempty name.", nameof(value));
         return value;
     }
+    private const RegexOptions OnixUrnRegexOptions = RegexOptions.CultureInvariant
+#if NET8_0_OR_GREATER
+        | RegexOptions.NonBacktracking
+#endif
+        ;
 }

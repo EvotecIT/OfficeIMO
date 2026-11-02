@@ -19,9 +19,9 @@ public class HtmlWordTablePadding {
     public void CssCellPaddingBecomesBoundedNativeMargins(string css, string top, string right, string bottom, string left) {
         HtmlToWordResult result = HtmlConversionDocument.Parse(
             $"<style>html {{font-size:20px}} th,td {{{css}}}</style><table><tr><th>Header</th><td>Value</td></tr></table>")
-            .ToWordDocumentResult();
+            .ConvertToWordWithEvidence();
         using WordDocument word = result.RequireValue();
-        using MemoryStream artifact = word.ToStream();
+        using MemoryStream artifact = new System.IO.MemoryStream(word.ToBytes());
         using WordprocessingDocument package = WordprocessingDocument.Open(artifact, false);
         Assert.Empty(new OpenXmlValidator().Validate(package));
         var cells = package.MainDocumentPart!.Document.Body!.Descendants<TableCell>().ToArray();
@@ -36,7 +36,7 @@ public class HtmlWordTablePadding {
         if (css.Contains("40000", StringComparison.Ordinal)) {
             Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Message.Contains("native margin limit", StringComparison.Ordinal));
         } else {
-            Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Code == "UnsupportedCssDeclaration"
+            Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Code == "unsupported-css-declaration"
                 && (diagnostic.Source ?? string.Empty).Contains("padding", StringComparison.Ordinal));
         }
     }

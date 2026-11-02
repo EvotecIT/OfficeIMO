@@ -13,7 +13,7 @@ public sealed class DjVuToPdfOptions {
     /// <summary>Complete-page raster settings. Native source resolution is the default.</summary>
     public DjVuRenderOptions RenderOptions { get; set; } = new DjVuRenderOptions();
     /// <summary>Existing PDF serialization and conformance settings, copied for each conversion.</summary>
-    public PdfOptions? PdfOptions { get; set; }
+    public PdfCreateOptions? PdfOptions { get; set; }
     /// <summary>Explicit caller-owned engine for absent or empty stored text. Requires an asynchronous conversion entrypoint.</summary>
     public IOcrEngine? OcrEngine { get; set; }
     /// <summary>Existing OCR execution, timeout, and result limits. Present and corrupt stored text are never selected for OCR.</summary>
@@ -36,7 +36,7 @@ public sealed class DjVuToPdfOptions {
         var copy = (DjVuToPdfOptions)MemberwiseClone();
         copy.PageNumbers = PageNumbers == null ? null : Array.AsReadOnly(PageNumbers.ToArray());
         copy.RenderOptions = (RenderOptions ?? throw new ArgumentNullException(nameof(RenderOptions))).Clone();
-        copy.PdfOptions = PdfOptions?.Clone() ?? new PdfOptions();
+        copy.PdfOptions = PdfOptions?.Clone() ?? new PdfCreateOptions();
         copy.OcrOptions = (OcrOptions ?? throw new ArgumentNullException(nameof(OcrOptions))).Clone();
         if (copy.RenderOptions.Region.HasValue || !copy.RenderOptions.ApplyRotation)
             throw new ArgumentException("PDF conversion requires complete, display-oriented page images.", nameof(RenderOptions));

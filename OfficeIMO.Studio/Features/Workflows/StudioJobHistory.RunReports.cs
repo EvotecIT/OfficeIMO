@@ -48,7 +48,7 @@ public sealed partial class StudioJobHistory {
                 }
                 var report = saved.Report;
                 var entry = new StudioJobRecord(_localizer.GetOrDefault("Jobs.RunReport.Title", "Saved folder conversion"),
-                    report.JobPath, report.OutputDirectory, null, true, _localizer);
+                    report.JobPath ?? report.OutputDirectory ?? saved.ReportPath, report.OutputDirectory, null, true, _localizer);
                 entry.ApplyRunReport(report, saved.ReportPath, observed: true);
                 AddEntry(entry);
             } catch (Exception failure) when (failure is not OutOfMemoryException and not StackOverflowException) { error ??= failure.Message; }
@@ -57,7 +57,7 @@ public sealed partial class StudioJobHistory {
                      entry.RunReportPath is not null && !paths.Contains(entry.RunReportPath)).ToArray()) {
             try {
                 bool missing = !File.Exists(entry.RunReportPath);
-                if (missing && OfficeConversionJobRunReportSerializer.IsActive(entry.RunReportPath!)) continue;
+                if (missing && OfficeBatchReport.IsActive(entry.RunReportPath!)) continue;
                 if (missing || RunStore.CanRetainReport && history.Error is null) Remove(entry);
             } catch (Exception failure) when (failure is not OutOfMemoryException and not StackOverflowException) { error ??= failure.Message; }
         }
@@ -66,7 +66,7 @@ public sealed partial class StudioJobHistory {
         NotifyState();
     }
 
-    internal void RecordRun(StudioJobRecord? entry, OfficeConversionJobRunReport report, string reportPath) {
+    internal void RecordRun(StudioJobRecord? entry, OfficeBatchReport report, string reportPath) {
         entry?.ApplyRunReport(report, File.Exists(reportPath) ? reportPath : null);
         if (RunStore?.TrimFinished() == false)
             RunHistoryError = _localizer.GetOrDefault("Jobs.RunReport.ClearError", "Some saved run reports could not be cleared. Active attempts are retained.");

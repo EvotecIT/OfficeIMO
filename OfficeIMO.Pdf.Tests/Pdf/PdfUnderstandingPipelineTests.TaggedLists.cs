@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.Word;
 using OfficeIMO.Pdf;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Reader.Pdf;
@@ -11,7 +12,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void StructuredRead_AssociatesNestedParagraphAndLinkWithTheirTaggedListItem() {
-        PdfDocumentReadResult result = PdfDocument.Load(CreateParagraphTaggedListPdf()).Read();
+        PdfDocumentReadResult result = PdfDocument.Load(new System.IO.MemoryStream(CreateParagraphTaggedListPdf())).Read();
         PdfLogicalPage page = Assert.Single(result.Pages);
 
         Assert.Equal(2, page.ListItems.Count);
@@ -25,45 +26,45 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.All(first.Lines, line => Assert.Contains(line, page.TextBlocks));
         Assert.DoesNotContain(first.Runs, static run => run.SourceSpan?.MarkedContentId == 0);
         Assert.Contains(first.Runs, static run => run.SourceSpan?.MarkedContentId == 1);
-        Assert.Equal(1, CountText(result.ToMarkdown(), "Linked incident title"));
-        Assert.Equal(1, CountText(result.ToMarkdown(), "Incident detail"));
+        Assert.Equal(1, CountText(result.ExtractMarkdown(), "Linked incident title"));
+        Assert.Equal(1, CountText(result.ExtractMarkdown(), "Incident detail"));
     }
 
     [Fact]
     public void StructuredRead_KeepsNestedListBodiesSeparateAndRetainsTheirLevels() {
-        PdfDocumentReadResult result = PdfDocument.Load(CreateParagraphTaggedListPdf(nested: true)).Read();
+        PdfDocumentReadResult result = PdfDocument.Load(new System.IO.MemoryStream(CreateParagraphTaggedListPdf(nested: true))).Read();
         PdfLogicalPage page = Assert.Single(result.Pages);
         Assert.Equal(new[] { 1, 2 }, page.ListItems.Select(static item => item.Level));
         Assert.Equal("Linked incident title Incident detail", page.ListItems[0].Text);
         Assert.Equal("Neighboring incident", page.ListItems[1].Text);
-        Assert.Equal(1, CountText(result.ToMarkdown(), "Neighboring incident"));
+        Assert.Equal(1, CountText(result.ExtractMarkdown(), "Neighboring incident"));
     }
 
     [Fact]
     public void StructuredRead_PreservesHeadingProjectionInsideAListAssociation() {
-        PdfDocumentReadResult result = PdfDocument.Load(CreateParagraphTaggedListPdf(heading: true)).Read();
+        PdfDocumentReadResult result = PdfDocument.Load(new System.IO.MemoryStream(CreateParagraphTaggedListPdf(heading: true))).Read();
         PdfLogicalPage page = Assert.Single(result.Pages);
         Assert.Equal("Linked incident title Incident detail", page.ListItems[0].Text);
         PdfLogicalHeading heading = Assert.Single(page.Headings);
         Assert.Equal("Linked incident title", heading.Text);
         Assert.Equal(2, heading.Level);
         Assert.Contains(PdfLogicalReadingOrderAnalysis.Analyze(page), static item => item.Kind == PdfLogicalReadingOrderKind.Heading);
-        Assert.Equal(1, CountText(result.ToMarkdown(), "Linked incident title"));
-        Assert.Equal(1, CountText(result.ToMarkdown(), "Incident detail"));
+        Assert.Equal(1, CountText(result.ExtractMarkdown(), "Linked incident title"));
+        Assert.Equal(1, CountText(result.ExtractMarkdown(), "Incident detail"));
     }
 
     [Fact]
     public void StructuredRead_DoesNotDuplicateListTextWhenAParagraphAlsoContainsUntaggedText() {
-        PdfDocumentReadResult result = PdfDocument.Load(CreateParagraphTaggedListPdf(trailing: true)).Read();
+        PdfDocumentReadResult result = PdfDocument.Load(new System.IO.MemoryStream(CreateParagraphTaggedListPdf(trailing: true))).Read();
         Assert.Equal(2, Assert.Single(result.Pages).ListItems.Count);
-        string markdown = result.ToMarkdown();
+        string markdown = result.ExtractMarkdown();
         Assert.Equal(1, CountText(markdown, "Neighboring incident"));
         Assert.Equal(1, CountText(markdown, "Unrelated paragraph"));
     }
 
     [Fact]
     public void StructuredRead_ReconstructsListAssociationsForEachRepeatedPageSelection() {
-        PdfDocumentReadResult result = PdfDocument.Load(CreateParagraphTaggedListPdf()).Read(new PdfReadOptions {
+        PdfDocumentReadResult result = PdfDocument.Load(new System.IO.MemoryStream(CreateParagraphTaggedListPdf())).Read(new PdfLoadOptions {
             PageSelection = PdfPageSelection.From(1, 1)
         });
         Assert.Equal(2, result.Pages.Count);
@@ -78,44 +79,44 @@ public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void StructuredRead_RetainsEveryPageFragmentOfOneTaggedListItem() {
         const string phrase = "Continuation text keeps one logical list item";
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-            CompressContentStreams = false, PageWidth = 170, PageHeight = 150,
-            MarginLeft = 24, MarginRight = 24, MarginTop = 24, MarginBottom = 24, DefaultFontSize = 10
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+            CompressContentStreams = false, PageWidth = global::OfficeIMO.OfficeLength.Points(170), PageHeight = global::OfficeIMO.OfficeLength.Points(150),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24), MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         }).TaggedPdfCatalogMarkers().Bullets(new[] { string.Join(" ", Enumerable.Repeat(phrase, 18)) }).ToBytes();
-        PdfDocumentReadResult result = PdfDocument.Load(bytes).Read();
+        PdfDocumentReadResult result = PdfDocument.Load(new System.IO.MemoryStream(bytes)).Read();
         Assert.True(result.Pages.Count > 1);
         Assert.All(result.Pages, page => Assert.Single(page.ListItems));
         Assert.Equal(string.Join(" ", Enumerable.Repeat(phrase, 18)), string.Join(" ", result.ListItems.Select(static item => item.Text)));
-        Assert.Equal(18, CountText(result.ToMarkdown(), "Continuation"));
+        Assert.Equal(18, CountText(result.ExtractMarkdown(), "Continuation"));
     }
 
     private static int CountText(string text, string value) => text.Split(new[] { value }, StringSplitOptions.None).Length - 1;
 
     [Fact]
     public void StructuredRead_PreservesTableProjectionInsideAListAssociation() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false }).TaggedPdfCatalogMarkers()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false }).TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.List, list => list
                 .Structure(PdfCanvasStructureRole.ListItem, item => item
-                    .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("1.", 20D, 80D, 20D, 16D))
+                    .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("1.", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(16D)))
                     .Structure(PdfCanvasStructureRole.ListBody, body => body
-                        .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Incident table", 50D, 80D, 180D, 16D))
+                        .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Incident table", global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(16D)))
                         .Structure(PdfCanvasStructureRole.Table, table => table
                             .Structure(PdfCanvasStructureRole.TableRow, row => row
-                                .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Metric", 50D, 110D, 80D, 16D))
-                                .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Value", 160D, 110D, 80D, 16D)))
+                                .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Metric", global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(110D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(16D)))
+                                .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Value", global::OfficeIMO.OfficeLength.Points(160D), global::OfficeIMO.OfficeLength.Points(110D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(16D))))
                             .Structure(PdfCanvasStructureRole.TableRow, row => row
-                                .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Quality", 50D, 130D, 80D, 16D))
-                                .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("High", 160D, 130D, 80D, 16D))))))))
+                                .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Quality", global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(130D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(16D)))
+                                .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("High", global::OfficeIMO.OfficeLength.Points(160D), global::OfficeIMO.OfficeLength.Points(130D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(16D)))))))))
             .ToBytes();
-        PdfDocumentReadResult result = PdfDocument.Load(bytes).Read();
+        PdfDocumentReadResult result = PdfDocument.Load(new System.IO.MemoryStream(bytes)).Read();
         PdfLogicalPage page = Assert.Single(result.Pages);
         PdfLogicalListItem item = Assert.Single(page.ListItems);
         Assert.Contains("Incident table", item.Text, StringComparison.Ordinal);
         Assert.Contains("Quality", item.Text, StringComparison.Ordinal);
         Assert.Single(page.Tables);
         Assert.Contains(PdfLogicalReadingOrderAnalysis.Analyze(page), static candidate => candidate.Kind == PdfLogicalReadingOrderKind.Table);
-        Assert.Equal(1, CountText(result.ToMarkdown(), "Quality"));
-        Assert.Equal(1, CountText(result.ToMarkdown(), "Incident table"));
+        Assert.Equal(1, CountText(result.ExtractMarkdown(), "Quality"));
+        Assert.Equal(1, CountText(result.ExtractMarkdown(), "Incident table"));
         AssertConsumerTextOccursOnce(result, "Incident table", "Quality");
         Assert.DoesNotContain(PdfReaderAdapter.ReadDocument(result).Blocks,
             static block => block.Kind == "list-item" && block.Text.IndexOf("Quality", StringComparison.Ordinal) >= 0);
@@ -123,29 +124,29 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void StructuredRead_AssociatesSeparateItemsSharingOnePhysicalLineWithoutDuplicatingExport() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false }).TaggedPdfCatalogMarkers()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false }).TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.List, list => list
                 .Structure(PdfCanvasStructureRole.ListItem, item => item
-                    .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("1.", 20D, 100D, 20D, 16D))
+                    .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("1.", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(16D)))
                     .Structure(PdfCanvasStructureRole.ListBody, body => body
-                        .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Left incident", 50D, 100D, 150D, 16D))))
+                        .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Left incident", global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(150D), global::OfficeIMO.OfficeLength.Points(16D)))))
                 .Structure(PdfCanvasStructureRole.ListItem, item => item
-                    .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("2.", 250D, 100D, 20D, 16D))
+                    .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("2.", global::OfficeIMO.OfficeLength.Points(250D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(16D)))
                     .Structure(PdfCanvasStructureRole.ListBody, body => body
-                        .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Right incident", 280D, 100D, 150D, 16D))))))
+                        .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Right incident", global::OfficeIMO.OfficeLength.Points(280D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(150D), global::OfficeIMO.OfficeLength.Points(16D)))))))
             .ToBytes();
-        PdfDocumentReadResult result = PdfDocument.Load(bytes).Read();
+        PdfDocumentReadResult result = PdfDocument.Load(new System.IO.MemoryStream(bytes)).Read();
         Assert.Equal(new[] { "Left incident", "Right incident" }, result.ListItems.Select(static item => item.Text));
         Assert.Equal(new[] { "1.", "2." }, result.ListItems.Select(static item => item.Marker));
-        Assert.Equal(1, CountText(result.ToMarkdown(), "Left incident"));
-        Assert.Equal(1, CountText(result.ToMarkdown(), "Right incident"));
+        Assert.Equal(1, CountText(result.ExtractMarkdown(), "Left incident"));
+        Assert.Equal(1, CountText(result.ExtractMarkdown(), "Right incident"));
     }
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void TaggedListConsumers_ProjectParagraphBodiesOnceWithEitherOrderingMode(bool sharedOrder) {
-        PdfDocumentReadResult result = PdfDocument.Load(CreateParagraphTaggedListPdf()).Read();
+        PdfDocumentReadResult result = PdfDocument.Load(new System.IO.MemoryStream(CreateParagraphTaggedListPdf())).Read();
         AssertConsumerTextOccursOnce(result, sharedOrder, "Linked incident title", "Incident detail", "Neighboring incident");
     }
 
@@ -153,7 +154,7 @@ public partial class PdfUnderstandingPipelineTests {
     [InlineData(false)]
     [InlineData(true)]
     public void TaggedListConsumers_RetainHeadingRoleWithoutDuplicatingItsListAssociation(bool sharedOrder) {
-        PdfDocumentReadResult result = PdfDocument.Load(CreateParagraphTaggedListPdf(heading: true)).Read();
+        PdfDocumentReadResult result = PdfDocument.Load(new System.IO.MemoryStream(CreateParagraphTaggedListPdf(heading: true))).Read();
         AssertConsumerTextOccursOnce(result, sharedOrder, "Linked incident title", "Incident detail", "Neighboring incident");
         Assert.Contains(PdfReaderAdapter.ReadDocument(result).Blocks,
             static block => block.Kind == "heading" && block.Text == "Linked incident title");
@@ -161,8 +162,8 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void WordImportWithoutLists_RetainsTaggedParagraphBodies() {
-        PdfDocumentReadResult result = PdfDocument.Load(CreateParagraphTaggedListPdf()).Read();
-        using OfficeIMO.Word.WordDocument word = result.ToWordDocument(new PdfToWordOptions { ImportLists = false });
+        PdfDocumentReadResult result = PdfDocument.Load(new System.IO.MemoryStream(CreateParagraphTaggedListPdf())).Read();
+        using OfficeIMO.Word.WordDocument word = (result.ConvertToWordWithEvidence(new WordPdfImportOptions { ImportLists = false })).Value;
         string text = ReadWordBody(word);
         Assert.Equal(1, CountText(text, "Linked incident title"));
         Assert.Equal(1, CountText(text, "Incident detail"));
@@ -171,7 +172,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void TaggedListRuns_RetainTheExactOwnerOfIdenticalBodiesSharingOneLine() {
-        PdfDocumentReadResult result = PdfDocument.Load(CreateSharedLineTaggedListPdf()).Read();
+        PdfDocumentReadResult result = PdfDocument.Load(new System.IO.MemoryStream(CreateSharedLineTaggedListPdf())).Read();
         PdfLogicalListItem[] items = result.ListItems.ToArray();
         Assert.Equal(2, items.Length);
         Assert.Same(items[0].Line, items[1].Line);
@@ -185,17 +186,17 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void TaggedListRuns_RetainDiscontiguousBodySourcesAroundUnownedText() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false }).TaggedPdfCatalogMarkers()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false }).TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas
                 .Structure(PdfCanvasStructureRole.List, list => list
                     .Structure(PdfCanvasStructureRole.ListItem, item => item
                         .Structure(PdfCanvasStructureRole.ListBody, body => body
                             .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph
-                                .Text("Left", 50D, 100D, 35D, 16D)
-                                .Text("Tail", 130D, 100D, 35D, 16D)))))
-                .Text("Other", 90D, 100D, 35D, 16D))
+                                .Text("Left", global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(35D), global::OfficeIMO.OfficeLength.Points(16D))
+                                .Text("Tail", global::OfficeIMO.OfficeLength.Points(130D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(35D), global::OfficeIMO.OfficeLength.Points(16D))))))
+                .Text("Other", global::OfficeIMO.OfficeLength.Points(90D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(35D), global::OfficeIMO.OfficeLength.Points(16D)))
             .ToBytes();
-        PdfDocumentReadResult result = PdfDocument.Load(bytes).Read();
+        PdfDocumentReadResult result = PdfDocument.Load(new System.IO.MemoryStream(bytes)).Read();
         PdfLogicalListItem item = Assert.Single(result.ListItems);
         Assert.Equal("Left Tail", item.Text);
         Assert.Equal(item.Text, string.Concat(item.Runs.Select(static run => run.Text)));
@@ -207,16 +208,16 @@ public partial class PdfUnderstandingPipelineTests {
         AssertConsumerTextOccursOnce(result, "Left", "Other", "Tail");
     }
 
-    private static byte[] CreateSharedLineTaggedListPdf() => PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+    private static byte[] CreateSharedLineTaggedListPdf() => PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
         .TaggedPdfCatalogMarkers().Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.List, list => list
             .Structure(PdfCanvasStructureRole.ListItem, item => item
-                .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("1.", 20D, 100D, 20D, 16D))
+                .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("1.", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(16D)))
                 .Structure(PdfCanvasStructureRole.ListBody, body => body
-                    .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Same", 50D, 100D, 40D, 16D))))
+                    .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Same", global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(16D)))))
             .Structure(PdfCanvasStructureRole.ListItem, item => item
-                .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("2.", 100D, 100D, 20D, 16D))
+                .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("2.", global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(16D)))
                 .Structure(PdfCanvasStructureRole.ListBody, body => body
-                    .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Same", 130D, 100D, 40D, 16D))))))
+                    .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Same", global::OfficeIMO.OfficeLength.Points(130D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(16D)))))))
         .ToBytes();
 
     private static void AssertConsumerTextOccursOnce(PdfDocumentReadResult result, params string[] values) =>
@@ -225,7 +226,7 @@ public partial class PdfUnderstandingPipelineTests {
     private static void AssertConsumerTextOccursOnce(PdfDocumentReadResult result, bool sharedOrder, params string[] values) {
         string reader = string.Join(" ", PdfReaderAdapter.ReadDocument(result).Blocks.Select(static block => block.Text));
         string html = result.ToHtml(new PdfToHtmlOptions { UseSharedPageReadingOrder = sharedOrder });
-        using OfficeIMO.Word.WordDocument word = result.ToWordDocument(new PdfToWordOptions { UseSharedPageReadingOrder = sharedOrder });
+        using OfficeIMO.Word.WordDocument word = (result.ConvertToWordWithEvidence(new WordPdfImportOptions { UseSharedPageReadingOrder = sharedOrder })).Value;
         string wordText = ReadWordBody(word);
         foreach (string value in values) {
             // Table content is represented in Reader tables, not duplicated in document blocks.
@@ -238,7 +239,7 @@ public partial class PdfUnderstandingPipelineTests {
     private static void AssertConsumerTextOccursTwice(PdfDocumentReadResult result, string value) {
         Assert.Equal(2, CountText(string.Join(" ", PdfReaderAdapter.ReadDocument(result).Blocks.Select(static block => block.Text)), value));
         Assert.Equal(2, CountText(result.ToHtml(), value));
-        using OfficeIMO.Word.WordDocument word = result.ToWordDocument();
+        using OfficeIMO.Word.WordDocument word = (result.ConvertToWordWithEvidence()).Value;
         Assert.Equal(2, CountText(ReadWordBody(word), value));
     }
 
@@ -266,10 +267,10 @@ public partial class PdfUnderstandingPipelineTests {
             "<< /Type /StructElem /S /Entry /P 7 0 R /Pg 3 0 R /K << " + type + "/Pg 3 0 R /Stm 4 0 R /MCID 0 >> >>",
             "<< /Type /StructElem /S /LI /P 7 0 R /Pg 3 0 R /K << " + type + "/Pg 3 0 R /Stm 6 0 R /MCID 0 >> >>",
             "<< /Nums [0 [8 0 R] 1 [9 0 R]] >>");
-        PdfDocumentReadResult result = PdfDocument.Load(bytes).Read();
+        PdfDocumentReadResult result = PdfDocument.Load(new System.IO.MemoryStream(bytes)).Read();
         Assert.Equal(new[] { "Page incident", "Form incident" }, result.ListItems.Select(static item => item.Text));
-        Assert.Equal(1, CountText(result.ToMarkdown(), "Page incident"));
-        Assert.Equal(1, CountText(result.ToMarkdown(), "Form incident"));
+        Assert.Equal(1, CountText(result.ExtractMarkdown(), "Page incident"));
+        Assert.Equal(1, CountText(result.ExtractMarkdown(), "Form incident"));
     }
 
     private static byte[] CreateParagraphTaggedListPdf(bool nested = false, bool heading = false, bool trailing = false) {

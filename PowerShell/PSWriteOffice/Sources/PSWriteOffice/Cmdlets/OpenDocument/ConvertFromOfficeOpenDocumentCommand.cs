@@ -66,7 +66,7 @@ public sealed class ConvertFromOfficeOpenDocumentCommand : PSCmdlet
                 WriteObject(excelResult);
                 break;
             case OdpPresentation presentation:
-                var presentationResult = presentation.ToPowerPointPresentationResult(PowerPointOptions);
+                var presentationResult = presentation.ToPowerPointDocumentResult(PowerPointOptions);
                 if (FailOnLoss.IsPresent) presentationResult.RequireNoLoss();
                 presentationResult.Value.Save(output);
                 WriteObject(presentationResult);

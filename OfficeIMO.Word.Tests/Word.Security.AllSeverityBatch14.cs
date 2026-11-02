@@ -12,13 +12,13 @@ public sealed class WordAllSeverityBatch14SecurityTests {
         string imagePath = Path.Combine(AppContext.BaseDirectory, "Images", "Kulek.jpg");
         using WordDocument document = WordDocument.Create();
         WordParagraph body = document.AddParagraph("stories");
-        WordParagraph footnote = body.AddFootNote("footnote").FootNote!.Paragraphs![1];
-        WordParagraph endnote = body.AddEndNote("endnote").EndNote!.Paragraphs![1];
+        WordParagraph footnote = body.AddFootNote("footnote").Paragraph.FootNote!.Paragraphs![1];
+        WordParagraph endnote = body.AddEndNote("endnote").Paragraph.EndNote!.Paragraphs![1];
         body.AddComment("OfficeIMO", "OI", "comment");
         WordParagraph comment = Assert.Single(document.Comments).Paragraphs[0];
-        footnote.AddImage(imagePath, 16, 16);
-        endnote.AddImage(imagePath, 16, 16);
-        comment.AddImage(imagePath, 16, 16);
+        footnote.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
+        endnote.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
+        comment.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
 
         footnote.Image!.Remove();
         endnote.Image!.Remove();
@@ -40,7 +40,7 @@ public sealed class WordAllSeverityBatch14SecurityTests {
         document.AddParagraph("body remains renderable");
         using var output = new MemoryStream();
 
-        document.SaveAsPdf(output, new WordToPdfOptions { IncludePageNumbers = false });
+        document.SaveAsPdf(output, new WordPdfExportOptions { IncludePageNumbers = false });
 
         Assert.True(output.Length > 0);
     }
@@ -49,12 +49,11 @@ public sealed class WordAllSeverityBatch14SecurityTests {
     public void NativePdfTreatsZeroDxaTableWidthAsAutomatic() {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(1, 1);
-        table.WidthType = WordTableWidthUnit.Dxa;
-        table.Width = 0;
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(0) * 635)));
         table.Rows[0].Cells[0].Paragraphs[0].Text = "cell";
         using var output = new MemoryStream();
 
-        document.SaveAsPdf(output, new WordToPdfOptions { IncludePageNumbers = false });
+        document.SaveAsPdf(output, new WordPdfExportOptions { IncludePageNumbers = false });
 
         Assert.True(output.Length > 0);
     }

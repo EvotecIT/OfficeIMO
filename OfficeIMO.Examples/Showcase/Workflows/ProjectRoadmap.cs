@@ -6,7 +6,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 /// <summary>Creates an editable roadmap deck with phase cards and a decision table.</summary>
 internal static class ProjectRoadmap {
     internal static void Create(string folder) {
-        using PowerPointPresentation deck = PowerPointPresentation.Create(Path.Combine(folder, "example.pptx"));
+        using PowerPointDocument deck = PowerPointDocument.Create(Path.Combine(folder, "example.pptx"));
         PowerPointSlide roadmap = deck.AddSlide();
         Heading(roadmap, "From pilot to everyday service", "PROJECT ROADMAP / NEXT 90 DAYS");
         string[] phases = { "01 / Prepare", "02 / Prove", "03 / Expand" };
@@ -14,14 +14,14 @@ internal static class ProjectRoadmap {
         string[] colors = { "EAF1FB", "EEE8F7", "E7F6ED" };
         for (int index = 0; index < phases.Length; index++) {
             double x = 1.5 + index * 10.3;
-            roadmap.AddRectangleCm(x, 5.5, 9.3, 9, phases[index]).Fill(colors[index]).Stroke("CBD5E1", 1);
+            roadmap.AddRectangle(OfficeIMO.OfficeLength.Centimeters(x), OfficeIMO.OfficeLength.Centimeters(5.5), OfficeIMO.OfficeLength.Centimeters(9.3), OfficeIMO.OfficeLength.Centimeters(9), phases[index]).Fill(colors[index]).Stroke("CBD5E1", global::OfficeIMO.OfficeLength.Points(1));
             Text(roadmap, phases[index], x + 0.5, 6.1, 8.3, 1.4, 25);
             Text(roadmap, details[index], x + 0.5, 8.3, 8.3, 5, 21);
         }
 
         PowerPointSlide gates = deck.AddSlide();
         Heading(gates, "Advance on evidence", "DECISION CHECKPOINTS");
-        PowerPointTable table = gates.AddTableCm(4, 3, 1.5, 5.3, 30, 10);
+        PowerPointTable table = gates.AddTable(4,3,global::OfficeIMO.OfficeLength.Centimeters(1.5),global::OfficeIMO.OfficeLength.Centimeters(5.3),global::OfficeIMO.OfficeLength.Centimeters(30),global::OfficeIMO.OfficeLength.Centimeters(10));
         string[,] values = {
             { "Checkpoint", "Evidence", "Decision owner" },
             { "Pilot ready", "Support and recovery walkthrough", "Operations" },
@@ -32,11 +32,11 @@ internal static class ProjectRoadmap {
             for (int column = 0; column < 3; column++) {
                 var cell = table.GetCell(row, column);
                 cell.Text = values[row, column];
-                cell.FontSize = 19;
+                cell.FontSize = global::OfficeIMO.OfficeLength.Points(19);
                 cell.Bold = row == 0;
                 cell.FillColor = row == 0 ? "17365D" : "F1F5F9";
                 cell.Color = row == 0 ? "FFFFFF" : "17365D";
-                cell.PaddingLeftPoints = 12;
+                cell.PaddingLeft = global::OfficeIMO.OfficeLength.Points(12);
                 cell.VerticalAlignment = PowerPointTextVerticalAlignment.Center;
             }
         }
@@ -47,8 +47,8 @@ internal static class ProjectRoadmap {
             Text(slide, subtitle, 1.5, 3.4, 30, 1, 15);
         }
         void Text(PowerPointSlide slide, string value, double x, double y, double width, double height, int size) {
-            var box = slide.AddTextBoxCm(value, x, y, width, height);
-            box.FontSize = size;
+            var box = slide.AddTextBox(value,global::OfficeIMO.OfficeLength.Centimeters(x),global::OfficeIMO.OfficeLength.Centimeters(y),global::OfficeIMO.OfficeLength.Centimeters(width),global::OfficeIMO.OfficeLength.Centimeters(height));
+            box.FontSize = global::OfficeIMO.OfficeLength.Points(size);
             box.Color = "17365D";
         }
     }

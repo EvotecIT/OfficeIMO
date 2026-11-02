@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Watermark {
@@ -23,8 +23,8 @@ namespace OfficeIMO.Examples.Word {
 
                 document.Sections[0].SetMargins(WordMargin.Normal);
 
-                Console.WriteLine(document.Sections[0].Margins.Left);
-                Console.WriteLine(document.Sections[0].Margins.Right);
+                Console.WriteLine(checked((uint)(document.Sections[0].Margins.Left.GetValueOrDefault().ToTwips())));
+                Console.WriteLine(checked((uint)(document.Sections[0].Margins.Right.GetValueOrDefault().ToTwips())));
 
                 document.Sections[0].AddWatermark(WordWatermarkStyle.Text, "Confidential");
 
@@ -34,11 +34,11 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("----");
 
-                Console.WriteLine(document.Sections[0].Margins.Left);
-                Console.WriteLine(document.Sections[0].Margins.Right);
+                Console.WriteLine(checked((uint)(document.Sections[0].Margins.Left.GetValueOrDefault().ToTwips())));
+                Console.WriteLine(checked((uint)(document.Sections[0].Margins.Right.GetValueOrDefault().ToTwips())));
 
-                Console.WriteLine(document.Sections[1].Margins.Left);
-                Console.WriteLine(document.Sections[1].Margins.Right);
+                Console.WriteLine(checked((uint)(document.Sections[1].Margins.Left.GetValueOrDefault().ToTwips())));
+                Console.WriteLine(checked((uint)(document.Sections[1].Margins.Right.GetValueOrDefault().ToTwips())));
 
                 document.Settings.SetBackgroundColor(Color.Azure);
 

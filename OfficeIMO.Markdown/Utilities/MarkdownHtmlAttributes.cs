@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 internal static class MarkdownHtmlAttributes {
     internal static string Render(
         MarkdownAttributeSet? attributes,
-        HtmlOptions? options,
+        MarkdownHtmlExportOptions? options,
         string? fallbackElementId = null,
         IReadOnlyList<string>? additionalClasses = null,
         bool additionalClassesFirst = false) {
@@ -27,7 +27,7 @@ internal static class MarkdownHtmlAttributes {
         return builder.ToString();
     }
 
-    private static void AppendId(StringBuilder builder, string? elementId, HtmlOptions? options) {
+    private static void AppendId(StringBuilder builder, string? elementId, MarkdownHtmlExportOptions? options) {
         if (string.IsNullOrWhiteSpace(elementId)) {
             return;
         }
@@ -41,7 +41,7 @@ internal static class MarkdownHtmlAttributes {
         StringBuilder builder,
         IReadOnlyList<string>? classes,
         IReadOnlyList<string>? additionalClasses,
-        HtmlOptions? options,
+        MarkdownHtmlExportOptions? options,
         bool additionalClassesFirst) {
         if ((classes == null || classes.Count == 0)
             && (additionalClasses == null || additionalClasses.Count == 0)) {
@@ -78,7 +78,7 @@ internal static class MarkdownHtmlAttributes {
         }
     }
 
-    private static void AppendAttributes(StringBuilder builder, MarkdownAttributeSet attributes, HtmlOptions? options) {
+    private static void AppendAttributes(StringBuilder builder, MarkdownAttributeSet attributes, MarkdownHtmlExportOptions? options) {
         if (attributes.Attributes.Count == 0) {
             return;
         }
@@ -100,7 +100,7 @@ internal static class MarkdownHtmlAttributes {
         }
     }
 
-    private static bool IsSafeAttributeName(string name, HtmlOptions? options) {
+    private static bool IsSafeAttributeName(string name, MarkdownHtmlExportOptions? options) {
         var trimmed = name.Trim();
         if (trimmed.Length == 0) {
             return false;
@@ -119,7 +119,7 @@ internal static class MarkdownHtmlAttributes {
             return false;
         }
 
-        if ((options?.RawHtmlHandling ?? RawHtmlHandling.Allow) == RawHtmlHandling.Allow) {
+        if ((options?.RawHtmlHandling ?? MarkdownRawHtmlHandling.Allow) == MarkdownRawHtmlHandling.Allow) {
             return true;
         }
 

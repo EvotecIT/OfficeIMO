@@ -54,9 +54,9 @@ public class ExcelPublicParallelReadBenchmarks {
         return Observe(reader.RowsAsParallel<MarkPflugSalesRow>(_parallelOptions));
     }
 
-    private DbDataReader OpenReader() => ExcelDocument.OpenDataReader(
+    private DbDataReader OpenReader() => ExcelDocument.OpenReader(
         _path,
-        new ExcelReadOptions {
+        new ExcelReaderOptions {
             NumericAsDecimal = true,
             InferSchema = true
         });
@@ -185,9 +185,9 @@ public class ExcelPublicParallelProjectionBenchmarks {
         return Observe(reader.RowsAsParallel(Project, _parallelOptions));
     }
 
-    private DbDataReader OpenReader() => ExcelDocument.OpenDataReader(
+    private DbDataReader OpenReader() => ExcelDocument.OpenReader(
         _path,
-        new ExcelReadOptions {
+        new ExcelReaderOptions {
             NumericAsDecimal = true,
             InferSchema = true
         });

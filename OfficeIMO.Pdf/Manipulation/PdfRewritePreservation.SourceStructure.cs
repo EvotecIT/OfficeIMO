@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public static partial class PdfRewritePreservation {
+internal static partial class PdfRewritePreservation {
     private static void CompareSourceStructure(List<PdfRewritePreservationIssue> issues, PdfDocumentInfo original, PdfDocumentInfo rewritten, PdfRewritePreservationOptions options) {
         if (options.PreserveDocumentVersionState) {
             CompareString(issues, "SourceStructure.HeaderVersion", original.HeaderVersion, rewritten.HeaderVersion);

@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>Add-OfficeWordParagraph { Add-OfficeWordText 'Line 1'; Add-OfficeWordBreak; Add-OfficeWordText 'Line 2' }</code>
 ///   <para>Writes both lines in the same paragraph separated by a soft break.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordBreak")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordBreak", DefaultParameterSetName = "Default")]
 [Alias("WordBreak")]
 [OutputType(typeof(WordParagraph))]
 public sealed class AddOfficeWordBreakCommand : PSCmdlet

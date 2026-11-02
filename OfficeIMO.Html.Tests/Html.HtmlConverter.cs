@@ -21,8 +21,8 @@ public partial class Html {
     public void Test_Html_RoundTrip() {
         string html = "<p>Hello <b>world</b> and <i>universe</i>. <u>under</u> <s>strike</s> <a href=\"https://example.com\">link</a></p>";
 
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions { FontFamily = "Calibri" });
-        string roundTrip = doc.ToHtml(new WordToHtmlOptions { IncludeFontStyles = true });
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions { FontFamily = "Calibri" });
+        string roundTrip = doc.ToHtml(new WordHtmlExportOptions { IncludeFontStyles = true });
 
         Assert.Contains("<strong>", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("</strong>", roundTrip, StringComparison.OrdinalIgnoreCase);
@@ -50,8 +50,8 @@ public partial class Html {
     public void Test_Html_Headings_RoundTrip() {
         string html = "<h1>Heading 1</h1><h2>Heading 2</h2><h3>Heading 3</h3><h4>Heading 4</h4><h5>Heading 5</h5><h6>Heading 6</h6>";
         
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions { FontFamily = "Calibri" });
-        string roundTrip = doc.ToHtml(new WordToHtmlOptions { IncludeFontStyles = true });
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions { FontFamily = "Calibri" });
+        string roundTrip = doc.ToHtml(new WordHtmlExportOptions { IncludeFontStyles = true });
 
         for (int i = 1; i <= 6; i++) {
             string tag = $"h{i}";
@@ -65,8 +65,8 @@ public partial class Html {
     public void Test_Html_Lists_RoundTrip() {
         string html = "<ul><li>Item 1<ul><li>Sub 1</li><li>Sub 2</li></ul></li><li>Item 2</li></ul><ol><li>First</li><li>Second</li></ol>";
         
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
-        string roundTrip = doc.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
+        string roundTrip = doc.ToHtml(new WordHtmlExportOptions { IncludeListStyles = true });
 
         Assert.Contains("<ul", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<ol", roundTrip, StringComparison.OrdinalIgnoreCase);
@@ -78,19 +78,20 @@ public partial class Html {
     public void Test_Html_Table_RoundTrip() {
         string html = "<table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></table>";
         
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
-        string roundTrip = doc.ToHtml(new WordToHtmlOptions());
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
+        string roundTrip = doc.ToHtml(new WordHtmlExportOptions());
 
-        Assert.Contains("<table>", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("A", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("D", roundTrip, StringComparison.OrdinalIgnoreCase);
+        var parsed = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(roundTrip);
+        var table = Assert.Single(parsed.QuerySelectorAll("table"));
+        Assert.Equal(2, table.QuerySelectorAll("tr").Length);
+        Assert.Equal(new[] { "A", "B", "C", "D" }, table.QuerySelectorAll("td").Select(cell => cell.TextContent.Trim()));
     }
 
     [Fact]
     public void Test_Html_NestedTable_RoundTrip() {
         string html = "<table><tr><td>Outer</td><td><table><tr><td>Inner</td></tr></table></td></tr></table>";
 
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
         Assert.Single(doc.Sections[0].Tables);
         var outer = doc.Sections[0].Tables[0];
@@ -101,7 +102,7 @@ public partial class Html {
         Assert.Single(inner.Rows);
         Assert.Single(inner.Rows[0].Cells);
 
-        string roundTrip = doc.ToHtml(new WordToHtmlOptions());
+        string roundTrip = doc.ToHtml(new WordHtmlExportOptions());
         int tableCount = System.Text.RegularExpressions.Regex.Matches(roundTrip, "<table", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Count;
         Assert.True(tableCount >= 2);
         Assert.Contains("Outer", roundTrip, StringComparison.OrdinalIgnoreCase);
@@ -115,8 +116,8 @@ public partial class Html {
         string base64 = Convert.ToBase64String(imageBytes);
         string html = $"<p><img src=\"data:image/png;base64,{base64}\" /></p>";
         
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
-        string roundTrip = doc.ToHtml(new WordToHtmlOptions());
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
+        string roundTrip = doc.ToHtml(new WordHtmlExportOptions());
 
         Assert.Contains("<img", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("data:image/png;base64", roundTrip, StringComparison.OrdinalIgnoreCase);
@@ -129,8 +130,8 @@ public partial class Html {
         string html = $"<p><img src=\"{uri}\" /></p>";
         
         var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html, OfficeIMO.Html.HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToWordDocument(HtmlToWordOptions.CreateTrustedDocumentProfile());
-        string roundTrip = doc.ToHtml(new WordToHtmlOptions());
+            .ToWord(WordHtmlImportOptions.CreateTrustedDocumentProfile());
+        string roundTrip = doc.ToHtml(new WordHtmlExportOptions());
 
         Assert.Contains("<img", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("data:image/png;base64", roundTrip, StringComparison.OrdinalIgnoreCase);
@@ -140,13 +141,13 @@ public partial class Html {
     public void Test_Html_FontResolver() {
         string html = "<p>Hello</p>";
 
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions { FontFamily = "monospace" });
-        string roundTrip = doc.ToHtml(new WordToHtmlOptions { IncludeFontStyles = true });
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions { FontFamily = "monospace" });
+        string roundTrip = doc.ToHtml(new WordHtmlExportOptions { IncludeFontStyles = true });
 
         string expected = WordFontResolver.Resolve("monospace")!;
         Assert.Contains("font-family", roundTrip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(expected, roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("monospace", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(", monospace", roundTrip, StringComparison.OrdinalIgnoreCase);
     }
 
 
@@ -155,7 +156,7 @@ public partial class Html {
         string html = "<p>Visit http://example.com</p>";
         using MemoryStream ms = new MemoryStream();
         
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
         doc.Save(ms);
 
         ms.Position = 0;
@@ -171,7 +172,7 @@ public partial class Html {
         string html = "<p style=\"font-weight:bold;font-size:32px\">Styled</p>";
         using MemoryStream ms = new MemoryStream();
         
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
         doc.Save(ms);
 
         ms.Position = 0;
@@ -185,7 +186,7 @@ public partial class Html {
     public void Test_Html_Headings() {
         string html = "<h1>Heading 1</h1><h2>Heading 2</h2>";
 
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
         Assert.Equal(WordParagraphStyles.Heading1, doc.Paragraphs[0].Style);
         Assert.Equal("Heading 1", doc.Paragraphs[0].Text);
@@ -196,9 +197,9 @@ public partial class Html {
     public void Test_Html_Blockquote_RoundTrip() {
         string html = "<blockquote>Quoted text</blockquote>";
 
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
         Assert.Equal("Quoted text", doc.Paragraphs[0].Text);
-        Assert.True(doc.Paragraphs[0].IndentationBefore > 0);
+        Assert.True(checked((int?)(doc.Paragraphs[0].IndentationBefore?.ToTwips())) > 0);
 
         string roundTrip = doc.ToHtml();
         Assert.Contains("<blockquote>", roundTrip, StringComparison.OrdinalIgnoreCase);
@@ -209,13 +210,13 @@ public partial class Html {
     public void Test_Html_BlockquoteInTableCell_RoundTripsWithoutPlaceholderParagraph() {
         string html = "<table><tr><td><blockquote><p>Quoted cell</p></blockquote></td></tr></table>";
 
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
         var cell = doc.Tables[0].Rows[0].Cells[0];
 
         var textParagraphs = cell.Paragraphs.Where(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text)).ToList();
         Assert.Single(textParagraphs);
         Assert.Equal("Quoted cell", textParagraphs[0].Text);
-        Assert.True(textParagraphs[0].IndentationBefore > 0);
+        Assert.True(checked((int?)(textParagraphs[0].IndentationBefore?.ToTwips())) > 0);
 
         string roundTrip = doc.ToHtml();
         Assert.Matches("(?is)<td[^>]*><blockquote[^>]*>Quoted cell</blockquote></td>", roundTrip);
@@ -227,11 +228,11 @@ public partial class Html {
         RemoveCustomStyle("Quote");
         string html = "<blockquote>Quoted text</blockquote>";
 
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
         Assert.False(doc.StyleExists("Quote"));
         Assert.Equal("Quoted text", doc.Paragraphs[0].Text);
-        Assert.True(doc.Paragraphs[0].IndentationBefore > 0);
+        Assert.True(checked((int?)(doc.Paragraphs[0].IndentationBefore?.ToTwips())) > 0);
         Assert.Null(doc.Paragraphs[0].Style);
     }
 
@@ -242,7 +243,7 @@ public partial class Html {
         WordParagraphStyle.RegisterCustomStyle("Quote", quote);
 
         string html = "<blockquote>Quoted text</blockquote>";
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
         Assert.True(doc.StyleExists("Quote"));
         Assert.Equal("Quoted text", doc.Paragraphs[0].Text);
@@ -255,7 +256,7 @@ public partial class Html {
     public void Test_Html_Q_RoundTrip() {
         string html = "<p>Before <q>quoted</q> after</p>";
 
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
         var text = string.Concat(doc.Paragraphs[0].GetRuns().Select(r => r.Text));
         Assert.Equal($"Before \u201Cquoted\u201D after", text);
@@ -266,10 +267,10 @@ public partial class Html {
 
     [Fact]
     public void Test_Html_Q_CustomCharacters() {
-        var options = new HtmlToWordOptions { QuotePrefix = "«", QuoteSuffix = "»" };
+        var options = new WordHtmlImportOptions { QuotePrefix = "«", QuoteSuffix = "»" };
         string html = "<p>Before <q>quoted</q> after</p>";
 
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(options);
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(options);
 
         var text = string.Concat(doc.Paragraphs[0].GetRuns().Select(r => r.Text));
         Assert.Equal("Before «quoted» after", text);
@@ -282,7 +283,7 @@ public partial class Html {
     public void Test_Html_Lists_Structure() {
         string html = "<ul><li>Item 1<ul><li>Sub 1</li></ul></li><li>Item 2</li></ul>";
 
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
         Assert.True(doc.Lists.Count > 0);
     }
@@ -291,7 +292,7 @@ public partial class Html {
     public void Test_Html_OrderedList_StartAndType() {
         string html = "<ol start=\"5\" type=\"a\"><li>First</li><li>Second</li></ol>";
 
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
         var list = doc.Lists[0];
         Assert.NotNull(list.Numbering);
@@ -303,7 +304,7 @@ public partial class Html {
     public void Test_Html_UnorderedList_Type() {
         string html = "<ul type=\"circle\"><li>A</li><li>B</li></ul>";
 
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
         var list = doc.Lists[0];
         Assert.NotNull(list.Numbering);
@@ -314,7 +315,7 @@ public partial class Html {
     public void Test_Html_Table_Structure() {
         string html = "<table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></table>";
 
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
         using MemoryStream ms = new MemoryStream();
         doc.Save(ms);
@@ -332,7 +333,7 @@ public partial class Html {
         string base64 = Convert.ToBase64String(imageBytes);
         string html = $"<p><img src=\"data:image/png;base64,{base64}\" /></p>";
 
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
         Assert.Single(doc.Images);
     }
@@ -344,7 +345,7 @@ public partial class Html {
         string html = $"<p><img src=\"{uri}\" /></p>";
 
         var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html, OfficeIMO.Html.HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToWordDocument(HtmlToWordOptions.CreateTrustedDocumentProfile());
+            .ToWord(WordHtmlImportOptions.CreateTrustedDocumentProfile());
 
         Assert.Single(doc.Images);
     }
@@ -356,7 +357,7 @@ public partial class Html {
         string base64 = Convert.ToBase64String(imageBytes);
         string html = $"<p><img src=\"data:image/png;base64,{base64}\" alt=\"Company logo\" /></p>";
 
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
         Assert.Single(doc.Images);
         Assert.Equal("Company logo", doc.Images[0].Description);
@@ -369,7 +370,7 @@ public partial class Html {
     public void Test_Html_HorizontalRule_RoundTrip() {
         string html = "<p>Before</p><hr><p>After</p>";
 
-        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+        var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
         Assert.Equal(3, doc.Paragraphs.Count);
         Assert.NotNull(doc.Paragraphs[1].Borders.BottomStyle);

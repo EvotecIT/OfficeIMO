@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Excel
             string filePath = Path.Combine(folderPath, "Read-Presets.xlsx");
 
             // 1) Create a tiny workbook to read back
-            using (var doc = ExcelDocument.Create(filePath, "Data"))
+            using (var doc = ExcelDocument.Create(filePath, new ExcelCreateOptions { FirstSheetName = "Data" }))
             {
                 var sheet = doc.Sheets[0];
                 sheet.CellValue(1, 1, "Active");
@@ -50,7 +50,7 @@ namespace OfficeIMO.Examples.Excel
             }
 
             // 2) One reader shape, automatic used range, and typed getters.
-            using var reader = ExcelDocument.OpenDataReader(filePath, new ExcelReadOptions {
+            using var reader = ExcelDocument.OpenReader(filePath, new ExcelReaderOptions {
                 NumericAsDecimal = true
             });
             while (reader.Read()) {

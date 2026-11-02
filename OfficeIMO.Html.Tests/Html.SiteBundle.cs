@@ -72,7 +72,7 @@ public sealed class HtmlSiteBundleTests {
         var visuals = result.Document.Pages.SelectMany(page => page.Visuals).ToArray();
         Assert.Equal(allowEmbedded ? 1 : 0, visuals.OfType<HtmlRenderImage>().Count());
         if (allowEmbedded) Assert.Contains(visuals.OfType<HtmlRenderText>(),
-            text => text.Text == "ARCHIVED" && text.Color == OfficeIMO.Drawing.OfficeColor.FromRgb(0x12, 0x34, 0x56));
+            text => text.Text == "ARCHIVED" && text.Color == OfficeIMO.OfficeColor.FromRgb(0x12, 0x34, 0x56));
     }
 
     [Theory]
@@ -107,7 +107,7 @@ public sealed class HtmlSiteBundleTests {
         var svgDrawing = HtmlSvgPaintAssertions.Read(Encoding.UTF8.GetBytes(svg));
         var imageVisual = Assert.Single(rendered.Document.Pages[0].Visuals.OfType<HtmlRenderImage>());
         var raster = OfficeIMO.Drawing.OfficeDrawingRasterRenderer.Render(svgDrawing);
-        Assert.Equal(OfficeIMO.Drawing.OfficeColor.FromRgb(0x1F, 0x1D, 0x1E),
+        Assert.Equal(OfficeIMO.OfficeColor.FromRgb(0x1F, 0x1D, 0x1E),
             raster.GetPixel((int)imageVisual.X + 6, (int)imageVisual.Y + 6));
         Assert.Contains("#123456", svg, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
@@ -306,7 +306,7 @@ public sealed class HtmlSiteBundleTests {
             ? await HtmlRenderEngine.ExecuteAsync(bundle.HtmlDocument, request)
             : HtmlRenderEngine.Execute(bundle.HtmlDocument, request);
         Assert.True(OfficeIMO.Drawing.OfficePngReader.TryDecode(result.ExportImage().Bytes, out var image));
-        Assert.Equal(OfficeIMO.Drawing.OfficeColor.FromRgb(255, 0, 0), image!.GetPixel(4, 4));
+        Assert.Equal(OfficeIMO.OfficeColor.FromRgb(255, 0, 0), image!.GetPixel(4, 4));
     }
 
     [Theory]

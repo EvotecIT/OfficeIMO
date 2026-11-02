@@ -17,7 +17,7 @@ public static partial class MarkdownRenderer {
         string markdown,
         MarkdownRendererOptions options,
         bool renderErrorAsException,
-        HtmlOptions? htmlOptions = null,
+        MarkdownHtmlExportOptions? htmlOptions = null,
         ICollection<MarkdownRendererPreProcessorDiagnostic>? preProcessorDiagnostics = null) {
         markdown = ApplyPreParseProcessing(markdown, options, preProcessorDiagnostics);
 
@@ -68,10 +68,10 @@ public static partial class MarkdownRenderer {
         public string OverflowHtml { get; } = overflowHtml ?? string.Empty;
     }
 
-    private static MarkdownDoc ApplyRendererDocumentTransforms(
-        MarkdownDoc document,
+    private static MarkdownDocument ApplyRendererDocumentTransforms(
+        MarkdownDocument document,
         MarkdownRendererOptions options,
-        MarkdownReaderOptions readerOptions,
+        MarkdownLoadOptions readerOptions,
         ICollection<MarkdownDocumentTransformDiagnostic>? diagnostics,
         MarkdownSyntaxNode? syntaxTree = null,
         IReadOnlyList<MarkdownSourceSpan?>? topLevelBlockSourceSpans = null,
@@ -102,8 +102,8 @@ public static partial class MarkdownRenderer {
                 preservesOriginalMarkdown));
     }
 
-    private static MarkdownParseResult AttachRendererParseResult(
-        MarkdownDoc document,
+    private static MarkdownParseInfo AttachRendererParseResult(
+        MarkdownDocument document,
         MarkdownSyntaxNode syntaxTree,
         MarkdownSyntaxNode finalSyntaxTree,
         string sourceMarkdown,
@@ -112,7 +112,7 @@ public static partial class MarkdownRenderer {
         IReadOnlyList<MarkdownDocumentTransformDiagnostic> transformDiagnostics,
         IReadOnlyList<MarkdownReferenceLinkDefinition> referenceLinkDefinitions,
         IReadOnlyList<MarkdownAbbreviationDefinition> abbreviationDefinitions) =>
-        new MarkdownParseResult(
+        new MarkdownParseInfo(
             document,
             syntaxTree,
             finalSyntaxTree,
@@ -123,7 +123,7 @@ public static partial class MarkdownRenderer {
             referenceLinkDefinitions,
             abbreviationDefinitions);
 
-    private static IReadOnlyList<MarkdownSourceSpan?> BuildTopLevelBlockSourceSpans(MarkdownParseResult parseResult) {
+    private static IReadOnlyList<MarkdownSourceSpan?> BuildTopLevelBlockSourceSpans(MarkdownParseInfo parseResult) {
         var children = parseResult.SyntaxTree.Children;
         var spans = new List<MarkdownSourceSpan?>(parseResult.Document.Blocks.Count);
 
@@ -238,8 +238,8 @@ public static partial class MarkdownRenderer {
         return value;
     }
 
-    private static MarkdownReaderOptions CreateEffectiveReaderOptions(MarkdownRendererOptions options) {
-        var source = options.ReaderOptions ?? new MarkdownReaderOptions();
+    private static MarkdownLoadOptions CreateEffectiveReaderOptions(MarkdownRendererOptions options) {
+        var source = options.ReaderOptions ?? new MarkdownLoadOptions();
         var normalization = CreateEffectiveInputNormalization(options);
         var effective = source.Clone();
         effective.InputNormalization = CreateInlineNormalizationOptions(normalization);
@@ -292,7 +292,7 @@ public static partial class MarkdownRenderer {
         };
     }
 
-    private static void CopyFencedBlockExtensions(MarkdownReaderOptions source, MarkdownReaderOptions target) {
+    private static void CopyFencedBlockExtensions(MarkdownLoadOptions source, MarkdownLoadOptions target) {
         var extensions = source.FencedBlockExtensions;
         if (extensions == null || extensions.Count == 0) {
             return;
@@ -306,7 +306,7 @@ public static partial class MarkdownRenderer {
         }
     }
 
-    private static void CopyBlockParserExtensions(MarkdownReaderOptions source, MarkdownReaderOptions target) {
+    private static void CopyBlockParserExtensions(MarkdownLoadOptions source, MarkdownLoadOptions target) {
         var extensions = source.BlockParserExtensions;
         target.BlockParserExtensions.Clear();
         if (extensions == null || extensions.Count == 0) {
@@ -321,7 +321,7 @@ public static partial class MarkdownRenderer {
         }
     }
 
-    private static void CopyDocumentTransforms(MarkdownReaderOptions source, MarkdownReaderOptions target) {
+    private static void CopyDocumentTransforms(MarkdownLoadOptions source, MarkdownLoadOptions target) {
         var transforms = source.DocumentTransforms;
         if (transforms == null || transforms.Count == 0) {
             return;
@@ -335,7 +335,7 @@ public static partial class MarkdownRenderer {
         }
     }
 
-    private static void AddRendererSemanticFencedBlockExtensions(MarkdownReaderOptions target, MarkdownRendererOptions options) {
+    private static void AddRendererSemanticFencedBlockExtensions(MarkdownLoadOptions target, MarkdownRendererOptions options) {
         AddSemanticFencedBlockExtension(target, "Built-in Mermaid AST", new[] { MarkdownSemanticKinds.Mermaid }, MarkdownSemanticKinds.Mermaid);
 
         var mathLanguages = options.Math?.FencedMathLanguages;
@@ -362,7 +362,7 @@ public static partial class MarkdownRenderer {
     }
 
     private static void AddSemanticFencedBlockExtension(
-        MarkdownReaderOptions target,
+        MarkdownLoadOptions target,
         string name,
         IEnumerable<string> languages,
         string semanticKind) {

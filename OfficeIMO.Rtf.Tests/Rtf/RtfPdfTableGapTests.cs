@@ -9,8 +9,8 @@ namespace OfficeIMO.Tests.Rtf;
 public class RtfPdfTableGapTests {
     [Fact]
     public void BorderlessExplicitGapTableUsesSourceInsetsAndPreservesAllText() {
-        using PdfPigDocument zero = PdfPigDocument.Open(ReadNativeGapFixture(0).ToPdfDocument(Options()).ToBytes());
-        using PdfPigDocument positive = PdfPigDocument.Open(ReadNativeGapFixture(300).ToPdfDocument(Options()).ToBytes());
+        using PdfPigDocument zero = PdfPigDocument.Open(ReadNativeGapFixture(0).ToPdf(Options()).ToBytes());
+        using PdfPigDocument positive = PdfPigDocument.Open(ReadNativeGapFixture(300).ToPdf(Options()).ToBytes());
         Assert.Equal(1, zero.NumberOfPages);
         Assert.Equal(1, positive.NumberOfPages);
         // Clipping paths alone do not paint table borders.
@@ -38,14 +38,14 @@ public class RtfPdfTableGapTests {
     public void ExplicitCellBorderAndPaddingOverridePositiveGap() {
         const int gapTwips = 300;
         RtfDocument source = ReadTable(@"\clbrdrl\brdrs\brdrw8\brdrcf1\clpadl240\clpadfl3", gapTwips);
-        PdfCore.PdfDocument mapped = source.ToPdfDocument(Options());
+        PdfCore.PdfDocument mapped = source.ToPdf(Options());
         PdfCore.TableBlock table = Assert.Single(mapped.Blocks.OfType<PdfCore.TableBlock>());
         Assert.Null(table.Style!.BorderColor);
-        Assert.Equal(12D, table.Style.CellPaddings![(0, 0)].Left);
+        Assert.Equal(12D, table.Style.CellPaddings![(0, 0)].Left?.ToPoints());
         PdfCore.PdfCellBorder border = table.Style.CellBorders![(0, 0)];
         Assert.True(border.Left);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 0, 0), border.LeftBorder!.Color);
-        Assert.True(border.LeftBorder.Width > 0D);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), border.LeftBorder!.Color);
+        Assert.True(border.LeftBorder.Width.ToPoints() > 0D);
 
         using PdfPigDocument pdf = PdfPigDocument.Open(mapped.ToBytes());
         Assert.Contains(pdf.GetPage(1).Paths, path => path.IsStroked || path.IsFilled);
@@ -55,26 +55,26 @@ public class RtfPdfTableGapTests {
     [Fact]
     public void CallerTableStyleOverridesPositiveGapWithoutMutation() {
         const int gapTwips = 300;
-        var caller = new PdfCore.PdfOptions {
+        var caller = new PdfCore.PdfCreateOptions {
             DefaultFont = PdfCore.PdfStandardFont.Helvetica,
-            DefaultFontSize = 12D,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D),
             DefaultTableStyle = new PdfCore.PdfTableStyle {
-                BorderColor = PdfCore.PdfColor.FromRgb(0, 0, 255),
-                BorderWidth = 1D,
-                CellPaddingX = 7D,
-                CellPaddingY = 3D
+                BorderColor = global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255),
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(1D),
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(7D),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(3D)
             }
         };
         RtfToPdfOptions options = Options();
         options.PdfOptions = caller;
-        PdfCore.PdfDocument mapped = ReadTable(gapTwips: gapTwips).ToPdfDocument(options);
+        PdfCore.PdfDocument mapped = ReadTable(gapTwips: gapTwips).ToPdf(options);
         PdfCore.TableBlock table = Assert.Single(mapped.Blocks.OfType<PdfCore.TableBlock>());
-        Assert.Equal(PdfCore.PdfColor.FromRgb(0, 0, 255), table.Style!.BorderColor);
-        Assert.Equal(1D, table.Style.BorderWidth);
-        Assert.Equal(7D, table.Style.CellPaddingX);
-        Assert.Equal(3D, table.Style.CellPaddingY);
-        Assert.Equal(7D, caller.DefaultTableStyle!.CellPaddingX);
-        Assert.Equal(3D, caller.DefaultTableStyle.CellPaddingY);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255), table.Style!.BorderColor);
+        Assert.Equal(1D, table.Style.BorderWidth.ToPoints());
+        Assert.Equal(7D, table.Style.CellPaddingX.ToPoints());
+        Assert.Equal(3D, table.Style.CellPaddingY.ToPoints());
+        Assert.Equal(7D, caller.DefaultTableStyle!.CellPaddingX.ToPoints());
+        Assert.Equal(3D, caller.DefaultTableStyle.CellPaddingY.ToPoints());
         Assert.Null(caller.DefaultTableStyle.CellPaddings);
         Assert.Null(caller.DefaultTableStyle.CellBorders);
 
@@ -91,9 +91,9 @@ public class RtfPdfTableGapTests {
         RtfTableRow row = Assert.Single(source.Blocks.OfType<RtfTable>()).Rows[0];
         row.SetPadding(leftTwips: 120);
         if (cellOverride) row.Cells[0].SetPadding(leftTwips: 240);
-        PdfCore.PdfDocument mapped = source.ToPdfDocument(Options());
+        PdfCore.PdfDocument mapped = source.ToPdf(Options());
         PdfCore.TableBlock table = Assert.Single(mapped.Blocks.OfType<PdfCore.TableBlock>());
-        Assert.Equal(expectedLeft, table.Style!.CellPaddings![(0, 0)].Left);
+        Assert.Equal(expectedLeft, table.Style!.CellPaddings![(0, 0)].Left?.ToPoints());
         using PdfPigDocument pdf = PdfPigDocument.Open(mapped.ToBytes());
         var marker = Assert.Single(pdf.GetPage(1).Letters, letter => letter.Value == "A");
         Assert.InRange(marker.StartBaseLine.X, 72D + expectedLeft - 0.01D, 72D + expectedLeft + 0.01D);
@@ -114,9 +114,9 @@ public class RtfPdfTableGapTests {
     private static RtfToPdfOptions Options(bool includePdfOptions = true) => new RtfToPdfOptions {
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
         TextFallbacks = PdfCore.PdfTextFallbackFeatures.None,
-        PdfOptions = includePdfOptions ? new PdfCore.PdfOptions {
+        PdfOptions = includePdfOptions ? new PdfCore.PdfCreateOptions {
             DefaultFont = PdfCore.PdfStandardFont.Helvetica,
-            DefaultFontSize = 12D
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D)
         } : null
     };
 }

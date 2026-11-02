@@ -13,12 +13,12 @@ namespace OfficeIMO.Examples.Html {
                 throw new FileNotFoundException($"Missing test input: {htmlPath}");
             string html = File.ReadAllText(htmlPath);
 
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             string docxPath = Path.Combine(folderPath, "Html08_SemanticsAndCitations.docx");
             doc.Save(docxPath);
 
             string htmlOut = Path.Combine(folderPath, "Html08_SemanticsAndCitations.roundtrip.html");
-            File.WriteAllText(htmlOut, doc.ToHtml(new WordToHtmlOptions { IncludeDefaultCss = true }));
+            File.WriteAllText(htmlOut, doc.ToHtml(new WordHtmlExportOptions { IncludeDefaultCss = true }));
 
             Console.WriteLine($"✓ Created: {docxPath}");
             Console.WriteLine($"✓ Round-trip HTML: {htmlOut}");

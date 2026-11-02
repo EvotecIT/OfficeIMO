@@ -11,5 +11,5 @@ internal static partial class PdfFormFiller {
         CreateTextAppearanceStream(objects, resources, widgetAppearanceResources, widgetPageResources, value, width, height, style, defaultAppearance,
             fontSize, null, null, ref nextObjectNumber, choiceAppearance: choiceAppearance,
             maximumDecodedBytes: maximumDecodedBytes, maximumMeasurementCharacters: maximumMeasurementCharacters,
-            cancellationToken: cancellationToken);
+            cancellationToken: cancellationToken, addsObjects: false);
 }

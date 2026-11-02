@@ -11,12 +11,12 @@ public partial class Word {
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(int.MaxValue));
         list.AddItem("Last index");
-        WordParagraphSnapshot paragraph = Assert.Single(Assert.Single(document.CreateInspectionSnapshot().Sections).Elements.OfType<WordParagraphSnapshot>());
+        WordParagraphInfo paragraph = Assert.Single(Assert.Single(document.Inspect().Sections).Elements.OfType<WordParagraphInfo>());
         Assert.Equal(int.MaxValue, paragraph.ListIndex);
         Assert.Equal("2147483647.", paragraph.ListMarker);
         list.AddItem("Overflow");
         Assert.Empty(document.ValidateDocument());
-        Assert.Throws<System.IO.InvalidDataException>(() => document.CreateInspectionSnapshot());
+        Assert.Throws<System.IO.InvalidDataException>(() => document.Inspect());
     }
 
     [Fact]
@@ -32,7 +32,7 @@ public partial class Word {
         list.AddItem("Child", 1);
         list.AddItem("Next parent");
 
-        WordParagraphSnapshot[] paragraphs = Assert.Single(document.CreateInspectionSnapshot().Sections).Elements.OfType<WordParagraphSnapshot>().ToArray();
+        WordParagraphInfo[] paragraphs = Assert.Single(document.Inspect().Sections).Elements.OfType<WordParagraphInfo>().ToArray();
         Assert.Equal(new[] { "12.", "12.c)", "13." }, paragraphs.Select(paragraph => paragraph.ListMarker));
         Assert.Equal(new int?[] { 12, 3, 13 }, paragraphs.Select(paragraph => paragraph.ListIndex));
         Assert.Equal(new int?[] { 0, 1, 0 }, paragraphs.Select(paragraph => paragraph.ListLevel));
@@ -46,8 +46,8 @@ public partial class Word {
         if (restart) second.Append(new LevelOverride(new StartOverrideNumberingValue { Val = 3 }) { LevelIndex = 0 });
         string before = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml + numbering.OuterXml;
 
-        WordParagraphSnapshot[] snapshots = document.CreateInspectionSnapshot().Sections
-            .SelectMany(section => section.Elements.OfType<WordParagraphSnapshot>()).ToArray();
+        WordParagraphInfo[] snapshots = document.Inspect().Sections
+            .SelectMany(section => section.Elements.OfType<WordParagraphInfo>()).ToArray();
 
         int[] expected = restart ? new[] { 12, 13, 3, 4 } : new[] { 12, 13, 14, 15 };
         Assert.Equal(expected.Select(value => (int?)value), snapshots.Select(paragraph => paragraph.ListIndex));
@@ -70,11 +70,11 @@ public partial class Word {
         Attach(document.Header.Default.AddParagraph("Header first"));
         Attach(document.Header.Default.AddParagraph("Header second"));
 
-        WordSectionSnapshot section = Assert.Single(document.CreateInspectionSnapshot().Sections);
-        Assert.Equal(new[] { "12.", "14." }, section.Elements.OfType<WordParagraphSnapshot>().Select(paragraph => paragraph.ListMarker));
-        WordTableSnapshot table = Assert.Single(section.Elements.OfType<WordTableSnapshot>());
+        WordSectionInfo section = Assert.Single(document.Inspect().Sections);
+        Assert.Equal(new[] { "12.", "14." }, section.Elements.OfType<WordParagraphInfo>().Select(paragraph => paragraph.ListMarker));
+        WordTableInfo table = Assert.Single(section.Elements.OfType<WordTableInfo>());
         Assert.Equal("13.", Assert.Single(table.Rows[0].Cells[0].Paragraphs).ListMarker);
-        Assert.Equal(new[] { "12.", "13." }, section.DefaultHeader!.Elements.OfType<WordParagraphSnapshot>().Where(paragraph => paragraph.IsListItem).Select(paragraph => paragraph.ListMarker));
+        Assert.Equal(new[] { "12.", "13." }, section.DefaultHeader!.Elements.OfType<WordParagraphInfo>().Where(paragraph => paragraph.IsListItem).Select(paragraph => paragraph.ListMarker));
         Assert.Empty(document.ValidateDocument());
 
         void Attach(WordParagraph paragraph) => paragraph._paragraph.ParagraphProperties = new ParagraphProperties(
@@ -91,7 +91,7 @@ public partial class Word {
         list.AddItem("List item");
         document.AddParagraph("Plain paragraph");
 
-        WordParagraphSnapshot[] paragraphs = Assert.Single(document.CreateInspectionSnapshot().Sections).Elements.OfType<WordParagraphSnapshot>().ToArray();
+        WordParagraphInfo[] paragraphs = Assert.Single(document.Inspect().Sections).Elements.OfType<WordParagraphInfo>().ToArray();
         Assert.Equal(marker, paragraphs[0].ListMarker);
         Assert.Null(paragraphs[0].ListIndex);
         Assert.Null(paragraphs[1].ListMarker);

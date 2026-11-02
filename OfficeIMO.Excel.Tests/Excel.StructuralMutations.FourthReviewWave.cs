@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_RewritesChartsheetAndExtendedChartReferencesAndCaches() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
+            ExcelSheet data = document.AddSheet("Data");
             data.CellValue(1, 2, 1);
             data.CellValue(1, 3, 2);
 
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_RemapsConnectionParametersAndRejectsTheirDeletion() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             Parameter parameter = AttachCellBackedConnection(document, sheet, "A5");
 
             sheet.InsertColumns(1);
@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_RemapsCommentsAndVmlAnchors() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.SetComment(1, 2, "Shift me", author: "Tester");
             VmlDrawingPart vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
             int[] before = ReadCommentVmlAnchor(vmlPart);
@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_PreflightsUnsupportedAndOverflowingVmlAnchors() {
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Keep");
                 sheet.WorksheetPart.Worksheet.Append(new Controls());
 
@@ -119,13 +119,13 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.SetComment(1, 2, "Keep", author: "Tester");
                 VmlDrawingPart vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
                 SetCommentVmlAnchor(vmlPart, "16383, 15, 0, 2, 16384, 15, 3, 4");
 
                 InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
-                    () => sheet.InsertColumns(A1.MaxColumns));
+                    () => sheet.InsertColumns(ExcelA1.MaxColumns));
 
                 Assert.Contains("comment note anchor", exception.Message, StringComparison.OrdinalIgnoreCase);
                 Assert.True(sheet.HasComment(1, 2));
@@ -154,7 +154,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeMutations_RejectR1C1WorkbookMode() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, 1);
             document.WorkbookRoot.Append(new CalculationProperties {
                 ReferenceMode = ReferenceModeValues.R1C1
@@ -172,7 +172,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeMutationPlanning_EnforcesScanBudgets() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, 1);
             sheet.CellValue(2, 1, 2);
 
@@ -193,7 +193,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_CopyRange_EmitsRefWhenRelativeFormulaCrossesWorksheetBoundary() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellFormula(1, 2, "A1");
 
             sheet.CopyRange("B1", "A1");
@@ -202,7 +202,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static ExcelSheet CreateHorizontalSharedFormulaSheet(ExcelDocument document) {
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, 1);
             Row row = Assert.Single(sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Elements<Row>());
             row.Append(

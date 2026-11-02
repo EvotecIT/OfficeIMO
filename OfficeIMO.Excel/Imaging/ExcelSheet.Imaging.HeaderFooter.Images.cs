@@ -6,8 +6,8 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private const double HeaderFooterImagePadding = 4D;
 
-        private static ExcelHeaderFooterImageSnapshot? SelectHeaderFooterImage(ExcelHeaderFooterImageSnapshot? image, string sectionText) =>
-            image != null && sectionText.IndexOf("&G", StringComparison.Ordinal) >= 0 ? image : null;
+        private static ExcelHeaderFooterImageInfo? SelectHeaderFooterImage(ExcelHeaderFooterImageInfo? image, string sectionText) =>
+            image != null && HasHeaderFooterCode(sectionText, 'G') ? image : null;
 
         private static int ResolveHeaderFooterBandHeight(double imageHeightPoints, double scale) {
             double textHeight = HeaderFooterBandHeight * scale;
@@ -43,7 +43,7 @@ namespace OfficeIMO.Excel {
             double bandHeight,
             OfficeTextZoneLayout zones,
             double scale,
-            ExcelWorksheetImageExportOptions options,
+            ExcelImageExportOptions options,
             List<OfficeImageExportDiagnostic> diagnostics,
             string diagnosticSource,
             CancellationToken cancellationToken) {
@@ -55,13 +55,13 @@ namespace OfficeIMO.Excel {
 
         private static void DrawHeaderFooterRasterImage(
             OfficeRasterCanvas canvas,
-            ExcelHeaderFooterImageSnapshot? image,
+            ExcelHeaderFooterImageInfo? image,
             OfficeTextZone zone,
             double bandTop,
             double bandHeight,
             double scale,
             OfficeTextAlignment alignment,
-            ExcelWorksheetImageExportOptions options,
+            ExcelImageExportOptions options,
             List<OfficeImageExportDiagnostic> diagnostics,
             string diagnosticSource,
             CancellationToken cancellationToken) {
@@ -97,7 +97,7 @@ namespace OfficeIMO.Excel {
 
         private static void AppendHeaderFooterSvgImage(
             StringBuilder builder,
-            ExcelHeaderFooterImageSnapshot? image,
+            ExcelHeaderFooterImageInfo? image,
             OfficeTextZone zone,
             double bandTop,
             double bandHeight,
@@ -123,14 +123,14 @@ namespace OfficeIMO.Excel {
         }
 
         private static (double X, double Y, double Width, double Height) ResolveHeaderFooterImageBox(
-            ExcelHeaderFooterImageSnapshot image,
+            ExcelHeaderFooterImageInfo image,
             OfficeTextZone zone,
             double bandTop,
             double bandHeight,
             double scale,
             OfficeTextAlignment alignment) {
-            double width = PointsToPixels(image.WidthPoints, scale);
-            double height = PointsToPixels(image.HeightPoints, scale);
+            double width = PointsToPixels(image.Width.ToPoints(), scale);
+            double height = PointsToPixels(image.Height.ToPoints(), scale);
             double x = zone.X;
             if (alignment == OfficeTextAlignment.Center) {
                 x = zone.AnchorX - (width / 2D);

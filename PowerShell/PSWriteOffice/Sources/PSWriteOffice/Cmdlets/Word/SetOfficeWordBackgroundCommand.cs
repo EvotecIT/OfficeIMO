@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Apply an image background to an existing document.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Draft.docx
+///   <code>$doc = Open-OfficeWord -Path .\Draft.docx
 /// $doc | Set-OfficeWordBackground -ImagePath .\Assets\Background.png -Width 600 -Height 800 -PassThru |
 ///     Save-OfficeWord -Path .\Draft-Branded.docx</code>
 ///   <para>Uses OfficeIMO.Word background image support and saves the updated document through the standard save cmdlet.</para>
@@ -70,7 +70,7 @@ public sealed class SetOfficeWordBackgroundCommand : PSCmdlet
         if (ParameterSetName == ParameterSetImage)
         {
             var resolvedPath = ResolvePath(ImagePath);
-            document.Background.SetImage(resolvedPath, Width, Height);
+            document.Background.SetImage(resolvedPath, Width.HasValue ? global::OfficeIMO.OfficeLength.Pixels(Width.Value) : null, Height.HasValue ? global::OfficeIMO.OfficeLength.Pixels(Height.Value) : null);
         }
         else
         {

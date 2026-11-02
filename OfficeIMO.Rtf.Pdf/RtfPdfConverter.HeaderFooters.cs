@@ -21,22 +21,22 @@ internal static partial class RtfPdfConverter {
     }
 
     /// <summary>Retains the established plain-story presentation when callers explicitly configure that projection.</summary>
-    private static bool HasRunningStoryPresentationOverrides(PdfCore.PdfOptions? options, bool isFooter) => options != null &&
+    private static bool HasRunningStoryPresentationOverrides(PdfCore.PdfCreateOptions? options, bool isFooter) => options != null &&
         (isFooter
-            ? options.FooterOffsetY != 18D || options.HasExplicitFooterFont || options.FooterFontFamily != null ||
-                options.FooterFontSize != 9D || options.FooterTextColor.HasValue || options.FooterAlign != PdfCore.PdfAlign.Center
-            : options.HeaderOffsetY != 18D || options.HasExplicitHeaderFont || options.HeaderFontFamily != null ||
-                options.HeaderFontSize != 9D || options.HeaderTextColor.HasValue || options.HeaderAlign != PdfCore.PdfAlign.Center);
+            ? options.FooterOffsetY.ToPoints() != 18D || options.HasExplicitFooterFont || options.FooterFontFamily != null ||
+                options.FooterFontSize.ToPoints() != 9D || options.FooterTextColor.HasValue || options.FooterAlign != PdfCore.PdfAlign.Center
+            : options.HeaderOffsetY.ToPoints() != 18D || options.HasExplicitHeaderFont || options.HeaderFontFamily != null ||
+                options.HeaderFontSize.ToPoints() != 9D || options.HeaderTextColor.HasValue || options.HeaderAlign != PdfCore.PdfAlign.Center);
 
     /// <summary>Captures rich source stories once through the same document and paragraph/image owners used by ordinary flow.</summary>
     private static void ApplyHeaderFooterContent(RtfDocument document, RtfPageSetup setup, PdfCore.PdfDocument pdf,
-        PdfCore.PdfOptions pageOptions, RtfToPdfOptions options, PdfRenderState state,
+        PdfCore.PdfCreateOptions pageOptions, RtfToPdfOptions options, PdfRenderState state,
         IReadOnlyList<RtfHeaderFooter> declarations, Action<Action<PdfCore.PdfHeaderBuilder>> configureHeader,
         Action<Action<PdfCore.PdfFooterBuilder>> configureFooter) {
         if (!options.IncludeHeaderFooters || declarations.Count == 0) return;
 
         if (!HasRunningStoryPresentationOverrides(options.PdfOptions, isFooter: false)) {
-            double distance = GetRunningStoryDistance(setup.HeaderDistanceTwips);
+            OfficeLength distance = OfficeLength.Points(GetRunningStoryDistance(setup.HeaderDistanceTwips));
             configureHeader(header => {
                 RtfHeaderFooter? story = GetDefaultHeaderFooter(declarations, isFooter: false);
                 if (story != null) header.Content(CreateRunningStory(story), distance);
@@ -49,7 +49,7 @@ internal static partial class RtfPdfConverter {
             RecordPlainRunningImageDiagnostics(isFooter: false);
         }
         if (!HasRunningStoryPresentationOverrides(options.PdfOptions, isFooter: true)) {
-            double distance = GetRunningStoryDistance(setup.FooterDistanceTwips);
+            OfficeLength distance = OfficeLength.Points(GetRunningStoryDistance(setup.FooterDistanceTwips));
             configureFooter(footer => {
                 RtfHeaderFooter? story = GetDefaultHeaderFooter(declarations, isFooter: true);
                 if (story != null) footer.Content(CreateRunningStory(story), distance);

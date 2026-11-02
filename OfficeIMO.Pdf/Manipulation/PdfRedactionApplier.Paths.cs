@@ -45,7 +45,7 @@ internal static partial class PdfRedactionApplier {
                 double pathWidth = maxX - minX + strokePadding * 2D;
                 double pathHeight = maxY - minY + strokePadding * 2D;
                 if (pathStart >= 0 && maxX >= minX && maxY >= minY) {
-                    PdfRedactionArea[] intersections = areas.Where(area => area.IntersectsRectangle(pathX, pathY, pathWidth, pathHeight)).ToArray();
+                    PdfRedactionArea[] intersections = areas.Where(area => area.IntersectsUnderlay(pathX, pathY, pathWidth, pathHeight)).ToArray();
                     if (intersections.Any(area => area.ExactGeometry is not null && !area.ContainsRectangle(pathX, pathY, pathWidth, pathHeight))) {
                         throw new NotSupportedException("An exact non-rectangular redaction intersects only part of a vector path. The engine refuses to remove content outside the reviewed geometry.");
                     }

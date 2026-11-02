@@ -3,7 +3,7 @@ using System.Globalization;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Parses normalized logical PDF table values without natural-language vocabulary.</summary>
-public static class PdfLogicalTableValueParser {
+internal static class PdfLogicalTableValueParser {
     private static readonly string[] UnambiguousDateTimeFormats = {
         "yyyy-MM-dd", "yyyy/MM/dd", "yyyy.MM.dd",
         "yyyy-MM-dd HH:mm", "yyyy-MM-dd HH:mm:ss",

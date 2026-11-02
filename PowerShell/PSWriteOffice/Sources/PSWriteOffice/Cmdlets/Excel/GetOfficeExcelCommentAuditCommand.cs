@@ -72,7 +72,7 @@ public sealed class GetOfficeExcelCommentAuditCommand : PSCmdlet {
         return item;
     }
 
-    private static PSObject CreateThreadedComment(ExcelThreadedCommentSnapshot comment) {
+    private static PSObject CreateThreadedComment(ExcelThreadedCommentInfo comment) {
         var item = new PSObject();
         item.Properties.Add(new PSNoteProperty("SheetName", comment.SheetName));
         item.Properties.Add(new PSNoteProperty("CellReference", comment.CellReference));

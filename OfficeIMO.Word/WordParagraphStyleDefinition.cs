@@ -32,9 +32,9 @@ public sealed class WordParagraphStyleDefinition {
 
         StyleParagraphProperties? paragraph = style.StyleParagraphProperties;
         Alignment = paragraph?.Justification?.Val?.Value.ToOfficeEnum();
-        LeftIndentTwips = ReadInt32(paragraph?.Indentation?.Left?.Value);
-        SpacingBeforeTwips = ReadInt32(paragraph?.SpacingBetweenLines?.Before?.Value);
-        SpacingAfterTwips = ReadInt32(paragraph?.SpacingBetweenLines?.After?.Value);
+        LeftIndent = ReadInt32(paragraph?.Indentation?.Left?.Value);
+        SpacingBefore = ReadInt32(paragraph?.SpacingBetweenLines?.Before?.Value);
+        SpacingAfter = ReadInt32(paragraph?.SpacingBetweenLines?.After?.Value);
         PageBreakBefore = ReadOnOff(paragraph?.PageBreakBefore);
         KeepWithNext = ReadOnOff(paragraph?.KeepNext);
         KeepLinesTogether = ReadOnOff(paragraph?.KeepLines);
@@ -48,7 +48,7 @@ public sealed class WordParagraphStyleDefinition {
         StyleRunProperties? run = style.StyleRunProperties;
         FontName = run?.RunFonts?.Ascii?.Value ?? run?.RunFonts?.HighAnsi?.Value;
         ColorHex = run?.Color?.Val?.Value;
-        FontSizePoints = ReadHalfPoints(run?.FontSize?.Val?.Value);
+        FontSize = ReadHalfPoints(run?.FontSize?.Val?.Value);
         Bold = ReadOnOff(run?.Bold);
         Italic = ReadOnOff(run?.Italic);
     }
@@ -68,8 +68,8 @@ public sealed class WordParagraphStyleDefinition {
     /// <summary>Gets or sets the font family.</summary>
     public string? FontName { get; set; }
 
-    /// <summary>Gets or sets the font size in points.</summary>
-    public double? FontSizePoints { get; set; }
+    /// <summary>Gets or sets the font size.</summary>
+    public global::OfficeIMO.OfficeLength? FontSize { get; set; }
 
     /// <summary>Gets or sets the six-digit RGB text color.</summary>
     public string? ColorHex { get; set; }
@@ -83,14 +83,14 @@ public sealed class WordParagraphStyleDefinition {
     /// <summary>Gets or sets paragraph alignment.</summary>
     public WordParagraphAlignment? Alignment { get; set; }
 
-    /// <summary>Gets or sets the left indentation in twentieths of a point.</summary>
-    public int? LeftIndentTwips { get; set; }
+    /// <summary>Gets or sets the left indentation.</summary>
+    public global::OfficeIMO.OfficeLength? LeftIndent { get; set; }
 
-    /// <summary>Gets or sets spacing before the paragraph in twentieths of a point.</summary>
-    public int? SpacingBeforeTwips { get; set; }
+    /// <summary>Gets or sets spacing before the paragraph.</summary>
+    public global::OfficeIMO.OfficeLength? SpacingBefore { get; set; }
 
-    /// <summary>Gets or sets spacing after the paragraph in twentieths of a point.</summary>
-    public int? SpacingAfterTwips { get; set; }
+    /// <summary>Gets or sets spacing after the paragraph.</summary>
+    public global::OfficeIMO.OfficeLength? SpacingAfter { get; set; }
 
     /// <summary>Gets or sets starting paragraphs on a new page; null inherits from the base style.</summary>
     public bool? PageBreakBefore { get; set; }
@@ -146,23 +146,23 @@ public sealed class WordParagraphStyleDefinition {
         SetChild(style, string.IsNullOrWhiteSpace(NextStyleId) ? null : new NextParagraphStyle { Val = NextStyleId });
         SetChild(style, IsPrimary ? new PrimaryStyle() : null);
 
-        bool hasParagraphFormatting = Alignment.HasValue || LeftIndentTwips.HasValue ||
-            SpacingBeforeTwips.HasValue || SpacingAfterTwips.HasValue;
+        bool hasParagraphFormatting = Alignment.HasValue || LeftIndent.HasValue ||
+            SpacingBefore.HasValue || SpacingAfter.HasValue;
         StyleParagraphProperties? paragraph = style.StyleParagraphProperties;
         if (hasParagraphFormatting) {
             paragraph ??= style.StyleParagraphProperties = new StyleParagraphProperties();
             SetChild(paragraph, Alignment.HasValue ? new Justification { Val = Alignment.Value.ToOpenXml() } : null);
-            if (LeftIndentTwips.HasValue) {
+            if (LeftIndent.HasValue) {
                 paragraph.Indentation ??= new Indentation();
-                paragraph.Indentation.Left = LeftIndentTwips.Value.ToString(CultureInfo.InvariantCulture);
+                paragraph.Indentation.Left = checked((int)LeftIndent.Value.ToTwips()).ToString(CultureInfo.InvariantCulture);
             }
-            if (SpacingBeforeTwips.HasValue || SpacingAfterTwips.HasValue) {
+            if (SpacingBefore.HasValue || SpacingAfter.HasValue) {
                 paragraph.SpacingBetweenLines ??= new SpacingBetweenLines();
-                if (SpacingBeforeTwips.HasValue) {
-                    paragraph.SpacingBetweenLines.Before = SpacingBeforeTwips.Value.ToString(CultureInfo.InvariantCulture);
+                if (SpacingBefore.HasValue) {
+                    paragraph.SpacingBetweenLines.Before = checked((int)SpacingBefore.Value.ToTwips()).ToString(CultureInfo.InvariantCulture);
                 }
-                if (SpacingAfterTwips.HasValue) {
-                    paragraph.SpacingBetweenLines.After = SpacingAfterTwips.Value.ToString(CultureInfo.InvariantCulture);
+                if (SpacingAfter.HasValue) {
+                    paragraph.SpacingBetweenLines.After = checked((int)SpacingAfter.Value.ToTwips()).ToString(CultureInfo.InvariantCulture);
                 }
             }
         }
@@ -183,7 +183,7 @@ public sealed class WordParagraphStyleDefinition {
             paragraph.OutlineLevel = OutlineLevel.HasValue ? new OutlineLevel { Val = OutlineLevel.Value } : null;
         }
 
-        bool hasRunFormatting = !string.IsNullOrWhiteSpace(FontName) || FontSizePoints.HasValue ||
+        bool hasRunFormatting = !string.IsNullOrWhiteSpace(FontName) || FontSize.HasValue ||
             !string.IsNullOrWhiteSpace(ColorHex) || Bold.HasValue || Italic.HasValue;
         StyleRunProperties? run = style.StyleRunProperties;
         if (hasRunFormatting) {
@@ -196,8 +196,8 @@ public sealed class WordParagraphStyleDefinition {
                     EastAsia = FontName
                 };
             }
-            if (FontSizePoints.HasValue) {
-                string halfPoints = Math.Round(FontSizePoints.Value * 2, MidpointRounding.AwayFromZero)
+            if (FontSize.HasValue) {
+                string halfPoints = FontSize.Value.ToHalfPoints()
                     .ToString(CultureInfo.InvariantCulture);
                 run.FontSize = new FontSize { Val = halfPoints };
                 run.FontSizeComplexScript = new FontSizeComplexScript { Val = halfPoints };
@@ -219,11 +219,11 @@ public sealed class WordParagraphStyleDefinition {
         }
     }
 
-    private static int? ReadInt32(string? value) =>
-        int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int result) ? result : null;
+    private static global::OfficeIMO.OfficeLength? ReadInt32(string? value) =>
+        int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int result) ? global::OfficeIMO.OfficeLength.Emus((long)result * 635) : null;
 
-    private static double? ReadHalfPoints(string? value) =>
-        double.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out double result) ? result / 2d : null;
+    private static global::OfficeIMO.OfficeLength? ReadHalfPoints(string? value) =>
+        double.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out double result) ? global::OfficeIMO.OfficeLength.Points(result / 2d) : null;
 
     private static bool? ReadOnOff(OnOffType? value) => value == null ? null : value.Val?.Value ?? true;
 

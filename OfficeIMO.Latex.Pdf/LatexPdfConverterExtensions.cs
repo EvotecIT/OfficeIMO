@@ -32,7 +32,7 @@ public static class LatexPdfConverterExtensions {
     /// <summary>Attempts to save a LaTeX PDF and returns structured failure evidence.</summary>
     public static PdfCore.PdfSaveResult SaveAsPdfResult(this LatexDocument document, string path, LatexToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return document.ToPdfDocumentResult(options, cancellationToken).SaveResult(path, cancellationToken); }
+        try { return document.ToPdfDocumentResult(options, cancellationToken).TrySaveWithEvidence(path, cancellationToken); }
         catch (OperationCanceledException) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(path, exception); }
     }
@@ -40,7 +40,7 @@ public static class LatexPdfConverterExtensions {
     /// <summary>Attempts to write a LaTeX PDF to a caller-owned stream.</summary>
     public static PdfCore.PdfSaveResult SaveAsPdfResult(this LatexDocument document, Stream stream, LatexToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return document.ToPdfDocumentResult(options, cancellationToken).SaveResult(stream, cancellationToken); }
+        try { return document.ToPdfDocumentResult(options, cancellationToken).TrySaveWithEvidence(stream, cancellationToken); }
         catch (OperationCanceledException) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(null, exception); }
     }
@@ -60,7 +60,7 @@ public static class LatexPdfConverterExtensions {
     /// <summary>Converts synchronously, then attempts to asynchronously save a LaTeX PDF.</summary>
     public static async Task<PdfCore.PdfSaveResult> SaveAsPdfResultAsync(this LatexDocument document, string path, LatexToPdfOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return await document.ToPdfDocumentResult(options, cancellationToken).SaveResultAsync(path, cancellationToken).ConfigureAwait(false); }
+        try { return await document.ToPdfDocumentResult(options, cancellationToken).TrySaveWithEvidenceAsync(path, cancellationToken).ConfigureAwait(false); }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(path, exception); }
     }
@@ -68,7 +68,7 @@ public static class LatexPdfConverterExtensions {
     /// <summary>Converts synchronously, then attempts to asynchronously write a LaTeX PDF.</summary>
     public static async Task<PdfCore.PdfSaveResult> SaveAsPdfResultAsync(this LatexDocument document, Stream stream, LatexToPdfOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return await document.ToPdfDocumentResult(options, cancellationToken).SaveResultAsync(stream, cancellationToken).ConfigureAwait(false); }
+        try { return await document.ToPdfDocumentResult(options, cancellationToken).TrySaveWithEvidenceAsync(stream, cancellationToken).ConfigureAwait(false); }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(null, exception); }
     }

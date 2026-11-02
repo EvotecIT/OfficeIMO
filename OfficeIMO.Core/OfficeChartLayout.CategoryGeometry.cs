@@ -3,8 +3,8 @@ using System;
 namespace OfficeIMO.Drawing;
 
 public sealed partial class OfficeChartLayout {
-    /// <summary>The gap between bar clusters as a percentage of one bar's width, from 0 to 500. Office's default is 150.</summary>
-    public int BarGapWidthPercent { get; private set; } = 150;
+    /// <summary>The gap between bar clusters as a percentage of one bar's width, from 0 to 500. New charts use the shared theme; imported Office charts without a value use 150.</summary>
+    public int BarGapWidthPercent { get; private set; } = OfficeTheme.Default.ChartStyle.BarGapPercent;
 
     /// <summary>How far bars in a cluster overlap, from -100 (a full bar apart) to 100 (fully overlapped).</summary>
     /// <remarks>Stacked bars always overlap fully; this value applies to clustered bars.</remarks>

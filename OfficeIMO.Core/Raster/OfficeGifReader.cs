@@ -7,7 +7,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Dependency-free GIF decoder with explicit composited-frame selection.
 /// </summary>
-public static class OfficeGifReader {
+internal static class OfficeGifReader {
     /// <summary>
     /// Attempts to decode the first GIF image frame into an RGBA raster buffer.
     /// </summary>

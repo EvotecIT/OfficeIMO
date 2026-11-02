@@ -38,11 +38,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the width of the left border.
         /// </summary>
-        public uint? LeftSize {
+        /// <remarks>Nonnegative lengths round to the nearest an eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? LeftSize {
             get {
-                return _section._sectionProperties.GetFirstChild<PageBorders>()?.LeftBorder?.Size?.Value;
+                return WordBorderLengths.FromSize(_section._sectionProperties.GetFirstChild<PageBorders>()?.LeftBorder?.Size?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSize(value);
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder == null) {
                     pageBorder = Custom;
@@ -50,7 +52,7 @@ namespace OfficeIMO.Word {
                 }
 
                 var leftBorder = pageBorder.LeftBorder ?? (pageBorder.LeftBorder = new LeftBorder());
-                leftBorder.Size = value;
+                leftBorder.Size = nativeValue;
             }
         }
 
@@ -75,9 +77,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the left border color using a <see cref="OfficeIMO.Drawing.OfficeColor"/> value.
+        /// Gets or sets the left border color using a <see cref="OfficeIMO.OfficeColor"/> value.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor LeftColor {
+        public OfficeIMO.OfficeColor LeftColor {
             get {
                 var hex = LeftColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("LeftColorHex is null"));
@@ -113,11 +115,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the space between the left border and page text.
         /// </summary>
-        public uint? LeftSpace {
+        /// <remarks>Nonnegative lengths round to the nearest a whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? LeftSpace {
             get {
-                return _section._sectionProperties.GetFirstChild<PageBorders>()?.LeftBorder?.Space?.Value;
+                return WordBorderLengths.FromSpace(_section._sectionProperties.GetFirstChild<PageBorders>()?.LeftBorder?.Space?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSpace(value);
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder == null) {
                     pageBorder = Custom;
@@ -125,7 +129,7 @@ namespace OfficeIMO.Word {
                 }
 
                 var leftBorder = pageBorder.LeftBorder ?? (pageBorder.LeftBorder = new LeftBorder());
-                leftBorder.Space = value;
+                leftBorder.Space = nativeValue;
             }
         }
 
@@ -172,11 +176,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the width of the right border.
         /// </summary>
-        public uint? RightSize {
+        /// <remarks>Nonnegative lengths round to the nearest an eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? RightSize {
             get {
-                return _section._sectionProperties.GetFirstChild<PageBorders>()?.RightBorder?.Size?.Value;
+                return WordBorderLengths.FromSize(_section._sectionProperties.GetFirstChild<PageBorders>()?.RightBorder?.Size?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSize(value);
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder == null) {
                     pageBorder = Custom;
@@ -184,7 +190,7 @@ namespace OfficeIMO.Word {
                 }
 
                 var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
-                rightBorder.Size = value;
+                rightBorder.Size = nativeValue;
             }
         }
 
@@ -209,9 +215,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the right border color using a <see cref="OfficeIMO.Drawing.OfficeColor"/> value.
+        /// Gets or sets the right border color using a <see cref="OfficeIMO.OfficeColor"/> value.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor RightColor {
+        public OfficeIMO.OfficeColor RightColor {
             get {
                 var hex = RightColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("RightColorHex is null"));
@@ -247,11 +253,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the space between the right border and page text.
         /// </summary>
-        public uint? RightSpace {
+        /// <remarks>Nonnegative lengths round to the nearest a whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? RightSpace {
             get {
-                return _section._sectionProperties.GetFirstChild<PageBorders>()?.RightBorder?.Space?.Value;
+                return WordBorderLengths.FromSpace(_section._sectionProperties.GetFirstChild<PageBorders>()?.RightBorder?.Space?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSpace(value);
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder == null) {
                     pageBorder = Custom;
@@ -259,7 +267,7 @@ namespace OfficeIMO.Word {
                 }
 
                 var rightBorder = pageBorder.RightBorder ?? (pageBorder.RightBorder = new RightBorder());
-                rightBorder.Space = value;
+                rightBorder.Space = nativeValue;
             }
         }
 
@@ -306,11 +314,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the width of the top border.
         /// </summary>
-        public uint? TopSize {
+        /// <remarks>Nonnegative lengths round to the nearest an eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? TopSize {
             get {
-                return _section._sectionProperties.GetFirstChild<PageBorders>()?.TopBorder?.Size?.Value;
+                return WordBorderLengths.FromSize(_section._sectionProperties.GetFirstChild<PageBorders>()?.TopBorder?.Size?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSize(value);
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder == null) {
                     pageBorder = Custom;
@@ -318,7 +328,7 @@ namespace OfficeIMO.Word {
                 }
 
                 var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
-                topBorder.Size = value;
+                topBorder.Size = nativeValue;
             }
         }
 
@@ -343,9 +353,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the top border color using a <see cref="OfficeIMO.Drawing.OfficeColor"/> value.
+        /// Gets or sets the top border color using a <see cref="OfficeIMO.OfficeColor"/> value.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor TopColor {
+        public OfficeIMO.OfficeColor TopColor {
             get {
                 var hex = TopColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("TopColorHex is null"));
@@ -381,11 +391,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the space between the top border and page text.
         /// </summary>
-        public uint? TopSpace {
+        /// <remarks>Nonnegative lengths round to the nearest a whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? TopSpace {
             get {
-                return _section._sectionProperties.GetFirstChild<PageBorders>()?.TopBorder?.Space?.Value;
+                return WordBorderLengths.FromSpace(_section._sectionProperties.GetFirstChild<PageBorders>()?.TopBorder?.Space?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSpace(value);
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder == null) {
                     pageBorder = Custom;
@@ -393,7 +405,7 @@ namespace OfficeIMO.Word {
                 }
 
                 var topBorder = pageBorder.TopBorder ?? (pageBorder.TopBorder = new TopBorder());
-                topBorder.Space = value;
+                topBorder.Space = nativeValue;
             }
         }
 
@@ -443,11 +455,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the width of the bottom border.
         /// </summary>
-        public uint? BottomSize {
+        /// <remarks>Nonnegative lengths round to the nearest an eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? BottomSize {
             get {
-                return _section._sectionProperties.GetFirstChild<PageBorders>()?.BottomBorder?.Size?.Value;
+                return WordBorderLengths.FromSize(_section._sectionProperties.GetFirstChild<PageBorders>()?.BottomBorder?.Size?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSize(value);
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder == null) {
                     pageBorder = Custom;
@@ -455,7 +469,7 @@ namespace OfficeIMO.Word {
                 }
 
                 var bottomBorder = pageBorder.BottomBorder ?? (pageBorder.BottomBorder = new BottomBorder());
-                bottomBorder.Size = value;
+                bottomBorder.Size = nativeValue;
             }
         }
 
@@ -480,9 +494,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the bottom border color using a <see cref="OfficeIMO.Drawing.OfficeColor"/> value.
+        /// Gets or sets the bottom border color using a <see cref="OfficeIMO.OfficeColor"/> value.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor BottomColor {
+        public OfficeIMO.OfficeColor BottomColor {
             get {
                 var hex = BottomColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("BottomColorHex is null"));
@@ -518,11 +532,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the space between the bottom border and page text.
         /// </summary>
-        public uint? BottomSpace {
+        /// <remarks>Nonnegative lengths round to the nearest a whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? BottomSpace {
             get {
-                return _section._sectionProperties.GetFirstChild<PageBorders>()?.BottomBorder?.Space?.Value;
+                return WordBorderLengths.FromSpace(_section._sectionProperties.GetFirstChild<PageBorders>()?.BottomBorder?.Space?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSpace(value);
                 var pageBorder = _section._sectionProperties.GetFirstChild<PageBorders>();
                 if (pageBorder == null) {
                     pageBorder = Custom;
@@ -530,7 +546,7 @@ namespace OfficeIMO.Word {
                 }
 
                 var bottomBorder = pageBorder.BottomBorder ?? (pageBorder.BottomBorder = new BottomBorder());
-                bottomBorder.Space = value;
+                bottomBorder.Space = nativeValue;
             }
         }
 

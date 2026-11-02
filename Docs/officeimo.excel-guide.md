@@ -1,0 +1,2212 @@
+# OfficeIMO.Excel guide
+
+This guide covers the `OfficeIMO.Excel` API beyond the common tasks in the [package README](../OfficeIMO.Excel/README.md), which also shows installation. Exact coverage and limits are in the [compatibility matrix](../OfficeIMO.Excel/COMPATIBILITY.md).
+
+## Bounded native inspection
+
+`ExcelLoadOptions.AllowBinaryProjection = false` accepts XML workbook packages
+and rejects XLS/XLSB before their secondary payload/model projection. The default
+keeps existing binary import behavior. The inspection snapshot retains saved
+values, authored formulas, comments and worksheet state without evaluating formulas.
+
+`InspectEmbeddedPayloads(options, cancellationToken)` inventories inert package,
+OLE and ActiveX descriptors and provides selected bounded `OpenRead(ordinal)`
+streams. `OpenEmbeddedPayload(id, maximumBytes, cancellationToken)` is the direct
+single-payload convenience API. Keep the workbook open while requesting reads;
+returned complete read-only streams are caller-owned and survive workbook
+disposal. The [Core payload contract](../OfficeIMO.Core/README.md#bounded-embedded-payload-reads)
+defines count, member, aggregate and cumulative work limits, unknown lengths and
+optional hashing. `InspectVbaProjectMetadata()` inventories the part and signature
+relationship without reading binary module content, with
+`ModuleInspectionRequested = false`.
+
+If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
+
+## Returned authoring objects
+
+Conditional-format Add methods return `ExcelConditionalFormattingInfo`, the same
+editable model used by `AddConditionalFormattingRule`. Edit the returned model
+and call `sheet.UpdateConditionalFormattingRule(rule)` to apply it, or pass it to
+`RemoveConditionalFormattingRule` to remove that exact rule. Pivot conditional
+formats follow the same contract.
+
+`AddAutoFilter` returns an `ExcelAutoFilter` range handle. Its `Inspect()` method
+reads current criteria and table ownership. Creating the handle preserves deferred
+workbook exports. `AddTableOfContents` returns the sheet it creates, and
+`AddPivotManualGrouping` returns the created `ExcelPivotGroupingInfo`.
+
+`CustomDocumentProperties.Add` returns the attached `ExcelCustomProperty`, so edits
+to the returned value are saved with the workbook. The collection also implements
+`IDictionary<string, ExcelCustomProperty>` and `ICollection<KeyValuePair<string, ExcelCustomProperty>>`.
+
+`AddManualRowPageBreak` and `AddManualColumnPageBreak` return an attached
+`ExcelPageBreak` with its worksheet, index, orientation and `Remove()` method.
+`AddMacro` returns the attached `ExcelMacroProject`, which can read, save or remove
+the VBA payload. Removed or replaced handles reject further operations.
+`AddIgnoredErrorRegion` returns the created `ExcelIgnoredErrorRegionInfo`.
+`AddBackLinksToToc` returns hyperlink metadata keyed by the worksheets receiving
+links. Use `AddImage` to create an image and receive its `ExcelImage`.
+Image dimensions and anchor offsets use `OfficeLength`: `image.Width`, `image.Height`,
+`image.OffsetX` and `image.OffsetY` retain whole EMUs. Two-cell ending offsets use
+`ToOffsetX` and `ToOffsetY`. For example, replace `widthPixels: 96` with
+`width: OfficeLength.Pixels(96)`. `SetSize`, `MoveTo`, `SetTwoCellEndingMarker` and
+`TryGetAbsoluteAnchorBounds` use the same length contract. Cell and ending-marker
+offsets on existing XML remain inspectable when signed; `SetTwoCellEndingMarker`
+requires non-negative ending offsets; `AddImageAbsolute` requires non-negative
+authored positions. HTML round trips preserve signed positions and offsets read
+from existing native drawings. Omitted byte-image
+sizes remain 96 by 32 pixels at 96 DPI, while file/scaled placement retains its
+source-dimension defaults. Remote insertion also uses detected source dimensions
+when width, height and scale are omitted; use explicit lengths to request a fixed
+96 by 32 pixel image. Raster export applies its pixel rounding and safety
+limits when rendering. `GetRangeSize` returns `Width` and `Height` as lengths;
+worksheet reports insert images through `sheet.Report().AddImage(...)`.
+
+
+## Stream a large export
+
+The editable workbook model retains cells until saving. `CreateWriter` writes each
+row as it arrives and retains only column definitions and workbook metadata. Use
+inline strings and fixed column sizing; shared-string collection and automatic
+sizing are rejected because they require retaining values.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel;
+using System.Linq;
+
+var events = Enumerable.Range(1, 1000).Select(id => new { Id = id, Name = $"Event {id}" });
+using var writer = ExcelDocument.CreateWriter("events.xlsx", theme: OfficeTheme.Modern);
+ExcelDataSetImportResult written = writer.WriteTable("Events", events);
+Console.WriteLine($"{written.RowCount} rows written to {written.SheetName}!{written.Range}");
+```
+
+`WriteTable` also accepts an `IAsyncEnumerable<T>` (await the returned task),
+`DataTable`, or forward-only `IDataReader`. Each call returns the final sheet and table names, occupied range, row count and column count. Readers remain caller-owned. An
+explicit header list and row callback supports schemas without reflection. Each
+call creates another worksheet; each source is consumed once. Dispose completes
+the package. File destinations are replaced atomically after successful output;
+a failed or cancelled source discards the staged file. No table calls leave a
+file destination unchanged. Stream destinations support non-seekable output;
+use `leaveOpen: true` to retain the stream after completion.
+
+## Loading, cell borders and report sheets
+
+When a workbook comes from an untrusted source, pass the bounded load profile before parsing it:
+
+```csharp
+using var incoming = ExcelDocument.Load("upload.xlsx", ExcelLoadOptions.UntrustedDefaults);
+```
+
+This profile rejects macros, embedded payloads, ActiveX, and external relationships. Ordinary load options retain compatibility with workbooks containing those parts; `PackageSecurity` can be set explicitly for a different policy.
+
+Retain original-package evidence without a second file read:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel;
+
+using var workbook = ExcelDocument.Load("review.xlsx", new ExcelLoadOptions {
+    AccessMode = DocumentAccessMode.ReadOnly,
+    PackageSecurity = new OfficePackageSecurityOptions { MaxPackageBytes = 64L * 1024 * 1024 },
+    CaptureSourcePackageSecurity = true
+});
+Console.WriteLine(workbook.SourcePackageSecurityReport?.ContainerKind);
+Console.WriteLine(workbook.SourcePackageSecurityScope);
+var loadedSafety = workbook.InspectLoadedContentSafety();
+```
+
+Capture uses the loader's source bytes and retains their physical scope, including
+an encrypted outer container where applicable. Later model edits do not rewrite
+that report. Loaded-content safety inspection examines the current workbook without
+reopening, saving, recalculating formulas or refreshing external links. Structural
+findings and saved values remain evidence; they do not verify signature validity
+or establish a safe workbook. Source capture is opt-in, and load/import budgets
+still apply.
+
+For ordinary workbook work, use `ExcelDocument.Create(...)` or
+`ExcelDocument.Load(...)`, edit the same document through its sheets, then call
+`Save()`. Use `ExcelDocument.OpenReader(...)` when you only need forward-only
+rows. Formula calculation, dynamic arrays, and pivot materialization are
+operations on that workbook model when a report needs them; they are not
+alternate ways to open a workbook.
+
+Set selected cell edges with `sheet.CellBorder(1, 1, ExcelCellBorders.Bottom, ExcelBorderStyle.Thick, "FF0000")` or the cell wrapper's `SetBorder(...)`. The other edges, font, fill and number format remain intact. `ExcelBorderStyle.None` explicitly clears the selected edges; the existing `CellBorder(row, column, style, color)` overload applies to all four sides. Cell coordinates are one-based.
+
+Write typed rows into editable native tables, or stack report content on a worksheet:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel;
+
+using var document = ExcelDocument.Create("report.xlsx");
+var sheet = document.AddSheet("Data");
+var table = sheet.AddTable(new[] { new { Name = "Alpha", Value = 42 } },
+    new OfficeTableOptions { Name = "Measurements" });
+var report = document.AddSheet("Summary").Report();
+report.Section("Measurements");
+report.AddTable(new[] { new { Name = "Alpha", Value = 42 } });
+report.BulletedListWithFill(new[] { "Review measurements" }, OfficeColor.Parse("#FFF4CE"));
+report.KpiRow(new (string Label, object? Value)[] { ("Measurements", 1) },
+    labelFill: OfficeColor.Accent1);
+report.SectionLegend("Status", new[] { "Status", "Meaning" },
+    new[] { new[] { "Ready", "Reviewed" } },
+    new System.Collections.Generic.Dictionary<string, OfficeColor> {
+        ["Ready"] = OfficeColor.Success
+    }, headerFill: OfficeColor.Accent2);
+report.ConditionalColorScale("B2:B10", OfficeColor.Parse("#FFF0F0"), OfficeColor.Success);
+report.ConditionalDataBar("C2:C10", OfficeColor.Accent1);
+document.Save();
+```
+
+Report fills and conditional colors use `OfficeColor`. Omitting `labelFill` or
+`headerFill` uses the report's key fill; legend dictionaries keep their own key
+comparer. Native theme roles such as `Accent1` stay linked to the workbook theme.
+`Success`, `Warning` and `Danger` use the report theme's literal palette colors.
+
+## What it does
+
+- Creates and edits workbooks, worksheets, cells, ranges, tables, styles, hyperlinks, formulas, names, comments, images, charts, filters, and page setup.
+- Reads tabular values through the forward-only `ExcelDocument.OpenReader(...)` API and typed `ExcelSheet.RowsAs<T>(...)` helpers. Numeric cells and formula caches retain stored double precision across range, streaming, and typed reads; numeric-looking text retains its text type.
+- Edits loaded workbooks through the normal worksheet, cell, range, table, and report APIs.
+- Handles practical workbook hygiene such as table/filter conflicts, safe table names, deterministic save order, and feature inspection.
+- Renders supported numeric display formats consistently in PDF and image export, including mixed fractions that retain whole values beyond `Int64`, optional decimals, scientific mantissa precision and exponent sign/case/padding, and red negative-number sections. Quoted or escaped exponent letters and decimal points remain literals. Numeric-looking text retains its type, contents, and font color. Other number-format colors are not projected.
+- Renders common date/time and elapsed formats through the same formatter in PDF and image export. Custom patterns retain date separators, quoted or escaped labels, 12-hour markers, elapsed unit padding, and selected negative or conditional sections. Fractional seconds support one to seven digits and round across component boundaries. Month and weekday names use invariant English; locale directives and alternate calendars are not localized.
+- Applies optional shared package-security policy before parsing Open XML, XLSB, or compound XLS files.
+- Includes parallel execution controls for heavy export and autofit workloads while serializing the Open XML mutation phase safely.
+
+## Performance evidence
+
+For reports written cell by cell, group formatting in `sheet.Batch(target => { ... })`. Repeated styles share indexed lookups, and ordinary formatting writes the stylesheet once when the batch ends, including gradient fills, named-style definitions, conditional-format styles and legacy XLS style projection. Batches can edit other worksheets in the same workbook, including cell values and formulas. Transactional operations retain the snapshot flushes needed for rollback. Layout and report metadata changes, including merges, filters, comments, table settings, view options, protection and text replacement, reach the package at `document.Save(...)`. Setters with an explicit `save` argument retain that option; use `save: false` in repeated outline calls. For many threaded comments, use `AddThreadedComments(...)` to write comments and person metadata together.
+
+Automatic date and duration formatting uses the current named-style definition, including after a style is redefined on another worksheet. Existing cells with their own formatting overrides retain those overrides.
+
+Header lookups and text searches share their cache state across wrappers for the same worksheet, including when `SheetCachingEnabled` is false. Header names follow the current number format and date-reading options; custom value converters run for each requested header read.
+
+`WrapCells`, `CellWrapText` and automatic wrapping for multiline values preserve existing alignment and other formatting. Styled hyperlinks preserve the cell's alignment, protection and other font details while applying blue text and an underline. `ExcelSaveOptions.ValidateOpenXml` validates the encoded package before writing the destination, including when a fast package writer is used. Fast writers favor write throughput over ZIP size; set `DisableFastPackageWriter = true` when the standard packaging path is preferred.
+
+OfficeIMO.Excel is optimized for fast tabular reads and writes, but it is not
+only a streaming data pipe. The same first-party model authors and edits styles,
+tables, formulas, charts, pivots, conditional formatting, validation, images,
+templates, protection, print settings, headers and footers, and both `.xlsx`
+and the supported legacy `.xls` subset.
+
+Performance claims use validated outputs and record the workload, package versions, runtime, operating system, processor, warm-up, iterations, allocations, and source provenance. Windows, Linux, and macOS remain separate evidence lanes; missing platforms stay visible rather than being inferred from another operating system.
+
+Use the [benchmark website](https://officeimo.com/benchmarks/) for dated comparison snapshots and their recorded environments. The [benchmark harness](../OfficeIMO.Excel.Benchmarks/README.md) documents reproducible local runs, workload validation, allocation evidence, and data publication. Benchmark-only libraries remain isolated from the `OfficeIMO.Excel` runtime package.
+
+The [opt-in tabular comparison suite](../Benchmarks/ExcelReaderTyped/README.md)
+covers typed and raw reads, shared strings, native workbook writes, real-data
+files, CSV, Arrow, and ADO.NET consumers. It validates every field and records
+API differences separately from equivalent-work comparisons.
+
+## Examples
+
+The quick start covers the smallest workbook. These examples show common read, write, reporting, and automation workflows that belong in `OfficeIMO.Excel`.
+
+### Read rows by header
+
+```csharp
+using var reader = ExcelDocument.OpenReader("input.xlsx", new ExcelReaderOptions {
+    SheetName = "Data"
+});
+
+while (reader.Read()) {
+    Console.WriteLine(reader["Name"]);
+}
+```
+
+### Work with legacy XLS workbooks
+
+```csharp
+using var document = ExcelDocument.Load("legacy.xls");
+ExcelFeatureReport report = document.InspectFeatures();
+
+document.Save("converted.xlsx");
+document.Save("native-copy.xls");
+
+OfficeIMO.OfficeConverter.Convert("legacy.xls", "converted.xlsx");
+OfficeIMO.OfficeConverter.Convert("openxml.xlsx", "native-copy.xls");
+```
+
+BIFF8 `.xls` files load through the normal `ExcelDocument.Load` entry point.
+Supported cells, formulas, styles, names, comments, filters, validations,
+conditional formatting, layout, protection metadata, document properties,
+images, drawings, tables, and chart sheets project into the normal OfficeIMO
+model. Unsupported sheet kinds, VBA, embedded OLE content, signatures, and
+unprojected BIFF records are reported through the legacy import diagnostics
+instead of being silently dropped.
+
+Native `.xls` save uses the same `Save("*.xls")` path as other OfficeIMO saves.
+Imported BIFF8 workbooks retain their native chart sheets, VBA streams, embedded
+content and other compound streams during supported cell and worksheet edits.
+The preserving writer supports new and deleted cells, value/type changes,
+encodable formulas, rich text and styles, worksheet rename/add/remove/reorder,
+and save-time calculation policies. Plain and supported encrypted sources use
+the same path, with plain or password-to-open output. Worksheet structure edits
+keep native references, local-name scopes, chart carriers and VBA document-host
+identities coherent. Signed sources and unsupported feature edits remain guarded.
+See the [preserving profile](../Docs/officeimo.excel.legacy-xls-compatibility.md#preserve-imported-biff8-workbooks)
+for format limits, retained-content boundaries and native Excel evidence.
+When a workbook contains a feature outside the supported BIFF8 writer subset,
+OfficeIMO throws a preflight error with the unsupported feature name so the
+caller can save as `.xlsx`, remove the feature, or choose a different workflow.
+`OfficeIMO.OfficeConverter.Convert(...)` uses those same load and save paths and blocks
+legacy sources with unsupported or preserve-only content by default. Set
+`LossPolicy` to `OfficeConversionLossPolicy.Allow` on conversion or save options
+only after reviewing that loss. See
+[XLS and XLSX compatibility](../Docs/officeimo.excel.legacy-xls-compatibility.md) for
+the current capability matrix and safety contract. Use the
+[migration guide](../MIGRATION.md#legacy-doc-and-xls-api-changes) for canonical API replacements.
+
+### XML Spreadsheet 2003 data interchange
+
+Use the explicit XML APIs for standalone XML Spreadsheet 2003 files. They share
+the normal editable workbook model; `Load` and `Save` retain their existing
+XLSX/XLSM, XLS and XLSB routes.
+
+```csharp
+using OfficeIMO.Excel;
+
+var imported = ExcelDocument.ImportSpreadsheetXml("archive.xml");
+using var workbook = imported.Value;
+foreach (var diagnostic in imported.Report.FidelityDiagnostics)
+    Console.WriteLine(diagnostic.Message);
+imported.Report.RequireNoLoss(); // Optional strict admission, before editing or saving.
+workbook.Save("editable.xlsx");
+
+var exported = workbook.ExportSpreadsheetXml();
+exported.Report.RequireNoLoss(); // Review omissions before publishing the XML bytes.
+File.WriteAllBytes("exchange.xml", exported.Value);
+```
+
+Import accepts paths, bytes and caller-owned streams. Stream import starts at
+the current position, advances it and leaves the stream open. Export returns
+UTF-8 XML bytes, supports read-only workbooks and retains the workbook's file
+association. The result's workbook is caller-owned, including when strict
+admission rejects its report.
+
+The workbook profile carries multiple worksheets, sparse coordinates, typed cells,
+ordinary formulas with cached values, date serials and number formats. It maps
+inherited fonts, pattern fills, borders, alignment and cell protection into the
+existing workbook style model. It also carries row heights, column widths and
+styles, hidden rows/columns/sheets, merged cells, scoped names, comments,
+hyperlinks, ordinary print settings and frozen panes. The supported rich-text
+subset includes bold, italic, underline, strike, subscript/superscript and font
+name, size and colour. The shared syntax owner converts ordinary R1C1 formulas
+to A1 on import and back on export without calculating them. Dates use the
+workbook's 1900 or 1904 epoch.
+
+Review the operation's diagnostics before accepting conversion. Charts, pivots,
+modern Excel tables, conditional formatting and other unimplemented metadata
+are reported as omissions. Theme colours are resolved to RGB; theme identity
+is reported as lost. Native Excel can quantize XML font colours to its legacy
+palette even when the XML retains the requested RGB. This is not a general
+pixel-fidelity or complete XML Spreadsheet feature claim.
+
+Column dimensions in XML are points; Open XML stores font-dependent character
+widths. Installed default-font metrics drive the conversion. If that font is
+unavailable, the report identifies the seven-pixel approximation. Set
+`ExcelSpreadsheetXmlOptions.DefaultFontMaximumDigitWidth` when the target
+font's measured maximum digit width at 96 DPI is known. The native fixture
+cohort uses its observed eight-pixel width; that observation is not a universal
+font default.
+
+Native XML Spreadsheet coordinates are limited to 65,536 rows and 256 columns.
+An invalid or overlapping merge is rejected before returning a workbook.
+Export rejects covered merged-cell data that the target format would discard.
+`ExcelSpreadsheetXmlOptions` bounds bytes, stored cells, worksheets, styles,
+XML elements and depth, and accepts cancellation. DTDs and external XML entity
+resolution are disabled. The [fixture corpus](../OfficeIMO.TestAssets/Documents/SpreadsheetXmlCorpus/README.md)
+distinguishes native producer, native consumer and managed round-trip evidence.
+
+### Exchange XML tables
+
+`ExcelSheet.FromXml` inserts an XML table through the existing DataTable path;
+`ToXml` exports an explicit bounded A1 range using cached cell values. This is
+separate from XML Spreadsheet workbook conversion. The default schema is
+`Table` containing `Row` elements with repeated `Data` children. Text stays
+literal, so leading zeroes and formula-looking strings are retained.
+
+```csharp
+using var workbook = ExcelDocument.Create();
+var sheet = workbook.AddSheet("Orders");
+sheet.FromXml("<Table><Row><Data>00127</Data><Data>Ready</Data></Row></Table>");
+string xml = sheet.ToXml("A1:B1");
+```
+
+For named elements or row attributes, supply ordered `ExcelXmlTableColumn`
+mappings through `ExcelXmlTableOptions.Columns`. Configure the root/row names
+and namespace explicitly. Each column selects text, finite number, XML Boolean
+or date/time conversion. Unmapped fields are outside the selected table;
+repeated matches and nested scalar markup are rejected. Missing named fields
+remain blank. Positional export uses `xsi:nil` to distinguish missing cells from
+empty strings. The complete XML is parsed and converted before insertion;
+existing worksheet insertion cancellation semantics apply while cells are written.
+Caller streams remain open. Byte, row, column, rectangular-cell, element and
+depth limits apply; external schemas, DTDs and XML entities are never resolved.
+
+### Import additional legacy spreadsheet formats
+
+The `OfficeIMO.Excel` package also contains an explicit, read-only importer for selected Lotus 1-2-3, Quattro Pro, Multiplan, Microsoft Works, SYLK (`.slk`), and DIF (`.dif`) sources. No additional package is required, and these formats are only processed when the application calls `LegacySpreadsheetImporter` or explicitly registers the corresponding Reader handler.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel.Legacy;
+
+using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import("archive.wk1");
+Console.WriteLine(imported.Report.Quality);
+foreach (LegacySpreadsheetCellContent cell in imported.Cells) {
+    Console.WriteLine($"{cell.SheetName}!R{cell.Row}C{cell.Column}: {cell.Formula ?? cell.CachedValue}");
+}
+foreach (OfficeCompatibilityFinding finding in imported.Report.Findings) {
+    Console.WriteLine($"{finding.Code}: {finding.Message}");
+}
+
+imported.Value.Save("archive.xlsx");
+```
+
+The importer never saves back to these source formats, executes macros, activates embedded objects, or resolves and refreshes external links. Each result identifies structured or salvage recovery and reports feature-level loss. Existing Excel converter packages can export the returned workbook to ODS, CSV, HTML, or PDF.
+
+#### Profile coverage
+
+| Family/profile | Quality | Recovered today | Explicit boundary |
+| --- | --- | --- | --- |
+| Lotus 1-2-3 WK1 `0x0406` record streams | Structured | empty workbooks, cells, labels, numbers, finite formula caches, bounded RPN formula translation, names, selected number formats, alignment, and chart metadata | WK1 is projected as one source sheet; unsupported formula tokens retain the cache with a diagnostic |
+| Lotus later record streams with BOF `0x1000`, `0x1002`, or `0x1005` | Structured | multiple sheets, sheet names, cell addresses, extended and compact numbers, comments, alignment, and bounded RPN formulas with sheet references | other BOF generations remain salvage; styles, names, charts, and application data after EOF are not reconstructed; unsupported formulas retain available caches |
+| Quattro Pro DOS WQ1/WQ2 record streams | Structured | sheet identifiers, cells, finite cached values, names, alignment, and chart metadata | WQ formulas retain cached values with a diagnostic |
+| Quattro Pro WB1 `0x1001` | Structured | sheets and names, cell addresses, labels, numbers, caches, and bounded formulas with local or internal-sheet cell/range references | WB2/WB3 and QPW remain salvage; named/external/collection formula references, advanced formatting, and charts are not reconstructed |
+| Microsoft Works DOS WKS `0x0404` record streams | Structured | cells, cached values, safe formulas, names, selected number formats, alignment, and chart metadata | DOS profile only |
+| Microsoft Works Windows WKS (`0x00FF` BOF, `0x0404` payload) | Structured | cell addresses, labels and text continuations, single/double-precision numbers, caches, and bounded formulas | compound/XLR profiles remain salvage; Windows styles, print/database metadata, and charts are not reconstructed |
+| Later Lotus 123, Quattro QPW, and Works XLR/binary profiles | Salvage | bounded text/tabular runs and compound-content safety inventory where applicable | workbook structure, formulas, names, comments, advanced formatting, and charts are reported as unavailable |
+| Microsoft Multiplan DOS 1-3 | Salvage | bounded text and tabular runs | cell zones, formulas, names, formats, comments, and charts are not yet semantically decoded |
+| SYLK `sylk-stored-values` | Structured | one worksheet, explicit blanks, sticky cell coordinates, literal quote runs, finite numbers, booleans, and valid stored formula/matrix/table values | formulas and shared/matrix/table behavior are omitted without evaluation; missing caches become blank cells with loss diagnostics; standard error markers become literal text with a diagnostic; styles, number formats, widths, names and other unsupported records are reported as omitted; character escapes other than line breaks and the historical SCALC3 string dialect are rejected |
+| DIF `dif-row-values` | Structured | source row order, quoted/multiline text, finite numbers, booleans, and table-name metadata | DIF carries values rather than formulas or formatting; `NA`/`ERROR` become literal text with a diagnostic; unsupported topics and dimension mismatches are reported; transposed header counts never transpose the data |
+
+The later Lotus, WB1, and Windows WKS readers use separate record and formula layouts. `RequireStructured = true` accepts these selected profiles and rejects salvage-only generations. Independent upstream Lotus 98, Quattro WB1, and Works Windows fixtures exercise import and XLSX save/reopen; the older later-Lotus BOF variants also have specification-built numeric/formula checks. Text outside the qualified ASCII profile is replaced with a diagnostic. Review `Report.Findings` before using a converted workbook for calculations.
+
+Structured WK-derived profiles accept a valid BOF/EOF workbook with no cells and currently require ASCII text. Formula translation is allow-listed, bounded, charged against the import-wide text budget, and never evaluates the source expression. Unsupported tokens retain only a finite cached value with a loss diagnostic. `Structured` means the record stream passed the profile grammar, not that conversion is lossless; inspect `Report.Findings`, or call `imported.RequireNoLoss()` when salvage recovery, inert content, or any known approximation must fail the workflow.
+
+SYLK and DIF use the same file, byte-array, and caller-owned stream overloads. Detection checks the content signature; an extension alone is insufficient. Stream import starts at the current position and leaves the stream open. Input bytes, physical records, cell count, and retained text are bounded by `LegacySpreadsheetImportOptions.Limits`; oversized cells, non-finite numbers, duplicate SYLK cell definitions, missing terminators, and data after a terminator are rejected. Source dimensions do not allocate blank grids. SYLK records accept at most 64 fields; omission reports retain at most 64 distinct record/topic kinds and an overflow notice.
+
+Text without a BOM uses Windows-1252. Set `TextEncoding` explicitly for a different source encoding; a Unicode BOM takes precedence, and invalid encoded text fails instead of being silently replaced. Quoted formula-looking text remains literal in the returned workbook. Numeric date values remain numbers because source formatting is omitted.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel.Legacy;
+
+using var imported = LegacySpreadsheetImporter.Import("archive.slk", new LegacySpreadsheetImportOptions {
+    RequireStructured = true,
+    TextEncoding = System.Text.Encoding.UTF8,
+    Limits = new OfficeLegacyImportLimits { MaxInputBytes = 16 * 1024 * 1024, MaxItems = 50_000 }
+});
+foreach (OfficeCompatibilityFinding finding in imported.Report.Findings) {
+    Console.WriteLine($"{finding.Code}: {finding.Message}");
+}
+imported.Value.Save("archive.xlsx"); // The same API accepts archive.dif.
+```
+
+The [interchange fixtures](../OfficeIMO.LegacyImport.Tests/Fixtures/TextSpreadsheets/README.md) include independently exported LibreOffice files. Their coverage is a bounded import profile, not a claim of every historical producer dialect.
+
+### Work with XLSB workbooks
+
+```csharp
+using OfficeIMO.Excel;
+using OfficeIMO.Excel.Xlsb;
+
+using var document = ExcelDocument.Load(
+    "source.xlsb",
+    new ExcelLoadOptions {
+        MaxCells = 2_000_000
+    });
+
+document["Data"].CellValue(2, 2, 1250m);
+document.Save("edited.xlsb");
+
+OfficeIMO.OfficeConverter.Convert("source.xlsb", "editable.xlsx");
+```
+
+XLSB detection uses package content rather than trusting the extension. The
+importer projects supported values, formulas, styles, dates, geometry, views,
+merges, names, and hyperlinks while retaining unknown BIFF12 records and
+unmodified package parts. Supported cell edits use a native preservation-aware
+rewrite. Unsupported mutations and save-time transforms fail before output is
+written, so `.xlsx` bytes are never disguised as `.xlsb`.
+
+Chart-sheet drawing/chart parts, workbook themes and linked VBA project parts are projected through
+their original relationships without executing macros or following external links.
+Native cell, formula, style and worksheet rename/add/remove/reorder operations
+retain chart and VBA carriers. Structure edits update references, scoped names,
+chart formulas and VBA document-host identities. Shared formula groups and fixed
+array formulas retain their native semantics; save-time calculation options can
+evaluate supported formulas, clear caches or request native recalculation.
+Editing the retained artwork or other unsupported package content remains guarded;
+use macro-compatible Open XML output for those edits. Unprojected chart-sheet view, protection and print records remain visible
+in `XlsbPreservedRecords`; native preservation does not imply lossless conversion.
+`MaxRelatedParts` and `MaxRelationshipDepth` bound imported chart/theme/VBA graphs in
+addition to the existing decompressed-part and package budgets.
+
+New native XLSB workbooks retain their standalone DrawingML theme, including its
+color and font schemes. Themes with related payloads are rejected rather than
+discarded. Imported theme graphs are retained during supported native edits;
+changing those graphs requires Open XML output.
+
+New XLSB workbooks use inline text cells by default. To deduplicate repeated
+text across worksheets, save with `new ExcelSaveOptions { XlsbUseSharedStrings = true }`.
+Set the option to `false` to select inline strings explicitly. Shared-string
+storage retains each distinct text value in memory during save. Leave the option
+unset when saving an imported XLSB workbook: its original string storage and
+preserved records are retained. Explicit storage changes on imported XLSB
+workbooks, or on another output format, are rejected before writing the destination.
+
+For untrusted files, capability preflight, macro and embedded-payload handling,
+and DOC/XLS/XLSB loss policies, see the
+[Word and Excel interoperability guide](../Docs/officeimo.word-excel-interoperability.md).
+
+### Stream workbook rows
+
+List worksheet names without decoding worksheet cells, shared strings, or styles:
+
+```csharp
+using var metadata = ExcelDocument.OpenReader(
+    "input.xlsx",
+    new ExcelReaderOptions {
+        MaxWorksheets = 256,
+        MaxMetadataPartBytes = 4 * 1024 * 1024
+    });
+IReadOnlyList<string> sheetNames = metadata.SheetNames;
+```
+
+`OpenReader(...).SheetNames` supports XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, and BIFF5/BIFF8
+XLS. It returns readable worksheets in workbook order and applies
+`MaxInputBytes`, `MaxWorksheets`, `MaxMetadataPartBytes`, and the configured
+cancellation token before worksheet data is opened.
+
+Modern XML read APIs report configured input, metadata, shared-string, dense-range,
+and data-reader buffering ceilings as `OfficeInspectionResourceLimitException`.
+Its `Owner` is `excel`; `LimitName` and `Maximum` identify the effective native
+ceiling. Malformed package content retains its existing error contract. The
+bounded decrypted-package check uses the canonical `encryption` owner.
+
+URI reads and loads apply native input and package-security ceilings alongside
+`ExcelHttpLoadOptions.MaxBytes`. HTTP and read-input byte failures identify the
+binding `MaxBytes` or `MaxInputBytes` property and effective maximum under the
+`excel` owner. A binding `PackageSecurity.MaxPackageBytes` policy retains the
+Core `OfficePackageSecurityException` and `PackageSize` rule, including ties with
+the input ceiling. Transport failures retain their existing exception identity.
+
+Input and metadata admission applies while opening package input. Readers over an
+already-loaded mutable model do not reapply those checks to its earlier load.
+`MaxRangeCells` bounds dense range APIs; it does not cap the total cells delivered
+by row streaming. `MaxXmlDataReaderBufferedCharacters` applies to the XML data-reader
+buffer, rather than every workbook extraction path or total process memory.
+
+```csharp
+using OfficeIMO.Excel;
+
+using var reader = ExcelDocument.OpenReader("input.xlsx", new ExcelReaderOptions {
+    SheetIndex = 0,
+    A1Range = "A1:B1000",
+    NumericAsDecimal = true
+});
+Console.WriteLine(reader.CurrentSheetName);
+while (reader.Read()) {
+    string name = reader.GetString(reader.GetOrdinal("Full Name"));
+    decimal value = reader.GetDecimal(reader.GetOrdinal("Value"));
+    Console.WriteLine($"{name}: {value}");
+}
+```
+
+XLSX numeric cells and cached numeric formula results use invariant number notation,
+so `1.5` remains `1.5` when `ExcelReaderOptions.Culture` is `de-DE`. The configured
+culture remains the fallback for legacy localized numeric text and controls
+conversions from string cells. `CellValueConverter` receives
+the original decoded text and the configured culture before built-in conversion.
+
+Worksheet rows and cells come from the worksheet's direct `sheetData` content.
+Inline and shared strings include visible text and rich runs. Extension payloads
+and phonetic guidance do not add cells, shift shared-string indexes or append text.
+
+`OpenDataReaderAsync` reads local files and the remaining bytes of a readable stream
+using asynchronous I/O, bounded by `MaxInputBytes`. Workbook validation and worksheet
+discovery then run synchronously. Caller-owned streams stay open, and seekable streams
+return to their original position after input is read. The opening cancellation token
+and the token in `ExcelReaderOptions` remain active for the returned reader.
+
+On .NET 8 and later, `ReadAsync`, `NextResultAsync`, and `RowsAsAsync<T>` propagate
+cancellation through the native workbook reader:
+
+```csharp
+using OfficeIMO.Data;
+
+await using var reader = await ExcelDocument.OpenReaderAsync("input.xlsx", new ExcelReaderOptions {
+    SheetName = "Data"
+}, cancellationToken);
+
+await foreach (InvoiceRow row in reader.RowsAsAsync<InvoiceRow>(cancellationToken)) {
+    await ProcessAsync(row, cancellationToken);
+}
+```
+
+### Password-to-open output
+
+`Save(path, new ExcelSaveOptions { Password = password })` selects XLSX/XLSM, XLSB or XLS from the destination
+extension. For a stream, select the physical format explicitly:
+
+```csharp
+using var document = ExcelDocument.Create();
+document.AddSheet("Data").CellValue(1, 1, "Protected workbook");
+document.Save("protected.xlsb", new ExcelSaveOptions { Password = password });
+using var output = new MemoryStream();
+document.Save(output, new ExcelSaveOptions { Password = password, Format = ExcelFileFormat.Xls });
+```
+
+XLSX/XLSM and XLSB use Agile Office package encryption. XLSB contains a native
+BIFF12 package. XLS uses classic BIFF8 RC4/MD5 with a password of 1–15 UTF-16 code
+units. Imported protected auxiliary entries retain RC4 CryptoAPI on encrypted
+saves, including password rotation, instead of becoming clear compound streams.
+Explicit plaintext output still restores those entries. These legacy algorithms
+provide weak protection; choose XLSX or XLSB for
+modern password-to-open encryption. XLS encryption does not encrypt VBA project
+streams or all compound-file metadata, as defined by the format. Retained pivot
+cache and revision BIFF streams are encrypted with their own stream positions and
+record-specific plaintext fields. Supported encrypted-source metadata is decoded
+for preservation; passwords are used for the operation and are not retained by
+the document. An explicit encrypted save can rotate the password.
+
+Encryption retains each native encoder's feature and loss-policy limits.
+`MaxInMemoryPackageBytes` also bounds native BIFF serialization and XLSB
+intermediate parts before their output buffers grow; it is not a total process
+memory budget. The
+included XLS/XLSB worksheet controls and imported chart/macro preservation controls
+open in native Excel without repair with macros disabled. This qualifies the
+documented edit profiles; macro execution and arbitrary workbook features remain
+separate. Password-to-modify
+and worksheet/workbook protection are separate from password-to-open encryption.
+
+After encrypting the associated file or stream, automatic persistence is disabled
+so disposal cannot replace the encrypted output with plaintext. No password is
+retained. Set `ExcelSaveOptions.Password` explicitly for later changes; an ordinary explicit
+`Save` writes an unencrypted file. Exporting to a different stream keeps the
+original destination's persistence policy.
+
+`OpenReader` with `ExcelReaderOptions.Password` opens Office Open XML workbooks protected by Agile
+encryption from a file, byte array, or the remaining bytes of a readable stream.
+The decrypted package determines the XLSX or XLSB format. Package integrity is
+always verified. Legacy XLS password encryption uses `ExcelLoadOptions.Password`.
+
+```csharp
+using var reader = ExcelDocument.OpenReader(
+    "protected.xlsx", new ExcelReaderOptions {
+        Password = password,
+        MaxInputBytes = 64L * 1024 * 1024
+    });
+while (reader.Read()) {
+    Console.WriteLine(reader.GetValue(0));
+}
+```
+
+Opening buffers the complete encrypted input and decrypted package. Each has its
+own size check against `MaxInputBytes`; the limit is not a combined memory budget.
+The ordinary package-part, row and schema limits also apply. Options are copied
+when opening starts. Caller-owned streams remain open, and seekable positions
+are restored after input is read, including on failure.
+
+`OpenEncryptedDataReaderAsync` supports local paths and streams. It uses
+asynchronous input, then performs cancellable decryption, integrity verification
+and workbook discovery synchronously. Its opening cancellation token and the
+token in `ExcelReaderOptions` remain active for the returned reader.
+
+`ExcelDocument.OpenDataReader` returns an `ExcelWorkbookDataReader`, the package-owned read-only entry point for
+XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, and BIFF8 XLS. It discovers used ranges and exposes
+additional worksheets through `NextResult()`. Select one worksheet with
+`SheetName` or the zero-based `SheetIndex`, and select an explicit range with
+`A1Range`. `CurrentSheetName` and `CurrentSheetIndex` identify the active workbook sheet;
+`CurrentResultIndex` identifies its position in the selected results. Legacy XLS is projected through
+the package's existing first-party reader; use `ExcelDocument.Load` when the
+workbook must be inspected, edited, or saved again. CSV provides the same typed
+and ordered-parallel row-mapping contracts through the separate
+`OfficeIMO.CSV` package.
+
+For indexed native XLSX reads, `OpenDataReader` qualifies the complete selected
+worksheet before returning. Its first shared-string cell, when present, causes
+the opening scan to load the complete workbook shared-string table, checking XML
+and item/count/character limits, including later unused items. This occurs before
+the caller's first `Read` or value getter, even with `HasHeaderRow = false`.
+First-row latency includes this opening work; the reader exposes no option to
+replace it with XML count attributes or a partial shared-string table load.
+See the [tabular lifecycle measurements](../Docs/benchmarks/officeimo.excel-tabular-2026-10-08.md)
+for the first-row and full-scan evidence boundaries.
+
+The XML streaming fallback completes a row before returning a cell value, so
+scalar and bulk getters agree when cell coordinates recur or arrive out of order.
+`ExcelReaderOptions.MaxXmlDataReaderBufferedCharacters` bounds this materialization
+to 32 Mi characters per physical row by default. Out-of-order rows retained
+together share one aggregate allowance. Raw values, formula text, inline text,
+and resolved strings count conservatively, including replaced cell records.
+XML preparation also bounds text read to validate shared-string indices and
+shared-formula followers before returning a reader.
+An over-limit read throws `InvalidDataException`; close that reader before
+opening a new one with a larger limit for trusted input. Indexed UTF-8 and
+SDK worksheet-chunk caches retain their existing limits. This character allowance is
+not a total memory budget: the framework XML parser can buffer an individual
+CDATA or attribute node before it is charged. It also does not bound objects
+created by a custom converter.
+
+For eligible plain ASCII shared-string tables, string-cache pages are allocated as values are requested.
+After disposal, one cleared offset/length index can remain available for later readers, capped at 2 MiB of entry payload plus fixed object overhead.
+The retained index contains no workbook text or references to package bytes; it trades idle managed memory for lower allocation on repeated opens.
+
+Native XLSB reading also validates the complete shared-string table before
+returning the reader, including unused entries. Eligible tables retain validated
+encoded text and create managed strings as values are requested. Borrowed UTF-8
+reads can encode that text without first creating a managed string. Larger tables
+use eager decoding when the encoded-text or entry-index optimization limits are
+exceeded; the public validation limits and canonical Unicode values are the same.
+
+On .NET 8 and later, `TryGetUtf8Text` can borrow plain UTF-8
+worksheet text, normalized shared-string text, and XLSB string cells:
+
+```csharp
+using OfficeIMO.Data;
+using OfficeIMO.Excel;
+
+using var reader = ExcelDocument.OpenReader("input.xlsx");
+while (reader.Read()) {
+    if (reader.TryGetUtf8Text(0, out ReadOnlySpan<byte> text)) {
+        ProcessUtf8(text);
+    } else if (!reader.IsDBNull(0)) {
+        ProcessText(reader.GetString(0));
+    }
+}
+```
+
+Consume the span before the next `Read`, `ReadAsync`, `NextResult`,
+`NextResultAsync`, `Close`, or `Dispose` call; copy the bytes if they must live
+longer. An empty text field can return `true` with an empty span. `false` means
+the value cannot be borrowed, and does not identify a null. Shared strings and
+XLSB strings use canonical decoded text and a bounded UTF-8 cache; encoding a
+cache miss can allocate. XLSX inline text requiring XML entity, line-ending,
+or rich-text decoding, formula cells, schema replay, cell converters,
+UTF-16 worksheets, and legacy XLS use the ordinary getters.
+The `OfficeIMO.Data.IDataReaderUtf8TextSource` capability
+and `IDataRecord.TryGetUtf8Text` extension also let generic reader consumers
+probe for borrowed text without converting unsupported values.
+
+On .NET 8 and later, request `DateOnly` or `TimeOnly` explicitly through
+`GetFieldValue<T>` or `RowsAs<T>`. Inferred Excel date/time columns remain
+`DateTime`, so moving between target frameworks does not silently change the
+reader schema. Set `ExcelReaderOptions.MappingErrorValuePolicy` to
+`DataMappingErrorValuePolicy.Redact` when typed mapping failures must omit
+source values and custom-converter exception details; the default is `Include`
+for compatibility.
+
+With `TreatDatesUsingNumberFormat` enabled, calendar formats use the workbook's
+1900 or 1904 date system. Time-only and elapsed formats use an OLE Automation
+`DateTime` as a carrier for the unshifted serial; changing the workbook date
+system does not add days to a duration. Use a numeric getter or disable date
+format interpretation when the application needs the original serial.
+These rules apply to XLSX, XLS and XLSB tabular readers, including cached numeric
+formulas. XLS import preserves the source date system and numeric serials rather
+than reconstructing them from `DateTime` values.
+Numeric properties mapped through `RowsAs<T>` or `RowsAsParallel<T>` also receive
+the original serial, including cached formula values. A cell converter returning
+`ExcelCellValue.NotHandled`, or a type converter returning `(false, null)`,
+retains default conversion. Explicit converter results, including handled nulls,
+take precedence. Type converters see the reader's original value before numeric
+mapping uses the serial.
+Explicit `RowMapper<T>` bindings also support aliases, optional source columns,
+per-column culture, date formats and converters through
+[`RowMappingColumnOptions`](../OfficeIMO.Core/README.md#per-column-row-mapping).
+These controls apply to sequential, asynchronous and parallel projections.
+
+`ExcelReaderOptions.EnableWorksheetPrefetch` can overlap selected XLSX worksheet
+decompression with workbook metadata parsing on a spare worker. It is disabled by default,
+retains the existing package-part limits, and can be slower for small or simple workbooks.
+Enable it only after measuring a representative workbook on the target CPU.
+
+### Choose automatic or ordered parallel reads
+
+Use `RowsAsParallel<T>()` on the public forward-only reader when typed conversion
+is substantial enough to repay parallel scheduling. Workbook parsing stays
+single-owner while independent row snapshots are mapped concurrently and
+returned in source order:
+
+```csharp
+using OfficeIMO.Data;
+using OfficeIMO.Excel;
+
+using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(
+    "sales.xlsx",
+    new ExcelReaderOptions {
+        SheetName = "Data",
+        A1Range = "A1:D50001",
+        InferSchema = true
+    });
+
+SalesRow[] rows = reader.RowsAsParallel<SalesRow>(
+    new ParallelRowMappingOptions {
+        MaxDegreeOfParallelism = 8
+    }).ToArray();
+```
+
+For an `ExcelSheet`, use the explicit ordered-parallel projection API. It
+supports automatic property mapping, an AOT-friendly `RowMapper<T>`, or an
+`IDataRecord` factory:
+
+```csharp
+using OfficeIMO.Data;
+
+using var document = ExcelDocument.Load("sales.xlsx");
+SalesRow[] rows = document["Data"].RowsAsParallel<SalesRow>(
+    "A1:D50001",
+    new ParallelRowMappingOptions {
+        MaxDegreeOfParallelism = 8
+    }).ToArray();
+```
+
+Both public surfaces preserve source order and bound in-flight work. The
+forward-only form applies to every format supported by `OpenDataReader`; the
+`ExcelSheet` form projects an already loaded editable workbook and enables the
+bounded schema inference required for safe snapshots. Set `InferSchema = true`
+on a directly opened reader as shown above. A degree of one, or a schema with
+provider-owned object/mutable fields, uses the sequential mapping contract.
+Parsing and decompression are not claimed to run in parallel, and small or cheap
+rows can still be faster sequentially.
+
+### Table totals, headers and print settings
+
+`SetTableTotals` and `SetTableTotalsByName` add the totals row below the data, extending the table by one row, and write a `SUBTOTAL` formula with its calculated value for each column you name; the first column is labelled `Total` when it has no function. A blank last row inside the table is used instead of growing it. When the row below the table holds a value the call throws `InvalidOperationException` rather than overwrite it. `ClearTableTotals` removes the row again. Typed reads with `RowsAs<T>()` skip the totals row of a table that ends the read range.
+
+```csharp
+sheet.AddTable("A1:C501", hasHeader: true, name: "Orders", style: ExcelTableStyle.TableStyleMedium2);
+sheet.SetTableTotalsByName("Orders", new Dictionary<string, ExcelTableTotalsFunction> {
+    ["Amount"] = ExcelTableTotalsFunction.Sum
+});
+// The table is now A1:C502 and C502 holds SUBTOTAL(109,Orders[Amount]).
+```
+
+`AddTable` right-aligns a header whose column holds only numbers, so the label sits over the values. It also gives the sheet print settings when you have not chosen any: the header row repeats on every printed page, a table wider than a portrait page prints in landscape, and one wider than a landscape page is fitted to the page width. `AutoFitColumns` re-evaluates the orientation after it changes the widths. Calling `SetOrientation` or `SetPageSetup` takes over, and the defaults stop changing.
+
+### Append to an existing table
+
+Inspect named table definitions with `document.GetTables()` for the workbook or `sheet.GetTables()` for one worksheet. The snapshots include names, ranges, columns, filters and table-style metadata. An ordinary cell grid or named range is not a named Excel table.
+
+Worksheet handles remain usable after saving, including when the save rebuilds the underlying package. You can keep an `ExcelSheet`, save the workbook, then continue editing or inspecting that worksheet. This includes saving a fresh workbook as a template or macro-enabled package and adding VBA to an open workbook. Removed worksheet handles still raise `InvalidOperationException` when inspected and cannot become handles to replacement sheets. Picture handles and captured mutation plans retain their separate package-lifetime checks.
+
+You can also retain `BuiltinDocumentProperties`, `ApplicationProperties`, and individual `CustomDocumentProperties` values across saves. Later edits update the current workbook; removing or replacing a custom property detaches its previous value. After a transactional mutation rolls back, retained worksheet handles read the restored metadata and can continue changing names and visibility.
+
+```csharp
+using var document = ExcelDocument.Load("sales.xlsx");
+var rows = new DataTable();
+rows.Columns.Add("Revenue", typeof(decimal));
+rows.Columns.Add("Region", typeof(string));
+rows.Rows.Add(150m, "APAC");
+
+document["Sales"].AppendDataTableToTable(rows, "SalesTable");
+document.Save();
+```
+
+### Plan and apply structural edits
+
+```csharp
+using var document = ExcelDocument.Load("report.xlsx");
+var sheet = document["Data"];
+
+var plan = sheet.PlanInsertColumns(firstColumn: 2, count: 2);
+Console.WriteLine($"{plan.AffectedCells} cells; {plan.Impacts.Count} impact groups");
+ExcelMutationResult result = plan.Apply();
+
+sheet.InsertRowsTransactional(firstRow: 5, count: 2);
+sheet.Range("A2:C20").CopyTo("E2");
+sheet.Range("E2:G20").MoveTo("I2");
+sheet.Range("A2:C20").TransposeTo("M2");
+
+document.Save();
+```
+
+Transactional row, column, and cell-shift edits update workbook-owned formulas
+and names, tables and filters, validations, conditional formatting, merges,
+links, comments, drawings, charts, sparklines, pivot sources, print definitions,
+allowed-edit ranges, and ignored-error regions. Copy, move, and transpose use the
+same bounded dry-run and diagnostic contract. Existing direct row and column
+methods remain available for callers that have already performed their own gate.
+Formula results are marked dirty and the workbook requests recalculation on
+open. Shared formulas are materialized into equivalent normal formulas before
+the edit so that each member can be rewritten independently.
+
+The operation rejects edits that would cross an array-formula boundary or
+PivotTable output, remove a table header or totals row, or move a dependent
+reference beyond Excel's row limit. Remove, move, or resize that owned structure
+first. Configure scan, affected-cell, rollback-snapshot, and diagnostic budgets
+through `ExcelMutationPlanOptions`.
+
+### Reference-aware formulas and native cell images
+
+`ExcelReference` parses and converts A1 and R1C1 cells, ranges, whole rows, and
+whole columns and provides intersection, union, subtraction, containment, and
+offset operations. `ExcelFormulaSyntaxTree` is the shared lossless rewriter used
+for formulas, defined names, structured table references, chart formulas, pivot
+sources, print definitions, and structural edits. `SearchFormulas` searches by
+text, function, or intersecting parsed reference; formula inspection reports
+authored, cached, evaluated, dirty, deferred, unsupported, and dynamic-array
+state explicitly.
+
+Use `SetInCellImage`, `GetInCellImages`, and `RemoveInCellImage` for native rich-
+value images. Their metadata follows cell sorting, filtering, sizing, copying,
+moving, and structural edits; they are distinct from floating drawing images.
+
+### Floating picture hyperlinks
+
+`ExcelImage.HyperlinkUri` reads, sets, changes, or removes a native DrawingML
+picture click link. The target is stored in the workbook; OfficeIMO does not
+open it or fetch it.
+
+```csharp
+ExcelImage picture = sheet.AddImage(2, 1, File.ReadAllBytes("photo.png"),
+    "image/png", width: OfficeIMO.OfficeLength.Pixels(320), height: OfficeIMO.OfficeLength.Pixels(160));
+picture.HyperlinkUri = new Uri("https://example.org/photos/1");
+picture.HyperlinkUri = null; // Remove the click link.
+```
+
+Image bytes, anchors, and shared drawing relationships are preserved. Read-only
+workbooks support inspection but reject mutation. Picture handles remain usable
+after saving while the picture belongs to the workbook. Removing the picture or
+its worksheet invalidates its handles; a new worksheet with the same name does
+not restore them.
+SVG image export preserves targets allowed by the shared safe-link policy and
+reports unsupported interactive targets. Raster output retains the picture
+without click behavior.
+
+### File-backed editing for large workbooks
+
+```csharp
+const long packageBudget = 2L * 1024 * 1024 * 1024;
+using var document = ExcelDocument.Load(
+    "large-report.xlsx",
+    new ExcelLoadOptions { FileBacked = true, MaxInputBytes = packageBudget },
+    cancellationToken);
+
+document["Data"].CellValue(2, 2, "Updated");
+document.Save(new ExcelSaveOptions { MaxTemporaryPackageBytes = packageBudget });
+```
+
+`OpenFileBacked` stages the editable Open XML package in an owner-only temporary
+file, copies with fixed memory and deterministic cancellation, and honors load
+and Open XML part limits. The normal `Load`, direct writer, streaming reader,
+and unchanged-package fast paths are unchanged. XLS and XLSB projection continue
+to use `Load`.
+
+### Validation lists and typed reads
+
+```csharp
+using var document = ExcelDocument.Load("input.xlsx");
+var sheet = document["Data"];
+
+sheet.ValidationList("C2:C100", new[] { "New", "Processed", "Hold" });
+sheet.Range("D2:D100").Validate.WholeNumberBetween(1, 10, errorMessage: "Use 1 through 10");
+
+List<RowModel> rows = sheet.RowsAs<RowModel>("A1:C100").ToList();
+
+// Omitting the range maps the populated worksheet range.
+List<RowModel> populatedRows = sheet.RowsAs<RowModel>().ToList();
+
+// For NativeAOT or explicit column control, use the same mapper shape as CSV.
+List<RowModel> mappedRows = sheet.RowsAs<RowModel>(map => map
+    .FromColumn<string>("Name", static (row, value) => { row.Name = value; return row; })
+    .FromColumn<string>("Status", static (row, value) => { row.Status = value; return row; }))
+    .ToList();
+
+// Positional records bind their public constructor through the same column mapping.
+List<ImmutableRow> immutableRows = sheet.RowsAs<ImmutableRow>().ToList();
+
+// A named table reads its own data rows, without headers or totals.
+List<ImmutableRow> tableRows = sheet.Table("Sales").RowsAs<ImmutableRow>().ToList();
+
+// Use a factory when construction needs additional application logic.
+List<ImmutableRow> customRows = sheet.RowsAs(factory: row => new ImmutableRow(
+    row.GetString(row.GetOrdinal("Name")),
+    row.GetString(row.GetOrdinal("Status"))))
+    .ToList();
+
+public sealed class RowModel {
+    public string Name { get; set; } = "";
+    public string Status { get; set; } = "";
+}
+
+public sealed record ImmutableRow(string Name, string Status);
+```
+
+### Charts and dashboard recipes
+
+New workbooks use `OfficeTheme.Default` (Modern): Aptos text and the shared accent
+palette. New charts use its axis and title fonts, light gridlines, line widths
+and bar spacing. `ResetWorkbookTheme()` reapplies the default workbook theme;
+loading a workbook retains its existing theme and styles.
+
+Line series supplied through `OfficeChartData` use the theme's marker defaults
+unless visibility or point styling is explicit. Modern shows markers only for
+fewer than three points. Data-only updates preserve existing native marker styles.
+Chart placement, marker sizes, font sizes and line widths use `OfficeLength`, as do
+print margins and header/footer image sizes. For example:
+
+Use the shared chart contract for typed rows, selectors or `nameof` columns.
+`OfficeChartOptions` controls the title and physical size. Use `ExcelChartOptions`
+when the chart also needs a worksheet row and column; these anchors are one-based.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel;
+
+var trend = new[] { new RevenueTrend("First", 12.5m), new RevenueTrend("Next", 19.75m) };
+ExcelChart trendChart = sheet.AddChart(OfficeChartType.Column, trend,
+    nameof(RevenueTrend.Week), new ExcelChartOptions {
+        Title = "Weekly revenue", Row = 2, Column = 5,
+        Width = OfficeLength.Centimeters(16), Height = OfficeLength.Centimeters(9)
+    }, nameof(RevenueTrend.Revenue));
+
+record RevenueTrend(string Week, decimal Revenue);
+```
+
+```csharp
+sheet.SetMargins(OfficeLength.Inches(0.7), OfficeLength.Inches(0.7),
+    OfficeLength.Inches(0.75), OfficeLength.Inches(0.75));
+ExcelChart styledChart = sheet.AddChartFromRange("A1:B5", row: 1, column: 5,
+    width: OfficeLength.Centimeters(16), height: OfficeLength.Centimeters(9), title: "Revenue");
+styledChart.SetTitleTextStyle(fontSize: OfficeLength.Points(12), color: OfficeColor.Text)
+    .SetValueAxisGridlines(lineColor: OfficeColor.Accent1, lineWidth: OfficeLength.Points(0.5));
+```
+
+Omitted chart sizes retain each operation's defaults; omitted header/footer margins
+are 0.3 inches. Geometry snapshots expose physical sizes and offsets without a
+pixel round trip. Raster export budgets and output pixel counts stay numeric;
+chart scales, angles, percentages and worksheet indexes keep their native meaning.
+
+
+Combination-chart snapshots retain secondary value-axis bounds, tick units and number formats
+independently of the primary axis. Configure them with `SetValueAxisScale(...,
+axisGroup: OfficeChartAxisGroup.Secondary)` and `SetValueAxisNumberFormat("0%", false,
+OfficeChartAxisGroup.Secondary)`; managed chart images use the same independent scale.
+`SetSecondaryValueAxis(new OfficeChartValueAxisLayout(...).WithTitle("Margin"))` configures
+these settings together, including optional `majorTickMark` and `minorTickMark` appearance.
+Snapshots reject malformed secondary numeric settings and secondary logarithmic or reversed
+scales, display units, and explicit numeric crossing values.
+
+Managed chart images resolve source-linked axis formats from the referenced worksheet
+cells when those cells share one number format. For example, percentage cells formatted
+as `0%` produce percentage axis labels with no decimal places. An explicitly unlinked
+axis keeps the format supplied to `SetValueAxisNumberFormat`. Mixed formats, unresolved
+references, and sources beyond the format-resolution work bounds report
+`ChartAxisNumberFormatApproximation` and use the axis's declared format.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel;
+
+using var document = ExcelDocument.Create("dashboard.xlsx");
+var sheet = document.AddSheet("Summary");
+
+sheet.CellValue(1, 1, "Quarter");
+sheet.CellValue(1, 2, "Revenue");
+sheet.CellValue(2, 1, "Q1");
+sheet.CellValue(2, 2, 10);
+sheet.CellValue(3, 1, "Q2");
+sheet.CellValue(3, 2, 18);
+sheet.CellValue(4, 1, "Q3");
+sheet.CellValue(4, 2, 24);
+sheet.CellValue(5, 1, "Q4");
+sheet.CellValue(5, 2, 30);
+
+sheet.AddTable("A1:B5", hasHeader: true, name: "RevenueTable", style: ExcelTableStyle.TableStyleMedium2);
+sheet.AddRevenueTrendChart("A1:B5", row: 1, column: 5, title: "Revenue trend",
+    width: OfficeLength.Pixels(640), height: OfficeLength.Pixels(320));
+
+sheet.AddHistogramChart(new[] { 8d, 10d, 10d, 12d, 15d, 18d }, row: 18, column: 1, binCount: 3);
+sheet.AddParetoChart(
+    new[] { "Late", "Damaged", "Missing" },
+    new[] { 18d, 7d, 3d },
+    row: 18,
+    column: 10);
+
+document.Save();
+```
+
+Histogram, Pareto, funnel, and waterfall helpers build compatible XLSX charts from raw values. Native ChartEx authoring is available separately for funnel, waterfall, box-and-whisker, treemap, and sunburst layouts:
+
+```csharp
+var modernData = new ExcelChartData(
+    new[] { "Qualified", "Proposal", "Won" },
+    new[] { new ExcelChartSeries("Deals", new[] { 42d, 18d, 7d }) });
+
+var modernChart = sheet.AddModernChart(
+    modernData,
+    row: 18,
+    column: 10,
+    chartType: ExcelModernChartType.Funnel,
+    title: "Pipeline");
+
+modernChart.SetTitle("Current pipeline")
+    .SetPlacement(row: 18, column: 10, width: OfficeLength.Pixels(640), height: OfficeLength.Pixels(360));
+```
+
+`ExcelModernChart` can inspect imported ChartEx objects and change their name, title, supported layout, and one-cell placement without replacing unrelated markup. `UpdateData` is available only when the ChartEx formulas resolve to OfficeIMO's owned hidden chart-data sheet; visible imported business data is never claimed as writable chart storage. Other imported charts remain formatting-preserving but data replacement is rejected. Use `ExcelFormatCapabilityReport.Current.ToMarkdown()` when a workflow must choose between XLSX, XLS, and XLSB targets.
+
+### Individual chart point styles
+
+Shared chart authoring accepts `OfficeSeries.WithPointStyles`; existing native charts
+can be edited with `chart.SetDataPointStyle(seriesIndex, pointIndex, style)`. Solid fills,
+explicit no-fill, outlines, and seven hatch patterns remain editable in Excel and survive
+save/reopen. A null style clears the point's fill and outline overrides.
+
+Snapshots, managed image export, and PDF export carry these styles through the shared
+renderer. Pie and doughnut legend swatches follow their slice appearance. Static area charts
+retain their series fill and report unsupported per-point appearance. See the
+[shared style example](../OfficeIMO.Core/README.md#style-individual-chart-points).
+
+### Pie and doughnut geometry
+
+Use `chart.SetRadialLayout(new OfficeChartRadialLayout(90, 70))` on an existing native
+two-dimensional pie or doughnut chart. Rotation runs clockwise from the top (0–360 degrees);
+the doughnut hole is an inner-to-outer diameter percentage (10–90). `chart.RadialLayout`
+reads the native settings. Save/reopen, data updates, snapshots, managed chart images and
+workbook PDF exports and semantic HTML round trips preserve them.
+For an individual pie or doughnut slice, `chart.SetDataPointExplosion(seriesIndex, pointIndex, percent)`
+sets an outward offset from 0 to 400 percent without replacing the chart. Pass zero to explicitly
+remove that slice's offset, or null to restore an inherited series offset.
+
+### Pivot tables and pivot-backed charts
+
+```csharp
+using OfficeIMO.Excel;
+using System.Linq;
+
+using var document = ExcelDocument.Create("pivot-report.xlsx");
+var sheet = document.AddSheet("Sales");
+
+sheet.CellValue(1, 1, "Region");
+sheet.CellValue(1, 2, "Product");
+sheet.CellValue(1, 3, "Quarter");
+sheet.CellValue(1, 4, "Revenue");
+sheet.CellValue(2, 1, "EMEA");
+sheet.CellValue(2, 2, "Alpha");
+sheet.CellValue(2, 3, "Q1");
+sheet.CellValue(2, 4, 125000);
+sheet.CellValue(3, 1, "EMEA");
+sheet.CellValue(3, 2, "Beta");
+sheet.CellValue(3, 3, "Q1");
+sheet.CellValue(3, 4, 94000);
+sheet.CellValue(4, 1, "APAC");
+sheet.CellValue(4, 2, "Alpha");
+sheet.CellValue(4, 3, "Q2");
+sheet.CellValue(4, 4, 141000);
+sheet.AddTable("A1:D4", hasHeader: true, name: "SalesTable", style: ExcelTableStyle.TableStyleMedium4);
+
+sheet.Pivot("A1:D4")
+    .Rows("Region")
+    .Columns("Quarter")
+    .Filters("Product")
+    .Sum("Revenue", "Total revenue", "#,##0")
+    .Layout(ExcelPivotLayout.Tabular)
+    .Style("PivotStyleMedium9")
+    .Captions(rowHeader: "Region", columnHeader: "Quarter", grandTotal: "Total")
+    .At("F2", "SalesPivot");
+
+sheet.CellValue(5, 1, "APAC");
+sheet.CellValue(5, 2, "Beta");
+sheet.CellValue(5, 3, "Q2");
+sheet.CellValue(5, 4, 87000);
+sheet.UpdatePivotTableSource("SalesPivot", sheet, "A1:D5");
+document.AddPivotSlicer(
+    "SalesPivot",
+    "Region",
+    sheet.Name,
+    new ExcelSlicerViewOptions { Name = "RegionFilter", Row = 12, Column = 8 });
+
+var pivot = sheet.GetPivotTables().Single(p => p.Name == "SalesPivot");
+Console.WriteLine($"{pivot.Name}: {string.Join(", ", pivot.RowFields)}");
+
+var chart = sheet.ChartFromTable("SalesTable")
+    .VarianceColumns("Revenue by region")
+    .At(row: 12, column: 1);
+chart.SetPivotSource("SalesPivot");
+
+document.Save();
+```
+
+Pivot support covers source-range pivots, row/column/page/data fields, styles, layouts, filters, calculated fields, grouping metadata, shared-cache-aware source updates, refresh-on-open, and readback. `AddPivotSlicer` authors native slicer caches, worksheet views, and drawing anchors for supported fields. `AddPivotTimeline` does the same for date-only fields. Compatible views reuse shared caches; removing the last view can prune its cache. Unsupported imported siblings remain preserved.
+
+Read an existing saved pivot value with `GetPivotData`. The lookup uses the pivot's
+saved output cells and axis metadata; changing source cells does not refresh it.
+
+```csharp
+using var document = ExcelDocument.Load("saved-sales-pivot.xlsx");
+var sheet = document.GetSheet("Summary");
+ExcelCellData value = sheet.GetPivotData("SalesPivot", "Revenue",
+    new Dictionary<string, object?> { ["Region"] = "North" });
+```
+
+The lightweight evaluator also supports `GETPIVOTDATA("Revenue",Summary!A1,"Region","North")`.
+Both paths support saved hierarchies with multiple row and column
+fields, selected page items, multiple measures, default subtotals, and text, numeric, Boolean, date, error or blank
+item keys. Numeric range groups and Years/Months or Years/Quarters/Months date hierarchies on row or column axes use their displayed
+group labels as criteria. A numeric criterion equal to a group's lower bound also selects that group; other raw source
+numbers do not. A year criterion accepts its displayed text
+or an integer year. Lookup follows saved tabular, compact and outline views, including
+subtotals displayed at the top and collapsed groups. A partial selection uses its displayed subtotal, or a single matching
+leaf when no subtotal is displayed. Ambiguous matches and unknown items, fields
+or measures return typed errors; a blank intersection of existing items returns
+zero. Lookup accepts at most 256 source fields, measures and criteria, one Values
+pseudo-field across the axes, 100,000 shared keys per field, 100,001 axis/field
+items (including totals or default items), and one million output cells. Each
+axis also has a one-million budget for field visits and indexed criterion items.
+Other grouped profiles and views without saved axis items remain
+unsupported. The public method throws `NotSupportedException` for those profiles;
+formula recalculation leaves them unsupported. `AddPivotTable` authors metadata
+and refresh-on-open settings; it does not populate an output view for lookup.
+
+For date items, use a `DateTime` or a numeric serial in the workbook's date system.
+Use serial `60` (or its time fraction) to select Excel's fictitious February 29,
+1900; a .NET `DateTime` cannot represent that date. Pivot-cache date items retain
+Excel's separate OLE Automation encoding, including early-1900 values.
+When a mixed field contains both a date and a number with the same serial,
+lookup selects the date item, as Excel does.
+To select an error item through the public API, pass
+`new ExcelCellData(ExcelCellDataKind.Error, "#DIV/0!")` as the criterion value.
+The string `"#DIV/0!"` selects a text item with that spelling. An error-valued
+formula argument propagates its error through formula calculation.
+
+Call `MaterializePivotTable` to generate an output view without an Office refresh:
+
+```csharp
+ExcelPivotMaterializationResult result = sheet.MaterializePivotTable("SalesPivot");
+Console.WriteLine(result.OutputRange);
+```
+
+For a typed `OrderDate` column, build and populate a year/month view in the same workbook:
+
+```csharp
+sheet.Pivot("A1:B6").Rows("OrderDate").Sum("Sales", "Metric")
+    .DateHierarchy("OrderDate", ExcelPivotGroupBy.Years, ExcelPivotGroupBy.Months)
+    .Layout(ExcelPivotLayout.Tabular).At("D4", "SalesByMonth");
+sheet.MaterializePivotTable("SalesByMonth");
+```
+
+For a text `Product` column, create a named manual group in a derived field and
+materialize the resulting two-level row view:
+
+```csharp
+sheet.Pivot("A1:B6").Rows("Product").Sum("Sales", "Metric")
+    .Layout(ExcelPivotLayout.Tabular).At("E4", "SalesByProductGroup");
+sheet.AddPivotManualGrouping("SalesByProductGroup", "Product", "Product2",
+    new Dictionary<string, string[]> { ["Fruit"] = new[] { "Apple", "Pear" } },
+    hiddenGroupItems: new[] { "Carrot" });
+sheet.MaterializePivotTable("SalesByProductGroup");
+var fruit = sheet.GetPivotData("SalesByProductGroup", "Metric",
+    new Dictionary<string, object?> { ["Product2"] = "Fruit" });
+```
+
+Pass multiple entries in the dictionary to add several named groups in one derived field.
+Each source item can belong to only one group; ungrouped text items remain
+individual entries. The source field must be on a row or column axis. Use the
+pivot's actual name, which may differ from a requested duplicate name.
+
+Materialization supports up to 256 ordinary measures with unique captions, all eleven aggregation modes,
+and multiple fields on each axis, with at most 256 cache fields in total. Numeric range groups with explicit finite
+bounds and intervals, including decimal intervals, are supported when each bound and interval is at most 9 × 10¹⁵
+in magnitude and the range has at most 99,998 buckets.
+Years/Months and Years/Quarters/Months date hierarchies and manual text groups with saved group labels are also supported on row and column axes. Hidden items on qualified manual, numeric, and date groups are applied to source records and saved views. Grouping on page fields is not.
+Date hierarchies require typed date source values. The saved group labels are retained, including labels created under
+a non-English Excel locale. Renamed item captions remain visible in the generated view; `GETPIVOTDATA`
+accepts both the displayed caption and the original cache key for a renamed ordinary item.
+It writes a tabular view in first-seen key order for ordinary fields, chronological
+order for default-sorted date fields with native date filters, and group-label order for groups,
+with selected page items, hidden row/column items, optional grand totals, typed values/errors, source cache
+records and consistent axis metadata. It saves a copy of the source records in
+the pivot cache and clears refresh-on-open. Source formulas must have saved
+cached results; materialization does not calculate them.
+When several pivot views share a cache, materializing any one of them regenerates
+every view of that cache in one transaction. All views must qualify for
+materialization and produce identical cache fields and records. The returned
+`AffectedPivotTables` names the refreshed views; `OutputRange` remains the range
+of the requested view.
+Manual item filters retain their selected keys when source item order changes.
+New source keys remain excluded from a manually filtered field unless its
+`IncludeNewItemsInFilter` setting admits them. A filter that leaves no source
+records is rejected before changing the saved view.
+Materialization supports label equals, begins with, ends with, contains, and
+their negations on ordinary row or column fields with text, Boolean, blank,
+error, or numeric captions. Numeric captions use General, `#,##0`,
+`#,##0.00`, `#,##0.000`, `0.0`, `0.00`, `0.000`, `0.0%`, `0.00%`, `$#,##0`,
+`$#,##0.00`, or `#,##0.00;(#,##0.00)` pivot-field formatting; other numeric
+formats and date captions remain unqualified. It also supports label
+greater/less comparisons and inclusive between or exclusive not-between
+ranges when every caption and criterion uses ASCII letters. Numeric label
+ranges support signed integer captions in General, signed fixed two-decimal
+captions in `0.00`, and nonnegative grouped integer captions in `#,##0`.
+These use caption order rather than numeric magnitude; in the qualified Excel
+workbooks, `2` precedes `-2`. Other text and numeric formats are rejected
+because Excel's localized ordering or display format can select different
+items. Qualified label comparisons use the current process culture, matching
+Excel's locale-dependent ordering when run under the same locale. Distinct
+numeric cache keys remain separate when the format gives them the same
+displayed caption: a label filter can select both rows, while typed
+numeric `GetPivotData` criteria still address each key.
+
+Native fixed-date equals/not-equals, older/newer, inclusive-bound, between,
+and not-between filters materialize on date-valued row or column fields.
+By default they compare complete date-time values in either workbook date
+system, so a midnight equality does not select a later time on the same day.
+Call `WithWholeDay()`, for example
+`ExcelPivotFilter.DateEquals("OrderDate", day).WithWholeDay()`, to include
+every time on the selected date. The same modifier applies to the other
+fixed-date predicates; it is saved in Excel's pivot-filter extension and
+survives a workbook reload. `GetPivotTables()` exposes the setting through
+each filter's `WholeDay` property. All-years
+month and quarter selectors include matching dates from every year, including
+time-bearing values. Relative today/yesterday/tomorrow, week, month, quarter,
+year, and year-to-date filters use local calendar periods with half-open end
+bounds; weeks begin on Sunday, as in the qualified Excel-produced workbooks.
+The local date is captured once for every view sharing a cache. Pass
+`referenceDate: new DateTime(2026, 9, 28)` to `MaterializePivotTable` for a
+reproducible relative-date view; omitting it uses the current local date.
+Default-sorted date items selected by these filters are
+ordered chronologically in the saved cache and view. Views sharing that cache
+retain their own saved manual item order. Blank source dates do not match,
+including not-equals.
+
+On a single ordinary axis field, materialization also supports value equals,
+not equals, greater than, greater than or equal, less than, less than or
+equal, inclusive between, exclusive not-between, and top/bottom count,
+percent, and sum filters. Count filters include ties at the cutoff. Percent
+and sum filters select by cumulative signed measure value, including the item
+that crosses the threshold. Percent uses the current grand total; a zero
+grand total retains all items. When a percent or sum cutoff splits equal
+aggregates, materialization reports an unsupported item order rather than
+writing a different filtered view. Zero and negative item aggregates are supported.
+An item whose selected aggregate is an error does not enter a ranking with numeric
+aggregates; Count and Count Numbers still rank their numeric results for
+error-valued source cells. When every selected aggregate is one of Excel's seven
+classic errors, top/bottom count filters rank by Excel error-code order and
+include ties at the cutoff. All-error percent and sum ranking, newer error
+values, and ranking with neither numeric nor qualified error aggregates remain
+deferred.
+With two ordinary row fields, no column field, and one measure,
+materialization supports the same value comparisons and ranges on either
+field and top/bottom count, percent, and sum on either field. The inner field's
+aggregate is compared or ranked within each parent; the outer field uses its
+aggregate across its children. Two column fields support the same comparisons,
+ranges, and top/bottom count, percent, and sum filters on either field. With
+one row and one column field, the same value comparisons, ranges,
+and top/bottom count, percent, and sum filters can target either field. With
+three row fields and one measure, Top 1, Top 2, and Bottom 1 count, numeric
+greater-than, and numeric between filters on the innermost field are qualified
+against Excel-produced views and `GETPIVOTDATA` results. With two row fields,
+one column field, and one measure, numeric greater-than, numeric between, and
+Top/Bottom 1 count on the inner row field, plus numeric greater-than and
+Top/Bottom 1 count on the column field, are qualified against complete
+Excel-produced views and lookups. Top 1 includes tied column items at the
+cutoff, and the qualified inner-row Top 1 case retains tied siblings. Numeric
+Top 1 ranking also excludes error-valued aggregate siblings on either qualified
+axis. A saved inner-row Top 1 followed by column Bottom 1 is evaluated in that order; the
+reverse filter order can select different cells, as in Excel. Other
+three-or-more-field value rules remain outside this qualified profile. With
+two row fields, one column field, and two Sum measures, an inner-row Top 1
+filter can select either named measure. Excel-produced views and lookups qualify
+both selections with Values before or after Channel on columns, or before Region,
+between Region and Product, or after Product on rows. Use `ValuesPosition(0)` or
+`ValuesPosition(1)` on the fluent pivot builder to place Values first or between
+the two row fields. When Values precedes Product on rows, the Top 1 filter selects
+items only for its named measure; the other measure keeps its full source rows. Other
+multi-measure filter interactions remain outside this profile.
+Signed and zero child aggregates, nonpositive outer-field totals, three siblings
+per parent, mixed numeric/error ranking, and classic
+all-error parent top/bottom count ranking have Excel-produced examples.
+All-error parent percent/sum ranking and broader sign/error mixes still need
+independent evidence.
+Label and value filters can share that field. Value filters use the selected measure's aggregation
+over current source rows; refreshed views reevaluate item membership. The
+filter definition remains available for Excel refresh, and filtered items are
+not converted into manually hidden items. Filter evaluation is bounded by the
+source-cell work budget.
+For multiple measures, the Values field appears on exactly one axis. Values-first,
+intermediate and Values-last ordering are preserved, including views without real row or column
+fields. `AddPivotTable` creates this field on columns by default, or on rows when
+`dataOnRows` is true. Repeated native axis prefixes are expanded during saved-view lookup.
+Regeneration expands collapsed groups and normalizes compact and outline layouts to
+tabular output with subtotals below their children. Hidden subtotals stay hidden;
+custom subtotal functions become automatic subtotals using each measure's aggregation.
+Date labels receive date/time formatting when the destination has no date format.
+Date subtotal captions use `yyyy-MM-dd HH:mm:ss`, including Excel's fictitious
+February 29, 1900. Existing destination date formats are retained.
+
+The operation rejects destination collisions with unrelated values, formulas,
+source cells, other pivots, tables and merged ranges. It replaces a previous
+materialized view and clears its stale tail while retaining existing cell styles.
+Preparation and writing run under the workbook lock; the shared mutation owner
+rolls back interrupted writes or invalid generated metadata. Use
+`ExcelMutationPlanOptions` to lower source/output and rollback budgets. The source
+and affected output are each capped at one million cells. The measure-input budget is
+source records times measure count times the number of displayed input levels on each
+axis: the leaf level plus enabled intermediate subtotals. Grand totals add at most
+one level per axis, bounding actual aggregate updates at four times that budget.
+For shared caches, source-cell visits, measure-input visits, and affected output
+cells are each summed across views against the configured budget.
+Fields and measures are capped at 256; distinct shared keys per field and observed
+leaf aggregate states across measures are capped at 100,000. All aggregate states,
+including subtotals and grand totals, must fit the output budget. Saved axis items,
+including totals, are capped at 100,001. On each axis, the sum of saved field items
+and shared keys must also fit the configured budget, so all generated criteria
+combinations remain within the saved-lookup indexing limit.
+
+Other date levels and layouts, custom non-text grouping, formatted date and broader numeric label filters,
+localized label range ordering, explicit show-all empty item combinations, other label/value pivot filter types and broader multi-field value filtering,
+calculated fields, incompatible shared-cache groupings, and associated interaction
+caches still require additional materialization support. Imported definitions
+remain available through the existing metadata and refresh-on-open APIs.
+
+### Guarded query-backed tables
+
+```csharp
+using var document = ExcelDocument.Create("query-report.xlsx");
+var sheet = document.AddSheet("Results");
+
+var query = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
+    ConnectionName = "SalesQuery",
+    CommandText = "sales/current",
+    WorksheetName = sheet.Name,
+    StartCell = "B3",
+    TableName = "SalesResults",
+    ColumnNames = new[] { "Region", "Amount" }
+});
+
+ExcelQueryRefreshResult refresh = await document.RefreshQueryAsync(
+    query.ConnectionName,
+    applicationQueryHost,
+    new ExcelQueryExecutionPolicy {
+        AllowExecution = true,
+        MaximumRows = 100_000,
+        MaximumCells = 500_000
+    },
+    cancellationToken);
+```
+
+OfficeIMO stores the native connection, table, and query-table relationship chain but does not ship a database or network provider. The application-owned `IExcelQueryExecutionHost` interprets the opaque command and returns rows. OfficeIMO applies row, column, cell, and character budgets before a transactional table replacement. Commands loaded from imported workbooks require the separate `AllowImportedCommands` opt-in.
+
+### Formula inspection and calculation policy
+
+`RATE`, `IRR`, `XIRR` and `XNPV` calculate annuity rates and periodic or dated
+cash flows. Cash-flow vectors accept worksheet ranges, names, simple structured
+references and rectangular literal arrays. IRR ignores text, Booleans and blanks
+in its series; XIRR retains blank cash-flow positions as zero. Dated functions
+truncate date serials, use a 365-day year, and require dates no earlier than the
+first date. XNPV requires a positive discount rate. RATE/IRR use at most 20
+iterations per attempt and XIRR at most 100. An unsuccessful nondefault guess
+gets one retry from 10%; non-convergence returns `#NUM!`. Guesses select
+among possible roots, so a cash-flow schedule does not imply a unique rate.
+The shared 100,000-cell resolution budget applies across paired vectors.
+Saved Microsoft Excel references cover successful rates, multiple roots,
+negative returns, date fractions, input coercions and error results.
+
+`IPMT` and `PPMT` calculate the interest and principal portions of a
+constant-rate annuity payment, including beginning-of-period payments and
+omitted optional future-value/payment-type arguments. For example,
+`IPMT(0.1/12,1,36,8000)` calculates the first month's interest. These scalar
+functions use the same `PMT`/`FV` owner; typed errors propagate through references
+and `IFERROR`. The qualified rate domain is greater than -1, zero payment type
+means end-of-period and nonzero means beginning-of-period, and the selected
+period is between 1 and the positive period count.
+Invalid qualified domains produce `#NUM!`; unsupported signatures and operands
+retain their existing cached result rather than inventing a value.
+
+Scalar calculation supports parentheses, unary signs, percentages, powers,
+arithmetic precedence, text concatenation, comparisons, and expressions inside
+supported function arguments. For example, `SUM(A1,2)*3` and
+`IF(A1*2>10,"High","Low")` can be calculated without Excel. Errors such as
+`#DIV/0!`, `#VALUE!`, and `#NUM!` propagate through these expressions. Syntax
+and nested function evaluation are bounded to 128 levels; unsupported formulas
+continue to be reported explicitly rather than calculated from stale caches.
+
+`INT`, `MOD` and `SQRT` evaluate finite numeric scalar arguments, including
+references and nested expressions. Boolean operands retain the existing 0/1
+coercion. `INT` floors negative values; `MOD` uses the
+divisor's sign. A negative square root produces `#NUM!`, a zero divisor produces
+`#DIV/0!`, and a nonfinite result produces `#NUM!`. These errors replace old
+numeric caches and propagate through arithmetic and error handlers. Invalid
+argument counts, multi-cell scalar ranges and unsupported operand types remain
+unevaluated.
+
+`EXP`, `LN`, `LOG` and `LOG10` evaluate finite numeric scalar operands with
+strict argument counts. `LOG` defaults to base 10 and also accepts an explicit
+positive base. Nonpositive logarithm arguments or bases produce `#NUM!`; base 1
+produces `#DIV/0!`, and exponential overflow produces `#NUM!`. Typed errors
+propagate through references, arithmetic and `IFERROR`. Unsupported operands
+and signatures remain unevaluated and preserve existing caches. Results use
+floating-point math, so inverse functions need not return exact original values.
+
+`SIGN`, `TRUNC`, `ROUNDUP` and `ROUNDDOWN` also use scalar arguments with
+exact supported signatures. `TRUNC` defaults omitted digits to zero. Digit
+arguments are supported from −15 through 15; other values remain unevaluated.
+Directional rounding uses the same decimal normalization as `ROUND`, so exact
+decimal boundaries such as `TRUNC(0.29,2)` and `ROUNDUP(0.07,2)` stay unchanged.
+Large integral values avoid unnecessary scaling, and nonfinite results produce
+`#NUM!` instead of invalid numeric caches. All operands, including supported
+digit bounds, qualify before an argument error is propagated.
+
+`COMBIN` evaluates two finite scalar operands with a nonnegative item count up to
+2^53−1, truncating fractions. Negative inputs, a chosen count larger than the item
+count, and results beyond the numeric range return `#NUM!`. Integer arithmetic
+avoids factorial overflow and accumulated rounding; large finite results use the
+workbook’s floating-point representation. Evaluation takes at most 1,023 steps.
+Unsupported signatures, ranges, text and larger item counts retain existing caches.
+
+`GCD` and `LCM` accept one to 255 arguments: finite numeric values, invariant
+numeric text, and cell or rectangular range references sharing a 100,000-cell
+budget. Fractions truncate toward zero. Blank direct cell arguments are ignored;
+if every direct argument is blank, the result is `#VALUE!`. Blank positions inside
+a range contribute zero.
+Negative operands produce `#NUM!`, while Boolean and nonnumeric text produce
+`#VALUE!`. Typed errors propagate. Operands outside ±(2^53−1), unsupported
+expressions and resource-limit failures retain existing caches, including inside
+error handlers. `LCM` returns `#NUM!` when its nonzero result exceeds 2^53−1;
+a zero anywhere in the arguments returns zero even if an intermediate product
+would exceed that bound. [Native Numbers and fresh Excel results](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-functions-v14.5.json)
+qualify the recorded cases; Numbers reconstruction has its own narrower contract.
+The [blank-reference qualification](../Docs/Compatibility/iwork-numbers-blank-reference-native-aot-macos-arm64-2026-10-11.json)
+also records native fill/save/clear results and saved error caches for all-blank direct arguments.
+
+`FACT` evaluates one finite scalar, truncating nonnegative fractions before
+multiplication. Zero returns one. Negative inputs and values at least 171 produce
+`#NUM!`; at most 169 multiplications are needed for a finite result. Large
+factorials use floating-point arithmetic. Typed errors propagate, while
+unsupported operands and signatures preserve existing caches.
+
+`EVEN` and `ODD` round one finite scalar away from zero to the nearest integer
+of the requested parity. `EVEN(0)` is zero and `ODD(0)` is one. Typed errors
+propagate; unsupported operands and argument counts retain existing caches.
+`ODD` retains its cache when the result would exceed ±(2^53−1), because larger
+odd integers cannot be represented exactly by the evaluator's numeric type.
+`EVEN` supports larger finite values that are already even binary64 integers.
+
+`CEILING` and `FLOOR` require two scalar operands and treat explicit omitted
+operands as zero. Negative numbers with negative significance round away from
+zero for `CEILING` and toward zero for `FLOOR`; positive significance rounds
+negative numbers toward positive and negative infinity, respectively. Positive
+numbers with negative significance produce `#NUM!`. Zero numbers return zero;
+zero significance returns zero for `CEILING` and `#DIV/0!` for nonzero `FLOOR`.
+Decimal normalization preserves exact multiples such as `CEILING(0.07,0.01)`.
+Remainder-based calculation avoids quotient overflow for finite rounded results;
+nonfinite results produce `#NUM!`. Typed errors propagate, while unsupported
+operands, ranges and argument counts preserve existing caches. The `.MATH`
+variants retain their separate direction and mode contracts.
+
+`OFFSET` resolves a single-cell value or a rectangular reference argument for
+functions such as `SUM`, within worksheet bounds and 32 reference levels.
+Multi-cell scalar results, implicit intersection and spills remain unsupported.
+`PROB` evaluates finite numeric vectors with a shared 100,000-cell input budget;
+mixed text, Boolean and blank vector coercion remains unsupported. Probabilities
+must lie between zero and one and sum to one within `1e-12` rounding tolerance.
+`RANDBETWEEN` accepts finite bounds from `-9007199254740991` to
+`9007199254740991` (the consecutive exact integer range through ±(2^53−1)). It rounds the lower
+bound up and the upper bound down, then draws a fresh integer from that inclusive interval
+on each calculation pass; dependent formulas reuse that pass's cell cache. Reversed bounds
+produce `#NUM!`. Intervals containing no integer and bounds outside that range retain their
+producer cache without local evaluation. Inspection reports direct references; dynamic `OFFSET` targets are
+resolved during calculation and its runtime dependency guards apply. Invalid
+reference errors propagate through reference consumers and error handlers.
+Unsupported inputs and resource limits remain unevaluated inside `IFERROR`,
+`IFNA` and error predicates, preserving existing caches. Completed supported
+lookup searches return typed `#N/A` when no match exists.
+
+`INDEX`, `VLOOKUP`, `HLOOKUP`, `MATCH`, `XMATCH` and `XLOOKUP` preserve typed
+errors in supported position and mode arguments. For example,
+`IFERROR(INDEX(Products!B2:B200,MATCH(A2,Products!A2:A200,0)),"Unknown")`
+returns `Unknown` for a missing product, and dependent `COUNTIFS`/`SUMIFS`
+formulas can use that result. `IFNA` catches only `#N/A`; `IFERROR` catches any
+evaluated error and preserves the fallback's number, text or Boolean type.
+Out-of-range positive lookup positions return `#REF!`; negative `INDEX`
+positions and nonpositive `VLOOKUP`/`HLOOKUP` positions return `#VALUE!`.
+A selected blank cell caches zero when used as a formula cell's result. Nested
+`INDEX`, `OFFSET` and range-backed `XLOOKUP` results retain their blank type for
+`ISBLANK`, empty-text comparisons, concatenation and range aggregates. Scalar
+numeric arguments and criteria coerce the reference to zero; fixed and dynamic
+array output cells also cache numeric zero. Row, column and area positions accept
+numeric text and Boolean values and truncate positive fractions. Invalid text
+positions return `#VALUE!`; discrete match/search modes retain their own
+supported values. Lookup keys preserve the distinction between numbers,
+numeric-looking text and Booleans.
+An empty referenced lookup key uses numeric zero in `MATCH`, `VLOOKUP` and
+`HLOOKUP`. `XMATCH` and `XLOOKUP` retain a blank key and match blank source
+cells separately from numeric zero and empty text. Boolean keys keep their type.
+Linear searches skip error-valued source keys; an error in the lookup argument
+or selected return cell remains a typed error.
+
+| Family | Calculation contract |
+| --- | --- |
+| `VLOOKUP`, `HLOOKUP` | Exact search with `FALSE`; approximate search with `TRUE` or an omitted fourth argument over ascending keys. An explicitly empty fourth argument means exact search. Approximate searches select the last duplicate at the matching boundary. |
+| `MATCH` | Exact mode `0`, ascending approximate mode `1` (the default), and descending approximate mode `-1`. An explicitly empty match argument means exact search. |
+| `XMATCH`, `XLOOKUP` | Exact, next smaller, next larger and wildcard match modes; forward/reverse linear search and ascending/descending binary search. Binary search resolves visited cells without first materializing the lookup and return arrays. Its inputs must be sorted in the requested direction. Exact binary matches select the first duplicate in ascending order and the last physical duplicate in descending order. |
+| Wildcards | Exact legacy lookup modes and modern match mode `2` recognize `*`, `?` and tilde escapes. Modern exact mode `0` treats these characters literally. |
+| Array inputs/results | Ranges, rectangular literal arrays and supported generated arrays can supply lookup inputs. `XLOOKUP` can select an entire matching row or column from a wider return array. |
+
+Ordered text search uses the qualified case-insensitive ASCII letter-and-digit
+profile shared with array `SORT`. Locale-dependent punctuation and Unicode
+ordering remain unevaluated; exact and wildcard searches do not require sorting.
+Wildcard matching uses linear search; combining wildcard match mode with binary
+search returns typed `#VALUE!`.
+Invalid shapes return typed errors; unsupported signatures and resource limits
+remain unevaluated inside error handlers.
+
+`INDEX` zero selectors return an entire row, column or rectangle. Reference
+results compose with range consumers, for example `SUM(INDEX(A1:C20,0,2))`,
+`ROWS(INDEX(A1:C20,0,2))` and nested INDEX calls. The reference form also accepts
+a selected area, for example `SUM(INDEX((A1:A2,A4:A6),0,1,2))`. A scalar selection
+from a whole-column or whole-row reference resolves only its selected cell.
+For a multi-cell worksheet result, author an explicit fixed range with
+`SetArrayFormula(...)` or a dynamic anchor with `SetDynamicArrayFormula(...)`;
+the existing shape, spill-blocker and dependency rules apply.
+Omitting the column argument for a two-dimensional range returns `#REF!`;
+an explicitly empty column selects the whole row. A two-dimensional literal
+array with an omitted column also selects the whole row.
+
+Error-valued conditions and selectors also propagate through `IF`, `IFS`,
+`SWITCH` and `CHOOSE`. Text helpers preserve operand errors instead of treating
+their codes as text. `SUMPRODUCT` treats blank, text and Boolean array elements
+as zero and preserves typed errors. A single blank argument, including a named
+scalar expression, returns `#VALUE!`;
+arrays must have the same row and column counts, with mismatches returning
+`#VALUE!`. Unresolved formula inputs remain unevaluated. `TEXTBEFORE`/`TEXTAFTER` evaluate
+an explicit fallback only when needed.
+`IF` permits an omitted false branch, which returns Boolean `FALSE`; explicitly
+empty selected `IF` or `CHOOSE` arguments return numeric zero. `IF`, `IFS`,
+`SWITCH` and `CHOOSE` retain a selected reference for its consumer. `IFERROR`,
+`IFNA`, `VLOOKUP` and `HLOOKUP` return a value: a selected blank still gives
+`TRUE` to `ISBLANK` and empty text to concatenation, but `COUNT` includes it
+as zero. A blank reference selected by `INDEX`, `OFFSET` or `XLOOKUP` is
+skipped by `COUNT`. Both forms cache numeric zero as a cell result.
+
+The [native Excel lookup corpus](../OfficeIMO.TestAssets/Documents/ExcelFormulaCorpus/lookup-conformance.provenance.json)
+qualifies 223 formulas, 247 typed result cells and 12 spill ranges after
+save/reopen. Normal regression tests calculate fresh uncached inputs and compare
+them with the independent Excel results. Regenerate the reference with
+`pwsh -STA -File Build/Verification/New-ExcelFormulaConformanceOracle.ps1 -LookupExpansion`
+on Windows with desktop Excel installed; Excel is used only to regenerate this fixture.
+
+`XLOOKUP` retains empty optional argument positions: an empty fallback uses
+`#N/A`, an empty match mode uses exact matching, and an empty search mode scans
+from the first item. The [saved Excel reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-xlookup-optional-v16.113.3.json)
+records no-match, explicit-fallback and reverse-search cases. Conditional
+aggregates resolve unquoted criteria as formula arguments; unsupported criterion
+expressions preserve existing caches. Quoted criteria remain literal text.
+
+Named references resolve to A1 ranges, numeric/text/Boolean/error constants,
+supported scalar and array expressions, and reference-valued `INDEX`/`OFFSET`
+calls. Aliases and worksheet-local scope are retained. Cyclic definitions,
+unsupported expressions and expansion limits remain unevaluated; they do not
+prevent independent cells from calculating. Each calculation observes later
+input and definition edits.
+Adding, replacing or removing a name marks existing formula caches dirty until
+recalculation, including after saving and reopening the workbook.
+
+Use `SetNamedFormula(...)` for an expression; `SetNamedRange(...)` retains its A1
+range validation. Both document and worksheet setters replace the matching name
+in the selected scope. For example:
+
+```csharp
+using var document = ExcelDocument.Create();
+var data = document.AddSheet("Data");
+data.CellValue(2, 2, 100d);
+data.CellValue(3, 2, 150d);
+document.SetNamedFormula("NetTotal", "SUM(Data!B2:B3)*0.8", save: false);
+data.SetNamedFormula("TaxRate", "0.2", save: false);
+data.CellFormula(5, 2, "NetTotal*(1+TaxRate)");
+data.SetDynamicArrayFormula("D2", "INDEX(B2:B3,0)");
+document.Calculate(); // B5 = 240; D2:D3 = 100, 150.
+```
+
+`ISNUMBER` distinguishes numbers from Boolean values; `ISLOGICAL` and `NA`
+support typed guards and error fallbacks. `SEARCH` and text criteria recognize
+`*`, `?`, and tilde escapes. `ROUND` handles decimal midpoints away from zero.
+`TEXT` uses invariant English formatting and accepts an explicit `[$-409]`
+locale prefix; other locale qualifiers remain unsupported.
+
+Array calculation uses the range owned by `SetArrayFormula`, or the existing
+array reference in an imported workbook. A fixed range must match the result
+shape:
+
+```csharp
+using var document = ExcelDocument.Create("array-report.xlsx");
+var sheet = document.AddSheet("Results");
+sheet.SetArrayFormula("G2:H4", "SEQUENCE(3,2,10,-2)");
+document.Calculate();
+document.Save();
+```
+
+Use `SetDynamicArrayFormula` when the result shape may change:
+
+```csharp
+using var document = ExcelDocument.Create("dynamic-report.xlsx");
+var sheet = document.AddSheet("Results");
+sheet.CellValue(1, 1, 3);
+sheet.SetDynamicArrayFormula("G2", "SEQUENCE(A1,2)");
+document.Calculate(); // G2:H4 contains 1 through 6
+document.Save();
+```
+
+`SEQUENCE` produces rectangular numeric results. `FILTER` accepts a row or
+column mask of numbers or Booleans, including comparisons between operands of
+the same native type and a scalar empty-result fallback. Blank mask cells are
+false; mixed-type comparisons and text-mask coercion remain deferred.
+`SORT` supports numeric, ASCII letter-and-digit text, Boolean, and blank sort keys, including
+mixed keys, both directions, and sorting rows or columns. Numbers precede text and
+Booleans in ascending order; descending order reverses those nonblank groups.
+Blanks remain last in either direction and their output cells contain zero, as
+in Excel's cached results. Text compares without ASCII case and equal keys keep
+their input order. Sort inputs dependent on an unevaluated formula cache remain
+deferred. Locale-dependent, punctuation, Unicode, and error-key collation remains
+deferred. `UNIQUE` preserves the first
+occurrence of distinct rows or columns and supports `exactly_once`. These
+functions can be nested within this array subset. Each input and output is
+limited to 100,000 cells, with at most 32 array-expression levels.
+`SetArrayFormula` writes the Excel compatibility prefixes for these four
+functions, including nested calls, while preserving literals and reference text.
+
+Fixed arrays update only when their result matches the authored range and the
+range contains neither another formula nor a merged cell. Dynamic arrays write
+Excel's native dynamic-array metadata, resize their cached range as inputs
+change, and clear vacated children. A nonempty cell, fixed array, table, or
+merged range that blocks a spill yields `#SPILL!` at the anchor without
+overwriting the blocker. Clearing the blocker allows the next calculation to
+spill. Value, formula, bulk-value, and clear operations reject edits inside an
+active spill; call `ClearArrayFormula` to remove the array first. Array children
+participate in same-sheet dependency calculation before caches are written;
+a reference to the anchor is scalar. Unsupported expressions remain deferred
+with existing caches preserved. Empty results use Excel's rich-value `#CALC!`
+metadata. Zero-sized `SEQUENCE` dimensions produce `#CALC!`; negative
+dimensions produce `#VALUE!`. The checked-in Excel-produced array corpus
+verifies cached results through save and reopen.
+
+Loaded dynamic arrays can resize when their saved child caches still match the
+worksheet's original content. If old cells were edited outside the sheet API,
+the saved source changed before calculation, the raw Open XML package was
+accessed before the sheet, or the source exceeds the bounded ownership scan,
+calculation reports `#SPILL!` and keeps ambiguous cells. Clear and re-author the
+array only when you own the old range.
+
+Cached reads resolve native rich-value `#CALC!` and `#SPILL!` errors across the
+object model, range reads, and forward-only data readers. Unknown or unresolved
+rich values retain their ordinary cell fallback. Rich error metadata is limited
+to 16 MiB per part and 100,000 entries per collection; readers also honor a
+smaller configured metadata limit. Repeated calculation reuses error records,
+and images and other rich values keep their existing metadata and relationships.
+
+`CellAt(...).GetValue().Value` preserves the native cached result type, including
+Boolean values and text that looks numeric, such as the result of `="12"`.
+
+Calculation honors the workbook's 1900 or 1904 date system. In the 1900 system,
+`DATE` and date-part functions retain Excel's fictitious February 29, 1900.
+When converting serial 60 to `DateTime`, `ExcelDateSystemConverter.FromSerial`
+uses February 28 because .NET cannot represent that fictitious date. The
+checked-in Excel-produced corpus verifies function composition, named and
+cross-sheet references, typed errors, rounding, and both date systems through
+calculation, save, and reopen.
+
+`Calculation.MaximumDependencyDepth` defaults to 256 formula cells per chain.
+The expression-nesting limit applies separately within each cell. A dependency
+limit or circular reference clears affected caches and marks those formulas
+dirty; unrelated formulas still calculate. Raise the dependency budget explicitly
+for longer trusted chains. Calculation also checks the caller's available stack;
+deeply composed dependencies can be left dirty even within those two budgets.
+The independent corpus includes forward and reverse
+300-cell chains and a circular-reference workbook, with cache recovery and
+diagnostics verified after save and reopen. Circular caches from Excel are
+preserved as input evidence rather than treated as a numeric cycle solution.
+
+For bounded row-memory XLSX exports, set `RequireStreaming = true` in
+`ExcelWriterOptions`. With `WriteDataReader`, also set
+`UseSharedStrings = false` and `AutoFit = false`; tables require headers.
+With `WriteRows`, turn off tables and automatic sizing. Incompatible options
+are rejected before source rows are consumed or destination bytes are written.
+
+```csharp
+using var document = ExcelDocument.Load("report.xlsx");
+
+var formulas = document.InspectFormulas();
+Console.WriteLine(formulas.ToMarkdown());
+Console.WriteLine($"Maximum dependency depth: {formulas.DependencyGraph.MaximumDependencyDepth}");
+
+foreach (var cycle in formulas.DependencyGraph.CircularReferences) {
+    Console.WriteLine("Circular: " + string.Join(" -> ", cycle.References));
+}
+
+foreach (var formula in formulas.Formulas.Where(f => !f.IsSupportedByOfficeIMO)) {
+    Console.WriteLine($"{formula.SheetName}!{formula.CellReference}: {formula.UnsupportedReason}");
+}
+
+document.Calculation.MaximumDependencyDepth = 512;
+int calculated = document.Calculate();
+document.Save("report.xlsx", new ExcelSaveOptions {
+    EvaluateFormulasBeforeSave = true,
+    ForceFullCalculationOnOpen = true
+});
+```
+
+### TEXTJOIN formula storage
+
+Author `TEXTJOIN` through the normal cell and array-formula APIs. The writer stores these calls as `_xlfn.TEXTJOIN` in XLSX, including nested calls; `GetFormulaText` exposes the stored spelling. Existing prefixes, string literals, quoted worksheet names and structured references retain their text. Prefix expansion is checked against the 8,192-character formula limit.
+
+`Calculate()` supports both empty-cell policies, quoted worksheet names with punctuation, and typed error propagation through `TEXTJOIN`, `CONCAT` and `CONCATENATE`. Ordinary text such as `#N/A` remains text. Joined results above the 32,767-character cell-text limit become `#VALUE!`. The evaluator remains bounded by its supported expression and range contracts. Rejected prefix expansion preserves existing cells and in-cell images.
+
+### IFNA, MINIFS and MAXIFS formula storage
+
+Author these functions through `CellFormula` or `SetArrayFormula` using ordinary names. The shared writer stores their [XLSX future-function prefixes](https://learn.microsoft.com/en-us/openspecs/office_standards/ms-xlsx/5d1b6d44-6fc1-4ecd-8fef-0b27406cc2bf), including nested calls: `IFNA(NA(),99)` becomes `_xlfn.IFNA(NA(),99)`. `GetFormulaText` returns the stored spelling. String literals, quoted sheet names and existing prefixes retain their text; oversized prefix expansion rejects the write before changing cells.
+
+The [native Excel reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-future-functions-v16.113.3.json) covers 32 normal and single-cell array formulas, typed errors, no-match extrema and a native operand edit. Buffered and materialized authoring, saved/reopened calculation and escaped literal/reference text have separate regression coverage. Broader future functions retain their own qualification gates.
+
+### Referenced values in aggregates
+
+`AVERAGEIF` and `AVERAGEIFS` return typed `#DIV/0!` when fully qualified inputs yield no numeric matches. `IFERROR` can handle that error; `IFNA` propagates it. Unsupported expressions, unresolved inputs and range-budget failures remain unevaluated and retain their existing caches. Selected typed errors propagate through conditional sums, averages and extrema. Typed error criteria match the same error type and remain distinct from ordinary text such as `"#N/A"`. The nonblank criterion `"<>"` is supported. No-match `MINIFS`/`MAXIFS` return zero; extrema over matched nonnumeric values remain unevaluated. The [fresh native Excel reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-conditional-aggregates-v14.5-decode.json) covers empty averages, 98 typed-error and criterion cases, dependent error handlers, save/reopen and operand edits.
+
+`Calculate()` preserves referenced types for numeric aggregates. `MINA`, `MAXA` and `AVERAGEA` include Boolean values as one or zero and referenced text as zero, skip blank cells, and preserve typed errors. Empty `MINA` and `MAXA` ranges return zero; empty `AVERAGEA` ranges return `#DIV/0!`. Ordinary numeric aggregates skip referenced Boolean and text values, including numeric-looking strings. Boolean formula results and selected text results retain their types through references and saved caches. `SUMSQ`, `LARGE` and `SMALL` filter referenced data values; the rank argument keeps scalar coercion. Scalar numeric coercion remains available. Positional statistical helpers require numeric-only ranges; mixed-type series remain unevaluated rather than losing their paired coordinates.
+
+### Preflight a workbook before choosing a workflow
+
+```csharp
+using var document = ExcelDocument.Load(
+    "incoming.xlsx",
+    new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+
+ExcelFeatureReport report = document.InspectFeatures();
+
+try {
+    report.EnsureCan(ExcelPreflightCapability.EditWorkbookStructure);
+} catch (InvalidOperationException ex) {
+    Console.WriteLine(ex.Message);
+}
+
+if (!report.Can(ExcelPreflightCapability.ExportPdfReport)) {
+    Console.WriteLine(report.ToMarkdown());
+}
+```
+
+Use workflow preflight when an application needs to decide whether a workbook is safe for readback, cell-value edits, structure-changing edits, cached-formula reads, OfficeIMO formula calculation, template binding, or first-party PDF report export. Preserve-only features such as macros, unsupported imported interaction markup, threaded comments, external links, custom XML, OLE objects, and form controls are reported with package details instead of being silently ignored.
+
+### Package and VBA signatures
+
+`InspectSignatures()` and `OfficeDocument.Inspect(path, options).PackageSignatures` remain provider-free. Pass an optional security provider only when creating a package signature or validating its cryptography, package digests, certificate chain, and revocation. OPC timestamp elements are reported as structural evidence; this shared result surface does not claim timestamp-token validation:
+
+```csharp
+using OfficeIMO.Security;
+
+IOfficeSecurityProvider security = OfficeSecurityProvider.Default;
+ExcelDocument.SignPackageSignature("report.xlsx", security, signingCertificate);
+OfficePackageSignatureValidationReport validation =
+    ExcelDocument.ValidatePackageSignatures("report.xlsx", security);
+```
+
+`OfficeDocument.Inspect(path, options).VbaSignatures`, `ValidateVbaSignatures(...)`, and `SignVbaProject(...)` use the managed bounded VBA core shared with Word and PowerPoint. It creates and validates legacy, agile, and V3 carriers in `.xlsm`, `.xltm`, `.xlam`, and `.xlsb` on every supported platform through an explicit `IOfficeSecurityProvider`. A registered Microsoft Office SIP is an optional Windows differential check, not a signing dependency. Sign the VBA project before applying an OPC package signature.
+
+### DataTable and JSON exchange
+
+```csharp
+using System.Data;
+
+using var document = ExcelDocument.Load("data.xlsx");
+var sheet = document["Data"];
+
+DataTable table = sheet.ToDataTable("A1:C100");
+string json = sheet.ToJson("A1:C100");
+
+sheet.FromJson("[{\"Name\":\"Gamma\",\"Amount\":30}]", startRow: 8, startColumn: 1);
+```
+
+### Template markers
+
+```csharp
+using var document = ExcelDocument.Load("invoice-template.xlsx");
+
+int replacements = document.ApplyTemplate(new Dictionary<string, object?> {
+    ["Invoice.Number"] = "INV-001",
+    ["Customer.Name"] = "Adatum",
+    ["Total"] = 123.45m
+});
+
+var template = document.InspectTemplate(new {
+    Invoice = new { Number = "INV-001" },
+    Customer = new { Name = "Adatum" },
+    Total = 123.45m
+});
+
+template.EnsureAllMarkersBound();
+document.Save("invoice.xlsx");
+```
+
+### Comments and conditional formatting
+
+```csharp
+using var document = ExcelDocument.Load("review.xlsx");
+var sheet = document["Data"];
+
+sheet.SetComment("A1", "Review total", author: "Alice", initials: "AA");
+sheet.UpdateComments(new ExcelCommentFilter { TextContains = "total" }, "Total reviewed", author: "Carol", initials: "CC");
+
+sheet.AddConditionalColorScale("C2:C100", "#FFF0F0", "#70AD47");
+sheet.Range("D2:D100").ConditionalFormat.DataBar("#5B9BD5");
+
+// The same lifecycle covers imported classic and Office extension rules.
+var rules = sheet.GetConditionalFormattingRules("C2:D100");
+var copied = sheet.CloneConditionalFormattingRule(rules[0], "E2:E100");
+copied.Priority = 1;
+sheet.UpdateConditionalFormattingRule(copied);
+
+document.Save();
+```
+
+For extension-only visuals, use the same format-neutral model rather than a
+second Open XML-specific API:
+
+```csharp
+sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
+    Source = ExcelConditionalFormattingSource.Office2010Extension,
+    Range = "F2:F100",
+    Type = "DataBar",
+    DataBarColor = "FF4472C4",
+    DataBarBorderColor = "FF203864",
+    DataBarNegativeColor = "FFC00000",
+    DataBarAxisColor = "FF000000",
+    DataBarBorder = true,
+    DataBarGradient = false,
+    DataBarThresholds = new[] {
+        new ExcelConditionalFormatThreshold { Type = "AutoMin" },
+        new ExcelConditionalFormatThreshold { Type = "AutoMax" }
+    }
+});
+```
+
+`GetConditionalFormattingRules`, `AddConditionalFormattingRule`,
+`UpdateConditionalFormattingRule`, `CloneConditionalFormattingRule`,
+`ReorderConditionalFormattingRules`, `RemoveConditionalFormattingRule`, and
+`ClearConditionalFormatting` manage standard and Office extension rules through
+one API. Common edits do not reserialize unchanged formulas or visuals, so
+unrecognized imported attributes and extension children are retained. Excel
+image/PDF projection emits stable diagnostics when extension semantics are
+approximated or omitted; native XLS export rejects extension-only rules rather
+than silently discarding them.
+
+### Set several column widths
+
+Use `SetColumnWidths` to apply positive widths in one worksheet update:
+
+```csharp
+sheet.SetColumnWidths(new Dictionary<int, ExcelColumnWidth> {
+    [1] = ExcelColumnWidth.Characters(24),
+    [2] = ExcelColumnWidth.Length(OfficeLength.Centimeters(3)),
+    [3] = ExcelColumnWidth.Characters(18)
+});
+sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeLength.Points(24)));
+
+ExcelColumnWidth? columnWidth = sheet.GetColumnDefinitions()[0].Width;
+ExcelColumnWidth? rowHeight = sheet.GetRowDefinitions()[0].Height;
+Console.WriteLine(columnWidth?.CharacterCount);
+Console.WriteLine(rowHeight?.PhysicalLength?.ToPoints());
+```
+
+Indexes are 1-based. The method preserves column styles, visibility and outline
+metadata. It validates the complete map before changing widths and clamps widths
+above Excel's 255-character limit. Use `SetColumnWidth` to clear an individual
+custom width with `default` or a non-positive dimension. Physical widths resolve
+through the workbook default font and round to the nearest 96-DPI pixel. Row
+heights accept the same type: lengths retain their physical height, while
+characters use the default font digit advance without column padding.
+Manually assigned widths do not mark a column as already auto-fitted. A later
+`AutoFitColumns` or `AutoFitColumnsFor` can resize them, including after reopening
+the workbook.
+
+For sparse cells, `CellWrapTextFor` applies wrapping together and saves the
+stylesheet once while preserving each cell's other formatting:
+
+```csharp
+sheet.CellWrapTextFor(new[] { (Row: 1, Column: 1), (Row: 3, Column: 2) });
+```
+
+Coordinates are 1-based and the complete selection is validated before editing.
+Pass `wrapText: false` to clear wrapping for the selected cells.
+
+### Tune larger exports
+
+```csharp
+using var document = ExcelDocument.Create("large-report.xlsx");
+document.Execution.Mode = ExcelExecutionMode.Automatic;
+document.Execution.MaxDegreeOfParallelism = Environment.ProcessorCount;
+document.Execution.SaveWorksheetAfterAutoFit = false;
+```
+
+For a new workbook that only contains tabular data, use the bounded writer. It
+writes each source row once and keeps workbook metadata instead of source rows:
+
+```csharp
+using (var writer = ExcelDocument.CreateWriter("large-export.xlsx",
+    new ExcelWriterOptions { CreateTable = true, IncludeCellReferences = false })) {
+    writer.WriteTable("Events", rows);
+}
+```
+
+`WriteTable` accepts `IEnumerable<T>`, `IAsyncEnumerable<T>`, `DataTable`, or an
+open `IDataReader`. The caller retains ownership of a supplied reader. Use an
+explicit schema and callback to select columns or avoid property reflection:
+
+```csharp
+using (var writer = ExcelDocument.CreateWriter(output, leaveOpen: true)) {
+    await writer.WriteTable("Events", GetRowsAsync(cancellationToken),
+        new[] { "Id", "Name", "Created", "Active" },
+        static (row, item) => row.Write(item.Id).Write(item.Name)
+            .Write(item.Created).Write(item.Active), cancellationToken);
+}
+// Dispose finalizes the ZIP package before its bytes are read.
+output.Position = 0;
+```
+
+Both synchronous and asynchronous sources support tables. Inline text is the
+default. Shared-string planning and automatic column sizing use the editable
+workbook API, such as `sheet.InsertDataReader(...)` or `sheet.InsertDataTable(...)`
+followed by `document.Save(...)`; the bounded writer rejects those settings.
+
+Declare styles before writing when rows or columns need default formatting:
+
+```csharp
+var options = new ExcelWriterOptions {
+    Styles = new Dictionary<string, ExcelStyleDefinition> {
+        ["Emphasis"] = new() { Bold = true, BackgroundColor = OfficeColor.Yellow },
+        ["Amount"] = new() { NumberFormat = "0.00" }
+    },
+    DefaultRowStyle = "Emphasis",
+    ColumnStyles = new Dictionary<int, string> { [2] = "Amount" }
+};
+using (var writer = ExcelDocument.CreateWriter(output, options, leaveOpen: true)) {
+    writer.WriteTable("Data", rows, ["Name", "Amount", "Created", "Comment"],
+        static (row, item) => row.Write(item.Name).Write(item.Amount)
+            .Write(item.Created).Write(item.Comment));
+}
+```
+
+Styles form a fixed catalog, including automatic temporal variants, limited to
+64,000 cell formats. `DefaultRowStyle` applies to data rows. `ColumnStyles` uses
+1-based schema columns and formats the entire column, including headers.
+`SetRowStyle` selects a complete row style before its first cell; null clears
+the row default. `SetNextCellStyle` overrides the next cell. These selections
+do not merge individual properties. Dates and durations retain visual styles
+while receiving automatic number formats unless a definition supplies its own.
+`WriteBlank` writes a blank cell; `Write((string?)null)` retains empty-text behavior.
+Reader and DataTable database nulls become blank cells.
+
+Named definitions remain available through `GetNamedStyles` after loading the
+exported workbook. For an editable workbook, use `document.DefineNamedStyle(...)`
+and `sheet.ApplyNamedStyle(...)`.
+
+A file destination is published atomically when the writer is disposed after
+successful writes. A failed or canceled stream export may contain a partial
+package; discard or reset it before reuse. Pass `leaveOpen: true` when the caller
+owns the destination stream. Seek explicitly before reading it.
+
+On .NET 8 and later, UTF-8 text can be written without creating a string:
+
+```csharp
+byte[][] names = [System.Text.Encoding.UTF8.GetBytes("Zażółć 🚀")];
+using (var writer = ExcelDocument.CreateWriter(output, leaveOpen: true)) {
+    writer.WriteTable("Names", names, ["Name"],
+        static (row, utf8) => row.WriteUtf8(utf8));
+}
+```
+
+The callback consumes the bytes during the call, escapes XML markup, preserves
+whitespace and carriage returns, and rejects invalid UTF-8 or text longer than
+Excel's 32,767-character limit.
+
+### Fluent compose
+
+```csharp
+using var document = ExcelDocument.Create("composed-report.xlsx");
+
+document.Compose("Report", composer => {
+    composer.Title("Demo Report", "Generated with OfficeIMO.Excel");
+    composer.Callout("info", "Heads up", "Generated via the fluent API");
+    composer.Section("Summary");
+    composer.PropertiesGrid(new (string, object?)[] {
+        ("Author", "OfficeIMO"),
+        ("Date", DateTime.Today.ToString("yyyy-MM-dd"))
+    });
+
+    var items = new[] {
+        new { Name = "Alice", Score = 90, Status = "OK" },
+        new { Name = "Bob", Score = 80, Status = "Warning" }
+    };
+
+    composer.TableFrom(items, title: "Scores", visuals: visuals => {
+        visuals.NumericColumnDecimals["Score"] = 0;
+        visuals.TextBackgrounds["Status"] = new Dictionary<string, string> {
+            ["Warning"] = "#FFF3CD"
+        };
+    });
+
+    composer.HeaderFooter(header => header.Center("Demo Report").FooterRight("Page &P of &N"));
+    composer.Finish(autoFitColumns: true);
+});
+
+document.Save();
+```
+
+When rows already have a fixed schema, pass a `DataTable` directly. This keeps
+its column order and avoids generic object flattening. Fixed-schema tables allow
+up to 5,000,000 cells by default, including the header row. Set `MaxRows`,
+`MaxColumns`, or `MaxCells` in the configuration callback when a report needs a
+different bounded limit. Excel's worksheet row and column limits still apply;
+select or split data that exceeds them.
+
+```csharp
+using System.Data;
+using OfficeIMO.Excel;
+
+var rows = new DataTable("Members");
+rows.Columns.Add("Enabled", typeof(bool));
+rows.Columns.Add("AD State", typeof(string));
+rows.Rows.Add(true, "Enabled");
+rows.Rows.Add(false, "Disabled");
+
+using var document = ExcelDocument.Create("members.xlsx");
+document.Compose("Members", composer => {
+    composer.TableFrom(
+        rows,
+        title: "Members",
+        configure: options => options.Columns = new[] { "Enabled", "AD State" });
+    composer.Finish(autoFitColumns: true);
+});
+document.Save();
+```
+
+## Active worksheet
+
+`SetActiveWorksheet` chooses the worksheet that spreadsheet applications show when the workbook opens. `ActiveWorksheet` and `ActiveWorksheetIndex` read it back without building an inspection snapshot.
+
+```csharp
+document.SetActiveWorksheet("Details");
+ExcelSheet? active = document.ActiveWorksheet;
+int index = document.ActiveWorksheetIndex;
+```
+
+Both resolve the first workbook view's `activeTab` in workbook-tab order. A missing value selects the first tab, and a value past the last tab selects the last. `ActiveWorksheetIndex` is relative to `Sheets`, which contains worksheets only. When the selected tab is a preserved chartsheet or another non-worksheet tab, or the workbook has no worksheets, the getters report `null` and `-1`. Hidden worksheets cannot be set active.
+
+## Worksheet print areas
+
+Set one or several local A1 selections with `ExcelDocument.SetPrintArea`. Sheet names containing commas or apostrophes can be quoted; whole-row and whole-column selections are also supported.
+
+```csharp
+document.SetPrintArea(sheet, "B2:D20,F2:H20");
+IReadOnlyList<string> areas = sheet.GetPrintAreas();
+string? definedNameText = sheet.GetPrintArea();
+```
+
+`GetPrintAreas()` returns the individual stored references. `GetPrintArea()` returns the complete defined-name text. The setter validates all areas before replacing the previous selection and rejects references to another worksheet or workbook.
+
+Explicit row heights and `AutoFitRow`/`AutoFitRows` results are stored in points. Generated worksheets retain a neutral sheet view so desktop Excel reads those heights consistently. Clearing frozen panes retains other view settings and removes the pane and its selections. Auto-fit no longer inflates stored heights by 1.5; existing stored workbook heights remain unchanged when loaded.
+
+## Managed image export
+
+Ranges, worksheets, and workbook batches can be exported as PNG, JPEG, TIFF, lossless WebP, or SVG:
+
+```csharp
+using OfficeIMO.Drawing;
+
+byte[] tiff = sheet.Range("A1:F20").ToImage(new ExcelImageExportOptions {
+    Format = OfficeImageExportFormat.Tiff,
+    ShowGridlines = false,
+    RasterEncoding = new OfficeRasterEncodingOptions {
+        Tiff = new OfficeTiffEncodeOptions { Compression = OfficeTiffCompression.PackBits }
+    }
+});
+
+document.SaveAsImages("preview-images", new ExcelImageExportOptions {
+    SheetNames = new[] { "Summary", "Data" },
+    MaximumOutputWidth = 1600,
+    MaximumOutputHeight = 1200,
+    Format = OfficeImageExportFormat.Webp
+});
+
+sheet.SaveAsImages("print-area-pages", new ExcelImageExportOptions {
+    UsePrintArea = true,
+    SplitByManualPageBreaks = true,
+    ShowGridlines = false,
+    Format = OfficeImageExportFormat.Png
+});
+```
+
+Excel layout, print-title, page-setup, and header/footer composition stays in `OfficeIMO.Excel`; final sizing and encoding are delegated once to `OfficeIMO.Drawing`. Worksheet batches can use print-area segments or manual page breaks without routing through a workbook export.
+
+Charts use the same managed image contract and preserve their anchored dimensions:
+
+```csharp
+ExcelChart chart = sheet.AddChartFromTable("RevenueTable", row: 1, column: 5,
+    title: "Revenue trend");
+
+chart.SaveAsImage("revenue-chart.png", new ExcelImageExportOptions {
+    BackgroundColor = OfficeIMO.OfficeColor.White
+});
+chart.SaveAsImage("revenue-chart.svg", new ExcelImageExportOptions {
+    Format = OfficeImageExportFormat.Svg
+});
+```
+
+`ToImage(options)` returns encoded bytes. `ToImage(options, out report)` also supplies fidelity diagnostics; `ToImageAsync(options)` returns bytes and report together. Single-image and batch saves return `OfficeConversionReport`, preserve caller-owned streams and support cancellation. `FailOnLoss` rejects diagnosed loss before writing, and `FileConflictPolicy` controls existing files. One `ExcelImageExportOptions` type holds range, sheet, print-area, content, font and encoding settings. Fallback image-layout dimensions use `DefaultColumnWidth` and `DefaultRowHeight` as `OfficeLength` values.
+
+## Content provenance
+
+Add the `OfficeIMO` front-door package for the shared inspection entry point.
+
+`OfficeIMO.OfficeDocument.Inspect("input.xlsx", new OfficeIMO.OfficeInspectOptions { IncludeContent = false, Provenance = new OfficeProvenanceOptions() }).Provenance!` reports C2PA and AI-specific IPTC metadata in the workbook and its supported embedded images. `ExcelDocument.RemoveProvenance("input.xlsx", "clean.xlsx")` removes the selected carriers. Signed-package mutation is blocked unless `OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures` is selected explicitly. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.
+
+When the workbook is already in memory, inspect its encoded package bytes directly. This overload validates the package and inspects supported provenance without accessing the filesystem:
+
+```csharp
+using OfficeIMO.Excel;
+using OfficeIMO.Provenance;
+
+static OfficeProvenanceReport InspectUploadedExcel(byte[] packageBytes) =>
+    OfficeIMO.OfficeDocument.Inspect(new MemoryStream(packageBytes), "upload.xlsx",
+        new OfficeIMO.OfficeInspectOptions { IncludeContent = false, Provenance = new OfficeProvenanceOptions() }).Provenance!;
+```
+
+## Concealed-content inspection and cleanup
+
+`OfficeDocument.Inspect(path, new OfficeInspectOptions { ContentSafety = new OfficeContentSafetyOptions() }).ContentSafety` reports hidden sheets/rows/columns, zero geometry, tiny or transparent text, `;;;` hidden display formats, resolved low contrast, comments, hidden defined names, drawing runs/fields and ancestor groups, drawing alternative text, and Unicode evidence across XLSX/XLSM/XLSB and supported legacy XLS input. `ExcelDocument.RemoveSelectedContent(...)` clears only reviewed current payloads, isolates shared-string edits per referencing cell, and writes the original physical format. Conditional-format rendering is diagnosed rather than guessed; signed legacy XLS cleanup fails closed.
+
+## VBA source editing
+
+`ReadVbaProject()` and `SetVbaProject(OfficeVbaProject, ...)` use the
+[shared native VBA model](../OfficeIMO.Core/README.md#native-vba-projects).
+They read/edit source without executing it or requiring Office, Python, or a new
+runtime dependency:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel;
+
+var project = OfficeVbaProject.Create("Automation");
+project.AddModule("Helpers",
+    "Public Function Value() As Long\r\nValue = 42\r\nEnd Function\r\n");
+using var document = ExcelDocument.Create("automation.xlsm");
+document.AddSheet("Data");
+document.SetVbaProject(project);
+document.Save();
+```
+
+For an existing workbook, load it, call `ReadVbaProject()`, edit the detached
+project, and apply it with `SetVbaProject`. Workbook document modules retain their
+base-class identity and must match an existing workbook code name. Worksheet and
+chart-sheet modules must match exactly one existing sheet code name and host type;
+the display name is not used to infer a binding. Foreign document classes are rejected.
+Save in a macro-enabled Open XML format. Source and reference edits preserve unrelated
+workbook parts and follow the shared model's preservation policy.
+
+Changing a signed VBA project fails by default. Pass
+`new OfficeVbaWriteOptions { AllowSignatureRemoval = true }` to remove invalidated
+VBA signatures explicitly, then re-sign the edited project. An unchanged project
+keeps its original bytes and signatures. This source API does not edit the VBA
+carrier in binary `.xls` or `.xlsb` files.

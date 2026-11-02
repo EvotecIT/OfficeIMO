@@ -1,5 +1,7 @@
 using System.Management.Automation;
+using OfficeIMO;
 using OfficeIMO.Visio;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Visio;
 
 namespace PSWriteOffice.Cmdlets.Visio;
@@ -8,18 +10,18 @@ namespace PSWriteOffice.Cmdlets.Visio;
 /// <example>
 ///   <summary>Add a second diagram page.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>OfficeVisio -Path .\Workbook.vsdx {
-///     VisioPage -Name 'Architecture' {
-///         VisioRectangle -Key api -Text 'API' -X 2 -Y 4
+///   <code>New-OfficeVisio -Path .\Workbook.vsdx {
+///     VisioPage -Name 'Architecture' -Width 11in -Height 8.5in {
+///         VisioRectangle -Key api -Text 'API' -X 2in -Y 4in
 ///     }
 /// }</code>
 ///   <para>Adds a named page and executes the nested shape DSL inside that page scope.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeVisioPage")]
+[Cmdlet(VerbsCommon.Add, "OfficeVisioPage", DefaultParameterSetName = "Document")]
 [Alias("VisioPage")]
 [OutputType(typeof(VisioPage))]
 public sealed class AddOfficeVisioPageCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
-    /// <summary>Target Visio document. Optional inside <c>OfficeVisio</c>.</summary>
+    /// <summary>Target Visio document. Optional inside <c>New-OfficeVisio</c>.</summary>
     [Parameter(ValueFromPipeline = true)]
     public VisioDocument? Document { get; set; }
 
@@ -28,16 +30,16 @@ public sealed class AddOfficeVisioPageCommand : PSWriteOffice.Cmdlets.OfficeMuta
     public string Name { get; set; } = string.Empty;
 
     /// <summary>Page width.</summary>
-    [Parameter]
-    public double Width { get; set; } = 8.26771653543307;
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength Width { get; set; } = OfficeLength.Millimeters(210);
 
     /// <summary>Page height.</summary>
-    [Parameter]
-    public double Height { get; set; } = 11.69291338582677;
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength Height { get; set; } = OfficeLength.Millimeters(297);
 
-    /// <summary>Measurement unit for width and height.</summary>
+    /// <summary>Measurement unit displayed by Visio, independent of geometry input units.</summary>
     [Parameter]
-    public VisioMeasurementUnit Unit { get; set; } = VisioMeasurementUnit.Inches;
+    public VisioMeasurementUnit DisplayUnit { get; set; } = VisioMeasurementUnit.Inches;
 
     /// <summary>Nested DSL content executed within this page scope.</summary>
     [Parameter(Position = 1)]
@@ -47,7 +49,9 @@ public sealed class AddOfficeVisioPageCommand : PSWriteOffice.Cmdlets.OfficeMuta
     protected override void ProcessRecord() {
         var context = VisioDslContext.Current;
         var document = Document ?? (context ?? VisioDslContext.Require(this)).Document;
-        var page = document.AddPage(Name, Width, Height, Unit);
+        var page = document.AddPage(Name, Width.ToInches(), Height.ToInches());
+        page.DefaultUnit = DisplayUnit;
+        page.ScaleMeasurementUnit = DisplayUnit;
 
         if (Content != null) {
             if (context != null) {

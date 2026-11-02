@@ -7,10 +7,10 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class OperationalTrends {
     internal static void Create(string folder) {
         using ExcelDocument document = ExcelDocument.Create(Path.Combine(folder, "example.xlsx"));
-        var sheet = document.AddWorksheet("Weekly trend");
-        sheet.SetColumnWidth(1, 26); sheet.SetColumnWidth(2, 24); sheet.SetColumnWidth(3, 24); sheet.SetColumnWidth(4, 22);
+        var sheet = document.AddSheet("Weekly trend");
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(26)); sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(24)); sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(24)); sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(22));
         sheet.MergeRange("A1:D1"); sheet.Cell(1, 1, "Support workload over six weeks");
-        sheet.CellFontSize(1, 1, 20); sheet.CellBold(1, 1, true); sheet.CellFontColor(1, 1, "17365D");
+        sheet.CellFontSize(1, 1, global::OfficeIMO.OfficeLength.Points(20)); sheet.CellBold(1, 1, true); sheet.CellFontColor(1, 1, "17365D");
         string[] headers = { "Week", "Received", "Resolved", "Net change" };
         for (int column = 1; column <= 4; column++) sheet.Cell(4, column, headers[column - 1]);
         int[] received = { 82, 95, 88, 105, 97, 91 }, resolved = { 79, 90, 94, 98, 104, 100 };
@@ -20,8 +20,7 @@ internal static class OperationalTrends {
             sheet.CellFormula(row, 4, $"B{row}-C{row}");
         }
         sheet.AddTable("A4:D10", hasHeader: true, name: "WeeklyWorkload", style: ExcelTableStyle.TableStyleMedium2);
-        sheet.AddChartFromRange("A4:C10", row: 13, column: 1, widthPixels: 620, heightPixels: 300,
-            type: ExcelChartType.Line, title: "Received and resolved requests");
+        sheet.AddChart(OfficeChartType.Line, "A4:C10", new OfficeIMO.Excel.ExcelChartOptions { Row = 13, Column = 1, Width = OfficeLength.Pixels(620), Height = OfficeLength.Pixels(300), Title = "Received and resolved requests" });
         document.Calculate();
         sheet.Range("A1:D30").ExportImage(OfficeImageExportFormat.Png).Save(Path.Combine(folder, "preview.png"), OfficeImageExportFileConflictPolicy.Replace);
         document.Save();

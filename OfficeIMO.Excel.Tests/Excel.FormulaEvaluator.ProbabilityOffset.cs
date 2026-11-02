@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaEvaluator_ProbabilityNumericVectorsAndTypedFailures() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Distribution");
+            var sheet = document.AddSheet("Distribution");
             double[] probabilities = { .2, .3, .1, .4 };
             for (int index = 0; index < 4; index++) {
                 sheet.CellValue(index + 1, 1, index);
@@ -31,8 +31,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaEvaluator_OffsetReferencesUseLiveCrossSheetInputsAndBounds() {
             using var document = ExcelDocument.Create();
-            var source = document.AddWorksheet("Source data");
-            var sheet = document.AddWorksheet("Results");
+            var source = document.AddSheet("Source data");
+            var sheet = document.AddSheet("Results");
             source.CellValue(1, 1, 10d); source.CellValue(2, 1, 20d); source.CellValue(3, 1, 30d);
             sheet.CellValue(1, 1, 1d);
             string[] formulas = { "OFFSET('Source data'!A1,A1,0)", "SUM(OFFSET('Source data'!A1,A1,0,2,1))",
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaEvaluator_RandomBetweenIntegerBoundsAndDependencyCaches() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Random");
+            var sheet = document.AddSheet("Random");
             sheet.CellValue(1, 1, 7d);
             sheet.CellFormula(1, 2, "RANDBETWEEN(A1,A1)");
             sheet.CellFormula(2, 2, "RANDBETWEEN(-2,2)");
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaEvaluator_UnqualifiedProbabilityAndReferencePathsPreserveCaches() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Bounds");
+            var sheet = document.AddSheet("Bounds");
             string[] formulas = { "PROB(A1:A50001,B1:B50001,1)", "SUM(OFFSET(A1,0,0,100001,1))",
                 "RANDBETWEEN(7.1,7.1)", "RANDBETWEEN(9007199254740992,9007199254740992)", "PROB(A1:A2,B1:B2,1)",
                 "OFFSET(A1,0,0,2,1)", "PROB(A1:A2,B1:B2,,2)" };
@@ -102,9 +102,9 @@ namespace OfficeIMO.Tests {
         public void Test_FormulaEvaluator_WorkbookVolatileDependenciesUseOnePassAcrossSheets() {
             using var document = ExcelDocument.Create();
             // Cover both dependency-before-source and source-before-dependency order.
-            var first = document.AddWorksheet("First");
-            var source = document.AddWorksheet("Random");
-            var last = document.AddWorksheet("Last");
+            var first = document.AddSheet("First");
+            var source = document.AddSheet("Random");
+            var last = document.AddSheet("Last");
             source.CellValue(1, 2, 7d);
             source.CellFormula(1, 1, "RANDBETWEEN(-2147483648,2147483647)");
             source.CellFormula(2, 1, "RANDBETWEEN(B1,B1)");
@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaEvaluator_OffsetErrorsPropagateThroughReferenceConsumers() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("References");
+            var sheet = document.AddSheet("References");
             sheet.CellValue(1, 1, 1d); sheet.CellValue(1, 2, 1d);
             string[] formulas = { "OFFSET(OFFSET(A1,-1,0),0,0)", "ROWS(OFFSET(A1,-1,0))",
                 "COLUMNS(OFFSET(A1,-1,0))", "ROW(OFFSET(A1,-1,0))", "COLUMN(OFFSET(A1,-1,0))",
@@ -153,7 +153,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaEvaluator_UnsupportedInputsDoNotBecomeErrorsInsideWrappers() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Unsupported");
+            var sheet = document.AddSheet("Unsupported");
             string[] expressions = { "RANDBETWEEN(7.1,7.1)", "RANDBETWEEN(9007199254740992,9007199254740992)",
                 "PROB(A1:A2,B1:B2,1)", "PROB(A1:A50001,B1:B50001,1)",
                 "OFFSET(A1,0,0,2,1)", "SUM(OFFSET(A1,0,0,100001,1))", "SUM(A1:A100001)",
@@ -175,7 +175,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaEvaluator_CompletedLookupSearchesReturnTypedMissingMatches() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Search");
+            var sheet = document.AddSheet("Search");
             sheet.CellValue(1, 1, 1d); sheet.CellValue(1, 2, 10d);
             string[] searches = { "VLOOKUP(2,A1:B1,2,FALSE)", "HLOOKUP(2,A1:A2,2,FALSE)",
                 "XLOOKUP(2,A1:A1,B1:B1)", "MATCH(2,A1:A1,0)", "XMATCH(2,A1:A1,0)" };
@@ -194,7 +194,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaEvaluator_ExactLookupSkipsSourceErrorsButStopsAtVisitedUnresolvedEntries() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("SearchOrder");
+            var sheet = document.AddSheet("SearchOrder");
             sheet.CellValue(1, 1, 1d); sheet.CellFormula(2, 1, "NA()");
             sheet.CellValue(1, 2, 10d); sheet.CellValue(2, 2, 20d);
             string[] formulas = { "XLOOKUP(1,A1:A2,B1:B2)", "MATCH(1,A1:A2,0)", "XMATCH(1,A1:A2,0)",

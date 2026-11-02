@@ -8,7 +8,7 @@ public sealed partial class PdfAttachmentAuthoringBudgetTests {
     [InlineData(0L)]
     [InlineData(-1L)]
     public void NonPositiveLimitsLeaveTheConfiguredDefaultsIntact(long invalid) {
-        var catalog = new PdfOptions();
+        var catalog = new PdfCreateOptions();
         var structure = new PdfCanvasStructureOptions();
 
         Assert.Throws<ArgumentOutOfRangeException>(() => catalog.MaxEmbeddedFileBytes = invalid);
@@ -26,7 +26,7 @@ public sealed partial class PdfAttachmentAuthoringBudgetTests {
     [InlineData(false)]
     [InlineData(true)]
     public void CatalogAdmissionRejectsWithoutConsumingCapacityAndClearReleasesIt(bool descriptor) {
-        var options = new PdfOptions { MaxEmbeddedFileBytes = 4, MaxTotalEmbeddedFileBytes = 6 };
+        var options = new PdfCreateOptions { MaxEmbeddedFileBytes = 4, MaxTotalEmbeddedFileBytes = 6 };
         AddCatalogFile(options, "first.bin", new byte[] { 1, 2, 3 }, descriptor);
 
         Assert.Throws<InvalidDataException>(() => AddCatalogFile(options, "oversized.bin", new byte[5], descriptor));
@@ -48,7 +48,7 @@ public sealed partial class PdfAttachmentAuthoringBudgetTests {
 
     [Fact]
     public void LowerCatalogLimitsRejectAtomicallyWhenExistingFilesDoNotFit() {
-        var options = new PdfOptions { MaxEmbeddedFileBytes = 4, MaxTotalEmbeddedFileBytes = 6 }
+        var options = new PdfCreateOptions { MaxEmbeddedFileBytes = 4, MaxTotalEmbeddedFileBytes = 6 }
             .AddEmbeddedFile("first.bin", new byte[] { 1, 2, 3, 4 })
             .AddEmbeddedFile("second.bin", new byte[] { 5, 6 });
 
@@ -64,10 +64,10 @@ public sealed partial class PdfAttachmentAuthoringBudgetTests {
 
     [Fact]
     public void ClonePreservesLimitsAndOccupiedCapacityWithoutSharingCollectionChanges() {
-        var options = new PdfOptions { MaxEmbeddedFileBytes = 4, MaxTotalEmbeddedFileBytes = 6 }
+        var options = new PdfCreateOptions { MaxEmbeddedFileBytes = 4, MaxTotalEmbeddedFileBytes = 6 }
             .AddEmbeddedFile("first.bin", new byte[] { 1, 2, 3, 4 });
 
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
         options.ClearEmbeddedFiles().AddEmbeddedFile("replacement.bin", new byte[] { 9 });
 
         Assert.Equal(4, clone.MaxEmbeddedFileBytes);
@@ -81,7 +81,7 @@ public sealed partial class PdfAttachmentAuthoringBudgetTests {
     [Fact]
     public void DocumentSettingsKeepClonedLimitsAndCapacityAcrossComposedPages() {
         byte[] payload = { 1, 2, 3 };
-        var options = new PdfOptions { MaxEmbeddedFileBytes = 3, MaxTotalEmbeddedFileBytes = 6 }
+        var options = new PdfCreateOptions { MaxEmbeddedFileBytes = 3, MaxTotalEmbeddedFileBytes = 6 }
             .AddEmbeddedFile("first.bin", payload);
         var document = PdfDocument.Create(options).Compose(compose => compose
             .Page(page => page.Content(content => content.Text("First page")))
@@ -129,7 +129,7 @@ public sealed partial class PdfAttachmentAuthoringBudgetTests {
     [Fact]
     public void CallerCanRaiseAdmissionLimitsForAnAlreadyConstructedDescriptor() {
         var descriptor = File("trusted.bin", new byte[] { 1, 2, 3, 4, 5 });
-        var options = new PdfOptions { MaxEmbeddedFileBytes = 4, MaxTotalEmbeddedFileBytes = 4 };
+        var options = new PdfCreateOptions { MaxEmbeddedFileBytes = 4, MaxTotalEmbeddedFileBytes = 4 };
         Assert.Throws<InvalidDataException>(() => options.AddEmbeddedFile(descriptor));
         Assert.Empty(options.EmbeddedFiles);
         Assert.Equal(new byte[] { 1, 2, 3, 4, 5 }, descriptor.Data);
@@ -146,7 +146,7 @@ public sealed partial class PdfAttachmentAuthoringBudgetTests {
 
     [Fact]
     public void PositiveLongLimitsRemainUsableForCatalogAndStructureFiles() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers,
             MaxEmbeddedFileBytes = long.MaxValue,
             MaxTotalEmbeddedFileBytes = long.MaxValue
@@ -156,7 +156,7 @@ public sealed partial class PdfAttachmentAuthoringBudgetTests {
             MaxTotalAssociatedFileBytes = long.MaxValue
         }.AddAssociatedFile(File("structure.bin", new byte[] { 4, 5, 6 }));
         var document = PdfDocument.Create(options).Canvas(canvas => canvas.Structure(
-            PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20), structure));
+            PdfCanvasStructureRole.Formula, nested => nested.Text("x", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)), structure));
 
         Assert.Equal(long.MaxValue, options.Clone().MaxTotalEmbeddedFileBytes);
         Assert.Equal(2, PdfAttachmentExtractor.ExtractAttachments(document.ToBytes()).Count);
@@ -169,7 +169,7 @@ public sealed partial class PdfAttachmentAuthoringBudgetTests {
     [InlineData(true, true)]
     public void InvoiceConvenienceAdmissionPreservesExistingSettings(bool groundwork, bool aggregate) {
         byte[] invoice = InvoiceXml();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             MaxEmbeddedFileBytes = aggregate ? invoice.Length : invoice.Length - 1,
             MaxTotalEmbeddedFileBytes = invoice.Length + 1,
             ElectronicInvoiceMetadata = PdfElectronicInvoiceMetadata.FacturX("BASIC"),
@@ -192,7 +192,7 @@ public sealed partial class PdfAttachmentAuthoringBudgetTests {
         Assert.Null(options.OutputIntent);
     }
 
-    private static void AddCatalogFile(PdfOptions options, string name, byte[] bytes, bool descriptor) {
+    private static void AddCatalogFile(PdfCreateOptions options, string name, byte[] bytes, bool descriptor) {
         if (descriptor) options.AddEmbeddedFile(File(name, bytes));
         else options.AddEmbeddedFile(name, bytes, "application/octet-stream");
     }

@@ -768,7 +768,7 @@ namespace OfficeIMO.Excel {
                 pendingOwner._pendingCellValueDirectSaveBuffer.EnumerateWrittenCells()) {
                 if (ownerIsTarget
                     && pending.Row >= firstRow
-                    && (long)pending.Row + count > A1.MaxRows) {
+                    && (long)pending.Row + count > ExcelA1.MaxRows) {
                     throw new InvalidOperationException(
                         "Inserting rows would move a pending worksheet cell beyond Excel's row limit.");
                 }

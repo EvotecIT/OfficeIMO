@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///   <code>ExcelSheet 'Data' { Set-OfficeExcelColumnGroup -StartColumn B -EndColumn D -Collapsed }</code>
 ///   <para>Applies Excel column outline metadata using OfficeIMO.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeExcelColumnGroup")]
+[Cmdlet(VerbsCommon.Set, "OfficeExcelColumnGroup", DefaultParameterSetName = "Default")]
 [Alias("ExcelColumnGroup")]
 public sealed class SetOfficeExcelColumnGroupCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     /// <summary>First 1-based column in the group.</summary>

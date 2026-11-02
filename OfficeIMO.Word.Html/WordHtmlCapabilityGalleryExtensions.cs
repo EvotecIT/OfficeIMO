@@ -7,7 +7,7 @@ namespace OfficeIMO.Word.Html {
     /// <summary>
     /// Capability-gallery helpers for HTML-to-Word-to-HTML roundtrip proof artifacts.
     /// </summary>
-    public static class WordHtmlCapabilityGalleryExtensions {
+    internal static class WordHtmlCapabilityGalleryExtensions {
         private const string WordDocumentMediaType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
         /// <summary>
@@ -31,11 +31,11 @@ namespace OfficeIMO.Word.Html {
             string manifestPath = Path.Combine(directoryPath, filePrefix + ".manifest.md");
             string manifestJsonPath = Path.Combine(directoryPath, filePrefix + ".manifest.json");
 
-            HtmlToWordOptions importOptions = CreateImportOptions(options.ImportOptions);
-            WordToHtmlOptions exportOptions = CreateExportOptions(options.ExportOptions);
-            HtmlToWordResult importResult = source.ToWordDocumentResult(importOptions);
+            WordHtmlImportOptions importOptions = CreateImportOptions(options.ImportOptions);
+            WordHtmlExportOptions exportOptions = CreateExportOptions(options.ExportOptions);
+            HtmlToWordResult importResult = source.ConvertToWordWithEvidence(importOptions);
             using WordDocument document = importResult.RequireValue();
-            using MemoryStream packageStream = document.ToStream();
+            using MemoryStream packageStream = new MemoryStream(document.ToBytes());
             string roundTripHtml = document.ToHtml(exportOptions);
 
             HtmlCapabilityGalleryArtifact sourceArtifact = HtmlCapabilityGalleryArtifact.WriteTextFile("source", "input-html", inputPath, "text/html", source.SourceHtml);
@@ -78,18 +78,18 @@ namespace OfficeIMO.Word.Html {
             return manifest;
         }
 
-        private static HtmlToWordOptions CreateImportOptions(HtmlToWordOptions? options) {
-            HtmlToWordOptions importOptions = options?.Clone() ?? HtmlToWordOptions.CreateUntrustedHtmlProfile();
+        private static WordHtmlImportOptions CreateImportOptions(WordHtmlImportOptions? options) {
+            WordHtmlImportOptions importOptions = options?.Clone() ?? WordHtmlImportOptions.CreateUntrustedHtmlProfile();
             importOptions.EnableAccessibilityDiagnostics = true;
             return importOptions;
         }
 
-        private static WordToHtmlOptions CreateExportOptions(WordToHtmlOptions? options) {
+        private static WordHtmlExportOptions CreateExportOptions(WordHtmlExportOptions? options) {
             if (options != null) {
                 return options;
             }
 
-            return WordToHtmlOptions.CreateDocumentRoundTripProfile(OfficeIMO.Drawing.OfficeVisualThemeKind.Report);
+            return WordHtmlExportOptions.CreateDocumentRoundTripProfile(OfficeIMO.Drawing.OfficeVisualThemeKind.Report);
         }
 
         private static void AppendOpenXmlValidationDiagnostics(ICollection<HtmlDiagnostic> diagnostics, MemoryStream packageStream) {
@@ -139,7 +139,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (ContainsAny(html, "<!--")) {
-                expectations.Add(new HtmlCapabilityGalleryExpectation("comments", HtmlCapabilityGalleryExpectationOutcome.Reported, "HtmlCommentSkipped diagnostic is present"));
+                expectations.Add(new HtmlCapabilityGalleryExpectation("comments", HtmlCapabilityGalleryExpectationOutcome.Reported, "html-comment-skipped diagnostic is present"));
             }
 
             expectations.Add(new HtmlCapabilityGalleryExpectation("docx package", HtmlCapabilityGalleryExpectationOutcome.Preserved, "generated DOCX passes OpenXML validation"));

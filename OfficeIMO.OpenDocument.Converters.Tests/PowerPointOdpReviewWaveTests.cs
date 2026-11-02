@@ -19,7 +19,7 @@ public sealed class PowerPointOdpReviewWaveTests {
 
     [Fact]
     public void WhitespaceSlideNameDoesNotCollideWithGeneratedName() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         source.AddSlide(PowerPointSlideLayoutType.Blank).Name = " ";
         source.AddSlide(PowerPointSlideLayoutType.Blank).Name = "Slide1";
 
@@ -45,11 +45,11 @@ public sealed class PowerPointOdpReviewWaveTests {
             .SetAttributeValue(Table + "visibility", visibility);
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation converted = conversion.Value;
+        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        using PowerPointDocument converted = conversion.Value;
         AssertLoss(conversion.Report, "shape-accessibility");
         AssertLoss(conversion.Report, "table-visibility");
-        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointDocumentResult(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -63,14 +63,14 @@ public sealed class PowerPointOdpReviewWaveTests {
                     new XElement(Svg + "font-face-uri"))));
         source.Package.MarkXmlDirty("styles.xml");
 
-        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation converted = conversion.Value;
+        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        using PowerPointDocument converted = conversion.Value;
         AssertLoss(conversion.Report, "embedded-fonts");
     }
 
     [Fact]
     public void ThemeBackgroundAndAdvanceOnlyTransitionRemainExplicitLoss() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         source.AddSlide(PowerPointSlideLayoutType.Blank);
         Slide slide = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!;
         slide.CommonSlideData!.Background = new Background(new BackgroundStyleReference(
@@ -86,7 +86,7 @@ public sealed class PowerPointOdpReviewWaveTests {
 
     [Fact]
     public void SystemColorSlideBackgroundRemainsExplicitLoss() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         source.AddSlide(PowerPointSlideLayoutType.Blank);
         Slide slide = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!;
         slide.CommonSlideData!.Background = new Background(new BackgroundProperties(new A.SolidFill(
@@ -100,13 +100,13 @@ public sealed class PowerPointOdpReviewWaveTests {
 
     [Fact]
     public void AuthoredPowerPointParagraphLayoutRemainsExplicitLoss() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointTextBox box = source.AddSlide(PowerPointSlideLayoutType.Blank)
-            .AddTextBoxPoints("Indented", 20, 20, 200, 40);
+            .AddTextBox("Indented",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         PowerPointParagraph paragraph = box.Paragraphs.Single();
-        paragraph.LeftMarginPoints = 24;
-        paragraph.IndentPoints = -12;
-        paragraph.SpaceBeforePoints = 8;
+        paragraph.LeftMargin = global::OfficeIMO.OfficeLength.Points(24);
+        paragraph.Indent = global::OfficeIMO.OfficeLength.Points(-12);
+        paragraph.SpaceBefore = global::OfficeIMO.OfficeLength.Points(8);
         source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<A.ParagraphProperties>().First().DefaultTabSize = 914400;
 
@@ -116,8 +116,8 @@ public sealed class PowerPointOdpReviewWaveTests {
 
     [Fact]
     public void PowerPointDefaultTabIntervalAloneRemainsExplicitLoss() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
-        source.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBoxPoints("A\tB", 20, 20, 200, 40);
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
+        source.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("A\tB",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         A.Paragraph paragraph = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<A.Paragraph>().Single();
         paragraph.ParagraphProperties ??= new A.ParagraphProperties();

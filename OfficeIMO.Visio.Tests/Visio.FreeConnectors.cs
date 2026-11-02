@@ -33,7 +33,7 @@ public class VisioFreeConnectorTests {
         var projected = saved.ToOfficeDocumentModel();
         Assert.Contains(projected.Blocks, block => block.Text == "(2, 2) in -> target");
         Assert.Contains("(2, 2) in -> target", saved.ToOfficeDocumentReadResult().Chunks[0].Text);
-        var snapshot = Assert.Single(saved.CreateInspectionSnapshot().Pages[0].Connectors);
+        var snapshot = Assert.Single(saved.Inspect().Pages[0].Connectors);
         Assert.Null(snapshot.FromId); AssertPoint(2, 2, snapshot.StartPoint);
         Assert.Single(saved.Pages[0].IncomingConnectors(saved.Pages[0].Shapes[0]));
         Assert.Empty(saved.Pages[0].ConnectedShapes(saved.Pages[0].Shapes[0]));

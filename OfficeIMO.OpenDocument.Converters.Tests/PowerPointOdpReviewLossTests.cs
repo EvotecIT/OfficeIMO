@@ -14,11 +14,11 @@ namespace OfficeIMO.OpenDocument.Converters.Tests;
 public sealed class PowerPointOdpReviewLossTests {
     [Fact]
     public void EditableCustomShowAndAnimationRemainStrictConversionLoss() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(),
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(),
             new PowerPointCreateOptions());
         PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
         source.AddCustomShow("Executive path", new[] { slide });
-        PowerPointAutoShape shape = slide.AddRectangle(100000, 100000, 1200000, 500000);
+        PowerPointAutoShape shape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1200000), OfficeIMO.OfficeLength.Emus(500000));
         slide.AddClassicAnimation(shape, PowerPointClassicAnimationEffect.Wipe);
 
         OdfConversionResult<OdpPresentation> result = source.ToOpenDocumentResult();
@@ -32,7 +32,7 @@ public sealed class PowerPointOdpReviewLossTests {
 
     [Fact]
     public void AuthoredNotesMasterAppearanceRemainsStrictConversionLoss() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(),
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(),
             new PowerPointCreateOptions());
         PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
         slide.Notes.Text = "Speaker text";
@@ -49,7 +49,7 @@ public sealed class PowerPointOdpReviewLossTests {
 
     [Fact]
     public void ChangedNotesMasterPlaceholderGeometryRemainsStrictConversionLoss() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(),
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(),
             new PowerPointCreateOptions());
         PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
         slide.Notes.Text = "Speaker text";
@@ -72,7 +72,7 @@ public sealed class PowerPointOdpReviewLossTests {
 
     [Fact]
     public void EditableReviewCommentsRemainStrictConversionLoss() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(),
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(),
             new PowerPointCreateOptions());
         PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
         source.AddClassicComment(slide, new PowerPointCommentAuthor("Reviewer"), "Please revise");
@@ -86,7 +86,7 @@ public sealed class PowerPointOdpReviewLossTests {
 
     [Fact]
     public void PowerPointMetadataMapsCommonFieldsAndReportsOtherProperties() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(),
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(),
             new PowerPointCreateOptions());
         source.AddSlide(PowerPointSlideLayoutType.Blank);
         source.BuiltinDocumentProperties.Title = "Quarterly slides";
@@ -108,18 +108,18 @@ public sealed class PowerPointOdpReviewLossTests {
 
     [Fact]
     public void SlideNamesRoundTripInBothDirections() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(),
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(),
             new PowerPointCreateOptions());
         source.AddSlide(PowerPointSlideLayoutType.Blank).Name = "Quarterly forecast";
         OdpPresentation odp = source.ToOpenDocument();
         Assert.Equal("Quarterly forecast", odp.Slides[0].Name);
-        using PowerPointPresentation reopened = odp.ToPowerPointPresentation();
+        using PowerPointDocument reopened = odp.ToPowerPointDocument();
         Assert.Equal("Quarterly forecast", reopened.Slides[0].Name);
     }
 
     [Fact]
     public void DuplicatePowerPointSlideNamesAreUniquifiedWithLoss() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(),
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(),
             new PowerPointCreateOptions());
         source.AddSlide(PowerPointSlideLayoutType.Blank).Name = "Forecast";
         source.AddSlide(PowerPointSlideLayoutType.Blank).Name = "Forecast";
@@ -134,7 +134,7 @@ public sealed class PowerPointOdpReviewLossTests {
 
     [Fact]
     public void PackageLanguageMapsAndOtherCoreFieldsReportLoss() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(),
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(),
             new PowerPointCreateOptions());
         source.AddSlide(PowerPointSlideLayoutType.Blank);
         source.OpenXmlDocument.PackageProperties.Language = "en-US";
@@ -161,12 +161,12 @@ public sealed class PowerPointOdpReviewLossTests {
         slide.Element.Add(new XElement(OdfNamespaces.Anim + "par",
             new XElement(OdfNamespaces.Anim + action)));
         source.Package.MarkXmlDirty("content.xml");
-        OdfConversionResult<PowerPointPresentation> result = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = result.Value;
+        OdfConversionResult<PowerPointDocument> result = source.ToPowerPointDocumentResult();
+        using PowerPointDocument target = result.Value;
         Assert.Contains(result.Report.Mappings, mapping =>
             mapping.Feature == "source-presentation-animations" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointDocumentResult(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -182,11 +182,11 @@ public sealed class PowerPointOdpReviewLossTests {
         slide.MasterPageName = "Corporate";
         slide.LayoutName = "BoardLayout";
         source.Package.MarkXmlDirty("styles.xml");
-        OdfConversionResult<PowerPointPresentation> result = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = result.Value;
+        OdfConversionResult<PowerPointDocument> result = source.ToPowerPointDocumentResult();
+        using PowerPointDocument target = result.Value;
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "masters-layouts" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointDocumentResult(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -198,8 +198,8 @@ public sealed class PowerPointOdpReviewLossTests {
             .Descendants(OdfNamespaces.Style + "master-page").Single()
             .SetAttributeValue(OdfNamespaces.Style + "display-name", "Corporate template");
         source.Package.MarkXmlDirty("styles.xml");
-        OdfConversionResult<PowerPointPresentation> result = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = result.Value;
+        OdfConversionResult<PowerPointDocument> result = source.ToPowerPointDocumentResult();
+        using PowerPointDocument target = result.Value;
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "masters-layouts" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
     }
@@ -212,17 +212,17 @@ public sealed class PowerPointOdpReviewLossTests {
             .Descendants(OdfNamespaces.Style + "page-layout-properties").Single()
             .SetAttributeValue(OdfNamespaces.Fo + "margin", "1cm");
         source.Package.MarkXmlDirty("styles.xml");
-        OdfConversionResult<PowerPointPresentation> result = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = result.Value;
+        OdfConversionResult<PowerPointDocument> result = source.ToPowerPointDocumentResult();
+        using PowerPointDocument target = result.Value;
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "masters-layouts" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointDocumentResult(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
     [Fact]
     public void AuthoredPowerPointMasterNameRemainsStrictLoss() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(),
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(),
             new PowerPointCreateOptions());
         source.AddSlide(PowerPointSlideLayoutType.Blank);
         source.OpenXmlDocument.PresentationPart!.SlideMasterParts.Single().SlideMaster!
@@ -236,7 +236,7 @@ public sealed class PowerPointOdpReviewLossTests {
 
     [Fact]
     public void AuthoredMasterTextStylesReportLossWithoutSlideText() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(),
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(),
             new PowerPointCreateOptions());
         source.AddSlide(PowerPointSlideLayoutType.Blank);
         source.OpenXmlDocument.PresentationPart!.SlideMasterParts.Single().SlideMaster!.TextStyles!
@@ -249,7 +249,7 @@ public sealed class PowerPointOdpReviewLossTests {
 
     [Fact]
     public void AuthoredPowerPointMasterColorMapReportsLoss() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(),
+        using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(),
             new PowerPointCreateOptions());
         source.AddSlide(PowerPointSlideLayoutType.Blank);
         source.OpenXmlDocument.PresentationPart!.SlideMasterParts.Single()
@@ -282,13 +282,13 @@ public sealed class PowerPointOdpReviewLossTests {
         source.Package.MarkXmlDirty("styles.xml");
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<PowerPointPresentation> result = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = result.Value;
+        OdfConversionResult<PowerPointDocument> result = source.ToPowerPointDocumentResult();
+        using PowerPointDocument target = result.Value;
         if (hideMaster) {
             Assert.Null(target.Slides[0].BackgroundColor);
             Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "slide-backgrounds" &&
                 mapping.Status == OdfConversionMappingStatus.Unsupported);
-            Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
+            Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointDocumentResult(
                 new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
         } else {
             Assert.Equal("336699", target.Slides[0].BackgroundColor);

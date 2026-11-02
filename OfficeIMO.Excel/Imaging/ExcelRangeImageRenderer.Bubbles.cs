@@ -5,8 +5,8 @@ namespace OfficeIMO.Excel;
 internal static partial class ExcelRangeImageRenderer {
     // One Excel-to-Core mapping for both PDF and image adapters. Zero-size entries retain
     // X/Y alignment and axis bounds without painting negatives that Core cannot represent.
-    internal static OfficeChartSeries CreateBubbleChartSeries(ExcelChartSeries series, bool callerPalette = false) =>
-        OfficeChartSeries.CreateBubble(series.Name, series.XValues!, series.Values,
+    internal static OfficeSeries CreateBubbleChartSeries(ExcelChartSeries series, bool callerPalette = false) =>
+        OfficeSeries.CreateBubble(series.Name, series.XValues!, series.Values,
             series.BubbleSizes!.Select(size => Math.Max(0D, size)),
             callerPalette && series.HasAutomaticColor ? null : ResolveArgb(series.SeriesColorArgb),
             ResolvePointColors(series.PointColorArgb),

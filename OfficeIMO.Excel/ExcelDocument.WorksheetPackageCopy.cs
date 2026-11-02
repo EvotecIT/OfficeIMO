@@ -11,13 +11,13 @@ namespace OfficeIMO.Excel {
         private ExcelSheet CopyWorksheetFromValues(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, ExcelSheetNameValidationMode validationMode) {
             ExcelSheet sourceSheet = sourceDocument.GetSheet(sourceSheetName);
             string usedRange = sourceSheet.UsedRangeA1;
-            var (startRow, startColumn, _, _) = A1.ParseRange(usedRange);
+            var (startRow, startColumn, _, _) = ExcelA1.ParseRange(usedRange);
             object?[,] values;
             using (var reader = sourceDocument.CreateReader()) {
                 values = reader.GetSheet(sourceSheet.Name).ReadRange(usedRange);
             }
 
-            ExcelSheet targetSheet = AddWorksheet(newSheetName, validationMode);
+            ExcelSheet targetSheet = AddSheet(newSheetName, validationMode);
             for (int rowOffset = 0; rowOffset < values.GetLength(0); rowOffset++) {
                 for (int columnOffset = 0; columnOffset < values.GetLength(1); columnOffset++) {
                     object? value = values[rowOffset, columnOffset];
@@ -384,7 +384,7 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            (int row, int column) = A1.ParseCellRef(reference!);
+            (int row, int column) = ExcelA1.ParseCellRef(reference!);
             if (rowStyleIndexes.TryGetValue(row, out uint rowStyleIndex)) {
                 return rowStyleIndex;
             }
@@ -435,10 +435,10 @@ namespace OfficeIMO.Excel {
             var inheritedStyleCells = BuildInheritedStyleCellSet(worksheet);
 
             foreach (Cell cell in worksheet.Descendants<Cell>()) {
-                uint? oldStyleIndex = cell.StyleIndex?.Value;
+                uint? oldStyleIndex = ReadCopiedStyleIndex(cell.StyleIndex);
                 if (oldStyleIndex.HasValue && cellFormatMap.TryGetValue(oldStyleIndex.Value, out uint newStyleIndex)) {
                     cell.StyleIndex = newStyleIndex;
-                } else if (!oldStyleIndex.HasValue
+                } else if (cell.StyleIndex == null
                     && !CellHasInheritedRowOrColumnStyle(cell, inheritedStyleCells)
                     && cellFormatMap.TryGetValue(0U, out uint newDefaultStyleIndex)) {
                     cell.StyleIndex = newDefaultStyleIndex;
@@ -446,14 +446,14 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (Row row in worksheet.Descendants<Row>()) {
-                uint? oldStyleIndex = row.StyleIndex?.Value;
+                uint? oldStyleIndex = ReadCopiedStyleIndex(row.StyleIndex);
                 if (oldStyleIndex.HasValue && cellFormatMap.TryGetValue(oldStyleIndex.Value, out uint newStyleIndex)) {
                     row.StyleIndex = newStyleIndex;
                 }
             }
 
             foreach (Column column in worksheet.Descendants<Column>()) {
-                uint? oldStyleIndex = column.Style?.Value;
+                uint? oldStyleIndex = ReadCopiedStyleIndex(column.Style);
                 if (oldStyleIndex.HasValue && cellFormatMap.TryGetValue(oldStyleIndex.Value, out uint newStyleIndex)) {
                     column.Style = newStyleIndex;
                 }
@@ -462,46 +462,6 @@ namespace OfficeIMO.Excel {
             EnsureStylesheetPrimitives(targetStylesheet);
             targetStylesheet.Save();
             return new WorksheetStyleCopyMap(cellFormatMap, differentialFormatMap);
-        }
-
-        private static HashSet<string> BuildInheritedStyleCellSet(Worksheet worksheet) {
-            string[] cells = worksheet.Descendants<Cell>()
-                .Select(cell => cell.CellReference?.Value)
-                .Where(reference => !string.IsNullOrEmpty(reference))
-                .Select(reference => reference!)
-                .ToArray();
-            if (cells.Length == 0) {
-                return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            }
-
-            var styledRows = new HashSet<int>(worksheet.Descendants<Row>()
-                .Where(row => row.StyleIndex != null && row.RowIndex != null)
-                .Select(row => (int)row.RowIndex!.Value));
-            var styledColumns = worksheet.Elements<Columns>()
-                .SelectMany(columns => columns.Elements<Column>())
-                .Where(column => column.Style != null)
-                .Select(column => (
-                    Min: (int)(column.Min?.Value ?? 1U),
-                    Max: (int)(column.Max?.Value ?? column.Min?.Value ?? 1U)))
-                .ToArray();
-            if (styledRows.Count == 0 && styledColumns.Length == 0) {
-                return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            }
-
-            var inherited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (string reference in cells) {
-                (int row, int column) = A1.ParseCellRef(reference);
-                if (styledRows.Contains(row) || styledColumns.Any(range => column >= range.Min && column <= range.Max)) {
-                    inherited.Add(reference);
-                }
-            }
-
-            return inherited;
-        }
-
-        private static bool CellHasInheritedRowOrColumnStyle(Cell cell, HashSet<string> inheritedStyleCells) {
-            string? reference = cell.CellReference?.Value;
-            return !string.IsNullOrEmpty(reference) && inheritedStyleCells.Contains(reference!);
         }
 
         private static void RemapCopiedWorksheetConditionalFormats(Worksheet worksheet, IReadOnlyDictionary<uint, uint> differentialFormatMap) {

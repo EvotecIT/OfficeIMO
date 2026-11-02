@@ -21,10 +21,12 @@ internal sealed class OfficeWorkflowBoundedMemoryStream : MemoryStream {
         base.Write(buffer, offset, count);
     }
 
+#if NET8_0_OR_GREATER
     public override void Write(ReadOnlySpan<byte> buffer) {
         EnsureWriteWithinLimit(buffer.Length);
         base.Write(buffer);
     }
+#endif
 
     public override void WriteByte(byte value) {
         EnsureWriteWithinLimit(1);
@@ -40,12 +42,14 @@ internal sealed class OfficeWorkflowBoundedMemoryStream : MemoryStream {
         return base.WriteAsync(buffer, offset, count, cancellationToken);
     }
 
+#if NET8_0_OR_GREATER
     public override ValueTask WriteAsync(
         ReadOnlyMemory<byte> buffer,
         CancellationToken cancellationToken = default) {
         EnsureWriteWithinLimit(buffer.Length);
         return base.WriteAsync(buffer, cancellationToken);
     }
+#endif
 
     private void EnsureWriteWithinLimit(int count) {
         if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));

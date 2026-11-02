@@ -12,7 +12,7 @@ namespace OfficeIMO.Word {
     }
 
     /// <summary>Represents the destination artifact and report produced by a Word file conversion.</summary>
-    public sealed class WordDocumentConversionResult : IOfficeConversionResult<string, WordDocumentConversionReport> {
+    internal sealed class WordDocumentConversionResult : IOfficeConversionResult<string, WordDocumentConversionReport> {
         internal WordDocumentConversionResult(
             string sourcePath,
             string destinationPath,
@@ -61,7 +61,7 @@ namespace OfficeIMO.Word {
     }
 
     /// <summary>Describes formats, paths, diagnostics, and commit behavior for one Word conversion.</summary>
-    public sealed class WordDocumentConversionReport : IOfficeConversionReport {
+    internal sealed class WordDocumentConversionReport : IOfficeConversionReport {
         internal WordDocumentConversionReport(
             string sourcePath,
             string destinationPath,
@@ -149,7 +149,7 @@ namespace OfficeIMO.Word {
     }
 
     /// <summary>Raised when a validated Word conversion cannot be completed safely.</summary>
-    public sealed class WordDocumentConversionException : InvalidOperationException {
+    internal sealed class WordDocumentConversionException : InvalidOperationException {
         internal WordDocumentConversionException(
             OfficeConversionFailureReason reason,
             WordDocumentConversionResult result,
@@ -168,7 +168,10 @@ namespace OfficeIMO.Word {
     }
 
     /// <summary>Controls file-to-file Word document conversion.</summary>
-    public sealed class WordDocumentConversionOptions {
+    internal sealed class WordDocumentConversionOptions {
+        internal WordLoadOptions? LoadOptions { get; set; }
+        internal Func<WordDocument, IReadOnlyList<OfficeImageExportResult>>? VisualFallbackRenderer { get; set; }
+
         /// <summary>Gets or sets how an existing destination is handled. The default is to fail.</summary>
         public OfficeConversionFileConflictPolicy FileConflictPolicy { get; set; } = OfficeConversionFileConflictPolicy.FailIfExists;
 

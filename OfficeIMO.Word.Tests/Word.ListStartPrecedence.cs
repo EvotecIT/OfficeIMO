@@ -52,7 +52,7 @@ public partial class Word {
         var markers = WordDocumentTraversal.BuildListMarkers(document);
         Assert.Equal(first, markers[document.Paragraphs.First(paragraph => paragraph.Text == "First")].Marker);
         Assert.Equal(second, markers[document.Paragraphs.First(paragraph => paragraph.Text == "Second")].Marker);
-        string pdfText = PdfReadDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false })).ExtractText();
+        string pdfText = PdfReadDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).ExtractText();
         Assert.Matches(System.Text.RegularExpressions.Regex.Escape(first) + @"\s*First", pdfText);
         Assert.Matches(System.Text.RegularExpressions.Regex.Escape(second) + @"\s*Second", pdfText);
     }

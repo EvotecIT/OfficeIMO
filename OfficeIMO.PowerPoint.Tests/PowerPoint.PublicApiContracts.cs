@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
     public class PowerPointPublicApiContracts {
         [Fact]
         public void PublicSurfaceHasOneLifecycleTemplateAndCompositionPath() {
-            Assembly assembly = typeof(PowerPointPresentation).Assembly;
+            Assembly assembly = typeof(PowerPointDocument).Assembly;
             string[] exportedTypes = assembly.GetExportedTypes().Select(type => type.FullName!).ToArray();
             Assert.DoesNotContain("OfficeIMO.PowerPoint.PowerPointDeckComposer", exportedTypes);
             Assert.DoesNotContain("OfficeIMO.PowerPoint.PowerPointSlideComposer", exportedTypes);
@@ -20,14 +20,14 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(exportedTypes, name => name.StartsWith("OfficeIMO.PowerPoint.Fluent.",
                 StringComparison.Ordinal));
 
-            MethodInfo[] presentationMethods = typeof(PowerPointPresentation).GetMethods(BindingFlags.Public |
+            MethodInfo[] presentationMethods = typeof(PowerPointDocument).GetMethods(BindingFlags.Public |
                 BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
-            Assert.Single(presentationMethods, method => method.Name == nameof(PowerPointPresentation.Compose));
+            Assert.Single(presentationMethods, method => method.Name == nameof(PowerPointDocument.Compose));
             Assert.DoesNotContain(presentationMethods, method => method.Name == "Open");
             Assert.DoesNotContain(presentationMethods, method => method.Name is "Save" or "SaveAsync" or "SaveEncrypted" &&
                 method.GetParameters().Any(parameter => parameter.ParameterType == typeof(bool)));
-            Assert.Contains(presentationMethods, method => method.Name == nameof(PowerPointPresentation.ToBytes));
-            Assert.Contains(presentationMethods, method => method.Name == nameof(PowerPointPresentation.SaveAsync));
+            Assert.Contains(presentationMethods, method => method.Name == nameof(PowerPointDocument.ToBytes));
+            Assert.Contains(presentationMethods, method => method.Name == nameof(PowerPointDocument.SaveAsync));
             Assert.DoesNotContain(presentationMethods, method => method.Name == "OpenRead");
             Assert.DoesNotContain(presentationMethods, method => method.Name == "CreateFromTemplate");
             Assert.DoesNotContain(presentationMethods, method => method.Name == "InspectTemplate");
@@ -35,12 +35,12 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(presentationMethods, method => method.Name == "SaveWithPreflight");
             Assert.DoesNotContain(presentationMethods, method => method.Name == "CreateVisualProofReport");
 
-            Assert.Contains(presentationMethods, method => method.Name == nameof(PowerPointPresentation.Inspect));
-            Assert.Contains(presentationMethods, method => method.Name == nameof(PowerPointPresentation.InspectPreflight));
-            Assert.Contains(presentationMethods, method => method.Name == nameof(PowerPointPresentation.InspectVisuals));
+            Assert.Contains(presentationMethods, method => method.Name == nameof(PowerPointDocument.Inspect));
+            Assert.Contains(presentationMethods, method => method.Name == nameof(PowerPointDocument.InspectPreflight));
+            Assert.Contains(presentationMethods, method => method.Name == nameof(PowerPointDocument.InspectVisuals));
             Assert.NotNull(typeof(PowerPointTemplate).GetMethod(nameof(PowerPointTemplate.Inspect),
                 new[] { typeof(string) }));
-            Assert.NotNull(typeof(PowerPointTemplate).GetMethod(nameof(PowerPointTemplate.CreatePresentation)));
+            Assert.NotNull(typeof(PowerPointTemplate).GetMethod(nameof(PowerPointTemplate.CreateDocument)));
         }
 
         [Fact]
@@ -55,14 +55,14 @@ namespace OfficeIMO.Tests {
                     });
                 PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#008C95", "public-api-contract");
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(path)) {
                     PowerPointCompositionResult result = presentation.Compose(plan,
                         PowerPointCompositionOptions.FromDesign(design));
                     Assert.Equal(2, result.Slides.Count);
                     Assert.Same(design, result.Design);
                     Assert.True(result.Preflight.IsSuccessful);
 
-                    result.Slides[1].AddTextBoxPoints("Edited after composition", 40, 430, 260, 30);
+                    result.Slides[1].AddTextBox("Edited after composition",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(430),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(30));
                     PowerPointInspectionReport inspection = presentation.Inspect();
                     Assert.Empty(inspection.PackageErrors);
                     Assert.NotNull(inspection.Preflight);
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Load(path,
+                using PowerPointDocument reopened = PowerPointDocument.Load(path,
                     new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
                 Assert.Contains(reopened.Slides.SelectMany(slide => slide.TextBoxes),
                     textBox => textBox.Text == "Edited after composition");
@@ -83,14 +83,14 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void StreamOptionsMakePersistenceAndReadOnlyIntentExplicit() {
             using var stream = new MemoryStream();
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
+            using (PowerPointDocument presentation = PowerPointDocument.Create(stream,
                        new PowerPointCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 Assert.Empty(presentation.Slides);
                 presentation.AddSlide().AddTitle("Stream lifecycle");
                 Assert.Single(presentation.Slides);
             }
 
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream,
+            using PowerPointDocument reopened = PowerPointDocument.Load(stream,
                 new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
             Assert.Equal("Stream lifecycle", reopened.Slides[0].TextBoxes.First().Text);
         }
@@ -103,7 +103,7 @@ namespace OfficeIMO.Tests {
                 .AddScreenshotStory("Invalid proof", null, missingImage);
             PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#D93025", "invalid-plan-theme");
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream,
                 new PowerPointCreateOptions());
             string originalThemeName = presentation.ThemeName;
             string? originalAccent = presentation.GetThemeColor(PowerPointThemeColor.Accent1);
@@ -124,7 +124,7 @@ namespace OfficeIMO.Tests {
             PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#008C95", "append-seed");
             PowerPointCompositionOptions options = PowerPointCompositionOptions.FromDesign(design);
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream,
                 new PowerPointCreateOptions());
             presentation.AddSlide().AddTitle("Existing slide");
 

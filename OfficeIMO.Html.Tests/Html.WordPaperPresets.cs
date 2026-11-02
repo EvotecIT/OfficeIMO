@@ -12,7 +12,7 @@ public sealed class HtmlWordPaperPresetTests {
         int topPixels, bool positioned) {
         string html = "<div style='position:absolute;top:" + topPixels
             + "px;width:120px;height:30px'>Preset region</div>";
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult(new HtmlToWordOptions {
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(new WordHtmlImportOptions {
             DefaultPageSize = preset, DefaultOrientation = orientation
         });
         using WordDocument word = result.Value;

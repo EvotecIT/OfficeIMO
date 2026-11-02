@@ -15,10 +15,10 @@ public static partial class OfficeRasterContentSafety {
         OfficeContentCleanupSelection selection,
         OfficeRasterContentSafetyOptions options,
         CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(imageBytes);
-        ArgumentNullException.ThrowIfNull(engine);
-        ArgumentNullException.ThrowIfNull(selection);
-        ArgumentNullException.ThrowIfNull(options);
+        if (imageBytes == null) throw new ArgumentNullException(nameof(imageBytes));
+        if (engine == null) throw new ArgumentNullException(nameof(engine));
+        if (selection == null) throw new ArgumentNullException(nameof(selection));
+        if (options == null) throw new ArgumentNullException(nameof(options));
         cancellationToken.ThrowIfCancellationRequested();
         OfficeRasterContentSafetyOptions.Snapshot snapshot = options.Capture();
         if (!snapshot.EnableOpaqueRectangleRedaction) {
@@ -64,7 +64,7 @@ public static partial class OfficeRasterContentSafety {
         var changedRegions = new List<PixelRegion>(selectedTargets.Count);
         var selectedTargetSet = new HashSet<RasterTarget>(selectedTargets);
         RasterTarget[] unselectedTargets = beforeState.RecognizedTargets
-            .Where(target => !selectedTargetSet.Contains(target) && !string.IsNullOrWhiteSpace(target.Text))
+            .Where(target => !selectedTargetSet.Contains(target) && !(target.Text == null || string.IsNullOrWhiteSpace(target.Text)))
             .ToArray();
         HashSet<RasterTarget> beforeAggregateParents = unselectedTargets.Length == 0
             ? new HashSet<RasterTarget>()
@@ -151,7 +151,7 @@ public static partial class OfficeRasterContentSafety {
                 cancellationToken)
             .ConfigureAwait(false);
         RasterTarget[] afterTargets = afterState.RecognizedTargets
-            .Where(target => !string.IsNullOrWhiteSpace(target.Text))
+            .Where(target => !(target.Text == null || string.IsNullOrWhiteSpace(target.Text)))
             .ToArray();
         HashSet<RasterTarget> afterAggregateParents = afterTargets.Length == 0
             ? new HashSet<RasterTarget>()
@@ -183,7 +183,7 @@ public static partial class OfficeRasterContentSafety {
         IReadOnlyList<RasterTarget> targets) {
         var mutable = new Dictionary<string, List<RasterTarget>>(StringComparer.Ordinal);
         foreach (RasterTarget target in targets) {
-            if (target.Level == OcrTextSpanLevel.Line || string.IsNullOrWhiteSpace(target.LineId)) continue;
+            if (target.Level == OcrTextSpanLevel.Line || (target.LineId == null || string.IsNullOrWhiteSpace(target.LineId))) continue;
             if (!mutable.TryGetValue(target.LineId!, out List<RasterTarget>? children)) {
                 children = new List<RasterTarget>();
                 mutable[target.LineId!] = children;
@@ -204,7 +204,7 @@ public static partial class OfficeRasterContentSafety {
         var aggregates = new HashSet<RasterTarget>();
         foreach (RasterTarget candidate in targets) {
             if ((candidate.Level != OcrTextSpanLevel.Line && candidate.Level != OcrTextSpanLevel.Word) ||
-                string.IsNullOrWhiteSpace(candidate.LineId) ||
+                (candidate.LineId == null || string.IsNullOrWhiteSpace(candidate.LineId)) ||
                 !childrenByLine.TryGetValue(candidate.LineId!, out IReadOnlyList<RasterTarget>? children)) {
                 continue;
             }

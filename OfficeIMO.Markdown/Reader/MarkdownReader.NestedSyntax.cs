@@ -5,10 +5,10 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private static (IReadOnlyList<IMarkdownBlock> Blocks, IReadOnlyList<MarkdownSyntaxNode> SyntaxChildren) ParseNestedMarkdownBlocks(
         string markdown,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state,
         int lineOffset,
         bool suppressBlockGenericAttributes = false) {
@@ -29,7 +29,7 @@ public static partial class MarkdownReader {
 
     private static (IReadOnlyList<IMarkdownBlock> Blocks, IReadOnlyList<MarkdownSyntaxNode> SyntaxChildren) ParseNestedMarkdownBlocks(
         IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state,
         IReadOnlyCollection<int>? suppressedParagraphGenericAttributeStartLines = null,
         bool suppressBlockGenericAttributes = false) {
@@ -88,7 +88,7 @@ public static partial class MarkdownReader {
 
     private static MarkdownReaderState CreateNestedState(
         MarkdownReaderState state,
-        MarkdownReaderOptions options) {
+        MarkdownLoadOptions options) {
         if (options.MaxNestingDepth < 1) {
             throw new ArgumentOutOfRangeException(
                 nameof(options.MaxNestingDepth),
@@ -343,14 +343,14 @@ public static partial class MarkdownReader {
             ? sourceSpan
             : RemapNestedSourceSpan(sourceLines, sourceSpan) ?? sourceSpan;
 
-    private static bool ShouldParseBlockGenericAttributes(MarkdownReaderOptions options, MarkdownReaderState? state) =>
+    private static bool ShouldParseBlockGenericAttributes(MarkdownLoadOptions options, MarkdownReaderState? state) =>
         options?.GenericAttributes == true && state?.SuppressBlockGenericAttributes != true;
 
-    private static bool ShouldParseParagraphGenericAttributes(MarkdownReaderOptions options, MarkdownReaderState? state, int startLineIndex) =>
+    private static bool ShouldParseParagraphGenericAttributes(MarkdownLoadOptions options, MarkdownReaderState? state, int startLineIndex) =>
         ShouldParseBlockGenericAttributes(options, state)
         && (state == null || !state.SuppressedParagraphGenericAttributeStartLines.Contains(startLineIndex));
 
-    private static bool ShouldParseNestedStandaloneGenericAttributes(MarkdownReaderOptions options, MarkdownReaderState? state, int lineIndex) {
+    private static bool ShouldParseNestedStandaloneGenericAttributes(MarkdownLoadOptions options, MarkdownReaderState? state, int lineIndex) {
         if (options?.GenericAttributes != true) {
             return false;
         }
@@ -362,12 +362,12 @@ public static partial class MarkdownReader {
         return state.QuoteContainerLines.Contains(lineIndex);
     }
 
-    private static bool ShouldParseHeadingGenericAttributes(MarkdownReaderOptions options, MarkdownReaderState? state) =>
+    private static bool ShouldParseHeadingGenericAttributes(MarkdownLoadOptions options, MarkdownReaderState? state) =>
         ShouldParseBlockGenericAttributes(options, state) && state?.SuppressHeadingGenericAttributes != true;
 
     private static bool ShouldSuppressAutoIdentifierForLiteralHeadingGenericAttribute(
         string text,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState? state) =>
         options?.GenericAttributes == true
         && (state?.SuppressHeadingGenericAttributes == true

@@ -1,3 +1,7 @@
+#if !NET8_0_OR_GREATER
+using DateOnly = System.DateTime;
+#endif
+using OfficeIMO.Internal;
 using System.Globalization;
 
 namespace OfficeIMO.Workflows;
@@ -15,7 +19,7 @@ public sealed record BookOnixUsageLimit {
 
     /// <summary>Create a nonnegative numeric limit. Counts are integral; percentages cannot exceed 100; page positions start at one.</summary>
     public static BookOnixUsageLimit Number(BookOnixUsageUnit unit, decimal quantity) {
-        if (!Enum.IsDefined(unit) || unit is BookOnixUsageUnit.MediaDuration or BookOnixUsageUnit.StartTime or BookOnixUsageUnit.EndTime or BookOnixUsageUnit.ValidFrom or BookOnixUsageUnit.ValidUntil)
+        if (!OfficeRuntimeCompatibility.IsDefined(unit) || unit is BookOnixUsageUnit.MediaDuration or BookOnixUsageUnit.StartTime or BookOnixUsageUnit.EndTime or BookOnixUsageUnit.ValidFrom or BookOnixUsageUnit.ValidUntil)
             throw new ArgumentOutOfRangeException(nameof(unit), "Use the Time or Date factory for this unit.");
         if (quantity < 0 || (unit is BookOnixUsageUnit.Percentage or BookOnixUsageUnit.PercentagePerPeriod && quantity > 100))
             throw new ArgumentOutOfRangeException(nameof(quantity));
@@ -43,6 +47,14 @@ public sealed record BookOnixUsageLimit {
     public static BookOnixUsageLimit Date(BookOnixUsageUnit unit, DateOnly value) {
         if (unit is not (BookOnixUsageUnit.ValidFrom or BookOnixUsageUnit.ValidUntil))
             throw new ArgumentOutOfRangeException(nameof(unit));
-        return new(unit, value.ToString("yyyyMMdd", CultureInfo.InvariantCulture), value.DayNumber);
+        return new(unit, value.ToString("yyyyMMdd", CultureInfo.InvariantCulture), GetDayNumber(value));
+    }
+    private static int GetDayNumber(DateOnly value) {
+#if NET8_0_OR_GREATER
+        return value.DayNumber;
+#else
+        if (value.TimeOfDay != TimeSpan.Zero) throw new ArgumentException("Supply a date without a time component.", nameof(value));
+        return (value - DateTime.MinValue).Days;
+#endif
     }
 }

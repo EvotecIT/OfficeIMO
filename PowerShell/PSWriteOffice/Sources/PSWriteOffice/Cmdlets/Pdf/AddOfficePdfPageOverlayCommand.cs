@@ -141,7 +141,7 @@ public sealed class AddOfficePdfPageOverlayCommand : PSWriteOffice.Cmdlets.Offic
             : document.Stamp.OverlayPage(sourceStream, options, targetReadOptions);
 
         PdfCommandUtilities.EnsureDirectory(outputPath);
-        result.Save(outputPath).RequireSuccess();
+        result.Save(outputPath);
         WritePassThru(new FileInfo(outputPath));
     }
 }

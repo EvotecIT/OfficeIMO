@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel {
                 // Avoid nested locks: write value using core method
                 CellValueCore(row, column, text);
 
-                var reference = A1.CellReference(row, column);
+                var reference = ExcelA1.CellReference(row, column);
                 // Ensure Hyperlinks container exists
                 var ws = WorksheetRoot;
                 var hyperlinks = ws.Elements<Hyperlinks>().FirstOrDefault();
@@ -101,7 +101,7 @@ namespace OfficeIMO.Excel {
         /// <param name="style">When true, applies the cell-level hyperlink style.</param>
         /// <param name="tooltip">Optional ScreenTip text shown by spreadsheet applications.</param>
         public void SetHyperlinkReference(int row, int column, string url, bool style = true, string? tooltip = null) {
-            AddExternalHyperlinkReference(A1.CellReference(row, column), url, style, tooltip);
+            AddExternalHyperlinkReference(ExcelA1.CellReference(row, column), url, style, tooltip);
         }
 
         private static Uri CreateExternalHyperlinkUri(string url) {
@@ -149,17 +149,17 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets worksheet hyperlinks keyed by their A1 cell or range reference.
         /// </summary>
-        public IReadOnlyDictionary<string, ExcelHyperlinkSnapshot> GetHyperlinks() {
+        public IReadOnlyDictionary<string, ExcelHyperlinkInfo> GetHyperlinks() {
             var ws = WorksheetRoot;
             var hyperlinks = ws.Elements<Hyperlinks>().FirstOrDefault();
             if (hyperlinks == null) {
-                return new Dictionary<string, ExcelHyperlinkSnapshot>(StringComparer.OrdinalIgnoreCase);
+                return new Dictionary<string, ExcelHyperlinkInfo>(StringComparer.OrdinalIgnoreCase);
             }
 
             var externalRelationships = _worksheetPart.HyperlinkRelationships
                 .Where(relationship => !string.IsNullOrWhiteSpace(relationship.Id))
                 .ToDictionary(relationship => relationship.Id!, relationship => relationship, StringComparer.OrdinalIgnoreCase);
-            var result = new Dictionary<string, ExcelHyperlinkSnapshot>(StringComparer.OrdinalIgnoreCase);
+            var result = new Dictionary<string, ExcelHyperlinkInfo>(StringComparer.OrdinalIgnoreCase);
             foreach (var hyperlink in hyperlinks.Elements<Hyperlink>()) {
                 string? reference = hyperlink.Reference?.Value;
                 if (string.IsNullOrWhiteSpace(reference)) {
@@ -180,7 +180,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                result[reference!] = new ExcelHyperlinkSnapshot {
+                result[reference!] = new ExcelHyperlinkInfo {
                     IsExternal = isExternal,
                     Target = target!,
                     Tooltip = string.IsNullOrWhiteSpace(hyperlink.Tooltip?.Value) ? null : hyperlink.Tooltip!.Value
@@ -245,7 +245,7 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 string text = string.IsNullOrEmpty(display) ? normalizedLocation : display!;
                 CellValueCore(row, column, text);
-                var reference = A1.CellReference(row, column);
+                var reference = ExcelA1.CellReference(row, column);
                 var ws = WorksheetRoot;
                 var hyperlinks = ws.Elements<Hyperlinks>().FirstOrDefault();
                 if (hyperlinks == null) {
@@ -327,12 +327,12 @@ namespace OfficeIMO.Excel {
         }
 
         private void ApplyHyperlinkStyle(string reference) {
-            if (A1.TryParseCellReferenceFast(reference, out int row, out int column)) {
+            if (ExcelA1.TryParseCellReferenceFast(reference, out int row, out int column)) {
                 ApplyHyperlinkStyle(GetCell(row, column));
                 return;
             }
 
-            if (!A1.TryParseRange(reference, out int startRow, out int startColumn, out int endRow, out int endColumn)) {
+            if (!ExcelA1.TryParseRange(reference, out int startRow, out int startColumn, out int endRow, out int endColumn)) {
                 return;
             }
 
@@ -384,8 +384,8 @@ namespace OfficeIMO.Excel {
             Hyperlinks? hyperlinks = WorksheetRoot.GetFirstChild<Hyperlinks>();
             if (hyperlinks == null) return;
             ExcelReference destination = ExcelReference.Parse(
-                A1.CellReference(destinationFirstRow, destinationFirstColumn) + ":" +
-                A1.CellReference(destinationLastRow, destinationLastColumn));
+                ExcelA1.CellReference(destinationFirstRow, destinationFirstColumn) + ":" +
+                ExcelA1.CellReference(destinationLastRow, destinationLastColumn));
             foreach (Hyperlink hyperlink in hyperlinks.Elements<Hyperlink>().ToList()) {
                 if (hyperlink.Reference?.Value is not string referenceText
                     || !ExcelReference.TryParse(referenceText, out ExcelReference? reference)

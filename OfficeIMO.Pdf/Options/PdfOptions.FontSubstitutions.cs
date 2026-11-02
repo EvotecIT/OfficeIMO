@@ -2,7 +2,7 @@ using System.Collections.ObjectModel;
 
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     private Dictionary<string, PdfFontFamilySubstitution>? _fontFamilySubstitutions;
 
     /// <summary>
@@ -33,7 +33,7 @@ public sealed partial class PdfOptions {
     /// <param name="targetFontFamily">Registered embedded family used in generated PDF text.</param>
     /// <param name="impact">Expected layout impact of the substitution.</param>
     /// <returns>The current options instance.</returns>
-    public PdfOptions RegisterFontFamilySubstitution(
+    public PdfCreateOptions RegisterFontFamilySubstitution(
         string sourceFontFamily,
         string targetFontFamily,
         PdfFontFamilySubstitutionImpact impact = PdfFontFamilySubstitutionImpact.LayoutSensitive) {

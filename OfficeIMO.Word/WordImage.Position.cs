@@ -10,11 +10,11 @@ public partial class WordImage {
         set => horizontalPosition.RelativeFrom = value.ToOpenXml();
     }
 
-    /// <summary>Gets or sets the horizontal image offset in English Metric Units.</summary>
-    public long? HorizontalPositionOffset {
+    /// <summary>Gets or sets the horizontal image offset.</summary>
+    public OfficeLength? HorizontalPositionOffset {
         get => ReadPositionOffset(horizontalPosition.PositionOffset);
         set => horizontalPosition.PositionOffset = value.HasValue
-            ? new PositionOffset { Text = value.Value.ToString(CultureInfo.InvariantCulture) }
+            ? new PositionOffset { Text = value.Value.ToEmus().ToString(CultureInfo.InvariantCulture) }
             : null;
     }
 
@@ -24,14 +24,14 @@ public partial class WordImage {
         set => verticalPosition.RelativeFrom = value.ToOpenXml();
     }
 
-    /// <summary>Gets or sets the vertical image offset in English Metric Units.</summary>
-    public long? VerticalPositionOffset {
+    /// <summary>Gets or sets the vertical image offset.</summary>
+    public OfficeLength? VerticalPositionOffset {
         get => ReadPositionOffset(verticalPosition.PositionOffset);
         set => verticalPosition.PositionOffset = value.HasValue
-            ? new PositionOffset { Text = value.Value.ToString(CultureInfo.InvariantCulture) }
+            ? new PositionOffset { Text = value.Value.ToEmus().ToString(CultureInfo.InvariantCulture) }
             : null;
     }
 
-    private static long? ReadPositionOffset(PositionOffset? offset) =>
-        long.TryParse(offset?.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out long value) ? value : null;
+    private static OfficeLength? ReadPositionOffset(PositionOffset? offset) =>
+        long.TryParse(offset?.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out long value) ? OfficeLength.Emus(value) : null;
 }

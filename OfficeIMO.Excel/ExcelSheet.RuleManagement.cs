@@ -406,70 +406,79 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Adds a formula-based conditional formatting rule.
         /// </summary>
-        public void AddConditionalFormulaRule(string range, string formula) {
-            AddConditionalFormulaRule(range, formula, stopIfTrue: false, fillColor: null, priority: null);
+        /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
+        public ExcelConditionalFormattingInfo AddConditionalFormulaRule(string range, string formula) {
+            return AddConditionalFormulaRule(range, formula, stopIfTrue: false, fillColor: null, priority: null);
         }
 
         /// <summary>
         /// Adds a formula-based conditional formatting rule.
         /// </summary>
-        public void AddConditionalFormulaRule(string range, string formula, bool stopIfTrue) {
-            AddConditionalFormulaRule(range, formula, stopIfTrue, fillColor: null, priority: null);
+        /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
+        public ExcelConditionalFormattingInfo AddConditionalFormulaRule(string range, string formula, bool stopIfTrue) {
+            return AddConditionalFormulaRule(range, formula, stopIfTrue, fillColor: null, priority: null);
         }
 
         /// <summary>
         /// Adds a formula-based conditional formatting rule.
         /// </summary>
-        public void AddConditionalFormulaRule(string range, string formula, bool stopIfTrue, int? priority) {
-            AddConditionalFormulaRule(range, formula, stopIfTrue, fillColor: null, priority);
+        /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
+        public ExcelConditionalFormattingInfo AddConditionalFormulaRule(string range, string formula, bool stopIfTrue, int? priority) {
+            return AddConditionalFormulaRule(range, formula, stopIfTrue, fillColor: null, priority);
         }
 
         /// <summary>
         /// Adds a formula-based conditional formatting rule.
         /// </summary>
-        public void AddConditionalFormulaRule(string range, string formula, bool stopIfTrue = false, string? fillColor = null, int? priority = null) {
-            AddConditionalRuleCore(range, ConditionalFormatValues.Expression, null, new[] { formula }, stopIfTrue, fillColor, priority);
+        /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
+        public ExcelConditionalFormattingInfo AddConditionalFormulaRule(string range, string formula, bool stopIfTrue = false, string? fillColor = null, int? priority = null) {
+            return AddConditionalRuleCore(range, ConditionalFormatValues.Expression, null, new[] { formula }, stopIfTrue, fillColor, priority);
         }
 
         /// <summary>
         /// Adds a duplicate-values conditional formatting rule.
         /// </summary>
-        public void AddConditionalDuplicateValuesRule(string range) {
-            AddConditionalDuplicateValuesRule(range, fillColor: null);
+        /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
+        public ExcelConditionalFormattingInfo AddConditionalDuplicateValuesRule(string range) {
+            return AddConditionalDuplicateValuesRule(range, fillColor: null);
         }
 
         /// <summary>
         /// Adds a duplicate-values conditional formatting rule with an optional solid fill differential format.
         /// </summary>
-        public void AddConditionalDuplicateValuesRule(string range, string? fillColor) {
-            AddConditionalRuleCore(range, ConditionalFormatValues.DuplicateValues, null, Array.Empty<string>(), stopIfTrue: false, fillColor: fillColor, priority: null);
+        /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
+        public ExcelConditionalFormattingInfo AddConditionalDuplicateValuesRule(string range, string? fillColor) {
+            return AddConditionalRuleCore(range, ConditionalFormatValues.DuplicateValues, null, Array.Empty<string>(), stopIfTrue: false, fillColor: fillColor, priority: null);
         }
 
         /// <summary>
         /// Adds a unique-values conditional formatting rule.
         /// </summary>
-        public void AddConditionalUniqueValuesRule(string range) {
-            AddConditionalUniqueValuesRule(range, fillColor: null);
+        /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
+        public ExcelConditionalFormattingInfo AddConditionalUniqueValuesRule(string range) {
+            return AddConditionalUniqueValuesRule(range, fillColor: null);
         }
 
         /// <summary>
         /// Adds a unique-values conditional formatting rule with an optional solid fill differential format.
         /// </summary>
-        public void AddConditionalUniqueValuesRule(string range, string? fillColor) {
-            AddConditionalRuleCore(range, ConditionalFormatValues.UniqueValues, null, Array.Empty<string>(), stopIfTrue: false, fillColor: fillColor, priority: null);
+        /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
+        public ExcelConditionalFormattingInfo AddConditionalUniqueValuesRule(string range, string? fillColor) {
+            return AddConditionalRuleCore(range, ConditionalFormatValues.UniqueValues, null, Array.Empty<string>(), stopIfTrue: false, fillColor: fillColor, priority: null);
         }
 
         /// <summary>
         /// Adds an above/below-average conditional formatting rule with optional standard-deviation, stop-if-true, and solid fill settings.
         /// </summary>
-        public void AddConditionalAboveAverageRule(
+        /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
+        public ExcelConditionalFormattingInfo AddConditionalAboveAverageRule(
             string range,
             bool aboveAverage = true,
             bool equalAverage = false,
             uint? standardDeviation = null,
             bool stopIfTrue = false,
             string? fillColor = null) {
-            AddConditionalRuleCore(range, ConditionalFormatValues.AboveAverage, rule => {
+            return AddConditionalRuleCore(range, ConditionalFormatValues.AboveAverage, rule => {
                 rule.AboveAverage = aboveAverage;
                 rule.EqualAverage = equalAverage;
                 if (standardDeviation.HasValue) {
@@ -481,51 +490,57 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Adds a contains-text conditional formatting rule.
         /// </summary>
-        public void AddConditionalContainsTextRule(string range, string text, string? fillColor = null) {
-            AddConditionalTextRule(range, text, ConditionalFormatValues.ContainsText, ConditionalFormattingOperatorValues.ContainsText, fillColor);
+        /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
+        public ExcelConditionalFormattingInfo AddConditionalContainsTextRule(string range, string text, string? fillColor = null) {
+            return AddConditionalTextRule(range, text, ConditionalFormatValues.ContainsText, ConditionalFormattingOperatorValues.ContainsText, fillColor);
         }
 
         /// <summary>
         /// Adds a not-contains-text conditional formatting rule.
         /// </summary>
-        public void AddConditionalNotContainsTextRule(string range, string text, string? fillColor = null) {
-            AddConditionalTextRule(range, text, ConditionalFormatValues.NotContainsText, ConditionalFormattingOperatorValues.NotContains, fillColor);
+        /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
+        public ExcelConditionalFormattingInfo AddConditionalNotContainsTextRule(string range, string text, string? fillColor = null) {
+            return AddConditionalTextRule(range, text, ConditionalFormatValues.NotContainsText, ConditionalFormattingOperatorValues.NotContains, fillColor);
         }
 
         /// <summary>
         /// Adds a begins-with conditional formatting rule.
         /// </summary>
-        public void AddConditionalBeginsWithTextRule(string range, string text, string? fillColor = null) {
-            AddConditionalTextRule(range, text, ConditionalFormatValues.BeginsWith, ConditionalFormattingOperatorValues.BeginsWith, fillColor);
+        /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
+        public ExcelConditionalFormattingInfo AddConditionalBeginsWithTextRule(string range, string text, string? fillColor = null) {
+            return AddConditionalTextRule(range, text, ConditionalFormatValues.BeginsWith, ConditionalFormattingOperatorValues.BeginsWith, fillColor);
         }
 
         /// <summary>
         /// Adds an ends-with conditional formatting rule.
         /// </summary>
-        public void AddConditionalEndsWithTextRule(string range, string text, string? fillColor = null) {
-            AddConditionalTextRule(range, text, ConditionalFormatValues.EndsWith, ConditionalFormattingOperatorValues.EndsWith, fillColor);
+        /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
+        public ExcelConditionalFormattingInfo AddConditionalEndsWithTextRule(string range, string text, string? fillColor = null) {
+            return AddConditionalTextRule(range, text, ConditionalFormatValues.EndsWith, ConditionalFormattingOperatorValues.EndsWith, fillColor);
         }
 
         /// <summary>
         /// Adds a top/bottom conditional formatting rule.
         /// </summary>
-        public void AddConditionalTopBottomRule(string range, uint rank, bool bottom = false, bool percent = false) {
-            AddConditionalTopBottomRule(range, rank, bottom, percent, fillColor: null);
+        /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
+        public ExcelConditionalFormattingInfo AddConditionalTopBottomRule(string range, uint rank, bool bottom = false, bool percent = false) {
+            return AddConditionalTopBottomRule(range, rank, bottom, percent, fillColor: null);
         }
 
         /// <summary>
         /// Adds a top/bottom conditional formatting rule with an optional solid fill differential format.
         /// </summary>
-        public void AddConditionalTopBottomRule(string range, uint rank, bool bottom, bool percent, string? fillColor) {
+        /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
+        public ExcelConditionalFormattingInfo AddConditionalTopBottomRule(string range, uint rank, bool bottom, bool percent, string? fillColor) {
             if (rank == 0) throw new ArgumentOutOfRangeException(nameof(rank));
-            AddConditionalRuleCore(range, ConditionalFormatValues.Top10, rule => {
+            return AddConditionalRuleCore(range, ConditionalFormatValues.Top10, rule => {
                 rule.Rank = rank;
                 rule.Bottom = bottom;
                 rule.Percent = percent;
             }, Array.Empty<string>(), stopIfTrue: false, fillColor: fillColor);
         }
 
-        private void AddConditionalTextRule(
+        private ExcelConditionalFormattingInfo AddConditionalTextRule(
             string range,
             string text,
             ConditionalFormatValues type,
@@ -536,7 +551,7 @@ namespace OfficeIMO.Excel {
             }
 
             string firstCell = GetFirstReferenceCell(range);
-            AddConditionalRuleCore(range, type, rule => {
+            return AddConditionalRuleCore(range, type, rule => {
                 rule.Operator = @operator;
                 rule.Text = text;
             }, new[] { BuildTextRuleFormula(firstCell, text, type) }, stopIfTrue: false, fillColor: fillColor);
@@ -563,13 +578,14 @@ namespace OfficeIMO.Excel {
 
         private static string GetFirstReferenceCell(string range) {
             var bounds = ParseReferenceArgument(range);
-            return A1.ColumnIndexToLetters(bounds.c1) + bounds.r1.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            return ExcelA1.ColumnIndexToLetters(bounds.c1) + bounds.r1.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
         /// <summary>
         /// Adds a text-matching conditional formatting rule.
         /// </summary>
-        public void AddConditionalTextRule(string range, ExcelConditionalFormatType type, string text, bool stopIfTrue = false) {
+        /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
+        public ExcelConditionalFormattingInfo AddConditionalTextRule(string range, ExcelConditionalFormatType type, string text, bool stopIfTrue = false) {
             if (string.IsNullOrEmpty(text)) throw new ArgumentNullException(nameof(text));
             string firstCell = GetFirstCellReference(range);
             string literal = EscapeFormulaString(text);
@@ -591,7 +607,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(type), "Text conditional formatting requires ContainsText, NotContainsText, BeginsWith, or EndsWith.");
             }
 
-            AddConditionalRuleCore(range, type.ToOpenXml(), rule => {
+            return AddConditionalRuleCore(range, type.ToOpenXml(), rule => {
                 rule.Text = text;
                 rule.Operator = op.ToOpenXml();
             }, new[] { formula }, stopIfTrue, fillColor: null);
@@ -600,29 +616,32 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Adds a blanks/non-blanks conditional formatting rule.
         /// </summary>
-        public void AddConditionalBlanksRule(string range, bool containsBlanks = true, bool stopIfTrue = false) {
+        /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
+        public ExcelConditionalFormattingInfo AddConditionalBlanksRule(string range, bool containsBlanks = true, bool stopIfTrue = false) {
             string firstCell = GetFirstCellReference(range);
             ConditionalFormatValues type = containsBlanks ? ConditionalFormatValues.ContainsBlanks : ConditionalFormatValues.NotContainsBlanks;
             string formula = containsBlanks ? $"LEN(TRIM({firstCell}))=0" : $"LEN(TRIM({firstCell}))>0";
-            AddConditionalRuleCore(range, type, null, new[] { formula }, stopIfTrue, fillColor: null);
+            return AddConditionalRuleCore(range, type, null, new[] { formula }, stopIfTrue, fillColor: null);
         }
 
         /// <summary>
         /// Adds an errors/non-errors conditional formatting rule.
         /// </summary>
-        public void AddConditionalErrorsRule(string range, bool containsErrors = true, bool stopIfTrue = false) {
+        /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
+        public ExcelConditionalFormattingInfo AddConditionalErrorsRule(string range, bool containsErrors = true, bool stopIfTrue = false) {
             string firstCell = GetFirstCellReference(range);
             ConditionalFormatValues type = containsErrors ? ConditionalFormatValues.ContainsErrors : ConditionalFormatValues.NotContainsErrors;
             string formula = containsErrors ? $"ISERROR({firstCell})" : $"NOT(ISERROR({firstCell}))";
-            AddConditionalRuleCore(range, type, null, new[] { formula }, stopIfTrue, fillColor: null);
+            return AddConditionalRuleCore(range, type, null, new[] { formula }, stopIfTrue, fillColor: null);
         }
 
         /// <summary>
         /// Adds a time-period conditional formatting rule.
         /// </summary>
-        public void AddConditionalTimePeriodRule(string range, ExcelConditionalTimePeriod timePeriod, bool stopIfTrue = false, string? fillColor = null) {
+        /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
+        public ExcelConditionalFormattingInfo AddConditionalTimePeriodRule(string range, ExcelConditionalTimePeriod timePeriod, bool stopIfTrue = false, string? fillColor = null) {
             string firstCell = GetFirstCellReference(range);
-            AddConditionalRuleCore(range, ConditionalFormatValues.TimePeriod, rule => {
+            return AddConditionalRuleCore(range, ConditionalFormatValues.TimePeriod, rule => {
                 rule.TimePeriod = timePeriod.ToOpenXml();
             }, new[] { BuildTimePeriodFormula(firstCell, timePeriod) }, stopIfTrue, fillColor);
         }
@@ -748,9 +767,10 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        private void AddConditionalRuleCore(string range, ConditionalFormatValues type, Action<ConditionalFormattingRule>? configure, IReadOnlyList<string> formulas, bool stopIfTrue, string? fillColor = null, int? priority = null) {
+        private ExcelConditionalFormattingInfo AddConditionalRuleCore(string range, ConditionalFormatValues type, Action<ConditionalFormattingRule>? configure, IReadOnlyList<string> formulas, bool stopIfTrue, string? fillColor = null, int? priority = null) {
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
             using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
+            ExcelConditionalFormattingInfo? createdRule = null;
             WriteLockWorksheetPreparationOnly(() => {
                 _excelDocument.EnsureWorkbookThemeAndStyles();
                 Worksheet worksheet = WorksheetRoot;
@@ -772,7 +792,10 @@ namespace OfficeIMO.Excel {
                 }
                 conditional.Append(rule);
                 InsertConditionalFormatting(conditional);
+                createdRule = ReadConditionalFormattingInfo(rule, range,
+                    _excelDocument.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet, _excelDocument.WorkbookPartRoot);
             });
+            return createdRule!;
         }
 
         private uint GetOrCreateDifferentialFillFormatId(string fillColor) {
@@ -898,35 +921,35 @@ namespace OfficeIMO.Excel {
             return string.IsNullOrWhiteSpace(fontName) ? null : fontName;
         }
 
-        private static double? ReadDifferentialFontSize(Stylesheet? stylesheet, uint? differentialFormatId) {
+        private static OfficeLength? ReadDifferentialFontSize(Stylesheet? stylesheet, uint? differentialFormatId) {
             DifferentialFormat? format = GetDifferentialFormat(stylesheet, differentialFormatId);
             double? fontSize = format?.Font?.FontSize?.Val?.Value;
-            return fontSize is > 0D ? fontSize : null;
+            return fontSize is > 0D ? OfficeLength.Points(fontSize.Value) : null;
         }
 
-        private static ExcelCellBorderSnapshot? ReadDifferentialBorder(Stylesheet? stylesheet, WorkbookPart? workbookPart, uint? differentialFormatId) {
+        private static ExcelCellBorderInfo? ReadDifferentialBorder(Stylesheet? stylesheet, WorkbookPart? workbookPart, uint? differentialFormatId) {
             DifferentialFormat? format = GetDifferentialFormat(stylesheet, differentialFormatId);
-            ExcelCellBorderSnapshot? border = BuildBorderSnapshot(format?.Border, workbookPart);
+            ExcelCellBorderInfo? border = BuildBorderSnapshot(format?.Border, workbookPart);
             return RemoveDifferentialColorOnlyBorderSides(border);
         }
 
-        private static ExcelCellBorderSnapshot? RemoveDifferentialColorOnlyBorderSides(ExcelCellBorderSnapshot? border) {
+        private static ExcelCellBorderInfo? RemoveDifferentialColorOnlyBorderSides(ExcelCellBorderInfo? border) {
             if (border == null) {
                 return null;
             }
 
-            ExcelBorderSideSnapshot? left = HasBorderStyle(border.Left) ? border.Left : null;
-            ExcelBorderSideSnapshot? right = HasBorderStyle(border.Right) ? border.Right : null;
-            ExcelBorderSideSnapshot? top = HasBorderStyle(border.Top) ? border.Top : null;
-            ExcelBorderSideSnapshot? bottom = HasBorderStyle(border.Bottom) ? border.Bottom : null;
-            ExcelBorderSideSnapshot? diagonal = HasBorderStyle(border.Diagonal) ? border.Diagonal : null;
+            ExcelBorderSideInfo? left = HasBorderStyle(border.Left) ? border.Left : null;
+            ExcelBorderSideInfo? right = HasBorderStyle(border.Right) ? border.Right : null;
+            ExcelBorderSideInfo? top = HasBorderStyle(border.Top) ? border.Top : null;
+            ExcelBorderSideInfo? bottom = HasBorderStyle(border.Bottom) ? border.Bottom : null;
+            ExcelBorderSideInfo? diagonal = HasBorderStyle(border.Diagonal) ? border.Diagonal : null;
             bool diagonalUp = diagonal != null && border.DiagonalUp;
             bool diagonalDown = diagonal != null && border.DiagonalDown;
             if (left == null && right == null && top == null && bottom == null && diagonal == null) {
                 return null;
             }
 
-            return new ExcelCellBorderSnapshot {
+            return new ExcelCellBorderInfo {
                 Left = left,
                 Right = right,
                 Top = top,
@@ -937,7 +960,7 @@ namespace OfficeIMO.Excel {
             };
         }
 
-        private static bool HasBorderStyle(ExcelBorderSideSnapshot? side) {
+        private static bool HasBorderStyle(ExcelBorderSideInfo? side) {
             if (side == null || string.IsNullOrWhiteSpace(side.Style)) {
                 return false;
             }
@@ -998,7 +1021,7 @@ namespace OfficeIMO.Excel {
                 range, SpreadsheetAddressDialect.ExcelA1);
             SpreadsheetCellReference start = syntax.References[0].Start;
             if (!start.IsCell) throw new ArgumentException("Conditional formatting requires a cell reference.", nameof(range));
-            return A1.CellReference(checked((int)start.Row!.Value), start.Column!.Value);
+            return ExcelA1.CellReference(checked((int)start.Row!.Value), start.Column!.Value);
         }
 
         private static string EscapeFormulaString(string value) {

@@ -48,5 +48,9 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Excel.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
   </ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.OpenDocument.Ods.Pdf" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows.IWork" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Web.Converter" /><InternalsVisibleTo Include="OfficeIMO.Web.Converter.Tests" /></ItemGroup>
 </Project>

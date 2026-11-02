@@ -9,7 +9,7 @@ schema: 2.0.0
 Removes the table of contents from a Word document.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Remove-OfficeWordTableOfContents [-Document <WordDocument>] [-PassThru] [<CommonParameters>]
 ```
@@ -21,7 +21,7 @@ Removes the table of contents from a Word document.
 
 ### EXAMPLE 1
 ```powershell
-PS> $doc = Get-OfficeWord -Path .\Report.docx
+PS> $doc = Open-OfficeWord -Path .\Report.docx
 $doc | Remove-OfficeWordTableOfContents -PassThru |
     Save-OfficeWord -Path .\Report-NoToc.docx
 ```
@@ -35,7 +35,7 @@ Document to modify when provided explicitly.
 
 ```yaml
 Type: WordDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -51,7 +51,7 @@ Emit the document after removal.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

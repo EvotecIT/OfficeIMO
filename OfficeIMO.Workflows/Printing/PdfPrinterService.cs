@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 namespace OfficeIMO.Workflows;
 
 /// <summary>An installed operating-system printer queue.</summary>
@@ -42,12 +43,12 @@ public sealed class PdfPrintDeliveryOptions {
     public string? OutputFilePath { get; set; }
 
     internal PdfPrintDeliveryOptions Snapshot() {
-        ArgumentException.ThrowIfNullOrWhiteSpace(PrinterName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(DocumentName);
+        if ((PrinterName == null || string.IsNullOrWhiteSpace(PrinterName))) throw new ArgumentException("A non-empty value is required.", nameof(PrinterName));
+        if ((DocumentName == null || string.IsNullOrWhiteSpace(DocumentName))) throw new ArgumentException("A non-empty value is required.", nameof(DocumentName));
         if (PrinterName.IndexOf('\0') >= 0 || DocumentName.IndexOf('\0') >= 0) throw new ArgumentException("Printer and document names cannot contain null characters.");
         if (Copies is < 1 or > 100) throw new ArgumentOutOfRangeException(nameof(Copies));
-        if (!Enum.IsDefined(Duplex)) throw new ArgumentOutOfRangeException(nameof(Duplex));
-        if (PaperSourceId is not null && (string.IsNullOrWhiteSpace(PaperSourceId) || PaperSourceId.Length > 256 || PaperSourceId.Any(char.IsControl)))
+        if (!OfficeRuntimeCompatibility.IsDefined(Duplex)) throw new ArgumentOutOfRangeException(nameof(Duplex));
+        if (PaperSourceId is not null && ((PaperSourceId == null || string.IsNullOrWhiteSpace(PaperSourceId)) || PaperSourceId.Length > 256 || PaperSourceId.Any(char.IsControl)))
             throw new ArgumentException("The paper-source identifier is invalid.", nameof(PaperSourceId));
         return new() { PrinterName = PrinterName, DocumentName = DocumentName, Copies = Copies, Duplex = Duplex, PaperSourceId = PaperSourceId, OutputFilePath = OutputFilePath };
     }
@@ -83,28 +84,28 @@ public interface IPdfPrinterService {
 public sealed class PdfPrinterService : IPdfPrinterService {
     /// <inheritdoc />
     public Task<IReadOnlyList<PdfPaperSourceInfo>> GetPaperSourcesAsync(string printerName, CancellationToken cancellationToken = default) {
-        ArgumentException.ThrowIfNullOrWhiteSpace(printerName);
+        if ((printerName == null || string.IsNullOrWhiteSpace(printerName))) throw new ArgumentException("A non-empty value is required.", nameof(printerName));
         if (printerName.Contains('\0')) throw new ArgumentException("The printer name is invalid.", nameof(printerName));
         cancellationToken.ThrowIfCancellationRequested();
-        return OperatingSystem.IsWindows()
+        return OfficeRuntimeCompatibility.IsWindows
             ? WindowsPdfPrinter.GetPaperSourcesAsync(printerName, cancellationToken)
             : CupsPdfPrinter.GetPaperSourcesAsync(printerName, cancellationToken);
     }
 
     /// <inheritdoc />
     public Task<IReadOnlyList<PdfPrinterInfo>> GetPrintersAsync(CancellationToken cancellationToken = default) =>
-        OperatingSystem.IsWindows()
+        OfficeRuntimeCompatibility.IsWindows
             ? WindowsPdfPrinter.GetPrintersAsync(cancellationToken)
             : CupsPdfPrinter.GetPrintersAsync(cancellationToken);
 
     /// <inheritdoc />
     public Task<PdfPrintSubmission> SubmitAsync(PdfPreparedPrintDocument document, PdfPrintDeliveryOptions options, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(document);
-        ArgumentNullException.ThrowIfNull(options);
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        if (options == null) throw new ArgumentNullException(nameof(options));
         PdfPrintDeliveryOptions snapshot = options.Snapshot();
         if (document.Sheets.Count == 0) throw new ArgumentException("There are no prepared print sheets.", nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
-        return OperatingSystem.IsWindows()
+        return OfficeRuntimeCompatibility.IsWindows
             ? WindowsPdfPrinter.SubmitAsync(document, snapshot, cancellationToken)
             : CupsPdfPrinter.SubmitAsync(document, snapshot, cancellationToken);
     }

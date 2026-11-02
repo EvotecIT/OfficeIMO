@@ -31,7 +31,7 @@ public sealed class IWorkKeynoteWritingTests {
         result.Report.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream();
         result.Value.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         Assert.Empty(reopened.ValidateDocument());
         Assert.Contains("Edited in Keynote", reopened.Slides[1].TextBoxes.Single().Text);
         Assert.Equal("003366", reopened.Slides[1].TextBoxes.Single().Color);
@@ -75,7 +75,7 @@ public sealed class IWorkKeynoteWritingTests {
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         Assert.Equal(3, reopened.Slides.Count);
         Assert.Empty(reopened.ValidateDocument());
         Assert.Contains("Zażółć gęślą jaźń", reopened.Slides[1].TextBoxes.Single().Text);
@@ -101,7 +101,7 @@ public sealed class IWorkKeynoteWritingTests {
             conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         Assert.Empty(reopened.ValidateDocument());
         Assert.Equal(Enumerable.Range(0, 10).Select(index => "BOX " + index),
             reopened.Slides[0].TextBoxes.Select(box => box.Text.TrimEnd('\r', '\n')));

@@ -54,9 +54,9 @@ $docx = Join-Path $OutputDirectory 'ProjectDeliveryPack.docx'
 $pdf = Join-Path $OutputDirectory 'ProjectDeliveryPack.pdf'
 
 #region Excerpt:pswriteoffice-project-delivery
-ExcelNew -Path $xlsx -EvaluateFormulas {
+New-OfficeExcel -Path $xlsx -SaveOptions @{ EvaluateFormulas = $true } {
     ExcelSheet 'Review' {
-        ExcelGridlines -Hide
+        ExcelSheetView -NoGridlines
         ExcelColumn -ColumnName A -Width 44
         ExcelColumn -ColumnName B -Width 24
         ExcelCell -Address A1 -Value "$reviewContext | delivery review"
@@ -75,8 +75,8 @@ ExcelNew -Path $xlsx -EvaluateFormulas {
         ExcelPrintArea -Range 'A1:B7'
     }
     ExcelSheet 'Milestones' {
-        ExcelTable -Data $rows -TableName 'DeliveryMilestones' -TableStyle TableStyleMedium4
-        ExcelFreeze -TopRows 1
+        ExcelTable -Data $rows -Name 'DeliveryMilestones' -TableStyle TableStyleMedium4
+        ExcelSheetView -FreezeRows 1
         ExcelColumn -ColumnName A -Width 36
         ExcelColumn -ColumnName B -Width 24
         ExcelColumn -ColumnName C -Width 18
@@ -100,29 +100,29 @@ ExcelNew -Path $xlsx -EvaluateFormulas {
 $reviewRows = $rows | Select-Object Milestone,Owner,
     @{Name='Due';Expression={$_.DueDate.ToString('yyyy-MM-dd')}},
     @{Name='Progress';Expression={"$($_.Progress)%"}},Status
-WordNew -Path $docx {
+New-OfficeWord -Path $docx {
     WordHeader { WordParagraph -Text "DELIVERY | $reviewContext | $($snapshotDate.ToString('yyyy-MM-dd'))" }
-    WordFooter { WordPageNumber -IncludeTotalPages }
-    WordParagraph { WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true; WordText 'Project delivery review' -Bold -FontSize 25 -Color '17365D' }
+    WordFooter { WordPageNumber -IncludeTotal }
+    WordParagraph { Set-OfficeWordParagraph -SpacingAfter 12 -KeepWithNext:$true; WordText 'Project delivery review' -Bold -Size 25 -Color '17365D' }
     WordParagraph -Text "$($done.Count) of $($rows.Count) milestones are complete; $($overdue.Count) overdue milestone(s) need an owner decision at $($snapshotDate.ToString('yyyy-MM-dd'))."
-    WordParagraph -Text 'Decisions and recovery actions' -Style Heading1 { WordParagraphStyle -KeepWithNext $true -SpacingBeforePoints 12 -SpacingAfterPoints 6 }
+    WordParagraph -Text 'Decisions and recovery actions' -Style Heading1 { Set-OfficeWordParagraph -KeepWithNext:$true -SpacingBefore 12 -SpacingAfter 6 }
     WordList -Style Bulleted {
         foreach ($item in $overdue) {
             $decision = WordListItem -Text "$($item.Owner) | $($item.Milestone): $($item.NextAction)." -PassThru
-            WordParagraphStyle -Paragraph $decision -KeepLinesTogether $true
+            Set-OfficeWordParagraph -Paragraph $decision -KeepLinesTogether:$true
         }
         if (-not $overdue.Count) { WordListItem -Text 'No overdue milestones. Confirm the next due dates and acceptance evidence with their owners.' }
     }
-    WordParagraph -Text 'Review owner: __________________  Decision: __________________' { WordParagraphStyle -SpacingBeforePoints 12 }
-    WordParagraph -Text 'Milestone position' -Style Heading1 { WordParagraphStyle -KeepWithNext $true -SpacingBeforePoints 12 -SpacingAfterPoints 6 }
+    WordParagraph -Text 'Review owner: __________________  Decision: __________________' { Set-OfficeWordParagraph -SpacingBefore 12 }
+    WordParagraph -Text 'Milestone position' -Style Heading1 { Set-OfficeWordParagraph -KeepWithNext:$true -SpacingBefore 12 -SpacingAfter 6 }
     $table = WordTable -InputObject $reviewRows -Style GridTable4Accent1 -Layout AutoFitToWindow -PassThru {
         WordTableCondition -FilterScript { $_.Status -eq 'Overdue' } -BackgroundColor '#FFF4D6'
     }
     $table.RepeatHeaderRowAtTheTopOfEachPage = $true
     foreach ($tableRow in $table.Rows) { $tableRow.AllowRowToBreakAcrossPages = $false }
     $table | Get-OfficeWordTableCell | ForEach-Object {
-        $_.MarginTopCentimeters=0.12; $_.MarginBottomCentimeters=0.12
-        $_.MarginLeftCentimeters=0.16; $_.MarginRightCentimeters=0.16
+        $_.MarginTop = [OfficeIMO.OfficeLength]::Centimeters(0.12); $_.MarginBottom = [OfficeIMO.OfficeLength]::Centimeters(0.12)
+        $_.MarginLeft = [OfficeIMO.OfficeLength]::Centimeters(0.16); $_.MarginRight = [OfficeIMO.OfficeLength]::Centimeters(0.16)
     }
     WordParagraph -Text "${sampleNotice}Due today is on track; overdue means an incomplete milestone due before the snapshot date. Update the CSV and regenerate this review after changes. Record the review decision in the editable Word copy."
 }

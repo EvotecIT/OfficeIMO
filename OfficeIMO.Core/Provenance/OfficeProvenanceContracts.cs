@@ -178,6 +178,11 @@ public sealed class OfficeProvenanceReport {
 /// <summary>Bounds structural provenance inspection and removal.</summary>
 public sealed class OfficeProvenanceOptions {
     internal CancellationToken CancellationToken { get; set; }
+    internal OfficeProvenanceOptions Snapshot(CancellationToken cancellationToken) {
+        var snapshot = (OfficeProvenanceOptions)MemberwiseClone();
+        snapshot.CancellationToken = cancellationToken;
+        return snapshot;
+    }
     // Memory-only hosts qualify DOCX/XLSX/PPTX; package owners otherwise retain their broader subtype support.
     internal bool RequireStandardOpenXmlDocument { get; set; }
     internal OfficeProvenanceOptions ForStandardOpenXmlDocument() {

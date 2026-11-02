@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Annotation", geometry.ShapeNameU);
             Assert.Equal("Annotation", geometry.SemanticKind);
 
-            VisioInspectionMasterSnapshot master = Assert.Single(document.CreateInspectionSnapshot().Masters, item => item.NameU == "Process");
+            VisioInspectionMasterSnapshot master = Assert.Single(document.Inspect().Masters, item => item.NameU == "Process");
             Assert.Null(master.StencilId);
             Assert.Null(master.StencilIconNameU);
             Assert.Null(master.StencilDefaultWidth);
@@ -335,7 +335,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Inches", usage.StencilDefaultUnit);
             Assert.Equal(new[] { "source" }, usage.ShapeIds);
 
-            VisioInspectionMasterSnapshot master = Assert.Single(loaded.CreateInspectionSnapshot().Masters, item => item.NameU == "FancyCloud");
+            VisioInspectionMasterSnapshot master = Assert.Single(loaded.Inspect().Masters, item => item.NameU == "FancyCloud");
             Assert.True(master.IsPackageBacked);
             Assert.Equal("profile.fancy-cloud", master.StencilId);
             Assert.Equal(Path.GetFullPath(packagePath), master.StencilSourcePackagePath);

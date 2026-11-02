@@ -62,64 +62,28 @@ namespace OfficeIMO.Word {
             set => SetShapeStyleComponent("rotation", value?.ToString() ?? string.Empty);
         }
 
-        /// <summary>
-        /// Gets or sets the width of the watermark in points.
-        /// </summary>
-        public double? Width {
-            get {
-                var widthValue = GetShapeStyleComponent("width");
-                if (widthValue == null) {
-                    return null;
-                }
-
-                return ParseWatermarkStylePoint(widthValue);
-            }
-            set => SetShapeStyleComponent("width", value + "pt");
+        /// <summary>Gets or sets the physical watermark width. Null removes the stored width.</summary>
+        public global::OfficeIMO.OfficeLength? Width {
+            get => GetShapeLengthComponent("width");
+            set => SetShapeLengthComponent("width", value);
         }
 
-        /// <summary>
-        /// Gets or sets the height of the watermark in points.
-        /// </summary>
-        public double? Height {
-            get {
-                var heightValue = GetShapeStyleComponent("height");
-                if (heightValue == null) {
-                    return null;
-                }
-
-                return ParseWatermarkStylePoint(heightValue);
-            }
-            set => SetShapeStyleComponent("height", value + "pt");
+        /// <summary>Gets or sets the physical watermark height. Null removes the stored height.</summary>
+        public global::OfficeIMO.OfficeLength? Height {
+            get => GetShapeLengthComponent("height");
+            set => SetShapeLengthComponent("height", value);
         }
 
-        /// <summary>
-        /// Horizontal offset (margin-left) of the watermark in points.
-        /// </summary>
-        public double? HorizontalOffset {
-            get {
-                var value = GetShapeStyleComponent("margin-left");
-                if (value == null) {
-                    return null;
-                }
-
-                return ParseWatermarkStylePoint(value);
-            }
-            set => SetShapeStyleComponent("margin-left", value + "pt");
+        /// <summary>Gets or sets the signed horizontal offset. Null removes the stored margin-left.</summary>
+        public global::OfficeIMO.OfficeLength? HorizontalOffset {
+            get => GetShapeLengthComponent("margin-left");
+            set => SetShapeLengthComponent("margin-left", value);
         }
 
-        /// <summary>
-        /// Vertical offset (margin-top) of the watermark in points.
-        /// </summary>
-        public double? VerticalOffset {
-            get {
-                var value = GetShapeStyleComponent("margin-top");
-                if (value == null) {
-                    return null;
-                }
-
-                return ParseWatermarkStylePoint(value);
-            }
-            set => SetShapeStyleComponent("margin-top", value + "pt");
+        /// <summary>Gets or sets the signed vertical offset. Null removes the stored margin-top.</summary>
+        public global::OfficeIMO.OfficeLength? VerticalOffset {
+            get => GetShapeLengthComponent("margin-top");
+            set => SetShapeLengthComponent("margin-top", value);
         }
 
         /// <summary>
@@ -136,7 +100,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Font size of text watermark in points.
         /// </summary>
-        public double? FontSize {
+        public global::OfficeIMO.OfficeLength? FontSize {
+            get => NativeFontSizePoints is double points ? global::OfficeIMO.OfficeLength.Points(points) : null;
+            set => NativeFontSizePoints = value?.ToPoints();
+        }
+
+        /// <summary>Gets or sets the native VML size without quantizing imported values.</summary>
+        internal double? NativeFontSizePoints {
             get {
                 var value = GetTextPathStyleComponent("font-size");
                 if (value == null) {
@@ -233,13 +203,13 @@ namespace OfficeIMO.Word {
         /// or three- or six-digit hexadecimal strings with or without a leading '#'.
         /// Invalid color values will result in <see cref="ArgumentException"/> being thrown.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor? Color {
+        public OfficeIMO.OfficeColor? Color {
             get {
                 if (ColorHex == "") {
                     return null;
                 }
 
-                return OfficeIMO.Drawing.OfficeColor.Parse(ColorHex);
+                return OfficeIMO.OfficeColor.Parse(ColorHex);
 
             }
             set {
@@ -392,6 +362,27 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>Converts a native VML point value to a whole-EMU public length.</summary>
+        private global::OfficeIMO.OfficeLength? GetShapeLengthComponent(string key) {
+            string? value = GetShapeStyleComponent(key);
+            double? points = value == null ? null : ParseWatermarkStylePoint(value);
+            return points.HasValue ? global::OfficeIMO.OfficeLength.Points(points.Value) : null;
+        }
+
+        /// <summary>Writes invariant VML points, or removes the component when unset.</summary>
+        private void SetShapeLengthComponent(string key, global::OfficeIMO.OfficeLength? value) {
+            var shape = _shape;
+            if (shape == null) return;
+
+            var style = ImageShapeStyleHelper.GetStyle(shape);
+            if (value.HasValue) {
+                style[key] = value.Value.ToPoints().ToString("R", CultureInfo.InvariantCulture) + "pt";
+            } else {
+                style.Remove(key);
+            }
+            ImageShapeStyleHelper.SetStyle(shape, style);
+        }
+
         private string? GetShapeStyleComponent(string key) =>
             GetStyleComponent(_shape?.Style?.Value, key);
 
@@ -496,10 +487,10 @@ namespace OfficeIMO.Word {
         /// <param name="wordSection">The section to which the watermark should be added.</param>
         /// <param name="style">The type of watermark to add.</param>
         /// <param name="textOrFilePath">Text to use or path to the watermark image.</param>
-        /// <param name="horizontalOffset">Horizontal offset in points.</param>
-        /// <param name="verticalOffset">Vertical offset in points.</param>
+        /// <param name="horizontalOffset">Optional signed horizontal offset.</param>
+        /// <param name="verticalOffset">Optional signed vertical offset.</param>
         /// <param name="scale">Scale factor for width and height.</param>
-        public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordWatermarkStyle style, string textOrFilePath, double? horizontalOffset = null, double? verticalOffset = null, double scale = 1.0) {
+        public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordWatermarkStyle style, string textOrFilePath, global::OfficeIMO.OfficeLength? horizontalOffset = null, global::OfficeIMO.OfficeLength? verticalOffset = null, double scale = 1.0) {
             this._document = wordDocument;
             this._section = wordSection ?? throw new ArgumentNullException(nameof(wordSection));
 
@@ -560,10 +551,10 @@ namespace OfficeIMO.Word {
         /// <param name="wordHeader">The header where the watermark will be placed.</param>
         /// <param name="style">The type of watermark to add.</param>
         /// <param name="textOrFilePath">Text to use or path to the watermark image.</param>
-        /// <param name="horizontalOffset">Horizontal offset in points.</param>
-        /// <param name="verticalOffset">Vertical offset in points.</param>
+        /// <param name="horizontalOffset">Optional signed horizontal offset.</param>
+        /// <param name="verticalOffset">Optional signed vertical offset.</param>
         /// <param name="scale">Scale factor for width and height.</param>
-        public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordHeader wordHeader, WordWatermarkStyle style, string textOrFilePath, double? horizontalOffset = null, double? verticalOffset = null, double scale = 1.0) {
+        public WordWatermark(WordDocument wordDocument, WordSection wordSection, WordHeader wordHeader, WordWatermarkStyle style, string textOrFilePath, global::OfficeIMO.OfficeLength? horizontalOffset = null, global::OfficeIMO.OfficeLength? verticalOffset = null, double scale = 1.0) {
             this._document = wordDocument;
             this._section = wordSection ?? throw new ArgumentNullException(nameof(wordSection));
 
@@ -923,8 +914,8 @@ namespace OfficeIMO.Word {
             var style = ImageShapeStyleHelper.GetStyle(shape1);
             double widthPt = Helpers.ConvertPixelsToPoints(imageLocation.Width);
             double heightPt = Helpers.ConvertPixelsToPoints(imageLocation.Height);
-            style["width"] = widthPt + "pt";
-            style["height"] = heightPt + "pt";
+            style["width"] = widthPt.ToString("R", CultureInfo.InvariantCulture) + "pt";
+            style["height"] = heightPt.ToString("R", CultureInfo.InvariantCulture) + "pt";
             ImageShapeStyleHelper.SetStyle(shape1, style);
 
             shape1.Append(imageData1);
@@ -956,8 +947,8 @@ namespace OfficeIMO.Word {
             var style = ImageShapeStyleHelper.GetStyle(shape);
             double widthPt = Helpers.ConvertPixelsToPoints(imageLocation.Width);
             double heightPt = Helpers.ConvertPixelsToPoints(imageLocation.Height);
-            style["width"] = widthPt + "pt";
-            style["height"] = heightPt + "pt";
+            style["width"] = widthPt.ToString("R", CultureInfo.InvariantCulture) + "pt";
+            style["height"] = heightPt.ToString("R", CultureInfo.InvariantCulture) + "pt";
             ImageShapeStyleHelper.SetStyle(shape, style);
 
             shape.Append(imageData1);

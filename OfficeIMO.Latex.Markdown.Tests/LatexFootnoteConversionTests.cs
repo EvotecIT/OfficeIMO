@@ -26,7 +26,7 @@ public class LatexFootnoteConversionTests {
         Assert.Single(Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]).Inlines.Nodes.OfType<ItalicSequenceInline>());
         Assert.Contains(" after.", Plain(paragraph.Inlines), StringComparison.Ordinal);
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Feature.StartsWith("command:footnote", StringComparison.Ordinal));
-        string pdfText = PdfReadDocument.Open(source.ToPdfDocumentResult().Value.ToBytes()).ExtractText();
+        string pdfText = PdfDocument.Load(new System.IO.MemoryStream(source.ToPdfDocumentResult().Value.ToBytes())).ExtractText();
         foreach (string text in new[] { "Before", "after.", "First", "Second.", "One", "Two", "Quoted" })
             Assert.Single(System.Text.RegularExpressions.Regex.Matches(pdfText,
                 System.Text.RegularExpressions.Regex.Escape(text)).Cast<System.Text.RegularExpressions.Match>());
@@ -48,7 +48,9 @@ public class LatexFootnoteConversionTests {
     public void FootnotesInOpaqueArgumentsStayInTheFallbackAndNestedInsertionsAreReported() {
         LatexToMarkdownResult result = LatexDocument.Parse(Wrap("\\custom{Hidden\\footnote{Opaque}} Visible\\footnote{Outer\\footnote{Inner}} tail")).ToMarkdownDocumentResult();
         FootnoteDefinitionBlock definition = Assert.Single(result.Value.Blocks.OfType<FootnoteDefinitionBlock>());
-        string noteMarkdown = MarkdownDoc.Create().Add(definition).ToMarkdown();
+        using var addedDocument = MarkdownDocument.Create();
+        addedDocument.Add(definition);
+        string noteMarkdown = addedDocument.ToMarkdown();
         Assert.Contains("Outer", noteMarkdown, StringComparison.Ordinal);
         Assert.Contains("Inner", noteMarkdown, StringComparison.Ordinal);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Feature == "nested-footnote" && diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);

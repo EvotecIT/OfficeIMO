@@ -102,7 +102,7 @@ internal sealed class MarkdownHeadingCatalog {
         slugRegistry[anchor] = 0;
     }
 
-    internal string? GetPrecedingHeadingAnchor(IReadOnlyList<IMarkdownBlock> blocks, int blockIndex, TocOptions options) {
+    internal string? GetPrecedingHeadingAnchor(IReadOnlyList<IMarkdownBlock> blocks, int blockIndex, MarkdownTocOptions options) {
         if (!options.IncludeTitle || blockIndex <= 0 || blockIndex > blocks.Count - 1) {
             return null;
         }
@@ -114,7 +114,7 @@ internal sealed class MarkdownHeadingCatalog {
         return GetHeadingAnchor(titleHeading);
     }
 
-    internal List<TocBlock.Entry> BuildTocEntries(IReadOnlyList<IMarkdownBlock> blocks, int placeholderIndex, TocOptions options, string? titleAnchor = null) {
+    internal List<TocBlock.Entry> BuildTocEntries(IReadOnlyList<IMarkdownBlock> blocks, int placeholderIndex, MarkdownTocOptions options, string? titleAnchor = null) {
         int minLevel = ClampHeadingLevel(options.MinLevel);
         int maxLevel = ClampHeadingLevel(options.MaxLevel);
         if (maxLevel < minLevel) {
@@ -140,11 +140,11 @@ internal sealed class MarkdownHeadingCatalog {
         return entries;
     }
 
-    private void GetScopeBounds(int placeholderIndex, int minLevel, TocOptions options, out int startIndex, out int endIndex) {
+    private void GetScopeBounds(int placeholderIndex, int minLevel, MarkdownTocOptions options, out int startIndex, out int endIndex) {
         startIndex = 0;
         endIndex = int.MaxValue;
 
-        if (options.Scope == TocScope.PreviousHeading) {
+        if (options.Scope == MarkdownTocScope.PreviousHeading) {
             var previous = _headings.LastOrDefault(h => h.Index < placeholderIndex && h.Level < minLevel);
             if (previous.Equals(default(HeadingEntry))) {
                 previous = _headings.LastOrDefault(h => h.Index < placeholderIndex);
@@ -161,7 +161,7 @@ internal sealed class MarkdownHeadingCatalog {
             return;
         }
 
-        if (options.Scope == TocScope.HeadingTitle && !string.IsNullOrWhiteSpace(options.ScopeHeadingTitle)) {
+        if (options.Scope == MarkdownTocScope.HeadingTitle && !string.IsNullOrWhiteSpace(options.ScopeHeadingTitle)) {
             var root = _headings.FirstOrDefault(h => string.Equals(h.Text, options.ScopeHeadingTitle, StringComparison.OrdinalIgnoreCase));
             if (!root.Equals(default(HeadingEntry))) {
                 startIndex = root.Index + 1;

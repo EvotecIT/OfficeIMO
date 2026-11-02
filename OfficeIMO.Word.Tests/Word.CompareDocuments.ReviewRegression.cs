@@ -258,14 +258,14 @@ namespace OfficeIMO.Tests {
         public void CompareStructureInPlaceRedlineSkipsImageOnlyParagraphIndexes() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_image_only_paragraph_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
-                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 80, 40);
+                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 document.AddParagraph("Stable text");
                 document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_image_only_paragraph_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
-                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 80, 40);
+                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 document.AddParagraph("Changed text");
                 document.Save();
             }
@@ -434,15 +434,15 @@ namespace OfficeIMO.Tests {
             string secondImage = Path.Combine(_directoryWithImages, "EvotecLogo.png");
             string stableImage = Path.Combine(_directoryWithImages, "snail.bmp");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
-                document.AddParagraph().AddImage(firstImage, 40, 40);
-                document.AddParagraph().AddImage(secondImage, 40, 40);
-                document.AddParagraph().AddImage(stableImage, 40, 40);
+                document.AddParagraph().AddImage(firstImage, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
+                document.AddParagraph().AddImage(secondImage, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
+                document.AddParagraph().AddImage(stableImage, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_image_order_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
-                document.AddParagraph().AddImage(stableImage, 40, 40);
+                document.AddParagraph().AddImage(stableImage, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 
@@ -469,7 +469,7 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_image_sectpr_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
-                document.AddParagraph().AddImage(imagePath, 40, 40);
+                document.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 
@@ -502,7 +502,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_header_image_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddHeadersAndFooters();
-                document.Header.Default!.AddParagraph().AddImage(imagePath, 40, 40);
+                document.Header.Default!.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 
@@ -510,7 +510,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddHeadersAndFooters();
                 document.Header.Default!.AddParagraph("Header remains");
-                document.AddParagraph().AddImage(imagePath, 40, 40);
+                document.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 
@@ -737,8 +737,8 @@ namespace OfficeIMO.Tests {
             string stableImagePath = Path.Combine(_directoryWithImages, "snail.bmp");
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_image_hyperlink_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
-                document.AddParagraph().AddImage(imagePath, 80, 40);
-                document.AddParagraph().AddImage(stableImagePath, 40, 40);
+                document.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
+                document.AddParagraph().AddImage(stableImagePath, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 
@@ -746,7 +746,7 @@ namespace OfficeIMO.Tests {
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_image_hyperlink_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
-                document.AddParagraph().AddImage(stableImagePath, 40, 40);
+                document.AddParagraph().AddImage(stableImagePath, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 

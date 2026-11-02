@@ -34,6 +34,8 @@ internal static partial class PdfStandardSecurityWriter {
     /// <summary>Compares the effective credentials using the same normalization as output encryption.</summary>
     internal static bool PasswordsAreEquivalent(string first, string second, PdfStandardEncryptionAlgorithm algorithm,
         CancellationToken cancellationToken) {
+        if (algorithm is not (PdfStandardEncryptionAlgorithm.Aes256 or PdfStandardEncryptionAlgorithm.Aes128 or PdfStandardEncryptionAlgorithm.LegacyRc4))
+            throw new ArgumentOutOfRangeException(nameof(algorithm));
         byte[] left = algorithm == PdfStandardEncryptionAlgorithm.Aes256
             ? PdfModernPasswordNormalizer.Normalize(first, cancellationToken) : PadPassword(first, cancellationToken);
         byte[]? right = null;

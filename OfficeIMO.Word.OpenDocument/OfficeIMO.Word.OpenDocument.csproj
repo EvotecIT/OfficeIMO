@@ -39,4 +39,5 @@
     <Using Include="System.IO" />
     <Using Include="System.Linq" />
   </ItemGroup>
+  <ItemGroup><ProjectReference Include="..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" /></ItemGroup>
 </Project>

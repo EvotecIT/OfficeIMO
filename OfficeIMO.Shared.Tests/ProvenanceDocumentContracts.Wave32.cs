@@ -20,7 +20,7 @@ public sealed partial class ProvenanceDocumentContracts {
             document.ChangeDocumentType(PresentationDocumentType.AddIn);
         }
 
-        OfficeProvenanceRemovalResult result = PowerPointPresentation.RemoveProvenance(stream.ToArray(), "addin.ppam");
+        OfficeProvenanceRemovalResult result = PowerPointDocument.RemoveProvenance(stream.ToArray(), "addin.ppam");
 
         Assert.Equal(OfficeProvenanceAssetFormat.ZipPackage, result.Before.Format);
     }

@@ -11,24 +11,32 @@ namespace OfficeIMO.Word {
             set => WordPageSizes.SetOrientation(_sectionProperties, value.ToOpenXml());
         }
         /// <summary>
-        /// Gets or sets spacing between section columns.
+        /// Gets or sets the equal-width column gap as a physical length.
+        /// Null omits the stored gap; layout uses its existing 36-point default.
+        /// Storage rounds to whole signed 32-bit twips. Native DOC saving accepts
+        /// only gaps from zero through 65535 twips and writes its default for an omitted gap
+        /// when a column count is set.
+        /// Individual unequal-column gaps are controlled by ColumnDefinitions.
         /// </summary>
-        public int? ColumnsSpace {
+        /// <exception cref="OverflowException">The rounded gap exceeds the signed 32-bit twip range.</exception>
+        public OfficeLength? ColumnsSpace {
             get {
                 Columns? columns = _sectionProperties.GetFirstChild<Columns>();
                 if (columns == null) {
                     return null;
                 }
 
-                return int.TryParse(columns.Space?.Value, out int spacing) ? spacing : null;
+                return int.TryParse(columns.Space?.Value, out int spacing)
+                    ? OfficeLength.Points(spacing / 20D) : (OfficeLength?)null;
             }
             set {
+                int? spacing = checked((int?)(value?.ToTwips()));
                 Columns? columns = _sectionProperties.GetFirstChild<Columns>();
                 if (columns == null) {
                     columns = new Columns();
                     _sectionProperties.Append(columns);
                 }
-                columns.Space = value.HasValue ? new DocumentFormat.OpenXml.StringValue(value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)) : null;
+                columns.Space = spacing.HasValue ? new DocumentFormat.OpenXml.StringValue(spacing.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)) : null;
             }
         }
 

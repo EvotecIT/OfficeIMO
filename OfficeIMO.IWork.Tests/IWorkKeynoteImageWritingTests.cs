@@ -15,8 +15,8 @@ public sealed class IWorkKeynoteImageWritingTests {
             conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
-        using var saved = PowerPointPresentation.Load(output);
-        using var apple = PowerPointPresentation.Load(Fixture("keynote-created-images-v15.4.pptx"));
+        using var saved = PowerPointDocument.Load(output);
+        using var apple = PowerPointDocument.Load(Fixture("keynote-created-images-v15.4.pptx"));
         Assert.Equal(3, saved.Slides.Count); Assert.Empty(saved.ValidateDocument());
         for (int i = 0; i < 3; i++) {
             Assert.Equal(apple.Slides[i].Shapes.Select(shape => shape.GetType()),
@@ -25,8 +25,8 @@ public sealed class IWorkKeynoteImageWritingTests {
             PowerPointPicture oracle = Assert.Single(apple.Slides[i].Pictures);
             Assert.Equal(oracle.GetImageBytes(), actual.GetImageBytes());
             Assert.Equal(oracle.AltText, actual.AltText);
-            Assert.Equal(oracle.Left, actual.Left); Assert.Equal(oracle.Top, actual.Top);
-            Assert.Equal(oracle.Width, actual.Width); Assert.Equal(oracle.Height, actual.Height);
+            Assert.Equal(oracle.Left.ToEmus(), actual.Left.ToEmus()); Assert.Equal(oracle.Top.ToEmus(), actual.Top.ToEmus());
+            Assert.Equal(oracle.Width.ToEmus(), actual.Width.ToEmus()); Assert.Equal(oracle.Height.ToEmus(), actual.Height.ToEmus());
         }
     }
 
@@ -52,9 +52,9 @@ public sealed class IWorkKeynoteImageWritingTests {
             conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
-        using var reopened = PowerPointPresentation.Load(output);
+        using var reopened = PowerPointDocument.Load(output);
         Assert.Empty(reopened.ValidateDocument());
-        Assert.Equal(80 * 12700, reopened.Slides[2].Pictures.Single().Left);
+        Assert.Equal(80 * 12700, reopened.Slides[2].Pictures.Single().Left.ToEmus());
     }
 
     [Theory]
@@ -103,7 +103,7 @@ public sealed class IWorkKeynoteImageWritingTests {
             conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         Assert.Empty(reopened.ValidateDocument());
         PowerPointShape[] shapes = reopened.Slides[0].Shapes.ToArray();
         Assert.Equal(4, shapes.Length);

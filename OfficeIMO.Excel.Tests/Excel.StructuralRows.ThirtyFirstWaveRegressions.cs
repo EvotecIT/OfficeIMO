@@ -10,8 +10,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesUnchangedFormulaRecalculation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet summary = document.AddSheet("Summary");
             summary.CellFormula(1, 1, "1+1");
             CellFormula formula = Assert.Single(
                 summary.WorksheetPart.Worksheet.Descendants<CellFormula>());
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesPendingUnchangedFormulaRecalculation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet summary = document.AddSheet("Summary");
             for (int column = 1; column <= 128; column++) {
                 summary.CellValue(1, column, column);
             }
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIgnoresUnchangedHyperlinksAndTables() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Name");
             sheet.CellAt(1, 2).SetValue("Value");
             sheet.CellAt(2, 1).SetValue("One");
@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesImplicitRowsNormalizedAboveBoundary() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Value");
             Row row = Assert.Single(
                 sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Elements<Row>());
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesIndependentCommentVmlAnchorMove() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.SetComment("A1", "Anchored note");
             var vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
             string before;
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIgnoresVmlShapeWithInvalidCoordinates() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.SetComment("A1", "Malformed coordinate");
             var vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
             XNamespace excelNamespace =
@@ -166,7 +166,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanRejectsVmlShapeWithoutObjectType() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.SetComment("A1", "Missing object type");
             var vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
             XNamespace excelNamespace =

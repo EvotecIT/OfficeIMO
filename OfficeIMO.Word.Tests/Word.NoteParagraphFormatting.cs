@@ -31,8 +31,8 @@ public partial class Word {
         var noteParagraph = new WordParagraph(document) { Text = "Note content" };
         if (explicitStyle) noteParagraph.Style = WordParagraphStyles.Heading2;
         noteParagraph.ParagraphAlignment = WordParagraphAlignment.Right;
-        noteParagraph.IndentationBefore = 720;
-        noteParagraph.IndentationHanging = 360;
+        noteParagraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
+        noteParagraph.IndentationHanging = global::OfficeIMO.OfficeLength.Points(18D);
         noteParagraph.KeepWithNext = true;
         string? expectedStyle = noteParagraph.StyleId;
 

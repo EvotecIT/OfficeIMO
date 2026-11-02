@@ -82,7 +82,7 @@ public sealed class PdfOptimizerConformanceTests {
     [InlineData(PdfOptimizationProfile.Web)]
     [InlineData(PdfOptimizationProfile.Archival)]
     public void Optimize_PdfA4GroundworkDoesNotCreateInfo(PdfOptimizationProfile profile) {
-        byte[] source = PdfDocument.Create(new PdfOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA4))
+        byte[] source = PdfDocument.Create(new PdfCreateOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA4))
             .Meta(title: "XMP-only archival title", author: "OfficeIMO")
             .Paragraph(p => p.Text("PDF/A-4 metadata preservation"))
             .ToBytes();
@@ -279,7 +279,7 @@ public sealed class PdfOptimizerConformanceTests {
     }
 
     private static byte[] BuildPdfA1Groundwork() {
-        var options = new PdfOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA2B);
+        var options = new PdfCreateOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA2B);
         options.FileVersion = PdfFileVersion.Pdf14;
         byte[] source = PdfDocument.Create(options).Paragraph(p => p.Text("PDF/A-1 groundwork")).ToBytes();
         var objects = PdfSyntax.ParseObjects(source).Map;

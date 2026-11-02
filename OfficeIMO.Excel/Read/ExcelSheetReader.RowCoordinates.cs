@@ -71,7 +71,7 @@ namespace OfficeIMO.Excel {
             }
 
             internal void AddCell(ReadOnlySpan<char> reference) {
-                if (NeedsCellReference && A1.TryParseCellReferenceFast(reference, out int rowIndex, out _)) {
+                if (NeedsCellReference && ExcelA1.TryParseCellReferenceFast(reference, out int rowIndex, out _)) {
                     _rowIndex = rowIndex;
                     NeedsCellReference = false;
                 }
@@ -82,7 +82,7 @@ namespace OfficeIMO.Excel {
                 _previousRowIndex = _rowIndex;
                 _hasPreviousRow = true;
                 if (_inferred && _rowIndex != _fallback) {
-                    if (Indexes.Count >= A1.MaxRows) {
+                    if (Indexes.Count >= ExcelA1.MaxRows) {
                         throw new InvalidDataException("Worksheet implicit row coordinates exceed the XLSX row limit.");
                     }
                     Indexes.Add(_position, _rowIndex);

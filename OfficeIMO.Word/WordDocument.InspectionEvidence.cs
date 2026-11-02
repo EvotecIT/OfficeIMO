@@ -10,12 +10,13 @@ public partial class WordDocument {
     public string? SourcePackageSecurityScope { get; private set; }
 
     private static WordDocument WithSourcePackageInspection(WordDocument document, byte[] sourceBytes, WordLoadOptions options, string scope = "source-container") {
-        if (!options.CaptureSourcePackageSecurity) return document;
         try {
+            if (options.FailOnLoss) document.CreateLoadReport(document.FilePath ?? "Word stream", TimeSpan.Zero).ThrowIfLoss();
+            if (!options.CaptureSourcePackageSecurity) return document;
             document.SourcePackageSecurityReport = OfficePackageSecurityInspector.Inspect(sourceBytes, options.PackageSecurity);
             document.SourcePackageSecurityScope = scope;
             return document;
-        } catch { document.Dispose(); throw; }
+        } catch { document._persistenceMode = DocumentPersistenceMode.Explicit; document.Dispose(); throw; }
     }
     /// <summary>Inspects the currently loaded document without reopening, saving, or executing its content. Source-load limits remain the caller's responsibility.</summary>
     public OfficeContentSafetyReport InspectLoadedContentSafety(OfficeContentSafetyOptions? options = null, CancellationToken cancellationToken = default) =>

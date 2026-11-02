@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             string exportedPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide first = presentation.AddSlide();
                     first.AddTitle("Keep me");
                     PowerPointSlide second = presentation.AddSlide();
@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
                     presentation.ExportSlide(1, exportedPath);
                 }
 
-                using PowerPointPresentation exported = PowerPointPresentation.Load(exportedPath);
+                using PowerPointDocument exported = PowerPointDocument.Load(exportedPath);
                 Assert.Single(exported.Slides);
                 Assert.Contains(exported.Slides[0].TextBoxes, box => box.Text == "Export me");
                 PowerPointSmartArt smartArt = Assert.Single(exported.Slides[0].SmartArts);
@@ -41,8 +41,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ExportSlide_OmitsInternallyLinkedTargetSlides() {
-            using PowerPointPresentation source =
-                PowerPointPresentation.Create();
+            using PowerPointDocument source =
+                PowerPointDocument.Create();
             PowerPointSlide exportedSource = source.AddSlide();
             PowerPointTextRun run = exportedSource.AddTextBox("Target")
                 .Paragraphs.Single().Runs.Single();
@@ -54,8 +54,8 @@ namespace OfficeIMO.Tests {
             source.ExportSlide(0, destination);
 
             destination.Position = 0;
-            using PowerPointPresentation exported =
-                PowerPointPresentation.Load(destination);
+            using PowerPointDocument exported =
+                PowerPointDocument.Load(destination);
             Assert.Single(exported.Slides);
             Assert.Empty(exported.Slides[0].SlidePart.Slide!
                 .Descendants<A.HyperlinkOnClick>());

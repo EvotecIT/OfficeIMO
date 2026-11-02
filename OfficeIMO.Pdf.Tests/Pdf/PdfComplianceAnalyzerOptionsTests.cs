@@ -7,12 +7,12 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfComplianceAnalyzerTests {
     [Fact]
     public void OptionsOverloadUsesRequestedProfileAndNoneHasNoRequirements() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             ComplianceProfile = PdfComplianceProfile.PdfA2B
         };
 
         PdfComplianceReadinessReport requestedReport = PdfComplianceAnalyzer.Assess(options);
-        PdfComplianceReadinessReport noneReport = PdfComplianceAnalyzer.Assess(PdfComplianceProfile.None, new PdfOptions());
+        PdfComplianceReadinessReport noneReport = PdfComplianceAnalyzer.Assess(PdfComplianceProfile.None, new PdfCreateOptions());
 
         Assert.Equal(PdfComplianceProfile.PdfA2B, requestedReport.Profile);
         AssertRequirement(requestedReport, "pdfa-identification", PdfComplianceRequirementStatus.Missing);

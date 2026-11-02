@@ -12,7 +12,9 @@ public sealed class PdfPlainTextConverterTests {
     [InlineData("")]
     [InlineData("BEFORE")]
     public void WidePreservedWhitespaceWrapsWithoutHidingFollowingText(string prefix) {
-        byte[] bytes = PdfPlainTextConverter.ToPdfDocumentResult(prefix + new string(' ', 100) + "VISIBLE").ToBytes();
+        var options = new PdfTextImportOptions();
+        options.PdfOptions.Margins = new PdfPageMargins(OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(72));
+        byte[] bytes = PdfPlainTextConverter.ToPdfDocumentResult(prefix + new string(' ', 100) + "VISIBLE", options).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         var page = pdf.GetPage(1);
         Assert.Contains("VISIBLE", page.Text);
@@ -43,7 +45,7 @@ public sealed class PdfPlainTextConverterTests {
     public void MissingUnicodeGlyphsFailTheSaveInsteadOfPublishingReplacementText() {
         var conversion = PdfPlainTextConverter.ToPdfDocumentResult("漢字");
         using var output = new System.IO.MemoryStream();
-        var result = conversion.SaveResult(output);
+        var result = conversion.TrySaveWithEvidence(output);
         Assert.False(result.Succeeded);
         Assert.True(result.Report.HasLoss);
     }
@@ -79,16 +81,16 @@ public sealed class PdfPlainTextConverterTests {
     [Fact]
     public void InvalidDecodingAndExpandedTextCannotSilentlyLoseContent() {
         Assert.Throws<DecoderFallbackException>(() => PdfPlainTextConverter.ToPdfDocumentResult(new byte[] { 0xff }));
-        Assert.Throws<System.IO.InvalidDataException>(() => PdfPlainTextConverter.ToPdfDocumentResult("\t", new PdfPlainTextOptions { MaximumCharacters = 2 }));
+        Assert.Throws<System.IO.InvalidDataException>(() => PdfPlainTextConverter.ToPdfDocumentResult("\t", new PdfTextImportOptions { MaximumCharacters = 2 }));
         byte[] utf16 = Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes("A")).ToArray();
-        Assert.Throws<System.IO.InvalidDataException>(() => PdfPlainTextConverter.ToPdfDocumentResult(utf16, new PdfPlainTextOptions { EncodingName = "utf-8" }));
+        Assert.Throws<System.IO.InvalidDataException>(() => PdfPlainTextConverter.ToPdfDocumentResult(utf16, new PdfTextImportOptions { EncodingName = "utf-8" }));
     }
 
     [Fact]
     public void GeneratedPageLimitIsEnforcedByTheRealWriter() {
-        var conversion = PdfPlainTextConverter.ToPdfDocumentResult(new string('x', 4000), new PdfPlainTextOptions {
+        var conversion = PdfPlainTextConverter.ToPdfDocumentResult(new string('x', 4000), new PdfTextImportOptions {
             MaximumPages = 1,
-            PdfOptions = new PdfOptions { PageWidth = 120, PageHeight = 120, MarginLeft = 12, MarginRight = 12, MarginTop = 12, MarginBottom = 12 }
+            PdfOptions = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(120), PageHeight = global::OfficeIMO.OfficeLength.Points(120), MarginLeft = global::OfficeIMO.OfficeLength.Points(12), MarginRight = global::OfficeIMO.OfficeLength.Points(12), MarginTop = global::OfficeIMO.OfficeLength.Points(12), MarginBottom = global::OfficeIMO.OfficeLength.Points(12) }
         });
         Assert.Throws<System.IO.InvalidDataException>(() => conversion.ToBytes());
     }
@@ -97,7 +99,7 @@ public sealed class PdfPlainTextConverterTests {
     public void DenseSourceNewlinesStopDuringLayoutBeforeBuildingMillionsOfLines() {
         string text = string.Concat(Enumerable.Repeat("x\n", 100_001));
         var conversion = PdfPlainTextConverter.ToPdfDocumentResult(text,
-            new PdfPlainTextOptions { MaximumPages = 1 });
+            new PdfTextImportOptions { MaximumPages = 1 });
 
         var error = Assert.Throws<System.IO.InvalidDataException>(() => conversion.ToBytes());
         Assert.Contains("100,000", error.Message);
@@ -107,15 +109,15 @@ public sealed class PdfPlainTextConverterTests {
     public void FormFeedsStopAtThePageLimitBeforeSplittingIntoPageStrings() {
         var error = Assert.Throws<System.IO.InvalidDataException>(() =>
             PdfPlainTextConverter.ToPdfDocumentResult(new string('\f', 100_001),
-                new PdfPlainTextOptions { MaximumPages = 2 }));
+                new PdfTextImportOptions { MaximumPages = 2 }));
         Assert.Contains("explicit page limit", error.Message);
     }
 
     [Fact]
     public void PreservedWhitespaceCannotExpandIntoUnboundedBlankLines() {
-        PdfDocument document = PdfDocument.Create(new PdfOptions { PreserveTextWhitespace = true });
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions { PreserveTextWhitespace = true });
         document.Paragraph(paragraph => paragraph.Runs(new[] {
-            new PdfTextRun(new string(' ', 100) + "VISIBLE", fontSize: 1_000_000_000D)
+            new PdfTextRun(new string(' ', 100) + "VISIBLE", fontSize: global::OfficeIMO.OfficeLength.Points(1_000_000_000D))
         }));
 
         var error = Assert.Throws<System.IO.InvalidDataException>(() => document.ToBytes());

@@ -72,9 +72,9 @@ public partial class Word {
         }
         Assert.Empty(document.ValidateDocument());
         string before = footer ? document.Footer.Default!._footer!.OuterXml : document.Header.Default!._header!.OuterXml;
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Letter[] text = pdf.GetPage(1).Letters.Where(letter => letter.Value is "M" or "X").ToArray();
         Assert.Equal("MMMMX", string.Concat(text.Select(letter => letter.Value)));
         Assert.All(text, letter => Assert.Equal(text[0].StartBaseLine.Y, letter.StartBaseLine.Y, 3));
@@ -96,10 +96,10 @@ public partial class Word {
         WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
         WordParagraph outer = story.AddParagraph("MMMMX"); outer.Style = WordParagraphStyles.Normal;
         WordParagraph firstBox = outer.AddTextBox("MMMMX", WordImageTextWrapping.Square).Paragraphs.Single();
-        firstBox.Style = WordParagraphStyles.Normal; firstBox.CharacterScale = 200; firstBox.Spacing = 20;
+        firstBox.Style = WordParagraphStyles.Normal; firstBox.CharacterScale = 200; firstBox.Spacing = OfficeLength.Emus((long)(20) * 635);
         WordParagraph suffix = outer.AddText("MMMMX");
         WordParagraph secondBox = suffix.AddTextBox("MMMMX", WordImageTextWrapping.Square).Paragraphs.Single();
-        secondBox.Style = WordParagraphStyles.Normal; secondBox.CharacterScale = 50; secondBox.Spacing = -10;
+        secondBox.Style = WordParagraphStyles.Normal; secondBox.CharacterScale = 50; secondBox.Spacing = OfficeLength.Emus((long)(-10) * 635);
         // Imported boxes commonly end with the paragraph rather than a hard break.
         // Identical surrounding text must still keep its own run formatting.
         firstBox._paragraph.Descendants<W.Break>().ToList().ForEach(lineBreak => lineBreak.Remove());
@@ -153,7 +153,7 @@ public partial class Word {
             run.RunProperties.RunStyle = new W.RunStyle { Val = "VisibleSpacing" };
         } else {
             paragraph.CharacterScale = scale;
-            paragraph.Spacing = tracking;
+            paragraph.Spacing = OfficeLength.Emus((long)(tracking) * 635);
         }
     }
 }

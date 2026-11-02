@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     /// <summary>Uses shared cluster/visual ownership for generic and imported Word character spacing.</summary>
     private static RichLineJustification PlanRichCharacterDistribution(List<RichSeg> segments,
-        double naturalWidth, double availableWidth, PdfOptions options, bool useWordJustificationSpacing) {
+        double naturalWidth, double availableWidth, PdfCreateOptions options, bool useWordJustificationSpacing) {
         var text = new StringBuilder();
         var indexes = new List<int>();
         var owners = new List<(int Segment, int Glyph)>();
@@ -97,7 +97,7 @@ internal static partial class PdfWriter {
 
     /// <summary>Consumes ordinary-space capacity, then source-average capacity, before equal residual expansion.</summary>
     private static RichLineJustification PlanRichWordCharacterDistribution(List<RichSeg> segments,
-        double naturalWidth, double availableWidth, PdfOptions options, bool[] boundaries,
+        double naturalWidth, double availableWidth, PdfCreateOptions options, bool[] boundaries,
         List<(int Segment, int Glyph)> owners, PdfTextShowCommand?[] commands, int opportunities) {
         double adjustment = availableWidth - naturalWidth;
         var preferredCharacters = new double?[segments.Count];
@@ -152,7 +152,7 @@ internal static partial class PdfWriter {
     }
 
     /// <summary>Reads the resolved source face's optional average at the segment's effective page size.</summary>
-    private static double? GetWordPreferredCharacterCapacity(RichSeg segment, PdfOptions options) {
+    private static double? GetWordPreferredCharacterCapacity(RichSeg segment, PdfCreateOptions options) {
         OfficeOpenTypeAverageAdvanceMetrics? average = null;
         if (segment.NamedFont is PdfNamedFontFace named) {
             if (options.TryGetNamedFontProgram(named, out PdfTrueTypeFontProgram? trueType) && trueType != null)

@@ -65,6 +65,7 @@ namespace OfficeIMO {
 
     /// <summary>Resource limits and active-content policy applied before a document loader opens a package.</summary>
     public sealed class OfficePackageSecurityOptions {
+        internal OfficePackageSecurityOptions Snapshot() => (OfficePackageSecurityOptions)MemberwiseClone();
         /// <summary>Maximum complete source size. Defaults to 512 MiB.</summary>
         public long MaxPackageBytes { get; set; } = 512L * 1024L * 1024L;
 

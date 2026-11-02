@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeMarkdownHeading", DefaultParameterSetName = ParameterSetContext)]
 [Alias("MarkdownHeading")]
-[OutputType(typeof(MarkdownDoc))]
+[OutputType(typeof(MarkdownDocument))]
 public sealed class AddOfficeMarkdownHeadingCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
@@ -27,7 +27,7 @@ public sealed class AddOfficeMarkdownHeadingCommand : PSCmdlet
 
     /// <summary>Markdown document to update outside the DSL context.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public MarkdownDoc Document { get; set; } = null!;
+    public MarkdownDocument Document { get; set; } = null!;
 
     /// <summary>Heading level (1-6).</summary>
     [Parameter(Position = 0)]
@@ -78,7 +78,7 @@ public sealed class AddOfficeMarkdownHeadingCommand : PSCmdlet
         }
     }
 
-    private MarkdownDoc ResolveDocument()
+    private MarkdownDocument ResolveDocument()
     {
         if (ParameterSetName == ParameterSetDocument)
         {

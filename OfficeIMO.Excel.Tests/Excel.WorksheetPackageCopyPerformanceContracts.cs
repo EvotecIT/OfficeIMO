@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyIndexedTarget.xlsx");
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet source = sourceDocument.AddWorksheet("Source");
+                ExcelSheet source = sourceDocument.AddSheet("Source");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(1, 2, "Revenue");
                 source.CellValue(2, 1, "NA");
@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
                     ExcelSheetNameValidationMode.Sanitize,
                     new ExcelWorksheetCopyOptions { CopyMode = ExcelWorksheetCopyMode.Package });
                 targetDocument.Save();
-                targetDocument.AddWorksheet("AfterCopy").CellValue(1, 1, "New shared string");
+                targetDocument.AddSheet("AfterCopy").CellValue(1, 1, "New shared string");
                 targetDocument.Save();
             }
 

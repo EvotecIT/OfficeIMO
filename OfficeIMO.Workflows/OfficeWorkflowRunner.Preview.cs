@@ -18,8 +18,8 @@ public sealed partial class OfficeWorkflowRunner {
     /// <summary>Creates an in-memory review sample through the existing native conversion route for a supported artifact.</summary>
     /// <remarks>HTML preview uses embedded content only; external and sibling resources are unavailable.</remarks>
     public static OfficeWorkflowDocumentPreview PreviewDocument(byte[] bytes, string extension, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(bytes);
-        ArgumentException.ThrowIfNullOrWhiteSpace(extension);
+        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        if ((extension == null || string.IsNullOrWhiteSpace(extension))) throw new ArgumentException("A non-empty value is required.", nameof(extension));
         if (bytes.LongLength > 128L * 1024 * 1024) throw new ArgumentException("Preview input exceeds 128 MB.", nameof(bytes));
         cancellationToken.ThrowIfCancellationRequested();
         extension = extension.TrimStart('.').ToLowerInvariant();
@@ -31,8 +31,8 @@ public sealed partial class OfficeWorkflowRunner {
                 ?? throw new NotSupportedException("This output format has no document preview route.");
             var request = new ValidatedRequest("preview", OfficeWorkflowOperation.Convert,
                 Path.Combine(Path.GetTempPath(), "officeimo-preview." + extension), null, null, route,
-                OfficeWorkflowConflictPolicy.Fail, OfficeWorkflowOutputProfile.Faithful,
-                new OfficeWorkflowLimits { MaximumInputBytes = 128L * 1024 * 1024, MaximumOutputBytes = 128L * 1024 * 1024 },
+                OfficePublicationPolicy.Fail, OfficeConversionProfile.Faithful,
+                new OfficeOperationLimits { MaximumInputBytes = 128L * 1024 * 1024, MaximumOutputBytes = 128L * 1024 * 1024 },
                 new PdfLoadOptions(), new PdfLoadOptions(), new PdfLoadOptions());
             pdfBytes = Convert(request, bytes, diagnostics, cancellationToken,
                 htmlResourceSnapshots: new Dictionary<string, byte[]>()).Bytes!;

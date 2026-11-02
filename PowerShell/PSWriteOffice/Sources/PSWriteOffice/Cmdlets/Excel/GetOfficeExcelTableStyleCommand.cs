@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///     Format-Table Name, Profile</code>
 ///   <para>Uses OfficeIMO's table style catalog to return styles that are broadly stable across desktop, web, and spreadsheet viewers.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeExcelTableStyle")]
+[Cmdlet(VerbsCommon.Get, "OfficeExcelTableStyle", DefaultParameterSetName = "Default")]
 [Alias("ExcelTableStyle")]
 public sealed class GetOfficeExcelTableStyleCommand : PSCmdlet
 {

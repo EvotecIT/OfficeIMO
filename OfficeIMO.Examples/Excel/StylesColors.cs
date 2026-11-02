@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using OfficeIMO.Excel;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Excel
 {
@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Excel
             Console.WriteLine("[*] Excel - Styles & Colors (cells, headers)");
             string filePath = Path.Combine(folderPath, "Excel-StylesColors.xlsx");
 
-            using (var doc = ExcelDocument.Create(filePath, "Data"))
+            using (var doc = ExcelDocument.Create(filePath, new ExcelCreateOptions { FirstSheetName = "Data" }))
             {
                 var s = doc[0];
                 // Headers

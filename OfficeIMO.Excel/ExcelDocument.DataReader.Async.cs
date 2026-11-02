@@ -14,15 +14,16 @@ namespace OfficeIMO.Excel {
         /// <param name="cancellationToken">Cancels opening and remains active for the returned reader.</param>
         /// <returns>A reader owned by the caller. The input file is closed before this task completes.</returns>
         /// <remarks>
-        /// Input is buffered up to <see cref="ExcelReadOptions.MaxInputBytes"/> using asynchronous I/O.
+        /// Input is buffered up to <see cref="ExcelReaderOptions.MaxInputBytes"/> using asynchronous I/O.
         /// Workbook validation and worksheet discovery run synchronously after input is read.
         /// Options are copied before asynchronous input begins.
         /// Both cancellation tokens remain active until the returned reader is disposed.
         /// </remarks>
-        public static async Task<ExcelWorkbookDataReader> OpenDataReaderAsync(
+        public static async Task<ExcelWorkbookDataReader> OpenReaderAsync(
             string path,
-            ExcelReadOptions? options = null,
+            ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) {
+            if (options?.Password is string password) return await OpenEncryptedDataReaderAsync(path, password, options, cancellationToken).ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(path)) {
                 throw new ArgumentException("File path cannot be empty.", nameof(path));
             }
@@ -32,7 +33,7 @@ namespace OfficeIMO.Excel {
                 ".xlsb" => ExcelFileFormat.Xlsb,
                 ".xlsx" or ".xlsm" or ".xltx" or ".xltm" or ".xlam" => ExcelFileFormat.Xlsx,
                 _ => throw new NotSupportedException(
-                    "OpenDataReader supports .xlsx, .xlsm, .xltx, .xltm, .xlam, .xlsb, and .xls workbooks.")
+                    "OpenReader supports .xlsx, .xlsm, .xltx, .xltm, .xlam, .xlsb, and .xls workbooks.")
             };
             cancellationToken.ThrowIfCancellationRequested();
             options?.CancellationToken.ThrowIfCancellationRequested();
@@ -55,15 +56,16 @@ namespace OfficeIMO.Excel {
         /// <remarks>
         /// The source remains open on success, failure, and reader disposal. Seekable source positions are
         /// restored after reading; non-seekable sources advance through the remaining content.
-        /// Input is buffered up to <see cref="ExcelReadOptions.MaxInputBytes"/> using asynchronous I/O.
+        /// Input is buffered up to <see cref="ExcelReaderOptions.MaxInputBytes"/> using asynchronous I/O.
         /// Workbook validation and worksheet discovery run synchronously after input is read.
         /// Options are copied before asynchronous input begins.
         /// Both cancellation tokens remain active until the returned reader is disposed.
         /// </remarks>
-        public static Task<ExcelWorkbookDataReader> OpenDataReaderAsync(
+        public static Task<ExcelWorkbookDataReader> OpenReaderAsync(
             Stream stream,
-            ExcelReadOptions? options = null,
+            ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) {
+            if (options?.Password is string password) return OpenEncryptedDataReaderAsync(stream, password, options, cancellationToken);
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
             return OpenLocalDataReaderAsync(stream, options, cancellationToken, format: null);
@@ -71,10 +73,10 @@ namespace OfficeIMO.Excel {
 
         private static async Task<ExcelWorkbookDataReader> OpenLocalDataReaderAsync(
             Stream source,
-            ExcelReadOptions? options,
+            ExcelReaderOptions? options,
             CancellationToken cancellationToken,
             ExcelFileFormat? format) {
-            ExcelReadOptions effectiveOptions = (options ?? new ExcelReadOptions()).Clone();
+            ExcelReaderOptions effectiveOptions = (options ?? new ExcelReaderOptions()).Clone();
             var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken, effectiveOptions.CancellationToken);
             try {
@@ -88,12 +90,12 @@ namespace OfficeIMO.Excel {
                 }
 
                 linkedCancellation.Token.ThrowIfCancellationRequested();
-                ExcelReadOptions readerOptions = effectiveOptions.WithCancellationToken(linkedCancellation.Token);
+                ExcelReaderOptions readerOptions = effectiveOptions.WithCancellationToken(linkedCancellation.Token);
                 ExcelWorkbookDataReader reader = format switch {
                     ExcelFileFormat.Xls => ExcelWorkbookDataReader.OpenLegacy(bytes, readerOptions),
                     ExcelFileFormat.Xlsb => ExcelWorkbookDataReader.OpenBinary(bytes, readerOptions),
                     ExcelFileFormat.Xlsx => ExcelWorkbookDataReader.OpenOpenXml(bytes, readerOptions),
-                    _ => OpenDataReader(bytes, readerOptions)
+                    _ => OpenReader(bytes, readerOptions)
                 };
                 return reader.OwnLifetime(linkedCancellation);
             } catch {

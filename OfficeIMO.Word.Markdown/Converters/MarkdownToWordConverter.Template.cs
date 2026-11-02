@@ -5,18 +5,18 @@ using Omd = OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown {
     internal partial class MarkdownToWordConverter {
-        public WordDocument ConvertIntoTemplate(string markdown, WordDocument document, MarkdownToWordTemplateOptions options) {
+        public WordDocument ConvertIntoTemplate(string markdown, WordDocument document, WordMarkdownImportOptions options) {
             if (markdown == null) {
                 throw new ArgumentNullException(nameof(markdown));
             }
 
-            options ??= new MarkdownToWordTemplateOptions();
+            options ??= new WordMarkdownImportOptions();
             var readerOptions = CreateEffectiveReaderOptions(options);
-            var markdownDocument = Omd.MarkdownReader.Parse(markdown, readerOptions);
+            var markdownDocument = Omd.MarkdownDocument.Parse(markdown, readerOptions);
             return ConvertIntoTemplate(markdownDocument, document, options);
         }
 
-        public WordDocument ConvertIntoTemplate(Omd.MarkdownDoc markdown, WordDocument document, MarkdownToWordTemplateOptions options) {
+        public WordDocument ConvertIntoTemplate(Omd.MarkdownDocument markdown, WordDocument document, WordMarkdownImportOptions options) {
             if (markdown == null) {
                 throw new ArgumentNullException(nameof(markdown));
             }
@@ -25,7 +25,7 @@ namespace OfficeIMO.Word.Markdown {
                 throw new ArgumentNullException(nameof(document));
             }
 
-            options ??= new MarkdownToWordTemplateOptions();
+            options ??= new WordMarkdownImportOptions();
             options.ApplyDefaults(document);
 
             var insertion = ResolveTemplateInsertion(document, options);
@@ -41,13 +41,13 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private void RenderMarkdownDocument(
-            Omd.MarkdownDoc markdown,
+            Omd.MarkdownDocument markdown,
             IWordBlockRenderHost host,
             WordDocument document,
-            MarkdownToWordOptions options,
+            WordMarkdownImportOptions options,
             double pageContentWidthPixels,
             CancellationToken cancellationToken) {
-            var blocks = GetRenderableBlocks(markdown);
+            var blocks = GetRenderableBlocks(markdown, options);
 
             _currentFootnotes = blocks
                 .OfType<Omd.FootnoteDefinitionBlock>()
@@ -64,7 +64,7 @@ namespace OfficeIMO.Word.Markdown {
                     listLevel: 0,
                     quoteDepth: 0,
                     pageContentWidthPixels: pageContentWidthPixels,
-                    alignment: Omd.ColumnAlignment.None);
+                    alignment: Omd.MarkdownColumnAlignment.None);
             }
 
             foreach (var block in blocks) {
@@ -82,11 +82,11 @@ namespace OfficeIMO.Word.Markdown {
                     listLevel: 0,
                     quoteDepth: 0,
                     pageContentWidthPixels: pageContentWidthPixels,
-                    alignment: Omd.ColumnAlignment.None);
+                    alignment: Omd.MarkdownColumnAlignment.None);
             }
         }
 
-        private static TemplateInsertion ResolveTemplateInsertion(WordDocument document, MarkdownToWordTemplateOptions options) {
+        private static TemplateInsertion ResolveTemplateInsertion(WordDocument document, WordMarkdownImportOptions options) {
             if (!string.IsNullOrWhiteSpace(options.ContentControlTag) || !string.IsNullOrWhiteSpace(options.ContentControlAlias)) {
                 var contentControl = FindBlockContentControl(document, options);
                 if (contentControl == null) {
@@ -116,7 +116,7 @@ namespace OfficeIMO.Word.Markdown {
             return new TemplateInsertion(marker, removeAfterRender: true);
         }
 
-        private static SdtBlock? FindBlockContentControl(WordDocument document, MarkdownToWordTemplateOptions options) {
+        private static SdtBlock? FindBlockContentControl(WordDocument document, WordMarkdownImportOptions options) {
             return document.BodyRoot
                 .Descendants<SdtBlock>()
                 .FirstOrDefault(sdt =>

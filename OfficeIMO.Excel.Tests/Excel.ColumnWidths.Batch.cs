@@ -15,14 +15,14 @@ namespace OfficeIMO.Tests {
         public void Test_SetColumnWidth_SplitsRangeWithoutChangingNeighborWidthsOrFitMetadata(double width) {
             string filePath = Path.Combine(_directoryWithFiles, "ColumnWidths.SingleRange." + width + ".xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 2, "A label that must grow beyond twelve characters when fitted");
                 var worksheet = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet;
                 worksheet.InsertAt(new Columns(new Column {
                     Min = 1, Max = 3, Width = 30D, CustomWidth = true, BestFit = true,
                     Hidden = true, OutlineLevel = 2
                 }), 0);
-                sheet.SetColumnWidth(2, width);
+                sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(width));
                 var columns = worksheet.GetFirstChild<Columns>()!.Elements<Column>().ToArray();
                 Assert.Equal(new uint[] { 1, 2, 3 }, columns.Select(column => column.Min!.Value));
                 Assert.Equal(new double?[] { 30D, width > 0D ? width : null, 30D }, columns.Select(column => column.Width?.Value));
@@ -37,9 +37,9 @@ namespace OfficeIMO.Tests {
             using var reopened = ExcelDocument.Load(filePath);
             reopened.Sheets[0].AutoFitColumnsFor(new[] { 2 });
             var saved = reopened.Sheets[0].GetColumnDefinitions().ToArray();
-            Assert.Equal(30D, saved[0].Width);
-            Assert.True(saved[1].Width > 12D);
-            Assert.Equal(30D, saved[2].Width);
+            Assert.Equal(30D, (saved[0].Width?.CharacterCount));
+            Assert.True((saved[1].Width?.CharacterCount) > 12D);
+            Assert.Equal(30D, (saved[2].Width?.CharacterCount));
         }
 
         [Theory]
@@ -51,23 +51,23 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ColumnWidths.Refit." + batch + "." + previouslyFitted + ".xlsx");
             const string label = "A long label whose content needs more than twelve characters of column width";
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, label);
                 if (previouslyFitted) sheet.AutoFitColumns();
-                if (batch) sheet.SetColumnWidths(new Dictionary<int, double> { [1] = 12D });
-                else sheet.SetColumnWidth(1, 12D);
+                if (batch) sheet.SetColumnWidths(new Dictionary<int, ExcelColumnWidth> { [1] = ExcelColumnWidth.Characters(12D) });
+                else sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12D));
                 document.Save();
             }
             using (var document = ExcelDocument.Load(filePath)) {
                 var sheet = document.Sheets[0];
-                Assert.Equal(12D, Assert.Single(sheet.GetColumnDefinitions()).Width);
+                Assert.Equal(12D, Assert.Single(sheet.GetColumnDefinitions()).Width?.CharacterCount);
                 sheet.AutoFitColumnsFor(new[] { 1 });
-                Assert.True(Assert.Single(sheet.GetColumnDefinitions()).Width > 12D);
+                Assert.True(Assert.Single(sheet.GetColumnDefinitions()).Width?.CharacterCount > 12D);
                 document.Save();
             }
             using var reopened = ExcelDocument.Load(filePath);
             Assert.Equal(label, reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
-            Assert.True(Assert.Single(reopened.Sheets[0].GetColumnDefinitions()).Width > 12D);
+            Assert.True(Assert.Single(reopened.Sheets[0].GetColumnDefinitions()).Width?.CharacterCount > 12D);
         }
 
         [Theory]
@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
         public void Test_SetColumnWidths_WritesThePartAtTheDocumentSaveAndPreservesColumnMetadata(bool withRange) {
             string filePath = Path.Combine(_directoryWithFiles, "ColumnWidths.Batch." + withRange + ".xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 for (int column = 1; column <= 64; column++) sheet.CellValue(1, column, "Cell " + column);
                 sheet.AutoFitColumns();
                 var package = document.OpenXmlDocument;
@@ -92,23 +92,23 @@ namespace OfficeIMO.Tests {
                 package.Features.Get<IPartRootEventsFeature>()!.Change += args => {
                     if (args.Type == EventType.Saved && ReferenceEquals(args.Argument, worksheetPart)) saves++;
                 };
-                var widths = Enumerable.Range(1, 64).ToDictionary(column => column, column => 12D + column / 10D);
-                if (withRange) widths.Add(66, 25D);
+                var widths = Enumerable.Range(1, 64).ToDictionary(column => column, column => ExcelColumnWidth.Characters(12D + column / 10D));
+                if (withRange) widths.Add(66, ExcelColumnWidth.Characters(25D));
                 sheet.SetColumnWidths(widths);
                 Assert.Equal(0, saves);
                 if (withRange) {
-                    ExcelColumnSnapshot selected = sheet.GetColumnDefinitions().Single(column => column.StartIndex == 66);
-                    Assert.Equal(25D, selected.Width);
+                    ExcelColumnInfo selected = sheet.GetColumnDefinitions().Single(column => column.StartIndex == 66);
+                    Assert.Equal(25D, (selected.Width?.CharacterCount));
                     Assert.True(selected.Hidden && selected.Collapsed);
                     Assert.Equal((byte)2, selected.OutlineLevel);
-                    Assert.Equal(10D, sheet.GetColumnDefinitions().Single(column => column.StartIndex == 65).Width);
-                    Assert.Equal(10D, sheet.GetColumnDefinitions().Single(column => column.StartIndex == 67).Width);
+                    Assert.Equal(10D, (sheet.GetColumnDefinitions().Single(column => column.StartIndex == 65).Width?.CharacterCount));
+                    Assert.Equal(10D, (sheet.GetColumnDefinitions().Single(column => column.StartIndex == 67).Width?.CharacterCount));
                 }
                 document.Save();
             }
             using var reopened = ExcelDocument.Load(filePath);
             Assert.Equal("Cell 64", reopened.Sheets[0].CellAt(1, 64).GetValue<string>());
-            Assert.Equal(18.4D, reopened.Sheets[0].GetColumnDefinitions().Single(column => column.StartIndex == 64).Width);
+            Assert.Equal(18.4D, (reopened.Sheets[0].GetColumnDefinitions().Single(column => column.StartIndex == 64).Width?.CharacterCount));
         }
 
         [Theory]
@@ -119,12 +119,12 @@ namespace OfficeIMO.Tests {
         [InlineData(2, double.PositiveInfinity)]
         public void Test_SetColumnWidths_ValidatesTheWholeBatchBeforeChangingWidths(int invalidIndex, double invalidWidth) {
             using var document = ExcelDocument.Create(Path.Combine(_directoryWithFiles, "ColumnWidths.Invalid.xlsx"));
-            var sheet = document.AddWorksheet("Data");
-            sheet.SetColumnWidth(1, 20D);
-            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.SetColumnWidths(new Dictionary<int, double> {
-                [1] = 30D, [invalidIndex] = invalidWidth
+            var sheet = document.AddSheet("Data");
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20D));
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.SetColumnWidths(new Dictionary<int, ExcelColumnWidth> {
+                [1] = ExcelColumnWidth.Characters(30D), [invalidIndex] = ExcelColumnWidth.Characters(invalidWidth)
             }));
-            Assert.Equal(20D, Assert.Single(sheet.GetColumnDefinitions()).Width);
+            Assert.Equal(20D, Assert.Single(sheet.GetColumnDefinitions()).Width?.CharacterCount);
         }
     }
 }

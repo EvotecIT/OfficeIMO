@@ -105,14 +105,14 @@ internal static class WorkflowShowcase {
             case "project":
                 using (var project = OfficeIMO.Project.ProjectDocument.Load(Path.Combine(folder, "example.xml")))
                     project.Validate().ThrowIfErrors();
-                if (OfficeIMO.Pdf.PdfDocument.Load(File.ReadAllBytes(preview)).Read().PageCount != 1)
+                if (OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(preview))).Read().PageCount != 1)
                     throw new InvalidOperationException("Expected a one-page Project showcase report.");
                 if (File.Exists(Path.Combine(folder, "report.docx"))) {
                     using var document = WordDocument.Load(Path.Combine(folder, "report.docx"));
                     if (document.ValidateDocument().Count != 0) throw new InvalidOperationException("Invalid Project Word report.");
                 }
                 if (File.Exists(Path.Combine(folder, "report.pptx"))) {
-                    using var presentation = PowerPointPresentation.Load(Path.Combine(folder, "report.pptx"));
+                    using var presentation = PowerPointDocument.Load(Path.Combine(folder, "report.pptx"));
                     if (presentation.ValidateDocument().Count != 0) throw new InvalidOperationException("Invalid Project presentation.");
                 }
                 if (File.Exists(Path.Combine(folder, "report.xlsx"))) {
@@ -134,7 +134,7 @@ internal static class WorkflowShowcase {
                 }
                 break;
             case "powerpoint":
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(Path.Combine(folder, "example.pptx"))) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(Path.Combine(folder, "example.pptx"))) {
                     var errors = presentation.ValidateDocument();
                     if (errors.Count > 0) throw new InvalidOperationException(errors[0].Description);
                     presentation.SaveAsPdf(preview);
@@ -148,12 +148,12 @@ internal static class WorkflowShowcase {
                 break;
             case "pdf":
                 string pdfPath = Path.Combine(folder, "example.pdf");
-                var pdf = OfficeIMO.Pdf.PdfDocument.Load(File.ReadAllBytes(pdfPath)).Read();
+                var pdf = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(pdfPath))).Read();
                 if (pdf.PageCount == 0 || string.IsNullOrWhiteSpace(pdf.Text))
                     throw new InvalidOperationException("The generated PDF showcase artifact has no readable page content: " + folder);
                 break;
             case "markdown":
-                MarkdownDoc.Load(Path.Combine(folder, "example.md")).SaveAsPdf(preview, new MarkdownToPdfOptions {
+                MarkdownDocument.Load(Path.Combine(folder, "example.md")).SaveAsPdf(preview, new MarkdownPdfExportOptions {
                     Theme = MarkdownVisualTheme.Report().WithColorScheme(MarkdownColorSchemeKind.Blue)
                 });
                 break;
@@ -161,7 +161,7 @@ internal static class WorkflowShowcase {
                 OdtDocument.Load(Path.Combine(folder, "example.odt")).ToPdfDocumentResult().Save(preview);
                 break;
             case "rtf":
-                RtfDocument.Load(Path.Combine(folder, "example.rtf")).ToPdfDocumentResult().Save(preview);
+                RtfDocument.Load(Path.Combine(folder, "example.rtf")).SaveAsPdf(preview);
                 break;
             case "visio":
                 var diagram = VisioDocument.Load(Path.Combine(folder, "example.vsdx"));

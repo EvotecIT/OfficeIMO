@@ -62,7 +62,7 @@ public sealed class ConvertToOfficePdfFlatFormCommand : PSCmdlet
         }
 
         PdfCommandUtilities.EnsureDirectory(outputPath);
-        result.Save(outputPath).RequireSuccess();
+        result.Save(outputPath);
         WriteObject(new FileInfo(outputPath));
     }
 }

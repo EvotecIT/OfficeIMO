@@ -54,7 +54,7 @@ public sealed class IWorkPagesDecimalTextNativeExportTests {
             if (scenario.GetProperty("source").GetString() == "pages-preserved-decimal-v15.4.pages")
                 paths.Add("pages-preserved-decimal-officeimo-docx-v15.4.pdf");
             foreach (string path in paths) {
-                var pdf = PdfReadDocument.Open(File.ReadAllBytes(Corpus(path))); Assert.Single(pdf.Pages);
+                var pdf = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(Corpus(path)))); Assert.Single(pdf.Pages);
                 string text = Regex.Replace(pdf.ExtractText(), @"\s+", string.Empty); int previous = -1;
                 foreach (JsonElement item in scenario.GetProperty("expectedItems").EnumerateArray()) {
                     string expected = Regex.Replace(item.GetProperty("number").GetInt32()

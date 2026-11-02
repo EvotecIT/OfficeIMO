@@ -38,8 +38,8 @@ public partial class Excel {
             }
         });
         string materialized;
-        using (ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package,
-            new ExcelReadOptions { MaxSharedStringCharacters = characters })) {
+        using (ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package,
+            new ExcelReaderOptions { MaxSharedStringCharacters = characters })) {
             Assert.True(reader.Read());
 #if NET8_0_OR_GREATER
             Assert.True(reader.TryGetUtf8Text(0, out ReadOnlySpan<byte> held));
@@ -59,8 +59,8 @@ public partial class Excel {
             Assert.Equal(expected, materialized);
         }
         Assert.Equal(expected, materialized);
-        InvalidDataException error = Assert.Throws<InvalidDataException>(() => XlsbTabularWorkbook.Open(package,
-            new ExcelReadOptions { MaxSharedStringCharacters = characters - 1 }));
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(package,
+            new ExcelReaderOptions { MaxSharedStringCharacters = characters - 1 }); _ = reader.FieldCount; });
         Assert.Contains("aggregate limit", error.Message);
     }
 
@@ -80,16 +80,16 @@ public partial class Excel {
         ArrayPool<string?>.Shared.Return(foreign, clearArray: false);
 
         string held;
-        using (XlsbTabularWorkbook firstWorkbook = XlsbTabularWorkbook.Open(firstPackage, new ExcelReadOptions()))
-        using (var first = (XlsbTabularDataReader)firstWorkbook.OpenTable("Data", true, new ExcelReadOptions())) {
+        using (XlsbTabularWorkbook firstWorkbook = XlsbTabularWorkbook.Open(firstPackage, new ExcelReaderOptions()))
+        using (var first = (XlsbTabularDataReader)firstWorkbook.OpenTable("Data", true, new ExcelReaderOptions())) {
             Assert.True(first.Read());
             held = first.GetString(0);
             Assert.Equal("Replace", held);
             Assert.Equal("Other", first.GetString(1));
             firstWorkbook.Dispose();
 
-            using (XlsbTabularWorkbook secondWorkbook = XlsbTabularWorkbook.Open(secondPackage, new ExcelReadOptions()))
-            using (var second = (XlsbTabularDataReader)secondWorkbook.OpenTable("Data", true, new ExcelReadOptions())) {
+            using (XlsbTabularWorkbook secondWorkbook = XlsbTabularWorkbook.Open(secondPackage, new ExcelReaderOptions()))
+            using (var second = (XlsbTabularDataReader)secondWorkbook.OpenTable("Data", true, new ExcelReaderOptions())) {
                 Assert.True(second.Read());
                 Assert.Equal("SecondReplace", second.GetString(0));
                 Assert.Equal("SecondOther", second.GetString(1));
@@ -133,13 +133,13 @@ public partial class Excel {
                 XlsbRecordWriter.Write(output, record.Type, payload);
             }
         });
-        var options = new ExcelReadOptions();
+        var options = new ExcelReaderOptions();
         if (failure == "ItemLimit") options.MaxSharedStringItemCharacters = 8;
         if (failure == "AggregateLimit") options.MaxSharedStringCharacters = characters + 8;
         if (failure == "Truncated") {
-            Assert.Throws<EndOfStreamException>(() => XlsbTabularWorkbook.Open(package, options));
+            Assert.Throws<EndOfStreamException>(() => { using var reader = ExcelDocument.OpenReader(package, options); _ = reader.FieldCount; });
         } else {
-            InvalidDataException error = Assert.Throws<InvalidDataException>(() => XlsbTabularWorkbook.Open(package, options));
+            InvalidDataException error = Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(package, options); _ = reader.FieldCount; });
             Assert.Contains(failure == "ItemLimit" ? "configured limit" : "aggregate limit", error.Message);
         }
     }
@@ -204,8 +204,8 @@ public partial class Excel {
 
     [Fact]
     public void XlsbSharedStrings_WorkbookCloseLeavesExistingReaderUsable() {
-        using XlsbTabularWorkbook workbook = XlsbTabularWorkbook.Open(CreateSstWorkbook(true), new ExcelReadOptions());
-        using var reader = (XlsbTabularDataReader)workbook.OpenTable("Data", true, new ExcelReadOptions());
+        using XlsbTabularWorkbook workbook = XlsbTabularWorkbook.Open(CreateSstWorkbook(true), new ExcelReaderOptions());
+        using var reader = (XlsbTabularDataReader)workbook.OpenTable("Data", true, new ExcelReaderOptions());
         workbook.Dispose();
         Assert.True(reader.Read());
 #if NET8_0_OR_GREATER
@@ -227,12 +227,12 @@ public partial class Excel {
             using Stream output = zip.CreateEntry("xl/styles.bin").Open();
             output.WriteByte(0x80);
         }
-        Assert.Throws<EndOfStreamException>(() => XlsbTabularWorkbook.Open(stream.ToArray(), new ExcelReadOptions()));
+        Assert.Throws<EndOfStreamException>(() => { using var reader = ExcelDocument.OpenReader(stream.ToArray(), new ExcelReaderOptions()); _ = reader.FieldCount; });
     }
 
     private static byte[] CreateSstWorkbook(bool largeTable, bool repeatFirstValue = false) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Text");
         sheet.CellValue(1, 2, "Value");
         sheet.CellValue(2, 1, "Replace");
@@ -240,7 +240,7 @@ public partial class Excel {
         sheet.CellValue(3, 1, "After");
         if (repeatFirstValue) sheet.CellValue(4, 1, "Replace");
         if (largeTable) for (int row = 4; row < 270; row++) sheet.CellValue(row, 1, "Item" + row);
-        return document.ToBytes(ExcelFileFormat.Xlsb, new ExcelSaveOptions { XlsbUseSharedStrings = true });
+        return document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = true });
     }
 
     // Keep record mutation local to each test; no shared mutable output or producer encoder.

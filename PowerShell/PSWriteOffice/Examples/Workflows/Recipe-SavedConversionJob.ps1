@@ -57,13 +57,13 @@ if ($first.Completed -ne 2 -or $first.Failed -ne 0) {
 }
 foreach ($name in 'notes.txt.pdf', 'brief.html.pdf') {
     $path = Join-Path $pdf $name
-    $document = Get-OfficePdf -Path $path
+    $document = Open-OfficePdf -Path $path
     if (-not $document) {
         throw "The completed PDF could not be reopened: $path"
     }
 }
-$recorded = Get-OfficeConversionJobReport -Path $firstReportPath
-if ($recorded.Batch.Summary.Completed -ne 2 -or $recorded.Batch.Items.Count -ne 2) {
+$recorded = Import-OfficeConversionReport -LiteralPath $firstReportPath
+if ($recorded.Summary.Completed -ne 2 -or $recorded.Items.Count -ne 2) {
     throw 'The first attempt did not retain both file outcomes.'
 }
 $firstReportHash = (Get-FileHash -LiteralPath $firstReportPath -Algorithm SHA256).Hash

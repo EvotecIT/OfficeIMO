@@ -9,7 +9,7 @@ schema: 2.0.0
 Gets cells from an OfficeIMO Word table.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Get-OfficeWordTableCell [-Table] <WordTable> [-Row <Int32>] [-Column <Int32>] [<CommonParameters>]
 ```
@@ -36,7 +36,7 @@ Optional zero-based column index.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -52,7 +52,7 @@ Optional zero-based row index.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -68,7 +68,7 @@ Table to inspect.
 
 ```yaml
 Type: WordTable
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

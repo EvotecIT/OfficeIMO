@@ -33,9 +33,9 @@ public class PdfDefaultControlAdmissionTests {
         double measured = cff ? ot!.MeasureTextWidth(text, 10D, PdfTextShapingMode.OpenTypeLigatures)
             : tt!.MeasureTextWidth(text, 10D, PdfTextShapingMode.OpenTypeLigatures);
         Assert.Equal(run.TotalAdvanceWidth1000 * 10D / 1000D, measured, 8);
-        PdfOptions pdfOptions = named
-            ? new PdfOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Control admission", data))
-            : new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, data, "Control admission");
+        PdfCreateOptions pdfOptions = named
+            ? new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Control admission", data))
+            : new PdfCreateOptions().EmbedStandardFont(PdfStandardFont.Helvetica, data, "Control admission");
         PdfTextShapingOptions diagnosticOptions = PdfTextDiagnostics.ForEncodingDiagnostics(pdfOptions, "Control admission");
         if (cff) ot!.ResetGlyphUsage(); else tt!.ResetGlyphUsage();
         var mappingsBefore = cff ? ot!.GetGlyphToUnicodeMappings().ToArray() : tt!.GetGlyphToUnicodeMappings().ToArray();
@@ -161,9 +161,9 @@ public class PdfDefaultControlAdmissionTests {
     [InlineData(true)]
     public void GeneratedControlPreflightUsesTheAuthoredFeatureDescriptor(bool named) {
         byte[] data = CreateControlFont(cff: true, blankProfile: 0, 0x200E);
-        PdfOptions options = named
-            ? new PdfOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Control features", data))
-            : new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, data, "Control features");
+        PdfCreateOptions options = named
+            ? new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Control features", data))
+            : new PdfCreateOptions().EmbedStandardFont(PdfStandardFont.Helvetica, data, "Control features");
         PdfDocument document = PdfDocument.Create(options).Paragraph(paragraph => {
             if (named) paragraph.FontFamily("Control features");
             paragraph.FeatureSettings(OfficeTextFeatureSettings.Default.With("aalt", 1)).Text("A\u200EA");
@@ -180,9 +180,9 @@ public class PdfDefaultControlAdmissionTests {
     public void GeneratedControlPreflightDoesNotBorrowManagedCoverageForCustomProviders(bool cff, bool named) {
         byte[] data = CreateControlFont(cff, blankProfile: 0, 0x200E);
         var provider = new UncalledControlProvider();
-        PdfOptions options = (named
-            ? new PdfOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Custom control", data))
-            : new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, data, "Custom control"))
+        PdfCreateOptions options = (named
+            ? new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Custom control", data))
+            : new PdfCreateOptions().EmbedStandardFont(PdfStandardFont.Helvetica, data, "Custom control"))
             .SetTextShapingProvider(provider);
         PdfTrueTypeFontProgram? tt = cff ? null : PdfTrueTypeFontProgram.Parse(data, "Custom control");
         PdfOpenTypeCffFontProgram? ot = cff ? PdfOpenTypeCffFontProgram.Parse(data, "Custom control") : null;
@@ -216,9 +216,9 @@ public class PdfDefaultControlAdmissionTests {
         byte[] primary = CreateControlFont(cff: true, blankProfile: 0, 0x200E);
         byte[] secondary = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(true, 'B');
         var report = new PdfConversionReport();
-        PdfOptions options = (named
-            ? new PdfOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, primary))
-            : new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, primary, family))
+        PdfCreateOptions options = (named
+            ? new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, primary))
+            : new PdfCreateOptions().EmbedStandardFont(PdfStandardFont.Helvetica, primary, family))
             .SetTextShapingMode(PdfTextShapingMode.OpenTypeLigatures)
             .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(new[] {
                 new PdfEmbeddedFontFallbackCandidate("CFF needed B fallback", secondary)
@@ -247,7 +247,7 @@ public class PdfDefaultControlAdmissionTests {
         byte[] primary = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(true, 'A', 0x00C1);
         byte[] secondary = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(true, 'B');
         var provider = new UncalledControlProvider();
-        PdfOptions options = new PdfOptions()
+        PdfCreateOptions options = new PdfCreateOptions()
             .EmbedStandardFont(PdfStandardFont.Helvetica, primary, "Unsupported normalization descriptor")
             .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(new[] {
                 new PdfEmbeddedFontFallbackCandidate("Descriptor B fallback", secondary)

@@ -195,12 +195,12 @@ namespace OfficeIMO.Excel {
         }
 
         private static string NormalizeThreadedCommentAddress(string address, string parameterName) {
-            var (row, column) = A1.ParseCellRef(address);
-            if (row <= 0 || column <= 0 || row > A1.MaxRows || column > A1.MaxColumns) {
+            var (row, column) = ExcelA1.ParseCellRef(address);
+            if (row <= 0 || column <= 0 || row > ExcelA1.MaxRows || column > ExcelA1.MaxColumns) {
                 throw new ArgumentException($"Address '{address}' is not a valid A1 reference.", parameterName);
             }
 
-            return A1.CellReference(row, column);
+            return ExcelA1.CellReference(row, column);
         }
 
         private static string NormalizeThreadedId(string? id, string parameterName, bool generateIfMissing) {

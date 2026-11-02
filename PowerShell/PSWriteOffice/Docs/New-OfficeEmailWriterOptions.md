@@ -9,7 +9,7 @@ schema: 2.0.0
 Creates deterministic email writer settings through ordinary PowerShell parameters.
 
 ## SYNTAX
-### __AllParameterSets
+### Options (Default)
 ```powershell
 New-OfficeEmailWriterOptions [-ConversionLossPolicy <EmailConversionLossPolicy>] [-UsePreservedRawSource] [-IncludeBccHeader] [-Base64LineLength <int>] [-MaxNestedMessageDepth <int>] [-MaxOutputBytes <long>] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Maximum encoded characters on one Base64 body line.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Policy applied when the requested format cannot preserve known message semantics
 
 ```yaml
 Type: EmailConversionLossPolicy
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values: Block, Warn, Allow
 
@@ -65,7 +65,7 @@ Write Bcc recipients into the message header.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Maximum embedded-message write depth.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Maximum serialized artifact size.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -113,7 +113,7 @@ Emit an unchanged preserved source instead of regenerating the artifact when pos
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 

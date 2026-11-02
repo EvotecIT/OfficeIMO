@@ -7,11 +7,11 @@ internal static partial class PdfWriter {
         /// <summary>Uses physical continuation capacity while accounting for active or preflight-only container padding exactly once.</summary>
         private double GetMeasuredContinuationFrameHeight() {
             ColumnFlowScope? scope = columnBalanceMeasurementScope ?? activeColumnFlow;
-            double height = scope == null ? yStart - currentOpts.MarginBottom : scope.ParentYStart - scope.ParentOptions.MarginBottom;
+            double height = scope == null ? yStart - currentOpts.MarginBottom.ToPoints() : scope.ParentYStart - scope.ParentOptions.MarginBottom.ToPoints();
             int activeDepth = columnBalanceMeasurementScope == null ? activeContainerScopes.Count : columnBalanceMeasurementScope.ContainerDepth;
             for (int index = 0; index < activeDepth; index++) {
                 height -= activeContainerScopes[index].Style.GetFragmentTopPadding(isContinuation: true);
-                if (scope != null && index >= scope.ContainerDepth) height -= activeContainerScopes[index].Style.FragmentBottomInset;
+                if (scope != null && index >= scope.ContainerDepth) height -= activeContainerScopes[index].Style.FragmentBottomInset.ToPoints();
             }
             return Math.Max(0D, height - containerMeasurementTopPadding - containerMeasurementBottomInset);
         }

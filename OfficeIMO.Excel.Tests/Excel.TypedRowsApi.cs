@@ -10,7 +10,7 @@ public partial class Excel {
     [Fact]
     public void Sheets_ExposesAReadOnlyCollectionContract() {
         using ExcelDocument document = ExcelDocument.Create();
-        document.AddWorksheet("Data");
+        document.AddSheet("Data");
 
         IReadOnlyList<ExcelSheet> sheets = document.Sheets;
 
@@ -23,7 +23,7 @@ public partial class Excel {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO-RowsAs-{Guid.NewGuid():N}.xlsx");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "OrderId");
                 sheet.CellValue(1, 2, "Amount");
                 sheet.CellValue(2, 1, 42);
@@ -44,7 +44,7 @@ public partial class Excel {
     [Fact]
     public void RangeLessTypedRowsObserveCancellationDuringUsedRangeDiscovery() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "OrderId");
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
@@ -56,7 +56,7 @@ public partial class Excel {
 
         using var optionsCancellation = new CancellationTokenSource();
         optionsCancellation.Cancel();
-        var options = new ExcelReadOptions { CancellationToken = optionsCancellation.Token };
+        var options = new ExcelReaderOptions { CancellationToken = optionsCancellation.Token };
         Assert.Throws<OperationCanceledException>(() =>
             sheet.RowsAs<TypedSalesRow>(options).ToArray());
     }
@@ -64,7 +64,7 @@ public partial class Excel {
     [Fact]
     public void RowsAs_ReturnsAnEmptySequenceForAnEmptyWorksheet() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Empty");
+        ExcelSheet sheet = document.AddSheet("Empty");
 
         Assert.Empty(sheet.RowsAs<TypedSalesRow>());
     }
@@ -72,12 +72,12 @@ public partial class Excel {
     [Fact]
     public void RowsAs_PreservesExcelAliasesAndTypeConverter() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Order Number");
         sheet.CellValue(1, 2, "Amount");
         sheet.CellValue(2, 1, "custom-value");
         sheet.CellValue(2, 2, 12.5m);
-        var options = new ExcelReadOptions {
+        var options = new ExcelReaderOptions {
             TypeConverter = static (value, targetType, _) =>
                 targetType == typeof(int) && Equals(value, "custom-value")
                     ? (true, 42)
@@ -94,7 +94,7 @@ public partial class Excel {
     [Fact]
     public void RowsAs_MapsDateOnlyAndTimeOnlyFromExcelDateCells() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Date");
         sheet.CellValue(1, 2, "Time");
         sheet.CellValue(2, 1, new DateOnly(2026, 8, 6));
@@ -111,10 +111,10 @@ public partial class Excel {
     public void RowsAs_RedactsTypeConverterFailuresWhenRequested() {
         const string secret = "customer-secret-value";
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "OrderId");
         sheet.CellValue(2, 1, secret);
-        var options = new ExcelReadOptions {
+        var options = new ExcelReaderOptions {
             MappingErrorValuePolicy = DataMappingErrorValuePolicy.Redact,
             TypeConverter = (_, _, _) => throw new InvalidOperationException($"failed for {secret}")
         };
@@ -129,14 +129,14 @@ public partial class Excel {
     [Fact]
     public void RowsAs_StrictMappingRejectsUnmappedHeaders() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "OrderId");
         sheet.CellValue(1, 2, "Unexpected");
         sheet.CellValue(2, 1, 42);
         sheet.CellValue(2, 2, "value");
 
         DataMappingException exception = Assert.Throws<DataMappingException>(() =>
-            sheet.RowsAs<TypedSalesRow>(new ExcelReadOptions { StrictTypedMapping = true }).ToArray());
+            sheet.RowsAs<TypedSalesRow>(new ExcelReaderOptions { StrictTypedMapping = true }).ToArray());
 
         Assert.Contains("Unexpected", exception.Message);
     }
@@ -144,7 +144,7 @@ public partial class Excel {
     [Fact]
     public void RowsAs_ExplicitMapperSupportsUsedAndSpecifiedRanges() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Order Number");
         sheet.CellValue(1, 2, "Amount");
         sheet.CellValue(2, 1, 42);
@@ -166,7 +166,7 @@ public partial class Excel {
     [Fact]
     public void RowsAs_FactorySupportsPositionalRecordsForUsedAndSpecifiedRanges() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Order Number");
         sheet.CellValue(1, 2, "Amount");
         sheet.CellValue(2, 1, 42);
@@ -188,7 +188,7 @@ public partial class Excel {
     [Fact]
     public void RowsAsParallel_PreservesOrderAcrossAutomaticExplicitAndFactoryMappings() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "OrderId");
         sheet.CellValue(1, 2, "Amount");
         const int rowCount = 1_025;
@@ -233,7 +233,7 @@ public partial class Excel {
         const int rowCount = 257;
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "OrderId");
                 sheet.CellValue(1, 2, "Amount");
                 for (int index = 0; index < rowCount; index++) {
@@ -243,9 +243,9 @@ public partial class Excel {
                 document.Save();
             }
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(
                 path,
-                new ExcelReadOptions {
+                new ExcelReaderOptions {
                     SheetName = "Data",
                     InferSchema = true
                 });
@@ -265,7 +265,7 @@ public partial class Excel {
     [Fact]
     public void RowsAsParallel_ObservesCancellationBeforeReading() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "OrderId");
         sheet.CellValue(2, 1, 42);
         using var cancellation = new CancellationTokenSource();
@@ -283,7 +283,7 @@ public partial class Excel {
         DateTime date = new(2026, 8, 8, 12, 30, 0, DateTimeKind.Unspecified);
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Order Number");
                 sheet.CellValue(1, 2, " Amount ");
                 sheet.CellValue(1, 3, "When");
@@ -298,7 +298,7 @@ public partial class Excel {
                 document.Save();
             }
 
-            var options = new ExcelReadOptions {
+            var options = new ExcelReaderOptions {
                 NormalizeHeaders = true,
                 TreatDatesUsingNumberFormat = true
             };
@@ -320,7 +320,7 @@ public partial class Excel {
 
             using (ExcelDocumentReader strictReader = ExcelDocumentReader.Open(
                        path,
-                       new ExcelReadOptions { StrictTypedMapping = true })) {
+                       new ExcelReaderOptions { StrictTypedMapping = true })) {
                 InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => strictReader
                     .GetSheet("Data")
                     .ReadObjects<LargeParallelMappedRow>(

@@ -21,7 +21,7 @@ internal static class PdfRedactionProofTestSupport {
     }
 
     private static byte[] BuildRedactionRemovalProofPdf() {
-        return PdfDocument.Create(new PdfOptions {
+        return PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .Meta(

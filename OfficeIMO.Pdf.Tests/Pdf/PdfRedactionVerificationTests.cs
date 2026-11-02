@@ -97,9 +97,9 @@ public class PdfRedactionVerificationTests {
     public void AppliedPlanVerificationRejectsReorderedPagesThatDifferOnlyByVectorPaths() {
         byte[] source = PdfDocument.Create(compose => {
             compose.Page(page => page.Content(content => content.Item(item => item
-                .Rectangle(40D, 30D, strokeColor: PdfColor.FromRgb(180, 20, 20), fillColor: PdfColor.FromRgb(255, 220, 220)))));
+                .Rectangle(global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(30D), strokeColor: global::OfficeIMO.OfficeColor.FromRgb(180, 20, 20), fillColor: global::OfficeIMO.OfficeColor.FromRgb(255, 220, 220)))));
             compose.Page(page => page.Content(content => content.Item(item => item
-                .Rectangle(80D, 30D, strokeColor: PdfColor.FromRgb(20, 20, 180), fillColor: PdfColor.FromRgb(220, 220, 255)))));
+                .Rectangle(global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(30D), strokeColor: global::OfficeIMO.OfficeColor.FromRgb(20, 20, 180), fillColor: global::OfficeIMO.OfficeColor.FromRgb(220, 220, 255)))));
         }).ToBytes();
         PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
             new PdfRedactionArea(1, 10D, 10D, 10D, 10D, "reviewed area")
@@ -703,7 +703,7 @@ public class PdfRedactionVerificationTests {
         PdfRedactionProofResult proof = PdfRedactionProofTestSupport.BuildAndVerifyRedactionRemovalProof();
 
         Assert.True(proof.Plan.HasMatches);
-        Assert.Contains(proof.Plan.Matches, match => match.Text != null && match.Text.Contains("PAY-SECRET-2026", StringComparison.Ordinal));
+        Assert.Contains(proof.Plan.Matches, static match => match.Kind == OfficeIMO.Pdf.PdfRedactionMatchKind.TextBlock && match.Text == null);
         Assert.True(proof.Verification.IsVerified);
         Assert.True(proof.Verification.RawPdfBytesChecked);
         Assert.True(proof.Verification.EncodedPdfStringsChecked);
@@ -977,7 +977,7 @@ public class PdfRedactionVerificationTests {
         Assert.Equal(placement.ObjectNumber, match.ObjectNumber);
         Assert.Null(match.Text);
         PdfDiagnosticFinding finding = Assert.Single(plan.Findings, finding =>
-            finding.Code == "RedactionPlanImageIntersection" &&
+            finding.Code == "redaction-plan-image-intersection" &&
             finding.Severity == PdfDiagnosticSeverity.Warning &&
             finding.PageNumber == image.PageNumber);
         Assert.Contains("rewrites supported image pixels", finding.Message, StringComparison.Ordinal);
@@ -1352,7 +1352,7 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
-    public void Apply_PreservesSharedImageAliasesWhenAContentOwnerCannotBeDecoded() {
+    public void Apply_RefusesWhenAnUnreadableContentOwnerKeepsTheOriginalImage() {
         const string pageContent = "q 20 0 0 20 20 30 cm /ImShared Do Q";
         const string undecodableFormContent = "/ImShared Do";
         const string imageBytes = "abc";
@@ -1369,14 +1369,11 @@ public class PdfRedactionVerificationTests {
         PdfLogicalImage image = GetSingleImage(source);
         PdfRedactionArea area = CreateImageCoveringArea(image, Assert.Single(image.Placements));
 
-        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
-        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(redacted).Map;
-        PdfStream form = Assert.IsType<PdfStream>(Assert.Single(objects.Values, static item =>
-            item.Value is PdfStream stream && stream.Dictionary.Get<PdfName>("Subtype")?.Name == "Form").Value);
-        PdfDictionary resources = Assert.IsType<PdfDictionary>(form.Dictionary.Items["Resources"]);
-        PdfDictionary xObjects = Assert.IsType<PdfDictionary>(resources.Items["XObject"]);
-
-        Assert.True(xObjects.Items.ContainsKey("ImShared"));
+        // The unreadable form may paint the alias, so it can't be dropped, and the original pixels stay
+        // reachable through it. That can't be proven clean, so the rewrite is refused on both routes.
+        InvalidOperationException direct = Assert.Throws<InvalidOperationException>(() => PdfRedactionApplier.Apply(source, new[] { area }));
+        Assert.Contains("no page paints", direct.Message, StringComparison.Ordinal);
+        Assert.Throws<InvalidOperationException>(() => PdfDocument.Load(source).Redactions.Apply(PdfDocument.Load(source).Redactions.Plan(new[] { area })));
     }
 
     [Fact]
@@ -1394,7 +1391,7 @@ public class PdfRedactionVerificationTests {
     }
 
     private static byte[] BuildImageRedactionPlanningSource() {
-        return PdfDocument.Create(new PdfOptions {
+        return PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .Paragraph(paragraph => paragraph.Text("Visible image redaction planning marker"))

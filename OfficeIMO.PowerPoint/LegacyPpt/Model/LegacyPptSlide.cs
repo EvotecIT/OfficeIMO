@@ -1,6 +1,6 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents one presentation slide decoded from a binary PowerPoint file.</summary>
-    public sealed class LegacyPptSlide {
+    internal sealed class LegacyPptSlide {
         private readonly List<LegacyPptShape> _shapes = new();
         private readonly List<LegacyPptConnectorRule> _connectorRules = new();
         private readonly List<LegacyPptComment> _comments = new();

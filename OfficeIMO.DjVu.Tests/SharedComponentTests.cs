@@ -72,7 +72,7 @@ public sealed class SharedComponentTests {
         Assert.Equal(PageRenderTests.ReadPpm(reference).GetPixels(), document.Pages[0].Render().Image.GetPixels());
         var rich = document.ToReadResult(new ReaderDjVuOptions { PageNumbers = new[] { 1 }, ImageMode = ReaderDjVuImageMode.AllPages });
         Assert.Equal("image/png", Assert.Single(rich.Assets).MediaType);
-        var pdf = PdfReadDocument.Open(document.ToPdfBytes(new DjVuToPdfOptions { PageNumbers = new[] { 1 } }));
+        var pdf = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdfBytes(new DjVuToPdfOptions { PageNumbers = new[] { 1 } })));
         Assert.Single(pdf.Pages);
 
         components["shared-1.djvu"] = AppendChunk(components["shared-1.djvu"], maskId, mask);

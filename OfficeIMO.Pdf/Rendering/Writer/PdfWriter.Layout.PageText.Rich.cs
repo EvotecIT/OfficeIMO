@@ -5,7 +5,7 @@ internal static partial class PdfWriter {
         System.Collections.Generic.IReadOnlyList<PdfTextRun> runs,
         PdfStandardFont baseFont,
         double defaultFontSize,
-        PdfOptions options,
+        PdfCreateOptions options,
         double firstBaseline,
         out double bottom,
         out double top) {
@@ -19,7 +19,7 @@ internal static partial class PdfWriter {
         System.Collections.Generic.IReadOnlyList<PdfTextRun> runs,
         PdfStandardFont baseFont,
         double defaultFontSize,
-        PdfOptions options,
+        PdfCreateOptions options,
         double firstBaseline,
         out double bottom,
         out double top) {
@@ -38,7 +38,7 @@ internal static partial class PdfWriter {
                 PdfNamedFontFace? namedFont = options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace resolvedNamedFont)
                     ? resolvedNamedFont
                     : null;
-                double requestedFontSize = run.FontSize ?? defaultFontSize;
+                double requestedFontSize = (run.FontSize?.ToPoints()) ?? defaultFontSize;
                 double effectiveFontSize = EffectiveRichFontSize(requestedFontSize, run.Baseline);
                 double textRise = TextRiseForBaseline(requestedFontSize, run.Baseline);
                 double runBaseline = baselines[lineIndex] + textRise;
@@ -46,7 +46,7 @@ internal static partial class PdfWriter {
                 double descender = GetDescenderForOptions(runFont, namedFont, effectiveFontSize, options);
                 double runBottom = runBaseline - descender;
                 double runTop = runBaseline + ascender;
-                double width = MeasureRichText(run.Text, runFont, namedFont, requestedFontSize, run.Baseline, options, run.FeatureSettings, run.HorizontalTextScaling, run.CharacterSpacing);
+                double width = MeasureRichText(run.Text, runFont, namedFont, requestedFontSize, run.Baseline, options, run.FeatureSettings, run.HorizontalTextScaling, (run.CharacterSpacing.ToPoints()));
                 if (width > 0D && run.BackgroundColor.HasValue) {
                     double paddingY = System.Math.Max(0.35D, effectiveFontSize * 0.04D);
                     runBottom -= paddingY;
@@ -79,7 +79,7 @@ internal static partial class PdfWriter {
         if (style == OfficeIMO.Drawing.OfficeTextDecorationStyle.Double) {
             extra += Math.Max(width * 1.8D, 0.8D) / 2D;
         } else if (style == OfficeIMO.Drawing.OfficeTextDecorationStyle.Wavy) {
-            extra += Math.Max(width * 1.5D, 0.75D);
+            extra += WavyDecorationAmplitude(width);
         }
 
         bottom = Math.Min(bottom, y - extra);
@@ -103,7 +103,7 @@ internal static partial class PdfWriter {
     private static double GetPageTextLineLeading(System.Collections.Generic.IReadOnlyList<PdfTextRun> line, double defaultFontSize) {
         double leading = defaultFontSize * 1.2D;
         foreach (PdfTextRun run in line) {
-            double requestedFontSize = run.FontSize ?? defaultFontSize;
+            double requestedFontSize = (run.FontSize?.ToPoints()) ?? defaultFontSize;
             leading = Math.Max(leading, EffectiveRichFontSize(requestedFontSize, run.Baseline) * 1.2D);
         }
 
@@ -116,9 +116,9 @@ internal static partial class PdfWriter {
         double[] baselines,
         PdfStandardFont baseFont,
         double defaultFontSize,
-        PdfColor? defaultColor,
+        global::OfficeIMO.OfficeColor? defaultColor,
         double x,
-        PdfOptions options,
+        PdfCreateOptions options,
         double? lineBoxWidth,
         PdfAlign align) {
         for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
@@ -146,12 +146,12 @@ internal static partial class PdfWriter {
                 PdfNamedFontFace? namedFont = options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace resolvedNamedFont)
                     ? resolvedNamedFont
                     : null;
-                double requestedFontSize = run.FontSize ?? defaultFontSize;
+                double requestedFontSize = (run.FontSize?.ToPoints()) ?? defaultFontSize;
                 double effectiveFontSize = EffectiveRichFontSize(requestedFontSize, run.Baseline);
                 double textRise = TextRiseForBaseline(requestedFontSize, run.Baseline);
                 double width = GetRichSegmentWidth(segments[runIndex]);
-                PdfColor runColor = ResolvePageTextColor(run.Color ?? defaultColor, options);
-                PdfColor decorationColor = ResolvePageTextColor(run.DecorationColor ?? run.Color ?? defaultColor, options);
+                global::OfficeIMO.OfficeColor runColor = ResolvePageTextColor(run.Color ?? defaultColor, options);
+                global::OfficeIMO.OfficeColor decorationColor = ResolvePageTextColor(run.DecorationColor ?? run.Color ?? defaultColor, options);
 
                 if (run.BackgroundColor.HasValue && width > 0D) {
                     double ascender = GetAscenderForOptions(runFont, namedFont, effectiveFontSize, options);
@@ -190,7 +190,11 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void AppendPageTextDecorationLine(StringBuilder sb, double x1, double x2, double y, double width, PdfColor color, OfficeIMO.Drawing.OfficeTextDecorationStyle style) {
+    // A wave reads as a wave at text size only when it is clearly taller than the stroke.
+    internal static double WavyDecorationAmplitude(double width) => Math.Max(width * 2.5D, 1.2D);
+    internal static double WavyDecorationStep(double width) => Math.Max(width * 6D, 2.8D);
+
+    private static void AppendPageTextDecorationLine(StringBuilder sb, double x1, double x2, double y, double width, global::OfficeIMO.OfficeColor color, OfficeIMO.Drawing.OfficeTextDecorationStyle style) {
         if (style == OfficeIMO.Drawing.OfficeTextDecorationStyle.None || x2 <= x1) {
             return;
         }
@@ -216,8 +220,8 @@ internal static partial class PdfWriter {
             // Round joins keep every zigzag tip inside the amplitude plus half
             // stroke width used by page and drawing paint-bound measurements.
             content.LineJoin(1);
-            double step = Math.Max(width * 5D, 2D);
-            double amplitude = Math.Max(width * 1.5D, 0.75D);
+            double step = WavyDecorationStep(width);
+            double amplitude = WavyDecorationAmplitude(width);
             content.MoveTo(x1, y);
             double cursor = x1;
             bool raised = true;

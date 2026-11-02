@@ -37,10 +37,10 @@ internal static partial class PdfWriter {
                     var frame = ResolveContainerFrame(container, ResolveContainerStyle(container), columnXOffset, columnWidth);
                     group.XOffset = frame.X;
                     group.OuterWidth = frame.Width;
-                    childX = frame.X + ResolveContainerStyle(container).PaddingX;
+                    childX = frame.X + ResolveContainerStyle(container).PaddingX.ToPoints();
                     childWidth = frame.ContentWidth;
                     blocks = ResolveContainerContentBlocks(container, group.Style, childX, childWidth,
-                        currentOpts.DefaultFontSize, reservedImageHeight);
+                        currentOpts.DefaultFontSize.ToPoints(), reservedImageHeight);
                     break;
                 case SemanticBlock semantic:
                     blocks = semantic.Blocks;
@@ -68,7 +68,7 @@ internal static partial class PdfWriter {
             ColumnGroup group, List<ColumnGroup> activeGroups, List<ColItem> items, int itemIndex,
             double columnX, ref double cursor, ref double remaining, ref double consumed) {
             double padding = group.Style?.TopPadding ?? 0D;
-            double before = ResolveColumnSpacingBefore(group.Style?.SpacingBefore ?? 0D, consumed);
+            double before = ResolveColumnSpacingBefore((group.Style?.SpacingBefore.ToPoints()) ?? 0D, consumed);
             double firstHeight = MeasureColumnGroupFirstVisualHeight(group);
             double fullHeight = MeasureColumnGroupHeight(group, consumed);
             double fullPageHeight = GetFullPageContentHeight() - activeGroups.Sum(active => active.Style?.FullFragmentPaddingReservation ?? 0D);
@@ -79,7 +79,7 @@ internal static partial class PdfWriter {
                 throw new ArgumentException("Keep-together element or component content exceeds the available column height.");
             }
 
-            double needed = group.KeepTogether && !importedPictureOverflow ? fullHeight : before + padding + (group.Style?.FragmentPaddingReservation ?? 0D) + (group.Style?.FragmentBottomInset ?? 0D) + firstHeight;
+            double needed = group.KeepTogether && !importedPictureOverflow ? fullHeight : before + padding + (group.Style?.FragmentPaddingReservation ?? 0D) + ((group.Style?.FragmentBottomInset.ToPoints()) ?? 0D) + firstHeight;
             // A source picture can overflow one fresh frame. The child renderer
             // retains its full advance; this is only the group's entry reservation.
             if (importedPictureOverflow) needed = Math.Min(needed, fullPageHeight);
@@ -112,17 +112,17 @@ internal static partial class PdfWriter {
                 if (!continuation && group.Style.AnchoredCanvas is { } anchoredCanvas)
                     RenderParagraphCanvas(anchoredCanvas, cursor);
                 group.Decoration = new ContainerRenderScope(group.Style, columnX + group.XOffset, group.OuterWidth,
-                    currentPage!.Options, currentOpts, currentOpts, currentOpts.MarginLeft, width, group.Container) { IsContinuation = continuation };
+                    currentPage!.Options, currentOpts, currentOpts, currentOpts.MarginLeft.ToPoints(), width, group.Container) { IsContinuation = continuation };
                 double next = BeginContainerFragment(group.Decoration, cursor);
                 ConsumeColumnSpace(cursor - next, ref cursor, ref remaining, ref consumed);
                 // Reserve bottom padding so an inner item cannot occupy the decoration's closing space.
-                remaining -= group.Style.FragmentPaddingReservation + group.Style.FragmentBottomInset;
+                remaining -= group.Style.FragmentPaddingReservation + group.Style.FragmentBottomInset.ToPoints();
             }
         }
 
         private void EndColumnGroupFragment(ColumnGroup group, double columnX, ref double cursor, ref double remaining, ref double consumed, bool continues = false) {
             if (group.Style != null) {
-                remaining += group.Style.FragmentPaddingReservation + group.Style.FragmentBottomInset;
+                remaining += group.Style.FragmentPaddingReservation + group.Style.FragmentBottomInset.ToPoints();
                 if (!continues && !group.Style.RepeatFragmentDecoration && group.Style.BottomPadding > remaining + .001D)
                     throw new ArgumentException("Element closing padding cannot fit within the available column height.");
                 ConsumeColumnSpace(Math.Min(group.Style.GetFragmentBottomPadding(continues), Math.Max(0D, remaining)), ref cursor, ref remaining, ref consumed);
@@ -136,7 +136,7 @@ internal static partial class PdfWriter {
 
         private void ResumeColumnGroups(List<ColumnGroup> groups, double columnX, ref double cursor, ref double remaining, ref double consumed) {
             double padding = groups.Sum(group => (group.Style?.GetFragmentTopPadding(isContinuation: true) ?? 0D)
-                + (group.Style?.FragmentPaddingReservation ?? 0D) + (group.Style?.FragmentBottomInset ?? 0D));
+                + (group.Style?.FragmentPaddingReservation ?? 0D) + ((group.Style?.FragmentBottomInset.ToPoints()) ?? 0D));
             if (padding > remaining + 0.001D) {
                 throw new ArgumentException("Nested element padding exceeds the available column height.");
             }

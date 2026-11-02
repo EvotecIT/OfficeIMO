@@ -67,7 +67,7 @@ public sealed partial class HtmlRenderingTests {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithScalarAdvances(
             Enumerable.Range(32, 95).ToDictionary(scalar => scalar, _ => (ushort)500));
         var options = new HtmlToPdfOptions {
-            PageSize = new OfficePageSize(400D / 96D, 400D / 96D), Margins = HtmlRenderMargins.All(0D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(400D / 96D), global::OfficeIMO.OfficeLength.Inches(400D / 96D)), Margins = HtmlRenderMargins.All(0D),
             ViewportWidth = 400D, ViewportHeight = 400D, AllowSystemFontFallback = false,
             DefaultFontFamily = family, FontFamily = new PdfEmbeddedFontFamily(family, font),
             UserAgentStyles = HtmlRenderUserAgentStyleMode.Browser

@@ -81,7 +81,7 @@ namespace OfficeIMO.PowerPoint {
             int expectedSlideCount;
             bool[] slidesWithVisibleContent;
             try {
-                using PowerPointPresentation source = PowerPointPresentation.Load(
+                using PowerPointDocument source = PowerPointDocument.Load(
                     fullPath, new PowerPointLoadOptions {
                         AccessMode = DocumentAccessMode.ReadOnly,
                         PackageSecurity = OfficePackageSecurityOptions.UntrustedDefaults
@@ -127,7 +127,7 @@ namespace OfficeIMO.PowerPoint {
                 return new PowerPointReferenceRenderResult(PowerPointReferenceRenderStatus.Failed,
                     "PowerPoint Desktop reference rendering failed: " + GetRootMessage(ex));
             } finally {
-                TryClosePresentation(presentation);
+                TryCloseDocument(presentation);
                 TryQuitApplication(application);
                 ReleaseComObject(presentation);
                 ReleaseComObject(presentations);
@@ -266,7 +266,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool IsPotentiallyVisibleOnSlide(PowerPointSlide slide,
             PowerPointShape shape) {
-            if (shape.Hidden || shape.Width <= 0L || shape.Height <= 0L) {
+            if (shape.Hidden || shape.Width.ToEmus() <= 0L || shape.Height.ToEmus() <= 0L) {
                 return false;
             }
             P.SlideSize? size = slide.SlidePart.GetParentParts()
@@ -275,8 +275,8 @@ namespace OfficeIMO.PowerPoint {
             long width = size?.Cx?.Value ?? 0L;
             long height = size?.Cy?.Value ?? 0L;
             if (width <= 0L || height <= 0L) return true;
-            return shape.Left < width && shape.Top < height
-                && shape.Right > 0L && shape.Bottom > 0L;
+            return shape.Left.ToEmus() < width && shape.Top.ToEmus() < height
+                && shape.Right.ToEmus() > 0L && shape.Bottom.ToEmus() > 0L;
         }
 
         private static bool HasMeaningfulNonWhiteContent(OfficeRasterImage image) {
@@ -309,7 +309,7 @@ namespace OfficeIMO.PowerPoint {
                    int.TryParse(name.Substring(5), out number) && number > 0;
         }
 
-        private static void TryClosePresentation(object? presentation) {
+        private static void TryCloseDocument(object? presentation) {
             if (presentation == null) return;
             try { InvokeMethod(presentation, "Close"); } catch { }
         }

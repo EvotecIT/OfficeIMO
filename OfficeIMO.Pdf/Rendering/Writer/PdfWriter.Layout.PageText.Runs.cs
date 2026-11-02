@@ -4,7 +4,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private static System.Collections.Generic.IReadOnlyList<PdfTextRun> BuildPageTextRuns(string text, PdfStandardFont font, double fontSize, PdfColor? color, PdfOptions opts, string? fontFamily = null) {
+    private static System.Collections.Generic.IReadOnlyList<PdfTextRun> BuildPageTextRuns(string text, PdfStandardFont font, double fontSize, global::OfficeIMO.OfficeColor? color, PdfCreateOptions opts, string? fontFamily = null) {
         (bool bold, bool italic) = GetPageTextFontStyle(font);
         var run = new PdfTextRun(
             text,
@@ -13,30 +13,30 @@ internal static partial class PdfWriter {
             color: color,
             italic: italic,
             strike: false,
-            fontSize: fontSize,
+            fontSize: global::OfficeIMO.OfficeLength.Points(fontSize),
             font: ChooseNormal(font),
             fontFamily: fontFamily);
         return NormalizeFallbackRuns(new[] { run }, ChooseNormal(font), opts);
     }
 
     private static System.Collections.Generic.IReadOnlyList<PdfTextRun> BuildPageTextRunsFromSegments(
-        System.Collections.Generic.IReadOnlyList<FooterSegment> segments,
+        System.Collections.Generic.IReadOnlyList<PdfFooterSegment> segments,
         int page,
         int pages,
         int documentPages,
         PdfStandardFont font,
         double fontSize,
-        PdfColor? color,
-        PdfOptions opts,
+        global::OfficeIMO.OfficeColor? color,
+        PdfCreateOptions opts,
         string? fontFamily) {
         (bool bold, bool italic) = GetPageTextFontStyle(font);
         var runs = new System.Collections.Generic.List<PdfTextRun>(segments.Count);
-        foreach (FooterSegment segment in segments) {
+        foreach (PdfFooterSegment segment in segments) {
             string text = segment.Kind switch {
-                FooterSegmentKind.Text => segment.Text ?? string.Empty,
-                FooterSegmentKind.PageNumber => FormatPageNumber(page, opts.PageNumberStyle),
-                FooterSegmentKind.TotalPages => FormatPageNumber(pages, opts.PageNumberStyle),
-                FooterSegmentKind.DocumentPages => FormatPageNumber(documentPages, opts.PageNumberStyle),
+                PdfFooterSegmentKind.Text => segment.Text ?? string.Empty,
+                PdfFooterSegmentKind.PageNumber => FormatPageNumber(page, opts.PageNumberStyle),
+                PdfFooterSegmentKind.TotalPages => FormatPageNumber(pages, opts.PageNumberStyle),
+                PdfFooterSegmentKind.DocumentPages => FormatPageNumber(documentPages, opts.PageNumberStyle),
                 _ => throw new System.ArgumentOutOfRangeException(nameof(segments), segment.Kind, "PDF header/footer segment kind is not supported.")
             };
 
@@ -50,7 +50,7 @@ internal static partial class PdfWriter {
                     color: color,
                     italic: italic,
                     strike: false,
-                    fontSize: fontSize,
+                    fontSize: global::OfficeIMO.OfficeLength.Points(fontSize),
                     font: ChooseNormal(font),
                     fontFamily: fontFamily));
             }
@@ -59,7 +59,7 @@ internal static partial class PdfWriter {
         return NormalizeFallbackRuns(runs, ChooseNormal(font), opts);
     }
 
-    private static bool TryResolvePageTextNamedFont(PdfOptions options, string? fontFamily, PdfStandardFont font, out PdfNamedFontFace namedFont) {
+    private static bool TryResolvePageTextNamedFont(PdfCreateOptions options, string? fontFamily, PdfStandardFont font, out PdfNamedFontFace namedFont) {
         (bool bold, bool italic) = GetPageTextFontStyle(font);
         return options.TryResolveNamedFontFace(fontFamily, bold, italic, out namedFont);
     }
@@ -80,7 +80,7 @@ internal static partial class PdfWriter {
         return (bold, italic);
     }
 
-    private static double MeasurePageTextRuns(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, double fontSize, PdfOptions opts) {
+    private static double MeasurePageTextRuns(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, double fontSize, PdfCreateOptions opts) {
         double width = 0D;
         foreach (System.Collections.Generic.IReadOnlyList<PdfTextRun> line in BuildPageTextLineRuns(runs)) {
             width = Math.Max(width, MeasurePageTextLineRuns(line, baseFont, fontSize, opts));
@@ -89,7 +89,7 @@ internal static partial class PdfWriter {
         return width;
     }
 
-    private static double MeasurePageTextLineRuns(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, double fontSize, PdfOptions opts) {
+    private static double MeasurePageTextLineRuns(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, double fontSize, PdfCreateOptions opts) {
         RichSeg[] segments = BuildPageTextSegments(runs, baseFont, fontSize, opts);
         double width = 0D;
         for (int index = 0; index < runs.Count; index++) {
@@ -155,10 +155,10 @@ internal static partial class PdfWriter {
         System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources,
         System.Collections.Generic.IReadOnlyDictionary<PdfNamedFontFace, string> namedFontResources,
         double fontSize,
-        PdfColor? color,
+        global::OfficeIMO.OfficeColor? color,
         double x,
         double y,
-        PdfOptions opts,
+        PdfCreateOptions opts,
         double? lineBoxWidth = null,
         PdfAlign align = PdfAlign.Left) {
         var lines = BuildPageTextLineRuns(runs);
@@ -167,7 +167,7 @@ internal static partial class PdfWriter {
 
         var content = new ContentStreamBuilder(sb)
             .BeginText()
-            .Font(baseFontResource, fontSize, opts.NeedsSyntheticOblique(baseFont))
+            .Font(baseFontResource, fontSize, opts.NeedsSyntheticOblique(baseFont), syntheticBold: opts.NeedsSyntheticBold(baseFont))
             .FillColor(ResolvePageTextColor(color, opts))
             .TextLeading(fontSize * 1.2D);
 
@@ -204,20 +204,20 @@ internal static partial class PdfWriter {
                     ? resolvedNamedFont
                     : null;
                 string fontResource = ResolvePageTextFontResource(fontResources, namedFontResources, runFont, namedFont);
-                double requestedFontSize = run.FontSize ?? fontSize;
+                double requestedFontSize = (run.FontSize?.ToPoints()) ?? fontSize;
                 double runFontSize = EffectiveRichFontSize(requestedFontSize, run.Baseline);
                 double textRise = TextRiseForBaseline(requestedFontSize, run.Baseline);
-                content.Font(fontResource, runFontSize, opts.NeedsSyntheticOblique(runFont, namedFont));
+                content.Font(fontResource, runFontSize, opts.NeedsSyntheticOblique(runFont, namedFont), syntheticBold: opts.NeedsSyntheticBold(runFont, namedFont));
                 if (Math.Abs(textRise - currentTextRise) > 0.0001D) {
                     content.TextRise(textRise);
                     currentTextRise = textRise;
                 }
-                ApplyRichTextSpacing(content, run.HorizontalTextScaling, run.CharacterSpacing);
+                ApplyRichTextSpacing(content, run.HorizontalTextScaling, (run.CharacterSpacing.ToPoints()));
                 content
                     .TextMatrix(cursorX, baselines[lineIndex])
                     .FillColor(ResolvePageTextColor(run.Color ?? color, opts))
                     .ShowText(segment.KerningCommand ?? EncodeTextShowCommand(text, runFont, namedFont, opts, run.FeatureSettings, run.TextDirection), runFontSize, textRise);
-                ResetRichTextSpacing(content, run.HorizontalTextScaling, run.CharacterSpacing);
+                ResetRichTextSpacing(content, run.HorizontalTextScaling, (run.CharacterSpacing.ToPoints()));
                 cursorX += GetRichSegmentWidth(segment);
             }
         }
@@ -260,10 +260,10 @@ internal static partial class PdfWriter {
         return ResolvePageTextFontResource(fontResources, font);
     }
 
-    private static void AppendPageText(StringBuilder sb, string text, PdfStandardFont font, string fontResource, double fontSize, PdfColor? color, double x, double y, PdfOptions opts) {
+    private static void AppendPageText(StringBuilder sb, string text, PdfStandardFont font, string fontResource, double fontSize, global::OfficeIMO.OfficeColor? color, double x, double y, PdfCreateOptions opts) {
         var content = new ContentStreamBuilder(sb)
             .BeginText()
-            .Font(fontResource, fontSize, opts.NeedsSyntheticOblique(font))
+            .Font(fontResource, fontSize, opts.NeedsSyntheticOblique(font), syntheticBold: opts.NeedsSyntheticBold(font))
             .FillColor(ResolvePageTextColor(color, opts));
 
         content
@@ -272,8 +272,8 @@ internal static partial class PdfWriter {
             .EndText();
     }
 
-    private static PdfColor ResolvePageTextColor(PdfColor? color, PdfOptions opts) =>
-        color ?? opts.DefaultTextColor ?? PdfColor.Black;
+    private static global::OfficeIMO.OfficeColor ResolvePageTextColor(global::OfficeIMO.OfficeColor? color, PdfCreateOptions opts) =>
+        color ?? opts.DefaultTextColor ?? global::OfficeIMO.OfficeColor.Black;
 
     private static string FormatPageText(string format, int page, int pages, int documentPages, PdfPageNumberStyle style) {
         string pageText = FormatPageNumber(page, style);

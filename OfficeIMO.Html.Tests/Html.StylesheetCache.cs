@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             try {
                 var html = $"<link rel=\"stylesheet\" href=\"{path}\" /><p>Test</p>";
                 using var document = OfficeIMO.Html.HtmlConversionDocument
-                    .Parse(html).ToWordDocument(new HtmlToWordOptions {
+                    .Parse(html).ToWord(new WordHtmlImportOptions {
                         AllowDocumentStylesheetLinks = true
                     });
                 Assert.Equal("111111",
@@ -33,11 +33,11 @@ namespace OfficeIMO.Tests {
             string html = $"<link rel=\"stylesheet\" href=\"{path}\" /><p>Test</p>";
             try {
                 File.WriteAllText(path, "p { color:#111111; }");
-                var firstDoc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
+                var firstDoc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions { AllowDocumentStylesheetLinks = true });
                 Assert.Equal("111111", firstDoc.Paragraphs[0].GetRuns().First().ColorHex);
 
                 File.WriteAllText(path, "p { color:#222222; }");
-                var secondDoc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
+                var secondDoc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions { AllowDocumentStylesheetLinks = true });
 
                 Assert.Equal("222222", secondDoc.Paragraphs[0].GetRuns().First().ColorHex);
             } finally {
@@ -56,13 +56,13 @@ namespace OfficeIMO.Tests {
                 });
             }));
             string html = "<link rel=\"stylesheet\" href=\"https://styles.example.test/live.css\" /><p>Test</p>";
-            var options = new HtmlToWordOptions {
+            var options = new WordHtmlImportOptions {
                 AllowDocumentStylesheetLinks = true,
                 HttpClient = httpClient
             };
 
-            var firstDoc = await OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentAsync(options);
-            var secondDoc = await OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentAsync(options);
+            var firstDoc = (await OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordAsync(options)).Value;
+            var secondDoc = (await OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordAsync(options)).Value;
 
             Assert.Equal("333333", firstDoc.Paragraphs[0].GetRuns().First().ColorHex);
             Assert.Equal("444444", secondDoc.Paragraphs[0].GetRuns().First().ColorHex);
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
             const string css = "p { color:#222222; }";
             var html = $"<style>{css}</style><p>Test</p>";
             using var document = OfficeIMO.Html.HtmlConversionDocument
-                .Parse(html).ToWordDocument(new HtmlToWordOptions());
+                .Parse(html).ToWord(new WordHtmlImportOptions());
             Assert.Equal("222222",
                 document.Paragraphs[0].GetRuns().First().ColorHex);
         }

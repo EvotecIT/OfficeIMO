@@ -111,7 +111,9 @@ public sealed partial class EpubPublication {
     /// <summary>Loads a file for bounded package editing.</summary>
     public static EpubPublication Load(string path, EpubPublicationLoadOptions? options = null, CancellationToken cancellationToken = default) {
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-        return Load(stream, options, cancellationToken);
+        EpubPublication publication = Load(stream, options, cancellationToken);
+        publication.FilePath = stream.Name;
+        return publication;
     }
 
     /// <summary>Asynchronously loads a caller-owned stream for editing.</summary>
@@ -125,7 +127,9 @@ public sealed partial class EpubPublication {
     /// <summary>Asynchronously loads a file for editing.</summary>
     public static async Task<EpubPublication> LoadAsync(string path, EpubPublicationLoadOptions? options = null, CancellationToken cancellationToken = default) {
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
-        return await LoadAsync(stream, options, cancellationToken).ConfigureAwait(false);
+        EpubPublication publication = await LoadAsync(stream, options, cancellationToken).ConfigureAwait(false);
+        publication.FilePath = stream.Name;
+        return publication;
     }
 
     private static EpubPublication LoadBytes(byte[] bytes, EpubPublicationLoadOptions options, CancellationToken token) {

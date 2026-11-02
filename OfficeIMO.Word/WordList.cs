@@ -129,12 +129,12 @@ public partial class WordList : WordElement {
     /// <summary>
     /// Gets or sets the font size of the numbering symbols in points.
     /// </summary>
-    public int? FontSize {
+    public global::OfficeIMO.OfficeLength? FontSize {
         get {
-            return GetNumberingProperty<int?>(props => {
+            return GetNumberingProperty<global::OfficeIMO.OfficeLength?>(props => {
                 var fontSize = props.Elements<FontSize>().FirstOrDefault();
                 if (fontSize?.Val != null && int.TryParse(fontSize.Val, out var size)) {
-                    return size / 2;
+                    return global::OfficeIMO.OfficeLength.Emus((long)size * 6350);
                 }
                 return null;
             });
@@ -145,7 +145,7 @@ public partial class WordList : WordElement {
                 props.RemoveAllChildren<FontSizeComplexScript>();
                 if (value.HasValue) {
                     // Convert from points to half-points
-                    var halfPoints = (value.Value * 2).ToString();
+                    var halfPoints = checked((int)value.Value.ToHalfPoints()).ToString(System.Globalization.CultureInfo.InvariantCulture);
                     props.Append(new FontSize { Val = halfPoints });
                     props.Append(new FontSizeComplexScript { Val = halfPoints });
                 }
@@ -156,9 +156,9 @@ public partial class WordList : WordElement {
     /// <summary>
     /// Gets or sets the color of the numbering symbols.
     /// </summary>
-    public OfficeIMO.Drawing.OfficeColor? Color {
+    public OfficeIMO.OfficeColor? Color {
         get {
-            return OfficeIMO.Drawing.OfficeColor.TryParse(ColorHex, out var color) ? color : null;
+            return OfficeIMO.OfficeColor.TryParse(ColorHex, out var color) ? color : null;
         }
         set {
             if (value != null) {

@@ -85,8 +85,8 @@ namespace OfficeIMO.Excel {
             string contentType = "image/png",
             string? altText = null,
             long maximumImageBytes = 32_000_000) {
-            if (row < 1 || row > A1.MaxRows) throw new ArgumentOutOfRangeException(nameof(row));
-            if (column < 1 || column > A1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(column));
+            if (row < 1 || row > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(row));
+            if (column < 1 || column > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(column));
             if (imageBytes == null) throw new ArgumentNullException(nameof(imageBytes));
             if (imageBytes.LongLength == 0 || imageBytes.LongLength > maximumImageBytes) throw new ArgumentOutOfRangeException(nameof(imageBytes));
             if (!IsSupportedImageContentType(contentType)) throw new NotSupportedException($"Image content type '{contentType}' is not supported.");
@@ -98,7 +98,7 @@ namespace OfficeIMO.Excel {
                 CompleteCellValueMutation(row, column);
                 WorksheetRoot.Save();
             });
-            return new ExcelInCellImage(A1.CellReference(row, column), contentType, text, (byte[])imageBytes.Clone());
+            return new ExcelInCellImage(ExcelA1.CellReference(row, column), contentType, text, (byte[])imageBytes.Clone());
         }
 
         private static void ValidateInCellImageAltText(string altText) {
@@ -244,7 +244,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                (int row, int column) = A1.ParseCellRef(cellReference);
+                (int row, int column) = ExcelA1.ParseCellRef(cellReference);
                 if (context.TryGetCopiedAsset(imagePart, out OpenXmlPart copiedAsset)) {
                     _ = targetSheet.SetInCellImageCore(
                         row,

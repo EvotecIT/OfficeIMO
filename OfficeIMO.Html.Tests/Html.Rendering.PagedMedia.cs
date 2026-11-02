@@ -180,10 +180,10 @@ public sealed partial class HtmlRenderingTests {
             HonorCssPageRules = true
         });
         IReadOnlyList<HtmlRenderVisual> visuals = rendered.Pages.SelectMany(page => page.Visuals).ToList();
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
             HonorCssPageRules = true
-        });
+        })).ToBytes();
 
         Assert.Single(visuals.OfType<HtmlRenderImage>());
         Assert.Equal(new[] { "[", "]" }, visuals.OfType<HtmlRenderText>()
@@ -209,7 +209,7 @@ public sealed partial class HtmlRenderingTests {
             + ".note::footnote-marker{content:url('data:image/svg+xml;base64," + data + "')}</style>"
             + "<p>Body<span id='svg-note' class='note'>SVG marker footnote</span>.</p>";
 
-        OfficeIMO.Pdf.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(new HtmlToPdfOptions {
+        OfficeIMO.Pdf.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
             HonorCssPageRules = true
         });
@@ -489,7 +489,7 @@ public sealed partial class HtmlRenderingTests {
             """;
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(400D / HtmlRenderOptions.CssPixelsPerInch, 140D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(400D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(140D / HtmlRenderOptions.CssPixelsPerInch)),
             Margins = HtmlRenderMargins.All(0D)
         };
 
@@ -613,8 +613,8 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
 
         HtmlRenderPage page = Assert.Single(rendered.Pages);
-        Assert.Equal(OfficePageSizes.A4.WidthInches * HtmlRenderOptions.CssPixelsPerInch, page.Width, 3);
-        Assert.Equal(OfficePageSizes.A4.HeightInches * HtmlRenderOptions.CssPixelsPerInch, page.Height, 3);
+        Assert.Equal(OfficePageSizes.A4.Width.ToInches() * HtmlRenderOptions.CssPixelsPerInch, page.Width, 3);
+        Assert.Equal(OfficePageSizes.A4.Height.ToInches() * HtmlRenderOptions.CssPixelsPerInch, page.Height, 3);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSizeUnsupported);
     }
 
@@ -740,7 +740,7 @@ public sealed partial class HtmlRenderingTests {
 
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(360D / 96D, 480D / 96D)
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(360D / 96D), global::OfficeIMO.OfficeLength.Inches(480D / 96D))
         };
         HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, options).Pages);
         HtmlRenderText margin = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), text => text.SemanticRole == "page-margin" && text.Text == "Report");
@@ -820,7 +820,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(4D, 4D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(4D)),
             Margins = HtmlRenderMargins.All(10D)
         });
 

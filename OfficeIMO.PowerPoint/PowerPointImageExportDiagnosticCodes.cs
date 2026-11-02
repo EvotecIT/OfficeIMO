@@ -2,7 +2,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     /// Stable diagnostic codes emitted by PowerPoint image export.
     /// </summary>
-    public static class PowerPointImageExportDiagnosticCodes {
+    internal static class PowerPointImageExportDiagnosticCodes {
         /// <summary>A PowerPoint shape or one of its visual features could not be projected exactly.</summary>
         public const string UnsupportedShape = "unsupported-shape";
 
@@ -31,6 +31,6 @@ namespace OfficeIMO.PowerPoint {
         public const string BaselinePercentApproximated = "baseline-percent-approximation";
 
         /// <summary>A native chart family without a shared renderer, such as a 3-D chart, was drawn as a flat 2-D projection.</summary>
-        public const string ChartProjected = "chart-projected";
+        public const string ChartProjected = "chart-flattened";
     }
 }

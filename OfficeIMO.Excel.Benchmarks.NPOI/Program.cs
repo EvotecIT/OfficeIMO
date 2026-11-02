@@ -196,7 +196,7 @@ static void AddScenario(
 static byte[] WriteOfficeImoXlsx(IReadOnlyList<SalesRecord> records) {
     using var stream = new MemoryStream();
     using (var document = ExcelDocument.Create(stream)) {
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         WriteOfficeImoRows(sheet, records);
         document.Save(stream);
     }
@@ -428,7 +428,7 @@ static void WriteNpoiRows(ISheet sheet, IReadOnlyList<SalesRecord> records) {
 }
 
 static int ReadOfficeImoXlsx(byte[] workbookBytes, int rowCount) {
-    using var reader = ExcelDocument.OpenDataReader(workbookBytes, new ExcelReadOptions {
+    using var reader = ExcelDocument.OpenReader(workbookBytes, new ExcelReaderOptions {
         SheetName = "Data",
         A1Range = $"A1:E{rowCount + 1}",
         HasHeaderRow = false,

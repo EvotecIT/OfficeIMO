@@ -17,12 +17,12 @@ public sealed class XpsPdfLogicalStructureTests {
         var doc = Create(format, new[] { "Alpha", "Beta" }); var ns = doc.StructureNamespace;
         doc.Pages[0].ReplaceStoryFragmentsMarkup(Fragments(doc, null, null, Paragraph(ns, "Beta", "Alpha")));
         byte[] tagged = doc.ToPdf(), plain = doc.ToPdf(preserveLogicalStructure: false);
-        var read = PdfReadDocument.Open(tagged);
+        var read = PdfDocument.Load(new System.IO.MemoryStream(tagged));
         Assert.Equal("BetaAlpha", TreeText(read));
         Assert.Contains(read.TaggedContent!.StructureElements, e => e.StructureType == "P");
-        Assert.Null(PdfReadDocument.Open(plain).TaggedContent);
-        var expected = OfficeDrawingRasterRenderer.Render(PdfDocument.Load(plain).Render.Drawing(1));
-        var actual = OfficeDrawingRasterRenderer.Render(PdfDocument.Load(tagged).Render.Drawing(1));
+        Assert.Null(PdfDocument.Load(new System.IO.MemoryStream(plain)).TaggedContent);
+        var expected = OfficeDrawingRasterRenderer.Render(PdfDocument.Load(new System.IO.MemoryStream(plain)).Render.Drawing(1));
+        var actual = OfficeDrawingRasterRenderer.Render(PdfDocument.Load(new System.IO.MemoryStream(tagged)).Render.Drawing(1));
         Assert.Equal(expected.Width, actual.Width); Assert.Equal(expected.Height, actual.Height);
         for (int y = 0; y < expected.Height; y++) for (int x = 0; x < expected.Width; x++)
             Assert.Equal(expected.GetPixel(x, y), actual.GetPixel(x, y));
@@ -34,7 +34,7 @@ public sealed class XpsPdfLogicalStructureTests {
         doc.Pages[0].ReplaceStoryFragmentsMarkup(Fragments(doc, "body", "one", Paragraph(ns, "Alpha")));
         doc.Pages[1].ReplaceStoryFragmentsMarkup(Fragments(doc, "body", "two", Paragraph(ns, "Beta")));
         doc.Documents[0].ReplaceDocumentStructureMarkup(Story(doc, "body", (2, "two"), (1, "one")));
-        var read = PdfReadDocument.Open(doc.ToPdf());
+        var read = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf()));
         Assert.Equal("BetaAlpha", TreeText(read));
         var paragraph = Assert.Single(read.TaggedContent!.StructureElements, e => e.StructureType == "P");
         Assert.Null(paragraph.PageObjectNumber);
@@ -49,7 +49,7 @@ public sealed class XpsPdfLogicalStructureTests {
         doc.Pages[1].ReplaceStoryFragmentsMarkup(Fragments(doc, "beta", null, Paragraph(ns, "Beta")));
         var structure = Story(doc, "beta", (2, null));
         structure.Add(Story(doc, "alpha", (1, null)).Elements()); doc.Documents[0].ReplaceDocumentStructureMarkup(structure);
-        Assert.Equal("BetaAlpha", TreeText(PdfReadDocument.Open(doc.ToPdf())));
+        Assert.Equal("BetaAlpha", TreeText(PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf()))));
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public sealed class XpsPdfLogicalStructureTests {
             new XElement(ns + "ListStructure", new XElement(ns + "ListItemStructure", new XAttribute("Marker", "Marker"), Paragraph(ns, "Body"))),
             new XElement(ns + "TableStructure", new XElement(ns + "TableRowGroupStructure", new XElement(ns + "TableRowStructure",
                 new XElement(ns + "TableCellStructure", new XAttribute("RowSpan", "2"), new XAttribute("ColumnSpan", "3"), Paragraph(ns, "Cell")))))));
-        var read = PdfReadDocument.Open(doc.ToPdf());
+        var read = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf()));
         Assert.Equal("MarkerBodyCell", TreeText(read));
         foreach (string role in new[] { "L", "LI", "Lbl", "LBody", "Table", "TBody", "TR", "TD" })
             Assert.Contains(read.TaggedContent!.StructureElements, e => e.StructureType == role);
@@ -79,7 +79,7 @@ public sealed class XpsPdfLogicalStructureTests {
         page.ReplaceMarkup(xml); var ns = doc.StructureNamespace;
         page.ReplaceStoryFragmentsMarkup(Fragments(doc, null, null, new XElement(ns + "FigureStructure",
             new XElement(ns + "NamedElement", new XAttribute("NameReference", effect ? "Group" : "Graphic")))));
-        var read = PdfReadDocument.Open(doc.ToPdf());
+        var read = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf()));
         var figure = Assert.Single(read.TaggedContent!.StructureElements, e => e.StructureType == "Figure");
         Assert.Null(figure.AlternateText);
         Assert.NotEmpty(figure.ChildElementObjectNumbers);
@@ -100,7 +100,7 @@ public sealed class XpsPdfLogicalStructureTests {
         var doc = Create(XpsFormat.Xps, new[] { "Zero", "Alpha", "Extra" }); var page = doc.Pages[0]; var xml = page.GetMarkup();
         xml.Elements().First().SetAttributeValue("FontRenderingEmSize", "0"); page.ReplaceMarkup(xml);
         page.ReplaceStoryFragmentsMarkup(Fragments(doc, null, null, Paragraph(doc.StructureNamespace, "Alpha")));
-        var read = PdfReadDocument.Open(doc.ToPdf());
+        var read = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf()));
         Assert.Equal("AlphaExtra", TreeText(read));
         Assert.DoesNotContain("Zero", read.ExtractText());
         Assert.Contains(read.TaggedContent!.StructureElements, e => e.StructureType == "Div");
@@ -112,7 +112,7 @@ public sealed class XpsPdfLogicalStructureTests {
         doc.Pages[0].ReplaceStoryFragmentsMarkup(Fragments(doc, null, null, new XElement(ns + "TableStructure",
             new XElement(ns + "TableRowGroupStructure", new XElement(ns + "TableRowStructure",
                 new XElement(ns + "TableCellStructure"), new XElement(ns + "TableCellStructure", Paragraph(ns, "Cell")))))));
-        var read = PdfReadDocument.Open(doc.ToPdf()); var tags = read.TaggedContent!;
+        var read = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf())); var tags = read.TaggedContent!;
         var row = Assert.Single(tags.StructureElements, e => e.StructureType == "TR");
         Assert.Equal(2, row.ChildElementObjectNumbers.Count);
         var first = tags.StructureElements.Single(e => e.ObjectNumber == row.ChildElementObjectNumbers[0]);
@@ -141,7 +141,7 @@ public sealed class XpsPdfLogicalStructureTests {
         markup.Elements().Single().SetAttributeValue("FragmentType", "Header");
         markup.Add(Fragments(doc, null, null, Paragraph(ns, "Body")).Elements());
         doc.Pages[0].ReplaceStoryFragmentsMarkup(markup);
-        var read = PdfReadDocument.Open(doc.ToPdf(), new PdfLoadOptions { IncludeArtifactText = true });
+        var read = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf()), new PdfLoadOptions { IncludeArtifactText = true });
         Assert.Equal("Body", TreeText(read));
         var spans = read.Pages[0].GetTextSpans();
         Assert.Equal("Header", string.Concat(spans.Where(s => s.IsArtifactContent).Select(s => s.Text)));
@@ -156,7 +156,7 @@ public sealed class XpsPdfLogicalStructureTests {
             new XElement(ns + "TableRowGroupStructure", new XElement(ns + "TableRowStructure",
                 new XElement(ns + "TableCellStructure", new XAttribute("ColumnSpan", "2"), Paragraph(ns, "Zero")),
                 new XElement(ns + "TableCellStructure", Paragraph(ns, "Visible")))))));
-        var read = PdfReadDocument.Open(doc.ToPdf()); var tags = read.TaggedContent!;
+        var read = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf())); var tags = read.TaggedContent!;
         var row = Assert.Single(tags.StructureElements, e => e.StructureType == "TR");
         Assert.Equal(2, row.ChildElementObjectNumbers.Count);
         var first = tags.StructureElements.Single(e => e.ObjectNumber == row.ChildElementObjectNumbers[0]);
@@ -206,7 +206,7 @@ public sealed class XpsPdfLogicalStructureTests {
         page.ReplaceMarkup(xml);
         page.ReplaceStoryFragmentsMarkup(Fragments(doc, null, null, new XElement(ns + "ListStructure",
             new XElement(ns + "ListItemStructure", new XAttribute("Marker", "Marker"), Paragraph(ns, "Body")))));
-        var read = PdfReadDocument.Open(doc.ToPdf()); var tags = read.TaggedContent!;
+        var read = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf())); var tags = read.TaggedContent!;
         var item = Assert.Single(tags.StructureElements, e => e.StructureType == "LI");
         Assert.Equal(new[] { "Lbl", "LBody" }, item.ChildElementObjectNumbers.Select(id => tags.StructureElements.Single(e => e.ObjectNumber == id).StructureType));
         var label = Assert.Single(tags.StructureElements, e => e.StructureType == "Lbl");
@@ -214,7 +214,7 @@ public sealed class XpsPdfLogicalStructureTests {
         Assert.Equal("Body", TreeText(read));
     }
 
-    internal static string TreeText(PdfReadDocument read) {
+    internal static string TreeText(PdfDocument read) {
         var tagged = read.TaggedContent!; var elements = tagged.StructureElements.ToDictionary(e => e.ObjectNumber);
         var spans = read.Pages.ToDictionary(p => p.ObjectNumber, p => p.GetTextSpans());
         var raw = read.RawStructure().Objects.ToDictionary(o => o.ObjectNumber, o => o.Value);

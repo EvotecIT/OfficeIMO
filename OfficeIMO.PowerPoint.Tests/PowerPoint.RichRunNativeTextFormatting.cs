@@ -11,7 +11,7 @@ public class PowerPointRichRunNativeTextFormattingTests {
     public void RichRunNativeStylesRoundTripWithoutBooleanFlattening() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
         try {
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(path)) {
                 PowerPointTextRun authoredRun = presentation.AddSlide().AddTextBox("Styled")
                     .Paragraphs.Single().Runs.Single();
                 authoredRun.Bold = true;
@@ -21,13 +21,13 @@ public class PowerPointRichRunNativeTextFormattingTests {
                 authoredRun.Capitalization = PowerPointCapitalization.SmallCaps;
                 authoredRun.SetSuperscript();
                 authoredRun.FontName = "Aptos";
-                authoredRun.FontSizePoints = 14.5D;
+                authoredRun.FontSize = global::OfficeIMO.OfficeLength.Points(14.5D);
                 authoredRun.Color = "336699";
                 authoredRun.TransformTextCase(OfficeIMO.Drawing.OfficeTextCase.ToggleCase);
                 presentation.Save();
             }
 
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(path);
+            using PowerPointDocument reopened = PowerPointDocument.Load(path);
             PowerPointTextRun actual = reopened.Slides.Single().TextBoxes.Single()
                 .Paragraphs.Single().Runs.Single();
             Assert.Equal("sTYLED", actual.Text);
@@ -40,7 +40,7 @@ public class PowerPointRichRunNativeTextFormattingTests {
             Assert.Equal(PowerPointCapitalization.SmallCaps, actual.Capitalization);
             Assert.Equal(30D, actual.BaselinePercent);
             Assert.Equal("Aptos", actual.FontName);
-            Assert.Equal(14.5D, actual.FontSizePoints);
+            Assert.Equal(14.5D, actual.FontSize?.ToPoints());
             Assert.Equal("336699", actual.Color);
         } finally {
             if (File.Exists(path)) File.Delete(path);
@@ -49,7 +49,7 @@ public class PowerPointRichRunNativeTextFormattingTests {
 
     [Fact]
     public void BaselineRejectsOutOfRangeValues() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointTextRun run = presentation.AddSlide().AddTextBox("Styled")
             .Paragraphs.Single().Runs.Single();
 
@@ -59,7 +59,7 @@ public class PowerPointRichRunNativeTextFormattingTests {
 
     [Fact]
     public void SetBaselineWritesAnExplicitNormalValue() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointTextRun run = presentation.AddSlide().AddTextBox("Styled")
             .Paragraphs.Single().Runs.Single();
         run.SetSuperscript();

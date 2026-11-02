@@ -12,14 +12,14 @@ namespace OfficeIMO.Tests;
 public class HtmlPowerPointBubbleChartTests {
     [Fact]
     public void PowerPointHtml_RoundTripsBubbleChartLegendLayout() {
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation =
+            PowerPointDocument.Create(new MemoryStream());
         presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble, CreateBubbleData())
+                OfficeChartType.Bubble, CreateBubbleData())
             .SetTitle("Positioned")
             .SetLegend(OfficeChartLegendPosition.Top, overlay: true);
         presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble, CreateBubbleData())
+                OfficeChartType.Bubble, CreateBubbleData())
             .SetTitle("Hidden")
             .HideLegend();
 
@@ -38,8 +38,8 @@ public class HtmlPowerPointBubbleChartTests {
             System.StringComparison.Ordinal);
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+            .ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         Assert.True(imported.Slides[0].Charts.Single().TryGetOfficeSnapshot(
             out OfficeChartSnapshot positionedSnapshot));
         Assert.True(positionedSnapshot.Layout.ShowLegend);
@@ -60,7 +60,7 @@ public class HtmlPowerPointBubbleChartTests {
 
     private static OfficeChartData CreateBubbleData() =>
         new(new[] { "1", "2" }, new[] {
-            OfficeChartSeries.CreateBubble(
+            OfficeSeries.CreateBubble(
                 "Portfolio", new[] { 1D, 2D }, new[] { 3D, 4D },
                 new[] { 5D, 6D })
         });

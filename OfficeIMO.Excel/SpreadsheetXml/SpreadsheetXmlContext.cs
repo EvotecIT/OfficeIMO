@@ -30,13 +30,13 @@ internal sealed class SpreadsheetXmlContext {
     internal void Omitted(string feature) {
         if (_diagnostics.ContainsKey(feature)) return;
         if (_diagnostics.Count >= 127) feature = "additional unsupported feature kinds";
-        _diagnostics[feature] = new OfficeConversionFidelityDiagnostic("EXCEL_XML_OMITTED",
+        _diagnostics[feature] = new OfficeConversionFidelityDiagnostic("excel-xml-omitted",
             "The data interchange profile omits " + feature + ".", OfficeConversionLossKind.Omission,
             "OfficeIMO.Excel.SpreadsheetXml");
     }
     internal void Approximate(string feature) {
         if (_diagnostics.ContainsKey(feature)) return;
-        _diagnostics[feature] = new OfficeConversionFidelityDiagnostic("EXCEL_XML_APPROXIMATION", feature, OfficeConversionLossKind.Approximation, "OfficeIMO.Excel.SpreadsheetXml");
+        _diagnostics[feature] = new OfficeConversionFidelityDiagnostic("excel-xml-approximation", feature, OfficeConversionLossKind.Approximation, "OfficeIMO.Excel.SpreadsheetXml");
     }
     internal ExcelSpreadsheetXmlReport Report() => new(_diagnostics.Values);
     internal void Inspect(XElement element, string[] children, string[] attributes) {

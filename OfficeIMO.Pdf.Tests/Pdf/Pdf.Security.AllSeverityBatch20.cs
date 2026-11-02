@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed class PdfAllSeverityBatch20SecurityTests {
     [Fact]
     public void UnbackedReservedMonospaceSlotCannotSuppressAutomaticFallback() {
-        string[] candidates = PdfOptions.DefaultDocumentMonospaceFontFamilyFallback
+        string[] candidates = PdfCreateOptions.DefaultDocumentMonospaceFontFamilyFallback
             .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
             .Select(candidate => candidate.Trim())
             .ToArray();
@@ -15,7 +15,7 @@ public sealed class PdfAllSeverityBatch20SecurityTests {
             return;
         }
 
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         options.UseTextFallbacks(
             PdfTextFallbackFeatures.Default,
             new[] { PdfStandardFont.Courier },
@@ -30,7 +30,7 @@ public sealed class PdfAllSeverityBatch20SecurityTests {
 
     [Fact]
     public void ExplicitConfiguredMonospaceSlotRemainsReserved() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Courier,
             HeaderFont = PdfStandardFont.Courier,
             FooterFont = PdfStandardFont.Courier
@@ -47,7 +47,7 @@ public sealed class PdfAllSeverityBatch20SecurityTests {
 
     [Fact]
     public void ReservedDocumentSlotIsNotBackedWhenDocumentFallbackIsDisabled() {
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
 
         options.UseTextFallbacks(
             PdfTextFallbackFeatures.SymbolAndEmojiFonts,
@@ -59,7 +59,7 @@ public sealed class PdfAllSeverityBatch20SecurityTests {
 
     [Fact]
     public void ExplicitConfiguredDocumentSlotRemainsReserved() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Helvetica,
             HeaderFont = PdfStandardFont.Helvetica,
             FooterFont = PdfStandardFont.Helvetica

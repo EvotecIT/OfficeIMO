@@ -183,7 +183,7 @@ namespace OfficeIMO.PowerPoint {
         internal IReadOnlyList<OfficeChartPointStyle?>? PointStyles { get; set; }
 
         /// <summary>Native series appearance retained by the canonical series reader.</summary>
-        internal OfficeChartSeries? SharedAppearance { get; set; }
+        internal OfficeSeries? SharedAppearance { get; set; }
         /// <summary>Why the shared reader cannot draw this series faithfully, or null when it can.</summary>
         internal string? UnsupportedSharedAppearance { get; set; }
         internal bool HasAutomaticSeriesColor { get; set; }

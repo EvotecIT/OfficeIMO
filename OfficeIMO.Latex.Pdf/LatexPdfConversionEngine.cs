@@ -15,7 +15,7 @@ internal static class LatexPdfConversionEngine {
 
         LatexToPdfOptions operation = (options ?? new LatexToPdfOptions()).CloneForConversion();
         LatexToMarkdownResult projection = document.ToMarkdownDocumentResult(operation.ProjectionOptions, cancellationToken);
-        PdfCore.PdfDocumentConversionResult result = projection.Value.ToPdfDocumentResult(operation.MarkdownOptions, cancellationToken);
+        PdfCore.PdfDocumentConversionResult result = projection.Value.ConvertToPdfWithEvidence(operation.MarkdownOptions, cancellationToken);
         return result
             .WithSourceConversionReport(projection.Report)
             .WithAdditionalWarnings(ToPdfWarnings(document));

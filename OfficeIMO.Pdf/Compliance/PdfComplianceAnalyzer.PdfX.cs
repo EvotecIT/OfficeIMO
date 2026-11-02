@@ -4,7 +4,7 @@ internal static partial class PdfComplianceAnalyzer {
     private static void AddPdfXRequirements(
         List<PdfComplianceRequirement> requirements,
         PdfComplianceProfile profile,
-        PdfOptions options,
+        PdfCreateOptions options,
         PdfStandardFont[]? generatedStandardFonts,
         PdfGeneratedFontComplianceEvidence[]? generatedFontUsages,
         PdfGeneratedDocumentComplianceEvidence? generatedEvidence) {
@@ -116,7 +116,7 @@ internal static partial class PdfComplianceAnalyzer {
 
     private static void AddGeneratedProductionContentRequirements(
         List<PdfComplianceRequirement> requirements,
-        PdfOptions options,
+        PdfCreateOptions options,
         PdfGeneratedDocumentComplianceEvidence? evidence) {
         Add(requirements, "pdfx-no-embedded-files", "PDF/X embedded-file policy",
             options.EmbeddedFileSnapshots.Count == 0 && (evidence?.StructureAssociatedFiles.Count ?? 0) == 0 && options.PortfolioSnapshot == null,

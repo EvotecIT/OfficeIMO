@@ -64,7 +64,7 @@ public sealed partial class ConversionJobViewModel {
         }
     }
 
-    internal IOfficeWorkflowConversionSettings? CreateRegisteredConversionSettings() => SupportsIWorkOptions
+    internal IOfficeConversionSettings? CreateRegisteredConversionSettings() => SupportsIWorkOptions
         ? new IWorkWorkflowSettings {
             ConversionOptions = new IWorkConversionOptions {
                 Mode = IWorkMode,

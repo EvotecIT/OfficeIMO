@@ -106,13 +106,15 @@ public sealed partial class EpubPublication {
 
     /// <summary>Atomically saves a completed artifact to a file, preserving an existing destination on validation/cancellation failure.</summary>
     public EpubWriteReport Save(string path, EpubWriteOptions? options = null, CancellationToken cancellationToken = default) {
+        string fullPath = Path.GetFullPath(path);
         EpubWriteResult result = Write(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        string temporary = OfficeFileCommit.StageAllBytes(path, result.Bytes);
+        string temporary = OfficeFileCommit.StageAllBytes(fullPath, result.Bytes);
         try {
             cancellationToken.ThrowIfCancellationRequested();
-            OfficeFileCommit.CommitTemporaryFileAtomically(temporary, path);
+            OfficeFileCommit.CommitTemporaryFileAtomically(temporary, fullPath);
         } finally { OfficeFileCommit.DeleteIfExists(temporary); }
+        FilePath = fullPath;
         return result.Report;
     }
     /// <summary>Writes a staged complete artifact to a caller-owned stream. Seekable streams are replaced and rewound.</summary>
@@ -125,12 +127,14 @@ public sealed partial class EpubPublication {
     }
     /// <summary>Asynchronously atomically saves a completed artifact to a file.</summary>
     public async Task<EpubWriteReport> SaveAsync(string path, EpubWriteOptions? options = null, CancellationToken cancellationToken = default) {
+        string fullPath = Path.GetFullPath(path);
         EpubWriteResult result = Write(options, cancellationToken);
-        string temporary = await OfficeFileCommit.StageAllBytesAsync(path, result.Bytes, cancellationToken).ConfigureAwait(false);
+        string temporary = await OfficeFileCommit.StageAllBytesAsync(fullPath, result.Bytes, cancellationToken).ConfigureAwait(false);
         try {
             cancellationToken.ThrowIfCancellationRequested();
-            OfficeFileCommit.CommitTemporaryFileAtomically(temporary, path);
+            OfficeFileCommit.CommitTemporaryFileAtomically(temporary, fullPath);
         } finally { OfficeFileCommit.DeleteIfExists(temporary); }
+        FilePath = fullPath;
         return result.Report;
     }
     /// <summary>Asynchronously writes a staged artifact without closing the destination stream.</summary>

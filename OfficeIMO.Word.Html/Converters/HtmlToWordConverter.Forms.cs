@@ -3,7 +3,7 @@ using OfficeIMO.Html;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        private void ProcessFormControl(IElement element, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
+        private void ProcessFormControl(IElement element, WordSection section, WordHtmlImportOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
             switch (element.TagName.ToLowerInvariant()) {
                 case "input":
                     ProcessInput(element, section, options, currentParagraph, formatting, cell, headerFooter);
@@ -21,7 +21,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private void ProcessInput(IElement element, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
+        private void ProcessInput(IElement element, WordSection section, WordHtmlImportOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
             if (IsRadioInput(element)) {
                 ProcessRadioGroup(element, section, options, currentParagraph, formatting, cell, headerFooter);
                 return;
@@ -74,7 +74,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private void ProcessRadioGroup(IElement element, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
+        private void ProcessRadioGroup(IElement element, WordSection section, WordHtmlImportOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
             if (_processedRadioInputs.Contains(element)) {
                 return;
             }
@@ -113,7 +113,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private void ProcessSelect(IElement element, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
+        private void ProcessSelect(IElement element, WordSection section, WordHtmlImportOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
             var optionsList = element.QuerySelectorAll("option")
                 .Select(option => new {
                     Element = option,
@@ -154,7 +154,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private void ProcessTextArea(IElement element, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
+        private void ProcessTextArea(IElement element, WordSection section, WordHtmlImportOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
             currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
             var (alias, tag) = GetInputMetadata(element);
             currentParagraph.AddStructuredDocumentTag(NormalizeFormText(element.TextContent), alias, tag);
@@ -164,7 +164,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private void ProcessValueElement(IElement element, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
+        private void ProcessValueElement(IElement element, WordSection section, WordHtmlImportOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
             currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
             var (alias, tag) = GetInputMetadata(element);
             currentParagraph.AddStructuredDocumentTag(GetValueElementText(element), alias, tag);

@@ -7,7 +7,7 @@ namespace OfficeIMO.AsciiDoc.Pdf;
 /// <summary>Controls the loss-aware AsciiDoc-to-PDF route.</summary>
 public sealed class AsciiDocToPdfOptions {
     private AsciiDocToMarkdownOptions _projectionOptions = new AsciiDocToMarkdownOptions();
-    private MarkdownToPdfOptions _markdownOptions = new MarkdownToPdfOptions();
+    private MarkdownPdfExportOptions _markdownOptions = new MarkdownPdfExportOptions();
 
     /// <summary>AsciiDoc-to-Markdown semantic projection settings.</summary>
     public AsciiDocToMarkdownOptions ProjectionOptions {
@@ -16,7 +16,7 @@ public sealed class AsciiDocToPdfOptions {
     }
 
     /// <summary>Shared Markdown/PDF layout, resource, font, and compliance settings.</summary>
-    public MarkdownToPdfOptions MarkdownOptions {
+    public MarkdownPdfExportOptions MarkdownOptions {
         get => _markdownOptions;
         set => _markdownOptions = value ?? throw new ArgumentNullException(nameof(value));
     }

@@ -42,14 +42,14 @@ public partial class Word {
         Style headingStyle = styles.Elements<Style>().Single(style => style.StyleId?.Value == heading.ToString());
         headingStyle.StyleParagraphProperties!.SpacingBetweenLines = null;
         paragraph.FontFamily = "Arial";
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
-        var pdfOptions = new PdfOptions { DefaultFont = PdfStandardFont.Helvetica };
+        var pdfOptions = new PdfCreateOptions { DefaultFont = PdfStandardFont.Helvetica };
         pdfOptions.EmbedStandardFont(PdfStandardFont.Helvetica,
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(Enumerable.Range(32, 95).ToArray()), "OfficeIMO-Portable-Regular");
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = pdfOptions
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         double[] baselines = pdf.GetPage(1).Letters.Select(letter => letter.StartBaseLine.Y).Distinct().ToArray();
         Assert.True(baselines.Length >= 3);
         Assert.Equal(rule == WordLineSpacingRule.Exact ? 22D : 18D, baselines[0] - baselines[1], precision: 3);
@@ -189,26 +189,26 @@ public partial class Word {
             paragraph.SetStyleId("InheritedLeading");
             paragraph.FontFamily = family;
         }
-        paragraph.FontSize = ruleOnly ? 32 : 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(ruleOnly ? 32 : 12);
         if (ruleOnly) {
             foreach (Run run in paragraph._paragraph.Descendants<Run>()) {
                 (run.RunProperties ??= new RunProperties()).FontSize = new FontSize { Val = "64" };
             }
         }
-        paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+        paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         if (ruleOnly && route is "body" or "clear-points") {
-            paragraph.LineSpacingRule = route == "clear-points" ? WordLineSpacingRule.AtLeast : WordLineSpacingRule.Auto;
-            if (route == "clear-points") { paragraph.LineSpacingPoints = 18; paragraph.LineSpacingPoints = null; }
+            paragraph.NativeLineSpacingRule = route == "clear-points" ? WordLineSpacingRule.AtLeast : WordLineSpacingRule.Auto;
+            if (route == "clear-points") { paragraph.NativeLineSpacingValue = 360; paragraph.NativeLineSpacingValue = null; }
         }
-        if (directSpacing || omitRule) { paragraph.LineSpacing = lineSpacing; paragraph.LineSpacingRule = omitRule ? null : rule; }
+        if (directSpacing || omitRule) { paragraph.NativeLineSpacingValue = lineSpacing; paragraph.NativeLineSpacingRule = omitRule ? null : rule; }
         string originalStyles = styles.OuterXml;
-        byte[] documentBytes = nativeDoc ? source.ToBytes(WordFileFormat.Doc) : source.ToBytes();
+        byte[] documentBytes = nativeDoc ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes();
         Assert.Equal(originalStyles, styles.OuterXml);
         using WordDocument document = WordDocument.Load(new System.IO.MemoryStream(documentBytes));
-        var pdfOptions = new PdfOptions { DefaultFont = PdfStandardFont.Helvetica };
+        var pdfOptions = new PdfCreateOptions { DefaultFont = PdfStandardFont.Helvetica };
         pdfOptions.EmbedStandardFont(PdfStandardFont.Helvetica, ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(Enumerable.Range(32, 95).ToArray()), "OfficeIMO-Portable-Regular");
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false,
-            ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = pdfOptions });
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false,
+            ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = pdfOptions }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(1, pdf.NumberOfPages);
         var letters = pdf.GetPage(1).Letters.Where(letter => letter.Value is "A" or "B" or "C").ToArray();

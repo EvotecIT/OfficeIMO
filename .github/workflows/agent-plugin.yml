@@ -66,6 +66,8 @@ jobs:
         with:
           repository: EvotecIT/PSPublishModule
           ref: 9e7d940d6a107e83d1d2a65a16ead0b2dc3a6979
+          # Keep the two repositories as siblings so OfficeIMO build targets
+          # cannot change the shared packer's locked dependency graph.
           path: .powerforge-agent-plugin-build
           persist-credentials: false
       - uses: actions/setup-dotnet@v6

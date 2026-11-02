@@ -138,7 +138,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteRealWorldReportBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
             ApplyOfficeImoTable(sheet, rows.Count);
             ApplyOfficeImoNavigation(sheet, rows.Count);
@@ -177,7 +177,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteRealWorldCoreReportBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
             ApplyOfficeImoTable(sheet, rows.Count);
             ApplyOfficeImoNavigation(sheet, rows.Count);
@@ -232,7 +232,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteRealWorldFreezePanesBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
             sheet.Freeze(topRows: 1, leftCols: 1);
             document.Save(stream);
@@ -278,7 +278,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteRealWorldAutoFilterBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
             sheet.AddAutoFilter(BuildSalesRange(rows.Count));
             document.Save(stream);
@@ -323,7 +323,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteRealWorldConditionalFormattingBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
             ApplyOfficeImoConditionalFormatting(sheet, rows.Count);
             document.Save(stream);
@@ -353,7 +353,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteRealWorldDataValidationBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
             ApplyOfficeImoDataValidation(sheet, rows.Count);
             document.Save(stream);
@@ -413,7 +413,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteRealWorldChartsBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
             AddOfficeImoRegionalChart(sheet, rows);
             document.Save(stream);
@@ -443,7 +443,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteRealWorldPivotTableBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
             AddOfficeImoPivotTable(sheet, rows.Count);
             document.Save(stream);
@@ -543,7 +543,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         RealWorldVariantOptions options) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             InsertOfficeImoVariantRows(sheet, rows, columns);
             string range = BuildVariantRange(rows.Count, columns.Count);
             ApplyOfficeImoVariantTable(sheet, range, options.AutoFit);
@@ -615,7 +615,7 @@ internal static partial class ExcelLibraryComparisonRunner {
             selectors[i] = (columns[i].Header, columns[i].Selector);
         }
 
-        sheet.InsertObjects(rows, selectors);
+        sheet.WriteData(rows, selectors);
     }
 
     private static void WriteEpPlusVariantRows(
@@ -704,14 +704,13 @@ internal static partial class ExcelLibraryComparisonRunner {
     }
 
     private static void AddOfficeImoVariantPivotTable(ExcelSheet sheet, string range) {
-        sheet.AddPivotTable(
-            sourceRange: range,
-            destinationCell: "J3",
-            name: "SalesPivot",
-            rowFields: new[] { "Region" },
-            columnFields: new[] { "Owner" },
-            dataFields: new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Total Amount") },
-            pivotStyleName: "PivotStyleMedium9");
+        sheet.AddPivotTable(range, "J3", options: new ExcelPivotTableOptions {
+            Name = "SalesPivot",
+            RowFields = new[] { "Region" },
+            ColumnFields = new[] { "Owner" },
+            DataFields = new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Total Amount") },
+            PivotStyleName = "PivotStyleMedium9"
+        });
     }
 
     private static void AddEpPlusVariantPivotTable(ExcelPackage package, ExcelWorksheet dataWorksheet, int rowCount, int columnCount) {
@@ -825,14 +824,13 @@ internal static partial class ExcelLibraryComparisonRunner {
     }
 
     private static void AddOfficeImoPivotTable(ExcelSheet sheet, int rowCount) {
-        sheet.AddPivotTable(
-            sourceRange: BuildSalesRange(rowCount),
-            destinationCell: "J3",
-            name: "SalesPivot",
-            rowFields: new[] { "Region" },
-            columnFields: new[] { "Owner" },
-            dataFields: new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Total Amount") },
-            pivotStyleName: "PivotStyleMedium9");
+        sheet.AddPivotTable(BuildSalesRange(rowCount), "J3", options: new ExcelPivotTableOptions {
+            Name = "SalesPivot",
+            RowFields = new[] { "Region" },
+            ColumnFields = new[] { "Owner" },
+            DataFields = new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Total Amount") },
+            PivotStyleName = "PivotStyleMedium9"
+        });
     }
 
     private static void AddOfficeImoRegionalChart(ExcelSheet sheet, IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
@@ -844,7 +842,7 @@ internal static partial class ExcelLibraryComparisonRunner {
                 new ExcelChartSeries("Units", summaries.Select(static item => (double)item.Units))
             });
 
-        sheet.AddChart(chartData, row: 18, column: 10, widthPixels: 720, heightPixels: 360, type: ExcelChartType.ColumnClustered, title: "Regional Sales");
+        sheet.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.Excel.ExcelChartOptions { Row = 18, Column = 10, Width = OfficeLength.Pixels(720), Height = OfficeLength.Pixels(360), Title = "Regional Sales" });
     }
 
     private static void ApplyEpPlusNavigation(ExcelWorksheet worksheet, int rowCount) {

@@ -71,16 +71,14 @@ public sealed class OfficeDiagramStyle {
 public sealed class OfficeDiagramSnapshot {
     /// <summary>Creates a semantic diagram snapshot.</summary>
     public OfficeDiagramSnapshot(string? name, OfficeDiagramKind kind,
-        IEnumerable<string> nodes, double widthPoints,
-        double heightPoints, OfficeDiagramStyle? style = null) {
+        IEnumerable<string> nodes, OfficeLength width,
+        OfficeLength height, OfficeDiagramStyle? style = null) {
         if (nodes == null) throw new ArgumentNullException(nameof(nodes));
-        if (double.IsNaN(widthPoints) || double.IsInfinity(widthPoints)
-            || widthPoints <= 0D) {
-            throw new ArgumentOutOfRangeException(nameof(widthPoints));
+        if (width <= OfficeLength.Zero) {
+            throw new ArgumentOutOfRangeException(nameof(width));
         }
-        if (double.IsNaN(heightPoints) || double.IsInfinity(heightPoints)
-            || heightPoints <= 0D) {
-            throw new ArgumentOutOfRangeException(nameof(heightPoints));
+        if (height <= OfficeLength.Zero) {
+            throw new ArgumentOutOfRangeException(nameof(height));
         }
         var values = new List<string>();
         foreach (string? node in nodes) {
@@ -100,8 +98,8 @@ public sealed class OfficeDiagramSnapshot {
         Name = name;
         Kind = kind;
         Nodes = new ReadOnlyCollection<string>(values);
-        WidthPoints = widthPoints;
-        HeightPoints = heightPoints;
+        Width = width;
+        Height = height;
         Style = style;
     }
 
@@ -114,11 +112,11 @@ public sealed class OfficeDiagramSnapshot {
     /// <summary>Gets node labels in semantic order.</summary>
     public IReadOnlyList<string> Nodes { get; }
 
-    /// <summary>Gets the target width in points.</summary>
-    public double WidthPoints { get; }
+    /// <summary>Gets the physical target width.</summary>
+    public OfficeLength Width { get; }
 
-    /// <summary>Gets the target height in points.</summary>
-    public double HeightPoints { get; }
+    /// <summary>Gets the physical target height.</summary>
+    public OfficeLength Height { get; }
 
     /// <summary>Gets optional visual styling projected from the source diagram.</summary>
     public OfficeDiagramStyle? Style { get; }

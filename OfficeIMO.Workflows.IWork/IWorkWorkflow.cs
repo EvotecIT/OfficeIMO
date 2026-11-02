@@ -46,17 +46,17 @@ public static partial class IWorkWorkflow {
         }
     }
 
-    private static OfficeWorkflowStreamInput DirectoryInput(string path, IWorkReadOptions reading, OfficeWorkflowLimits limits) {
+    private static OfficeWorkflowStreamInput DirectoryInput(string path, IWorkReadOptions reading, OfficeOperationLimits limits) {
         var snapshot = new IWorkDirectoryPackageSnapshot(path, reading, limits.MaximumInputBytes);
         return new OfficeWorkflowStreamInput(Path.GetFileName(path), token => Task.Run(() => snapshot.OpenStream(token), token), null, OfficeWorkflowSourceSnapshotKind.DirectoryPackage, new DirectorySourceGuard(snapshot));
     }
 
-    private sealed class DirectorySourceGuard(IWorkDirectoryPackageSnapshot snapshot) : IOfficeWorkflowPublicationGuard {
-        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) =>
-            ValueTask.FromResult(snapshot.CanPublish(path, isDirectory, token));
+    private sealed class DirectorySourceGuard(IWorkDirectoryPackageSnapshot snapshot) : IOfficePublicationGuard {
+        public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) =>
+            Task.FromResult(snapshot.CanPublish(path, isDirectory, token));
     }
 
-    private static IWorkReadOptions Bound(IWorkReadOptions options, OfficeWorkflowLimits limits) {
+    private static IWorkReadOptions Bound(IWorkReadOptions options, OfficeOperationLimits limits) {
         IWorkReadOptions copy = options.Clone();
         copy.MaximumPackageBytes = Math.Min(copy.MaximumPackageBytes, limits.MaximumInputBytes);
         return copy;

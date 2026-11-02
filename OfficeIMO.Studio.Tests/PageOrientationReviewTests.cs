@@ -16,7 +16,7 @@ public sealed class PageOrientationReviewTests {
     public async Task SuggestionsRequirePreviewAndExplicitAcceptanceAndUndoTogether(int width) {
         using var files = new TextEditingReviewTests.Files();
         PdfDocument.Create(compose => {
-            for (int page = 0; page < 2; page++) compose.Page(value => value.Size(300, 500).Content(content => content.Text("Orientation review")));
+            for (int page = 0; page < 2; page++) compose.Page(value => value.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.Text("Orientation review")));
         }).Save(files.Source);
         using var app = TestAppBuilder.StartSession();
         await app.Dispatch(async () => {

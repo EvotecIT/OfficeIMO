@@ -51,7 +51,7 @@ public sealed partial class StudioIWorkConversionTests {
             Assert.Equal(ConversionJobState.Completed, job.State);
             Assert.True(job.HasOutput, job.Summary);
             if (route == "keynote-pptx") {
-                using var saved = OfficeIMO.PowerPoint.PowerPointPresentation.Load(job.OutputPath!);
+                using var saved = OfficeIMO.PowerPoint.PowerPointDocument.Load(job.OutputPath!);
                 var table = Assert.Single(saved.Slides.SelectMany(slide => slide.Tables));
                 Assert.Equal("Widget", table.GetCell(1, 0).Text);
                 for (int row = 0; row < 3; row++)

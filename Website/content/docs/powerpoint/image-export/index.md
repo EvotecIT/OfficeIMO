@@ -13,14 +13,13 @@ Use the PowerPoint image-export API to select slides, DPI or scale, destination 
 
 ```csharp
 using OfficeIMO.PowerPoint;
+using OfficeIMO.Drawing;
 
-using PowerPointPresentation presentation =
-    PowerPointPresentation.Load("Quarterly-Review.pptx");
+using PowerPointDocument presentation =
+    PowerPointDocument.Load("Quarterly-Review.pptx");
 
-presentation.ToImages()
-    .ForSlideRange(1, presentation.Slides.Count)
-    .AsPng()
-    .Save("Quarterly-Review previews");
+presentation.SaveAsImages("Quarterly-Review previews",
+    new PowerPointImageExportOptions { Format = OfficeImageExportFormat.Png });
 ```
 
 Pair preview generation with `Preflight()` when text fit, shape bounds, image relationships, and package quality matter:

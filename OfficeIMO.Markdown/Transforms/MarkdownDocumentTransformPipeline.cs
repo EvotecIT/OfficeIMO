@@ -5,16 +5,16 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 /// <example>
 /// <code>
-/// var options = MarkdownReaderOptions.CreatePortableProfile();
+/// var options = MarkdownLoadOptions.CreatePortableProfile();
 /// options.DocumentTransforms.Add(
 ///     new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.GenericSemanticFence));
 ///
-/// var document = MarkdownReader.Parse(markdown, options);
+/// var document = MarkdownDocument.Parse(markdown, options);
 /// </code>
 /// Use document transforms for AST-level upgrades after markdown is parseable.
 /// Keep malformed-input repair in <see cref="MarkdownInputNormalizer"/> so the parser sees valid structure first.
 /// </example>
-public static class MarkdownDocumentTransformPipeline {
+internal static class MarkdownDocumentTransformPipeline {
     /// <summary>
     /// Applies the supplied transforms in order.
     /// </summary>
@@ -22,13 +22,13 @@ public static class MarkdownDocumentTransformPipeline {
     /// <param name="transforms">Ordered transforms.</param>
     /// <param name="context">Execution context.</param>
     /// <returns>The final transformed document.</returns>
-    public static MarkdownDoc Apply(
-        MarkdownDoc document,
+    public static MarkdownDocument Apply(
+        MarkdownDocument document,
         IEnumerable<IMarkdownDocumentTransform>? transforms,
         MarkdownDocumentTransformContext context) => Apply(document, transforms, context, default);
 
     /// <summary>Applies ordered transforms with cancellation checks before and after each transform.</summary>
-    public static MarkdownDoc Apply(MarkdownDoc document, IEnumerable<IMarkdownDocumentTransform>? transforms,
+    public static MarkdownDocument Apply(MarkdownDocument document, IEnumerable<IMarkdownDocumentTransform>? transforms,
         MarkdownDocumentTransformContext context, System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (document == null) {

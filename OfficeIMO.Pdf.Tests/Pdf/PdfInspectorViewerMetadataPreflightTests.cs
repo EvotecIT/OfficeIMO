@@ -175,7 +175,7 @@ public partial class PdfInspectorTests {
 
     [Fact]
     public void Inspect_ReadsGeneratedXmpMetadataFields() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions()
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions()
                 .SetPdfAIdentification(3, "B")
                 .SetPdfUaIdentification()
                 .SetElectronicInvoiceMetadata("BASIC"))
@@ -476,7 +476,7 @@ public partial class PdfInspectorTests {
 
     [Fact]
     public void Inspect_ReadsGeneratedOutputIntentProfileMetadata() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions().SetSrgbOutputIntent())
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetSrgbOutputIntent())
             .Paragraph(p => p.Text("Output intent readback."))
             .ToBytes();
 

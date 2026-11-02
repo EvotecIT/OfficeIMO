@@ -20,7 +20,7 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+        using PowerPointDocument reopened = PowerPointDocument.Load(saved);
         Assert.Equal(2, reopened.Slides.Count);
         Assert.NotEmpty(reopened.Slides.SelectMany(slide => slide.TextBoxes));
     }
@@ -194,7 +194,7 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+        using PowerPointDocument reopened = PowerPointDocument.Load(saved);
         Assert.Contains("Styled", reopened.Slides[0].Tables.First().GetCell(0, 0).Text);
     }
 

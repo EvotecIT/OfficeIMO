@@ -13,7 +13,7 @@ internal static class NativePdfScenarios {
             OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
             Require(result.Succeeded, source.Name + ": " + result.Summary);
             VerifyEvidence(result, source);
-            PdfReadDocument pdf = PdfReadDocument.Open(File.ReadAllBytes(request.OutputPath!));
+            using PdfDocument pdf = PdfDocument.Load(request.OutputPath!);
             Require(pdf.Pages.Count == source.Pages, source.Name + " lost pages.");
             VerifyContent(pdf, source);
             VerifyIntegrity(request, source);
@@ -44,7 +44,7 @@ internal static class NativePdfScenarios {
         return new OfficeWorkflowRequest {
             InputPath = PathFor(source), OutputPath = Path.Combine(directory, "output.pdf"),
             Operation = OfficeWorkflowOperation.Convert, ConversionRouteId = source.Route,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Replace, RegisteredConversionSettings = settings
+            ConflictPolicy = OfficePublicationPolicy.Replace, RegisteredConversionSettings = settings
         };
     }
 
@@ -60,12 +60,12 @@ internal static class NativePdfScenarios {
             source.Name + " published a reported omission or failure.");
         Require(evidence.FidelityDiagnostics.Any(item => item.Code == "IWORK_RECORD_FIDELITY_UNASSESSED"),
             source.Name + " concealed unassessed record fidelity.");
-        Require(result.Diagnostics.Any(item => item.Code == "OutputReopened")
+        Require(result.Diagnostics.Any(item => item.Code == global::OfficeIMO.OfficeDiagnosticCodes.ConversionOutputReopened)
             && result.Diagnostics.Single(item => item.Code == "SourceSnapshot").Details["sha256"].Equals(source.Hash, StringComparison.OrdinalIgnoreCase),
             source.Name + " lost output reopen or source identity evidence.");
     }
 
-    private static void VerifyContent(PdfReadDocument pdf, Source source) {
+    private static void VerifyContent(PdfDocument pdf, Source source) {
         string[] pages = pdf.Pages.Select(page => page.ExtractText()).ToArray();
         if (source == Body) {
             Require(pages[0].Contains("OfficeIMO native body document", StringComparison.Ordinal)
@@ -135,7 +135,7 @@ internal static class NativePdfScenarios {
         }), cancellation.Token);
         Require(result.Status == OfficeWorkflowStatus.Cancelled && File.ReadAllText(request.OutputPath!) == "keep existing",
             "Cancellation replaced the destination or lost its status.");
-        if (atPublication) Require(reachedPublication && result.Diagnostics.Any(item => item.Code == "OutputReopened"),
+        if (atPublication) Require(reachedPublication && result.Diagnostics.Any(item => item.Code == global::OfficeIMO.OfficeDiagnosticCodes.ConversionOutputReopened),
             "Publication cancellation did not reach a reopened completed PDF.");
         VerifyIntegrity(request, Body);
         Console.WriteLine("PASS | " + (atPublication ? "publication" : "pre-start") + " cancellation | destination and source preserved; staging removed");

@@ -35,15 +35,13 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Workflows\OfficeIMO.Workflows.csproj" Condition="'$(TargetFramework)' != 'net472'" />
-    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Workflows.IWork\OfficeIMO.Workflows.IWork.csproj" Condition="'$(TargetFramework)' != 'net472'" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Workflows\OfficeIMO.Workflows.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Workflows.IWork\OfficeIMO.Workflows.IWork.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO\OfficeIMO.csproj" />
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Core\OfficeIMO.Core.csproj" />
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Project\OfficeIMO.Project.csproj" />
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Access\OfficeIMO.Access.csproj" />
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Epub\OfficeIMO.Epub.csproj" />
-    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Invoicing\OfficeIMO.Invoicing.csproj" />
-    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Invoicing.Validation\OfficeIMO.Invoicing.Validation.csproj" Condition="'$(TargetFramework)' != 'net472'" />
-    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Invoicing.Pdf\OfficeIMO.Invoicing.Pdf.csproj" />
 
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Adf\OfficeIMO.Adf.csproj" />
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Confluence\OfficeIMO.Confluence.csproj" />
@@ -99,4 +97,13 @@
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.ChartForgeX\OfficeIMO.ChartForgeX.csproj" />
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Excel.GoogleSheets\OfficeIMO.Excel.GoogleSheets.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <OfficeCommandMap Include="$(OfficeIMORoot)Build/ApiMap/powershell/*.json" />
+    <EmbeddedResource Include="$(IntermediateOutputPath)OfficeCommandHints.json" LogicalName="PSWriteOffice.CommandHints.json" />
+  </ItemGroup>
+  <Target Name="GenerateOfficeCommandHints" BeforeTargets="PrepareResources"
+          Inputs="@(OfficeCommandMap);$(MSBuildProjectDirectory)/../../Build/New-CommandHintResource.ps1"
+          Outputs="$(IntermediateOutputPath)OfficeCommandHints.json">
+    <Exec Command="pwsh -NoProfile -NonInteractive -File &quot;$(MSBuildProjectDirectory)/../../Build/New-CommandHintResource.ps1&quot; -MapDirectory &quot;$(OfficeIMORoot)Build/ApiMap/powershell&quot; -OutputPath &quot;$(IntermediateOutputPath)OfficeCommandHints.json&quot;" />
+  </Target>
 </Project>

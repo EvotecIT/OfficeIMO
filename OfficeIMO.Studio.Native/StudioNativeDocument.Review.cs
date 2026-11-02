@@ -79,13 +79,15 @@ internal sealed partial class StudioNativeDocument {
 
     /// <summary>What the document's structure says about it, as the desktop's document health inspection reports it.</summary>
     private static StudioNativeHealth HealthOf(byte[] bytes, PdfLoadOptions options, CancellationToken cancellationToken) {
-        PdfDocumentPreflight preflight = PdfDocument.Preflight(bytes, options, cancellationToken);
+        PdfDocumentPreflight preflight = OfficeDocument.Inspect(new MemoryStream(bytes), "source.pdf",
+            new OfficeInspectOptions { IncludeContent = false, PdfPreflight = options,
+                MaximumInputBytes = options.Limits.MaxInputBytes }, cancellationToken).PdfPreflight!;
         PdfDocumentInfo? info = preflight.DocumentInfo;
         var diagnostics = new List<string>(preflight.Diagnostics);
         PdfRepairReport? repairs = null;
         if (preflight.CanRead) {
             try {
-                PdfAnalysisReport analysis = PdfDocument.Load(bytes, options).Analyze(PdfComplianceProfile.None, cancellationToken);
+                PdfAnalysisReport analysis = PdfDocument.Load(new MemoryStream(bytes), options).Analyze(PdfComplianceProfile.None, cancellationToken);
                 info = analysis.Info;
                 repairs = analysis.Repair;
                 diagnostics.AddRange(repairs.Diagnostics.Select(static item => item.Message));
@@ -117,7 +119,7 @@ internal sealed partial class StudioNativeDocument {
                         _ => throw new ArgumentException($"“{copy.Profile}” isn't an optimization profile.", nameof(copy))
                     });
                     optimization.CancellationToken = cancellationToken;
-                    PdfOptimizationActionResult result = PdfDocument.Load(input, options).Optimization.Apply(optimization);
+                    PdfOptimizationActionResult result = PdfDocument.Load(new MemoryStream(input), options).Optimization.Apply(optimization);
                     if (!result.PreservationReport.IsPreserved) throw new InvalidOperationException("The optimized copy wouldn't keep everything the document contains, so it wasn't written.");
                     return (result.Bytes, result.ReturnedOriginal ? "The document is already as small as lossless optimization makes it."
                         : string.Create(CultureInfo.InvariantCulture, $"Saved {result.SavedBytes} bytes."));
@@ -129,7 +131,7 @@ internal sealed partial class StudioNativeDocument {
                     return (result.ToBytes(), string.Create(CultureInfo.InvariantCulture, $"Repaired {result.SourceRepairReport.RepairCount} structural problem(s)."));
                 }
                 default: {
-                    PdfSanitizationResult result = PdfDocument.Load(input, options).Sanitize(new PdfSanitizationOptions { CancellationToken = cancellationToken });
+                    PdfSanitizationResult result = PdfDocument.Load(new MemoryStream(input), options).Sanitize(new PdfSanitizationOptions { CancellationToken = cancellationToken });
                     if (!result.IsSanitized || !result.PreservationReport.IsPreserved) throw new InvalidOperationException("The sanitized copy couldn't be verified, so it wasn't written.");
                     return (result.ToBytes(), string.Create(CultureInfo.InvariantCulture,
                         $"Removed {result.RemovedFindings.Count} item(s) such as scripts, actions and attachments; {result.RemainingFindings.Count} remain."));
@@ -187,7 +189,7 @@ internal sealed partial class StudioNativeDocument {
                 // The editor maps a rectangle on the page as displayed into the page's own space, through its box and rotation.
                 var gesture = new PdfEditorGesture(area.Page, Finite(bounds.X), Finite(bounds.Y), Finite(bounds.X + bounds.Width), Finite(bounds.Y + bounds.Height), []);
                 PdfEditorCommand command = PdfEditorCommandFactory.Create(snapshot, PdfEditorTool.Redact, gesture,
-                    new PdfEditorProperties(string.Empty, string.Empty, PdfColor.Black, string.Empty, string.Empty, 12D));
+                    new PdfEditorProperties(string.Empty, string.Empty, global::OfficeIMO.OfficeColor.Black, string.Empty, string.Empty, 12D));
                 planned.Add(new PdfRedactionArea(area.Page, command.Bounds.Left, command.Bounds.Bottom, command.Bounds.Width, command.Bounds.Height,
                     "OfficeIMO Studio redaction"));
             }

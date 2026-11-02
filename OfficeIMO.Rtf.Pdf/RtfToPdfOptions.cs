@@ -6,6 +6,8 @@ namespace OfficeIMO.Rtf.Pdf;
 /// Controls conversion from an RTF document model to a first-party PDF document.
 /// </summary>
 public sealed class RtfToPdfOptions {
+    /// <summary>Rejects fidelity loss before returning PDF or writing its destination.</summary>
+    public bool FailOnLoss { get; set; }
     internal System.Threading.CancellationToken CancellationToken { get; set; }
 
     /// <summary>Default number of distinct document font families allowed to probe installed system fonts.</summary>
@@ -17,7 +19,7 @@ public sealed class RtfToPdfOptions {
     }
 
     /// <summary>Optional PDF engine options. The converter clones the instance before applying RTF page setup.</summary>
-    public PdfCore.PdfOptions? PdfOptions { get; set; }
+    public PdfCore.PdfCreateOptions? PdfOptions { get; set; }
 
     /// <summary>Built-in generated-text fallback groups. Set to None for exact document-font output.</summary>
     public PdfCore.PdfTextFallbackFeatures TextFallbacks { get; set; } = PdfCore.PdfTextFallbackFeatures.Default;
@@ -89,6 +91,7 @@ public sealed class RtfToPdfOptions {
         }
 
         return new RtfToPdfOptions {
+            FailOnLoss = FailOnLoss,
             PdfOptions = PdfOptions?.Clone(),
             TextFallbacks = TextFallbacks,
             ResourcePolicy = ResourcePolicy.Clone(),

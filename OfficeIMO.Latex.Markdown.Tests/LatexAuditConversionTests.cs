@@ -22,7 +22,7 @@ public sealed class LatexAuditConversionTests {
         Assert.Equal("ab", Assert.Single(result.Value.Blocks.OfType<SemanticFencedBlock>()).Content);
         Assert.DoesNotContain("PRIVATE", result.Value.ToMarkdown(), StringComparison.Ordinal);
         Assert.Equal("ab", result.Value.FindFrontMatterEntry("author")?.Value);
-        MarkdownDoc twoLines = LatexDocument.Parse("\\author{a% note" + ending + ending + "b}" + Wrap("Visible")).ToMarkdownDocument();
+        MarkdownDocument twoLines = LatexDocument.Parse("\\author{a% note" + ending + ending + "b}" + Wrap("Visible")).ToMarkdownDocument();
         Assert.Equal("a" + ending + "b", twoLines.FindFrontMatterEntry("author")?.Value);
     }
 
@@ -96,7 +96,8 @@ public sealed class LatexAuditConversionTests {
         const string literal = "a_b%{c}~^\\$&#";
         const string url = "https://example.test/a%20b?q=x#part&v=1";
         var inlines = new InlineSequence().Code(literal).Underline(literal).Link(literal, url);
-        MarkdownDoc original = MarkdownDoc.Create().Add(new ParagraphBlock(inlines));
+        MarkdownDocument original = MarkdownDocument.Create();
+        original.Add(new ParagraphBlock(inlines));
         LatexToMarkdownResult back = original.ToLatexDocumentResult().Value.ToMarkdownDocumentResult();
         InlineSequence converted = Assert.Single(back.Value.Blocks.OfType<ParagraphBlock>()).Inlines;
         Assert.Equal(literal, Assert.Single(converted.Nodes.OfType<CodeSpanInline>()).Text);
@@ -112,7 +113,9 @@ public sealed class LatexAuditConversionTests {
         const string text = "Title] AFTER [more]";
         var definitions = new DefinitionListBlock();
         definitions.AddEntry(new DefinitionListEntry(new InlineSequence().Text(text), new IMarkdownBlock[] { new ParagraphBlock(new InlineSequence().Text("Definition body")) }));
-        MarkdownDoc markdown = MarkdownDoc.Create().Callout("theorem", text, "Theorem body").Add(definitions);
+        MarkdownDocument markdown = MarkdownDocument.Create();
+        markdown.Callout("theorem", text, "Theorem body");
+        markdown.Add(definitions);
         MarkdownToLatexResult latex = markdown.ToLatexDocumentResult();
         Assert.DoesNotContain(latex.Value.Diagnostics, static diagnostic => diagnostic.Severity == LatexDiagnosticSeverity.Error);
         LatexToMarkdownResult result = latex.Value.ToMarkdownDocumentResult();
@@ -127,7 +130,7 @@ public sealed class LatexAuditConversionTests {
     [InlineData("é00E9_", "_00E9é")]
     [InlineData("_", "_005F_")]
     public void EncodedLabelNamesCannotCollideWithLiteralEscapeLookingIdentifiers(string first, string second) {
-        MarkdownDoc markdown = MarkdownReader.Parse("## A {#" + first + "}\n\n## B {#" + second + "}\n\n[A](#" + first + ") [B](#" + second + ")\n", new MarkdownReaderOptions { GenericAttributes = true });
+        MarkdownDocument markdown = MarkdownDocument.Parse("## A {#" + first + "}\n\n## B {#" + second + "}\n\n[A](#" + first + ") [B](#" + second + ")\n", new MarkdownLoadOptions { GenericAttributes = true });
         MarkdownToLatexResult result = markdown.ToLatexDocumentResult(new MarkdownToLatexOptions { FirstHeadingIsTitle = false });
         string[] names = result.Value.Labels.Select(static label => label.Name).ToArray();
         Assert.Equal(2, names.Length);
@@ -154,7 +157,7 @@ public sealed class LatexAuditConversionTests {
     public void PercentCommentsConsumeTheirLineEndingAndPreserveFollowingBlankParagraphs(string ending) {
         LatexDocument document = LatexDocument.Parse(Wrap("word% note" + ending + "join\n\nnext% note" + ending + " \t" + ending + "line"));
         Assert.Equal(3, document.Paragraphs.Count);
-        MarkdownDoc markdown = document.ToMarkdownDocument();
+        MarkdownDocument markdown = document.ToMarkdownDocument();
         ParagraphBlock[] paragraphs = markdown.Blocks.OfType<ParagraphBlock>().ToArray();
         Assert.Equal(3, paragraphs.Length);
         Assert.Equal("wordjoin", PlainText(paragraphs[0].Inlines));
@@ -202,10 +205,10 @@ public sealed class LatexAuditConversionTests {
         Assert.Contains("Actual", markdown, StringComparison.Ordinal);
         Assert.Contains("PRIVATE", document.ToLatex(), StringComparison.Ordinal);
         Assert.Contains(result.Report.Diagnostics, static diagnostic => diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);
-        if (source.Contains("\\begin{comment}", StringComparison.Ordinal)) {
+        if (source.IndexOf("\\begin{comment}", StringComparison.Ordinal) >= 0) {
             Assert.Contains(result.Report.Diagnostics, static diagnostic => diagnostic.Feature == "comment-environment" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Omitted);
         }
-        Assert.DoesNotContain("PRIVATE", PdfReadDocument.Open(document.ToPdfDocumentResult().Value.ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.DoesNotContain("PRIVATE", PdfDocument.Load(new System.IO.MemoryStream(document.ToPdfDocumentResult().Value.ToBytes())).ExtractText(), StringComparison.Ordinal);
     }
 
     [Theory]
@@ -236,7 +239,7 @@ public sealed class LatexAuditConversionTests {
         var conversion = LatexDocument.Parse("IMPORTANT CONTENT").ToPdfDocumentResult();
         Assert.True(conversion.HasLoss);
         Assert.Contains(conversion.FidelityDiagnostics, static diagnostic => diagnostic.Code == "LATEXMD297");
-        Assert.Contains("IMPORTANT CONTENT", PdfReadDocument.Open(conversion.Value.ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("IMPORTANT CONTENT", PdfDocument.Load(new System.IO.MemoryStream(conversion.Value.ToBytes())).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -247,7 +250,7 @@ public sealed class LatexAuditConversionTests {
         LatexToMarkdownResult preserved = document.ToMarkdownDocumentResult(new LatexToMarkdownOptions { IncludePreambleAsFrontMatter = false });
         Assert.Equal(source, Assert.Single(preserved.Value.Blocks.OfType<CodeBlock>()).Content);
         var pdf = document.ToPdfDocumentResult();
-        string extracted = PdfReadDocument.Open(pdf.Value.ToBytes()).ExtractText();
+        string extracted = PdfDocument.Load(new System.IO.MemoryStream(pdf.Value.ToBytes())).ExtractText();
         foreach (string text in new[] { "usepackage", "newcommand", "greet World", "TRAILER" }) Assert.Contains(text, extracted, StringComparison.Ordinal);
         LatexToMarkdownResult omitted = document.ToMarkdownDocumentResult(new LatexToMarkdownOptions { IncludePreambleAsFrontMatter = false, PreserveUnsupportedAsSource = false });
         Assert.Empty(omitted.Value.Blocks);

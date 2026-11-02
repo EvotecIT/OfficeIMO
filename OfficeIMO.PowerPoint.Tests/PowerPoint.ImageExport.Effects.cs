@@ -12,15 +12,15 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ProjectsOuterShadowThroughSharedDrawingImageExport() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(120, 90);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(120),OfficeIMO.OfficeLength.Points(90));
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "FFFFFF";
 
-            PowerPointAutoShape shape = slide.AddShapePoints(OfficePresetShapeType.Rectangle, 20, 20, 60, 30);
+            PowerPointAutoShape shape = slide.AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(30));
             shape.FillColor = "E0F2FE";
             shape.OutlineColor = "0284C7";
-            shape.SetShadow("000000", distancePoints: 16, angleDegrees: 45, transparencyPercent: 0);
+            shape.SetShadow("000000", distance: OfficeIMO.OfficeLength.Points(16), angleDegrees: 45, transparencyPercent: 0);
 
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { Scale = 1D });
             OfficeRasterImage svgImage = ReadSvgOutput(svg);
@@ -40,15 +40,15 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ProjectsGlowThroughSharedDrawingImageExport() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(120, 90);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(120),OfficeIMO.OfficeLength.Points(90));
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "FFFFFF";
 
-            PowerPointAutoShape shape = slide.AddShapePoints(OfficePresetShapeType.Rectangle, 32, 24, 48, 28);
+            PowerPointAutoShape shape = slide.AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(32), OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(48), OfficeIMO.OfficeLength.Points(28));
             shape.FillColor = "E0F2FE";
             shape.OutlineColor = "0284C7";
-            shape.SetGlow("FF00FF", radiusPoints: 6, transparencyPercent: 25);
+            shape.SetGlow("FF00FF", radius: OfficeIMO.OfficeLength.Points(6), transparencyPercent: 25);
 
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { Scale = 1D });
             OfficeRasterImage svgImage = ReadSvgOutput(svg);

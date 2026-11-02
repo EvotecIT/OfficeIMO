@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private static double MeasureImportedTableTextWidth(TableCellLayout cell,
-        PdfStandardFont font, double size, PdfOptions? options, double runFontSizeScale = 1D, double minimumShrinkFontSize = 0D,
+        PdfStandardFont font, double size, PdfCreateOptions? options, double runFontSizeScale = 1D, double minimumShrinkFontSize = 0D,
         bool wholeLine = false, bool objectsOnly = false) {
         // Resolve actual run fonts and sizes, then measure break opportunities
         // explicitly: a wide layout never needs to discover internal breaks.
@@ -13,6 +13,8 @@ internal static partial class PdfWriter {
         int paragraphIndex = 0;
         for (int lineIndex = 0; lineIndex < layout.Lines.Count; lineIndex++) {
             var line = layout.Lines[lineIndex];
+            // An empty paragraph paints nothing, so a spacer column keeps its source width despite the paragraph's indent.
+            if (MeasureRichLineWidth(line, options) <= 0D) continue;
             double indents = layout.LineWidths != null
                 ? Math.Max(0D, TableCellNoWrapWidth - layout.LineWidths[lineIndex]) : 0D;
             double firstLineIndents = indents;
@@ -26,7 +28,7 @@ internal static partial class PdfWriter {
                 PdfTableCellParagraph paragraph = ranges[paragraphIndex].Paragraph;
                 // A hanging first line has extra room, but any word may need
                 // the narrower continuation frame at the full body indent.
-                indents = Math.Max(indents, Math.Max(0D, paragraph.LeftIndent + paragraph.RightIndent));
+                indents = Math.Max(indents, Math.Max(0D, paragraph.LeftIndent.ToPoints() + paragraph.RightIndent.ToPoints()));
             }
             if (objectsOnly) {
                 // A constrained source grid can wrap text below its word
@@ -64,7 +66,7 @@ internal static partial class PdfWriter {
     }
 
     private static double MeasureImportedTableWordMinimumWithIndents(System.Collections.Generic.IReadOnlyList<RichSeg> segments,
-        PdfOptions? options, double continuationIndents, double firstLineIndents) {
+        PdfCreateOptions? options, double continuationIndents, double firstLineIndents) {
         if (segments.Count == 0) return continuationIndents;
         string text = string.Concat(segments.Select(segment => segment.Text));
         if (text.Length == 0) return segments.Sum(GetRichSegmentWidth) +
@@ -125,7 +127,7 @@ internal static partial class PdfWriter {
     }
 
     private static double ResolveImportedTableCellWrapWidth(TableCellLayout cell, double innerWidth,
-        PdfStandardFont font, double size, PdfOptions? options, double runFontSizeScale,
+        PdfStandardFont font, double size, PdfCreateOptions? options, double runFontSizeScale,
         double minimumShrinkFontSize, bool wrapOversizedNoWrap) {
         bool noWrap = cell.NoWrap;
         // Word can enlarge an automatic grid for a no-wrap cell, but falls

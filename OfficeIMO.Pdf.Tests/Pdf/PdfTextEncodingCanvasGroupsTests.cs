@@ -12,7 +12,7 @@ public sealed class PdfTextEncodingCanvasGroupsTests {
     [InlineData("figure")]
     public void AnalyzeTextEncoding_TraversesNestedCanvasPaintWithoutTreatingLogicalUnicodeAsGlyphs(string group) {
         PdfDocument document = PdfDocument.Create().Canvas(canvas => {
-            void Paint(PdfPageCanvas child) => child.Text("A−B", 0D, 0D, 100D, 20D);
+            void Paint(PdfPageCanvas child) => child.Text("A−B", global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D));
             switch (group) {
                 case "structure": canvas.Structure(PdfCanvasStructureRole.Paragraph, Paint); break;
                 case "actual-text": canvas.ActualText("Logical Ω", Paint); break;
@@ -33,7 +33,7 @@ public sealed class PdfTextEncodingCanvasGroupsTests {
     public void AnalyzeTextEncoding_CanceledTokenStopsBeforeNestedCanvasTraversal() {
         PdfDocument document = PdfDocument.Create().Canvas(canvas =>
             canvas.Structure(PdfCanvasStructureRole.Paragraph, child =>
-                child.ActualText("Logical Ω", paint => paint.Text("A−B", 0D, 0D, 100D, 20D))));
+                child.ActualText("Logical Ω", paint => paint.Text("A−B", global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D)))));
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 

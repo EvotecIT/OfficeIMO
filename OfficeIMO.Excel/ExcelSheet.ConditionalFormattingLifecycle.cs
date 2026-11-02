@@ -599,7 +599,11 @@ namespace OfficeIMO.Excel {
         private OpenXmlElement RequireAttachedConditionalFormattingRule(ExcelConditionalFormattingInfo rule) {
             OpenXmlElement? backing = rule.BackingRule;
             OpenXmlElement? owner = rule.OwnerContainer;
-            if (!ReferenceEquals(rule.OwnerSheet, this)
+            // Refreshing the worksheet collection can replace its managed wrappers, not the native worksheet.
+            ExcelSheet? sourceSheet = rule.OwnerSheet;
+            if (sourceSheet == null
+                || !ReferenceEquals(sourceSheet.Document, Document)
+                || !ReferenceEquals(sourceSheet.SheetElement, SheetElement)
                 || backing == null
                 || owner == null
                 || !ReferenceEquals(backing.Parent, owner)) {

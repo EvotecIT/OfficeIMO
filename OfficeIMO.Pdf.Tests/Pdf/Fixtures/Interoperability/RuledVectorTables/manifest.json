@@ -1,0 +1,61 @@
+{
+  "word-business-summary.pdf": {
+    "sha256": "b02358e1878887cdbba8f55d45188ab6eb340c635d45d9a834db697cf26cbea0",
+    "producer": "OfficeIMO at c000d5ce86",
+    "sourceFile": "word-word-business-delivery-summary.pdf"
+  },
+  "word-business-grids-rotated.pdf": {
+    "sha256": "375daaba7e9e50473c1399b985c03d8f1d8db89bafadc4c3d90d72c2905eae6b",
+    "producer": "qpdf 12.4.2 page extraction and Rotate metadata",
+    "sourceFile": "word-business-summary.pdf",
+    "pages": [
+      {
+        "sourcePage": 2,
+        "rotationDegrees": 0
+      },
+      {
+        "sourcePage": 2,
+        "rotationDegrees": 90
+      },
+      {
+        "sourcePage": 2,
+        "rotationDegrees": 180
+      },
+      {
+        "sourcePage": 2,
+        "rotationDegrees": 270
+      }
+    ]
+  },
+  "word-business-grids-fragmented.pdf": {
+    "sha256": "07f0a328707389a87ae59f78c877f11607b4dd3f63a90536fab6dd70272c194b",
+    "producer": "qpdf 12.4.2 / fix-qdf; authored test-only rule edits",
+    "sourceFile": "word-business-summary.pdf",
+    "pages": [
+      {
+        "sourcePage": 2,
+        "orientation": "vertical",
+        "axisJitterPoints": 0.1,
+        "gapPoints": 0
+      },
+      {
+        "sourcePage": 2,
+        "orientation": "vertical",
+        "axisJitterPoints": 0.1,
+        "gapPoints": 1
+      },
+      {
+        "sourcePage": 2,
+        "orientation": "horizontal",
+        "axisJitterPoints": 0.1,
+        "gapPoints": 0
+      },
+      {
+        "sourcePage": 2,
+        "orientation": "horizontal",
+        "axisJitterPoints": 0.1,
+        "gapPoints": 1
+      }
+    ]
+  }
+}

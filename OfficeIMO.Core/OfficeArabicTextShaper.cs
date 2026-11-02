@@ -13,7 +13,7 @@ namespace OfficeIMO.Drawing;
 /// synthesize ligatures or position combining marks. This keeps layout and logical-text mapping deterministic
 /// while improving joining for renderers that do not execute OpenType shaping tables.
 /// </remarks>
-public static partial class OfficeArabicTextShaper {
+internal static partial class OfficeArabicTextShaper {
     private static readonly IReadOnlyDictionary<char, ArabicForms> Forms = CreateForms();
     private static readonly IReadOnlyDictionary<char, char> LogicalForms = CreateLogicalForms();
 

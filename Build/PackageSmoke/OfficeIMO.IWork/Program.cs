@@ -29,7 +29,7 @@ try {
         InputPath = createdPath, OutputPath = Path.Combine(outputRoot, "created.pptx"),
         Operation = OfficeWorkflowOperation.Convert, ConversionRouteId = "keynote-pptx"
     });
-    if (!createdResult.Succeeded || !createdResult.Diagnostics.Any(d => d.Code == "OutputReopened"))
+    if (!createdResult.Succeeded || !createdResult.Diagnostics.Any(d => d.Code == global::OfficeIMO.OfficeDiagnosticCodes.ConversionOutputReopened))
         throw new InvalidOperationException("Packed created Keynote conversion failed: " + createdResult.Summary);
     foreach ((string extension, string route, string target, string text) in new[] {
         ("pages", "pages-docx", "docx", "hello pages"),
@@ -66,7 +66,7 @@ try {
             ConversionRouteId = route
         });
         if (!result.Succeeded || !File.Exists(output)
-            || !result.Diagnostics.Any(diagnostic => diagnostic.Code == "OutputReopened")
+            || !result.Diagnostics.Any(diagnostic => diagnostic.Code == global::OfficeIMO.OfficeDiagnosticCodes.ConversionOutputReopened)
             || result.ConversionEvidence?.Facts["projectionKind"] != "EditableReconstruction"
             || result.ConversionEvidence.Facts["partialEditableReconstruction"] != bool.FalseString
             || result.ConversionEvidence.Facts["omittedSourceUnitCount"] != "0"
@@ -89,7 +89,7 @@ try {
                 }
                 break;
             case "key":
-                using (var presentation = OfficeIMO.PowerPoint.PowerPointPresentation.Load(output)) {
+                using (var presentation = OfficeIMO.PowerPoint.PowerPointDocument.Load(output)) {
                     if (presentation.Slides.Count != 2
                         || !presentation.Slides[0].TextBoxes.Any(box => box.Text.Contains("hello keynote", StringComparison.Ordinal))
                         || !presentation.Slides[1].TextBoxes.Any(box => box.Text.Contains("second slide", StringComparison.Ordinal)))

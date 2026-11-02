@@ -5,7 +5,7 @@ using OfficeIMO.Pdf.Filters;
 
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfReadDocument {
+internal sealed partial class PdfReadDocument {
     private const string DublinCoreNamespaceUri = "http://purl.org/dc/elements/1.1/";
     private const string RdfNamespaceUri = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
     private const string PdfAIdentificationNamespaceUri = "http://www.aiim.org/pdfa/ns/id/";

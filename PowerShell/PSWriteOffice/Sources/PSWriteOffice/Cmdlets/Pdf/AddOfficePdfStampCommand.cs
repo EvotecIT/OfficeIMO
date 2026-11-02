@@ -115,15 +115,15 @@ public sealed class AddOfficePdfStampCommand : PSWriteOffice.Cmdlets.OfficeMutat
             : StampText(document);
 
         PdfCommandUtilities.EnsureDirectory(outputPath);
-        result.Save(outputPath).RequireSuccess();
+        result.Save(outputPath);
         WritePassThru(new FileInfo(outputPath));
     }
 
     private PdfDocument StampText(PdfDocument document) {
         var options = new PdfTextStampOptions {
-            X = X,
-            Y = Y,
-            FontSize = FontSize,
+            X = X.HasValue ? global::OfficeIMO.OfficeLength.Points(X.Value) : null,
+            Y = Y.HasValue ? global::OfficeIMO.OfficeLength.Points(Y.Value) : null,
+            FontSize = global::OfficeIMO.OfficeLength.Points(FontSize),
             RotationDegrees = Rotation,
             BehindContent = Watermark.IsPresent
         };
@@ -140,10 +140,10 @@ public sealed class AddOfficePdfStampCommand : PSWriteOffice.Cmdlets.OfficeMutat
 
     private PdfDocument StampImage(PdfDocument document) {
         var options = new PdfImageStampOptions {
-            X = X,
-            Y = Y,
-            Width = Width,
-            Height = Height,
+            X = X.HasValue ? global::OfficeIMO.OfficeLength.Points(X.Value) : null,
+            Y = Y.HasValue ? global::OfficeIMO.OfficeLength.Points(Y.Value) : null,
+            Width = Width.HasValue ? global::OfficeIMO.OfficeLength.Points(Width.Value) : null,
+            Height = Height.HasValue ? global::OfficeIMO.OfficeLength.Points(Height.Value) : null,
             RotationDegrees = Rotation,
             BehindContent = Watermark.IsPresent
         };

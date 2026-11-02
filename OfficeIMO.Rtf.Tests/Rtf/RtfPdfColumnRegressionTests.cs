@@ -10,7 +10,7 @@ public class RtfPdfColumnRegressionTests {
     public void ExplicitPageBreakDoesNotBalanceThePrecedingPageAcrossColumns() {
         RtfDocument document = RtfDocument.Read(@"{\rtf1\ansi\paperw12240\paperh15840\margl1440\margr1440
 \sectd\cols2\colsx480\pard Before01\line Before02\line Before03\line Before04\line Before05\line Before06\line Before07\line Before08\page After marker\par}").Document;
-        using var read = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes(PortableOptions()));
+        using var read = UglyToad.PdfPig.PdfDocument.Open((document.ToPdf(PortableOptions())).ToBytes());
         Assert.Equal(2, read.NumberOfPages);
         var before = read.GetPage(1).GetWords().Where(word => word.Text.StartsWith("Before", StringComparison.Ordinal)).ToArray();
         Assert.Equal(8, before.Length);
@@ -27,7 +27,7 @@ public class RtfPdfColumnRegressionTests {
         RtfSection second = document.AddSection(RtfSectionBreakKind.Column);
         second.ColumnCount = 2;
         second.AddParagraph("Column section marker");
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(PortableOptions());
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(PortableOptions());
         var warning = Assert.Single(result.Warnings, item => item.Code == "ColumnSectionBreakFlattened");
         Assert.Equal(nameof(RtfConversionAction.Flattened), warning.Details["RtfAction"]);
         var read = PdfCore.PdfReadDocument.Open(result.ToBytes());
@@ -51,7 +51,7 @@ public class RtfPdfColumnRegressionTests {
         paragraph.AddText("Next left marker");
         paragraph.AddColumnBreak();
         paragraph.AddText("Next right marker");
-        byte[] bytes = document.ToPdfBytes(PortableOptions());
+        byte[] bytes = (document.ToPdf(PortableOptions())).ToBytes();
         using var read = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Equal(2, read.NumberOfPages);
         foreach (int pageNumber in new[] { 1, 2 }) {
@@ -64,15 +64,19 @@ public class RtfPdfColumnRegressionTests {
             Assert.Contains(left, page.Text, StringComparison.Ordinal);
             Assert.Contains(right, page.Text, StringComparison.Ordinal);
         }
-        Assert.Throws<InvalidDataException>(() => document.ToPdfBytes(new RtfToPdfOptions {
+        var limitFailure = Assert.Throws<OfficeConversionException>(() => document.ToPdf(new RtfToPdfOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
-            PdfOptions = new PdfCore.PdfOptions { MaxGeneratedPages = 1 }
+            PdfOptions = new PdfCore.PdfCreateOptions { MaxGeneratedPages = 1 }
         }));
+        Assert.IsType<InvalidDataException>(limitFailure.InnerException);
+        Assert.Contains(Assert.IsType<OfficeConversionReport>(limitFailure.Report).Diagnostics,
+            diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ConversionOutputFailed);
     }
 
     [Fact]
     public void ContinuousColumnsFlowOnTheCurrentPageAndReturnToSingleColumn() {
         RtfDocument document = RtfDocument.Create();
+        document.PageSetup.SetMargins(1440, 1440, 1440, 1440);
         document.AddSection().AddParagraph("Full width before");
         RtfSection columns = document.AddSection(RtfSectionBreakKind.Continuous);
         columns.ColumnCount = 2;
@@ -80,7 +84,7 @@ public class RtfPdfColumnRegressionTests {
         columns.AddParagraph("Left body").AddColumnBreak();
         columns.AddParagraph("Right body");
         document.AddSection(RtfSectionBreakKind.Continuous).AddParagraph("Full width after");
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(PortableOptions());
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(PortableOptions());
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == "ContinuousSectionPageSettingsFlattened");
         byte[] bytes = result.ToBytes();
         using var read = UglyToad.PdfPig.PdfDocument.Open(bytes);
@@ -97,7 +101,7 @@ public class RtfPdfColumnRegressionTests {
         RtfParagraph paragraph = document.AddParagraph("Before marker");
         paragraph.AddColumnBreak();
         paragraph.AddText("After marker");
-        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(document.ToPdfBytes(PortableOptions()));
+        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open((document.ToPdf(PortableOptions())).ToBytes());
         Assert.Equal(2, read.Pages.Count);
         Assert.Contains("Before marker", read.Pages[0].ExtractText(), StringComparison.Ordinal);
         Assert.Contains("After marker", read.Pages[1].ExtractText(), StringComparison.Ordinal);
@@ -111,7 +115,7 @@ public class RtfPdfColumnRegressionTests {
         section.AddColumn(3000, 480);
         section.AddColumn(5880, 0);
         section.AddParagraph("Unequal body marker");
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(PortableOptions());
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(PortableOptions());
         var warning = Assert.Single(result.Warnings, item => item.Code == "SectionColumnsFlattened");
         Assert.Equal(nameof(RtfConversionAction.Flattened), warning.Details["RtfAction"]);
         Assert.Contains("Unequal body marker", PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText(), StringComparison.Ordinal);
@@ -126,7 +130,7 @@ public class RtfPdfColumnRegressionTests {
         section.PageSetup.SetLandscape();
         section.AddHeader().AddParagraph("Deferred header");
         section.AddParagraph("Continuous body");
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(PortableOptions());
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(PortableOptions());
         var warning = Assert.Single(result.Warnings, item => item.Code == "ContinuousSectionPageSettingsFlattened");
         Assert.Equal(nameof(RtfConversionAction.Flattened), warning.Details["RtfAction"]);
         Assert.Contains("PaperSize", warning.Details["Properties"], StringComparison.Ordinal);

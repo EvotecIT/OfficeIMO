@@ -22,11 +22,11 @@ public partial class Word {
         style.StyleRunProperties ??= new StyleRunProperties();
         style.StyleRunProperties.AddChild(new CharacterScale { Val = 200L }, true);
         style.StyleRunProperties.AddChild(new Spacing { Val = 20 }, true);
-        if (directReset) { paragraph.CharacterScale = 100; paragraph.Spacing = 0; }
+        if (directReset) { paragraph.CharacterScale = 100; paragraph.Spacing = OfficeLength.Emus((long)(0) * 635); }
         string before = style.OuterXml;
         Assert.Empty(source.ValidateDocument());
 
-        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordParagraph actual = (footer ? loaded.Sections[0].Footer.Default!.Paragraphs : loaded.Sections[0].Header.Default!.Paragraphs)
             .Single(item => item.Text == "Story width");
         Style imported = loaded._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
@@ -34,12 +34,12 @@ public partial class Word {
         Assert.Equal(200L, imported.StyleRunProperties?.CharacterScale?.Val?.Value);
         Assert.Equal(20, imported.StyleRunProperties?.Spacing?.Val?.Value);
         Assert.Equal(directReset ? 100 : (int?)null, actual.CharacterScale);
-        Assert.Equal(directReset ? 0 : (int?)null, actual.Spacing);
+        Assert.Equal(directReset ? OfficeLength.Zero : (OfficeLength?)null, actual.Spacing);
         Assert.Equal(before, style.OuterXml);
         Assert.Empty(loaded.ValidateDocument());
 
         loaded.AddParagraph("Edited body");
-        using WordDocument savedAgain = WordDocument.Load(new MemoryStream(loaded.ToBytes(WordFileFormat.Doc)));
+        using WordDocument savedAgain = WordDocument.Load(new MemoryStream(loaded.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordParagraph repeated = (footer ? savedAgain.Sections[0].Footer.Default!.Paragraphs : savedAgain.Sections[0].Header.Default!.Paragraphs)
             .Single(item => item.Text == "Story width");
         Style repeatedStyle = savedAgain._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
@@ -47,7 +47,7 @@ public partial class Word {
         Assert.Equal(200L, repeatedStyle.StyleRunProperties?.CharacterScale?.Val?.Value);
         Assert.Equal(20, repeatedStyle.StyleRunProperties?.Spacing?.Val?.Value);
         Assert.Equal(directReset ? 100 : (int?)null, repeated.CharacterScale);
-        Assert.Equal(directReset ? 0 : (int?)null, repeated.Spacing);
+        Assert.Equal(directReset ? OfficeLength.Zero : (OfficeLength?)null, repeated.Spacing);
         Assert.Contains(savedAgain.Paragraphs, item => item.Text == "Edited body");
         Assert.Empty(savedAgain.ValidateDocument());
     }

@@ -16,8 +16,8 @@ namespace OfficeIMO.Excel {
             OfficeImageExportFormat format,
             OfficeImageExportFormat rasterPlanningFormat,
             OfficeImageExportResult content,
-            ExcelWorksheetImageExportOptions options,
-            ExcelHeaderFooterSnapshot? headerFooterSnapshot,
+            ExcelImageExportOptions options,
+            ExcelHeaderFooterInfo? headerFooterSnapshot,
             int pageNumber,
             int pageCount,
             ref ExcelRasterRenderState rasterState,
@@ -210,7 +210,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            ExcelHeaderFooterSnapshot snapshot = GetHeaderFooter();
+            ExcelHeaderFooterInfo snapshot = GetHeaderFooter();
 
             if (!TryCreateResolvedHeaderFooterTextChrome(
                 snapshot.HeaderLeft,
@@ -300,7 +300,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryCreateHeaderFooterTextChrome(
-            ExcelHeaderFooterSnapshot snapshot,
+            ExcelHeaderFooterInfo snapshot,
             int pageNumber,
             int pageCount,
             DateTime headerFooterDateTime,
@@ -374,7 +374,7 @@ namespace OfficeIMO.Excel {
                 : familyName + ", " + HeaderFooterFallbackFontFamily;
         }
 
-        private static HeaderFooterVariantText SelectHeaderFooterVariantText(ExcelHeaderFooterSnapshot snapshot, int pageNumber) {
+        private static HeaderFooterVariantText SelectHeaderFooterVariantText(ExcelHeaderFooterInfo snapshot, int pageNumber) {
             if (pageNumber == 1 && snapshot.DifferentFirstPage) {
                 return new HeaderFooterVariantText(
                     snapshot.FirstHeaderLeft,
@@ -412,7 +412,7 @@ namespace OfficeIMO.Excel {
             int headerHeight,
             int footerHeight,
             double scale,
-            ExcelWorksheetImageExportOptions options,
+            ExcelImageExportOptions options,
             List<OfficeImageExportDiagnostic> diagnostics,
             string diagnosticSource,
             CancellationToken cancellationToken) {
@@ -641,12 +641,12 @@ namespace OfficeIMO.Excel {
                 HeaderFooterTextSection footerLeft,
                 HeaderFooterTextSection footerCenter,
                 HeaderFooterTextSection footerRight,
-                ExcelHeaderFooterImageSnapshot? headerLeftImage,
-                ExcelHeaderFooterImageSnapshot? headerCenterImage,
-                ExcelHeaderFooterImageSnapshot? headerRightImage,
-                ExcelHeaderFooterImageSnapshot? footerLeftImage,
-                ExcelHeaderFooterImageSnapshot? footerCenterImage,
-                ExcelHeaderFooterImageSnapshot? footerRightImage)
+                ExcelHeaderFooterImageInfo? headerLeftImage,
+                ExcelHeaderFooterImageInfo? headerCenterImage,
+                ExcelHeaderFooterImageInfo? headerRightImage,
+                ExcelHeaderFooterImageInfo? footerLeftImage,
+                ExcelHeaderFooterImageInfo? footerCenterImage,
+                ExcelHeaderFooterImageInfo? footerRightImage)
                 : this(fontFamily, headerLeft, headerCenter, headerRight, footerLeft, footerCenter, footerRight) {
                 HeaderLeftImage = headerLeftImage;
                 HeaderCenterImage = headerCenterImage;
@@ -663,12 +663,12 @@ namespace OfficeIMO.Excel {
             internal HeaderFooterTextSection FooterLeft { get; }
             internal HeaderFooterTextSection FooterCenter { get; }
             internal HeaderFooterTextSection FooterRight { get; }
-            internal ExcelHeaderFooterImageSnapshot? HeaderLeftImage { get; }
-            internal ExcelHeaderFooterImageSnapshot? HeaderCenterImage { get; }
-            internal ExcelHeaderFooterImageSnapshot? HeaderRightImage { get; }
-            internal ExcelHeaderFooterImageSnapshot? FooterLeftImage { get; }
-            internal ExcelHeaderFooterImageSnapshot? FooterCenterImage { get; }
-            internal ExcelHeaderFooterImageSnapshot? FooterRightImage { get; }
+            internal ExcelHeaderFooterImageInfo? HeaderLeftImage { get; }
+            internal ExcelHeaderFooterImageInfo? HeaderCenterImage { get; }
+            internal ExcelHeaderFooterImageInfo? HeaderRightImage { get; }
+            internal ExcelHeaderFooterImageInfo? FooterLeftImage { get; }
+            internal ExcelHeaderFooterImageInfo? FooterCenterImage { get; }
+            internal ExcelHeaderFooterImageInfo? FooterRightImage { get; }
             internal bool HasHeader => HeaderLeft.HasText || HeaderCenter.HasText || HeaderRight.HasText || HeaderLeftImage != null || HeaderCenterImage != null || HeaderRightImage != null;
             internal bool HasFooter => FooterLeft.HasText || FooterCenter.HasText || FooterRight.HasText || FooterLeftImage != null || FooterCenterImage != null || FooterRightImage != null;
             internal bool HasAnyContent => HasHeader || HasFooter;
@@ -683,12 +683,12 @@ namespace OfficeIMO.Excel {
                 FooterRight.HasFormatting;
 
             internal HeaderFooterTextChrome WithImages(
-                ExcelHeaderFooterImageSnapshot? headerLeft,
-                ExcelHeaderFooterImageSnapshot? headerCenter,
-                ExcelHeaderFooterImageSnapshot? headerRight,
-                ExcelHeaderFooterImageSnapshot? footerLeft,
-                ExcelHeaderFooterImageSnapshot? footerCenter,
-                ExcelHeaderFooterImageSnapshot? footerRight) =>
+                ExcelHeaderFooterImageInfo? headerLeft,
+                ExcelHeaderFooterImageInfo? headerCenter,
+                ExcelHeaderFooterImageInfo? headerRight,
+                ExcelHeaderFooterImageInfo? footerLeft,
+                ExcelHeaderFooterImageInfo? footerCenter,
+                ExcelHeaderFooterImageInfo? footerRight) =>
                 new HeaderFooterTextChrome(
                     FontFamily,
                     HeaderLeft,
@@ -704,11 +704,11 @@ namespace OfficeIMO.Excel {
                     footerCenter,
                     footerRight);
 
-            private static double MaxImageHeight(params ExcelHeaderFooterImageSnapshot?[] images) {
+            private static double MaxImageHeight(params ExcelHeaderFooterImageInfo?[] images) {
                 double height = 0D;
                 for (int index = 0; index < images.Length; index++) {
                     if (images[index] != null) {
-                        height = Math.Max(height, images[index]!.HeightPoints);
+                        height = Math.Max(height, images[index]!.Height.ToPoints());
                     }
                 }
 

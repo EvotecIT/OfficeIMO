@@ -283,11 +283,11 @@ namespace OfficeIMO.Excel {
                 var root = sheet.WorksheetPart.Worksheet!;
                 if (native.UsedRange != null)
                     root.SheetDimension = new DocumentFormat.OpenXml.Spreadsheet.SheetDimension { Reference = native.UsedRange.ToA1Reference() };
-                var nativeFormulas = native.Cells.Where(cell => cell.FormulaText != null).ToDictionary(cell => A1.CellReference(cell.Row, cell.Column));
+                var nativeFormulas = native.Cells.Where(cell => cell.FormulaText != null).ToDictionary(cell => ExcelA1.CellReference(cell.Row, cell.Column));
                 foreach (var cell in root.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Where(cell => cell.CellFormula != null))
                     if (nativeFormulas.TryGetValue(cell.CellReference?.Value ?? string.Empty, out var formula)) cell.CellFormula!.Text = formula.FormulaText!;
                 var clearedOpaque = native.Cells.Where(cell => cell.FormulaBytes != null && cell.FormulaText == null && cell.Kind == XlsbCellValueKind.Text && cell.Value is string text && text.Length == 0)
-                    .ToDictionary(cell => A1.CellReference(cell.Row, cell.Column));
+                    .ToDictionary(cell => ExcelA1.CellReference(cell.Row, cell.Column));
                 if (clearedOpaque.Count != 0) foreach (var cell in root.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>())
                     if (clearedOpaque.ContainsKey(cell.CellReference?.Value ?? string.Empty) && cell.CellFormula == null) {
                         cell.InlineString = null; cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String;

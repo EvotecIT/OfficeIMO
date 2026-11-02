@@ -1,25 +1,30 @@
 using System;
 using System.IO;
 using OfficeIMO.Word;
-using OfficeIMO.Word.Fluent;
 
 namespace OfficeIMO.Examples.Word;
-
-internal static partial class Paragraphs {
-
-    internal static void Example_Word_Fluent_Paragraph_TextAndFormatting(string folderPath, bool openWord) {
+internal static partial class Paragraphs
+{
+    internal static void Example_Word_Fluent_Paragraph_TextAndFormatting(string folderPath, bool openWord)
+    {
         Console.WriteLine("[*] Creating document with fluent paragraph text + formatting");
         string filePath = Path.Combine(folderPath, "Fluent_Paragraph_TextAndFormatting.docx");
-
-        using (var document = WordDocument.Create(filePath)) {
-            document.AsFluent()
-                .Paragraph(p => p
-                    .Text("Hello")
-                    .Text(" World", t => t.BoldOn().ItalicOn().Color("#ff0000"))
-                    .Text("!", t => t.BoldOn()))
-                .End()
-                .Save();
+        using (var document = WordDocument.Create(filePath))
+        {
+            {
+                var paragraph1 = document.AddParagraph();
+                paragraph1 = paragraph1.AddText("Hello");
+                paragraph1 = paragraph1.AddText(" World");
+                paragraph1.SetBold();
+                paragraph1.SetItalic();
+                paragraph1.SetColorHex("#ff0000");
+                paragraph1 = paragraph1.AddText("!");
+                paragraph1.SetBold();
+                document.Save();
+            }
         }
-        if (openWord) ExampleFileLauncher.Open(filePath);
+
+        if (openWord)
+            ExampleFileLauncher.Open(filePath);
     }
 }

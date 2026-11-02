@@ -11,21 +11,21 @@ Converts a file or file batch through the canonical OfficeIMO workflow runner.
 ## SYNTAX
 ### File (Default)
 ```powershell
-ConvertTo-OfficeDocument [-InputPath] <Object[]> [-OutputPath] <string> [-ConversionRouteId <string>] [-ConflictPolicy <string>] [-OutputProfile <string>] [-ConversionOptions <OfficeWorkflowConversionOptions>] [-Password <string>] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-SummaryVariable <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficeDocument [-InputPath] <Object[]> [-OutputPath] <string> [-ConversionRouteId <string>] [-ConflictPolicy <string>] [-OutputProfile <string>] [-ConversionOptions <OfficeConversionOptions>] [-Password <string>] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-SummaryVariable <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Files
 ```powershell
-ConvertTo-OfficeDocument [-InputPath] <Object[]> -OutputDirectory <string> -TargetExtension <string> [-ConversionRouteId <string>] [-ConflictPolicy <string>] [-OutputProfile <string>] [-ConversionOptions <OfficeWorkflowConversionOptions>] [-Password <string>] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumFiles <int>] [-MaximumConcurrency <int>] [-CheckpointDirectory <string>] [-RetryFailed] [-ItemResults] [-AllowEmpty] [-SummaryVariable <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficeDocument [-InputPath] <Object[]> -OutputDirectory <string> -TargetExtension <string> [-ConversionRouteId <string>] [-ConflictPolicy <string>] [-OutputProfile <string>] [-ConversionOptions <OfficeConversionOptions>] [-Password <string>] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumFiles <int>] [-MaximumConcurrency <int>] [-CheckpointDirectory <string>] [-RetryFailed] [-ItemResults] [-AllowEmpty] [-SummaryVariable <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Directory
 ```powershell
-ConvertTo-OfficeDocument -InputDirectory <string> -OutputDirectory <string> -TargetExtension <string> [-ConversionRouteId <string>] [-ConflictPolicy <string>] [-OutputProfile <string>] [-ConversionOptions <OfficeWorkflowConversionOptions>] [-Password <string>] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumFiles <int>] [-MaximumConcurrency <int>] [-SourceExtension <string[]>] [-NoRecurse] [-CheckpointDirectory <string>] [-RetryFailed] [-ItemResults] [-AllowEmpty] [-SummaryVariable <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficeDocument -InputDirectory <string> -OutputDirectory <string> -TargetExtension <string> [-ConversionRouteId <string>] [-ConflictPolicy <string>] [-OutputProfile <string>] [-ConversionOptions <OfficeConversionOptions>] [-Password <string>] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumFiles <int>] [-MaximumConcurrency <int>] [-SourceExtension <string[]>] [-NoRecurse] [-CheckpointDirectory <string>] [-RetryFailed] [-ItemResults] [-AllowEmpty] [-SummaryVariable <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Requires PowerShell 7.4 or newer. Returns verified workflow evidence; unsupported input is diagnosed by the owning route.
+Returns verified workflow evidence; unsupported input is diagnosed by the owning route.
 
 ## EXAMPLES
 
@@ -101,7 +101,7 @@ Accept wildcard characters: False
 Renderer and reconstruction settings from New-OfficeConversionOptions.
 
 ```yaml
-Type: OfficeWorkflowConversionOptions
+Type: OfficeConversionOptions
 Parameter Sets: File, Files, Directory
 Aliases: None
 Possible values:
@@ -114,7 +114,7 @@ Accept wildcard characters: False
 ```
 
 ### -ConversionRouteId
-Optional exact canonical route identifier from Get-OfficeConversionRoute.
+Optional exact canonical route identifier from Get-OfficeDocumentCapability -Conversion.
 
 ```yaml
 Type: String
@@ -394,9 +394,9 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Workflows.OfficeWorkflowResult`
-- `OfficeIMO.Workflows.OfficeConversionBatchResult`
-- `OfficeIMO.Workflows.OfficeConversionBatchItemResult`
+- `OfficeIMO.OfficeConversionReport`
+- `OfficeIMO.OfficeBatchSummary`
+- `OfficeIMO.OfficeBatchItemReport`
 
 ## RELATED LINKS
 

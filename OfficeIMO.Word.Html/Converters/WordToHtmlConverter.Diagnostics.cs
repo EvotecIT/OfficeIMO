@@ -7,7 +7,7 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
-        private static ExportInspection InspectExport(WordDocument document, WordToHtmlOptions options) {
+        private static ExportInspection InspectExport(WordDocument document, WordHtmlExportOptions options) {
             HtmlConversionProfileContracts.Get(options.SharedProfile);
             options.DocumentOutput.Validate();
             if (options.MaxDocumentElements <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDocumentElements));
@@ -46,7 +46,7 @@ namespace OfficeIMO.Word.Html {
                         OpenXmlElement element = inspected.Element;
                         elements++;
                         if (elements > options.MaxDocumentElements) {
-                            ThrowExportLimitExceeded(options, "WordElementLimitExceeded", "The Word document exceeds the configured HTML export element limit.", root.PartUri, elements, options.MaxDocumentElements);
+                            ThrowExportLimitExceeded(options, "word-element-limit-exceeded", "The Word document exceeds the configured HTML export element limit.", root.PartUri, elements, options.MaxDocumentElements);
                         }
                         if (countOutputContent && !inspected.OmitOutputContent) {
                             long elementCharacters = GetOutputContentCharacters(element);
@@ -54,7 +54,7 @@ namespace OfficeIMO.Word.Html {
                             if (outputConstructionCharacters > options.MaxOutputCharacters) {
                                 ThrowExportLimitExceeded(
                                     options,
-                                    "WordHtmlOutputLimitExceeded",
+                                    "word-html-output-limit-exceeded",
                                     "Word text and attribute content exceeds the configured HTML output-character limit before DOM construction.",
                                     root.PartUri,
                                     outputConstructionCharacters,
@@ -134,7 +134,7 @@ namespace OfficeIMO.Word.Html {
         // Header and footer parts are intentionally excluded here. A shared part can be emitted
         // once per section, so AppendHeaderFooterRegion measures and reserves its source content
         // immediately before every emitted region rather than charging the package part once.
-        private static bool IsOutputContentRoot(OpenXmlElement root, WordToHtmlOptions options) =>
+        private static bool IsOutputContentRoot(OpenXmlElement root, WordHtmlExportOptions options) =>
             root is not DocumentFormat.OpenXml.Wordprocessing.Header &&
             root is not DocumentFormat.OpenXml.Wordprocessing.Footer &&
             root is not DocumentFormat.OpenXml.Wordprocessing.Footnotes &&
@@ -179,7 +179,7 @@ namespace OfficeIMO.Word.Html {
             };
         }
 
-        private static bool IsSelectedStoryRoot(OpenXmlElement root, WordToHtmlOptions options) => root switch {
+        private static bool IsSelectedStoryRoot(OpenXmlElement root, WordHtmlExportOptions options) => root switch {
             DocumentFormat.OpenXml.Wordprocessing.Body => true,
             DocumentFormat.OpenXml.Wordprocessing.Header or DocumentFormat.OpenXml.Wordprocessing.Footer => options.ExportHeadersAndFooters,
             DocumentFormat.OpenXml.Wordprocessing.Footnotes => options.ExportFootnotes,
@@ -241,60 +241,60 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static void ReportKnownExportLimitations(WordDocument document, WordToHtmlOptions options, ExportInspection inspection) {
+        private static void ReportKnownExportLimitations(WordDocument document, WordHtmlExportOptions options, ExportInspection inspection) {
             Dictionary<WordParagraph, WordDocumentTraversal.ResolvedListMarker> resolvedMarkers =
                 WordDocumentTraversal.BuildResolvedListMarkers(document);
             IEnumerable<WordDocumentTraversal.ResolvedListMarker> renderedMarkers = options.ExportHeadersAndFooters
                 ? resolvedMarkers.Values
                 : resolvedMarkers.Where(pair => pair.Key._paragraph.Ancestors<W.Body>().Any()).Select(pair => pair.Value);
             foreach (int pictureBulletId in WordDocumentTraversal.GetPictureBulletFallbackIds(renderedMarkers)) {
-                AddExportDiagnostic(options, "PictureBulletTextFallback",
+                AddExportDiagnostic(options, "picture-bullet-text-fallback",
                     "Picture bullet " + pictureBulletId + " is represented by a text bullet in HTML output.",
                     OfficeConversionLossKind.Approximation);
             }
             if (!options.EmitDocumentShell &&
                 (options.IncludeCustomProperties || options.AdditionalMetaTags.Count > 0 || options.AdditionalLinkTags.Count > 0)) {
-                AddExportDiagnostic(options, "DocumentHeadMetadataOmittedForFragment",
+                AddExportDiagnostic(options, "document-head-metadata-omitted-for-fragment",
                     "Document-head metadata and links were omitted because fragment output was requested.",
                     OfficeConversionLossKind.Omission);
             }
             if (inspection.HasRevisions) {
                 string policy = options.TrackedChangePolicy.ToString();
-                AddExportDiagnostic(options, "TrackedRevisionsProjected",
+                AddExportDiagnostic(options, "tracked-revisions-projected",
                     "Tracked revisions were projected through the explicit " + policy + " static HTML policy; live accept/reject behavior remains in Word.",
                     OfficeConversionLossKind.Approximation);
             }
             if (inspection.HasComments && !options.ExportComments) {
-                AddExportDiagnostic(options, "CommentsOmitted", "Word comments were omitted because ExportComments is false.", OfficeConversionLossKind.Omission);
+                AddExportDiagnostic(options, "comments-omitted", "Word comments were omitted because ExportComments is false.", OfficeConversionLossKind.Omission);
             }
             if (inspection.HasFields) {
-                AddExportDiagnostic(options, "FieldInstructionsFlattened",
+                AddExportDiagnostic(options, "field-instructions-flattened",
                     options.FieldPolicy == WordFieldExportPolicy.VisibleResultWithReviewMetadata
                         ? "Word fields use their stored visible results and inert instruction metadata; live field evaluation is not represented in HTML."
                         : "Word field instructions are exported through their visible results; live field behavior is not represented in HTML.",
                     OfficeConversionLossKind.Approximation);
             }
             if (document.HasMacros) {
-                AddExportDiagnostic(options, "MacroProjectOmitted", "The VBA project is package metadata and is not represented in HTML.", OfficeConversionLossKind.Omission);
+                AddExportDiagnostic(options, "macro-project-omitted", "The VBA project is package metadata and is not represented in HTML.", OfficeConversionLossKind.Omission);
             }
             if (document._wordprocessingDocument.DigitalSignatureOriginPart != null ||
                 document.ApplicationProperties.HasDigitalSignatureMetadata) {
-                AddExportDiagnostic(options, "PackageSignaturesOmitted", "OPC package signature metadata is not represented in HTML.", OfficeConversionLossKind.Omission);
+                AddExportDiagnostic(options, "package-signatures-omitted", "OPC package signature metadata is not represented in HTML.", OfficeConversionLossKind.Omission);
             }
             if (!options.ExportHeadersAndFooters && document.Sections.Any(section =>
                 section.Header.Default != null || section.Header.Even != null || section.Header.First != null ||
                 section.Footer.Default != null || section.Footer.Even != null || section.Footer.First != null)) {
-                AddExportDiagnostic(options, "HeadersFootersOmitted", "Section headers or footers were omitted because ExportHeadersAndFooters is false.", OfficeConversionLossKind.Omission);
+                AddExportDiagnostic(options, "headers-footers-omitted", "Section headers or footers were omitted because ExportHeadersAndFooters is false.", OfficeConversionLossKind.Omission);
             }
             if (!options.ExportFootnotes && document.FootNotes.Count > 0) {
-                AddExportDiagnostic(options, "FootnotesOmitted", "Footnotes were omitted because ExportFootnotes is false.", OfficeConversionLossKind.Omission);
+                AddExportDiagnostic(options, "footnotes-omitted", "Footnotes were omitted because ExportFootnotes is false.", OfficeConversionLossKind.Omission);
             }
             if (!options.ExportEndnotes && document.EndNotes.Count > 0) {
-                AddExportDiagnostic(options, "EndnotesOmitted", "Endnotes were omitted because ExportEndnotes is false.", OfficeConversionLossKind.Omission);
+                AddExportDiagnostic(options, "endnotes-omitted", "Endnotes were omitted because ExportEndnotes is false.", OfficeConversionLossKind.Omission);
             }
             if (!options.IncludeSectionMetadata &&
                 (document.Sections.Count > 1 || document.Sections.Any(section => HasNonDefaultPageGeometry(section._sectionProperties)))) {
-                AddExportDiagnostic(options, "SectionLayoutFlattened", "Word section page geometry is exported without page metadata because IncludeSectionMetadata is false.", OfficeConversionLossKind.Approximation);
+                AddExportDiagnostic(options, "section-layout-flattened", "Word section page geometry is exported without page metadata because IncludeSectionMetadata is false.", OfficeConversionLossKind.Approximation);
             }
         }
 
@@ -352,7 +352,7 @@ namespace OfficeIMO.Word.Html {
             internal long OutputConstructionCharacters { get; }
         }
 
-        private static void AddExportDiagnostic(WordToHtmlOptions options, string code, string message, OfficeConversionLossKind lossKind) {
+        private static void AddExportDiagnostic(WordHtmlExportOptions options, string code, string message, OfficeConversionLossKind lossKind) {
             options.ConversionReport.Add(
                 "OfficeIMO.Word.Html",
                 code,
@@ -364,7 +364,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static void ThrowExportLimitExceeded(
-            WordToHtmlOptions options,
+            WordHtmlExportOptions options,
             string code,
             string message,
             string source,

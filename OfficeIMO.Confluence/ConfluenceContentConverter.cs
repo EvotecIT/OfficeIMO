@@ -15,7 +15,7 @@ public static class ConfluenceContentConverter {
     public static ConfluenceContentConversionResult<ConfluencePageBody> FromMarkdown(string markdown, ConfluenceBodyFormat format = ConfluenceBodyFormat.AtlasDocFormat) {
         if (markdown == null) throw new ArgumentNullException(nameof(markdown));
         AdfConversionResult<AdfDocument> adf = AdfConverter.FromMarkdown(markdown);
-        string value = format == ConfluenceBodyFormat.AtlasDocFormat ? adf.Value.ToJson() : MarkdownReader.Parse(markdown).ToHtmlFragment();
+        string value = format == ConfluenceBodyFormat.AtlasDocFormat ? adf.Value.ToJson() : MarkdownDocument.Parse(markdown).ToHtml();
         AdfConversionReport report = format == ConfluenceBodyFormat.AtlasDocFormat
             ? adf.Report
             : new AdfConversionReport(new[] {

@@ -32,17 +32,17 @@ public sealed class PowerPointOfficeInteroperabilityCorpusTests {
                     outputDirectory,
                     Path.GetFileNameWithoutExtension(artifact.File) + ".pptx");
 
-                using PowerPointPresentation imported = PowerPointPresentation.Load(source);
+                using PowerPointDocument imported = PowerPointDocument.Load(source);
                 Assert.Equal("PowerPoint.Ppt", imported.SourceFormatDescriptor.Id);
                 int expectedSlideCount = imported.Slides.Count;
                 Assert.True(expectedSlideCount > 0, artifact.File);
 
-                var options = new PowerPointPresentationConversionOptions {
+                var options = new PowerPointDocumentConversionOptions {
                     CompatibilityMode = OfficeCompatibilityMode.BestEffort,
                     LossPolicy = OfficeConversionLossPolicy.Allow
                 };
-                PowerPointPresentationConversionReport preflight =
-                    PowerPointPresentation.AnalyzeConversion(source, destination, options);
+                PowerPointDocumentConversionReport preflight =
+                    PowerPointDocument.AnalyzeConversion(source, destination, options);
                 Assert.Equal("PowerPoint.Ppt", preflight.SourceFormatDescriptor.Id);
                 Assert.Equal("PowerPoint.Pptx", preflight.DestinationFormatDescriptor.Id);
                 Assert.All(preflight.Compatibility.Findings, finding => {
@@ -51,14 +51,14 @@ public sealed class PowerPointOfficeInteroperabilityCorpusTests {
                 });
                 Assert.False(File.Exists(destination));
 
-                PowerPointPresentationConversionResult conversion =
-                    PowerPointPresentation.Convert(source, destination, options);
+                PowerPointDocumentConversionResult conversion =
+                    PowerPointDocument.Convert(source, destination, options);
                 Assert.Equal(destination, conversion.RequireValue());
                 Assert.Equal(
                     preflight.Compatibility.Findings.Select(finding => finding.Code),
                     conversion.Report.Compatibility.Findings.Select(finding => finding.Code));
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Load(destination);
+                using PowerPointDocument reopened = PowerPointDocument.Load(destination);
                 Assert.Equal(expectedSlideCount, reopened.Slides.Count);
             }
         } finally {

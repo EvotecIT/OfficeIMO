@@ -43,7 +43,7 @@ namespace OfficeIMO.Excel {
                 double top = baseRow + parameters[0], left = baseColumn + parameters[1];
                 double bottom = top + parameters[2] - 1d, right = left + parameters[3] - 1d;
                 if (parameters[2] <= 0d || parameters[3] <= 0d || top < 1d || left < 1d
-                    || top > A1.MaxRows || left > A1.MaxColumns || bottom > A1.MaxRows || right > A1.MaxColumns) {
+                    || top > ExcelA1.MaxRows || left > ExcelA1.MaxColumns || bottom > ExcelA1.MaxRows || right > ExcelA1.MaxColumns) {
                     error = FormulaArgumentValue.Error("#REF!");
                     return true;
                 }

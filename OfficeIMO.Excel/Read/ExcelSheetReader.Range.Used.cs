@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel {
             values = new object?[0, 0];
             if (!TryGetWorksheetDimensionReferenceFromXml(out string dimensionReference)
                 || !TryGetTableBackedDimensionReference(dimensionReference, out string tableBackedReference)
-                || !A1.TryParseRange(tableBackedReference, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                || !ExcelA1.TryParseRange(tableBackedReference, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                 return false;
             }
 
@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel {
 
             long cellCount = (long)height * width;
             if (cellCount > _opt.MaxRangeCells) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxRangeCells), _opt.MaxRangeCells,
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxRangeCells), _opt.MaxRangeCells,
                     $"Range '{tableBackedReference}' contains {cellCount.ToString(CultureInfo.InvariantCulture)} cells, exceeding the configured limit of {_opt.MaxRangeCells.ToString(CultureInfo.InvariantCulture)}.");
             }
 
@@ -107,7 +107,7 @@ namespace OfficeIMO.Excel {
                         int cellColumn;
                         if (hasExplicitRowIndex) {
                             cellColumn = GetXmlCellColumnIndex(reader, ref nextColumnIndex);
-                        } else if (A1.TryParseCellReferenceFast(ReadXmlReferenceAttribute(reader).Text, out int parsedRow, out int parsedColumn)) {
+                        } else if (ExcelA1.TryParseCellReferenceFast(ReadXmlReferenceAttribute(reader).Text, out int parsedRow, out int parsedColumn)) {
                             if (parsedRow > 0) {
                                 cellRow = parsedRow;
                             }

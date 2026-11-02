@@ -23,8 +23,8 @@ public sealed partial class HtmlRenderingTests {
             + "' style='display:block;width:40px;height:90px'></body></html>");
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(40D / HtmlRenderOptions.CssPixelsPerInch,
-                40D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(40D / HtmlRenderOptions.CssPixelsPerInch),
+                global::OfficeIMO.OfficeLength.Inches(40D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             MaximumDegreeOfParallelism = 2
@@ -112,10 +112,10 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D),
             MaximumRasterPixels = 1600L
         };
-        Assert.DoesNotContain(document.ToPdfDocumentResult(pdfOptions).Report.Warnings,
+        Assert.DoesNotContain(document.ConvertToPdfWithEvidence(pdfOptions).Report.Warnings,
             warning => warning.Code == HtmlPdfDiagnosticCodes.ImagePayloadOmitted);
         pdfOptions.MaximumRasterPixels = 1599L;
-        Assert.Contains(document.ToPdfDocumentResult(pdfOptions).Report.Warnings,
+        Assert.Contains(document.ConvertToPdfWithEvidence(pdfOptions).Report.Warnings,
             warning => warning.Code == HtmlPdfDiagnosticCodes.ImagePayloadOmitted);
         options.MaximumRasterPixels = 1599L;
         OfficeImageExportPolicyException synchronous = Assert.Throws<OfficeImageExportPolicyException>(() =>

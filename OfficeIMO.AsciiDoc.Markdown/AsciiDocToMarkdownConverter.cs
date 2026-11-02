@@ -11,7 +11,7 @@ internal static class AsciiDocToMarkdownConverter {
         if (options.MaximumBlockNestingDepth < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumBlockNestingDepth must be positive.");
         options = options.WithReferences(options.References ?? AsciiDocReferenceCatalog.Create(document, options.MaximumBlockNestingDepth));
 
-        var markdown = MarkdownDoc.Create();
+        var markdown = MarkdownDocument.Create();
         var diagnostics = new List<AsciiDocMarkdownConversionDiagnostic>();
         var attachedBlocks = new HashSet<AsciiDocBlock>(
             document.BlocksOfType<AsciiDocListBlock>()
@@ -38,14 +38,14 @@ internal static class AsciiDocToMarkdownConverter {
         options ??= new AsciiDocToMarkdownOptions();
         if (options.MaximumBlockNestingDepth < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumBlockNestingDepth must be positive.");
         options = options.WithReferences(options.References ?? AsciiDocReferenceCatalog.CreateForBlock(block, attributes, options.MaximumBlockNestingDepth));
-        var markdown = MarkdownDoc.Create();
+        var markdown = MarkdownDocument.Create();
         var diagnostics = new List<AsciiDocMarkdownConversionDiagnostic>();
         AddBlock(markdown, block, attributes, options, diagnostics);
         AddFootnotes(markdown, options, diagnostics);
         return new AsciiDocToMarkdownResult(markdown, diagnostics);
     }
 
-    private static void AddFootnotes(MarkdownDoc markdown, AsciiDocToMarkdownOptions options, List<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
+    private static void AddFootnotes(MarkdownDocument markdown, AsciiDocToMarkdownOptions options, List<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
         if (options.References == null) return;
         foreach (var definition in options.References.Footnotes) {
             if (!options.UsedFootnotes.Contains(definition.Key)) continue;
@@ -58,7 +58,7 @@ internal static class AsciiDocToMarkdownConverter {
     }
 
     internal static void AddBlock(
-        MarkdownDoc markdown,
+        MarkdownDocument markdown,
         AsciiDocBlock block,
         AsciiDocDocumentAttributes attributes,
         AsciiDocToMarkdownOptions options,
@@ -118,7 +118,7 @@ internal static class AsciiDocToMarkdownConverter {
 
     private static void AddFrontMatter(
         AsciiDocDocument source,
-        MarkdownDoc target,
+        MarkdownDocument target,
         AsciiDocToMarkdownOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
         AsciiDocAttributeEntry[] attributes = source.GetAttributeEntries(options.MaximumBlockNestingDepth).ToArray();
@@ -151,7 +151,7 @@ internal static class AsciiDocToMarkdownConverter {
     }
 
     private static void AddList(
-        MarkdownDoc target,
+        MarkdownDocument target,
         AsciiDocListBlock source,
         AsciiDocDocumentAttributes attributes,
         AsciiDocToMarkdownOptions options,
@@ -194,7 +194,7 @@ internal static class AsciiDocToMarkdownConverter {
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics,
         int depth) {
         for (int index = 0; index < source.AttachedBlocks.Count; index++) {
-            var temporary = MarkdownDoc.Create();
+            var temporary = MarkdownDocument.Create();
             AddBlock(temporary, source.AttachedBlocks[index], attributes, options, diagnostics, depth + 1);
             for (int childIndex = 0; childIndex < temporary.Blocks.Count; childIndex++) {
                 target.NestedBlocks.Add(temporary.Blocks[childIndex]);
@@ -203,7 +203,7 @@ internal static class AsciiDocToMarkdownConverter {
     }
 
     private static void AddDescriptionList(
-        MarkdownDoc target,
+        MarkdownDocument target,
         AsciiDocDescriptionListBlock source,
         AsciiDocDocumentAttributes attributes,
         AsciiDocToMarkdownOptions options,
@@ -224,7 +224,7 @@ internal static class AsciiDocToMarkdownConverter {
     }
 
     private static void AddAdmonition(
-        MarkdownDoc target,
+        MarkdownDocument target,
         AsciiDocAdmonitionBlock source,
         AsciiDocDocumentAttributes attributes,
         AsciiDocToMarkdownOptions options,
@@ -237,7 +237,7 @@ internal static class AsciiDocToMarkdownConverter {
     }
 
     private static void AddDelimitedBlock(
-        MarkdownDoc target,
+        MarkdownDocument target,
         AsciiDocDelimitedBlock source,
         AsciiDocDocumentAttributes attributes,
         AsciiDocToMarkdownOptions options,
@@ -293,7 +293,7 @@ internal static class AsciiDocToMarkdownConverter {
             case AsciiDocDelimitedBlockKind.Example:
             case AsciiDocDelimitedBlockKind.Sidebar:
             case AsciiDocDelimitedBlockKind.Open:
-                MarkdownDoc children = ConvertCompoundBody(source, attributes, options, diagnostics, depth);
+                MarkdownDocument children = ConvertCompoundBody(source, attributes, options, diagnostics, depth);
                 int firstBlockIndex = target.Blocks.Count;
                 foreach (IMarkdownBlock child in children.Blocks) target.Add(child);
                 if (target.Blocks.Count > firstBlockIndex && target.Blocks[firstBlockIndex] is MarkdownObject first) ApplyMetadata(first, source);
@@ -306,7 +306,7 @@ internal static class AsciiDocToMarkdownConverter {
         }
     }
 
-    private static void AddCalloutList(MarkdownDoc target, AsciiDocListBlock source, AsciiDocDocumentAttributes attributes, AsciiDocToMarkdownOptions options, List<AsciiDocMarkdownConversionDiagnostic> diagnostics, int depth) {
+    private static void AddCalloutList(MarkdownDocument target, AsciiDocListBlock source, AsciiDocDocumentAttributes attributes, AsciiDocToMarkdownOptions options, List<AsciiDocMarkdownConversionDiagnostic> diagnostics, int depth) {
         var numbers = new List<int>();
         int automatic = 0;
         foreach (var item in source.Items) numbers.Add(item.Marker == "<.>" ? ++automatic : int.Parse(item.Marker.Substring(1, item.Marker.Length - 2), System.Globalization.CultureInfo.InvariantCulture));
@@ -333,10 +333,10 @@ internal static class AsciiDocToMarkdownConverter {
             consecutive ? "Callout explanations are shown as an ordered list; verbatim markers remain visible." : "Callout numbers are retained as visible labels because Markdown lists cannot represent irregular numbering.", source);
     }
 
-    private static MarkdownDoc ConvertCompoundBody(AsciiDocDelimitedBlock source, AsciiDocDocumentAttributes attributes,
+    private static MarkdownDocument ConvertCompoundBody(AsciiDocDelimitedBlock source, AsciiDocDocumentAttributes attributes,
         AsciiDocToMarkdownOptions options, List<AsciiDocMarkdownConversionDiagnostic> diagnostics, int depth) {
         AsciiDocDocument children = source.Body!;
-        var result = MarkdownDoc.Create();
+        var result = MarkdownDocument.Create();
         var attached = new HashSet<AsciiDocBlock>(children.BlocksOfType<AsciiDocListBlock>()
             .SelectMany(static list => list.Items).SelectMany(static item => item.AttachedBlocks));
         int diagnosticStart = diagnostics.Count;
@@ -368,7 +368,7 @@ internal static class AsciiDocToMarkdownConverter {
     }
 
     private static void AddMacro(
-        MarkdownDoc target,
+        MarkdownDocument target,
         AsciiDocBlockMacro source,
         AsciiDocToMarkdownOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
@@ -384,7 +384,7 @@ internal static class AsciiDocToMarkdownConverter {
     }
 
     private static void AddComment(
-        MarkdownDoc target,
+        MarkdownDocument target,
         AsciiDocLineComment source,
         AsciiDocToMarkdownOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
@@ -399,7 +399,7 @@ internal static class AsciiDocToMarkdownConverter {
     }
 
     private static void AddSourceFallback(
-        MarkdownDoc target,
+        MarkdownDocument target,
         AsciiDocBlock source,
         string code,
         string feature,

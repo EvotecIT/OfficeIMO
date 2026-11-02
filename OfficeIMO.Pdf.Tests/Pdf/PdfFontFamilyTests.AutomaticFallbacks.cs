@@ -12,7 +12,7 @@ public partial class PdfFontFamilyTests {
     [InlineData(63)]
     public void PdfOptions_ResettingAutomaticFallbacksReclaimsNamedResources(int callerFamilyCount) {
         byte[] font = CreateRegistrationPrimaryFont();
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         foreach (PdfStandardFont slot in new[] { PdfStandardFont.Helvetica, PdfStandardFont.TimesRoman, PdfStandardFont.Courier }) {
             options.RegisterFontFamily(slot, new PdfEmbeddedFontFamily("Caller " + slot, font));
         }
@@ -20,7 +20,7 @@ public partial class PdfFontFamilyTests {
             options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Caller " + index, font));
         }
         var candidates = new[] { new PdfEmbeddedFontFallbackCandidate("Automatic", font) };
-        for (int index = 0; index <= PdfOptions.MaximumNamedFontFamilies; index++) {
+        for (int index = 0; index <= PdfCreateOptions.MaximumNamedFontFamilies; index++) {
             Assert.True(options.RegisterAutomaticFontFallbackCandidates(candidates, Array.Empty<PdfStandardFont>()));
             options.EmbeddedFontFallbacks = null;
             Assert.Equal(callerFamilyCount, options.NamedFontFamilies.Count);
@@ -31,11 +31,11 @@ public partial class PdfFontFamilyTests {
     [Fact]
     public void PdfOptions_ReplacingAutomaticFallbacksReclaimsCapacityOnlyAfterValidation() {
         byte[] font = CreateRegistrationPrimaryFont();
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         foreach (PdfStandardFont slot in new[] { PdfStandardFont.Helvetica, PdfStandardFont.TimesRoman, PdfStandardFont.Courier }) {
             options.RegisterFontFamily(slot, new PdfEmbeddedFontFamily("Caller " + slot, font));
         }
-        for (int index = 0; index < PdfOptions.MaximumNamedFontFamilies - 1; index++) {
+        for (int index = 0; index < PdfCreateOptions.MaximumNamedFontFamilies - 1; index++) {
             options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Caller " + index, font));
         }
         options.RegisterAutomaticFontFallbackCandidates(
@@ -47,13 +47,13 @@ public partial class PdfFontFamilyTests {
         });
         Assert.Throws<InvalidOperationException>(() => options.RegisterEmbeddedFontFallbacks(tooMany));
         Assert.Equal(automaticName, Assert.Single(options.EmbeddedFontFallbacks!.FontFamilyNames));
-        Assert.Equal(PdfOptions.MaximumNamedFontFamilies, options.NamedFontFamilies.Count);
+        Assert.Equal(PdfCreateOptions.MaximumNamedFontFamilies, options.NamedFontFamilies.Count);
         Assert.False(options.HasNamedFontFamily("Replacement 1"));
 
         options.RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(
             new[] { new PdfEmbeddedFontFallbackCandidate("Replacement", font) }));
         Assert.False(options.HasNamedFontFamily(automaticName));
-        Assert.Equal(PdfOptions.MaximumNamedFontFamilies, options.NamedFontFamilies.Count);
+        Assert.Equal(PdfCreateOptions.MaximumNamedFontFamilies, options.NamedFontFamilies.Count);
         options.EmbeddedFontFallbacks = null;
         Assert.True(options.HasNamedFontFamily("Replacement"));
         Assert.Contains("AB", PdfReadDocument.Open(PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("AB")).ToBytes()).ExtractText(), StringComparison.Ordinal);
@@ -65,7 +65,7 @@ public partial class PdfFontFamilyTests {
     public void PdfOptions_ResettingAutomaticFallbacksPreservesLaterCallerFamilyWithSameNameAndData(bool styled) {
         byte[] font = CreateRegistrationPrimaryFont();
         byte[] bold = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'Q');
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         options.RegisterAutomaticFontFallbackCandidates(
             new[] { new PdfEmbeddedFontFallbackCandidate("Automatic", font) },
             new[] { PdfStandardFont.Helvetica, PdfStandardFont.TimesRoman, PdfStandardFont.Courier });
@@ -82,11 +82,11 @@ public partial class PdfFontFamilyTests {
 
     [Fact]
     public void PdfOptions_ClonedAutomaticFallbackOwnershipIsIndependent() {
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         options.RegisterAutomaticFontFallbackCandidates(
             new[] { new PdfEmbeddedFontFallbackCandidate("Automatic", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 0x25B8)) },
             new[] { PdfStandardFont.Helvetica, PdfStandardFont.TimesRoman, PdfStandardFont.Courier });
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
         options.EmbeddedFontFallbacks = null;
         Assert.Empty(options.NamedFontFamilies);
         Assert.Contains("A▸B", PdfReadDocument.Open(PdfDocument.Create(clone).Paragraph(paragraph => paragraph.Text("A▸B")).ToBytes()).ExtractText(), StringComparison.Ordinal);
@@ -99,7 +99,7 @@ public partial class PdfFontFamilyTests {
     [InlineData(3)]
     public void PdfOptions_AutomaticFallbacksKeepAllTextCoverageWhenCompatibilitySlotsAreOccupied(int occupiedSlots) {
         byte[] primary = CreateRegistrationPrimaryFont();
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         foreach (PdfStandardFont slot in new[] { PdfStandardFont.Helvetica, PdfStandardFont.TimesRoman, PdfStandardFont.Courier }.Take(occupiedSlots)) {
             options.RegisterFontFamily(slot, new PdfEmbeddedFontFamily("Caller " + slot, primary));
         }
@@ -123,7 +123,7 @@ public partial class PdfFontFamilyTests {
         byte[] primary = CreateRegistrationPrimaryFont();
         byte[] symbols = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 0x25B8);
         byte[] bold = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'Q');
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("Caller Default", primary))
             .RegisterFontFamily(PdfStandardFont.TimesRoman, new PdfEmbeddedFontFamily("Caller Serif", primary))
             .RegisterFontFamily(PdfStandardFont.Courier, new PdfEmbeddedFontFamily("Caller Mono", primary))
@@ -146,11 +146,11 @@ public partial class PdfFontFamilyTests {
     [Fact]
     public void PdfOptions_AutomaticFallbacksRespectNamedFamilyBudgetWithoutPartialRegistration() {
         byte[] font = CreateRegistrationPrimaryFont();
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         foreach (PdfStandardFont slot in new[] { PdfStandardFont.Helvetica, PdfStandardFont.TimesRoman, PdfStandardFont.Courier }) {
             options.RegisterFontFamily(slot, new PdfEmbeddedFontFamily("Caller " + slot, font));
         }
-        for (int index = 0; index < PdfOptions.MaximumNamedFontFamilies; index++) {
+        for (int index = 0; index < PdfCreateOptions.MaximumNamedFontFamilies; index++) {
             options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Caller " + index, font));
         }
 
@@ -158,7 +158,7 @@ public partial class PdfFontFamilyTests {
             new[] { new PdfEmbeddedFontFallbackCandidate("Automatic", font) }, Array.Empty<PdfStandardFont>()));
 
         Assert.Null(options.EmbeddedFontFallbacks);
-        Assert.Equal(PdfOptions.MaximumNamedFontFamilies, options.NamedFontFamilies.Count);
+        Assert.Equal(PdfCreateOptions.MaximumNamedFontFamilies, options.NamedFontFamilies.Count);
         Assert.Contains("AB", PdfReadDocument.Open(PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("AB")).ToBytes()).ExtractText(), StringComparison.Ordinal);
     }
 }

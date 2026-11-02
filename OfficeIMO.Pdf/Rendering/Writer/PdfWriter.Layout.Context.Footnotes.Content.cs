@@ -3,16 +3,16 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private PreparedFootnote PrepareFootnote(PdfFootnoteDefinition definition) {
-            PdfOptions noteOptions = footnotePageOptions ?? currentOpts;
+            PdfCreateOptions noteOptions = footnotePageOptions ?? currentOpts;
             // Page defaults can differ from those at definition capture. Reject any
             // effective constraint that this fragment planner does not implement.
             PdfDocument.ValidateFootnoteBlocks(definition.Blocks, noteOptions);
             PdfDocument.ValidateFootnoteBlocks(definition.Separator, noteOptions, allowTables: false);
             PdfDocument.ValidateFootnoteBlocks(definition.ContinuationSeparator, noteOptions, allowTables: false);
             PdfDocument.ValidateFootnoteBlocks(definition.ContinuationNotice, noteOptions, allowTables: false);
-            var key = (definition, currentPageBaseOptions, noteOptions.PageWidth - noteOptions.MarginLeft - noteOptions.MarginRight);
+            var key = (definition, currentPageBaseOptions, noteOptions.PageWidth.ToPoints() - noteOptions.MarginLeft.ToPoints() - noteOptions.MarginRight.ToPoints());
             if (preparedFootnotes.TryGetValue(key, out PreparedFootnote? prepared)) return prepared;
-            PdfOptions saved = currentOpts;
+            PdfCreateOptions saved = currentOpts;
             currentOpts = noteOptions;
             try {
                 var units = PrepareFootnoteUnits(definition.Blocks);
@@ -20,7 +20,7 @@ internal static partial class PdfWriter {
                 var separator = PrepareFootnoteUnits(definition.Separator);
                 var continuation = PrepareFootnoteUnits(definition.ContinuationSeparator);
                 var notice = PrepareFootnoteUnits(definition.ContinuationNotice);
-                double maximum = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom -
+                double maximum = currentOpts.PageHeight.ToPoints() - currentOpts.MarginTop.ToPoints() - currentOpts.MarginBottom.ToPoints() -
                     Math.Max(MeasureFootnoteUnits(separator), MeasureFootnoteUnits(continuation)) - MeasureFootnoteUnits(notice);
                 foreach (FootnoteUnit unit in units) unit.MaximumKeepHeight = maximum;
                 prepared = new PreparedFootnote(definition, units, separator, continuation, notice, key.Item3);
@@ -31,7 +31,7 @@ internal static partial class PdfWriter {
 
         private List<FootnoteUnit> PrepareFootnoteUnits(IReadOnlyList<IPdfBlock> blocks) {
             var units = new List<FootnoteUnit>();
-            double frameWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
+            double frameWidth = currentOpts.PageWidth.ToPoints() - currentOpts.MarginLeft.ToPoints() - currentOpts.MarginRight.ToPoints();
             AppendFootnoteUnits(blocks, 0D, frameWidth, Array.Empty<FootnotePanel>(), units);
             CompleteFootnoteUnitMeasurements(units);
             return units;
@@ -68,10 +68,10 @@ internal static partial class PdfWriter {
                     case TableBlock table:
                         if (GetTableColumnCount(table) == 0) break;
                         PdfTableStyle tableStyle = PreparePairedTableBorders(table,
-                            table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light());
+                            table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light());
                         PreparedTableGeometry geometry = PrepareTableGeometry(table, tableStyle, frameWidth);
-                        double tableHeight = tableStyle.SpacingBefore + GetTableRowsHeight(geometry.Rows.Heights,
-                            0, table.Rows.Count, geometry.Gap) + tableStyle.SpacingAfter;
+                        double tableHeight = tableStyle.SpacingBefore.ToPoints() + GetTableRowsHeight(geometry.Rows.Heights,
+                            0, table.Rows.Count, geometry.Gap) + tableStyle.SpacingAfter.ToPoints();
                         units.Add(new FootnoteUnit { Block = table, Table = geometry, Advance = tableHeight,
                             FrameX = frameX, FrameWidth = frameWidth, Panels = panels });
                         keepWithNext = tableStyle.KeepWithNext;
@@ -85,21 +85,21 @@ internal static partial class PdfWriter {
                     case HorizontalRuleBlock rule:
                         PdfHorizontalRuleStyle ruleStyle = ResolveHorizontalRuleStyle(rule, currentOpts);
                         ValidateHorizontalRule(ruleStyle);
-                        units.Add(new FootnoteUnit { Block = rule, Before = ruleStyle.SpacingBefore, Advance = ruleStyle.Thickness,
-                            After = ruleStyle.SpacingAfter, X = frameX, Width = frameWidth, Panels = panels });
+                        units.Add(new FootnoteUnit { Block = rule, Before = ruleStyle.SpacingBefore.ToPoints(), Advance = ruleStyle.Thickness.ToPoints(),
+                            After = ruleStyle.SpacingAfter.ToPoints(), X = frameX, Width = frameWidth, Panels = panels });
                         keepWithNext = ruleStyle.KeepWithNext;
                         break;
                     case ImageBlock image:
                         PdfImageStyle imageStyle = ResolveImageStyle(image, currentOpts);
                         PdfDocument.ValidateImageStyleForBox(imageStyle, image.Width, image.Height, nameof(imageStyle.ClipPath));
                         double scale = imageStyle.ScaleDownToFit ? Math.Min(1D, Math.Min(frameWidth / image.Width,
-                            Math.Max(0D, currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom - imageStyle.SpacingBefore - imageStyle.SpacingAfter) / image.Height)) : 1D;
+                            Math.Max(0D, currentOpts.PageHeight.ToPoints() - currentOpts.MarginTop.ToPoints() - currentOpts.MarginBottom.ToPoints() - imageStyle.SpacingBefore.ToPoints() - imageStyle.SpacingAfter.ToPoints()) / image.Height)) : 1D;
                         if (scale <= 0D) throw new ArgumentException("Footnote image spacing leaves no available page body height.");
                         PdfDocument.ValidateImageFitDimensions(image.Info, imageStyle.Fit, nameof(imageStyle.Fit));
                         var box = (Width: image.Width * scale, Height: image.Height * scale);
                         if (box.Width > frameWidth + .001D) throw new ArgumentException("Footnote image exceeds the available page body width.");
-                        units.Add(new FootnoteUnit { Block = image, Before = imageStyle.SpacingBefore, Advance = box.Height,
-                            After = imageStyle.SpacingAfter, Width = box.Width, FrameX = frameX, FrameWidth = frameWidth, Panels = panels });
+                        units.Add(new FootnoteUnit { Block = image, Before = imageStyle.SpacingBefore.ToPoints(), Advance = box.Height,
+                            After = imageStyle.SpacingAfter.ToPoints(), Width = box.Width, FrameX = frameX, FrameWidth = frameWidth, Panels = panels });
                         keepWithNext = imageStyle.KeepWithNext;
                         break;
                     default:
@@ -117,7 +117,7 @@ internal static partial class PdfWriter {
             if (unit.Block is BookmarkBlock bookmark) AddNamedDestination(bookmark, top);
             if (unit.Block is ImageBlock image) {
                 PdfImageStyle style = ResolveImageStyle(image, currentOpts);
-                double left = GetAlignedObjectX((originX ?? currentOpts.MarginLeft) + unit.FrameX, unit.FrameWidth, unit.Width, style.Align);
+                double left = GetAlignedObjectX((originX ?? currentOpts.MarginLeft.ToPoints()) + unit.FrameX, unit.FrameWidth, unit.Width, style.Align);
                 PageImage placed = CreatePageImage(image, style, left, top - unit.Advance, unit.Width, unit.Advance);
                 currentPage!.Images.Add(placed);
                 AddImageLinkAnnotation(image, style, placed, left, top - unit.Advance, unit.Width, unit.Advance);
@@ -128,8 +128,8 @@ internal static partial class PdfWriter {
                 }
             } else if (unit.Block is HorizontalRuleBlock rule) {
                 PdfHorizontalRuleStyle style = ResolveHorizontalRuleStyle(rule, currentOpts);
-                DrawHLine(sb, style.Color, style.Thickness, (originX ?? currentOpts.MarginLeft) + unit.X,
-                    (originX ?? currentOpts.MarginLeft) + unit.X + unit.Width, top - style.Thickness / 2D, emitGeneratedStructure);
+                DrawHLine(sb, style.Color, style.Thickness.ToPoints(), (originX ?? currentOpts.MarginLeft.ToPoints()) + unit.X,
+                    (originX ?? currentOpts.MarginLeft.ToPoints()) + unit.X + unit.Width, top - style.Thickness.ToPoints() / 2D, emitGeneratedStructure);
             }
             pageDirty = true;
             top -= unit.Advance + unit.After;

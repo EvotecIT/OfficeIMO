@@ -47,7 +47,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("Basic paragraph");
                 document.AddTable(1, 1);
 
-                var para = document.AddBookmark("Test");
+                var para = document.AddBookmark("Test").Paragraph;
 
                 // lets add some empty space so we can test if bookmark works properly
                 document.AddPageBreak();

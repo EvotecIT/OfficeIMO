@@ -126,14 +126,14 @@ public sealed partial class IWorkBoundaryTests {
             using ExcelDocument reopened = ExcelDocument.Load(saved);
             Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue().Value);
         } else {
-            using var automatic = source.ToPowerPointPresentationResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToPowerPointDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToPowerPointPresentationResult(options);
+            using var partial = source.ToPowerPointDocumentResult(options);
             Assert.False(partial.IsVisualFallback);
             report = partial.Report;
             partial.Value.Save(saved);
             saved.Position = 0;
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+            using PowerPointDocument reopened = PowerPointDocument.Load(saved);
             Assert.Equal("42", reopened.Slides[0].Tables.First().GetCell(0, 0).Text);
         }
         Assert.True(report.IsPartialEditableReconstruction);

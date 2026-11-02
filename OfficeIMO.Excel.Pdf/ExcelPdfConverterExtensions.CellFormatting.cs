@@ -1,6 +1,6 @@
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
-        private static string FormatCellValue(object? value, ExcelCellStyleSnapshot? style, string emptyCellText, ExcelDateSystem dateSystem) {
+        private static string FormatCellValue(object? value, ExcelCellStyleInfo? style, string emptyCellText, ExcelDateSystem dateSystem) {
             if (value == null) {
                 return emptyCellText;
             }
@@ -14,6 +14,12 @@ namespace OfficeIMO.Excel.Pdf {
                 }
             }
 
+            if (value is double or float or decimal && TryGetDouble(value, out double generalNumber) &&
+                FormatGeneralNumber(generalNumber, 11) is string general) {
+                // Excel's General format shows at most eleven characters.
+                return general;
+            }
+
             if (value is IFormattable formattable) {
                 return formattable.ToString(null, CultureInfo.InvariantCulture) ?? emptyCellText;
             }
@@ -21,7 +27,7 @@ namespace OfficeIMO.Excel.Pdf {
             return value.ToString() ?? emptyCellText;
         }
 
-        private static string? TryFormatCellValue(object value, ExcelCellStyleSnapshot style, string formatCode, ExcelDateSystem dateSystem) {
+        private static string? TryFormatCellValue(object value, ExcelCellStyleInfo style, string formatCode, ExcelDateSystem dateSystem) {
             if (string.Equals(formatCode, "General", StringComparison.OrdinalIgnoreCase) || formatCode == "@") return null;
             double number;
             if (value is DateTime date) {

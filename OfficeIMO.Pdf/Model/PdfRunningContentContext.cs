@@ -11,9 +11,9 @@ public sealed class PdfRunningContentContext {
         DocumentPages = documentPages;
         SectionPageNumber = sectionPageNumber;
         SectionPages = sectionPages;
-        ContentWidth = contentWidth;
-        PageWidth = pageWidth;
-        PageHeight = pageHeight;
+        ContentWidth = global::OfficeIMO.OfficeLength.Points(contentWidth);
+        PageWidth = global::OfficeIMO.OfficeLength.Points(pageWidth);
+        PageHeight = global::OfficeIMO.OfficeLength.Points(pageHeight);
         PageNumberStyle = pageNumberStyle;
     }
 
@@ -30,11 +30,11 @@ public sealed class PdfRunningContentContext {
     /// <summary>Physical page count in the tracked source section or PDF page group, independent of visible numbering and restarts.</summary>
     public int SectionPages { get; }
     /// <summary>Width of the page's content frame in points, including mirrored margins.</summary>
-    public double ContentWidth { get; }
+    public global::OfficeIMO.OfficeLength ContentWidth { get; }
     /// <summary>Physical page width in points.</summary>
-    public double PageWidth { get; }
+    public global::OfficeIMO.OfficeLength PageWidth { get; }
     /// <summary>Physical page height in points.</summary>
-    public double PageHeight { get; }
+    public global::OfficeIMO.OfficeLength PageHeight { get; }
     /// <summary>Number style selected for this page's visible numbering sequence.</summary>
     public PdfPageNumberStyle PageNumberStyle { get; }
     /// <summary>Formats a positive page count using the supplied style or this page's numbering style.</summary>

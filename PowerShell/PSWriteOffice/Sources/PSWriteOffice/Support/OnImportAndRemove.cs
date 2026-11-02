@@ -54,7 +54,10 @@ public class OnModuleImportAndRemove : IModuleAssemblyInitializer, IModuleAssemb
                 try {
                     return Assembly.LoadFrom(assemblyPath);
                 } catch (Exception ex) {
-                    Console.WriteLine($"Failed to load assembly from {assemblyPath}: {ex.Message}");
+                    using var shell = PowerShell.Create(RunspaceMode.CurrentRunspace);
+                    shell.AddCommand("Microsoft.PowerShell.Utility\\Write-Warning")
+                        .AddParameter("Message", $"Failed to load assembly from {assemblyPath}: {ex.Message}")
+                        .Invoke();
                 }
             }
         }

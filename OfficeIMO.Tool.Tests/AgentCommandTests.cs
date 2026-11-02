@@ -329,15 +329,15 @@ public sealed class AgentCommandTests {
         var service = new OfficeImoAgentService();
 
         AgentCapabilitiesResult result = service.Capabilities(
-            ".docx", operation: "convert", maxOutputCharacters: 12_000);
+            ".docx", operation: "convert", maxOutputCharacters: 64_000);
 
         Assert.Contains(result.Conversions, static route =>
             route.Id == "docx-pdf" &&
             route.TargetExtension == ".pdf" &&
             route.PackageId == "OfficeIMO.Word.Pdf" &&
-            route.Api == "WordDocument.Load(stream).ToPdfDocumentResult(options)" &&
+            route.Api == "WordDocument.Load(stream).SaveAsPdf(output, options)" &&
             route.Description.Contains("fixed-layout PDF", StringComparison.Ordinal) &&
-            route.ResultContract == "PdfDocumentConversionResult" &&
+            route.ResultContract == "OfficeConversionReport" &&
             route.BrowserAvailable);
         Assert.Contains(result.Conversions, static route => route.Id == "docx-markdown");
         Assert.Equal(result.Conversions.Count, result.ConversionReturned);
@@ -402,7 +402,7 @@ public sealed class AgentCommandTests {
         AgentCapabilitiesResult result = service.Capabilities(
             extension,
             operation: "convert",
-            maxOutputCharacters: 12_000);
+            maxOutputCharacters: 64_000);
 
         Assert.Contains(result.Conversions, route => route.Id == routeId);
         Assert.Contains(result.Operations, row => row.CapabilityId == routeId);
@@ -420,7 +420,7 @@ public sealed class AgentCommandTests {
         AgentCapabilitiesResult result = service.Capabilities(
             extension,
             operation: "convert",
-            maxOutputCharacters: 12_000);
+            maxOutputCharacters: 64_000);
 
         Assert.Contains(result.Conversions, route => route.Id == routeId);
         Assert.Contains(result.Operations, row => row.CapabilityId == routeId);

@@ -87,8 +87,8 @@ public partial class PdfReaderAndFooterRegressionTests {
         byte[] bytes = BuildSingleStreamPdf("BT\n/F1 12 Tf\n1 0 0 1 72 760 Tm\n(Header line) Tj\n1 0 0 1 72 400 Tm\n(Body line) Tj\n1 0 0 1 72 30 Tm\n(Footer line) Tj\nET\n");
 
         var page = PdfReadDocument.Open(bytes).Pages[0].ExtractStructured(new PdfTextLayoutOptions {
-            IgnoreHeaderHeight = 60,
-            IgnoreFooterHeight = 60,
+            IgnoreHeaderHeight = OfficeIMO.OfficeLength.Points(60),
+            IgnoreFooterHeight = OfficeIMO.OfficeLength.Points(60),
             ForceSingleColumn = true
         });
 

@@ -56,7 +56,7 @@ public sealed class ConvertToOfficeWordMarkdownCommand : PSCmdlet {
 
     /// <summary>Controls how images are emitted during Markdown conversion.</summary>
     [Parameter]
-    public ImageExportMode ImageExportMode { get; set; } = ImageExportMode.Base64;
+    public WordMarkdownImageExportMode ImageExportMode { get; set; } = WordMarkdownImageExportMode.Base64;
 
     /// <summary>Directory used when exporting images as files.</summary>
     [Parameter]
@@ -84,7 +84,7 @@ public sealed class ConvertToOfficeWordMarkdownCommand : PSCmdlet {
                 throw new InvalidOperationException("Word document was not provided.");
             }
 
-            var options = new WordToMarkdownOptions {
+            var options = new WordMarkdownExportOptions {
                 EnableUnderline = EnableUnderline.IsPresent,
                 EnableHighlight = EnableHighlight.IsPresent,
                 ImageExportMode = ImageExportMode
@@ -114,13 +114,14 @@ public sealed class ConvertToOfficeWordMarkdownCommand : PSCmdlet {
                     WriteObject(new FileInfo(resolvedOutput));
                 }
             } else {
-                if (options.ImageExportMode == ImageExportMode.File && !string.IsNullOrWhiteSpace(options.ImageDirectory) &&
+                if (options.ImageExportMode == WordMarkdownImageExportMode.File && !string.IsNullOrWhiteSpace(options.ImageDirectory) &&
                     !ShouldProcess(options.ImageDirectory, "Export Word images while converting to Markdown")) {
-                    options.ImageExportMode = ImageExportMode.Base64;
+                    options.ImageExportMode = WordMarkdownImageExportMode.Base64;
                     options.ImageDirectory = null;
                 }
 
-                WriteObject(document.ToMarkdown(options));
+                using var markdown = document.ToMarkdown(options);
+                WriteObject(markdown.ToMarkdown());
             }
         } catch (Exception ex) {
             WriteError(new ErrorRecord(ex, "WordToMarkdownFailed", ErrorCategory.InvalidOperation,

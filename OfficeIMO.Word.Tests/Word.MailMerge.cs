@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "MailMerge.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Hello ")
-                    .AddField(WordFieldType.MergeField, parameters: new List<string> { "\"Name\"" })
+                    .AddField(WordFieldType.MergeField, parameters: new List<string> { "\"Name\"" }).Paragraph
                     .AddText("!");
 
                 var values = new Dictionary<string, string> { { "Name", "Alice" } };
@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "MailMergeKeep.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Hello ")
-                    .AddField(WordFieldType.MergeField, parameters: new List<string> { "\"Name\"" })
+                    .AddField(WordFieldType.MergeField, parameters: new List<string> { "\"Name\"" }).Paragraph
                     .AddText("!");
 
                 var values = new Dictionary<string, string> { { "Name", "Bob" } };
@@ -133,9 +133,9 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(templatePath)) {
                 document.AddParagraph("Hello ")
-                    .AddField(WordFieldType.MergeField, parameters: new List<string> { "\"Name\"" })
+                    .AddField(WordFieldType.MergeField, parameters: new List<string> { "\"Name\"" }).Paragraph
                     .AddText(", your city is ")
-                    .AddField(WordFieldType.MergeField, parameters: new List<string> { "\"City\"" })
+                    .AddField(WordFieldType.MergeField, parameters: new List<string> { "\"City\"" }).Paragraph
                     .AddText(".");
                 document.Save();
             }

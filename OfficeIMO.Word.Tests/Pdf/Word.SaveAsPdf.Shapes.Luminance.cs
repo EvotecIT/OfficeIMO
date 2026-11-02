@@ -14,7 +14,7 @@ public partial class Word {
     public void SaveAsPdf_DrawingMlLuminanceSequenceRetainsContinuousHslAcrossAlpha() {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Before luminance shape");
-        document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, 112D, 48D);
+        document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(112D), OfficeIMO.OfficeLength.Points(48D));
         document.AddParagraph("After luminance shape");
         Wps.ShapeProperties properties = document.MainDocumentPartRoot.Document.Descendants<Wps.ShapeProperties>().Single();
         A.PresetGeometry? geometry = properties.GetFirstChild<A.PresetGeometry>();
@@ -33,7 +33,7 @@ public partial class Word {
         outline.RemoveAllChildren();
         outline.Append(new A.SolidFill(new A.RgbColorModelHex { Val = "336699" }));
 
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false });
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using (var pdf = PdfPigDocument.Open(bytes)) {
             string text = string.Concat(pdf.GetPages().Select(page => page.Text));
             Assert.Contains("Before luminance shape", text);

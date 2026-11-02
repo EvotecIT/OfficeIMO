@@ -50,10 +50,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private readonly XlsbRecordReadBudget _recordBudget;
         private readonly XlsbCellReadBudget _cellBudget;
         private readonly XlsbLogicalRowReadBudget _logicalRowBudget;
-        private readonly IReadOnlyList<string> _sharedStrings;
+        private IReadOnlyList<string> _sharedStrings = Array.Empty<string>();
+        private Action? _loadValues;
         private readonly int _maxSharedStringItemCharacters;
         private readonly long _maxSharedStringCharacters;
-        private readonly ExcelSerialDateStyle[] _dateStyles;
+        private ExcelSerialDateStyle[] _dateStyles = Array.Empty<ExcelSerialDateStyle>();
         private readonly List<XlsbTabularSheet> _sheets;
         private readonly string[] _tableNames;
         private readonly CancellationToken _cancellationToken;
@@ -64,7 +65,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             Stream packageStream,
             ZipArchive archive,
             string workbookPartName,
-            ExcelReadOptions readOptions,
+            ExcelReaderOptions readOptions,
             CancellationToken cancellationToken,
             bool metadataOnly = false) {
             _packageStream = packageStream ?? throw new ArgumentNullException(nameof(packageStream));
@@ -121,13 +122,16 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 return;
             }
 
-            _sharedStrings = ReadSharedStrings(workbookPartName, relationships);
-            try {
-                _dateStyles = ReadDateStyles(workbookPartName, relationships);
-            } catch {
-                (_sharedStrings as IDisposable)?.Dispose();
-                throw;
-            }
+            _loadValues = () => {
+                IReadOnlyList<string> strings = ReadSharedStrings(workbookPartName, relationships);
+                try {
+                    ExcelSerialDateStyle[] styles = ReadDateStyles(workbookPartName, relationships);
+                    _sharedStrings = strings; _dateStyles = styles; _loadValues = null;
+                } catch {
+                    (strings as IDisposable)?.Dispose();
+                    throw;
+                }
+            };
         }
 
         internal bool Uses1904DateSystem { get; }
@@ -136,7 +140,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         internal static XlsbTabularWorkbook Open(
             string path,
-            ExcelReadOptions readOptions,
+            ExcelReaderOptions readOptions,
             CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(path)) {
                 throw new ArgumentException("File path cannot be empty.", nameof(path));
@@ -163,7 +167,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         internal static IReadOnlyList<string> ReadSheetNames(
             string path,
-            ExcelReadOptions readOptions,
+            ExcelReaderOptions readOptions,
             CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(path)) {
                 throw new ArgumentException("File path cannot be empty.", nameof(path));
@@ -195,7 +199,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         internal static XlsbTabularWorkbook Open(
             Stream stream,
-            ExcelReadOptions readOptions,
+            ExcelReaderOptions readOptions,
             CancellationToken cancellationToken = default) {
             if (stream == null) {
                 throw new ArgumentNullException(nameof(stream));
@@ -222,7 +226,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         internal static XlsbTabularWorkbook Open(
             byte[] bytes,
-            ExcelReadOptions readOptions,
+            ExcelReaderOptions readOptions,
             CancellationToken cancellationToken = default) {
             if (bytes == null) {
                 throw new ArgumentNullException(nameof(bytes));
@@ -246,7 +250,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         internal DbDataReader OpenTable(
             string tableName,
             bool hasHeaderRow,
-            ExcelReadOptions readOptions,
+            ExcelReaderOptions readOptions,
             CancellationToken cancellationToken = default) {
             ThrowIfDisposed();
             XlsbTabularSheet? sheet = _sheets.FirstOrDefault(
@@ -255,6 +259,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 throw new KeyNotFoundException($"Table '{tableName}' was not found.");
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
+            _loadValues?.Invoke();
+            cancellationToken.ThrowIfCancellationRequested();
             XlsbPooledPartStream part = _parts.ReadSeekablePart(sheet.PartName, cancellationToken);
             try {
                 return new XlsbTabularDataReader(
@@ -281,6 +288,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             }
 
             _disposed = true;
+            _loadValues = null;
             (_sharedStrings as IDisposable)?.Dispose();
             _archive.Dispose();
             _packageStream.Dispose();
@@ -886,7 +894,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         private static XlsbTabularWorkbook OpenOwnedStream(
             Stream packageStream,
-            ExcelReadOptions readOptions,
+            ExcelReaderOptions readOptions,
             CancellationToken cancellationToken,
             bool metadataOnly = false) {
             ZipArchive? archive = null;

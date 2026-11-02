@@ -119,10 +119,10 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
             Assert.Null(reopened.Sheets[0].CellAt(1, 1).GetValue().Formula);
         } else {
-            using var result = source.ToPowerPointPresentationResult(options);
+            using var result = source.ToPowerPointDocumentResult(options);
             report = result.Report;
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = PowerPointPresentation.Load(saved);
+            using var reopened = PowerPointDocument.Load(saved);
             Assert.Equal("42", reopened.Slides[0].Tables.First().GetCell(0, 0).Text);
         }
         Assert.True(report.IsPartialEditableReconstruction);

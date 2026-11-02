@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 /// <example>
 ///   <summary>Inspect a parsed document.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>Get-OfficeMarkdown -Path .\README.md | Get-OfficeMarkdownNode -NodeType '*Table*'</code>
+///   <code>Open-OfficeMarkdown -Path .\README.md | Get-OfficeMarkdownNode -NodeType '*Table*'</code>
 ///   <para>Returns matching nodes from an existing Markdown document.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Get, "OfficeMarkdownNode")]
@@ -32,7 +32,7 @@ public sealed class GetOfficeMarkdownNodeCommand : PSCmdlet
 
     /// <summary>Markdown document to inspect.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public MarkdownDoc Document { get; set; } = null!;
+    public MarkdownDocument Document { get; set; } = null!;
 
     /// <summary>Path to the Markdown file.</summary>
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
@@ -46,11 +46,11 @@ public sealed class GetOfficeMarkdownNodeCommand : PSCmdlet
     /// <summary>Optional reader options used when parsing path or text input.</summary>
     [Parameter]
     [Alias("ReaderOptions")]
-    public MarkdownReaderOptions? Options { get; set; }
+    public MarkdownLoadOptions? Options { get; set; }
 
     /// <summary>Named reader profile used when <see cref="Options"/> is not supplied.</summary>
     [Parameter]
-    public MarkdownReaderOptions.MarkdownDialectProfile? Profile { get; set; }
+    public MarkdownLoadOptions.MarkdownDialectProfile? Profile { get; set; }
 
     /// <summary>Base URI used to resolve and restrict relative Markdown links and images.</summary>
     [Parameter]
@@ -92,7 +92,7 @@ public sealed class GetOfficeMarkdownNodeCommand : PSCmdlet
     [Parameter]
     public string? NodeType { get; set; }
 
-    MarkdownReaderOptions? IMarkdownReaderOptionSource.ReaderOptions => Options;
+    MarkdownLoadOptions? IMarkdownReaderOptionSource.ReaderOptions => Options;
 
     /// <summary>Maximum traversal depth. Zero returns only the document root.</summary>
     [Parameter]
@@ -120,12 +120,12 @@ public sealed class GetOfficeMarkdownNodeCommand : PSCmdlet
         WriteNode(document, depth: 0, path: "Document", nodeTypePattern);
     }
 
-    private MarkdownDoc ResolveDocument() {
+    private MarkdownDocument ResolveDocument() {
         if (ParameterSetName == ParameterSetDocument) {
             return Document ?? throw new PSArgumentException("Provide a Markdown document.");
         }
 
-        var options = MarkdownOptionUtilities.BuildReaderOptions(this);
+        var options = MarkdownOptionUtilities.BuildReaderOptions(this) ?? new MarkdownLoadOptions();
 
         string markdown;
         if (ParameterSetName == ParameterSetPath) {
@@ -139,7 +139,8 @@ public sealed class GetOfficeMarkdownNodeCommand : PSCmdlet
             markdown = Text ?? string.Empty;
         }
 
-        return MarkdownReader.ParseWithSyntaxTree(markdown, options).Document;
+        options.CaptureSyntaxTree = true;
+        return MarkdownDocument.Parse(markdown, options);
     }
 
     private void WriteNode(MarkdownObject node, int depth, string path, WildcardPattern? nodeTypePattern) {

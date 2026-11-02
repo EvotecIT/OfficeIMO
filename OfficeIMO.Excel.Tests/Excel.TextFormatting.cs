@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml;
@@ -17,14 +18,21 @@ public class ExcelTextFormattingTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Text");
+                ExcelSheet sheet = document.AddSheet("Text");
                 sheet.CellAt(1, 1).SetValue("Primary")
                     .SetBold().SetItalic()
                     .SetUnderline(ExcelUnderlineStyle.DoubleAccounting)
                     .SetStrikethrough().SetSuperscript()
-                    .SetFontName("Aptos").SetFontSize(14).SetFontColor("336699");
+                    .SetFontName("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetFontColor("336699");
                 sheet.Range("A2:A3").SetUnderline(ExcelUnderlineStyle.Double)
-                    .SetItalic().SetStrikethrough().SetSubscript();
+                    .SetItalic().SetStrikethrough().SetSubscript().SetFontSize(global::OfficeIMO.OfficeLength.Pixels(18));
+                sheet.CellFontSize(4, 1, global::OfficeIMO.OfficeLength.Inches(0.25));
+                sheet.CellAt(1, 2).SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetRichText(
+                    new ExcelRichTextRun("Inherited"),
+                    new ExcelRichTextRun(" Sized") { FontSize = global::OfficeIMO.OfficeLength.Centimeters(0.635), Bold = false });
+                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.CellFontSize(10, 1, global::OfficeIMO.OfficeLength.Zero));
+                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.CellAt(11, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(-1)));
+                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.Range("A12:A13").SetFontSize(global::OfficeIMO.OfficeLength.Zero));
                 document.Save();
             }
 
@@ -49,7 +57,49 @@ public class ExcelTextFormattingTests {
                 Assert.Equal(UnderlineValues.Double, ranged.Underline!.Val!.Value);
                 Assert.NotNull(ranged.Strike);
                 Assert.Equal(VerticalAlignmentRunValues.Subscript, ranged.VerticalTextAlignment!.Val!.Value);
+                Assert.Equal(13.5D, ranged.FontSize!.Val!.Value);
             }
+            Assert.Equal(18D, ResolveFont(worksheet, stylesheet, "A4").FontSize!.Val!.Value);
+            Assert.DoesNotContain(worksheet.Worksheet.Descendants<Cell>(), cell =>
+                cell.CellReference?.Value is "A10" or "A11" or "A12" or "A13");
+            Run[] nativeRuns = worksheet.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "B1")
+                .InlineString!.Elements<Run>().ToArray();
+            Assert.Null(nativeRuns[0].RunProperties?.GetFirstChild<FontSize>());
+            Assert.Null(nativeRuns[0].RunProperties?.GetFirstChild<Bold>());
+            Assert.Equal(18D, nativeRuns[1].RunProperties!.GetFirstChild<FontSize>()!.Val!.Value);
+            Assert.False(nativeRuns[1].RunProperties!.GetFirstChild<Bold>()!.Val!.Value);
+            using (ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(File.ReadAllBytes(path)))) {
+                ExcelRichTextRun[] runs = loaded.Sheets[0].CellAt(1, 2).GetRichText().ToArray();
+                Assert.Null(runs[0].FontSize);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(18), runs[1].FontSize);
+                loaded.Sheets[0].CellAt(2, 2).SetBold().SetRichText(runs);
+                using var copied = SpreadsheetDocument.Open(new MemoryStream(loaded.ToBytes()), false);
+                Run[] copiedRuns = copied.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<Cell>()
+                    .Single(cell => cell.CellReference?.Value == "B2").InlineString!.Elements<Run>().ToArray();
+                Assert.Null(copiedRuns[0].RunProperties?.GetFirstChild<FontSize>());
+                Assert.Null(copiedRuns[0].RunProperties?.GetFirstChild<Bold>());
+                Assert.Equal(18D, copiedRuns[1].RunProperties!.GetFirstChild<FontSize>()!.Val!.Value);
+                Assert.False(copiedRuns[1].RunProperties!.GetFirstChild<Bold>()!.Val!.Value);
+            }
+
+            var definition = new ExcelStyleDefinition { FontSize = global::OfficeIMO.OfficeLength.Centimeters(0.635), Bold = true };
+            var options = new ExcelWriterOptions {
+                UseSharedStrings = false, CreateTable = false,
+                Styles = new Dictionary<string, ExcelStyleDefinition> { ["Physical"] = definition },
+                DefaultRowStyle = "Physical"
+            };
+            using var streamed = new MemoryStream();
+            using (var writer = ExcelDocument.CreateWriter(streamed, options, leaveOpen: true)) {
+                definition.FontSize = global::OfficeIMO.OfficeLength.Points(30);
+                writer.WriteTable("Text", new[] { 1 }, new[] { "Value" }, (row, _) => row.Write("Styled"));
+            }
+            streamed.Position = 0;
+            using var streamedPackage = SpreadsheetDocument.Open(streamed, false);
+            WorksheetPart streamedSheet = streamedPackage.WorkbookPart!.WorksheetParts.Single();
+            Stylesheet streamedStyles = streamedPackage.WorkbookPart.WorkbookStylesPart!.Stylesheet!;
+            Font streamedFont = ResolveFont(streamedSheet, streamedStyles, "A2");
+            Assert.Equal(18D, streamedFont.FontSize!.Val!.Value);
+            Assert.NotNull(streamedFont.Bold);
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
@@ -60,7 +110,7 @@ public class ExcelTextFormattingTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Text");
+                ExcelSheet sheet = document.AddSheet("Text");
                 sheet.CellAt(1, 1).SetValue("mixed CASE").SetBold().TransformTextCase(OfficeTextCase.TitleCase);
                 sheet.CellAt(2, 1).SetRichText(
                     new ExcelRichTextRun("Styled") { Bold = true, UnderlineStyle = ExcelUnderlineStyle.Double },
@@ -113,7 +163,7 @@ public class ExcelTextFormattingTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                document.AddWorksheet("Text").CellAt(1, 1).SetFormula("\"mixed Case\"");
+                document.AddSheet("Text").CellAt(1, 1).SetFormula("\"mixed Case\"");
                 document.Save();
             }
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
@@ -125,7 +175,7 @@ public class ExcelTextFormattingTests {
 
             using (ExcelDocument document = ExcelDocument.Load(path)) {
                 ExcelSheet sheet = document.Sheets[0];
-                Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? snapshot));
+                Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? snapshot));
                 Assert.Equal(ExcelCellValueKind.Formula, snapshot!.Kind);
                 Assert.False(sheet.TransformCellTextCase(1, 1, OfficeTextCase.Uppercase));
                 document.Save();
@@ -147,7 +197,7 @@ public class ExcelTextFormattingTests {
         var expected = new DateTime(2026, 4, 5);
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                document.AddWorksheet("Dates").CellAt(1, 1).SetValue(expected);
+                document.AddSheet("Dates").CellAt(1, 1).SetValue(expected);
                 document.Save();
             }
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
@@ -157,7 +207,7 @@ public class ExcelTextFormattingTests {
             }
 
             using ExcelDocument loadedDocument = ExcelDocument.Load(path);
-            Assert.True(loadedDocument.Sheets[0].TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? snapshot));
+            Assert.True(loadedDocument.Sheets[0].TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? snapshot));
             Assert.Equal(ExcelCellValueKind.Formula, snapshot!.Kind);
             Assert.Equal("DATE(2026,4,5)", snapshot.RawValue);
             Assert.Equal(expected, snapshot.DateTimeValue);
@@ -169,7 +219,7 @@ public class ExcelTextFormattingTests {
     [Fact]
     public void RichTextCaseTransformsDoNotResetContextAtRunBoundaries() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Text");
+        ExcelSheet sheet = document.AddSheet("Text");
         sheet.CellAt(1, 1).SetRichText(
             new ExcelRichTextRun("hELLO. ") { Bold = true },
             new ExcelRichTextRun("aNOTHER") { Italic = true },
@@ -189,7 +239,7 @@ public class ExcelTextFormattingTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument created = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = created.AddWorksheet("Text");
+                ExcelSheet sheet = created.AddSheet("Text");
                 sheet.CellAt(1, 1).SetValue("placeholder");
                 sheet.CellAt(2, 1).SetValue("placeholder");
                 created.Save();
@@ -247,7 +297,7 @@ public class ExcelTextFormattingTests {
         string expectedProperties;
         try {
             using (ExcelDocument created = ExcelDocument.Create(path)) {
-                created.AddWorksheet("Text").CellAt(1, 1).SetRichText(
+                created.AddSheet("Text").CellAt(1, 1).SetRichText(
                     new ExcelRichTextRun("istanbul") { Bold = true, FontName = "Aptos" });
                 created.Save();
             }
@@ -286,7 +336,7 @@ public class ExcelTextFormattingTests {
         string expectedProperties;
         try {
             using (ExcelDocument created = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = created.AddWorksheet("Text");
+                ExcelSheet sheet = created.AddSheet("Text");
                 sheet.CellAt(1, 1).SetValue("First");
                 sheet.CellAt(2, 1).SetValue("Second");
                 created.Save();
@@ -349,7 +399,7 @@ public class ExcelTextFormattingTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument created = ExcelDocument.Create(path)) {
-                created.AddWorksheet("Text").CellAt(1, 1).SetValue("Plain")
+                created.AddSheet("Text").CellAt(1, 1).SetValue("Plain")
                     .SetBold().SetItalic().SetUnderline().SetStrikethrough();
                 created.Sheets[0].CellAt(2, 1).SetRichText(
                     new ExcelRichTextRun("Rich") {
@@ -358,6 +408,8 @@ public class ExcelTextFormattingTests {
                         Underline = true,
                         Strikethrough = true,
                     });
+                created.Sheets[0].CellAt(3, 1).SetRichText(new ExcelRichTextRun("Physical"));
+                created.Sheets[0].CellAt(4, 1).SetValue("Unspecified").SetFontName("Aptos");
                 created.Save();
             }
 
@@ -370,6 +422,15 @@ public class ExcelTextFormattingTests {
                 font.Italic = new Italic { Val = false };
                 font.Underline = new Underline { Val = UnderlineValues.None };
                 font.Strike = new Strike { Val = false };
+                font.FontSize = new FontSize { Val = global::OfficeIMO.OfficeLength.Pixels(18).ToPoints() };
+                ResolveFont(worksheet, stylesheet, "A4").FontSize = null;
+                Cell physicalCell = worksheet.Worksheet.Descendants<Cell>()
+                    .Single(item => item.CellReference?.Value == "A3");
+                Run physicalRun = physicalCell.InlineString!.Elements<Run>().Single();
+                physicalRun.RunProperties ??= new RunProperties();
+                physicalRun.RunProperties.Append(new FontSize {
+                    Val = global::OfficeIMO.OfficeLength.Inches(0.25D).ToPoints()
+                });
 
                 Cell richCell = worksheet.Worksheet.Descendants<Cell>()
                     .Single(item => item.CellReference?.Value == "A2");
@@ -382,10 +443,20 @@ public class ExcelTextFormattingTests {
             }
 
             using ExcelDocument loaded = ExcelDocument.Load(path);
-            ExcelCellStyleSnapshot direct = loaded.Sheets[0].CellAt(1, 1).GetStyle();
-            ExcelWorksheetSnapshot worksheetSnapshot = Assert.Single(loaded.CreateInspectionSnapshot().Worksheets);
-            ExcelCellStyleSnapshot inspected = worksheetSnapshot.Cells.Single(cell => cell.Row == 1 && cell.Column == 1).Style!;
-            foreach (ExcelCellStyleSnapshot style in new[] { direct, inspected }) {
+            ExcelCellStyleInfo direct = loaded.Sheets[0].CellAt(1, 1).GetStyle();
+            ExcelWorksheetInfo worksheetSnapshot = Assert.Single(loaded.Inspect().Worksheets);
+            ExcelCellStyleInfo inspected = worksheetSnapshot.Cells.Single(cell => cell.Row == 1 && cell.Column == 1).Style!;
+            Assert.Equal(global::OfficeIMO.OfficeLength.Pixels(18), direct.FontSize);
+            Assert.Equal(direct.FontSize, inspected.FontSize);
+            Assert.Null(loaded.Sheets[0].CellAt(4, 1).GetStyle().FontSize);
+            Assert.Null(worksheetSnapshot.Cells.Single(cell => cell.Row == 4 && cell.Column == 1).Style!.FontSize);
+            ExcelRangeVisualInfo visual = loaded.Sheets[0].Range("A1:A4").CreateVisualSnapshot();
+            Assert.Equal(direct.FontSize, visual.Cells.Single(cell => cell.Row == 1).Style.FontSize);
+            Assert.Null(Assert.Single(visual.Cells.Single(cell => cell.Row == 2).RichTextRuns).FontSize);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Centimeters(0.635D),
+                Assert.Single(visual.Cells.Single(cell => cell.Row == 3).RichTextRuns).FontSize);
+            Assert.Null(visual.Cells.Single(cell => cell.Row == 4).Style.FontSize);
+            foreach (ExcelCellStyleInfo style in new[] { direct, inspected }) {
                 Assert.False(style.Bold);
                 Assert.False(style.Italic);
                 Assert.False(style.Underline);

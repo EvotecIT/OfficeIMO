@@ -1,6 +1,6 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Identifies transition effects defined by PowerPoint 97-2003.</summary>
-    public enum LegacyPptTransitionEffect : byte {
+    internal enum LegacyPptTransitionEffect : byte {
         /// <summary>Cut, optionally through black.</summary>
         Cut = 0,
         /// <summary>Randomly selected transition.</summary>
@@ -50,7 +50,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Represents a complete SlideShowSlideInfoAtom.</summary>
-    public sealed class LegacyPptTransition {
+    internal sealed class LegacyPptTransition {
         internal LegacyPptTransition(int slideTimeMilliseconds, uint soundId,
             byte effectDirection, byte effectType, ushort rawFlags, byte speed) {
             SlideTimeMilliseconds = slideTimeMilliseconds;

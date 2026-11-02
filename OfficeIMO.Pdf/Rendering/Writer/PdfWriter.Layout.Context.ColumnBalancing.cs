@@ -36,7 +36,7 @@ internal static partial class PdfWriter {
         }
 
         private double ResolveBalancedColumnHeightCore(ColumnBalanceContent content, ColumnFlowScope scope) {
-            double available = scope.Top - scope.ParentOptions.MarginBottom;
+            double available = scope.Top - scope.ParentOptions.MarginBottom.ToPoints();
             if (!scope.Options.BalanceLastPage || content.Blocks.Any(block => block is ColumnBreakBlock or PageBreakBlock) ||
                 scope.Widths.Any(value => Math.Abs(value - scope.Widths[0]) > 0.001D)) return available;
             List<ColumnBalanceUnit>? units = MeasureColumnBalanceContent(content, scope, scope.Widths[0]);
@@ -73,13 +73,13 @@ internal static partial class PdfWriter {
             if (block is SemanticBlock or FlowBlock or ContainerBlock)
                 return MeasureNestedColumnBalanceUnits(block, null, scope, frameWidth);
             if (block is PdfListBlock list)
-                return MeasureListColumnBalanceUnits(PrepareListLayout(list, frameWidth, currentOpts.DefaultFontSize, topLevelSpacing: true));
+                return MeasureListColumnBalanceUnits(PrepareListLayout(list, frameWidth, currentOpts.DefaultFontSize.ToPoints(), topLevelSpacing: true));
             if (block is TableBlock table) return MeasureTableColumnBalanceUnits(table, scope, frameWidth);
             if (block is RichParagraphBlock paragraph) {
                 PdfParagraphStyle? style = EffectiveParagraphStyle(paragraph);
-                double size = style?.FontSize ?? currentOpts.DefaultFontSize;
+                double size = style?.FontSize?.ToPoints() ?? currentOpts.DefaultFontSize.ToPoints();
                 double leading = GetParagraphLeading(style, size);
-                var frame = GetParagraphTextFrame(style, scope.ParentOptions.MarginLeft, frameWidth);
+                var frame = GetParagraphTextFrame(style, scope.ParentOptions.MarginLeft.ToPoints(), frameWidth);
                 var wrapped = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, frame.Width, size, ChooseNormal(currentOpts.DefaultFont),
                     leading, frame.FirstLineWidth, frame.FirstLineX - frame.X, GetParagraphTabStopWidth(style), currentOpts,
                     style?.TabStops.ToArray(), lineSpacing: style?.LineSpacing, textWhitespaceMode: style?.TextWhitespaceMode, wordJustificationMode: style?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? style.JustificationMode : null, cancellationToken: cancellationToken);
@@ -99,7 +99,7 @@ internal static partial class PdfWriter {
                     return new() { new(new ColumnBalanceParagraph(units)) };
                 return units;
             }
-            double? height = MeasureWholeBlockHeight(block, scope.ParentOptions.MarginLeft, frameWidth, currentOpts.DefaultFontSize);
+            double? height = MeasureWholeBlockHeight(block, scope.ParentOptions.MarginLeft.ToPoints(), frameWidth, currentOpts.DefaultFontSize.ToPoints());
             return height.HasValue ? new List<ColumnBalanceUnit> { new(height.Value) } : null;
         }
 
@@ -113,7 +113,7 @@ internal static partial class PdfWriter {
                 RowFragment = fragment; Container = null; Paragraph = null;
             }
             public ColumnBalanceUnit(ColumnBalanceContainer container) {
-                Height = container.Units.Sum(unit => unit.Height) + container.Style.GetFragmentTopPadding(container.IsContinuation) + container.Style.BottomPadding + container.Style.SpacingAfter;
+                Height = container.Units.Sum(unit => unit.Height) + container.Style.GetFragmentTopPadding(container.IsContinuation) + container.Style.BottomPadding + container.Style.SpacingAfter.ToPoints();
                 ContinuationHeight = 0D; SpacingBefore = 0D; RowFragment = null; Container = container; Paragraph = null;
             }
             public ColumnBalanceUnit(ColumnBalanceParagraph paragraph) {

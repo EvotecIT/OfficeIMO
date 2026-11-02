@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableResize_RelocatesTotalsCellsToTheNewBottomRow() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Region");
             sheet.CellValue(1, 2, "Amount");
             sheet.CellValue(2, 1, "East");
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_QueryRefresh_PreservesTotalsImageAfterDiscardedImageRenumbersMetadata() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ExcelQueryBackedTableInfo source = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "ImageTotals",
                 WorksheetName = sheet.Name,

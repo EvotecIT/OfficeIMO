@@ -26,7 +26,7 @@ namespace OfficeIMO.Visio {
 
             int? fontFaceId = null;
             string? fontFamily = null;
-            OfficeIMO.Drawing.OfficeColor? color = null;
+            OfficeIMO.OfficeColor? color = null;
             double? size = null;
             bool? bold = null;
             bool? italic = null;
@@ -149,7 +149,7 @@ namespace OfficeIMO.Visio {
 
             int? fontFaceId = null;
             string? fontFamily = null;
-            OfficeIMO.Drawing.OfficeColor? color = null;
+            OfficeIMO.OfficeColor? color = null;
             double? size = null;
             bool? bold = null;
             bool? italic = null;

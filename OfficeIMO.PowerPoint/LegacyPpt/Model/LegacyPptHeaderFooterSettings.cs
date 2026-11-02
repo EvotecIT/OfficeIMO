@@ -1,6 +1,6 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents the header and footer options stored by a binary PowerPoint container.</summary>
-    public sealed class LegacyPptHeaderFooterSettings {
+    internal sealed class LegacyPptHeaderFooterSettings {
         internal LegacyPptHeaderFooterSettings(short dateTimeFormatId, ushort rawFlags,
             string userDateText, string headerText, string footerText) {
             DateTimeFormatId = dateTimeFormatId;

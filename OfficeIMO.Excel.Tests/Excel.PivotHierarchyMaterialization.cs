@@ -3,8 +3,10 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using System.Text.Json;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Theory]
         [InlineData("Row2", "Row2")]
         [InlineData("Col2", "Col2")]
@@ -60,20 +62,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_PivotHierarchyMaterialization_BudgetsSubtotalWorkBeforeMutation() {
+        public void Test_PivotHierarchyMaterialization_BudgetsSubtotalWorkBeforeMutation()
+        {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Source");
-            var headers = new[] { "Region", "City", "Product", "Channel", "Amount", "Units" };
-            for (int column = 0; column < headers.Length; column++) sheet.CellValue(1, column + 1, headers[column]);
-            for (int row = 2; row <= 101; row++) {
-                sheet.CellValue(row, 1, "North"); sheet.CellValue(row, 2, "East");
-                sheet.CellValue(row, 3, "A"); sheet.CellValue(row, 4, "Retail");
-                sheet.CellValue(row, 5, 1d); sheet.CellValue(row, 6, 1d);
+            var sheet = document.AddSheet("Source");
+            var headers = new[]
+            {
+                "Region",
+                "City",
+                "Product",
+                "Channel",
+                "Amount",
+                "Units"
+            };
+            for (int column = 0; column < headers.Length; column++)
+                sheet.CellValue(1, column + 1, headers[column]);
+            for (int row = 2; row <= 101; row++)
+            {
+                sheet.CellValue(row, 1, "North");
+                sheet.CellValue(row, 2, "East");
+                sheet.CellValue(row, 3, "A");
+                sheet.CellValue(row, 4, "Retail");
+                sheet.CellValue(row, 5, 1d);
+                sheet.CellValue(row, 6, 1d);
             }
-            sheet.AddPivotTable("A1:F101", "I1", "Pivot", rowFields: new[] { "Region", "City" }, columnFields: new[] { "Product", "Channel" },
-                dataFields: new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Revenue"),
-                    new ExcelPivotDataField("Units", ExcelPivotDataFunction.Average, "AverageUnits"),
-                    new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Count, "Entries") });
+
+            sheet.AddPivotTable("A1:F101", "I1", options: new ExcelPivotTableOptions { Name = "Pivot", RowFields = new[] { "Region", "City" }, ColumnFields = new[] { "Product", "Channel" }, DataFields = new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Revenue"), new ExcelPivotDataField("Units", ExcelPivotDataFunction.Average, "AverageUnits"), new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Count, "Entries") } });
             var part = sheet.WorksheetPart.PivotTableParts.Single();
             string definition = part.PivotTableDefinition!.OuterXml;
             string cache = part.PivotTableCacheDefinitionPart!.PivotCacheDefinition!.OuterXml;
@@ -92,20 +106,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_PivotHierarchyMaterialization_BudgetsAllCriteriaBeforeMutation() {
+        public void Test_PivotHierarchyMaterialization_BudgetsAllCriteriaBeforeMutation()
+        {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Source");
+            var sheet = document.AddSheet("Source");
             var headers = Enumerable.Range(0, 6).Select(field => "Key" + field).Concat(new[] { "Amount" }).ToArray();
-            for (int column = 0; column < headers.Length; column++) sheet.CellValue(1, column + 1, headers[column]);
-            for (int row = 2; row <= 101; row++) {
-                for (int column = 1; column <= 6; column++) sheet.CellValue(row, column, "Item" + row);
+            for (int column = 0; column < headers.Length; column++)
+                sheet.CellValue(1, column + 1, headers[column]);
+            for (int row = 2; row <= 101; row++)
+            {
+                for (int column = 1; column <= 6; column++)
+                    sheet.CellValue(row, column, "Item" + row);
                 sheet.CellValue(row, 7, 1d);
             }
-            sheet.AddPivotTable("A1:G101", "I1", "Pivot", rowFields: headers.Take(6).ToArray(),
-                dataFields: new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Revenue") });
+
+            sheet.AddPivotTable("A1:G101", "I1", options: new ExcelPivotTableOptions { Name = "Pivot", RowFields = (headers.Take(6).ToArray())is { } authoredRowFields1 ? System.Linq.Enumerable.ToList(authoredRowFields1) : System.Array.Empty<string>(), DataFields = new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Revenue") } });
             var part = sheet.WorksheetPart.PivotTableParts.Single();
             var definition = part.PivotTableDefinition!;
-            foreach (var field in definition.PivotFields!.Elements<PivotField>()) field.DefaultSubtotal = false;
+            foreach (var field in definition.PivotFields!.Elements<PivotField>())
+                field.DefaultSubtotal = false;
             definition.ColumnGrandTotals = false;
             string before = definition.OuterXml;
             string cache = part.PivotTableCacheDefinitionPart!.PivotCacheDefinition!.OuterXml;
@@ -114,7 +133,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(before, part.PivotTableDefinition.OuterXml);
             Assert.Equal(cache, part.PivotTableCacheDefinitionPart.PivotCacheDefinition.OuterXml);
             Assert.Equal("I1:O101", sheet.MaterializePivotTable("Pivot", new ExcelMutationPlanOptions { MaximumAffectedCells = 1200 }).OutputRange);
-            var criteria = headers.Take(6).ToDictionary(field => field, _ => (object?)"Item101");
+            var criteria = headers.Take(6).ToDictionary(field => field, _ => (object? )"Item101");
             Assert.Equal(1d, sheet.GetPivotData("Pivot", "Revenue", criteria).Value);
         }
 

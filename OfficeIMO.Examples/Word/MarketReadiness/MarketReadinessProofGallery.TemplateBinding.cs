@@ -33,8 +33,8 @@ namespace OfficeIMO.Examples.Word {
                 ["Logo"] = new WordTemplateImage(
                     File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png")),
                     "EvotecLogo.png",
-                    width: 96,
-                    height: 32,
+                    width: global::OfficeIMO.OfficeLength.Pixels(96),
+                    height: global::OfficeIMO.OfficeLength.Pixels(32),
                     description: "Evotec logo")
             };
 

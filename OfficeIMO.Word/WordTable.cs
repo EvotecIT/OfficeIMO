@@ -51,37 +51,8 @@ namespace OfficeIMO.Word {
         /// This applies to only header of the table (first row)
         /// </summary>
         public bool RepeatAsHeaderRowAtTheTopOfEachPage {
-            get {
-                WordTableRow? firstRow = Rows.FirstOrDefault();
-                if (firstRow == null) {
-                    return false;
-                }
-
-                var tableRowProperties = firstRow._tableRow.TableRowProperties;
-                var tableHeader = tableRowProperties?.OfType<TableHeader>().FirstOrDefault();
-                return tableHeader != null;
-            }
-            set {
-                WordTableRow? firstRow = Rows.FirstOrDefault();
-                if (firstRow == null) {
-                    return;
-                }
-
-                if (value) {
-                    firstRow.AddTableRowProperties();
-                    var tableProperties = firstRow._tableRow.TableRowProperties;
-                    var tableHeader = tableProperties?.OfType<TableHeader>().FirstOrDefault();
-                    if (tableHeader == null) {
-                        tableProperties?.InsertAt(new TableHeader(), 0);
-                    }
-                } else {
-                    var tableRowTableRowProperties = firstRow._tableRow.TableRowProperties;
-                    var tableHeader = tableRowTableRowProperties?.OfType<TableHeader>().FirstOrDefault();
-                    if (tableHeader != null) {
-                        tableRowTableRowProperties!.RemoveChild(tableHeader);
-                    }
-                }
-            }
+            get => RepeatHeaderRowAtTheTopOfEachPage;
+            set => RepeatHeaderRowAtTheTopOfEachPage = value;
         }
 
         /// <summary>
@@ -131,67 +102,21 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Gets or sets the unit type used by the <see cref="Width"/> property.
-        /// </summary>
-        public WordTableWidthUnit? WidthType {
-            get {
-                if (_tableProperties != null && _tableProperties.TableWidth != null) {
-                    return _tableProperties.TableWidth.Type?.Value.ToOfficeEnum();
-                }
-
-                return null;
-            }
+        /// <summary>Gets or sets the directly authored preferred width. Null removes tblW and preserves the grid.</summary>
+        /// <remarks>Reading preserves native lexical and partial declarations. Unsupported declarations throw
+        /// when accessed as a value; native load/save retains them.</remarks>
+        public WordTableWidth? Width {
+            get => WordTableWidthNative.Read(_tableProperties?.TableWidth);
             set {
                 CheckTableProperties();
-                if (_tableProperties!.TableWidth == null) {
-                    if (value.HasValue) {
-                        _tableProperties.TableWidth = new TableWidth() {
-                            Type = value.Value.ToOpenXml(),
-                            Width = value.Value == WordTableWidthUnit.Auto ? "0" : "5000"
-                        };
-                    }
-                } else {
-                    if (value.HasValue) {
-                        _tableProperties.TableWidth.Type = value.Value.ToOpenXml();
-                        if (value.Value == WordTableWidthUnit.Auto) {
-                            _tableProperties.TableWidth.Width = "0";
-                        }
-                    } else {
-                        _tableProperties.TableWidth.Remove();
-                    }
+                if (!value.HasValue) {
+                    _tableProperties!.TableWidth?.Remove();
+                    return;
                 }
-                // Keep tblGrid consistent when width interpretation changes
-                if (!_suppressGridRefresh) { try { RefreshTblGridFromColumnWidths(); } catch { } }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets width of a table
-        /// </summary>
-        public int? Width {
-            get {
-                if (_tableProperties != null && _tableProperties.TableWidth != null) {
-                    if (!string.IsNullOrEmpty(_tableProperties.TableWidth.Width)) {
-                        if (int.TryParse(_tableProperties.TableWidth.Width, out var width)) {
-                            return width;
-                        }
-                    }
-                }
-                return null;
-            }
-            set {
-                CheckTableProperties();
-                if (_tableProperties!.TableWidth == null) {
-                    _tableProperties.TableWidth = new TableWidth() {
-                        Type = TableWidthUnitValues.Pct,
-                        Width = value?.ToString()
-                    };
-                } else {
-                    _tableProperties.TableWidth.Width = value?.ToString();
-                }
-                // Grid depends on overall width (for pct columns)
-                if (!_suppressGridRefresh) { try { RefreshTblGridFromColumnWidths(); } catch { } }
+                var width = new TableWidth();
+                WordTableWidthNative.Write(width, value.Value);
+                _tableProperties!.TableWidth = width;
+                if (!_suppressGridRefresh) RefreshTblGridFromColumnWidths();
             }
         }
 
@@ -359,7 +284,43 @@ namespace OfficeIMO.Word {
         }
 
 
-        private Table GenerateTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle) {
+        // Word's default text width (Letter, 1 inch margins) when no section is known.
+        private const int DefaultTableTextWidthTwips = 9360;
+        // Word's default left and right cell margins (0.08 inch each).
+        private const int DefaultCellHorizontalMarginsTwips = 216;
+        private const int MinimumDefaultColumnWidthTwips = 360;
+
+        /// <summary>
+        /// Returns the text width of the section new body content is added to, so a
+        /// table created without explicit widths fills the text area instead of a
+        /// fixed width per column.
+        /// </summary>
+        private static int GetSectionTextWidthTwips(WordDocument document) {
+            WordSection? section = document.Sections.Count > 0 ? document.Sections[document.Sections.Count - 1] : null;
+            long? pageWidth = section?.PageSettings?.Width?.ToTwips();
+            if (section == null || !pageWidth.HasValue) return DefaultTableTextWidthTwips;
+            long width = pageWidth.Value - (section.Margins.Left?.ToTwips() ?? 0) - (section.Margins.Right?.ToTwips() ?? 0) - (section.Margins.Gutter?.ToTwips() ?? 0);
+            return width > MinimumDefaultColumnWidthTwips ? (int)Math.Min(width, int.MaxValue) : DefaultTableTextWidthTwips;
+        }
+
+        private static int GetCellTextWidthTwips(WordDocument document, TableCell cell) {
+            TableCellWidth? width = cell.TableCellProperties?.TableCellWidth;
+            if (width?.Type?.Value == TableWidthUnitValues.Dxa &&
+                int.TryParse(width.Width?.Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int twips) &&
+                twips - DefaultCellHorizontalMarginsTwips > MinimumDefaultColumnWidthTwips) {
+                return twips - DefaultCellHorizontalMarginsTwips;
+            }
+            return GetSectionTextWidthTwips(document);
+        }
+
+        private static int GetDefaultColumnWidthTwips(int textWidthTwips, int columns) =>
+            Math.Max(MinimumDefaultColumnWidthTwips, textWidthTwips / Math.Max(1, columns));
+
+        private Table GenerateTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle) =>
+            GenerateTable(document, rows, columns, tableStyle, GetSectionTextWidthTwips(document));
+
+        private Table GenerateTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle, int textWidthTwips) {
+            string columnWidth = GetDefaultColumnWidthTwips(textWidthTwips, columns).ToString(System.Globalization.CultureInfo.InvariantCulture);
             document.MarkTableNormalizationRequired();
             document.EnsureStyleDefinitionsInitialized();
             Table table = new Table();
@@ -378,7 +339,7 @@ namespace OfficeIMO.Word {
 
             TableGrid tableGrid1 = new TableGrid();
             for (int i = 0; i < columns; i++) {
-                GridColumn gridColumn1 = new GridColumn { Width = "2400" };
+                GridColumn gridColumn1 = new GridColumn { Width = columnWidth };
                 tableGrid1.Append(gridColumn1);
             }
             table.Append(tableGrid1);
@@ -386,12 +347,15 @@ namespace OfficeIMO.Word {
             _rowElements = new List<TableRow>(rows);
             for (int i = 0; i < rows; i++) {
                 var row = new TableRow();
+                if (i == 0 && tableStyle == WordTableStyle.OfficeIMOModern) {
+                    row.Append(new TableRowProperties(new TableHeader()));
+                }
                 _rowElements.Add(row);
                 table.Append(row);
                 for (int j = 0; j < columns; j++) {
                     row.Append(new TableCell(
                         new TableCellProperties(
-                            new TableCellWidth { Type = TableWidthUnitValues.Dxa, Width = "2400" }),
+                            new TableCellWidth { Type = TableWidthUnitValues.Dxa, Width = columnWidth }),
                         new Paragraph(new ParagraphProperties(), new Run())));
                 }
             }
@@ -435,7 +399,7 @@ namespace OfficeIMO.Word {
         /// <param name="columns">Number of columns.</param>
         /// <param name="tableStyle">Style to apply to the table.</param>
         /// <returns>The newly created <see cref="WordTable"/>.</returns>
-        public static WordTable Create(WordDocument document, int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
+        public static WordTable Create(WordDocument document, int rows, int columns, WordTableStyle tableStyle = WordTableStyle.OfficeIMOModern) {
             return new WordTable(document, rows, columns, tableStyle, insert: false);
         }
 
@@ -487,7 +451,7 @@ namespace OfficeIMO.Word {
         internal WordTable(WordDocument document, TableCell wordTableCell, int rows, int columns, WordTableStyle tableStyle) {
             _document = document;
 
-            _table = GenerateTable(document, rows, columns, tableStyle);
+            _table = GenerateTable(document, rows, columns, tableStyle, GetCellTextWidthTwips(document, wordTableCell));
 
             // Establish Position property
             Position = new WordTablePosition(this);
@@ -555,7 +519,7 @@ namespace OfficeIMO.Word {
                     : _table.GetFirstChild<TableGrid>()?.Elements<GridColumn>().Count() ?? 0;
             }
             for (int j = 0; j < cellsCount; j++) {
-                WordTableCell cell = new WordTableCell(_document, this, row);
+                row.AddCell();
             }
             try { RefreshTblGridFromColumnWidths(); } catch { }
         }

@@ -75,7 +75,7 @@ public partial class Word {
             new Run(new Text("Default note control"))));
         string originalStyles = styles.OuterXml;
         string expectedName = target.StyleName!.Val!.Value!;
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         for (int save = 0; save < 2; save++) {
             using WordDocument reopened = WordDocument.Load(new MemoryStream(bytes));
             var importedMain = reopened._wordprocessingDocument.MainDocumentPart!;
@@ -92,7 +92,7 @@ public partial class Word {
             Paragraph defaultParagraph = importedNote.Descendants<Paragraph>().Single(item => item.InnerText.Contains("Default note control"));
             Assert.NotEqual(styleId, defaultParagraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value);
             Assert.Empty(reopened.ValidateDocument());
-            if (save == 0) bytes = reopened.ToBytes(WordFileFormat.Doc);
+            if (save == 0) bytes = reopened.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         }
         Assert.Equal(originalStyles, styles.OuterXml);
     }

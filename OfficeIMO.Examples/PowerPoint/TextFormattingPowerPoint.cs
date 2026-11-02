@@ -11,33 +11,29 @@ namespace OfficeIMO.Examples.PowerPoint {
         public static void Example_TextFormattingPowerPoint(string folderPath, bool openPowerPoint) {
             Console.WriteLine("[*] PowerPoint - Text formatting");
             string filePath = Path.Combine(folderPath, "Text Formatting PowerPoint.pptx");
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             const double marginCm = 1.5;
             const double gutterCm = 1.0;
-            PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
-            double bodyTopCm = content.TopCm + 1.9;
-            double bodyHeightCm = content.HeightCm - 1.9;
-            PowerPointLayoutBox[] columns = presentation.SlideSize.GetColumnsCm(2, marginCm, gutterCm);
-            PowerPointLayoutBox leftColumn = new(columns[0].Left, PowerPointUnits.FromCentimeters(bodyTopCm), columns[0].Width,
-                PowerPointUnits.FromCentimeters(bodyHeightCm));
-            PowerPointLayoutBox rightColumn = new(columns[1].Left, PowerPointUnits.FromCentimeters(bodyTopCm), columns[1].Width,
-                PowerPointUnits.FromCentimeters(bodyHeightCm));
+            PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Centimeters(marginCm));
+            double bodyTopCm = content.Top.ToCentimeters() + 1.9;
+            double bodyHeightCm = content.Height.ToCentimeters() - 1.9;
+            PowerPointLayoutBox[] columns = presentation.SlideSize.GetColumns(2,OfficeIMO.OfficeLength.Centimeters(marginCm),OfficeIMO.OfficeLength.Centimeters(gutterCm));
+            PowerPointLayoutBox leftColumn = new(OfficeIMO.OfficeLength.Emus(columns[0].Left.ToEmus()),global::OfficeIMO.OfficeLength.Centimeters(bodyTopCm),OfficeIMO.OfficeLength.Emus(columns[0].Width.ToEmus()),                global::OfficeIMO.OfficeLength.Centimeters(bodyHeightCm));
+            PowerPointLayoutBox rightColumn = new(OfficeIMO.OfficeLength.Emus(columns[1].Left.ToEmus()),global::OfficeIMO.OfficeLength.Centimeters(bodyTopCm),OfficeIMO.OfficeLength.Emus(columns[1].Width.ToEmus()),                global::OfficeIMO.OfficeLength.Centimeters(bodyHeightCm));
 
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTextBox title = slide.AddTitleCm("Text Formatting",
-                content.LeftCm, content.TopCm, content.WidthCm, 1.4);
+            PowerPointTextBox title = slide.AddTitle("Text Formatting",                global::OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(1.4));
             if (title.Paragraphs.Count > 0) {
                 PowerPointTextStyle.Title.WithColor("1F4E79").Apply(title.Paragraphs[0]);
             }
 
-            PowerPointTextBox text = slide.AddTextBoxCm(string.Empty,
-                leftColumn.LeftCm, leftColumn.TopCm, leftColumn.WidthCm, leftColumn.HeightCm);
-            text.SetTextMarginsCm(0.3, 0.2, 0.3, 0.2);
+            PowerPointTextBox text = slide.AddTextBox(string.Empty,                global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Top.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Height.ToCentimeters()));
+            text.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.2));
             text.TextAutoFit = PowerPointTextAutoFit.Normal;
 
             PowerPointParagraph heading = text.AddParagraph("Formatting demo", p => {
                 p.Alignment = PowerPointTextAlignment.Left;
-                p.SpaceAfterPoints = 6;
+                p.SpaceAfter = global::OfficeIMO.OfficeLength.Points(6);
             });
             PowerPointTextStyle.Subtitle.WithColor("1F4E79").Apply(heading);
 
@@ -68,15 +64,14 @@ namespace OfficeIMO.Examples.PowerPoint {
             text.AddBullet("Bulleted item two");
             text.AddNumberedItem("First step");
             text.AddNumberedItem("Second step");
-            text.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
+            text.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfter: global::OfficeIMO.OfficeLength.Points(2));
 
-            PowerPointTextBox callout = slide.AddTextBoxCm(
-                "Auto-fit + margins keep text readable.",
-                rightColumn.LeftCm, rightColumn.TopCm, rightColumn.WidthCm, rightColumn.HeightCm);
+            PowerPointTextBox callout = slide.AddTextBox(
+                "Auto-fit + margins keep text readable.",                global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Top.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Height.ToCentimeters()));
             callout.FillColor = "E7F7FF";
             callout.OutlineColor = "5B9BD5";
             callout.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
-            callout.SetTextMarginsCm(0.3, 0.3, 0.3, 0.3);
+            callout.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.3));
             callout.ApplyTextStyle(PowerPointTextStyle.Body.WithColor("1F4E79"));
 
             presentation.Save();

@@ -17,7 +17,7 @@ public sealed class LaterSpreadsheetImportTests {
         using var xlsx = new MemoryStream(); result.Value.Save(xlsx); xlsx.Position = 0;
         using var loaded = ExcelDocument.Load(xlsx);
         Assert.Equal(result.Value.Sheets.Count, loaded.Sheets.Count);
-        Assert.Contains(loaded.CreateInspectionSnapshot().Worksheets.SelectMany(sheet => sheet.Cells), cell => cell.Value as string == text);
+        Assert.Contains(loaded.Inspect().Worksheets.SelectMany(sheet => sheet.Cells), cell => cell.Value as string == text);
         if (file.EndsWith(".wb1")) {
             Assert.Equal(3, result.Value.Sheets.Count);
             Assert.Equal("B1", Assert.Single(result.Cells, cell => cell.SheetName == "page1" && cell.Row == 1 && cell.Column == 1).Formula);
@@ -34,7 +34,7 @@ public sealed class LaterSpreadsheetImportTests {
         Assert.Equal("('Other'!A1+2)", Assert.Single(result.Cells).Formula);
         Assert.Equal(5d, Assert.Single(result.Cells).CachedValue);
         Assert.Equal(2, result.Value.Sheets.Count);
-        Assert.DoesNotContain(result.Report.Findings, finding => finding.Code == "LATER_FORMULA_CACHED_FALLBACK");
+        Assert.DoesNotContain(result.Report.Findings, finding => finding.Code == "later-formula-cached-fallback");
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public sealed class LaterSpreadsheetImportTests {
             Record(0xcc, Encoding.ASCII.GetBytes("Other\0")), Record(0x10, formula), Record(1)));
         Assert.Equal(expected, Assert.Single(result.Cells).Formula);
         Assert.Equal(42d, Assert.Single(result.Cells).CachedValue);
-        Assert.Equal(expected == null, result.Report.Findings.Any(finding => finding.Code == "LATER_FORMULA_CACHED_FALLBACK"));
+        Assert.Equal(expected == null, result.Report.Findings.Any(finding => finding.Code == "later-formula-cached-fallback"));
     }
 
     [Fact]
@@ -121,7 +121,7 @@ public sealed class LaterSpreadsheetImportTests {
     [Fact]
     public void ImportedCommentBatchObservesCancellationBetweenComments() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         using var cancellation = new CancellationTokenSource();
         Assert.Throws<OperationCanceledException>(() => sheet.AddImportedComments(
             new CancelingComments(cancellation), "Legacy source", cancellation.Token));

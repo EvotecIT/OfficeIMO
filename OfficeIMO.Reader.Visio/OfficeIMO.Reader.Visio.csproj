@@ -49,4 +49,5 @@
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
   </ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO" /></ItemGroup>
 </Project>

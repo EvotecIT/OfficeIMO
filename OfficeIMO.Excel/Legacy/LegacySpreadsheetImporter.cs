@@ -85,7 +85,7 @@ public static class LegacySpreadsheetImporter {
         try {
             foreach (LegacySpreadsheetSheet sourceSheet in model.Sheets) {
                 cancellationToken.ThrowIfCancellationRequested();
-                ExcelSheet target = document.AddWorksheet(sourceSheet.Name, model.PreserveSheetNames ? ExcelSheetNameValidationMode.Strict : ExcelSheetNameValidationMode.Sanitize);
+                ExcelSheet target = document.AddSheet(sourceSheet.Name, model.PreserveSheetNames ? ExcelSheetNameValidationMode.Strict : ExcelSheetNameValidationMode.Sanitize);
                 var comments = new List<(int Row, int Column, string Text)>();
                 foreach (LegacySpreadsheetCell cell in sourceSheet.Cells) {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -107,7 +107,7 @@ public static class LegacySpreadsheetImporter {
                 string reference = "'" + name.SheetName.Replace("'", "''") + "'!$" + ColumnName(name.FirstColumn) + "$" + name.FirstRow.ToString(CultureInfo.InvariantCulture) + ":$" + ColumnName(name.LastColumn) + "$" + name.LastRow.ToString(CultureInfo.InvariantCulture);
                 document.SetNamedRange(name.ProjectedName, reference, save: false, validationMode: ExcelDefinedNameValidationMode.Strict);
             }
-            if (model.Sheets.Count == 0) document.AddWorksheet("Sheet1");
+            if (model.Sheets.Count == 0) document.AddSheet("Sheet1");
             return document;
         } catch {
             document.Dispose();
@@ -136,11 +136,11 @@ public static class LegacySpreadsheetImporter {
         }
         if (collisionCount > 0) {
             model.Metadata["UnprojectedNameCollisionCount"] = collisionCount.ToString(CultureInfo.InvariantCulture);
-            model.Findings.Add(LegacySpreadsheetAdapterBase.LossFinding("WK_NAME_COLLISION", "Name", "One or more source names collided case-insensitively and were retained in the semantic snapshot without overwriting projected names; the total is available in metadata."));
+            model.Findings.Add(LegacySpreadsheetAdapterBase.LossFinding("wk-name-collision", "Name", "One or more source names collided case-insensitively and were retained in the semantic snapshot without overwriting projected names; the total is available in metadata."));
         }
         if (invalidCount > 0) {
             model.Metadata["UnprojectedInvalidNameCount"] = invalidCount.ToString(CultureInfo.InvariantCulture);
-            model.Findings.Add(LegacySpreadsheetAdapterBase.LossFinding("WK_NAME_INVALID", "Name", "One or more source names were invalid Excel defined names and were retained in the semantic snapshot without silent sanitization; the total is available in metadata."));
+            model.Findings.Add(LegacySpreadsheetAdapterBase.LossFinding("wk-name-invalid", "Name", "One or more source names were invalid Excel defined names and were retained in the semantic snapshot without silent sanitization; the total is available in metadata."));
         }
     }
 

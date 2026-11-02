@@ -1,13 +1,13 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
-    internal void MergeFontProgramUsageFrom(PdfOptions nested) {
+public sealed partial class PdfCreateOptions {
+    internal void MergeFontProgramUsageFrom(PdfCreateOptions nested) {
         if (ReferenceEquals(this, nested)) return;
         MergeResolvedFallbackFontMappingsFrom(nested);
         if (nested._embeddedFontPrograms != null) {
             foreach (var entry in nested._embeddedFontPrograms) {
                 if (TryGetEmbeddedStandardFontProgramForGeneration(entry.Key, out _, out PdfTrueTypeFontProgram? target) && target != null) {
-                    foreach ((int glyphId, string unicodeText) in entry.Value.GetGlyphToUnicodeMappings())
+                    foreach ((int glyphId, string unicodeText) in entry.Value.GetUsedGlyphToUnicodeMappings())
                         target.RecordGlyphUsage(glyphId, unicodeText);
                     target.MergeTextPinsFrom(entry.Value);
                 }
@@ -16,7 +16,7 @@ public sealed partial class PdfOptions {
         if (nested._embeddedOpenTypeCffFontPrograms != null) {
             foreach (var entry in nested._embeddedOpenTypeCffFontPrograms) {
                 if (TryGetEmbeddedStandardOpenTypeCffFontProgramForGeneration(entry.Key, out _, out PdfOpenTypeCffFontProgram? target) && target != null) {
-                    foreach ((int glyphId, string unicodeText) in entry.Value.GetGlyphToUnicodeMappings())
+                    foreach ((int glyphId, string unicodeText) in entry.Value.GetUsedGlyphToUnicodeMappings())
                         target.RecordGlyphUsage(glyphId, unicodeText);
                     target.MergeTextPinsFrom(entry.Value);
                 }
@@ -25,7 +25,7 @@ public sealed partial class PdfOptions {
         if (nested._namedFontPrograms != null) {
             foreach (var entry in nested._namedFontPrograms) {
                 if (TryGetNamedFontProgramForGeneration(entry.Key, out PdfTrueTypeFontProgram? target) && target != null) {
-                    foreach ((int glyphId, string unicodeText) in entry.Value.GetGlyphToUnicodeMappings())
+                    foreach ((int glyphId, string unicodeText) in entry.Value.GetUsedGlyphToUnicodeMappings())
                         target.RecordGlyphUsage(glyphId, unicodeText);
                     target.MergeTextPinsFrom(entry.Value);
                 }
@@ -34,7 +34,7 @@ public sealed partial class PdfOptions {
         if (nested._namedOpenTypeCffFontPrograms != null) {
             foreach (var entry in nested._namedOpenTypeCffFontPrograms) {
                 if (TryGetNamedOpenTypeCffFontProgramForGeneration(entry.Key, out PdfOpenTypeCffFontProgram? target) && target != null) {
-                    foreach ((int glyphId, string unicodeText) in entry.Value.GetGlyphToUnicodeMappings())
+                    foreach ((int glyphId, string unicodeText) in entry.Value.GetUsedGlyphToUnicodeMappings())
                         target.RecordGlyphUsage(glyphId, unicodeText);
                     target.MergeTextPinsFrom(entry.Value);
                 }

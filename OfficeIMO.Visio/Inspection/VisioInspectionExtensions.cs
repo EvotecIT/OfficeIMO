@@ -15,10 +15,10 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Creates a stable, data-oriented snapshot of the document structure.
         /// </summary>
-        public static VisioInspectionSnapshot CreateInspectionSnapshot(this VisioDocument document) =>
-            CreateInspectionSnapshot(document, int.MaxValue);
+        public static VisioInspectionSnapshot Inspect(this VisioDocument document) =>
+            Inspect(document, int.MaxValue);
 
-        internal static VisioInspectionSnapshot CreateInspectionSnapshot(
+        internal static VisioInspectionSnapshot Inspect(
             this VisioDocument document,
             int maxShapeDataRowsPerPage) {
             if (document == null) {

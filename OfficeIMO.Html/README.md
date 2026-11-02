@@ -2,6 +2,8 @@
 
 `OfficeIMO.Html` contains the shared HTML parser, resource policy, layout scene, and direct PNG/JPEG/TIFF/SVG/WebP rendering APIs used by OfficeIMO converters.
 
+For selected image batches, set `HtmlRenderOptions.PageSelection = OfficeIMO.Pdf.PdfPageSelection.Parse("3,1,3")`. The selection uses one-based positions within the retained surfaces, preserves caller order and repeats, and applies image-count limits to the selected outputs. Image results keep the original page names. HTML layout, PDF output, archives and single-image exports keep their existing page-selection behavior.
+
 It owns the reusable parts that should behave consistently across HTML-to-Markdown, HTML-to-Office, image, and PDF workflows:
 
 - trust-aware parsing profiles and shared source, DOM, CSS, selector, responsive-image, and semantic-metadata limits
@@ -22,7 +24,7 @@ It owns the reusable parts that should behave consistently across HTML-to-Markdo
 - one operation-scoped resource session for policy, resolution, MIME checks, caching, deduplication, budgets, timeouts, and digests
 - fidelity scoring across structure, text, styles, resources, annotations, formulas, charts, geometry, and reopened native artifacts
 
-Markdown, Word, Excel, PowerPoint, RTF, Email, MHTML, and PDF models remain in their owning packages. Those projections are explicit: for example, HTML becomes a `WordDocument` through `OfficeIMO.Word.Html` and a `MarkdownDoc` through `OfficeIMO.Markdown.Html`.
+Markdown, Word, Excel, PowerPoint, RTF, Email, MHTML, and PDF models remain in their owning packages. Those projections are explicit: for example, HTML becomes a `WordDocument` through `OfficeIMO.Word.Html` and a `MarkdownDocument` through `OfficeIMO.Markdown.Html`.
 
 To save a source HTML copy in another directory while retaining its relative resource paths:
 
@@ -92,7 +94,8 @@ HtmlDocument edited = source.Edit(document => {
     targetRow.AppendChild(document.ImportNode(cells));
 });
 HtmlConversionDocument conversion = HtmlConversionDocument.FromDocument(edited);
-string markdown = conversion.ToMarkdown();
+using var markdownDocument = conversion.ToMarkdown();
+string markdown = markdownDocument.ToMarkdown();
 byte[] preview = conversion.ToPng();
 ```
 
@@ -284,6 +287,7 @@ responsive selection.
 ## Direct HTML rendering
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 
@@ -307,14 +311,13 @@ string svg = source.ToSvg(options);
 byte[] webp = source.ToWebp(options);
 
 OfficeImageExportResult pngSave = source.SaveAsPng("status.png", options);
-IReadOnlyList<OfficeImageExportResult> webpPages = source
-    .ToImages(options)
-    .Paged()
-    .AsWebp()
-    .Save("status-pages");
+var imageOptions1 = options.Clone();
+imageOptions1.Mode = HtmlRenderMode.Paged;
+imageOptions1.Format = OfficeImageExportFormat.Webp;
+OfficeConversionReport webpPages = source.SaveAsImages("status-pages", imageOptions1);
 ```
 
-HTML image export uses the PDF page scenes. SVG keeps proven PDF glyph contours and the logical source as accessibility labels, including admitted finite zero-advance text. See the [PDF image-export contract](../OfficeIMO.Pdf/README.md#export-pdf-pages-as-images) for the supported spans and text-fallback limits.
+HTML image export uses the PDF page scenes. SVG keeps proven PDF glyph contours and the logical source as accessibility labels, including admitted finite zero-advance text. See the [PDF image-export contract](../Docs/officeimo.pdf-guide.md#export-pdf-pages-as-images) for the supported spans and text-fallback limits.
 
 The default style mode keeps OfficeIMO's established document layout: an
 uninset body and Arial fallback. Select the bounded browser user-agent defaults
@@ -776,7 +779,7 @@ metadata survives page fragmentation without repeating its text label. A float c
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
 
-`ToPng()`, `ToJpeg()`, `ToTiff()`, `ToSvg()`, and `ToWebp()` return in-memory output. `ExportImage()` and `ExportImages()` return encoded output plus dimensions and diagnostics. Format-specific save methods and the shared `ToImage()` / `ToImages()` fluent builders write to files or caller-owned streams and return the same structured evidence.
+`ToPng()`, `ToJpeg()`, `ToTiff()`, `ToSvg()`, and `ToWebp()` return in-memory output. `ExportImage()` and `ExportImages()` return encoded output plus dimensions and diagnostics. `ToImage(options)` returns encoded bytes; its `out report` overload and `ToImageAsync(options)` also return fidelity evidence. `SaveAsImage(pathOrStream, options)` and `SaveAsImages(folder, options)` return `OfficeConversionReport`. Options select the format, zero-based page, layout, resource policy and output limits; caller-owned streams remain open.
 
 HTML-to-PDF generation is included in `OfficeIMO.Html`. The public types retain the `OfficeIMO.Html.Pdf` namespace. `HtmlToPdfOptions` derives from `HtmlRenderOptions`, so the same configured instance drives PDF and all five image formats. See [HTML to PDF and paged images](PDF.md) for resource policies, fonts, paged-media semantics and complete examples.
 
@@ -787,7 +790,8 @@ var options = new HtmlToPdfOptions {
     Margins = HtmlRenderMargins.All(32)
 };
 
-byte[] pdf = source.ToPdfBytes(options);
+using var pdfDocument = source.ToPdf(options);
+byte[] pdf = pdfDocument.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 byte[] png = source.ToPng(options);
 string svg = source.ToSvg(options);
 ```
@@ -874,7 +878,7 @@ Native adapters use `HtmlConversionResult<TArtifact>` when callers need conversi
 ## Conversion Document And Normalized HTML
 
 ```csharp
-var conversion = HtmlConversionDocumentBuilder.Build(html, new HtmlConversionDocumentOptions {
+var conversion = HtmlConversionDocument.Parse(html, new HtmlConversionDocumentOptions {
     Profile = HtmlConversionProfile.Document,
     Trust = HtmlInputTrust.Untrusted,
     BaseUri = new Uri("https://example.com/reports/"),
@@ -999,6 +1003,8 @@ already belongs to the body, `TitleHeading` is null; read it from `Blocks`.
 Current OfficeIMO semantic exports identify schema `2` and public-safe restoration metadata. Public-safe envelopes can be imported from untrusted input. A target-specific envelope marked `trusted-target` restores private target metadata only when the prepared input is trusted; otherwise the adapter uses the shared generic semantic path and reports the boundary. Schema `1` remains readable.
 
 ```csharp
+using OfficeIMO.Word.Html;
+
 HtmlRoundTripScore score = HtmlRoundTripScorer.Compare(sourceHtml, exportedHtml);
 Console.WriteLine(score.Dimensions["structure"]);
 Console.WriteLine(score.Dimensions["styles"]);
@@ -1068,7 +1074,6 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Inspect | 2 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 1 | 0 | 0 | 0 | 0 | 0 |
 | Remove | 1 | 0 | 0 | 0 | 0 | 0 |
-| Convert | 1 | 0 | 0 | 0 | 0 | 0 |
 | Export | 5 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Html` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).

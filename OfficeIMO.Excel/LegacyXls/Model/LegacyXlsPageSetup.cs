@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents worksheet page setup metadata parsed from legacy XLS print records.
     /// </summary>
-    public sealed class LegacyXlsPageSetup {
+    internal sealed class LegacyXlsPageSetup {
         /// <summary>Gets the left margin in inches, when present.</summary>
         public double? LeftMargin { get; internal set; }
 

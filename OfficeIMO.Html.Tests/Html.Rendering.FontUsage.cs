@@ -105,7 +105,7 @@ public sealed class HtmlFontUsageTests {
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreateTrustedHost()
         };
         var result = await HtmlConversionDocument.Parse(Style("p{font-family:" + families + "}") + "<p>Visible text</p>")
-            .ToPdfDocumentResultAsync(options);
+            .ConvertToPdfWithEvidenceAsync(options);
         var unavailable = Assert.Single(result.Report.Warnings, x => x.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
         Assert.Equal(expectedLoss ? OfficeConversionLossKind.Approximation : OfficeConversionLossKind.None, unavailable.LossKind);
         Assert.Equal(expectedLoss, result.Report.HasLoss);

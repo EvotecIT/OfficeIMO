@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System.IO.Compression;
 using System.Text;
 using OfficeIMO.Drawing;
@@ -44,7 +45,8 @@ internal static class PackedSiteBundleContract {
             bundle.RenderToPdfResult(pdfRequest),
             bundle.RenderToPdfResultAsync(pdfRequest).GetAwaiter().GetResult()
         }) {
-            PdfReadDocument pdf = PdfReadDocument.Open(result.ToBytes());
+            using var pdfInput = new MemoryStream(result.ToBytes());
+            using var pdf = PdfDocument.Load(pdfInput);
             if (!pdf.ExtractText().Contains("Packed site") || !pdf.ExtractImages().Any(image => image.IsImageFile))
                 throw new InvalidOperationException("Packed site-bundle PDF lost text or archive images.");
         }

@@ -13,7 +13,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("font:16px/calc(20px - 10cqw) Pinned", 0D)]
     public void HtmlFontMathRanges_MarginLeadingUsesTheActualPaperBeforeRangeClamping(string declaration, double expected) {
         var options = PageMarginTypographyOptions();
-        options.PageSize = new OfficePageSize(360D / 96D, 480D / 96D);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(360D / 96D), global::OfficeIMO.OfficeLength.Inches(480D / 96D));
         string html = PageMarginTypographySource("font:16px/22px Pinned;" + declaration, "Hgyp");
 
         HtmlRenderPage page = Assert.Single(HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html), options).Pages);
@@ -28,7 +28,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("0", 0D)]
     public void HtmlFontMathRanges_ZeroMarginSizeRemainsZeroAndDoesNotPaint(string size, double expected) {
         var options = PageMarginTypographyOptions();
-        options.PageSize = new OfficePageSize(360D / 96D, 480D / 96D);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(360D / 96D), global::OfficeIMO.OfficeLength.Inches(480D / 96D));
         string html = PageMarginTypographySource("font:16px/22px Pinned;font-size:" + size, "Hgyp");
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderPage page = Assert.Single(rendered.Pages);

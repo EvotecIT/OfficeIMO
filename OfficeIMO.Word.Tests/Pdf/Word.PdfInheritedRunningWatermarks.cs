@@ -26,7 +26,7 @@ public partial class Word {
         if (start > 0) document.Sections[1]._sectionProperties.AddChild(new W.PageNumberType { Start = start }, true);
         Assert.Null(document.Sections[0].Header?.Even);
         Assert.Null(document.Sections[1].Header?.Even);
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(start == 5 ? 4 : 3, pdf.NumberOfPages);
         for (int page = 1; page <= pdf.NumberOfPages; page++) {
             bool expected = page == 1 || page == 3;
@@ -49,7 +49,7 @@ public partial class Word {
         story.AddWatermark(image ? WordWatermarkStyle.Image : WordWatermarkStyle.Text,
             image ? Path.Combine(_directoryWithImages, "Kulek.jpg") : "EVENMARK");
         if (start > 0) document.Sections[1]._sectionProperties.AddChild(new W.PageNumberType { Start = start }, true);
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(start == 5 ? 4 : 3, pdf.NumberOfPages);
         for (int page = 1; page <= pdf.NumberOfPages; page++) {
             bool expected = start == 5 ? page == 4 : page == 2;

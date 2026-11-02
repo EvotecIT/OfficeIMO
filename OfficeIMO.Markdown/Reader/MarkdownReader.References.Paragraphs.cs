@@ -1,7 +1,7 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
-    private static bool IsReferenceDefinitionParagraphContinuationLine(string[] lines, int index, MarkdownReaderOptions options) {
+internal static partial class MarkdownReader {
+    private static bool IsReferenceDefinitionParagraphContinuationLine(string[] lines, int index, MarkdownLoadOptions options) {
         if (lines == null || index < 0 || index >= lines.Length) {
             return false;
         }
@@ -30,7 +30,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool IsFootnoteDefinitionStarterForParagraphInterruption(string line, MarkdownReaderOptions options) {
+    private static bool IsFootnoteDefinitionStarterForParagraphInterruption(string line, MarkdownLoadOptions options) {
         if (options?.Footnotes != true || string.IsNullOrWhiteSpace(line)) {
             return false;
         }

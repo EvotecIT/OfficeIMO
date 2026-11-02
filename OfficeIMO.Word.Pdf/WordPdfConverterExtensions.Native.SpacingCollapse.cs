@@ -1,0 +1,192 @@
+using System.Collections.Generic;
+using OfficeIMO.Drawing;
+using PdfCore = OfficeIMO.Pdf;
+
+namespace OfficeIMO.Word.Pdf {
+    public static partial class WordPdfConverterExtensions {
+        private sealed class NativeSpacingCollapseFlow : INativePdfFlow {
+            public void ContinuedFlow(Action<PdfCore.PdfContentBuilder> build, Action<PdfCore.PdfContentBuilder>? separator,
+                Action<PdfCore.PdfContentBuilder>? continuationSeparator, Action<PdfCore.PdfContentBuilder>? continuationNotice,
+                bool reserveFinalNotice, bool allowContinuationSeparatorInBottomMargin) {
+                _inner.ContinuedFlow(build, separator, continuationSeparator, continuationNotice, reserveFinalNotice,
+                    allowContinuationSeparatorInBottomMargin);
+                ResetSpacingCollapse();
+            }
+            public PdfCore.PdfFootnoteDefinition DefineFootnote(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfFootnoteOptions options) => _inner.DefineFootnote(build, options);
+            public bool SupportsPositionedTables => _inner.SupportsPositionedTables;
+            private readonly INativePdfFlow _inner;
+            private double? _pendingSpacingAfter;
+            private bool _preserveInitialSpacingBefore;
+
+            public NativeSpacingCollapseFlow(INativePdfFlow inner, bool preserveInitialSpacingBefore = false) {
+                _inner = inner;
+                _preserveInitialSpacingBefore = preserveInitialSpacingBefore;
+            }
+
+            // Contextual spacing removes the rendered trailing space, but Word
+            // still subtracts that declared value from the next paragraph's
+            // before spacing when collapsing their shared boundary.
+            internal void RetainSuppressedSpacingAfter(double? declaredSpacingAfter) =>
+                _pendingSpacingAfter = declaredSpacingAfter;
+
+            public PdfCore.PdfPageSize PageSize => _inner.PageSize;
+
+            public void PageBreak(bool preserveEmptyPage = false) {
+                _inner.PageBreak(preserveEmptyPage);
+                ResetSpacingCollapse();
+            }
+
+            public void ColumnBreak() {
+                _inner.ColumnBreak();
+                ResetSpacingCollapse();
+            }
+
+            public void Spacer(double height) {
+                _inner.Spacer(height);
+                ResetSpacingCollapse();
+            }
+
+            public void ParagraphSpacingBefore(double height) =>
+                _inner.ParagraphSpacingBefore(CollapseSpacingBefore(height));
+
+            public void ParagraphSpacingAfter(double height) {
+                _inner.ParagraphSpacingAfter(height);
+                _pendingSpacingAfter = height;
+            }
+
+            public void Bookmark(string name) => _inner.Bookmark(name);
+            public void TableOfContents(PdfCore.PdfTableOfContentsOptions options) { _inner.TableOfContents(options); ResetSpacingCollapse(); }
+
+            public void HR(double? thickness = null, global::OfficeIMO.OfficeColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null) {
+                _inner.HR(thickness, color, spacingBefore, spacingAfter, style);
+                ResetSpacingCollapse();
+            }
+
+            public void Paragraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null) {
+                PdfCore.PdfParagraphStyle? collapsedStyle = style;
+                if (style != null) {
+                    collapsedStyle = style.Clone();
+                    collapsedStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(CollapseSpacingBefore(style.SpacingBefore.ToPoints()));
+                }
+
+                _inner.Paragraph(build, align, defaultColor, collapsedStyle);
+                _pendingSpacingAfter = style?.SpacingAfter?.ToPoints();
+            }
+
+            public void Panel(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfPanelStyle? style = null) {
+                PdfCore.PdfPanelStyle? collapsedStyle = style;
+                if (style != null) {
+                    collapsedStyle = style.Clone();
+                    collapsedStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(CollapseSpacingBefore(style.SpacingBefore.ToPoints()));
+                }
+
+                _inner.Panel(build, collapsedStyle);
+                _pendingSpacingAfter = (style?.SpacingAfter.ToPoints());
+            }
+
+            public void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null) {
+                PdfCore.PdfPanelStyle? collapsedStyle = style;
+                if (style != null) {
+                    collapsedStyle = style.Clone();
+                    collapsedStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(CollapseSpacingBefore(style.SpacingBefore.ToPoints()));
+                }
+
+                _inner.PanelParagraph(build, collapsedStyle, align, defaultColor, paragraphStyle);
+                _pendingSpacingAfter = paragraphStyle?.SpacingAfter?.ToPoints() ?? (style?.SpacingAfter.ToPoints());
+            }
+
+            public void Heading(int level, string text, Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align, global::OfficeIMO.OfficeColor? color, PdfCore.PdfHeadingStyle? style) {
+                PdfCore.PdfHeadingStyle? collapsedStyle = style;
+                if (style != null) {
+                    collapsedStyle = style.Clone();
+                    collapsedStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(CollapseSpacingBefore(style.SpacingBefore.ToPoints()));
+                }
+
+                _inner.Heading(level, text, build, align, color, collapsedStyle);
+                _pendingSpacingAfter = (style?.SpacingAfter?.ToPoints());
+            }
+
+            public void RichNumbered(IEnumerable<PdfCore.PdfListItem> items, PdfCore.PdfAlign align, global::OfficeIMO.OfficeColor? color, int startNumber, PdfCore.PdfListStyle? style) {
+                PdfCore.PdfListStyle? collapsedStyle = CollapseListStyle(style);
+                _inner.RichNumbered(items, align, color, startNumber, collapsedStyle);
+                _pendingSpacingAfter = ((style?.SpacingAfter)?.ToPoints());
+            }
+
+            public void RichBullets(IEnumerable<PdfCore.PdfListItem> items, PdfCore.PdfAlign align, global::OfficeIMO.OfficeColor? color, PdfCore.PdfListStyle? style) {
+                PdfCore.PdfListStyle? collapsedStyle = CollapseListStyle(style);
+                _inner.RichBullets(items, align, color, collapsedStyle);
+                _pendingSpacingAfter = ((style?.SpacingAfter)?.ToPoints());
+            }
+
+            public void TextField(string name, double width, double height, string value, PdfCore.PdfAlign align, double fontSize, double spacingBefore, double spacingAfter, PdfCore.PdfFormFieldStyle? style = null) {
+                _inner.TextField(name, width, height, value, align, fontSize, spacingBefore, spacingAfter, style);
+                ResetSpacingCollapse();
+            }
+
+            public void ChoiceField(string name, IEnumerable<string> options, string? value, double width, double height, PdfCore.PdfAlign align, double fontSize, double spacingBefore, double spacingAfter, bool isComboBox, PdfCore.PdfFormFieldStyle? style = null) {
+                _inner.ChoiceField(name, options, value, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox, style);
+                ResetSpacingCollapse();
+            }
+
+            public void CheckBox(string name, bool isChecked, double size, PdfCore.PdfAlign align, double spacingBefore, double spacingAfter, string checkedValueName = "Yes", PdfCore.PdfFormFieldStyle? style = null) {
+                _inner.CheckBox(name, isChecked, size, align, spacingBefore, spacingAfter, checkedValueName, style);
+                ResetSpacingCollapse();
+            }
+
+            public void Shape(OfficeShape shape, PdfCore.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+                _inner.Shape(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
+                ResetSpacingCollapse();
+            }
+
+            public void Drawing(OfficeDrawing drawing, PdfCore.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+                _inner.Drawing(drawing, align, spacingBefore.HasValue ? CollapseSpacingBefore(spacingBefore.Value) : null, spacingAfter, style, linkUri, linkContents);
+                _pendingSpacingAfter = spacingAfter;
+            }
+
+            public void Canvas(Action<PdfCore.PdfPageCanvas> build) {
+                _inner.Canvas(build);
+                ResetSpacingCollapse();
+            }
+
+            public void Table(IEnumerable<PdfCore.PdfTableCell[]> rows, PdfCore.PdfAlign align, PdfCore.PdfTableStyle? style) {
+                _inner.Table(rows, align, style);
+                ResetSpacingCollapse();
+            }
+
+            public void Image(byte[] bytes, double width, double height, PdfCore.PdfAlign? align = null, PdfCore.PdfImageStyle? style = null) {
+                _inner.Image(bytes, width, height, align, style);
+                ResetSpacingCollapse();
+            }
+
+            private PdfCore.PdfListStyle? CollapseListStyle(PdfCore.PdfListStyle? style) {
+                if (style == null) {
+                    return null;
+                }
+
+                PdfCore.PdfListStyle collapsedStyle = style.Clone();
+                collapsedStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(CollapseSpacingBefore(style.SpacingBefore.ToPoints()));
+                return collapsedStyle;
+            }
+
+            private double CollapseSpacingBefore(double spacingBefore) {
+                // Running Word stories preserve authored initial spacing. An
+                // explicit spacer avoids generic page-start suppression while
+                // keeping measurement and rendering on the same flow path.
+                bool preserve = _preserveInitialSpacingBefore;
+                _preserveInitialSpacingBefore = false;
+                if (preserve && spacingBefore > 0D) {
+                    _inner.Spacer(spacingBefore);
+                    return 0D;
+                }
+                return _pendingSpacingAfter.HasValue
+                    ? Math.Max(0D, spacingBefore - _pendingSpacingAfter.Value)
+                    : spacingBefore;
+            }
+
+            private void ResetSpacingCollapse() {
+                _pendingSpacingAfter = null;
+                _preserveInitialSpacingBefore = false;
+            }
+        }
+    }
+}

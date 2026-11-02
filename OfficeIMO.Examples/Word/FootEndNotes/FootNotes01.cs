@@ -33,7 +33,7 @@ namespace OfficeIMO.Examples.Word {
                 var paragraph = document.AddParagraph("Basic paragraph");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
-                document.AddParagraph("This is my text").AddFootNote("This is a footnote to my text")
+                document.AddParagraph("This is my text").AddFootNote("This is a footnote to my text").Paragraph
                     .AddText(" continuing").AddFootNote("2nd footnote!");
 
                 Console.WriteLine("EndNotes count " + document.EndNotes.Count);
@@ -43,8 +43,8 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("FootNotes Section count " + document.Sections[0].FootNotes.Count);
 
 
-                var lastFootNoteParagraph = document.AddParagraph("Another paragraph").AddFootNote("more footnotes!")
-                    .AddText(" more within paragraph").AddFootNote("4th footnote!");
+                var lastFootNoteParagraph = document.AddParagraph("Another paragraph").AddFootNote("more footnotes!").Paragraph
+                    .AddText(" more within paragraph").AddFootNote("4th footnote!").Paragraph;
 
                 Console.WriteLine("Is paragraph foot note: " + lastFootNoteParagraph.IsFootNote);
 

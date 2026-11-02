@@ -7,8 +7,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralReferences_PreserveQuotedExternalThreeDimensionalQualifiers() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet summary = document.AddSheet("Summary");
             summary.CellFormula(
                 1,
                 1,

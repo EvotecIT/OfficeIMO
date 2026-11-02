@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents a merged range parsed from a legacy XLS worksheet.
     /// </summary>
-    public sealed class LegacyXlsMergedRange {
+    internal sealed class LegacyXlsMergedRange {
         /// <summary>
         /// Creates legacy merged range metadata.
         /// </summary>

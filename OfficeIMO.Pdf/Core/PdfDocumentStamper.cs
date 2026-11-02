@@ -23,7 +23,7 @@ public sealed partial class PdfDocumentStamper {
     /// <summary>
     /// Attempts to create a new PDF with text stamped above existing content, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TextResult(string text, PdfTextStampOptions? stampOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> TextResult(string text, PdfTextStampOptions? stampOptions = null, PdfLoadOptions? options = null) {
         return _document.TryMutationOperation("Stamp text", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageContent, _ => Text(text, stampOptions, options), options: options, cancellationToken: stampOptions?.CancellationToken ?? default);
     }
 
@@ -40,7 +40,7 @@ public sealed partial class PdfDocumentStamper {
     /// <summary>
     /// Attempts to create a new PDF with text watermarked behind existing content, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TextWatermarkResult(string text, PdfTextStampOptions? stampOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> TextWatermarkResult(string text, PdfTextStampOptions? stampOptions = null, PdfLoadOptions? options = null) {
         return _document.TryMutationOperation("Watermark text", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageContent, _ => TextWatermark(text, stampOptions, options), options: options, cancellationToken: stampOptions?.CancellationToken ?? default);
     }
 
@@ -59,7 +59,7 @@ public sealed partial class PdfDocumentStamper {
     /// <summary>
     /// Attempts to create a new PDF with an image stamped above existing content, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> ImageResult(byte[] imageBytes, PdfImageStampOptions? stampOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> ImageResult(byte[] imageBytes, PdfImageStampOptions? stampOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(imageBytes, nameof(imageBytes));
         return _document.TryMutationOperation("Stamp image", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageContent, _ => Image(imageBytes, stampOptions, options), options: options, cancellationToken: stampOptions?.CancellationToken ?? default);
     }
@@ -77,7 +77,7 @@ public sealed partial class PdfDocumentStamper {
     /// <summary>
     /// Attempts to create a new PDF with an image stamped from a readable image stream, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> ImageResult(Stream imageStream, PdfImageStampOptions? stampOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> ImageResult(Stream imageStream, PdfImageStampOptions? stampOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(imageStream, nameof(imageStream));
         return _document.TryMutationOperation("Stamp image", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageContent, _ => Image(imageStream, stampOptions, options), options: options, cancellationToken: stampOptions?.CancellationToken ?? default);
     }
@@ -97,7 +97,7 @@ public sealed partial class PdfDocumentStamper {
     /// <summary>
     /// Attempts to create a new PDF with an image watermarked behind existing content, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> ImageWatermarkResult(byte[] imageBytes, PdfImageStampOptions? stampOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> ImageWatermarkResult(byte[] imageBytes, PdfImageStampOptions? stampOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(imageBytes, nameof(imageBytes));
         return _document.TryMutationOperation("Watermark image", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageContent, _ => ImageWatermark(imageBytes, stampOptions, options), options: options, cancellationToken: stampOptions?.CancellationToken ?? default);
     }
@@ -115,7 +115,7 @@ public sealed partial class PdfDocumentStamper {
     /// <summary>
     /// Attempts to create a new PDF with an image watermark from a readable image stream, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> ImageWatermarkResult(Stream imageStream, PdfImageStampOptions? stampOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> ImageWatermarkResult(Stream imageStream, PdfImageStampOptions? stampOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(imageStream, nameof(imageStream));
         return _document.TryMutationOperation("Watermark image", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageContent, _ => ImageWatermark(imageStream, stampOptions, options), options: options, cancellationToken: stampOptions?.CancellationToken ?? default);
     }
@@ -152,19 +152,19 @@ public sealed partial class PdfDocumentStamper {
     }
 
     /// <summary>Attempts to import one page from another PDF above selected pages.</summary>
-    public PdfOperationResult<PdfDocument> OverlayPageResult(byte[] sourcePdf, PdfPageOverlayOptions? overlayOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> OverlayPageResult(byte[] sourcePdf, PdfPageOverlayOptions? overlayOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
         return _document.TryMutationOperation("Overlay PDF page", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageContent, _ => OverlayPage(sourcePdf, overlayOptions, options), options: options, cancellationToken: overlayOptions?.CancellationToken ?? default);
     }
 
     /// <summary>Attempts to import one page from a readable PDF stream above selected pages.</summary>
-    public PdfOperationResult<PdfDocument> OverlayPageResult(Stream sourceStream, PdfPageOverlayOptions? overlayOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> OverlayPageResult(Stream sourceStream, PdfPageOverlayOptions? overlayOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(sourceStream, nameof(sourceStream));
         return _document.TryMutationOperation("Overlay PDF page", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageContent, _ => OverlayPage(sourceStream, overlayOptions, options), options: options, cancellationToken: overlayOptions?.CancellationToken ?? default);
     }
 
     /// <summary>Attempts to import one page from a PDF file above selected pages.</summary>
-    public PdfOperationResult<PdfDocument> OverlayPageResult(string sourcePath, PdfPageOverlayOptions? overlayOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> OverlayPageResult(string sourcePath, PdfPageOverlayOptions? overlayOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
         return _document.TryMutationOperation("Overlay PDF page", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageContent, _ => OverlayPage(sourcePath, overlayOptions, options), options: options, cancellationToken: overlayOptions?.CancellationToken ?? default);
     }
@@ -201,19 +201,19 @@ public sealed partial class PdfDocumentStamper {
     }
 
     /// <summary>Attempts to import one page from another PDF below selected pages.</summary>
-    public PdfOperationResult<PdfDocument> UnderlayPageResult(byte[] sourcePdf, PdfPageOverlayOptions? overlayOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> UnderlayPageResult(byte[] sourcePdf, PdfPageOverlayOptions? overlayOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
         return _document.TryMutationOperation("Underlay PDF page", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageContent, _ => UnderlayPage(sourcePdf, overlayOptions, options), options: options, cancellationToken: overlayOptions?.CancellationToken ?? default);
     }
 
     /// <summary>Attempts to import one page from a readable PDF stream below selected pages.</summary>
-    public PdfOperationResult<PdfDocument> UnderlayPageResult(Stream sourceStream, PdfPageOverlayOptions? overlayOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> UnderlayPageResult(Stream sourceStream, PdfPageOverlayOptions? overlayOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(sourceStream, nameof(sourceStream));
         return _document.TryMutationOperation("Underlay PDF page", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageContent, _ => UnderlayPage(sourceStream, overlayOptions, options), options: options, cancellationToken: overlayOptions?.CancellationToken ?? default);
     }
 
     /// <summary>Attempts to import one page from a PDF file below selected pages.</summary>
-    public PdfOperationResult<PdfDocument> UnderlayPageResult(string sourcePath, PdfPageOverlayOptions? overlayOptions = null, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> UnderlayPageResult(string sourcePath, PdfPageOverlayOptions? overlayOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
         return _document.TryMutationOperation("Underlay PDF page", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageContent, _ => UnderlayPage(sourcePath, overlayOptions, options), options: options, cancellationToken: overlayOptions?.CancellationToken ?? default);
     }

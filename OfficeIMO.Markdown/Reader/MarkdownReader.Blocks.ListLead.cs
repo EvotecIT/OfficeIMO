@@ -4,8 +4,8 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
-    private static ListItem CreateListItemFromLeadLines(List<string> lines, bool isTask, bool done, MarkdownReaderOptions options, MarkdownReaderState? state, int lineOffset, List<MarkdownSourceLineSlice>? sourceLines = null) {
+internal static partial class MarkdownReader {
+    private static ListItem CreateListItemFromLeadLines(List<string> lines, bool isTask, bool done, MarkdownLoadOptions options, MarkdownReaderState? state, int lineOffset, List<MarkdownSourceLineSlice>? sourceLines = null) {
         if (state?.IsListBoundaryProbe == true) {
             return isTask
                 ? ListItem.TaskInlines(new InlineSequence(), done)
@@ -137,7 +137,7 @@ public static partial class MarkdownReader {
         string line,
         bool isTask,
         bool done,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state,
         int absoluteLine,
         int startColumn,
@@ -192,7 +192,7 @@ public static partial class MarkdownReader {
     private static bool TryConsumeListItemGenericAttributes(
         List<string> lines,
         List<MarkdownSourceLineSlice>? sourceLines,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState? state,
         int lineOffset,
         int firstBlank,
@@ -254,7 +254,7 @@ public static partial class MarkdownReader {
 
     private static List<MarkdownSyntaxNode> RemoveLeadingListItemAbbreviationDefinitions(
         List<string> lines,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState? state,
         int lineOffset,
         List<MarkdownSourceLineSlice>? sourceLines) {
@@ -336,7 +336,7 @@ public static partial class MarkdownReader {
         List<string> lines,
         bool isTask,
         bool done,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState? state,
         List<MarkdownSourceLineSlice>? sourceLines,
         out ListItem item) {
@@ -377,7 +377,7 @@ public static partial class MarkdownReader {
 
     private static bool TryParseListItemLeadBlocks(
         List<string> lines,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState? state,
         List<MarkdownSourceLineSlice>? sourceLines,
         out IReadOnlyList<IMarkdownBlock> blocks) {
@@ -409,7 +409,7 @@ public static partial class MarkdownReader {
     private static bool TryParseListItemLeadBlockSyntaxNodes(
         List<string> lines,
         int lineOffset,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState? state,
         List<MarkdownSourceLineSlice>? sourceLines,
         out IReadOnlyList<MarkdownSyntaxNode> syntaxNodes) {
@@ -439,7 +439,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool StartsListItemLeadWithIndentedCode(List<string> lines, MarkdownReaderOptions options) {
+    private static bool StartsListItemLeadWithIndentedCode(List<string> lines, MarkdownLoadOptions options) {
         if (lines == null || lines.Count == 0 || options?.IndentedCodeBlocks != true) {
             return false;
         }
@@ -452,7 +452,7 @@ public static partial class MarkdownReader {
         return CountLeadingIndentColumns(lines[firstNonBlank] ?? string.Empty) >= 4;
     }
 
-    private static bool StartsListItemLeadWithStandaloneBlock(List<string> lines, MarkdownReaderOptions options) {
+    private static bool StartsListItemLeadWithStandaloneBlock(List<string> lines, MarkdownLoadOptions options) {
         if (lines == null || lines.Count == 0 || options == null) {
             return false;
         }
@@ -469,7 +469,7 @@ public static partial class MarkdownReader {
         return StartsListItemLeadWithStandaloneBlock(lines[firstNonBlank] ?? string.Empty, options);
     }
 
-    private static bool StartsListItemLeadWithStandaloneBlock(string line, MarkdownReaderOptions options) {
+    private static bool StartsListItemLeadWithStandaloneBlock(string line, MarkdownLoadOptions options) {
         if (string.IsNullOrEmpty(line) || options == null) {
             return false;
         }
@@ -513,7 +513,7 @@ public static partial class MarkdownReader {
         return false;
     }
 
-    private static bool TryParseListItemLeadSetextBlocks(List<string> lines, MarkdownReaderOptions options, MarkdownReaderState? state, int lineOffset, out List<IMarkdownBlock> blocks) {
+    private static bool TryParseListItemLeadSetextBlocks(List<string> lines, MarkdownLoadOptions options, MarkdownReaderState? state, int lineOffset, out List<IMarkdownBlock> blocks) {
         blocks = new List<IMarkdownBlock>();
         if (lines == null || lines.Count == 0 || options == null || !options.Headings) return false;
 
@@ -535,7 +535,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryGetLeadingSetextHeadingPrefix(List<string> lines, MarkdownReaderOptions options, out int headingLineCount, out int level, out string headingText, out MarkdownInlineSourceMap? headingSourceMap) {
+    private static bool TryGetLeadingSetextHeadingPrefix(List<string> lines, MarkdownLoadOptions options, out int headingLineCount, out int level, out string headingText, out MarkdownInlineSourceMap? headingSourceMap) {
         headingLineCount = 0;
         level = 0;
         headingText = string.Empty;
@@ -572,7 +572,7 @@ public static partial class MarkdownReader {
         return false;
     }
 
-    private static bool TryParseSetextHeadingParagraphLines(List<string> lines, MarkdownReaderOptions options, out int level, out string headingText) {
+    private static bool TryParseSetextHeadingParagraphLines(List<string> lines, MarkdownLoadOptions options, out int level, out string headingText) {
         level = 0;
         headingText = string.Empty;
         if (lines == null || lines.Count < 2 || options == null || !options.Headings) return false;

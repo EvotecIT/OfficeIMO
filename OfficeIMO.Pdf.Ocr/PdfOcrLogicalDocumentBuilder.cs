@@ -205,7 +205,7 @@ internal static partial class PdfOcrLogicalDocumentBuilder {
             JoinWords(orderedWords),
             confidence,
             new[] { new PdfInferenceEvidence(
-                source.LineId is null ? "line.ocr-geometry" : "line.ocr-provider-hierarchy",
+                source.LineId is null ? global::OfficeIMO.OfficeDiagnosticCodes.LineOcrGeometry : global::OfficeIMO.OfficeDiagnosticCodes.LineOcrProviderHierarchy,
                 source.LineId is null
                     ? "OCR words form a continuous visual run on a shared baseline."
                     : "OCR words share a provider-supplied block, paragraph, and line hierarchy.",
@@ -236,7 +236,7 @@ internal static partial class PdfOcrLogicalDocumentBuilder {
             Array.Empty<PdfTextSpan>(),
             word.Confidence,
             new[] { new PdfInferenceEvidence(
-                "word.ocr-bounds",
+                global::OfficeIMO.OfficeDiagnosticCodes.WordOcrBounds,
                 "The word geometry was normalized from rendered-page OCR bounds into PDF user space.",
                 word.Confidence - 0.5D) },
             advance,

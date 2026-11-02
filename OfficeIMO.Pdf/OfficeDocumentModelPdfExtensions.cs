@@ -6,13 +6,13 @@ using System.Runtime.CompilerServices;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Loss-aware PDF projection over the neutral document model.</summary>
-public static partial class OfficeDocumentModelPdfExtensions {
+internal static partial class OfficeDocumentModelPdfExtensions {
     private const string ConverterName = "OfficeIMO.Pdf";
 
     /// <summary>
     /// Projects neutral document content into a PDF document while merging source and PDF diagnostics.
     /// </summary>
-    public static PdfDocumentConversionResult ToPdfDocumentResult(
+    internal static PdfDocumentConversionResult ToPdfDocumentResult(
         this OfficeDocumentModel source,
         PdfProjectionOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -26,10 +26,10 @@ public static partial class OfficeDocumentModelPdfExtensions {
 
         var report = new PdfConversionReport();
         AddSourceDiagnostics(source, report, cancellationToken);
-        PdfOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfOptions();
+        PdfCreateOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCreateOptions();
         pdfOptions.UseContentStreamCompressionByDefault();
         pdfOptions.ReportDiagnosticsTo(report, ConverterName);
-        PdfDocument document = PdfDocument.Create(pdfOptions)
+        PdfDocument document = PdfDocument.CreateForImportedLayout(pdfOptions)
             .Meta(source.Source.Title, source.Source.Author, source.Source.Subject, source.Source.Keywords);
         OfficeRasterDecodeOptions rasterDecodeOptions = options.SnapshotRasterDecodeOptions();
         rasterDecodeOptions.MaximumDecodedPixels = Math.Min(
@@ -95,7 +95,7 @@ public static partial class OfficeDocumentModelPdfExtensions {
         }
 
         if (identities.HasAmbiguousTableProjection) report.Add(new PdfConversionWarning(ConverterName,
-            "MODEL_TABLE_CORRELATION_UNASSESSED", source.Format + "/document",
+            "model-table-correlation-unassessed", source.Format + "/document",
             "Unlocated aggregate table content occurs in several page scopes. Correspondence is not inferred and all supplied entries are retained.",
             PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Unassessed));
         AddSourceSpecificPolicyEvidence(source, options, assetSummary, report);
@@ -370,7 +370,7 @@ public static partial class OfficeDocumentModelPdfExtensions {
             .Select(static entry => new[] { entry.Name, entry.Value ?? string.Empty })
             .ToArray();
         if (rows.Length > 0) {
-            document.Table(rows, style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null, SpacingAfter = 10 });
+            document.Table(rows, style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null, SpacingAfter = global::OfficeIMO.OfficeLength.Points(10) });
         }
     }
 

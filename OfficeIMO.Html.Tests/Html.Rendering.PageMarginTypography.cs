@@ -127,7 +127,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(PageMarginTypographyCompact(footer),
             PageMarginTypographyCompact(string.Concat(painted.Select(text => text.Text))));
 
-        byte[] pdf = document.ToPdfBytes(options);
+        byte[] pdf = (document.ToPdf(options)).ToBytes();
         Assert.Equal("BodyOnly", PdfCore.PdfReadDocument.Open(pdf).ExtractText().Trim());
         var pdfPage = Assert.Single(PdfCore.PdfReadDocument.Open(pdf,
             new PdfCore.PdfLoadOptions { IncludeArtifactText = true }).Pages);

@@ -12,11 +12,11 @@ public partial class WordRtfConverterTests {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
         using (var stream = new MemoryStream(png, writable: false)) {
-            paragraph.AddImage(stream, "first.png", 16, 16, description: "First run image");
+            paragraph.AddImage(stream, "first.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Description = "First run image" });
         }
         var secondRun = new WordParagraph(word, paragraph._paragraph, newRun: true);
         using (var stream = new MemoryStream(png, writable: false)) {
-            secondRun.AddImage(stream, "second.png", 16, 16, description: "Second run image");
+            secondRun.AddImage(stream, "second.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Description = "Second run image" });
         }
 
         RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
@@ -36,7 +36,7 @@ public partial class WordRtfConverterTests {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
         using (var stream = new MemoryStream(png, writable: false)) {
-            paragraph.AddImage(stream, "inline.png", 16, 16, description: "Inline image");
+            paragraph.AddImage(stream, "inline.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Description = "Inline image" });
         }
         new WordParagraph(word, paragraph._paragraph, newRun: true).AddText("After image");
 

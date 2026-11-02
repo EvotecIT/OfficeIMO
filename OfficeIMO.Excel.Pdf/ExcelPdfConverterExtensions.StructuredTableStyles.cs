@@ -5,30 +5,26 @@ namespace OfficeIMO.Excel.Pdf {
         private static IReadOnlyList<StructuredTableVisualData> ReadStructuredTableVisuals(
             ExcelDocument document,
             string sheetName,
-            ExcelToPdfOptions options) {
-            if (!options.UseWorksheetCellStyles) {
-                return Array.Empty<StructuredTableVisualData>();
-            }
-
+            ExcelPdfExportOptions options) {
             var visuals = new List<StructuredTableVisualData>();
             foreach (ExcelTableInfo table in document.GetTables()) {
                 if (!string.Equals(table.SheetName, sheetName, StringComparison.OrdinalIgnoreCase) ||
-                    !A1.TryParseRange(table.Range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                    !ExcelA1.TryParseRange(table.Range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                     continue;
                 }
 
-                if (!ExcelBuiltInTableStylePaletteResolver.TryCreate(
+                ExcelBuiltInTableStylePalette? palette = null;
+                if (options.UseWorksheetCellStyles && !ExcelBuiltInTableStylePaletteResolver.TryCreate(
                         document,
                         table.StyleName,
-                        out ExcelBuiltInTableStylePalette? palette)) {
+                        out palette)) {
                     if (!string.IsNullOrWhiteSpace(table.StyleName)) {
                         AddWarning(
                             options,
                             sheetName,
-                            "WorksheetTableStyle",
+                            "worksheet-table-style",
                             $"Excel table '{table.DisplayName}' uses custom or unknown style '{table.StyleName}'. Its values and direct cell formatting were preserved, but the table style could not be projected.");
                     }
-                    continue;
                 }
 
                 visuals.Add(new StructuredTableVisualData(
@@ -42,10 +38,73 @@ namespace OfficeIMO.Excel.Pdf {
                     table.ShowLastColumn,
                     table.ShowRowStripes,
                     table.ShowColumnStripes,
-                    palette!));
+                    palette));
             }
 
+            if (options.UseWorksheetCellStyles) AddPivotTableVisuals(document, sheetName, visuals);
             return visuals;
+        }
+
+        private static Dictionary<(int Row, int Column), PdfCore.PdfCanvasTableHeaderScope>? CreateStructuredTableHeaderScopes(
+            string?[,]? references, IReadOnlyList<StructuredTableVisualData> tables,
+            IReadOnlyList<int> rows, int columnOffset, int columns) {
+            if (references == null || tables.Count == 0) return null;
+            var scopes = new Dictionary<(int Row, int Column), PdfCore.PdfCanvasTableHeaderScope>();
+            for (int row = 0; row < rows.Count; row++) {
+                for (int column = 0; column < columns; column++) {
+                    int sourceColumn = column + columnOffset;
+                    if (rows[row] >= references.GetLength(0) || sourceColumn >= references.GetLength(1)) continue;
+                    string? reference = references[rows[row], sourceColumn];
+                    if (string.IsNullOrEmpty(reference)) continue;
+                    var source = ExcelA1.ParseCellRef(reference!);
+                    if (tables.Any(table => table.IsHeaderCell(source.Row, source.Col)))
+                        scopes[(row, column)] = PdfCore.PdfCanvasTableHeaderScope.Column;
+                }
+            }
+            return scopes.Count == 0 ? null : scopes;
+        }
+
+        /// <summary>
+        /// A pivot table prints with its pivot style: a coloured header row and a bold grand total
+        /// row with a rule above it. The built-in pivot styles share their palettes with the table
+        /// style of the same family and number, so the pivot area is drawn with that palette.
+        /// </summary>
+        private static void AddPivotTableVisuals(ExcelDocument document, string sheetName, List<StructuredTableVisualData> visuals) {
+            IReadOnlyList<ExcelPivotTableInfo> pivots;
+            try {
+                pivots = document.GetPivotTables();
+            } catch (InvalidOperationException) {
+                return;
+            }
+
+            foreach (ExcelPivotTableInfo pivot in pivots) {
+                if (!string.Equals(pivot.SheetName, sheetName, StringComparison.OrdinalIgnoreCase) ||
+                    string.IsNullOrWhiteSpace(pivot.PivotStyle) ||
+                    !pivot.PivotStyle!.StartsWith("PivotStyle", StringComparison.OrdinalIgnoreCase) ||
+                    !ExcelA1.TryParseRange(pivot.Location ?? string.Empty, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) ||
+                    lastRow <= firstRow) {
+                    continue;
+                }
+
+                string tableStyle = "TableStyle" + pivot.PivotStyle.Substring("PivotStyle".Length);
+                if (!ExcelBuiltInTableStylePaletteResolver.TryCreate(document, tableStyle, out ExcelBuiltInTableStylePalette? palette)) {
+                    continue;
+                }
+
+                bool hasGrandTotal = pivot.RowGrandTotals != false && pivot.RowFields.Count > 0;
+                visuals.Add(new StructuredTableVisualData(
+                    firstRow,
+                    firstColumn,
+                    lastRow,
+                    lastColumn,
+                    hasHeader: true,
+                    hasTotals: hasGrandTotal,
+                    showFirstColumn: false,
+                    showLastColumn: false,
+                    showRowStripes: false,
+                    showColumnStripes: false,
+                    palette!));
+            }
         }
 
         private static StructuredTableCellVisual? GetStructuredTableCellVisual(
@@ -64,7 +123,7 @@ namespace OfficeIMO.Excel.Pdf {
                 return null;
             }
 
-            (int Row, int Col) cell = A1.ParseCellRef(reference!.Replace("$", string.Empty));
+            (int Row, int Col) cell = ExcelA1.ParseCellRef(reference!.Replace("$", string.Empty));
             if (cell.Row <= 0 || cell.Col <= 0) {
                 return null;
             }
@@ -89,7 +148,7 @@ namespace OfficeIMO.Excel.Pdf {
             private readonly bool _showLastColumn;
             private readonly bool _showRowStripes;
             private readonly bool _showColumnStripes;
-            private readonly ExcelBuiltInTableStylePalette _palette;
+            private readonly ExcelBuiltInTableStylePalette? _palette;
 
             internal StructuredTableVisualData(
                 int firstRow,
@@ -102,7 +161,7 @@ namespace OfficeIMO.Excel.Pdf {
                 bool showLastColumn,
                 bool showRowStripes,
                 bool showColumnStripes,
-                ExcelBuiltInTableStylePalette palette) {
+                ExcelBuiltInTableStylePalette? palette) {
                 _firstRow = firstRow;
                 _firstColumn = firstColumn;
                 _lastRow = lastRow;
@@ -116,9 +175,12 @@ namespace OfficeIMO.Excel.Pdf {
                 _palette = palette;
             }
 
+            internal bool IsHeaderCell(int row, int column) =>
+                _hasHeader && row == _firstRow && column >= _firstColumn && column <= _lastColumn;
+
             internal bool TryResolve(int row, int column, out StructuredTableCellVisual? visual) {
                 visual = null;
-                if (row < _firstRow || row > _lastRow || column < _firstColumn || column > _lastColumn) {
+                if (_palette == null || row < _firstRow || row > _lastRow || column < _firstColumn || column > _lastColumn) {
                     return false;
                 }
 
@@ -139,22 +201,54 @@ namespace OfficeIMO.Excel.Pdf {
                 bool emphasizedColumn =
                     _showFirstColumn && column == _firstColumn ||
                     _showLastColumn && column == _lastColumn;
+                bool top = true, bottom = true, left = true, right = true;
+                switch (_palette.BorderLayout) {
+                    case ExcelTableStyleBorderLayout.Horizontal:
+                        left = right = false;
+                        break;
+                    case ExcelTableStyleBorderLayout.OutlineHorizontal:
+                        left = right = false;
+                        top = row == _firstRow || totals;
+                        bottom = row == _lastRow || header;
+                        break;
+                    case ExcelTableStyleBorderLayout.Box:
+                        top = row == _firstRow || totals;
+                        bottom = row == _lastRow || header;
+                        left = column == _firstColumn;
+                        right = column == _lastColumn;
+                        break;
+                    case ExcelTableStyleBorderLayout.None:
+                        top = bottom = left = right = false;
+                        break;
+                }
+
                 visual = new StructuredTableCellVisual(
                     fill,
                     header ? _palette.HeaderText : _palette.BodyText,
-                    header ? _palette.HeaderBold : emphasizedColumn,
-                    _palette.Border);
+                    header ? _palette.HeaderBold : emphasizedColumn || totals,
+                    top || bottom || left || right ? _palette.Border : null,
+                    top, right, bottom, left);
                 return true;
             }
         }
 
         private sealed class StructuredTableCellVisual {
-            internal StructuredTableCellVisual(string? fill, string? text, bool bold, string? border) {
+            internal StructuredTableCellVisual(string? fill, string? text, bool bold, string? border,
+                bool borderTop = true, bool borderRight = true, bool borderBottom = true, bool borderLeft = true) {
                 Fill = fill;
                 Text = text;
                 Bold = bold;
                 Border = border;
+                BorderTop = borderTop;
+                BorderRight = borderRight;
+                BorderBottom = borderBottom;
+                BorderLeft = borderLeft;
             }
+
+            internal bool BorderTop { get; }
+            internal bool BorderRight { get; }
+            internal bool BorderBottom { get; }
+            internal bool BorderLeft { get; }
 
             internal string? Fill { get; }
             internal string? Text { get; }

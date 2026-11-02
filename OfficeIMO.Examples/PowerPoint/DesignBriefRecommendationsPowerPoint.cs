@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 .ThenBy(recommendation => recommendation.Design.Index)
                 .First();
 
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
             PowerPointDeckPlan plan = new PowerPointDeckPlan();
 
@@ -68,32 +68,16 @@ namespace OfficeIMO.Examples.PowerPoint {
                     options.ConnectorStyle = PowerPointProcessConnectorStyle.SegmentArrows;
                 });
 
-            plan.AddCustom("Selected direction", composer => {
-                composer.AddTitle("Selected direction", selected.Design.DirectionName);
-                PowerPointLayoutBox[] columns = composer.ContentColumns(2, 0.8, topCm: 3.85);
-
-                composer.AddCardGrid(selected.Reasons.Take(4).Select((reason, index) =>
-                        new PowerPointCardContent("Reason " + (index + 1), new[] { reason })),
-                    columns[0],
-                    new PowerPointCardGridSlideOptions {
-                        MaxColumns = 1,
-                        Variant = PowerPointCardGridLayoutVariant.SoftTiles
-                    });
-
-                composer.AddMetricStrip(new[] {
-                    new PowerPointMetric(selected.PreferenceScore.ToString(), "preference score"),
-                    new PowerPointMetric((selected.Design.Index + 1).ToString(), "selected option"),
-                    new PowerPointMetric(selected.Reasons.Count.ToString(), "reasons")
-                }, columns[1].TakeTopCm(2.2));
-
-                composer.AddVisualFrame(columns[1].InsetCm(0, 2.55, 0, 2.25).TakeTopCm(2.0),
-                    PowerPointVisualFrameVariant.ProofBoard);
-
-                composer.AddCalloutBand(
-                    $"{selected.Design.Mood} mood, {selected.Design.VisualStyle} visuals, " +
-                    $"{selected.Design.HeadingFontName} headings. Change only the alternative index to render a different direction.",
-                    columns[1].InsetCm(0, 4.85, 0, 0).TakeTopCm(1.45));
-            }, "selected-direction", options => options.FooterRight = "Recommended");
+            // The selected direction is ordinary content: reasons on the left, the numbers in a results panel.
+            var direction = new List<PowerPointLayoutBlock>();
+            direction.AddRange(selected.Reasons.Take(3).Select((reason, index) =>
+                (PowerPointLayoutBlock)new PowerPointLayoutCard("Reason " + (index + 1), reason)));
+            direction.Add(new PowerPointLayoutKpi(selected.PreferenceScore.ToString(), "Preference score"));
+            direction.Add(new PowerPointLayoutKpi((selected.Design.Index + 1).ToString(), "Selected option"));
+            direction.Add(new PowerPointLayoutKpi(selected.Reasons.Count.ToString(), "Reasons"));
+            plan.Add(new PowerPointContentPlanSlide("Selected direction", direction, PowerPointLayout.CaseStudy, selected.Design.DirectionName) {
+                Notes = $"{selected.Design.Mood} mood, {selected.Design.HeadingFontName} headings. Change only the alternative index to render a different direction."
+            });
 
             PowerPointCompositionOptions composition = PowerPointCompositionOptions.FromBrief(brief);
             composition.SelectBestAlternative = false;
@@ -104,7 +88,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             if (openPowerPoint) ExampleFileLauncher.Open(filePath);
         }
 
-        private static void Validate(string filePath, PowerPointPresentation presentation) {
+        private static void Validate(string filePath, PowerPointDocument presentation) {
             List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
             if (errors.Count > 0) {
                 string details = string.Join(Environment.NewLine, errors.Take(5).Select(error => error.Description));

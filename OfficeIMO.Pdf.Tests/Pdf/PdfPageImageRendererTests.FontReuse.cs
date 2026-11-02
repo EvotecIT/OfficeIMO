@@ -50,9 +50,9 @@ public partial class PdfPageImageRendererTests {
 
         // The public batch path requests diagnostics before drawing. Its output must also survive
         // cold and warm cancellation, independently of the drawing-first export contract.
-        PdfPageRenderResult batch = Assert.Single(document.Render.Pages(options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Png }));
+        PdfPageRenderResult batch = Assert.Single(document.Render.Pages(options: new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png }));
         Assert.True(batch.Succeeded, string.Join(" ", batch.Diagnostics));
-        PdfPageRenderResult fresh = Assert.Single(PdfDocument.Load(pdf).Render.Pages(options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Png }));
+        PdfPageRenderResult fresh = Assert.Single(PdfDocument.Load(pdf).Render.Pages(options: new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png }));
         Assert.Equal(fresh.Bytes, batch.Bytes);
         Assert.Equal(fresh.CapabilityDiagnostics.Select(DiagnosticContract), batch.CapabilityDiagnostics.Select(DiagnosticContract));
     }

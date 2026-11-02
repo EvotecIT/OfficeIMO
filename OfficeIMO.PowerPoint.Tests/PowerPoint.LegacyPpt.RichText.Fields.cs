@@ -16,8 +16,9 @@ namespace OfficeIMO.Tests {
             string encodedRtf = Convert.ToBase64String(
                 System.Text.Encoding.Unicode.GetBytes(rtfFormat));
             byte[] sourceBytes;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
+                source.ClearThemeTextDefaults();
                 PowerPointTextBox textBox = source.AddSlide(
                         PowerPointSlideLayoutType.Blank)
                     .AddTextBox(string.Empty);
@@ -48,9 +49,9 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation sourceLegacy = LegacyPptPresentation.Load(
+            LegacyPptDocument sourceLegacy = LegacyPptDocument.Load(
                 sourceBytes);
             LegacyPptTextBody sourceText = Assert.Single(Assert.Single(
                     sourceLegacy.Slides).Shapes).TextBody;
@@ -81,8 +82,8 @@ namespace OfficeIMO.Tests {
             byte[] editedBytes;
             using (var input = new MemoryStream(sourceBytes,
                        writable: false))
-            using (PowerPointPresentation imported =
-                   PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported =
+                   PowerPointDocument.Load(input)) {
                 A.Paragraph paragraph = Assert.Single(imported.Slides[0]
                     .SlidePart.Slide!.Descendants<A.Paragraph>());
                 A.Field[] fields = paragraph.Elements<A.Field>().ToArray();
@@ -106,9 +107,9 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
-                editedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                editedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation edited = LegacyPptPresentation.Load(
+            LegacyPptDocument edited = LegacyPptDocument.Load(
                 editedBytes);
             LegacyPptTextBody editedText = Assert.Single(Assert.Single(
                     edited.Slides).Shapes).TextBody;
@@ -128,7 +129,7 @@ namespace OfficeIMO.Tests {
 
             using var reopenedInput = new MemoryStream(editedBytes,
                 writable: false);
-            using PowerPointPresentation reopened = PowerPointPresentation
+            using PowerPointDocument reopened = PowerPointDocument
                 .Load(reopenedInput);
             Assert.Equal(6, reopened.Slides[0].SlidePart.Slide!
                 .Descendants<A.Field>().Count());

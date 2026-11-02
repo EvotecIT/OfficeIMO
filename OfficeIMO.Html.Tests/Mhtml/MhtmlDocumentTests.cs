@@ -82,10 +82,10 @@ public sealed class MhtmlDocumentTests {
         const string html = "<sample-card><template shadowmode='open'><p>HiddenSnapshot</p></template>VisibleLight</sample-card>";
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
 
-        string ordinary = PdfCore.PdfReadDocument.Open(document.ToPdfBytes()).ExtractText();
-        string projected = PdfCore.PdfReadDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions {
+        string ordinary = PdfCore.PdfReadDocument.Open((document.ToPdf()).ToBytes()).ExtractText();
+        string projected = PdfCore.PdfReadDocument.Open((document.ToPdf(new HtmlToPdfOptions {
             ProjectSerializedShadowRoots = true
-        })).ExtractText();
+        })).ToBytes()).ExtractText();
 
         Assert.Contains("VisibleLight", ordinary, StringComparison.Ordinal);
         Assert.DoesNotContain("HiddenSnapshot", ordinary, StringComparison.Ordinal);
@@ -118,7 +118,7 @@ public sealed class MhtmlDocumentTests {
             """);
 
         PdfCore.PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync();
-        string text = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+        string text = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).ExtractText();
 
         Assert.Contains("ChainedValue", text, StringComparison.Ordinal);
         Assert.DoesNotContain("InnerFallback", text, StringComparison.Ordinal);
@@ -133,7 +133,7 @@ public sealed class MhtmlDocumentTests {
             """);
 
         PdfCore.PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync();
-        string text = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+        string text = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).ExtractText();
 
         Assert.Contains("InsideVisible", text, StringComparison.Ordinal);
         Assert.Contains("OutsideVisible", text, StringComparison.Ordinal);
@@ -694,7 +694,7 @@ public sealed class MhtmlDocumentTests {
 
         MhtmlDocument document = MhtmlDocument.Load(stream);
         PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult();
-        string text = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+        string text = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).ExtractText();
 
         Assert.Contains("Zażółć MHTML", text, StringComparison.Ordinal);
         Assert.DoesNotContain("executed", text, StringComparison.OrdinalIgnoreCase);

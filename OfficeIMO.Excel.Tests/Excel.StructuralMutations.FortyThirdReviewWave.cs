@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ModernChart_UpdateDataAllocatesAwayFromSharedChartPartRange() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             ExcelModernChart chart = sheet.AddModernChart(
                 new ExcelChartData(
                     new[] { "A", "B" },
@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ModernChart_MalformedDrawingRelationshipFailsBeforeBackingDataMutation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             sheet.WorksheetPart.Worksheet.Append(
                 new DocumentFormat.OpenXml.Spreadsheet.Drawing { Id = "rIdMissing" });
             sheet.WorksheetPart.Worksheet.Save();
@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeMove_ReplacesDestinationRangeMetadataBeforeMovingSourceRules() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, 1);
             sheet.CellValue(1, 3, 9);
             sheet.ValidationList("A1", new[] { "source" });

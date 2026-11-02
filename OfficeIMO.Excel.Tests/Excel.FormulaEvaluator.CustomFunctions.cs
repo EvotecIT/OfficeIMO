@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
                 observed.AddRange(arguments);
                 return arguments[0];
             });
-            var sheet = document.AddWorksheet("Custom");
+            var sheet = document.AddSheet("Custom");
             sheet.CellValue(1, 1, "00123");
             sheet.CellFormula(1, 4, $"ECHO({argument})");
             Assert.Equal(1, document.Calculate());
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
                     document.Calculation.RegisterCustomFunction("CUSTOMERROR", (_, arguments) =>
                         arguments.Count == 0 ? ExcelFormulaValue.FromError("#N/A") : null);
 
-                    ExcelSheet sheet = document.AddWorksheet("Report");
+                    ExcelSheet sheet = document.AddSheet("Report");
                     sheet.CellValue(1, 1, 120d);
                     sheet.CellValue(2, 1, 90d);
                     sheet.CellValue(3, 1, 30d);
@@ -123,7 +123,7 @@ namespace OfficeIMO.Tests {
                             : null);
                     document.Calculation.EvaluateFormulasBeforeSave = true;
 
-                    ExcelSheet sheet = document.AddWorksheet("Save Calculation");
+                    ExcelSheet sheet = document.AddSheet("Save Calculation");
                     sheet.CellValue(1, 1, 21d);
                     sheet.CellFormula(1, 2, "DOUBLEVALUE(A1)");
                     document.Save();
@@ -159,7 +159,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Future Prefixes");
+                    ExcelSheet sheet = document.AddSheet("Future Prefixes");
                     sheet.CellValue(1, 1, "East");
                     sheet.CellValue(2, 1, "West");
                     sheet.CellValue(1, 2, 10d);

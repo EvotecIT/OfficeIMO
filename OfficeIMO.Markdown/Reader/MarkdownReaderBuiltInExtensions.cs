@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Helper methods for registering OfficeIMO.Markdown's built-in block syntax extensions onto a reader profile.
 /// </summary>
-public static class MarkdownReaderBuiltInExtensions {
+internal static class MarkdownReaderBuiltInExtensions {
     /// <summary>Stable registration name for Docs-style callouts.</summary>
     public const string CalloutsExtensionName = "OfficeIMO.Callouts";
 
@@ -16,7 +16,7 @@ public static class MarkdownReaderBuiltInExtensions {
     /// <summary>
     /// Registers the OfficeIMO default built-in block extensions: callouts, TOC placeholders, and footnotes.
     /// </summary>
-    public static void RegisterOfficeIMODefaults(MarkdownReaderOptions options) {
+    public static void RegisterOfficeIMODefaults(MarkdownLoadOptions options) {
         if (options == null) {
             throw new ArgumentNullException(nameof(options));
         }
@@ -27,7 +27,7 @@ public static class MarkdownReaderBuiltInExtensions {
     }
 
     /// <summary>Adds Docs-style callout parsing to the supplied reader options.</summary>
-    public static void AddCallouts(MarkdownReaderOptions options) {
+    public static void AddCallouts(MarkdownLoadOptions options) {
         AddIfMissing(
             options,
             CalloutsExtensionName,
@@ -37,7 +37,7 @@ public static class MarkdownReaderBuiltInExtensions {
     }
 
     /// <summary>Adds TOC placeholder parsing to the supplied reader options.</summary>
-    public static void AddTocPlaceholders(MarkdownReaderOptions options) {
+    public static void AddTocPlaceholders(MarkdownLoadOptions options) {
         AddIfMissing(
             options,
             TocPlaceholdersExtensionName,
@@ -47,7 +47,7 @@ public static class MarkdownReaderBuiltInExtensions {
     }
 
     /// <summary>Adds footnote definition parsing to the supplied reader options.</summary>
-    public static void AddFootnotes(MarkdownReaderOptions options) {
+    public static void AddFootnotes(MarkdownLoadOptions options) {
         AddIfMissing(
             options,
             FootnotesExtensionName,
@@ -57,7 +57,7 @@ public static class MarkdownReaderBuiltInExtensions {
     }
 
     /// <summary>Returns <see langword="true"/> when a named built-in extension is already registered.</summary>
-    public static bool HasRegistration(MarkdownReaderOptions options, string extensionName) {
+    public static bool HasRegistration(MarkdownLoadOptions options, string extensionName) {
         if (options == null) {
             throw new ArgumentNullException(nameof(options));
         }
@@ -72,11 +72,11 @@ public static class MarkdownReaderBuiltInExtensions {
     }
 
     private static void AddIfMissing(
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         string name,
         MarkdownBlockParserPlacement placement,
         IMarkdownBlockParser parser,
-        Func<MarkdownReaderOptions, bool> isEnabled) {
+        Func<MarkdownLoadOptions, bool> isEnabled) {
         if (options == null) {
             throw new ArgumentNullException(nameof(options));
         }

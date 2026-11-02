@@ -600,8 +600,8 @@ namespace OfficeIMO.Excel {
             out int c2,
             out string address) {
             if (TryResolveFormulaRangeReference(token, sourceRow, out sheet, out r1, out c1, out r2, out c2)) {
-                string start = A1.CellReference(r1, c1);
-                string end = A1.CellReference(r2, c2);
+                string start = ExcelA1.CellReference(r1, c1);
+                string end = ExcelA1.CellReference(r2, c2);
                 address = r1 == r2 && c1 == c2 ? start : start + ":" + end;
                 return true;
             }

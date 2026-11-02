@@ -11,22 +11,22 @@ Exports Word, Excel, PowerPoint, HTML, Markdown, RTF, and literal text documents
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Export-OfficeDocumentPdf [-Document] <Object> [-Path] <string> [-Password <string>] [-WordOptions <WordToPdfOptions>] [-ExcelOptions <ExcelToPdfOptions>] [-PowerPointOptions <PowerPointToPdfOptions>] [-MarkdownOptions <MarkdownToPdfOptions>] [-RtfOptions <RtfToPdfOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-TextOptions <PdfPlainTextOptions>] [-AllowLegacyImportLoss] [-MaximumInputBytes <long>] [-SourceConversionReportVariable <string>] [-PdfWarningVariable <string>] [-PdfConversionReportVariable <string>] [-Open] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeDocumentPdf [-Document] <Object> [-Path] <string> [-Password <string>] [-WordOptions <WordPdfExportOptions>] [-ExcelOptions <ExcelPdfExportOptions>] [-PowerPointOptions <PowerPointPdfExportOptions>] [-MarkdownOptions <MarkdownPdfExportOptions>] [-RtfOptions <RtfToPdfOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-TextOptions <PdfTextImportOptions>] [-AllowLegacyImportLoss] [-MaximumInputBytes <long>] [-SourceConversionReportVariable <string>] [-PdfWarningVariable <string>] [-PdfConversionReportVariable <string>] [-Open] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Directory
 ```powershell
-Export-OfficeDocumentPdf -InputDirectory <string> -OutputDirectory <string> [-CheckpointDirectory <string>] [-ConversionRouteId <string>] [-MaximumConcurrency <int>] [-MaximumFiles <int>] [-MaximumOutputBytes <long>] [-SourceExtensions <string[]>] [-NoRecurse] [-ConflictPolicy <string>] [-RetryFailed] [-ItemResults] [-AllowEmpty] [-SummaryVariable <string>] [-Password <string>] [-WordOptions <WordToPdfOptions>] [-ExcelOptions <ExcelToPdfOptions>] [-PowerPointOptions <PowerPointToPdfOptions>] [-MarkdownOptions <MarkdownToPdfOptions>] [-RtfOptions <RtfToPdfOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-TextOptions <PdfPlainTextOptions>] [-AllowLegacyImportLoss] [-MaximumInputBytes <long>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeDocumentPdf -InputDirectory <string> -OutputDirectory <string> [-CheckpointDirectory <string>] [-ConversionRouteId <string>] [-MaximumConcurrency <int>] [-MaximumFiles <int>] [-MaximumOutputBytes <long>] [-SourceExtensions <string[]>] [-NoRecurse] [-ConflictPolicy <string>] [-RetryFailed] [-ItemResults] [-AllowEmpty] [-SummaryVariable <string>] [-Password <string>] [-WordOptions <WordPdfExportOptions>] [-ExcelOptions <ExcelPdfExportOptions>] [-PowerPointOptions <PowerPointPdfExportOptions>] [-MarkdownOptions <MarkdownPdfExportOptions>] [-RtfOptions <RtfToPdfOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-TextOptions <PdfTextImportOptions>] [-AllowLegacyImportLoss] [-MaximumInputBytes <long>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Files
 ```powershell
-Export-OfficeDocumentPdf -InputPaths <Object[]> -OutputDirectory <string> [-CheckpointDirectory <string>] [-ConversionRouteId <string>] [-MaximumConcurrency <int>] [-MaximumFiles <int>] [-MaximumOutputBytes <long>] [-ConflictPolicy <string>] [-RetryFailed] [-ItemResults] [-AllowEmpty] [-SummaryVariable <string>] [-Password <string>] [-WordOptions <WordToPdfOptions>] [-ExcelOptions <ExcelToPdfOptions>] [-PowerPointOptions <PowerPointToPdfOptions>] [-MarkdownOptions <MarkdownToPdfOptions>] [-RtfOptions <RtfToPdfOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-TextOptions <PdfPlainTextOptions>] [-AllowLegacyImportLoss] [-MaximumInputBytes <long>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeDocumentPdf -InputPaths <Object[]> -OutputDirectory <string> [-CheckpointDirectory <string>] [-ConversionRouteId <string>] [-MaximumConcurrency <int>] [-MaximumFiles <int>] [-MaximumOutputBytes <long>] [-ConflictPolicy <string>] [-RetryFailed] [-ItemResults] [-AllowEmpty] [-SummaryVariable <string>] [-Password <string>] [-WordOptions <WordPdfExportOptions>] [-ExcelOptions <ExcelPdfExportOptions>] [-PowerPointOptions <PowerPointPdfExportOptions>] [-MarkdownOptions <MarkdownPdfExportOptions>] [-RtfOptions <RtfToPdfOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-TextOptions <PdfTextImportOptions>] [-AllowLegacyImportLoss] [-MaximumInputBytes <long>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Path
 ```powershell
-Export-OfficeDocumentPdf [-InputPath] <string> [-Path] <string> [-Password <string>] [-WordOptions <WordToPdfOptions>] [-ExcelOptions <ExcelToPdfOptions>] [-PowerPointOptions <PowerPointToPdfOptions>] [-MarkdownOptions <MarkdownToPdfOptions>] [-RtfOptions <RtfToPdfOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-TextOptions <PdfPlainTextOptions>] [-AllowLegacyImportLoss] [-MaximumInputBytes <long>] [-SourceConversionReportVariable <string>] [-PdfWarningVariable <string>] [-PdfConversionReportVariable <string>] [-Open] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeDocumentPdf [-InputPath] <string> [-Path] <string> [-Password <string>] [-WordOptions <WordPdfExportOptions>] [-ExcelOptions <ExcelPdfExportOptions>] [-PowerPointOptions <PowerPointPdfExportOptions>] [-MarkdownOptions <MarkdownPdfExportOptions>] [-RtfOptions <RtfToPdfOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-TextOptions <PdfTextImportOptions>] [-AllowLegacyImportLoss] [-MaximumInputBytes <long>] [-SourceConversionReportVariable <string>] [-PdfWarningVariable <string>] [-PdfConversionReportVariable <string>] [-Open] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -168,7 +168,7 @@ Accept wildcard characters: False
 Excel-specific PDF options.
 
 ```yaml
-Type: ExcelToPdfOptions
+Type: ExcelPdfExportOptions
 Parameter Sets: Document, Directory, Files, Path
 Aliases: None
 Possible values:
@@ -264,7 +264,7 @@ Accept wildcard characters: False
 Markdown-specific PDF options.
 
 ```yaml
-Type: MarkdownToPdfOptions
+Type: MarkdownPdfExportOptions
 Parameter Sets: Document, Directory, Files, Path
 Aliases: None
 Possible values:
@@ -472,7 +472,7 @@ Accept wildcard characters: False
 PowerPoint-specific PDF options.
 
 ```yaml
-Type: PowerPointToPdfOptions
+Type: PowerPointPdfExportOptions
 Parameter Sets: Document, Directory, Files, Path
 Aliases: None
 Possible values:
@@ -568,7 +568,7 @@ Accept wildcard characters: False
 Literal text layout and strict decoding options. Applies only to TXT sources.
 
 ```yaml
-Type: PdfPlainTextOptions
+Type: PdfTextImportOptions
 Parameter Sets: Document, Directory, Files, Path
 Aliases: None
 Possible values:
@@ -584,7 +584,7 @@ Accept wildcard characters: False
 Word-specific PDF options.
 
 ```yaml
-Type: WordToPdfOptions
+Type: WordPdfExportOptions
 Parameter Sets: Document, Directory, Files, Path
 Aliases: None
 Possible values:
@@ -608,8 +608,8 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## OUTPUTS
 
 - `System.IO.FileInfo`
-- `OfficeIMO.Workflows.OfficeConversionBatchResult`
-- `OfficeIMO.Workflows.OfficeConversionBatchItemResult`
+- `OfficeIMO.OfficeBatchSummary`
+- `OfficeIMO.OfficeBatchItemReport`
 
 ## RELATED LINKS
 

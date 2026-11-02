@@ -13,12 +13,12 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///   <code>$options = New-OfficeExcelPdfOptions -SheetName Summary,Services -UseWorksheetCharts -UseWorksheetImages
 /// Export-OfficeDocumentPdf -InputPath .\Report.xlsx -Path .\Report.pdf -ExcelOptions $options</code>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficeExcelPdfOptions")]
-[OutputType(typeof(ExcelToPdfOptions))]
+[Cmdlet(VerbsCommon.New, "OfficeExcelPdfOptions", DefaultParameterSetName = "Default")]
+[OutputType(typeof(ExcelPdfExportOptions))]
 public sealed class NewOfficeExcelPdfOptionsCommand : PSCmdlet {
     /// <summary>Underlying low-level OfficeIMO PDF options.</summary>
     [Parameter]
-    public OfficeIMO.Pdf.PdfOptions? PdfOptions { get; set; }
+    public OfficeIMO.Pdf.PdfCreateOptions? PdfOptions { get; set; }
 
     /// <summary>Default font family used when the workbook does not specify one.</summary>
     [Parameter]
@@ -26,7 +26,7 @@ public sealed class NewOfficeExcelPdfOptionsCommand : PSCmdlet {
 
     /// <summary>PDF page size.</summary>
     [Parameter]
-    public PageSize? PageSize { get; set; }
+    public PdfPageSize? PageSize { get; set; }
 
     /// <summary>Left page margin in PDF points.</summary>
     [Parameter]
@@ -157,17 +157,17 @@ public sealed class NewOfficeExcelPdfOptionsCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var options = new ExcelToPdfOptions();
+        var options = new ExcelPdfExportOptions();
         if (PdfOptions != null) options.PdfOptions = PdfOptions;
         if (!string.IsNullOrWhiteSpace(FontFamily)) options.FontFamily = FontFamily;
         if (PageSize.HasValue) options.PageSize = PageSize.Value;
         if (HasMargins()) {
-            PageMargins defaults = PageMargins.Normal;
-            options.Margins = new PageMargins(
-                MarginLeft ?? defaults.Left,
-                MarginTop ?? defaults.Top,
-                MarginRight ?? defaults.Right,
-                MarginBottom ?? defaults.Bottom);
+            PdfPageMargins defaults = PdfPageMargins.Normal;
+            options.Margins = new PdfPageMargins(
+                MarginLeft.HasValue ? OfficeIMO.OfficeLength.Points(MarginLeft.Value) : defaults.Left,
+                MarginTop.HasValue ? OfficeIMO.OfficeLength.Points(MarginTop.Value) : defaults.Top,
+                MarginRight.HasValue ? OfficeIMO.OfficeLength.Points(MarginRight.Value) : defaults.Right,
+                MarginBottom.HasValue ? OfficeIMO.OfficeLength.Points(MarginBottom.Value) : defaults.Bottom);
         }
         if (WorksheetLayout.HasValue) options.WorksheetLayout = WorksheetLayout.Value;
         if (SheetName is { Length: > 0 }) options.SheetNames = new List<string>(SheetName);

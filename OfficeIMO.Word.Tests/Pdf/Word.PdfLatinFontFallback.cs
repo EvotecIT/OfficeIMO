@@ -29,9 +29,9 @@ public sealed class WordPdfLatinFontFallbackTests {
         };
         AddStoryText(document, story);
         string original = main.Document.OuterXml + main.StyleDefinitionsPart.Styles.OuterXml;
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var word = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "Fallback");
         Assert.All(word.Letters, letter => Assert.Contains("Times", letter.FontName, StringComparison.OrdinalIgnoreCase));
         Assert.Equal(original, main.Document.OuterXml + main.StyleDefinitionsPart.Styles.OuterXml);
@@ -47,13 +47,13 @@ public sealed class WordPdfLatinFontFallbackTests {
         paragraph._run!.RunProperties = new RunProperties(new RunFonts {
             Ascii = "OfficeIMO Unavailable Font", HighAnsi = ManagedTextShapingTestAssets.FamilyName
         });
-        var options = new PdfOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+        var options = new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
             ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(Enumerable.Range(32, 95).ToArray())));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = options,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var word = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "Fallback");
         Assert.All(word.Letters, letter => Assert.Contains("OfficeIMO", letter.FontName, StringComparison.Ordinal));
     }
@@ -84,13 +84,13 @@ public sealed class WordPdfLatinFontFallbackTests {
             if (layer == "character") paragraph._run!.RunProperties = new RunProperties(new RunStyle { Val = "FallbackStyle" });
             else paragraph.SetStyleId("FallbackStyle");
         }
-        var options = new PdfOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+        var options = new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
             ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(Enumerable.Range(32, 95).ToArray())));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = options,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.All(pdf.GetPage(1).Letters, letter => Assert.Contains("OfficeIMO", letter.FontName, StringComparison.Ordinal));
     }
 
@@ -105,13 +105,13 @@ public sealed class WordPdfLatinFontFallbackTests {
             Ascii = unavailable ? "OfficeIMO Unavailable Font" : "Times New Roman",
             HighAnsi = unavailable ? "OfficeIMO Other Unavailable Font" : ManagedTextShapingTestAssets.FamilyName
         });
-        var options = new PdfOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+        var options = new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
             ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(Enumerable.Range(32, 95).ToArray())));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = options, FontFamily = "Courier New",
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.All(pdf.GetPage(1).Letters, letter => Assert.Contains(expected, letter.FontName, StringComparison.OrdinalIgnoreCase));
     }
 
@@ -122,8 +122,8 @@ public sealed class WordPdfLatinFontFallbackTests {
         var blank = document.AddParagraph();
         var last = document.AddParagraph("B");
         foreach (WordParagraph paragraph in new[] { first, blank, last }) {
-            paragraph.LineSpacingPoints = 20; paragraph.LineSpacingRule = WordLineSpacingRule.AtLeast;
-            paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(20));
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             foreach (Run run in paragraph._paragraph.Descendants<Run>())
                 (run.RunProperties ??= new RunProperties()).FontSize = new FontSize { Val = "16" };
         }
@@ -131,12 +131,12 @@ public sealed class WordPdfLatinFontFallbackTests {
         blank._paragraph.ParagraphProperties!.ParagraphMarkRunProperties = new ParagraphMarkRunProperties(
             new RunFonts { Ascii = "OfficeIMO Unavailable Font", HighAnsi = ManagedTextShapingTestAssets.FamilyName },
             new FontSize { Val = "64" });
-        var options = new PdfOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+        var options = new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
             ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(1200, -300, 0, 300, Enumerable.Range(32, 95).ToArray())));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = options, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         Assert.Equal(68D, Assert.Single(letters, letter => letter.Value == "A").StartBaseLine.Y -
             Assert.Single(letters, letter => letter.Value == "B").StartBaseLine.Y, 3);
@@ -184,12 +184,12 @@ public sealed class WordPdfLatinFontFallbackTests {
             if (type == StyleValues.Character) paragraph._run!.RunProperties = new RunProperties(new RunStyle { Val = "FallbackChild" });
             else paragraph.SetStyleId("FallbackChild");
         }
-        var options = new PdfOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+        var options = new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
             ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(Enumerable.Range(32, 95).ToArray())));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = options, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.All(pdf.GetPage(1).Letters, letter => Assert.Contains(baseAscii ? "Times" : "OfficeIMO", letter.FontName, StringComparison.Ordinal));
     }
 
@@ -206,16 +206,16 @@ public sealed class WordPdfLatinFontFallbackTests {
         if (blank) document.AddParagraph();
         document.AddParagraph("B");
         foreach (WordParagraph paragraph in document.Paragraphs) {
-            paragraph.LineSpacing = 240; paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
-            paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((240) / 240D);
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }
-        var options = new PdfOptions { DefaultFont = PdfStandardFont.Helvetica };
+        var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Helvetica };
         options.EmbedStandardFont(PdfStandardFont.Helvetica,
             ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(800, -200, 0, 200, Enumerable.Range(32, 95).ToArray()),
             ManagedTextShapingTestAssets.FamilyName);
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = options, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         Assert.All(letters, letter => Assert.Contains("OfficeIMO", letter.FontName, StringComparison.Ordinal));
         Assert.Equal(expectedAdvance, Assert.Single(letters, letter => letter.Value == "A").StartBaseLine.Y -

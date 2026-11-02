@@ -1,6 +1,8 @@
 using OfficeIMO.Invoicing;
 using OfficeIMO.Invoicing.Pdf;
+#if NET8_0_OR_GREATER
 using OfficeIMO.Invoicing.Validation;
+#endif
 using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Workflows;
@@ -24,9 +26,9 @@ public sealed record OfficeInvoiceStorageWorkflowRequest {
     /// <summary>Optional confirmed direct-write provider output with verified contents and durable recovery.</summary>
     public OfficeWorkflowStreamOutput? OutputStream { get; init; }
     /// <summary>Local collision policy. Provider outputs require Replace after the host obtains direct-write consent.</summary>
-    public OfficeWorkflowConflictPolicy ConflictPolicy { get; init; } = OfficeWorkflowConflictPolicy.Fail;
+    public OfficePublicationPolicy ConflictPolicy { get; init; } = OfficePublicationPolicy.Fail;
     /// <summary>Host authorization for output locations, including active-document and recovery protection.</summary>
-    public IOfficeWorkflowPublicationGuard? PublicationGuard { get; init; }
+    public IOfficePublicationGuard? PublicationGuard { get; init; }
     /// <summary>Input capture limit, at most 16 MiB.</summary>
     public long MaximumInputBytes { get; init; } = InvoiceProfileDeclaration.MaximumXmlBytes;
     /// <summary>Returned and published artifact limit; defaults to 64 MiB.</summary>
@@ -34,14 +36,18 @@ public sealed record OfficeInvoiceStorageWorkflowRequest {
     /// <summary>Rendering layout, cloned before input acquisition.</summary>
     public InvoicePdfLayoutOptions Layout { get; init; } = new();
     /// <summary>PDF settings, cloned before input acquisition.</summary>
-    public PdfOptions? PdfOptions { get; init; }
+    public PdfCreateOptions? PdfOptions { get; init; }
 }
 
 /// <summary>Shared invoice execution over local or provider storage.</summary>
 public interface IOfficeInvoiceWorkflowRunner {
     /// <summary>Captures bounded input, executes the invoice owner, and publishes successful output with source checks and recovery.</summary>
     Task<OfficeInvoiceStorageWorkflowResult> RunInvoiceAsync(OfficeInvoiceStorageWorkflowRequest request,
-        InvoiceValidator? validator = null, CancellationToken cancellationToken = default);
+
+#if NET8_0_OR_GREATER
+        InvoiceValidator? validator = null,
+#endif
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>Invoice execution and storage-publication evidence, including uncertain provider outcomes.</summary>

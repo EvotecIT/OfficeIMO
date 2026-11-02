@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Project;
 ///   <summary>Adds a task or summary with a duration expressed in working days.</summary>
 ///   <code>$project | Add-OfficeProjectTask -Name Design -DurationDays 3 -PassThru</code>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeProjectTask")]
+[Cmdlet(VerbsCommon.Add, "OfficeProjectTask", DefaultParameterSetName = "Document")]
 [OutputType(typeof(ProjectTask))]
 public sealed class AddOfficeProjectTaskCommand : PSCmdlet {
     /// <summary>Project to inspect or change.</summary>

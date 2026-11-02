@@ -237,7 +237,7 @@ namespace OfficeIMO.Excel {
                 int valueLength) {
                 int validatedSharedStringIndex = -1;
                 if (styleIndex >= 0 && (uint)styleIndex >= (uint)_owner.Styles.CellFormatCount) {
-                    string reference = A1.CellReference(rowIndex, columnIndex);
+                    string reference = ExcelA1.CellReference(rowIndex, columnIndex);
                     throw new InvalidDataException(
                         $"Worksheet '{_owner._sheetName}' cell {reference} references a missing cell style.");
                 }
@@ -254,7 +254,7 @@ namespace OfficeIMO.Excel {
                             out index);
                     }
                     if (!parsed || (uint)index >= (uint)sharedStringCount) {
-                        string reference = A1.CellReference(rowIndex, columnIndex);
+                        string reference = ExcelA1.CellReference(rowIndex, columnIndex);
                         throw new InvalidDataException(
                             $"Worksheet '{_owner._sheetName}' cell {reference} references a missing shared string.");
                     }
@@ -264,7 +264,7 @@ namespace OfficeIMO.Excel {
 
                 if (sharedFormulaFollower
                     && (!UseCachedFormulaResultForIndex || !hasCachedValue)) {
-                    string reference = A1.CellReference(rowIndex, columnIndex);
+                    string reference = ExcelA1.CellReference(rowIndex, columnIndex);
                     throw new NotSupportedException(
                         $"Data-reader projection cannot safely expand the shared-formula follower " +
                         $"'{_owner._sheetName}'!{reference}. Read the workbook through ExcelDocument when resolved " +

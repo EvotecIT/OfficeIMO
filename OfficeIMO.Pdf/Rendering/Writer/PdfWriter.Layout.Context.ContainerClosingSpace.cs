@@ -6,7 +6,7 @@ internal static partial class PdfWriter {
         // keep their full capacity; an inset may already reserve some or all of it.
         private static double GetUnreservedClosingPadding(PdfPanelStyle? style) =>
             style is { RepeatFragmentDecoration: false, AllowTrailingPaddingOverflow: false }
-                ? Math.Max(0D, style.BottomPadding - style.FragmentBottomInset) : 0D;
+                ? Math.Max(0D, style.BottomPadding - style.FragmentBottomInset.ToPoints()) : 0D;
 
         private double GetClosingContainerPadding(int? pendingSequenceDepth = null) {
             if (!pendingSequenceDepth.HasValue && activeBlockSequences.Count > 0) {
@@ -30,7 +30,7 @@ internal static partial class PdfWriter {
                     PdfPanelStyle style = ResolveContainerStyle(container);
                     double closing = GetUnreservedClosingPadding(style);
                     if (closing > 0D) { padding += closing + trailingSpacing; trailingSpacing = 0D; }
-                    trailingSpacing += style.SpacingAfter;
+                    trailingSpacing += style.SpacingAfter.ToPoints();
                 }
                 else if (sequence.Owner is not (SemanticBlock or FlowBlock or LayerBlock or SectionBlock or TableOfContentsBlock)) break;
             }
@@ -48,7 +48,7 @@ internal static partial class PdfWriter {
                     paddings[index] = paddings[index + 1];
                 } else if (items[index] is ColGroupEnd end) {
                     double closing = GetUnreservedClosingPadding(end.Group.Style);
-                    double spacing = end.Group.Style?.SpacingAfter ?? 0D;
+                    double spacing = end.Group.Style?.SpacingAfter.ToPoints() ?? 0D;
                     paddings[index] = closing + paddings[index + 1] +
                         (absorbsTrailingSpacing ? spacing : 0D);
                     absorbsTrailingSpacing |= closing > 0D;

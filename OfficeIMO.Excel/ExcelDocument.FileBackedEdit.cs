@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
         /// <see cref="DocumentPersistenceMode.SaveOnDispose"/> is selected. XLS and XLSB projection remains available through
         /// <see cref="Load(string, ExcelLoadOptions?)"/>.
         /// </remarks>
-        public static ExcelDocument OpenFileBacked(
+        internal static ExcelDocument OpenFileBacked(
             string filePath,
             ExcelLoadOptions? options = null,
             CancellationToken cancellationToken = default) {

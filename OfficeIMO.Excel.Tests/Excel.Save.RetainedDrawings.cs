@@ -129,7 +129,7 @@ namespace OfficeIMO.Tests {
         public void Removed_worksheet_drawings_do_not_attach_to_a_replacement() {
             using var document = ExcelDocument.Create();
             var (chart, image) = CreateRetainedDrawingWorkbook(document);
-            document.AddWorksheet("Keep");
+            document.AddSheet("Keep");
             document.RemoveWorksheet("Report");
             CreateRetainedDrawingWorkbook(document);
             using var result = new MemoryStream();
@@ -142,14 +142,17 @@ namespace OfficeIMO.Tests {
         }
 
         private static (ExcelChart Chart, ExcelImage Image) CreateRetainedDrawingWorkbook(ExcelDocument document) {
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             sheet.CellValue(1, 1, "Category");
             sheet.CellValue(1, 2, 42d);
             var range = new ExcelChartDataRange("Report", 1, 1, 1, 1, hasHeaderRow: false);
-            ExcelChart chart = sheet.AddChart(range, 4, 1, 300, 180, title: "Before title");
+            ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, range, new OfficeIMO.Excel.ExcelChartOptions { Row = 4, Column = 1, Width = OfficeLength.Pixels(300), Height = OfficeLength.Pixels(180), Title = "Before title" });
             byte[] imageBytes = File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png"));
-            ExcelImage image = sheet.AddImage(12, 1, imageBytes,
-                "image/png", widthPixels: 20, heightPixels: 20);
+            ExcelImage image = sheet.AddImage(12, 1, imageBytes, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(20),
+                Height = OfficeIMO.OfficeLength.Pixels(20)
+            });
             image.Title = "Before image";
             return (chart, image);
         }

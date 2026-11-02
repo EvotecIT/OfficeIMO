@@ -133,7 +133,7 @@ public sealed partial class HtmlRenderingTests {
 
     private static HtmlRenderResult RenderOverflowPattern(string html, HtmlRenderIntentProfile profile, HtmlRenderEncoder encoder) =>
         HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html), HtmlRenderRequest.Create(profile, encoder, new HtmlRenderOptions {
-            PageSize = new OfficePageSize(320D / 96D, 230D / 96D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(320D / 96D), global::OfficeIMO.OfficeLength.Inches(230D / 96D)),
             ViewportWidth = 320D,
             ViewportHeight = 230D,
             Margins = HtmlRenderMargins.All(16D),

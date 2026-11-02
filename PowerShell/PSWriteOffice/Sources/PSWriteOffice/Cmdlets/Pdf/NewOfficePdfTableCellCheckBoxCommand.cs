@@ -35,5 +35,5 @@ public sealed class NewOfficePdfTableCellCheckBoxCommand : PSCmdlet
 
     /// <inheritdoc />
     protected override void ProcessRecord()
-        => WriteObject(new PdfTableCellCheckBox(Name, Checked.IsPresent, Size, CheckedValueName));
+        => WriteObject(new PdfTableCellCheckBox(Name, Checked.IsPresent, global::OfficeIMO.OfficeLength.Points(Size), CheckedValueName));
 }

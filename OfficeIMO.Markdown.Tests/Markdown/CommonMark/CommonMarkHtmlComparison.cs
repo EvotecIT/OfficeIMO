@@ -4,10 +4,10 @@ using OfficeIMO.Markdown;
 namespace OfficeIMO.Tests.MarkdownSuite;
 
 internal static class CommonMarkHtmlComparison {
-    public static HtmlOptions CreatePlainHtmlOptions() {
-        var options = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+    public static MarkdownHtmlExportOptions CreatePlainHtmlOptions() {
+        var options = new MarkdownHtmlExportOptions {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null
         };
         options.AdditionalAllowedLinkSchemes.AddRange(new[] {

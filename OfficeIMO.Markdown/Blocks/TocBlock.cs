@@ -1,10 +1,10 @@
 namespace OfficeIMO.Markdown;
 
 /// <summary>
-/// Table of contents block generated from document headings.
+/// MarkdownTable of contents block generated from document headings.
 /// </summary>
 public sealed class TocBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlock {
-    /// <summary>Single Table of Contents entry.</summary>
+    /// <summary>Single MarkdownTable of Contents entry.</summary>
     public sealed class Entry {
         /// <summary>Heading level (1..6).</summary>
         public int Level { get; set; }
@@ -25,16 +25,16 @@ public sealed class TocBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlo
     /// <summary>Heading level for the title when an output format renders it as a heading.</summary>
     public int TitleLevel { get; set; } = 2;
     /// <summary>Minimum heading level included by the table of contents.</summary>
-    public int MinLevel { get; set; } = TocOptions.DefaultMinLevel;
+    public int MinLevel { get; set; } = MarkdownTocOptions.DefaultMinLevel;
     /// <summary>Maximum heading level included by the table of contents.</summary>
-    public int MaxLevel { get; set; } = TocOptions.DefaultMaxLevel;
+    public int MaxLevel { get; set; } = MarkdownTocOptions.DefaultMaxLevel;
     /// <summary>Preferred visual layout for output formats that support TOC chrome.</summary>
-    public TocLayout Layout { get; set; } = TocLayout.List;
+    public MarkdownTocLayout Layout { get; set; } = MarkdownTocLayout.List;
     /// <summary>Preferred visual chrome for output formats that support TOC containers.</summary>
-    public TocChrome Chrome { get; set; } = TocChrome.Default;
+    public MarkdownTocChrome Chrome { get; set; } = MarkdownTocChrome.Default;
     /// <summary>Scope used when the TOC entries were realized from a placeholder.</summary>
-    public TocScope Scope { get; set; } = TocScope.Document;
-    /// <summary>Heading title used when <see cref="Scope"/> is <see cref="TocScope.HeadingTitle"/>.</summary>
+    public MarkdownTocScope Scope { get; set; } = MarkdownTocScope.Document;
+    /// <summary>Heading title used when <see cref="Scope"/> is <see cref="MarkdownTocScope.HeadingTitle"/>.</summary>
     public string? ScopeHeadingTitle { get; set; }
     /// <summary>When true, top-level headings are included even when <see cref="MinLevel"/> starts deeper.</summary>
     public bool RequireTopLevel { get; set; } = true;
@@ -80,7 +80,7 @@ public sealed class TocBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlo
         RenderList(sb, root.Children, Ordered, options);
         return sb.ToString();
 
-        static void RenderList(StringBuilder sb, System.Collections.Generic.IEnumerable<Node> nodes, bool ordered, HtmlOptions? options) {
+        static void RenderList(StringBuilder sb, System.Collections.Generic.IEnumerable<Node> nodes, bool ordered, MarkdownHtmlExportOptions? options) {
             sb.Append(ordered ? "<ol>" : "<ul>");
             foreach (var n in nodes) {
                 var e = n.Entry!;

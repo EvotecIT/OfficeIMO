@@ -27,7 +27,7 @@ internal static partial class PdfWriter {
     /// retains both extents separately from flattened inter-paragraph heights.
     /// </summary>
     private static void AppendRichBarTabDecorations(StringBuilder sb, List<List<RichSeg>> lines,
-        List<double> lineHeights, PdfOptions options, double startY, double fontSize, double leading,
+        List<double> lineHeights, PdfCreateOptions options, double startY, double fontSize, double leading,
         double xOrigin, double? firstLineX, IReadOnlyList<double>? lineXOffsets, IReadOnlyList<double>? lineTopGaps,
         PdfStandardFont? baselineFont, double paragraphSpacingAfter, double paragraphSpacingBefore, bool tagged, string? graphicsState,
         TableCellContentFrame? clipFrame) {
@@ -58,8 +58,8 @@ internal static partial class PdfWriter {
                 double origin = ResolveRichLineXOrigin(xOrigin, firstLineX, lineXOffsets, index) + line.BarOriginOffset;
                 if (top > bottom) {
                     foreach (PdfTabStop stop in stops) {
-                        double x = origin + stop.Position;
-                        content.StrokeColor(stop.BarColor).LineWidth(stop.BarWidth)
+                        double x = origin + stop.Position.ToPoints();
+                        content.StrokeColor(stop.BarColor).LineWidth(stop.BarWidth.ToPoints())
                             .MoveTo(x, top).LineTo(x, bottom).StrokePath();
                     }
                 }

@@ -66,7 +66,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     }
                 }
             } catch (Exception ex) when (ex is IOException || ex is ArgumentException || ex is InvalidDataException || ex is OverflowException) {
-                document.AddWarning("DOC-OLE-PROPERTIES-UNREADABLE", $"The OLE document property stream '{SummaryInformationStreamName}' could not be read. {ex.Message}");
+                document.AddWarning("doc-ole-properties-unreadable", $"The OLE document property stream '{SummaryInformationStreamName}' could not be read. {ex.Message}");
             }
         }
 
@@ -103,7 +103,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                             document.AddUnsupportedFeature(
                                 new LegacyDocUnsupportedFeature(
                                     LegacyDocUnsupportedFeatureKind.DocumentProperty,
-                                    "DOC-OLE-CUSTOM-DOCUMENT-PROPERTY-UNSUPPORTED",
+                                    "doc-ole-custom-document-property-unsupported",
                                     $"The OLE custom document property '{name.Value}' uses unsupported VARTYPE 0x{value.Type:X4}; the property is preserved in the source file but is not projected into the OfficeIMO document.",
                                     entryPath: DocumentSummaryInformationStreamName,
                                     detailCode: $"OleProperty:VT=0x{value.Type:X4}"),
@@ -112,7 +112,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     }
                 }
             } catch (Exception ex) when (ex is IOException || ex is ArgumentException || ex is InvalidDataException || ex is OverflowException) {
-                document.AddWarning("DOC-OLE-PROPERTIES-UNREADABLE", $"The OLE document property stream '{DocumentSummaryInformationStreamName}' could not be read. {ex.Message}");
+                document.AddWarning("doc-ole-properties-unreadable", $"The OLE document property stream '{DocumentSummaryInformationStreamName}' could not be read. {ex.Message}");
             }
         }
 

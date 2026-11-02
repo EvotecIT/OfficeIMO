@@ -33,7 +33,7 @@ public partial class Excel {
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", (utf16 ? Encoding.Unicode : Encoding.UTF8).GetBytes(xml));
             using var cancellation = new CancellationTokenSource();
             CancellationToken token = cancellable ? cancellation.Token : default;
-            var options = new ExcelReadOptions { InferDataTableColumnTypes = api == "InferredDataTable" };
+            var options = new ExcelReaderOptions { InferDataTableColumnTypes = api == "InferredDataTable" };
             if (api == "DataReaderDom") options.Culture = System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
             using var owner = ExcelDocumentReader.Open(path, options);
             var sheet = owner.GetSheet("Data");

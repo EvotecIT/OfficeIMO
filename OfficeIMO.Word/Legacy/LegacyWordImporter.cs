@@ -172,7 +172,7 @@ public static partial class LegacyWordImporter {
             if (sourceRun.NoteIndex.HasValue) ProjectNote(model, sourceRun.NoteIndex.Value, paragraph, document, styleIds, usedStyleIds, recoveredStyles, cancellationToken);
             else if (sourceRun.Image != null) {
                 using var stream = new MemoryStream(sourceRun.Image.PngBytes, writable: false);
-                paragraph.AddText(string.Empty).AddImage(stream, "recovered.png", sourceRun.Image.WidthPoints * 96d / 72d, sourceRun.Image.HeightPoints * 96d / 72d);
+                paragraph.AddText(string.Empty).AddImage(stream, "recovered.png", OfficeLength.Points(sourceRun.Image.WidthPoints), OfficeLength.Points(sourceRun.Image.HeightPoints));
             }
             else ProjectRun(sourceRun, paragraph, recoveredStyle, document, cancellationToken);
         }
@@ -181,9 +181,10 @@ public static partial class LegacyWordImporter {
         paragraph.PageBreakBefore = source.PageBreakBefore;
         paragraph.KeepWithNext = source.KeepWithNext;
         paragraph.KeepLinesTogether = source.KeepLinesTogether;
-        paragraph.LineSpacingPoints = source.LineSpacingPoints;
-        paragraph.LineSpacingBeforePoints = source.SpacingBeforePoints;
-        paragraph.LineSpacingAfterPoints = source.SpacingAfterPoints;
+        paragraph.LineSpacing = source.LineSpacingPoints.HasValue
+            ? WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(source.LineSpacingPoints.Value)) : null;
+        if ((source.SpacingBeforePoints) is { } wordLength11132) { paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(wordLength11132); }
+        if ((source.SpacingAfterPoints) is { } wordLength11203) { paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(wordLength11203); }
         if (!string.IsNullOrWhiteSpace(source.StyleName)) {
             string styleId = GetOrCreateLegacyStyleId(source.StyleName!, styleIds, usedStyleIds);
             paragraph.SetStyleId(styleId);
@@ -210,7 +211,7 @@ public static partial class LegacyWordImporter {
                     sourceRun.Bold, sourceRun.Italic, sourceRun.Underline);
                 if (sourceRun.Strike) run.SetStrike();
                 if (sourceRun.VerticalPosition.HasValue) run.SetVerticalTextAlignment(sourceRun.VerticalPosition);
-                if (sourceRun.FontSizePoints.HasValue) run.FontSizePoints = sourceRun.FontSizePoints.Value;
+                if (sourceRun.FontSizePoints.HasValue) run.FontSize = global::OfficeIMO.OfficeLength.Points(sourceRun.FontSizePoints.Value);
                 if (!string.IsNullOrWhiteSpace(sourceRun.FontFamily)) run.SetFontFamily(sourceRun.FontFamily!);
                 if (!string.IsNullOrWhiteSpace(sourceRun.ColorHex)) run.SetColorHex(sourceRun.ColorHex!);
                 ApplyRecoveredStyleRunOverrides(run, sourceRun, recoveredStyle, document);

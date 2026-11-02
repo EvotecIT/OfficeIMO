@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes shallow metadata decoded from a chart BRAI data-source record.
     /// </summary>
-    public sealed class LegacyXlsChartDataSource {
+    internal sealed class LegacyXlsChartDataSource {
         internal LegacyXlsChartDataSource(
             byte sourceId,
             string sourceIdName,

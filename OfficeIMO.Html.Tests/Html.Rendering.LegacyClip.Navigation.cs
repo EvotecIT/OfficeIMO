@@ -15,7 +15,7 @@ public sealed partial class HtmlRenderingTests {
             + "<a href='#target'>Go</a><div id='target' style='clip-path:" + clipPath + "'>Hidden</div><p>After</p>";
         var options = new HtmlRenderOptions {
             ViewportWidth = 300D, ViewportHeight = 100D,
-            PageSize = new OfficePageSize(300D / 96D, 100D / 96D), Margins = HtmlRenderMargins.All(0D)
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(300D / 96D), global::OfficeIMO.OfficeLength.Inches(100D / 96D)), Margins = HtmlRenderMargins.All(0D)
         };
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
         HtmlRenderRequest request = HtmlRenderRequest.Create(
@@ -44,13 +44,13 @@ public sealed partial class HtmlRenderingTests {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(source, LegacyClipOptions());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        byte[] pdf = source.ToPdfBytes(new HtmlToPdfOptions(LegacyClipOptions()));
+        byte[] pdf = (source.ToPdf(new HtmlToPdfOptions(LegacyClipOptions()))).ToBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
 
         Assert.Equal(new[] { "html-fragment:target" }, info.NamedDestinationNames);
         Assert.Equal(new[] { "html-fragment:target" }, info.LinkDestinationNames);
         Assert.Equal(OfficeColor.White, raster.GetPixel(11, 51));
-        Assert.DoesNotContain("Hidden", string.Join("", PdfCore.PdfReadDocument.Open(pdf).Pages.Select(page => page.ExtractText())));
+        Assert.DoesNotContain("Hidden", string.Join("", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).Pages.Select(page => page.ExtractText())));
         HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
 
@@ -61,7 +61,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>body{margin:0}</style><a href='#target'>Go</a>"
             + "<div style='position:absolute;left:10px;top:50px;width:40px;height:30px;clip:rect(0,0,0,0)'>"
             + "<div id='target' style='position:absolute;left:0;top:0;" + targetEffect + "'>Hidden</div></div>";
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(LegacyClipOptions()));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(LegacyClipOptions()))).ToBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
 
         Assert.Equal(new[] { "html-fragment:target" }, info.NamedDestinationNames);
@@ -72,7 +72,7 @@ public sealed partial class HtmlRenderingTests {
         // Viewport dimensions resolve CSS units; the default print paper remains A4.
         double paperHeight = PdfCore.PdfReadDocument.Open(pdf).Pages[0].GetPageSize().Height;
         Assert.Equal(paperHeight - 53D * 0.75D, destination.DestinationTop!.Value, 6);
-        Assert.DoesNotContain("Hidden", string.Join("", PdfCore.PdfReadDocument.Open(pdf).Pages.Select(page => page.ExtractText())));
+        Assert.DoesNotContain("Hidden", string.Join("", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).Pages.Select(page => page.ExtractText())));
     }
 
     [Theory]
@@ -93,7 +93,7 @@ public sealed partial class HtmlRenderingTests {
             + "transform:translateY(" + shift.ToString(System.Globalization.CultureInfo.InvariantCulture)
             + "px);transform-origin:0 0'><div id='target'>Hidden</div></div>";
         var options = new HtmlToPdfOptions {
-            PageSize = new OfficePageSize(300D / 96D, 100D / 96D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(300D / 96D), global::OfficeIMO.OfficeLength.Inches(100D / 96D)),
             Margins = HtmlRenderMargins.All(0), ViewportWidth = 300, ViewportHeight = 300,
             HonorCssPageRules = false, AllowSystemFontFallback = false
         };

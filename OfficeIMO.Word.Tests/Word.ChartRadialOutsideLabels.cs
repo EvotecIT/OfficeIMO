@@ -12,9 +12,8 @@ public sealed class WordChartRadialOutsideLabelsTests {
     [InlineData(true)]
     public void NativeOutsideLabelsProjectTheirLeaderLineSetting(bool showLeaderLines) {
         using var document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartKind.Pie,
-            new OfficeChartData(new[] { "A", "B", "C" }, new[] {
-                new OfficeChartSeries("Status", new[] { 3d, 4d, 5d })
+        WordChart chart = document.AddChart(OfficeChartType.Pie,            new OfficeChartData(new[] { "A", "B", "C" }, new[] {
+                new OfficeSeries("Status", new[] { 3d, 4d, 5d })
             }));
         C.PieChart native = chart.ChartPart!.ChartSpace!.Descendants<C.PieChart>().Single();
         C.DataLabels labels = native.GetFirstChild<C.DataLabels>()!;

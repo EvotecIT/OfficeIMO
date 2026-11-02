@@ -32,10 +32,19 @@ public class ExcelUsedRangeDiscoveryBenchmarks {
         _expected = $"A1:B{(Sparse ? 2 * RowCount : RowCount) + 1}";
         try {
             using (Stream output = File.Create(_path)) {
-                ExcelDocument.WriteRows(output,
-                    ExcelGeneratedRowStreamingBenchmarks.GenerateRows(RowCount), ["Id", "Amount"],
-                    static (writer, row) => writer.Write(row.Id).Write(row.Amount),
-                    new ExcelTabularWriteOptions { IncludeCellReferences = true, UseSharedStrings = false });
+                var destination1 = output;
+
+                var writeOptions1 = new ExcelWriterOptions {
+                    IncludeCellReferences = true,
+                    UseSharedStrings = false
+                };
+
+                using (var workbookWriter1 = ExcelDocument.CreateWriter(destination1, writeOptions1, leaveOpen: true)) {
+                    workbookWriter1.WriteTable(writeOptions1.SheetName, ExcelGeneratedRowStreamingBenchmarks.GenerateRows(RowCount), ["Id", "Amount"], static (writer, row) => writer.Write(row.Id).Write(row.Amount));
+                }
+
+                if (destination1.CanSeek)
+                    destination1.Position = 0;
             }
             using (var package = ZipFile.Open(_path, ZipArchiveMode.Update)) {
                 const string name = "xl/worksheets/sheet1.xml";
@@ -60,7 +69,8 @@ public class ExcelUsedRangeDiscoveryBenchmarks {
                 writer.Write(xml.Replace("utf-8", "utf-16").Replace("UTF-8", "utf-16"));
             }
             DiscoverRange();
-        } catch {
+        }
+        catch {
             Cleanup();
             throw;
         }

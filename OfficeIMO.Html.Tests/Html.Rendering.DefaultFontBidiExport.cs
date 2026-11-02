@@ -20,7 +20,7 @@ public sealed partial class HtmlRenderingTests {
         options.Fonts.Add("BidiFixture", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(true,
             "Left שלום 42".Select(character => (int)character).Distinct().ToArray()));
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
-        byte[] pdf = source.ToPdfBytes(options);
+        byte[] pdf = (source.ToPdf(options)).ToBytes();
         PdfCore.PdfReadDocument reopened = PdfCore.PdfReadDocument.Open(pdf);
         Assert.Equal("Left שלום 42", reopened.ExtractText().Trim());
         var svg = XDocument.Parse(source.ToSvg(options));
@@ -43,7 +43,7 @@ public sealed partial class HtmlRenderingTests {
             text.Select(character => (int)character).Distinct().ToArray()));
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<p style='font:16px BidiFixture;word-spacing:2px'>" + text + "</p>");
-        PdfCore.PdfDocumentConversionResult result = source.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(options);
 
         Assert.Equal(text, PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText().Trim());
         Assert.Contains(result.Report.Warnings, warning =>

@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
         public void FormulaEvaluator_NamedExpressionsResolveTypedValuesAndReferences(string caseId, string formula, string expected) {
             using var document = ExcelDocument.Create();
             var data = CreateLookupModeSheet(document);
-            var report = document.AddWorksheet("Report");
+            var report = document.AddSheet("Report");
             AddFormulaName(document, "Calc", "SUM(Data!$A$1:$A$6)*2");
             AddFormulaName(document, "Nested", "Calc/2+1");
             AddFormulaName(document, "Picked", "INDEX(Data!$A$1:$B$6,0,1)");
@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
         public void FormulaEvaluator_NamedExpressionsRefreshAndPreserveSavedCaches() {
             using var document = ExcelDocument.Create();
             var data = CreateLookupModeSheet(document);
-            var report = document.AddWorksheet("Report");
+            var report = document.AddSheet("Report");
             AddFormulaName(document, "Total", "SUM(Data!$A$1:$A$6)");
             report.CellFormula(1, 1, "Total*2");
             Assert.Equal(1, document.Calculate());
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
         public void FormulaEvaluator_NamedFormulaAuthoringCalculatesScopesAndRoundTrips() {
             using var document = ExcelDocument.Create();
             var data = CreateLookupModeSheet(document);
-            var report = document.AddWorksheet("Report");
+            var report = document.AddSheet("Report");
             document.SetNamedFormula("Total", "=0", save: false);
             document.SetNamedFormula("tOtAl", "=SUM(Data!$A$1:$A$6)*2", save: false);
             Assert.Equal("SUM(Data!$A$1:$A$6)*2", document.GetNamedRange("TOTAL"));
@@ -84,10 +84,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void FormulaEvaluator_NameChangesInvalidateCachePreflightAndPersistDirtyState() {
             using var document = ExcelDocument.Create();
-            var source = document.AddWorksheet("Data");
+            var source = document.AddSheet("Data");
             source.CellValue(1, 1, 3d);
             source.CellValue(2, 1, 6d);
-            var report = document.AddWorksheet("Report");
+            var report = document.AddSheet("Report");
             document.SetNamedFormula("Rate", "1", save: false);
             document.SetNamedRange("Chosen", "Data!A1", save: false);
             report.CellFormula(1, 1, "Rate*2");
@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void FormulaEvaluator_NamedArraySpillsRefreshTheirShape() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, 2d);
             document.SetNamedFormula("Series", "SEQUENCE(Data!A1,2)", save: false);
             sheet.CellFormula(1, 3, "SUM(Series)");
@@ -143,7 +143,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void FormulaEvaluator_CyclicNamedExpressionsStayUncalculatedWithoutBlockingOtherCells() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Names");
+            var sheet = document.AddSheet("Names");
             AddFormulaName(document, "CycleLeft", "CycleRight+1");
             AddFormulaName(document, "CycleRight", "CycleLeft+1");
             sheet.CellValue(1, 1, 42d);

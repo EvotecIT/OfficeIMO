@@ -9,7 +9,7 @@ schema: 2.0.0
 Maps PowerShell rows to a bounded project entity table.
 
 ## SYNTAX
-### __AllParameterSets
+### InputObject (Default)
 ```powershell
 ConvertTo-OfficeProjectTable -InputObject <psobject[]> -Kind <ProjectDataKind> -ColumnMap <IDictionary> [-MaxRows <int>] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Project field name to source column header. Field names are discovered through P
 
 ```yaml
 Type: IDictionary
-Parameter Sets: __AllParameterSets
+Parameter Sets: InputObject
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Rows from Import-Csv, dictionaries or PowerShell objects.
 
 ```yaml
 Type: PSObject[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: InputObject
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Entity collection represented by the rows.
 
 ```yaml
 Type: ProjectDataKind
-Parameter Sets: __AllParameterSets
+Parameter Sets: InputObject
 Aliases: None
 Possible values: Tasks, Resources, Assignments, Calendars
 
@@ -80,7 +80,7 @@ Maximum accumulated rows.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: InputObject
 Aliases: None
 Possible values:
 

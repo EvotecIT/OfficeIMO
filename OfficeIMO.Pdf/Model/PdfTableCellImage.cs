@@ -10,10 +10,10 @@ public sealed class PdfTableCellImage {
     private readonly PdfWriter.PdfImageStream? _preparedStream;
 
     /// <summary>Creates a table-cell image from raster bytes supported by OfficeIMO.Drawing.</summary>
-    public PdfTableCellImage(byte[] data, double width, double height, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) {
+    public PdfTableCellImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) {
         Guard.NotNullOrEmpty(data, nameof(data));
-        Guard.Positive(width, nameof(width));
-        Guard.Positive(height, nameof(height));
+        Guard.Positive(width.ToPoints(), nameof(width));
+        Guard.Positive(height.ToPoints(), nameof(height));
         Guard.OptionalUriAction(linkUri, nameof(linkUri));
         if (linkContents != null && linkUri == null) {
             throw new ArgumentException("Table cell image link contents require a link URI.", nameof(linkContents));
@@ -25,7 +25,7 @@ public sealed class PdfTableCellImage {
 
         PdfImageStyle? imageStyle = style?.Clone();
         if (imageStyle != null) {
-            PdfDocument.ValidateImageStyleForBox(imageStyle, width, height, nameof(style));
+            PdfDocument.ValidateImageStyleForBox(imageStyle, width.ToPoints(), height.ToPoints(), nameof(style));
         }
 
         PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(data);
@@ -47,10 +47,10 @@ public sealed class PdfTableCellImage {
     public byte[] Data => (byte[])_data.Clone();
 
     /// <summary>Target image width in PDF points.</summary>
-    public double Width { get; }
+    public global::OfficeIMO.OfficeLength Width { get; }
 
     /// <summary>Target image height in PDF points.</summary>
-    public double Height { get; }
+    public global::OfficeIMO.OfficeLength Height { get; }
 
     /// <summary>Detected source image metadata.</summary>
     public OfficeImageInfo Info { get; }
@@ -85,8 +85,8 @@ public sealed class PdfTableCellImage {
         };
         return new ImageBlock(
             _data,
-            Width,
-            Height,
+            Width.ToPoints(),
+            Height.ToPoints(),
             Info,
             style,
             LinkUri,

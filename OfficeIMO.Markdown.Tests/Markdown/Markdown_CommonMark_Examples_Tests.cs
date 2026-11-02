@@ -17,8 +17,8 @@ public sealed class Markdown_CommonMark_Examples_Tests {
     [Theory]
     [MemberData(nameof(CommonMarkSmokeExamples))]
     public void CommonMark_Profile_Matches_Official_Examples_And_Keeps_SyntaxTree_Invariants(string _, CommonMarkExampleFixture example) {
-        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(example.Markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
-        var html = result.Document.ToHtmlFragment(CommonMarkHtmlComparison.CreatePlainHtmlOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(example.Markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
+        var html = result.Document.ToHtml(CommonMarkHtmlComparison.CreatePlainHtmlOptions());
 
         Assert.Equal(CommonMarkHtmlComparison.Normalize(example.Html), CommonMarkHtmlComparison.Normalize(html));
         Assert.Equal(example.TopLevelKinds, result.SyntaxTree.Children.Select(node => node.Kind.ToString()).ToArray());

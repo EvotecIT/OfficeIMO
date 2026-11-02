@@ -34,7 +34,7 @@ internal static class OfficeOpenXmlChartExplosions {
         return true;
     }
 
-    internal static void ApplySeries(OpenXmlCompositeElement series, OfficeChartSeries data) {
+    internal static void ApplySeries(OpenXmlCompositeElement series, OfficeSeries data) {
         if (data.PointExplosions == null) return;
         if (series is not C.PieChartSeries)
             throw new NotSupportedException("Point explosions require a native pie or doughnut series.");
@@ -61,7 +61,7 @@ internal static class OfficeOpenXmlChartExplosions {
     }
 
     internal static void ApplyPoint(OpenXmlCompositeElement series, uint index, int? percent) {
-        if (percent < 0 || percent > OfficeChartSeries.MaximumPointExplosionPercent)
+        if (percent < 0 || percent > OfficeSeries.MaximumPointExplosionPercent)
             throw new ArgumentOutOfRangeException(nameof(percent));
         if (series is not C.PieChartSeries)
             throw new NotSupportedException("Point explosions require a native pie or doughnut series.");
@@ -89,7 +89,7 @@ internal static class OfficeOpenXmlChartExplosions {
         value = 0;
         if (source == null) return true;
         uint? native = source.Val?.Value;
-        if (!native.HasValue || native.Value > OfficeChartSeries.MaximumPointExplosionPercent)
+        if (!native.HasValue || native.Value > OfficeSeries.MaximumPointExplosionPercent)
             return false;
         value = (int)native.Value;
         return true;

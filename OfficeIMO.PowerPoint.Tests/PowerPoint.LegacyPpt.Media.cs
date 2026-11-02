@@ -13,14 +13,14 @@ namespace OfficeIMO.Tests {
         public void FreshEmbeddedWaveMedia_WritesNativeObjectAndProjectsExactly() {
             byte[] wave = CreateMediaWavePayload();
             byte[] binary;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 using var audio = new MemoryStream(wave,
                     writable: false);
                 PowerPointMedia media = slide.AddAudio(audio, "audio/wav",
-                    ".wav", 15875L, 31750L, 158750L, 79375L);
+                    ".wav", OfficeIMO.OfficeLength.Emus(15875L), OfficeIMO.OfficeLength.Emus(31750L), OfficeIMO.OfficeLength.Emus(158750L), OfficeIMO.OfficeLength.Emus(79375L));
                 media.Name = "Native WAV";
                 slide.Transition = PowerPointSlideTransition.Fade;
                 using var transitionSound = new MemoryStream(wave,
@@ -31,10 +31,10 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
-                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+                binary = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation neutral = LegacyPptPresentation.Load(binary);
+            LegacyPptDocument neutral = LegacyPptDocument.Load(binary);
             LegacyPptMedia mediaObject = Assert.Single(neutral.Media);
             LegacyPptSound sound = Assert.Single(neutral.Sounds);
             Assert.Equal(LegacyPptMediaKind.EmbeddedWaveAudio,
@@ -57,8 +57,8 @@ namespace OfficeIMO.Tests {
                 OfficePackageContentPolicy.Reject;
             using (var secureInput = new MemoryStream(binary,
                        writable: false))
-            using (PowerPointPresentation secure =
-                   PowerPointPresentation.Load(secureInput,
+            using (PowerPointDocument secure =
+                   PowerPointDocument.Load(secureInput,
                        new PowerPointLoadOptions {
                            PackageSecurity = security
                        })) {
@@ -66,18 +66,18 @@ namespace OfficeIMO.Tests {
             }
 
             using var input = new MemoryStream(binary, writable: false);
-            using PowerPointPresentation projected =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument projected =
+                PowerPointDocument.Load(input);
             PowerPointMedia projectedMedia = Assert.IsType<PowerPointMedia>(
                 Assert.Single(projected.Slides[0].Shapes));
             Assert.Equal(wave, projectedMedia.GetData());
-            Assert.Equal(15875L, projectedMedia.Left);
-            Assert.Equal(31750L, projectedMedia.Top);
-            Assert.Equal(158750L, projectedMedia.Width);
-            Assert.Equal(79375L, projectedMedia.Height);
+            Assert.Equal(15875L, projectedMedia.Left.ToEmus());
+            Assert.Equal(31750L, projectedMedia.Top.ToEmus());
+            Assert.Equal(158750L, projectedMedia.Width.ToEmus());
+            Assert.Equal(79375L, projectedMedia.Height.ToEmus());
             Assert.Empty(projected.ValidateDocument());
             Assert.Equal(binary,
-                projected.ToBytes(PowerPointFileFormat.Ppt));
+                projected.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
@@ -86,20 +86,20 @@ namespace OfficeIMO.Tests {
             byte[] replacement = (byte[])original.Clone();
             replacement[replacement.Length - 1] ^= 0x20;
             byte[] sourceBytes;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 using var audio = new MemoryStream(original,
                     writable: false);
                 slide.AddAudio(audio, "audio/wav", ".wav");
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             using (var input = new MemoryStream(sourceBytes,
                        writable: false))
-            using (PowerPointPresentation imported =
-                   PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported =
+                   PowerPointDocument.Load(input)) {
                 PowerPointMedia media = Assert.Single(
                     imported.Slides[0].Media);
                 using var updated = new MemoryStream(replacement,
@@ -110,9 +110,9 @@ namespace OfficeIMO.Tests {
                     .AnalyzeLegacyPptWrite();
                 Assert.False(preflight.CanWrite);
                 Assert.Contains(preflight.Findings, finding =>
-                    finding.Code == "PPT-WRITE-IMPORT-LOSS");
+                    finding.Code == "ppt-write-import-loss");
                 Assert.Throws<NotSupportedException>(() =>
-                    imported.ToBytes(PowerPointFileFormat.Ppt));
+                    imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
                 Assert.Equal(replacement, media.GetData());
             }
         }
@@ -125,8 +125,8 @@ namespace OfficeIMO.Tests {
         public void NonRepresentableEmbeddedMedia_IsExplicitlyBlocked(
             bool video, string contentType, string extension,
             LegacyPptFeature expectedFeature) {
-            using PowerPointPresentation source =
-                PowerPointPresentation.Create();
+            using PowerPointDocument source =
+                PowerPointDocument.Create();
             PowerPointSlide slide = source.AddSlide(
                 PowerPointSlideLayoutType.Blank);
             using var data = new MemoryStream(new byte[] { 1, 2, 3, 4 },
@@ -142,16 +142,16 @@ namespace OfficeIMO.Tests {
             Assert.False(preflight.CanWrite);
             LegacyPptWriteFinding finding = Assert.Single(
                 preflight.Findings, item =>
-                    item.Code == "PPT-WRITE-MEDIA");
+                    item.Code == "ppt-write-media");
             Assert.Equal(expectedFeature, finding.Feature);
             Assert.Throws<NotSupportedException>(() =>
-                source.ToBytes(PowerPointFileFormat.Ppt));
+                source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
         public void NonDefaultEmbeddedMediaPlayback_IsExplicitlyBlocked() {
-            using PowerPointPresentation source =
-                PowerPointPresentation.Create();
+            using PowerPointDocument source =
+                PowerPointDocument.Create();
             PowerPointSlide slide = source.AddSlide(
                 PowerPointSlideLayoutType.Blank);
             using var audio = new MemoryStream(CreateMediaWavePayload(),
@@ -164,7 +164,7 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.False(preflight.CanWrite);
             Assert.Contains(preflight.Findings, finding =>
-                finding.Code == "PPT-WRITE-MEDIA"
+                finding.Code == "ppt-write-media"
                 && finding.Feature == LegacyPptFeature.Media);
         }
 
@@ -172,8 +172,8 @@ namespace OfficeIMO.Tests {
         public void EmbeddedWaveMedia_ProjectsWithExactAudioAndRoundTripsUnchanged() {
             byte[] wave = CreateMediaWavePayload();
             byte[] embeddedOleBytes;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 slide.Transition = PowerPointSlideTransition.Fade;
@@ -184,12 +184,11 @@ namespace OfficeIMO.Tests {
                 using var storage = new MemoryStream(
                     CreateOleTestStorage("Media carrier"),
                     writable: false);
-                slide.AddOleObject(storage, "Package", 12700L, 25400L,
-                    2743200L, 1828800L);
-                embeddedOleBytes = source.ToBytes(
-                    PowerPointFileFormat.Ppt);
+                slide.AddOleObject(storage, "Package", OfficeIMO.OfficeLength.Emus(12700L), OfficeIMO.OfficeLength.Emus(25400L),
+                    OfficeIMO.OfficeLength.Emus(2743200L), OfficeIMO.OfficeLength.Emus(1828800L));
+                embeddedOleBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation carrier = LegacyPptPresentation.Load(
+            LegacyPptDocument carrier = LegacyPptDocument.Load(
                 embeddedOleBytes);
             uint soundId = Assert.Single(carrier.Sounds).Id;
             byte[] sourceBytes = ConvertEmbeddedOleContainer(
@@ -197,7 +196,7 @@ namespace OfficeIMO.Tests {
                 ExternalObjectFixtureKind.EmbeddedWaveMedia,
                 linkedUpdateMode: 3, embeddedSoundId: soundId);
 
-            LegacyPptPresentation neutral = LegacyPptPresentation.Load(
+            LegacyPptDocument neutral = LegacyPptDocument.Load(
                 sourceBytes);
             LegacyPptMedia media = Assert.Single(neutral.Media);
             Assert.Equal(LegacyPptMediaKind.EmbeddedWaveAudio,
@@ -215,7 +214,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyPptShapeKind.Media, shape.Kind);
             Assert.Same(media, shape.Media);
             Assert.DoesNotContain(neutral.Diagnostics, diagnostic =>
-                diagnostic.Code.StartsWith("PPT-MEDIA-",
+                diagnostic.Code.StartsWith("ppt-media-",
                     StringComparison.Ordinal));
 
             LegacyPptImportReport report = neutral.CreateImportReport();
@@ -226,15 +225,15 @@ namespace OfficeIMO.Tests {
 
             using var input = new MemoryStream(sourceBytes,
                 writable: false);
-            using PowerPointPresentation projected =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument projected =
+                PowerPointDocument.Load(input);
             PowerPointMedia projectedMedia = Assert.IsType<PowerPointMedia>(
                 Assert.Single(projected.Slides[0].Shapes));
             Assert.Equal(PowerPointMediaKind.Audio, projectedMedia.Kind);
             Assert.Equal("audio/wav", projectedMedia.MediaContentType);
             Assert.Equal(wave, projectedMedia.GetData());
             Assert.Equal(sourceBytes,
-                projected.ToBytes(PowerPointFileFormat.Ppt));
+                projected.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             Assert.Empty(projected.ValidateDocument());
             PowerPointFeatureFinding finding = Assert.Single(projected
                 .InspectFeatures().FindFeatures("Audio and video"));
@@ -245,8 +244,8 @@ namespace OfficeIMO.Tests {
         public void ImportedEmbeddedWaveMedia_GeometryAndUnrelatedTextEditUseIncrementalRecord() {
             byte[] wave = CreateMediaWavePayload();
             byte[] carrierBytes;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 slide.AddTextBox("Editable companion");
@@ -258,16 +257,16 @@ namespace OfficeIMO.Tests {
                 using var storage = new MemoryStream(
                     CreateOleTestStorage("Preservation carrier"),
                     writable: false);
-                slide.AddOleObject(storage, "Package", 15875L, 31750L,
-                    158750L, 79375L);
-                carrierBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                slide.AddOleObject(storage, "Package", OfficeIMO.OfficeLength.Emus(15875L), OfficeIMO.OfficeLength.Emus(31750L),
+                    OfficeIMO.OfficeLength.Emus(158750L), OfficeIMO.OfficeLength.Emus(79375L));
+                carrierBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            uint soundId = Assert.Single(LegacyPptPresentation.Load(
+            uint soundId = Assert.Single(LegacyPptDocument.Load(
                 carrierBytes).Sounds).Id;
             byte[] sourceBytes = ConvertEmbeddedOleContainer(carrierBytes,
                 ExternalObjectFixtureKind.EmbeddedWaveMedia,
                 linkedUpdateMode: 3, embeddedSoundId: soundId);
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 sourceBytes);
             LegacyPptMedia originalMedia = Assert.Single(original.Media);
             LegacyPptShape originalMediaShape = Assert.Single(
@@ -276,25 +275,25 @@ namespace OfficeIMO.Tests {
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes,
                        writable: false))
-            using (PowerPointPresentation imported =
-                   PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported =
+                   PowerPointDocument.Load(input)) {
                 Assert.Equal(sourceBytes,
-                    imported.ToBytes(PowerPointFileFormat.Ppt));
+                    imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
                 PowerPointTextBox text = Assert.Single(
                     imported.Slides[0].TextBoxes);
                 PowerPointMedia media = Assert.Single(
                     imported.Slides[0].Media);
                 text.Text = "Edited companion";
-                media.Left += 15875L;
+                media.Left+= OfficeIMO.OfficeLength.Emus(15875L);
 
                 LegacyPptWritePreflightReport preflight = imported
                     .AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite,
                     string.Join(Environment.NewLine, preflight.Findings));
-                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+                savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 savedBytes);
             LegacyPptMedia savedMedia = Assert.Single(saved.Media);
             LegacyPptShape savedMediaShape = Assert.Single(
@@ -320,12 +319,12 @@ namespace OfficeIMO.Tests {
 
             using var reopenedInput = new MemoryStream(savedBytes,
                 writable: false);
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.Load(reopenedInput);
+            using PowerPointDocument reopened =
+                PowerPointDocument.Load(reopenedInput);
             PowerPointMedia reopenedMedia = Assert.Single(
                 reopened.Slides[0].Media);
             Assert.Equal(wave, reopenedMedia.GetData());
-            Assert.Equal(31750L, reopenedMedia.Left);
+            Assert.Equal(31750L, reopenedMedia.Left.ToEmus());
             Assert.Equal("Edited companion", Assert.Single(
                 reopened.Slides[0].TextBoxes).Text);
             Assert.Empty(reopened.ValidateDocument());
@@ -342,31 +341,31 @@ namespace OfficeIMO.Tests {
             LegacyPptMediaKind.MciMovie, @"C:\Media\sample.avi")]
         public void PathMedia_ImportsTypedAndReportsPreservation(
             ExternalObjectFixtureKind fixtureKind,
-            LegacyPptMediaKind expectedKind, string expectedPath) {
+            object expectedKind, string expectedPath) {
             byte[] sourceBytes = CreateExternalObjectFixture(
                 CreateOleTestStorage(expectedKind.ToString()), fixtureKind,
                 compressed: false);
 
-            LegacyPptPresentation neutral = LegacyPptPresentation.Load(
+            LegacyPptDocument neutral = LegacyPptDocument.Load(
                 sourceBytes);
             LegacyPptMedia media = Assert.Single(neutral.Media);
-            Assert.Equal(expectedKind, media.Kind);
+            Assert.Equal((LegacyPptMediaKind)expectedKind, media.Kind);
             Assert.Equal(expectedPath, media.Path);
             Assert.False(media.HasProjectableAudio);
             Assert.Contains(neutral.Slides[0].Shapes,
                 shape => ReferenceEquals(shape.Media, media));
             Assert.Contains(neutral.Diagnostics, diagnostic =>
-                diagnostic.Code == "PPT-MEDIA-PRESERVED");
+                diagnostic.Code == "ppt-media-preserved");
             LegacyPptImportReport report = neutral.CreateImportReport();
             Assert.Equal(1, report.LinkedOrDeviceMediaCount);
             Assert.Contains(report.FidelityDiagnostics, diagnostic =>
-                diagnostic.Code == "PPT-MEDIA-PRESERVED" &&
+                diagnostic.Code == "ppt-media-preserved" &&
                 diagnostic.LossKind == OfficeConversionLossKind.Omission);
 
             using var input = new MemoryStream(sourceBytes,
                 writable: false);
-            using PowerPointPresentation projected =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument projected =
+                PowerPointDocument.Load(input);
             Assert.Empty(projected.Slides[0].Media);
             PowerPointFeatureFinding finding = Assert.Single(projected
                 .InspectFeatures().FindFeatures("Legacy media metadata"));
@@ -377,11 +376,10 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.False(preflight.CanWrite);
             Assert.Contains(preflight.Findings, item =>
-                item.Code == "PPT-WRITE-PRESERVED-EXTERNAL-MEDIA");
+                item.Code == "ppt-write-preserved-external-media");
             Assert.Throws<NotSupportedException>(() =>
-                projected.ToBytes(PowerPointFileFormat.Ppt));
-            Assert.Equal(sourceBytes, projected.ToBytes(
-                PowerPointFileFormat.Ppt, new PowerPointSaveOptions {
+                projected.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
+            Assert.Equal(sourceBytes, projected.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt,
                     LossPolicy = OfficeConversionLossPolicy.Allow
                 }));
         }
@@ -393,7 +391,7 @@ namespace OfficeIMO.Tests {
                 ExternalObjectFixtureKind.CdAudio, compressed: false);
 
             LegacyPptMedia media = Assert.Single(
-                LegacyPptPresentation.Load(sourceBytes).Media);
+                LegacyPptDocument.Load(sourceBytes).Media);
             Assert.Equal(LegacyPptMediaKind.CdAudio, media.Kind);
             Assert.Equal(0x01020304U, media.CdStart);
             Assert.Equal(0x05060708U, media.CdEnd);
@@ -404,8 +402,8 @@ namespace OfficeIMO.Tests {
         public void EmbeddedWavePlaybackFlags_AreTypedAndReportedPreserveOnly() {
             byte[] wave = CreateMediaWavePayload();
             byte[] carrierBytes;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 slide.Transition = PowerPointSlideTransition.Cut;
@@ -417,31 +415,31 @@ namespace OfficeIMO.Tests {
                     CreateOleTestStorage("Flags carrier"),
                     writable: false);
                 slide.AddOleObject(storage, "Package");
-                carrierBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                carrierBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            uint soundId = Assert.Single(LegacyPptPresentation.Load(
+            uint soundId = Assert.Single(LegacyPptDocument.Load(
                 carrierBytes).Sounds).Id;
             byte[] sourceBytes = ConvertEmbeddedOleContainer(carrierBytes,
                 ExternalObjectFixtureKind.EmbeddedWaveMedia,
                 linkedUpdateMode: 3, embeddedSoundId: soundId,
                 mediaFlags: 0x0007);
 
-            LegacyPptPresentation neutral = LegacyPptPresentation.Load(
+            LegacyPptDocument neutral = LegacyPptDocument.Load(
                 sourceBytes);
             LegacyPptMedia media = Assert.Single(neutral.Media);
             Assert.True(media.Loop);
             Assert.True(media.Rewind);
             Assert.True(media.Narration);
             Assert.Contains(neutral.Diagnostics, diagnostic =>
-                diagnostic.Code == "PPT-MEDIA-PRESERVED");
+                diagnostic.Code == "ppt-media-preserved");
 
             using var input = new MemoryStream(sourceBytes);
-            using PowerPointPresentation projected =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument projected =
+                PowerPointDocument.Load(input);
             Assert.Single(projected.InspectFeatures().FindFeatures(
                 "Legacy media metadata"));
             Assert.Equal(sourceBytes,
-                projected.ToBytes(PowerPointFileFormat.Ppt));
+                projected.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]

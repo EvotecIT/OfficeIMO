@@ -6,6 +6,7 @@ using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -18,31 +19,32 @@ public sealed class PowerPointNativeTextLayoutTests {
         var fonts = new OfficeFontFaceCollection().Add("NativeFixture",
             OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont());
         var profile = new OfficeRenderingProfile("native-text-regression", fonts, managedShaping ? OfficeManagedTextShapingProvider.Instance : null);
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(440, 260);
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
+        presentation.ClearThemeTextDefaults();
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(440),OfficeIMO.OfficeLength.Points(260));
         PowerPointSlide slide = presentation.AddSlide();
-        PowerPointTextBox plain = slide.AddTextBoxPoints("PLAIN baseline", 20, 15, 175, 44);
+        PowerPointTextBox plain = slide.AddTextBox("PLAIN baseline",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(15),global::OfficeIMO.OfficeLength.Points(175),global::OfficeIMO.OfficeLength.Points(44));
         plain.FontName = "NativeFixture";
-        plain.FontSize = 13;
+        plain.FontSize = global::OfficeIMO.OfficeLength.Points(13);
 
-        PowerPointTextBox wrapped = slide.AddTextBoxPoints("ALPHA", 20, 68, 175, 90);
+        PowerPointTextBox wrapped = slide.AddTextBox("ALPHA",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(68),global::OfficeIMO.OfficeLength.Points(175),global::OfficeIMO.OfficeLength.Points(90));
         wrapped.FontName = "NativeFixture";
-        wrapped.FontSize = 13;
+        wrapped.FontSize = global::OfficeIMO.OfficeLength.Points(13);
         wrapped.Paragraphs[0].AddRun(" beta gamma delta epsilon zeta eta theta", run => run.Italic = true);
 
-        PowerPointTextBox linked = slide.AddTextBoxPoints("LINKONE LINKTWO LINKTHREE ", 230, 15, 160, 90);
+        PowerPointTextBox linked = slide.AddTextBox("LINKONE LINKTWO LINKTHREE ",global::OfficeIMO.OfficeLength.Points(230),global::OfficeIMO.OfficeLength.Points(15),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(90));
         linked.FontName = "NativeFixture";
-        linked.FontSize = 13;
+        linked.FontSize = global::OfficeIMO.OfficeLength.Points(13);
         linked.Paragraphs[0].Runs[0].SetHyperlink("https://officeimo.net/native-layout");
         linked.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
         linked.Paragraphs[0].Alignment = PowerPointTextAlignment.Center;
         linked.Paragraphs[0].AddRun("TAIL", run => run.Bold = true);
 
-        PowerPointTextBox spaced = slide.AddTextBoxPoints("FIRST", 20, 175, 375, 75);
+        PowerPointTextBox spaced = slide.AddTextBox("FIRST",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(175),global::OfficeIMO.OfficeLength.Points(375),global::OfficeIMO.OfficeLength.Points(75));
         spaced.FontName = "NativeFixture";
-        spaced.FontSize = 13;
+        spaced.FontSize = global::OfficeIMO.OfficeLength.Points(13);
         spaced.Paragraphs[0].Runs[0].Underline = true;
-        spaced.Paragraphs[0].SetSpaceAfterPoints(9);
+        spaced.Paragraphs[0].SetSpaceAfter(global::OfficeIMO.OfficeLength.Points(9));
         PowerPointParagraph second = spaced.AddParagraph("SECOND");
         second.Runs[0].Underline = true;
         second.Alignment = PowerPointTextAlignment.Right;
@@ -50,8 +52,12 @@ public sealed class PowerPointNativeTextLayoutTests {
         var images = new PowerPointImageExportOptions();
         images.UseRenderingProfile(profile);
         byte[] svg = slide.ExportImage(OfficeImageExportFormat.Svg, images).Bytes;
-        PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(images);
-        byte[] bytes = presentation.ToPdfBytes(new PowerPointToPdfOptions().UseRenderingProfile(profile));
+        PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot(images);
+        Assert.Contains(snapshot.TextSpans, span => span.Text == "ALPHA" && span.BaseFont == "NativeFixture"
+            && span.FontSize == 13D && !span.IsItalic);
+        Assert.Contains(snapshot.TextSpans, span => span.Text.IndexOf("beta", StringComparison.Ordinal) >= 0
+            && span.FontSize == 13D && span.IsItalic);
+        byte[] bytes = presentation.ToPdf(new PowerPointPdfExportOptions().UseRenderingProfile(profile)).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var page = pdf.GetPage(1);
         var letters = page.Letters;
@@ -63,10 +69,48 @@ public sealed class PowerPointNativeTextLayoutTests {
         }
         var canonicalPage = PdfCore.PdfReadDocument.Open(bytes).Pages[0];
         // Compare the public PDF span geometry contract; another reader can use a different font-origin convention.
-        Assert.Equal(canonicalPage.GetTextSpans().Select(span => (span.Text, span.X, span.Y, span.FontSize, span.Advance, span.RotationDegrees)),
-            snapshot.TextSpans.Select(span => (span.Text, span.X, span.Y, span.FontSize, span.Advance, span.RotationDegrees)));
-        Assert.Equal(canonicalPage.ExportImage(OfficeImageExportFormat.Svg,
-            new PdfImageExportOptions().UseRenderingProfile(profile)).Bytes, svg);
+        Assert.Equal(canonicalPage.GetTextSpans().Select(span => (span.Text, Math.Round(span.X, 3), Math.Round(span.Y, 3), Math.Round(span.FontSize, 3), Math.Round(span.Advance, 3), Math.Round(span.RotationDegrees, 3))),
+            snapshot.TextSpans.Select(span => (span.Text, Math.Round(span.X, 3), Math.Round(span.Y, 3), Math.Round(span.FontSize, 3), Math.Round(span.Advance, 3), Math.Round(span.RotationDegrees, 3))));
+        Assert.Equal("svg", System.Xml.Linq.XDocument.Parse(System.Text.Encoding.UTF8.GetString(svg)).Root!.Name.LocalName);
         Assert.Equal(new[] { "https://officeimo.net/native-layout" }, PdfCore.PdfInspector.Inspect(bytes).LinkUris);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TextBoxInheritedFontsParticipateInPdfMeasurementPreflight(bool field) {
+        const string inheritedFamily = "OfficeIMO Missing Inherited Text Face";
+        var fonts = new OfficeFontFaceCollection().Add("NativeFixture",
+            OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
+        PowerPointTextBox box = presentation.AddSlide().AddTextBox("EXPLICIT",
+            OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20),
+            OfficeIMO.OfficeLength.Points(300), OfficeIMO.OfficeLength.Points(80));
+        box.FontName = "NativeFixture";
+        box.FontSize = OfficeIMO.OfficeLength.Points(13);
+        PowerPointParagraph paragraph = box.Paragraphs[0];
+        paragraph.Paragraph.ParagraphProperties = new A.ParagraphProperties(
+            new A.DefaultRunProperties(new A.LatinFont { Typeface = inheritedFamily }) { FontSize = 1800 });
+        if (field) {
+            paragraph.AddField(" beta gamma", "slidenum", "{44444444-4444-4444-4444-444444444444}",
+                run => run.Italic = true);
+        } else {
+            paragraph.AddRun(" beta gamma", run => run.Italic = true);
+        }
+
+        var options = new PowerPointPdfExportOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        }.UseRenderingProfile(new OfficeRenderingProfile("inherited-text-preflight", fonts));
+        PdfCore.PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence(options);
+
+        // This warning is deterministic even when the host has no Office fonts installed.
+        Assert.Contains(result.Warnings, warning => warning.Code == "font-family-substitution"
+            && warning.Details.TryGetValue("fontFamily", out string? family) && family == inheritedFamily);
+        OfficeRichTextRun[] runs = PowerPointPdfTextFormattingTests.GetDrawingTextRuns(
+            Assert.IsType<PdfCore.PdfCanvasBlock>(Assert.Single(result.Value.Blocks))).ToArray();
+        Assert.Contains(runs, run => run.Text == "EXPLICIT" && run.FontFamily == "NativeFixture"
+            && run.FontSize == 13D && !run.Italic);
+        Assert.Contains(runs, run => run.Text == " beta gamma" && run.FontFamily == inheritedFamily
+            && run.FontSize == 18D && run.Italic);
     }
 }

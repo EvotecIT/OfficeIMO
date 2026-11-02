@@ -115,7 +115,7 @@ public sealed class PdfFontInspectionTests {
     [Fact]
     public void Fonts_InspectsEmbeddedTrueTypeProgramWithoutRetainingBytes() {
         byte[] fontBytes = ManagedTextShapingTestAssets.CreateFont(' ', 'A', 'B');
-        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressEmbeddedFonts = true })
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressEmbeddedFonts = true })
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "OfficeIMO Inspection")
             .Paragraph(paragraph => paragraph.Text("AB"))
             .ToBytes();

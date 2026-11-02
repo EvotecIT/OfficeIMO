@@ -6,7 +6,7 @@ using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Visio;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public class VisioShapeDataTests {
@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
             }
 
             OfficeDocumentModel model = document.ToOfficeDocumentModel();
-            VisioInspectionSnapshot boundedSnapshot = document.CreateInspectionSnapshot(200);
+            VisioInspectionSnapshot boundedSnapshot = document.Inspect(200);
 
             OfficeDocumentModelTable table = Assert.Single(model.Tables);
             Assert.Equal(200, table.Rows.Count);
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
             shape.SetShapeData("Alpha", "first");
 
             VisioInspectionShapeSnapshot snapshot = Assert.Single(
-                Assert.Single(document.CreateInspectionSnapshot(1).Pages).Shapes);
+                Assert.Single(document.Inspect(1).Pages).Shapes);
 
             VisioInspectionShapeDataSnapshot row = Assert.Single(snapshot.ShapeData);
             Assert.Equal("Alpha", row.Name);

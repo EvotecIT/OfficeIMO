@@ -5,11 +5,11 @@ namespace OfficeIMO.PowerPoint {
     ///     Configures deterministic layout checks performed before a presentation is saved or published.
     /// </summary>
     public sealed class PowerPointDeckPreflightOptions {
-        private double _minimumReadableFontSizePoints = 10D;
+        private OfficeLength _minimumReadableFontSize = OfficeLength.Points(10);
         private double _minimumCollisionOverlapRatio = 0.2D;
-        private double _collisionTolerancePoints = 1D;
-        private double _defaultFontSizePoints = 18D;
-        private double _maximumDecorativeBleedPoints = 36D;
+        private OfficeLength _collisionTolerance = OfficeLength.Points(1);
+        private OfficeLength _defaultFontSize = OfficeLength.Points(18);
+        private OfficeLength _maximumDecorativeBleed = OfficeLength.Points(36);
         private int _maximumShapeCount = 10000;
         private int _maximumGroupDepth = 128;
 
@@ -54,28 +54,28 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public bool AllowDecorativeShapeBleed { get; set; } = true;
 
-        /// <summary>Maximum intentional decorative bleed beyond any slide edge, in points.</summary>
-        public double MaximumDecorativeBleedPoints {
-            get => _maximumDecorativeBleedPoints;
+        /// <summary>Maximum intentional decorative bleed beyond any slide edge.</summary>
+        public OfficeLength MaximumDecorativeBleed {
+            get => _maximumDecorativeBleed;
             set {
-                if (double.IsNaN(value) || double.IsInfinity(value) || value < 0D) {
-                    throw new ArgumentOutOfRangeException(nameof(MaximumDecorativeBleedPoints),
-                        "Decorative bleed must be a finite non-negative number.");
+                if (value < OfficeLength.Zero) {
+                    throw new ArgumentOutOfRangeException(nameof(MaximumDecorativeBleed),
+                        "Decorative bleed must be a non-negative length.");
                 }
-                _maximumDecorativeBleedPoints = value;
+                _maximumDecorativeBleed = value;
             }
         }
 
-        /// <summary>Minimum acceptable resolved font size in points.</summary>
-        public double MinimumReadableFontSizePoints {
-            get => _minimumReadableFontSizePoints;
-            set => _minimumReadableFontSizePoints = RequirePositive(value, nameof(MinimumReadableFontSizePoints));
+        /// <summary>Minimum acceptable resolved font size.</summary>
+        public OfficeLength MinimumReadableFontSize {
+            get => _minimumReadableFontSize;
+            set => _minimumReadableFontSize = RequirePositive(value, nameof(MinimumReadableFontSize));
         }
 
         /// <summary>Fallback font size used when a text run does not carry an explicit size.</summary>
-        public double DefaultFontSizePoints {
-            get => _defaultFontSizePoints;
-            set => _defaultFontSizePoints = RequirePositive(value, nameof(DefaultFontSizePoints));
+        public OfficeLength DefaultFontSize {
+            get => _defaultFontSize;
+            set => _defaultFontSize = RequirePositive(value, nameof(DefaultFontSize));
         }
 
         /// <summary>
@@ -93,16 +93,16 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        /// <summary>Small point-unit tolerance applied to bounds and containment comparisons.</summary>
-        public double CollisionTolerancePoints {
-            get => _collisionTolerancePoints;
+        /// <summary>Small physical tolerance applied to bounds and containment comparisons.</summary>
+        public OfficeLength CollisionTolerance {
+            get => _collisionTolerance;
             set {
-                if (double.IsNaN(value) || double.IsInfinity(value) || value < 0D) {
-                    throw new ArgumentOutOfRangeException(nameof(CollisionTolerancePoints),
-                        "Collision tolerance must be a finite non-negative number.");
+                if (value < OfficeLength.Zero) {
+                    throw new ArgumentOutOfRangeException(nameof(CollisionTolerance),
+                        "Collision tolerance must be a non-negative length.");
                 }
 
-                _collisionTolerancePoints = value;
+                _collisionTolerance = value;
             }
         }
 
@@ -119,11 +119,11 @@ namespace OfficeIMO.PowerPoint {
             IncludeVisualSnapshotDiagnostics = IncludeVisualSnapshotDiagnostics,
             IgnoreContainedShapeCollisions = IgnoreContainedShapeCollisions,
             AllowDecorativeShapeBleed = AllowDecorativeShapeBleed,
-            MaximumDecorativeBleedPoints = MaximumDecorativeBleedPoints,
-            MinimumReadableFontSizePoints = MinimumReadableFontSizePoints,
-            DefaultFontSizePoints = DefaultFontSizePoints,
+            MaximumDecorativeBleed = MaximumDecorativeBleed,
+            MinimumReadableFontSize = MinimumReadableFontSize,
+            DefaultFontSize = DefaultFontSize,
             MinimumCollisionOverlapRatio = MinimumCollisionOverlapRatio,
-            CollisionTolerancePoints = CollisionTolerancePoints,
+            CollisionTolerance = CollisionTolerance,
             MaximumShapeCount = MaximumShapeCount,
             MaximumGroupDepth = MaximumGroupDepth,
             FailureSeverity = FailureSeverity
@@ -137,9 +137,9 @@ namespace OfficeIMO.PowerPoint {
             return value;
         }
 
-        private static double RequirePositive(double value, string propertyName) {
-            if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0D) {
-                throw new ArgumentOutOfRangeException(propertyName, "Value must be a finite positive number.");
+        private static OfficeLength RequirePositive(OfficeLength value, string propertyName) {
+            if (value <= OfficeLength.Zero) {
+                throw new ArgumentOutOfRangeException(propertyName, "Value must be a positive length.");
             }
 
             return value;

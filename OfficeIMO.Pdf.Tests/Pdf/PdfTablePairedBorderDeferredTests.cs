@@ -57,16 +57,16 @@ public partial class PdfDocumentVisualQualityTests {
         // Isolate border paint from the deferred minimum-row grouping contract.
         style.MinimumBodyRowsOnFirstPage = 0;
         style.MinimumBodyRowsOnLastPage = 0;
-        style.CellSpacing = spacing;
+        style.CellSpacing = global::OfficeIMO.OfficeLength.Points(spacing);
         style.HeaderRowCount = header ? 1 : 0;
-        style.FixedRowHeights = Enumerable.Repeat<double?>(20, rowCount).ToList();
-        style.CellFills = new Dictionary<(int, int), PdfColor> {
-            [(1, 0)] = PdfColor.FromRgb(255, 230, 160), [(1, 1)] = PdfColor.FromRgb(240, 240, 240)
+        style.FixedRowHeights = (Enumerable.Repeat<double?>(20, rowCount).ToList()) is { } lengths3239 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths3239, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null;
+        style.CellFills = new Dictionary<(int, int), global::OfficeIMO.OfficeColor> {
+            [(1, 0)] = global::OfficeIMO.OfficeColor.FromRgb(255, 230, 160), [(1, 1)] = global::OfficeIMO.OfficeColor.FromRgb(240, 240, 240)
         };
         if (mode == "uniform") {
             for (int row = 0; row < rowCount; row++)
                 for (int column = 0; column < 2; column++) style.CellBorders![(row, column)] = new PdfCellBorder {
-                    Color = PdfColor.FromRgb(255, 0, 0), Width = 2, LineStyle = PdfCellBorderLineStyle.TwoLine
+                    Color = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), Width = global::OfficeIMO.OfficeLength.Points(2), LineStyle = PdfCellBorderLineStyle.TwoLine
                 };
         } else if (mode == "top-only") {
             style.CellBorders![(1, 0)] = MixedPairedBorder(top: true);
@@ -76,8 +76,8 @@ public partial class PdfDocumentVisualQualityTests {
         PdfTableCell[][] rows = Enumerable.Range(0, rowCount).Select(row => mode == "merged-bottom" && row == 0
             ? new[] { new PdfTableCell("gyp00A", columnSpan: 2) }
             : new[] { new PdfTableCell($"gyp{row:D2}A"), new PdfTableCell($"gyp{row:D2}B") }).ToArray();
-        var document = PdfDocument.Create(new PdfOptions {
-            PageWidth = 320, PageHeight = pageHeight, MarginLeft = 30, MarginRight = 30, MarginTop = 30, MarginBottom = 30,
+        var document = PdfDocument.Create(new PdfCreateOptions {
+            PageWidth = global::OfficeIMO.OfficeLength.Points(320), PageHeight = global::OfficeIMO.OfficeLength.Points(pageHeight), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30), MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
             CompressContentStreams = false
         });
         document.Compose(root => root.Page(page => page.Content(content => content.TableDeferred(() => rows, batchSize, style: style))));

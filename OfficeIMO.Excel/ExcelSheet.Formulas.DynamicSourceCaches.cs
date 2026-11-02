@@ -172,8 +172,8 @@ namespace OfficeIMO.Excel {
             string? cellMetadata = reader.GetAttribute("cm");
             if (!uint.TryParse(cellMetadata, out uint metadata)
                 || metadata != owner.Cell.CellMetaIndex?.Value) return false;
-            string expectedRange = A1.CellReference(owner.Top, owner.Left) + ":"
-                + A1.CellReference(owner.Bottom, owner.Right);
+            string expectedRange = ExcelA1.CellReference(owner.Top, owner.Left) + ":"
+                + ExcelA1.CellReference(owner.Bottom, owner.Right);
             using XmlReader child = reader.ReadSubtree();
             while (child.Read()) {
                 if (child.NodeType != XmlNodeType.Element || child.LocalName != "f"

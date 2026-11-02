@@ -31,8 +31,8 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("----");
                 foreach (var image in images) {
                     Console.WriteLine("+ Image: " + image.FileName);
-                    Console.WriteLine("+ Image: " + image.Width);
-                    Console.WriteLine("+ Image: " + image.Height);
+                    Console.WriteLine("+ Image: " + (image.Width?.ToPixels()));
+                    Console.WriteLine("+ Image: " + (image.Height?.ToPixels()));
                     Console.WriteLine("+ Image: " + image.WrapText);
                 }
                 Console.WriteLine("----");
