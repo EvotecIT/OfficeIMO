@@ -838,15 +838,15 @@ namespace OfficeIMO.Tests {
 
             using (var reloaded = WordDocument.Load(filePath)) {
                 var img = reloaded.Images[0];
-                Assert.Equal("FF0000", img.AlphaInversionColorHex);
+                Assert.Equal(OfficeColor.Parse("FF0000"), img.AlphaInversionColor);
                 Assert.Equal(60, img.BlackWhiteThreshold);
                 Assert.Equal(2000, (img.BlurRadius?.ToEmus()));
                 Assert.True(img.BlurGrow == true);
-                Assert.Equal("97E4FE", img.ColorChangeFromHex);
-                Assert.Equal("FF3399", img.ColorChangeToHex);
-                Assert.Equal("00FF00", img.ColorReplacementHex);
-                Assert.Equal("000000", img.DuotoneColor1Hex);
-                Assert.Equal("FFFFFF", img.DuotoneColor2Hex);
+                Assert.Equal(OfficeColor.Parse("97E4FE"), img.ColorChangeFrom);
+                Assert.Equal(OfficeColor.Parse("FF3399"), img.ColorChangeTo);
+                Assert.Equal(OfficeColor.Parse("00FF00"), img.ColorReplacement);
+                Assert.Equal(OfficeColor.Parse("000000"), img.DuotoneColor1);
+                Assert.Equal(OfficeColor.Parse("FFFFFF"), img.DuotoneColor2);
                 Assert.True(img.GrayScale == true);
                 Assert.Equal(65, img.LuminanceBrightness);
                 Assert.Equal(30, img.LuminanceContrast);

@@ -43,7 +43,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         var slide = presentation.AddSlide();
         var box = slide.AddTextBox(precedingParagraph ? "FIRST" : "gypsy",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(precedingParagraph ? 36 : 18));
-        box.FontSize = global::OfficeIMO.OfficeLength.Points(24); box.FontName = "Helvetica";
+        box.FontSize = global::OfficeIMO.OfficeLength.Points(24); box.FontFamily = "Helvetica";
         box.TextMarginLeft = box.TextMarginRight = box.TextMarginTop = box.TextMarginBottom = global::OfficeIMO.OfficeLength.Points(0);
         if (precedingParagraph) box.AddParagraph("gypsy");
         foreach (var paragraph in box.Paragraphs) {
@@ -112,7 +112,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox box = slide.AddTextBox(
             "VISIBLE alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron TAIL",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(40));
-        box.FontName = "BoundaryFont";
+        box.FontFamily = "BoundaryFont";
         box.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         if (flow == "bullet") box.Paragraphs[0].SetBullet('*');
         else {
@@ -183,7 +183,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
         if (flow == "rich") box.Paragraphs[0].Runs[0].Underline = true;
         if (flow == "paragraph") box.Paragraphs[0].SetBullet('*');
         PowerPointTextBox authored = slide.AddTextBox("AUTHORED",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(50));
-        authored.FontName = "Courier";
+        authored.FontFamily = "Courier";
         authored.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         byte[] bytes = presentation.ToPdf(new PowerPointPdfExportOptions {
             FontFamily = "serif", ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()

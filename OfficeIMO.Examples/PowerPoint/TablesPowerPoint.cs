@@ -43,7 +43,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointSlide titleSlide = presentation.AddSlide();
             PowerPointTextBox title = titleSlide.AddTitle("Quarterly Sales Overview",global::OfficeIMO.OfficeLength.Centimeters(marginCm),global::OfficeIMO.OfficeLength.Centimeters(marginCm),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(titleHeightCm));
             title.FontSize = global::OfficeIMO.OfficeLength.Points(32);
-            title.Color = "1F4E79";
+            title.Color = OfficeColor.Parse("1F4E79");
             titleSlide.AddTextBox("Tables created from data objects with built-in styles.",global::OfficeIMO.OfficeLength.Centimeters(marginCm),global::OfficeIMO.OfficeLength.Centimeters(3.2),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(1.1));
 
             // Slide 2: table from objects

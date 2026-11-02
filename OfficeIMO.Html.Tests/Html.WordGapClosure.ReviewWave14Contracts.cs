@@ -41,15 +41,15 @@ public partial class HtmlWordGapClosure {
             run => run.Text == "half");
 
         Assert.Same(transparent._paragraph, half._paragraph);
-        Assert.Equal(string.Empty, transparent.RunShadingFillColorHex);
-        Assert.Equal("FF8080", half.RunShadingFillColorHex);
+        Assert.Null(transparent.BackgroundColor);
+        Assert.Equal(OfficeColor.Parse("FF8080"), half.BackgroundColor);
     }
 
     [Fact]
     public void WordToHtml_PercentageRunShadingUsesTheVisibleBlendedColor() {
         using WordDocument document = WordDocument.Create();
         WordParagraph run = document.AddParagraph("Pattern");
-        run.RunShadingFillColorHex = "0000FF";
+        run.BackgroundColor = OfficeColor.Parse("0000FF");
         run._runProperties!.Shading!.Val = ShadingPatternValues.Percent50;
         run._runProperties.Shading.Color = "FF0000";
 

@@ -104,7 +104,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     public void WordPatternedParagraphShadingIsFlattenedAndReported() {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = source.AddParagraph("Patterned");
-        paragraph.ShadingFillColorHex = "D9EAF7";
+        paragraph.ShadingFillColor = OfficeColor.Parse("D9EAF7");
         paragraph.ShadingPattern = WordShadingPattern.Percent20;
 
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
@@ -120,7 +120,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     public void WordRunShadingAndDefaultHeaderFormattingArePreserved() {
         using WordDocument source = WordDocument.Create();
         WordParagraph body = source.AddParagraph("Shaded");
-        body.RunShadingFillColorHex = "112233";
+        body.BackgroundColor = OfficeColor.Parse("112233");
         source.AddHeadersAndFooters();
         WordParagraph header = source.Header!.Default!.AddParagraph("Styled header");
         header.Bold = true;
@@ -271,7 +271,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         using PowerPointDocument target = conversion.Value;
 
         Assert.Equal("Liberation Sans", target.Slides.Single().TextBoxes.Single()
-            .Paragraphs.Single().Runs.Single().FontName);
+            .Paragraphs.Single().Runs.Single().FontFamily);
         Assert.Contains(conversion.Report.Mappings, mapping =>
             mapping.Feature == "font-family-fallbacks"
             && mapping.Status == OdfConversionMappingStatus.Approximated
@@ -404,7 +404,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
                 run.Italic = true;
                 run.UnderlineStyle = PowerPointUnderlineStyle.Wavy;
                 run.SetSuperscript();
-                run.Color = "336699";
+                run.Color = OfficeColor.Parse("336699");
             }).AddText("After");
             Assert.Equal(new[] {
                 PowerPointParagraphInlineKind.Run,
@@ -590,7 +590,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         Assert.Equal(2, runs.Length);
         Assert.All(runs, run => Assert.True(run.Underline));
         Assert.All(runs, run => Assert.True(run.Strikethrough));
-        Assert.All(runs, run => Assert.Equal("AABBCC", run.HighlightColor));
+        Assert.All(runs, run => Assert.Equal(OfficeColor.Parse("AABBCC"), run.BackgroundColor));
     }
 
     [Fact]
@@ -1395,7 +1395,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             .Single().Runs);
 
         Assert.Null(run.HighlightColor);
-        Assert.Null(run.RunShadingFillColorHex);
+        Assert.Null(run.BackgroundColor);
     }
 
     [Fact]

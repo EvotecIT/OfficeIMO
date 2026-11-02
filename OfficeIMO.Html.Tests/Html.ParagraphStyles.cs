@@ -12,9 +12,9 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var paragraph = doc.Paragraphs[0];
 
-            Assert.Equal("FF0000", paragraph.ColorHex);
+            Assert.Equal(OfficeColor.Parse("FF0000"), paragraph.Color);
             Assert.Equal(18, paragraph.FontSize?.ToPoints());
-            Assert.Equal("FFFF00", paragraph.ShadingFillColorHex);
+            Assert.Equal(OfficeColor.Parse("FFFF00"), paragraph.ShadingFillColor);
         }
 
         [Fact]
@@ -24,9 +24,9 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var paragraph = doc.Paragraphs[0];
 
-            Assert.Equal("FF0000", paragraph.ColorHex);
+            Assert.Equal(OfficeColor.Parse("FF0000"), paragraph.Color);
             Assert.Equal(15, paragraph.FontSize?.ToPoints());
-            Assert.Equal("00FFFF", paragraph.ShadingFillColorHex);
+            Assert.Equal(OfficeColor.Parse("00FFFF"), paragraph.ShadingFillColor);
         }
     }
 }

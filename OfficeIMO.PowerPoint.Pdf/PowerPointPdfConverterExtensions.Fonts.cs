@@ -221,7 +221,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static bool TextBoxUsesPresentationThemeFont(PptCore.PowerPointTextBox textBox) {
         if (string.IsNullOrWhiteSpace(textBox.Text) ||
-            !string.IsNullOrWhiteSpace(textBox.FontName)) {
+            !string.IsNullOrWhiteSpace(textBox.FontFamily)) {
             return false;
         }
 
@@ -236,7 +236,7 @@ public static partial class PowerPointPdfConverterExtensions {
             }
 
             foreach (PptCore.PowerPointTextRun run in runs) {
-                if (!string.IsNullOrEmpty(run.Text) && string.IsNullOrWhiteSpace(run.FontName)) {
+                if (!string.IsNullOrEmpty(run.Text) && string.IsNullOrWhiteSpace(run.FontFamily)) {
                     return true;
                 }
             }
@@ -257,7 +257,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 PptCore.PowerPointTableCell cell = table.GetCell(row, column);
                 if (cell.IsMergedCell ||
                     string.IsNullOrWhiteSpace(cell.Text) ||
-                    !string.IsNullOrWhiteSpace(cell.FontName)) {
+                    !string.IsNullOrWhiteSpace(cell.FontFamily)) {
                     continue;
                 }
 
@@ -353,7 +353,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 // including fields. Register those same families before creating the PDF measurer.
                 foreach (PptCore.PowerPointEffectiveTextSegment segment in PptCore.PowerPointEffectiveRunStyleResolver.ResolveSegments(
                     run, paragraph, textBox.TextBody?.ListStyle, textBox.MasterTextStyle)) {
-                    RegisterPresentationFontCandidate(segment.Style.FontName ?? textBox.FontName
+                    RegisterPresentationFontCandidate(segment.Style.FontName ?? textBox.FontFamily
                         ?? PptCore.PowerPointTextDefaults.ResolveBodyLatinFont(textBox.OwnerSlide),
                         pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
                 }
@@ -367,7 +367,7 @@ public static partial class PowerPointPdfConverterExtensions {
             options.CancellationToken.ThrowIfCancellationRequested();
             PptCore.PowerPointTableCell cell = anchor.Cell;
             RegisterPresentationFontCandidate(PptCore.PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(
-                cell.FontName, cell.SlidePart ?? cell.OwnerPart), pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
+                cell.FontFamily, cell.SlidePart ?? cell.OwnerPart), pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
             IReadOnlyList<A.TextCharacterPropertiesType> defaults = options.PdfOptions?.HasExplicitDefaultTableStyle == true
                 ? Array.Empty<A.TextCharacterPropertiesType>() : CreateTableTextDefaults(table, anchor.Row, anchor.Column);
             RegisterPresentationTableCellRunFonts(cell, slideNumber, pdfOptions, registeredFamilies, registeredFontSlots, options, defaults);
@@ -391,7 +391,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 IReadOnlyList<A.TextCharacterPropertiesType> sources =
                     ResolveTableTextPropertySources(cell, paragraph, directProperties, tableDefaults);
                 RegisterPresentationFontCandidate(
-                    ReadRunFontName(cell, sources) ?? cell.FontName,
+                    ReadRunFontName(cell, sources) ?? cell.FontFamily,
                     pdfOptions,
                     registeredFamilies,
                     registeredFontSlots,

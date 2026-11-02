@@ -22,7 +22,7 @@ public partial class HtmlWordGapClosure {
         WordParagraph run = Assert.Single(paragraph.GetRuns());
 
         Assert.True(paragraph.BiDi);
-        Assert.NotEqual("FF0000", run.ColorHex);
+        Assert.NotEqual(OfficeColor.Parse("FF0000"), run.Color);
     }
 
     [Fact]

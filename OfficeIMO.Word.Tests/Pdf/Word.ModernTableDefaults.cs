@@ -43,11 +43,11 @@ public partial class Word {
         WordParagraph text = cell.Paragraphs[0];
         text.Text = "OVERRIDE";
         text.FontSize = OfficeLength.Points(18);
-        text.ColorHex = "008000";
+        text.Color = OfficeColor.Parse("008000");
         text.Bold = false;
         text.Italic = false;
         text.ParagraphAlignment = WordParagraphAlignment.Right;
-        cell.ShadingFillColorHex = "FF0000";
+        cell.ShadingFillColor = OfficeColor.Parse("FF0000");
         Assert.Equal(WordTableStyle.OfficeIMOModern, table.Style);
         document.CleanupDocument();
         using var saved = WordDocument.Load(new MemoryStream(document.ToBytes()));

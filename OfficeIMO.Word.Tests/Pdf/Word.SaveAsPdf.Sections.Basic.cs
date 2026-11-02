@@ -248,9 +248,9 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
             WordParagraph header = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("RedNativeHeader");
-            header.ColorHex = "FF0000";
+            header.Color = OfficeColor.Parse("FF0000");
             WordParagraph footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("BlueNativeFooter");
-            footer.ColorHex = "0000FF";
+            footer.Color = OfficeColor.Parse("0000FF");
             document.AddParagraph("Plain body text");
 
             document.Save();

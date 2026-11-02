@@ -416,8 +416,8 @@ namespace OfficeIMO.Tests {
             presentation.SetLayoutPlaceholderBounds(layout.MasterIndex, layout.LayoutIndex, PowerPointPlaceholderType.Title,
                 new PowerPointLayoutBox(OfficeLength.Points(60), OfficeLength.Points(40), OfficeLength.Points(600), OfficeLength.Points(120)));
             presentation.SetLayoutPlaceholderTextStyle(layout.MasterIndex, layout.LayoutIndex, PowerPointPlaceholderType.Title,
-                new PowerPointTextStyle(fontSize: OfficeLength.Points(36), fontName: "Arial", bold: false, italic: true)
-                    .WithUnderlineStyle(PowerPointUnderlineStyle.Double).WithColor("336699").WithHighlightColor("FFFF0080"));
+                new PowerPointTextStyle(fontSize: OfficeLength.Points(36), fontFamily: "Arial", bold: false, italic: true)
+                    .WithUnderlineStyle(PowerPointUnderlineStyle.Double).WithColor(OfficeColor.Parse("336699")).WithBackgroundColor(OfficeColor.Parse("FFFF0080")));
             var content = new PowerPointLayoutSlide { Title = "Edited template title", TemplateLayout = layout };
             content.Blocks.Add(new PowerPointLayoutKpi("99%", "Availability"));
             PowerPointLayoutEngine.AddSlides(presentation, content);

@@ -183,8 +183,8 @@ public class HtmlRichGenericImports {
             textBox => textBox.Paragraphs.Any(paragraph => paragraph.IsNumbered));
 
         Assert.True(bold.Bold);
-        Assert.Equal("123456", bold.Color);
-        Assert.Equal("Arial", bold.FontName);
+        Assert.Equal(OfficeColor.Parse("123456"), bold.Color);
+        Assert.Equal("Arial", bold.FontFamily);
         Assert.Equal(global::OfficeIMO.OfficeLength.Points(15), bold.FontSize);
         Assert.True(linked.Italic);
         Assert.Equal(new Uri("https://example.com/report"), linked.Hyperlink);
@@ -278,7 +278,7 @@ public class HtmlRichGenericImports {
 
         Assert.Equal("ABCDEF", header.FillColor);
         Assert.All(header.Runs, run => Assert.True(run.Bold));
-        Assert.Equal("123456", header.Runs[0].Color);
+        Assert.Equal(OfficeColor.Parse("123456"), header.Runs[0].Color);
         Assert.Equal(OfficeIMO.PowerPoint.PowerPointTextAlignment.Center, header.HorizontalAlignment);
         Assert.True(Assert.Single(body.Runs, run => run.Text.Contains("Bold", StringComparison.Ordinal)).Bold);
         PowerPointTextRun linked = Assert.Single(body.Runs,

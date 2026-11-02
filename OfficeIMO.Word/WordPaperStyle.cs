@@ -82,7 +82,7 @@ public sealed partial class WordPaperStyle {
                 : paragraph.Style == WordParagraphStyles.Heading4 ? 4 : 0;
             if (level == 0) continue;
             paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(level == 1 ? 18 : level == 2 ? 14 : level == 3 ? 11 : 10);
-            paragraph.ColorHex = Ink;
+            paragraph.RunColorValue = Ink;
             paragraph.Bold = true;
             paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(level == 1 ? 16 : level == 2 ? 12 : 8);
             paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(level == 1 ? 8 : level == 2 ? 6 : 4);
@@ -108,8 +108,8 @@ public sealed partial class WordPaperStyle {
     /// <param name="tint">Optional background color as RGB hex; null retains the current fill.</param>
     public void ApplyCellTone(WordTableCell cell, string tone, string? tint = null) {
         if (cell == null) throw new ArgumentNullException(nameof(cell));
-        if (tint != null) cell.ShadingFillColorHex = tint;
-        foreach (WordParagraph paragraph in cell.Paragraphs) paragraph.ColorHex = tone;
+        if (tint != null) cell.ShadingFillValue = tint;
+        foreach (WordParagraph paragraph in cell.Paragraphs) paragraph.RunColorValue = tone;
     }
 
     /// <summary>Formats a value card with a small label, emphasized value and a semantic top rule.</summary>
@@ -120,14 +120,14 @@ public sealed partial class WordPaperStyle {
     /// <param name="tint">Background color as RGB hex.</param>
     public void ApplyValueCard(WordTableCell cell, string label, string value, string tone, string tint) {
         if (cell == null) throw new ArgumentNullException(nameof(cell));
-        cell.ShadingFillColorHex = tint;
+        cell.ShadingFillValue = tint;
         cell.VerticalAlignment = WordTableVerticalAlignment.Center;
         cell.MarginTop = global::OfficeIMO.OfficeLength.Points(7.5D);
         cell.MarginBottom = global::OfficeIMO.OfficeLength.Points(7.5D);
         cell.MarginLeft = global::OfficeIMO.OfficeLength.Points(8.5D);
         cell.MarginRight = global::OfficeIMO.OfficeLength.Points(8.5D);
         cell.Borders.TopStyle = WordBorderStyle.Single;
-        cell.Borders.TopColorHex = tone;
+        cell.Borders.TopColorValue = tone;
         cell.Borders.TopSize = global::OfficeIMO.OfficeLength.Points(2.5);
         WordParagraph caption = cell.AddParagraph(label.ToUpperInvariant(), true);
         Format(caption, 8, Muted, true);
@@ -143,7 +143,7 @@ public sealed partial class WordPaperStyle {
     /// <param name="background">Page background as RGB hex.</param>
     public void ApplySpacerCell(WordTableCell cell, string background = "FFFFFF") {
         if (cell == null) throw new ArgumentNullException(nameof(cell));
-        cell.ShadingFillColorHex = background;
+        cell.ShadingFillValue = background;
         cell.MarginTop = global::OfficeIMO.OfficeLength.Zero;
         cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
         cell.MarginLeft = global::OfficeIMO.OfficeLength.Zero;
@@ -183,10 +183,10 @@ public sealed partial class WordPaperStyle {
         paragraph.AddFormattedText(title + ": ", bold: true);
         paragraph.AddText(body);
         Format(paragraph, 10, Ink);
-        paragraph.ShadingFillColorHex = tint;
+        paragraph.ShadingFillValue = tint;
         paragraph.Borders.LeftStyle = WordBorderStyle.Single;
         paragraph.Borders.LeftSize = OfficeLength.Points(3);
-        paragraph.Borders.LeftColorHex = tone;
+        paragraph.Borders.LeftColorValue = tone;
         paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(10D);
         paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(12D);
         return paragraph;
@@ -200,7 +200,7 @@ public sealed partial class WordPaperStyle {
         for (int index = 0; index < metrics.Length; index++) {
             WordPaperMetric metric = metrics[index];
             WordTableCell cell = table.Rows[0].Cells[index];
-            cell.ShadingFillColorHex = Surface;
+            cell.ShadingFillValue = Surface;
             WordParagraph value = cell.Paragraphs[0];
             value.Text = metric.Value;
             Format(value, 24, metric.Color ?? Ink, true);
@@ -237,7 +237,7 @@ public sealed partial class WordPaperStyle {
     private void Format(WordParagraph paragraph, int size, string color, bool bold = false) {
         paragraph.FontFamily = FontFamily;
         paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(size);
-        paragraph.ColorHex = color;
+        paragraph.RunColorValue = color;
         if (bold) paragraph.Bold = true;
     }
 

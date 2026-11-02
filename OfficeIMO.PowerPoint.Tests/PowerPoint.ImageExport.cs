@@ -290,7 +290,7 @@ namespace OfficeIMO.Tests {
 
             PowerPointTextBox textBox = slide.AddTextBox("Shared renderer",global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(54),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(36));
             textBox.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-            textBox.Color = "111111";
+            textBox.Color = OfficeColor.Parse("111111");
 
             OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Png);
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
@@ -477,7 +477,7 @@ namespace OfficeIMO.Tests {
             header.Text = "Region";
             header.FillColor = "22AA66";
             header.BorderColor = "114433";
-            header.Color = "FFFFFF";
+            header.Color = OfficeColor.Parse("FFFFFF");
             header.Bold = true;
             header.FontSize = global::OfficeIMO.OfficeLength.Points(11);
             header.HorizontalAlignment = PowerPointTextAlignment.Center;
@@ -591,7 +591,7 @@ namespace OfficeIMO.Tests {
             presentation.SetLayoutPlaceholderBounds(0, layoutIndex, PowerPointPlaceholderType.Title, bounds);
             layoutTitle.Text = "Inherited layout title";
             layoutTitle.FontSize = global::OfficeIMO.OfficeLength.Points(14);
-            layoutTitle.Color = "1F4E79";
+            layoutTitle.Color = OfficeColor.Parse("1F4E79");
 
             PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.TitleOnly);
 
@@ -620,13 +620,13 @@ namespace OfficeIMO.Tests {
             PowerPointTextBox layoutTitle = presentation.EnsureLayoutPlaceholderTextBox(0, layoutIndex, PowerPointPlaceholderType.Title, bounds: bounds);
             presentation.SetLayoutPlaceholderBounds(0, layoutIndex, PowerPointPlaceholderType.Title, bounds);
             layoutTitle.Text = "Inherited layout title";
-            layoutTitle.Color = "C00000";
+            layoutTitle.Color = OfficeColor.Parse("C00000");
 
             PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.TitleOnly);
             PowerPointTextBox slideTitle = slide.AddTitle("Slide local title",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(32));
             // Keep this 32-point frame focused on placeholder suppression, not title overflow.
             slideTitle.FontSize = global::OfficeIMO.OfficeLength.Points(14);
-            slideTitle.Color = "1F4E79";
+            slideTitle.Color = OfficeColor.Parse("1F4E79");
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);

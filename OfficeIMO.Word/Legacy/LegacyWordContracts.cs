@@ -45,7 +45,7 @@ public sealed class LegacyWordRunContent {
         VerticalPosition = source.VerticalPosition;
         FontSize = source.FontSizePoints.HasValue ? global::OfficeIMO.OfficeLength.Points(source.FontSizePoints.Value) : null;
         FontFamily = source.FontFamily;
-        ColorHex = source.ColorHex;
+        Color = Helpers.ParseNativeColor(source.ColorHex);
         NoteIndex = source.NoteIndex;
         Image = source.Image == null ? null : new LegacyWordImageContent(source.Image);
     }
@@ -66,7 +66,7 @@ public sealed class LegacyWordRunContent {
     /// <summary>Gets the recovered font family.</summary>
     public string? FontFamily { get; }
     /// <summary>Gets the recovered RGB color.</summary>
-    public string? ColorHex { get; }
+    public global::OfficeIMO.OfficeColor? Color { get; }
     /// <summary>Gets an anchored note's zero-based index in <see cref="LegacyWordContent.Notes"/>, when this run represents a note reference.</summary>
     public int? NoteIndex { get; }
     /// <summary>Gets a recovered inline image where the profile qualifies graphic recovery.</summary>
@@ -100,7 +100,7 @@ public sealed class LegacyWordStyleContent {
         Underline = source.Underline;
         FontSize = source.FontSizePoints.HasValue ? global::OfficeIMO.OfficeLength.Points(source.FontSizePoints.Value) : null;
         FontFamily = source.FontFamily;
-        ColorHex = source.ColorHex;
+        Color = Helpers.ParseNativeColor(source.ColorHex);
         Alignment = source.Alignment;
         LineSpacing = source.LineSpacingPoints.HasValue ? global::OfficeIMO.OfficeLength.Points(source.LineSpacingPoints.Value) : null;
         SpacingBefore = source.SpacingBeforePoints.HasValue ? global::OfficeIMO.OfficeLength.Points(source.SpacingBeforePoints.Value) : null;
@@ -122,7 +122,7 @@ public sealed class LegacyWordStyleContent {
     /// <summary>Gets the recovered font family.</summary>
     public string? FontFamily { get; }
     /// <summary>Gets the recovered RGB color.</summary>
-    public string? ColorHex { get; }
+    public global::OfficeIMO.OfficeColor? Color { get; }
     /// <summary>Gets recovered paragraph alignment.</summary>
     public WordParagraphAlignment? Alignment { get; }
     /// <summary>Gets recovered physical line spacing.</summary>

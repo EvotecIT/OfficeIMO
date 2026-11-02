@@ -6662,6 +6662,87 @@
       "replacement": "Pass OfficePackageSigningOptions explicitly for shared signing; WordPackageSigningOptions selects the richer Word-specific result. The same requirement applies to TrySignPackage. Static ValidateSignatures retains optional validation settings.",
       "reason": "The shared options argument is required to distinguish the shared result from existing Word-specific signing evidence.",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.ColorHex / SetColorHex(string)",
+      "kind": "property",
+      "action": "remove",
+      "new": "OfficeIMO.Word.WordParagraph.Color : OfficeColor? / SetColor(OfficeColor)",
+      "replacement": "paragraph.Color = OfficeColor.Parse(\"FF0000\"); read paragraph.Color?.ToRgbHex(). Setting Color = null now removes the run colour; automatic ('auto') colour reads as null.",
+      "reason": "One colour value type; the hexadecimal string twin duplicated the typed property.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.RunShadingFillColor / RunShadingFillColorHex / SetRunShadingFillColorHex(string)",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordParagraph.BackgroundColor : OfficeColor? / SetBackgroundColor(OfficeColor)",
+      "replacement": "run.BackgroundColor = OfficeColor.Parse(\"FFF2CC\"). Highlight (WordHighlightColor) keeps the limited Word highlight palette.",
+      "reason": "Run shading fill is the arbitrary-colour text background; BackgroundColor is the shared name across Word and PowerPoint.",
+      "category": "naming"
+    },
+    {
+      "old": "Every *ColorHex / *Hex colour twin on WordParagraph (ShadingFillColorHex), WordTableCell (ShadingFillColorHex), WordBorders, WordParagraphBorders and WordTableCellBorder (<Side>ColorHex), WordLine.ColorHex, WordList.ColorHex, WordShape (FillColorHex, StrokeColorHex), WordStructuredDocumentTag (ColorHex, SetColorHex), WordWatermark.ColorHex, WordBackground.SetColorHex, WordImage (AlphaInversionColorHex, ColorChangeFromHex, ColorChangeToHex, ColorReplacementHex, DuotoneColor1Hex, DuotoneColor2Hex), WordTableStyleDetails (ShadingFillColorHex, ShadingColorHex)",
+      "kind": "property",
+      "action": "remove",
+      "new": "The typed OfficeColor twin with the same name minus 'Hex' (for example WordTableCell.ShadingFillColor, WordTableCellBorder.LeftColor, WordImage.ColorChangeFrom)",
+      "replacement": "Assign OfficeColor values (OfficeColor.Parse(\"#RRGGBB\") for text). Automatic ('auto') and missing values read as null; setting null removes the colour where the property is nullable.",
+      "reason": "One colour value type; the hexadecimal string twins duplicated the typed properties.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordBorders.<Side>Color : OfficeColor and WordTableCellBorder.<Side>Color : OfficeColor",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeColor? (Left/Right/Top/Bottom on WordBorders; Left/Right/Top/Bottom/Start/End/InsideHorizontal/InsideVertical/TopLeftToBottomRight/TopRightToBottomLeft on WordTableCellBorder)",
+      "replacement": "Read with border.LeftColor?.ToRgbHex(); a missing or automatic colour now reads as null instead of throwing InvalidOperationException/FormatException.",
+      "reason": "The removed hexadecimal twin was the only way to read a missing border colour; the typed property now carries that state.",
+      "category": "naming"
+    },
+    {
+      "old": "Hex-only colour members: WordBackground.Color : string?, WordSettings.BackgroundColor : string? / SetBackgroundColor(string), WordTextBox.FillColorHex, WordShapeGroupItem.FillColorHex / StrokeColorHex, WordParagraphStyleDefinition.ColorHex",
+      "kind": "property",
+      "action": "change",
+      "new": "WordBackground.Color : OfficeColor?, WordSettings.BackgroundColor : OfficeColor? / SetBackgroundColor(OfficeColor), WordTextBox.FillColor : OfficeColor?, WordShapeGroupItem.FillColor / StrokeColor : OfficeColor?, WordParagraphStyleDefinition.Color : OfficeColor?",
+      "replacement": "Assign OfficeColor values; parse text with OfficeColor.Parse. WordTextBox.FillColor = null removes the solid fill.",
+      "reason": "Members that only existed as strings take the typed value with the non-Hex name.",
+      "category": "naming"
+    },
+    {
+      "old": "Read-only snapshots: WordRunInfo.ColorHex / RunShadingFillColorHex, WordParagraphInfo.ShadingFillColorHex, WordTableCellInfo.ShadingFillColorHex, WordParagraphBorderInfo.ColorHex, WordTableCellBorderInfo.ColorHex, LegacyWordRunContent.ColorHex, LegacyWordStyleContent.ColorHex",
+      "kind": "property",
+      "action": "change",
+      "new": "WordRunInfo.Color / BackgroundColor, WordParagraphInfo.ShadingFillColor, WordTableCellInfo.ShadingFillColor, WordParagraphBorderInfo.Color, WordTableCellBorderInfo.Color, LegacyWordRunContent.Color, LegacyWordStyleContent.Color (all OfficeColor?)",
+      "replacement": "Use info.Color?.ToRgbHex() where text is needed. The automatic-colour keyword reads as null.",
+      "reason": "Snapshots expose the same colour value type as the live objects.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTableStyleDetails.GetBorderProperties(side) -> (Style, Size, string? ColorHex)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordTableStyleDetails.GetBorderProperties(side) -> (Style, Size, OfficeColor? Color)",
+      "replacement": "var (style, size, color) = details.GetBorderProperties(side); color?.ToRgbHex().",
+      "reason": "One colour value type.",
+      "category": "naming"
+    },
+    {
+      "old": "Colour parameters: WordDocument/WordList.AddCustomBulletList(..., string fontName, OfficeColor? color = null, string? colorHex = null, ...) and (char symbol, string fontName, string colorHex, ...); WordList.AddListLevel (same shapes); WordSmartArt.ReplaceTexts/SetNodeText(string? colorHex); WordTable.ConditionalFormatting and WordTableConditionalFormattingBuilder.AddRule (string? matchFillColorHex, matchFontColorHex, noMatchFillColorHex, noMatchFontColorHex)",
+      "kind": "method",
+      "action": "merge",
+      "new": "Single overload per shape taking OfficeColor?: AddCustomBulletList/AddListLevel(..., string fontFamily, OfficeColor? color[ = null], OfficeLength? fontSize = null); ReplaceTexts/SetNodeText(OfficeColor? color); ConditionalFormatting/AddRule(OfficeColor? matchFillColor = null, OfficeColor? matchFontColor = null, OfficeColor? noMatchFillColor = null, OfficeColor? noMatchFontColor = null, ...)",
+      "replacement": "Pass OfficeColor values: colorHex: \"#FF0000\" becomes color: OfficeColor.Parse(\"#FF0000\"); matchFillColorHex: \"92D050\" becomes matchFillColor: OfficeColor.Parse(\"92D050\"). The typed ConditionalFormatting/AddRule overloads with a required matchFillColor merge into the optional form.",
+      "reason": "Removes parallel string and typed colour parameters.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordList.FontName : string and OfficeIMO.Word.WordParagraphStyleDefinition.FontName : string?",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordList.FontFamily : string? and OfficeIMO.Word.WordParagraphStyleDefinition.FontFamily : string?",
+      "replacement": "Rename the property. WordList.FontFamily returns null (not an empty string) when no font is set.",
+      "reason": "FontFamily is the shared spelling for a font family name.",
+      "category": "naming"
     }
   ],
   "packageMoves": [

@@ -12274,6 +12274,33 @@
       "replacement": "To format only the text you just added, call the setter on the run returned by AddText.",
       "reason": "The paragraph setters used to format a hidden 'current run' (the last run written through that paragraph object). There is no current-run cursor any more.",
       "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointTextRun/PowerPointTableCell/PowerPointTextBox.FontName, PowerPointTextRun/PowerPointParagraph.SetFontName(string), PowerPointTextStyle.FontName / WithFontName(string?) / constructor parameter fontName",
+      "kind": "property",
+      "action": "rename",
+      "new": "FontFamily, SetFontFamily(string), PowerPointTextStyle.FontFamily / WithFontFamily(string?) / constructor parameter fontFamily",
+      "replacement": "Rename the member. BulletFontName and the design-theme HeadingFontName/BodyFontName are unchanged.",
+      "reason": "FontFamily is the shared spelling for a font family name.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointTextRun/PowerPointTableCell/PowerPointTextBox.Color : string?, PowerPointTextRun/PowerPointParagraph.SetColor(string), PowerPointTextStyle.Color : string? / WithColor(string?) / constructor parameter color : string?",
+      "kind": "property",
+      "action": "change",
+      "new": "Color : OfficeColor?, SetColor(OfficeColor), PowerPointTextStyle.Color : OfficeColor? / WithColor(OfficeColor?) / constructor parameter color : OfficeColor?",
+      "replacement": "run.Color = OfficeColor.Parse(\"FF000080\"). Alpha below 255 is still written as native DrawingML opacity, and the getter now returns that alpha.",
+      "reason": "One colour value type across Word and PowerPoint text.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointTextRun.HighlightColor : string?, PowerPointTextRun/PowerPointParagraph.SetHighlightColor(string), PowerPointTextStyle.HighlightColor / WithHighlightColor(string?) / constructor parameter highlightColor",
+      "kind": "property",
+      "action": "rename",
+      "new": "BackgroundColor : OfficeColor?, SetBackgroundColor(OfficeColor), PowerPointTextStyle.BackgroundColor / WithBackgroundColor(OfficeColor?) / constructor parameter backgroundColor",
+      "replacement": "run.BackgroundColor = OfficeColor.Parse(\"FFFF00\"). The DrawingML highlight is written as before, including native opacity.",
+      "reason": "The arbitrary-colour text background shares the BackgroundColor name and OfficeColor type with Word.",
+      "category": "naming"
     }
   ],
   "packageMoves": [

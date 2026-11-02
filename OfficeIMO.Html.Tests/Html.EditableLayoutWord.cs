@@ -274,7 +274,7 @@ public sealed class HtmlEditableLayoutWordTests {
         Assert.Equal(685800, positioned.VerticalPositionOffset?.ToEmus());
         Assert.Equal(2286000L, positioned.Width.ToEmus());
         Assert.Equal(685800L, positioned.Height.ToEmus());
-        Assert.Equal("DBEAFE", positioned.FillColorHex);
+        Assert.Equal(OfficeColor.Parse("DBEAFE"), positioned.FillColor);
         Assert.Equal(WordImageTextWrapping.InFrontOfText, positioned.WrapText);
         Assert.Equal(WordImageTextWrapping.Square, floating.WrapText);
         Assert.NotEmpty(reopened.Find("Flex remains", StringComparison.Ordinal));

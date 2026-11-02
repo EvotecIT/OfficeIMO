@@ -48,8 +48,8 @@ namespace OfficeIMO.Tests {
                 box.Bold = true;
                 box.Italic = true;
                 box.FontSize = global::OfficeIMO.OfficeLength.Points(24);
-                box.FontName = "Arial";
-                box.Color = "FF0000";
+                box.FontFamily = "Arial";
+                box.Color = OfficeColor.Parse("FF0000");
                 box.AddBullet("Bullet1");
                 box.AddBullet("Bullet2");
                 presentation.Save();
@@ -162,7 +162,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox box = slide.AddTextBox("Highlights");
                 box.AddBullets(new[] { "First", "Second" });
-                box.ApplyTextStyle(new PowerPointTextStyle(fontSize: global::OfficeIMO.OfficeLength.Points(20), bold: true, color: "336699"));
+                box.ApplyTextStyle(new PowerPointTextStyle(fontSize: global::OfficeIMO.OfficeLength.Points(20), bold: true, color: OfficeColor.Parse("336699")));
                 box.ApplyParagraphStyle(new PowerPointParagraphStyle(
                     lineSpacingMultiplier: 1.2,
                     spaceAfter: global::OfficeIMO.OfficeLength.Points(4),

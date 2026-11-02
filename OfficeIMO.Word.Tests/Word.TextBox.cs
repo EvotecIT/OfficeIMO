@@ -106,10 +106,10 @@ namespace OfficeIMO.Tests {
                 textBox3.Paragraphs[0].Borders.LeftStyle = WordBorderStyle.BasicWideOutline;
                 textBox3.Paragraphs[0].Borders.RightStyle = WordBorderStyle.BasicWideOutline;
 
-                Assert.True(textBox3.Paragraphs[0].Borders.BottomColorHex == "FF0000");
-                Assert.True(textBox3.Paragraphs[0].Borders.LeftColorHex == null);
-                Assert.True(textBox3.Paragraphs[0].Borders.RightColorHex == null);
-                Assert.True(textBox3.Paragraphs[0].Borders.TopColorHex == null);
+                Assert.True(textBox3.Paragraphs[0].Borders.BottomColor == OfficeColor.Parse("FF0000"));
+                Assert.True(textBox3.Paragraphs[0].Borders.LeftColor == null);
+                Assert.True(textBox3.Paragraphs[0].Borders.RightColor == null);
+                Assert.True(textBox3.Paragraphs[0].Borders.TopColor == null);
                 Assert.True(textBox3.Paragraphs[0].Borders.LeftColor == null);
                 Assert.True(textBox3.Paragraphs[0].Borders.RightColor == null);
                 Assert.True(textBox3.Paragraphs[0].Borders.TopColor == null);
@@ -132,7 +132,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(Color.Green, textBox3.Paragraphs[0].Borders.LeftColor);
                 Assert.False(textBox3.Paragraphs[0].Borders.LeftShadow ?? true);
 
-                Assert.Equal("008000", document.Sections[0].TextBoxes[0].Paragraphs[0].Borders.LeftColorHex);
+                Assert.Equal(OfficeColor.Parse("008000"), document.Sections[0].TextBoxes[0].Paragraphs[0].Borders.LeftColor);
 
 
                 document.Save();
@@ -201,12 +201,12 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.BottomShadow == null);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.BottomSpace == null);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.BottomFrame == null);
-                Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.BottomColorHex == null);
+                Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.BottomColor == null);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.BottomThemeColor == null);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.TopStyle == null);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.TopSize == null);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.TopColor == null);
-                Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.TopColorHex == null);
+                Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.TopColor == null);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.TopShadow == null);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.TopSpace == null);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.TopFrame == null);
@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.LeftStyle == null);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.LeftSize == null);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.LeftColor == null);
-                Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.LeftColorHex == null);
+                Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.LeftColor == null);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.LeftShadow == null);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.LeftSpace == null);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.LeftFrame == null);
@@ -222,7 +222,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.RightStyle == null);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.RightSize == null);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.RightColor == null);
-                Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.RightColorHex == null);
+                Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.RightColor == null);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.RightShadow == null);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.RightSpace == null);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.RightFrame == null);
@@ -458,9 +458,9 @@ namespace OfficeIMO.Tests {
             properties.Append(new A.GradientFill());
             properties.Append(new A.PatternFill());
 
-            textBox.FillColorHex = "ABCDEF";
+            textBox.FillColor = OfficeColor.Parse("ABCDEF");
 
-            Assert.Equal("ABCDEF", textBox.FillColorHex);
+            Assert.Equal(OfficeColor.Parse("ABCDEF"), textBox.FillColor);
             Assert.Single(properties.Elements<A.SolidFill>());
             Assert.Empty(properties.Elements<A.NoFill>());
             Assert.Empty(properties.Elements<A.GradientFill>());

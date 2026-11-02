@@ -85,7 +85,7 @@ var title = slide.AddTitle(
 
 if (title.Paragraphs.Count > 0)
 {
-    PowerPointTextStyle.Title.WithColor("1F4E79").Apply(title.Paragraphs[0]);
+    PowerPointTextStyle.Title.WithColor(OfficeColor.Parse("1F4E79")).Apply(title.Paragraphs[0]);
 }
 
 var agenda = slide.AddTextBox(

@@ -54,7 +54,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void OmittedNumberingSuffixUsesTabSemantics() {
         using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("000000"));
         WordListLevel level = list.Numbering.Levels[0];
         level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
         level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
@@ -98,10 +98,10 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void PdfHeaderNestedTextBoxMarkerStylesFollowFlattenedTextOrder() {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();
-        WordList nestedList = document.AddCustomBulletList('*', "Arial", "FF0000", global::OfficeIMO.OfficeLength.Points(18));
+        WordList nestedList = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("FF0000"), global::OfficeIMO.OfficeLength.Points(18));
         nestedList.Numbering.Levels[0].OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()?.Append(new Bold());
-        WordList laterList = document.AddCustomBulletList('◆', "Arial", "0000FF", global::OfficeIMO.OfficeLength.Points(10));
-        WordList outerList = document.AddCustomBulletList('•', "Arial", "000000", global::OfficeIMO.OfficeLength.Points(9));
+        WordList laterList = document.AddCustomBulletList('◆', "Arial", OfficeColor.Parse("0000FF"), global::OfficeIMO.OfficeLength.Points(10));
+        WordList outerList = document.AddCustomBulletList('•', "Arial", OfficeColor.Parse("000000"), global::OfficeIMO.OfficeLength.Points(9));
         WordParagraph host = document.Header!.Default!.AddParagraph("Before ");
         WordTextBox outer = host.AddTextBox("Outer styled", WordImageTextWrapping.Square);
         host.AddText(" After");
@@ -165,7 +165,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void HtmlHeaderListUsesListMarkupAndInactiveHeaderDiagnosticsAreSuppressed() {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("000000"));
         AttachToList(document.Header!.Default!.AddParagraph("Header list item"), list.NumberId);
         document.AddParagraph("Body");
 
@@ -187,7 +187,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void PdfHeaderListMarkerHonorsNumberingSuffix(WordListLevelSuffix suffix, string expected) {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("000000"));
         Level level = list.Numbering.Levels[0].OpenXmlElement;
         level.GetFirstChild<LevelSuffix>()?.Remove();
         level.Append(new LevelSuffix { Val = suffix.ToOpenXml() });
@@ -203,7 +203,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void PdfHeaderListMarkerPreservesMarkerSpecificFormatting() {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();
-        WordList list = document.AddCustomBulletList('*', "Arial", "FF0000", global::OfficeIMO.OfficeLength.Points(18));
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("FF0000"), global::OfficeIMO.OfficeLength.Points(18));
         list.Numbering.Levels[0].OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()?.Append(new Bold());
         WordParagraph header = document.Header!.Default!.AddParagraph("HeaderStyledMarker");
         header.FontSize = global::OfficeIMO.OfficeLength.Points(9);
@@ -224,7 +224,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();
         document.Header!.Default!.AddParagraph("PlainHeaderReference");
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("000000"));
         WordListLevel level = list.Numbering.Levels[0];
         level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(108D);
         level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
@@ -283,7 +283,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void PdfHeaderExtremeListIndentUsesBoundedMarkerSpacing() {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("000000"));
         WordListLevel level = list.Numbering.Levels[0];
         level.IndentationLeft= global::OfficeIMO.OfficeLength.Points((int.MaxValue) / 20D);
         level.IndentationHanging= global::OfficeIMO.OfficeLength.Zero;
@@ -302,7 +302,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void PdfHeaderTextBoxPreservesInnerMarkerStyle() {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();
-        WordList list = document.AddCustomBulletList('*', "Arial", "FF0000", global::OfficeIMO.OfficeLength.Points(18));
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("FF0000"), global::OfficeIMO.OfficeLength.Points(18));
         list.Numbering.Levels[0].OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()?.Append(new Bold());
         WordParagraph host = document.Header!.Default!.AddParagraph("Before ");
         WordTextBox box = host.AddTextBox("StyledHeaderBox", WordImageTextWrapping.Square);
@@ -324,7 +324,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void PdfHeaderRendersVisibleMarkerForEmptyListItem() {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("000000"));
         WordParagraph emptyItem = document.Header!.Default!.AddParagraph();
         AttachToList(emptyItem, list.NumberId);
         document.AddParagraph("Body");
@@ -377,7 +377,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     [InlineData(WordListLevelSuffix.Tab)]
     public void ImageListMarkersMatchTheSharedPdfPage(WordListLevelSuffix suffix) {
         using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("000000"));
         WordListLevel level = list.Numbering.Levels[0];
         level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
         level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
@@ -424,7 +424,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void ListMarkerTraversalHandlesDeeplyNestedTextBoxesIteratively() {
         using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("000000"));
         WordTextBox current = document.AddTextBox("Level 0");
         for (int depth = 1; depth <= 128; depth++) {
             current = current.Paragraphs[0].AddTextBox("Level " + depth, WordImageTextWrapping.Square);
@@ -441,7 +441,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void PdfHeaderFooterRejectsExcessiveNestedTextBoxDepthWithoutStackOverflow() {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("000000"));
         WordTextBox current = document.Header!.Default!.AddParagraph().AddTextBox("Level 0", WordImageTextWrapping.Square);
         AttachToList(current.Paragraphs[0], list.NumberId);
         for (int depth = 1; depth <= 20; depth++) {
@@ -476,7 +476,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void TextBoxListIndentationIsKeptPerParagraphInPdfLayout() {
         using WordDocument document = WordDocument.Create();
-        WordList bulletList = document.AddCustomBulletList('◆', "Arial", "000000");
+        WordList bulletList = document.AddCustomBulletList('◆', "Arial", OfficeColor.Parse("000000"));
         bulletList.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
         bulletList.Numbering.Levels[0].IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         WordList markerlessList = document.AddCustomList();
@@ -533,7 +533,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     [InlineData(WordListLevelSuffix.Tab, 10D, 15D)]
     public void PdfTableCellListMarkerHonorsNumberingSuffix(WordListLevelSuffix suffix, double minimumGap, double maximumGap) {
         using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomBulletList('*', "Arial", "000000");
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("000000"));
         Level level = list.Numbering.Levels[0].OpenXmlElement;
         level.GetFirstChild<LevelSuffix>()?.Remove();
         level.Append(new LevelSuffix { Val = suffix.ToOpenXml() });

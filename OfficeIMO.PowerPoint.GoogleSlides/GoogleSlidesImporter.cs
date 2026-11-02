@@ -271,8 +271,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 _ => null,
             };
             if (style.FontSize != null) run.FontSize = global::OfficeIMO.OfficeLength.Points((int)Math.Round(ToPoints(style.FontSize)));
-            if (!string.IsNullOrWhiteSpace(style.FontFamily)) run.FontName = style.FontFamily;
-            if (style.ForegroundColor?.OpaqueColor?.RgbColor is GoogleSlidesApiRgbColor textColor) run.Color = ToHex(textColor);
+            if (!string.IsNullOrWhiteSpace(style.FontFamily)) run.FontFamily = style.FontFamily;
+            if (style.ForegroundColor?.OpaqueColor?.RgbColor is GoogleSlidesApiRgbColor textColor) run.Color = OfficeIMO.OfficeColor.Parse(ToHex(textColor));
             if (Uri.TryCreate(style.Link?.Url, UriKind.Absolute, out Uri? link)) run.Hyperlink = link;
         }
         private static double ToPoints(GoogleSlidesApiDimension? dimension) => dimension == null ? 0 : ToPoints(dimension.Magnitude, dimension.Unit);

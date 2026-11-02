@@ -14,7 +14,7 @@ public partial class PowerPointImageExportTests {
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240D),OfficeIMO.OfficeLength.Points(160D));
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox textBox = slide.AddTextBox("A",global::OfficeIMO.OfficeLength.Points(20D),global::OfficeIMO.OfficeLength.Points(20D),global::OfficeIMO.OfficeLength.Points(100D),global::OfficeIMO.OfficeLength.Points(30D));
-        textBox.Paragraphs[0].SetFontName(ManagedTextShapingTestAssets.FamilyName);
+        textBox.Paragraphs[0].SetFontFamily(ManagedTextShapingTestAssets.FamilyName);
         var provider = new ManagedTextShapingTestAssets.RecordingProvider();
         var options = new PowerPointImageExportOptions {
             TextShapingProvider = provider,

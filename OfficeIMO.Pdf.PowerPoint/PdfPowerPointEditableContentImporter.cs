@@ -635,10 +635,10 @@ public static partial class PdfPowerPointConverterExtensions {
         target.FontSize = global::OfficeIMO.OfficeLength.Points(ScaleEditableFontSize(
             source.FontSize > 0D ? source.FontSize : fallbackFontSize,
             scale));
-        target.FontName = ResolvePowerPointFontFamily(source.BaseFont);
+        target.FontFamily = ResolvePowerPointFontFamily(source.BaseFont);
         target.Bold = source.IsBold;
         target.Italic = source.IsItalic;
-        if (source.Color.HasValue) target.Color = ToHex(source.Color.Value);
+        if (source.Color.HasValue) target.Color = OfficeColor.FromRgb(source.Color.Value.R, source.Color.Value.G, source.Color.Value.B);
     }
 
     private static EditableTableImportCount ImportEditableTables(

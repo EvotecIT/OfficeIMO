@@ -389,7 +389,7 @@ namespace OfficeIMO.Word.Pdf {
                 pdfWatermark.RotationAngle = watermark.Rotation.Value;
             }
 
-            global::OfficeIMO.OfficeColor? color = ParseNativeWatermarkColor(watermark.ColorHex);
+            global::OfficeIMO.OfficeColor? color = ParseNativeWatermarkColor(watermark.ColorValue);
             if (color.HasValue) {
                 pdfWatermark.Color = color.Value;
             }

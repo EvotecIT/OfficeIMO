@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "FFFFFF";
             PowerPointTextBox link = slide.AddTextBox("click here",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(28));
-            link.Color = "D0D0D0";
+            link.Color = OfficeColor.Parse("D0D0D0");
             link.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             link.FillColor = "FFFFFF";
             link.Paragraphs.Single().Runs.Single().SetHyperlink("https://example.test");
@@ -424,7 +424,7 @@ namespace OfficeIMO.Tests {
             layoutPart.SlideLayout.Save();
 
             PowerPointTextBox text = slide.AddTextBox("Readable inherited contrast",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(30));
-            text.Color = "FFFFFF";
+            text.Color = OfficeColor.Parse("FFFFFF");
             text.FontSize = global::OfficeIMO.OfficeLength.Points(12);
 
             PowerPointAccessibilityReport report = presentation.InspectAccessibility(

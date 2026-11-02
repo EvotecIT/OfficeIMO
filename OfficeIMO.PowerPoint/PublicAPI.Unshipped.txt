@@ -147,21 +147,63 @@ OfficeIMO.PowerPoint.PowerPointParagraph.AddFormattedText(string! text, bool bol
 *REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.AddRun(string! text, System.Action<OfficeIMO.PowerPoint.PowerPointTextRun!>? configure = null) -> OfficeIMO.PowerPoint.PowerPointTextRun!
 OfficeIMO.PowerPoint.PowerPointParagraph.AddText(string! text) -> OfficeIMO.PowerPoint.PowerPointTextRun!
 *REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.AddText(string! text, System.Action<OfficeIMO.PowerPoint.PowerPointTextRun!>? configure = null) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+OfficeIMO.PowerPoint.PowerPointParagraph.SetBackgroundColor(OfficeIMO.OfficeColor color) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+OfficeIMO.PowerPoint.PowerPointParagraph.SetColor(OfficeIMO.OfficeColor color) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.SetColor(string! color) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+OfficeIMO.PowerPoint.PowerPointParagraph.SetFontFamily(string! fontFamily) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.SetFontName(string! fontName) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.SetHighlightColor(string! color) -> OfficeIMO.PowerPoint.PowerPointParagraph!
 OfficeIMO.PowerPoint.PowerPointPicture.FitToBox() -> void
 OfficeIMO.PowerPoint.PowerPointPicture.FitToBox(bool crop) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.ClearBackground() -> void
 OfficeIMO.PowerPoint.PowerPointSlide.SetBackgroundColor(OfficeIMO.OfficeColor color) -> void
 *REMOVED*OfficeIMO.PowerPoint.PowerPointTableCell.AddRun(string! text, System.Action<OfficeIMO.PowerPoint.PowerPointTextRun!>? configure = null) -> OfficeIMO.PowerPoint.PowerPointTextRun!
 OfficeIMO.PowerPoint.PowerPointTableCell.AddText(string! text) -> OfficeIMO.PowerPoint.PowerPointTextRun!
+OfficeIMO.PowerPoint.PowerPointTableCell.Color.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTableCell.Color.get -> string?
+OfficeIMO.PowerPoint.PowerPointTableCell.FontFamily.get -> string?
+OfficeIMO.PowerPoint.PowerPointTableCell.FontFamily.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTableCell.FontName.get -> string?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTableCell.FontName.set -> void
+OfficeIMO.PowerPoint.PowerPointTextBox.Color.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextBox.Color.get -> string?
+OfficeIMO.PowerPoint.PowerPointTextBox.FontFamily.get -> string?
+OfficeIMO.PowerPoint.PowerPointTextBox.FontFamily.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextBox.FontName.get -> string?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextBox.FontName.set -> void
+OfficeIMO.PowerPoint.PowerPointTextRun.BackgroundColor.get -> OfficeIMO.OfficeColor?
+OfficeIMO.PowerPoint.PowerPointTextRun.BackgroundColor.set -> void
+OfficeIMO.PowerPoint.PowerPointTextRun.Color.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextRun.Color.get -> string?
+OfficeIMO.PowerPoint.PowerPointTextRun.FontFamily.get -> string?
+OfficeIMO.PowerPoint.PowerPointTextRun.FontFamily.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextRun.FontName.get -> string?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextRun.FontName.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextRun.HighlightColor.get -> string?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextRun.HighlightColor.set -> void
+OfficeIMO.PowerPoint.PowerPointTextRun.SetBackgroundColor(OfficeIMO.OfficeColor color) -> OfficeIMO.PowerPoint.PowerPointTextRun!
 OfficeIMO.PowerPoint.PowerPointTextRun.SetBold(bool isBold = true) -> OfficeIMO.PowerPoint.PowerPointTextRun!
-OfficeIMO.PowerPoint.PowerPointTextRun.SetColor(string! color) -> OfficeIMO.PowerPoint.PowerPointTextRun!
-OfficeIMO.PowerPoint.PowerPointTextRun.SetFontName(string! fontName) -> OfficeIMO.PowerPoint.PowerPointTextRun!
+OfficeIMO.PowerPoint.PowerPointTextRun.SetColor(OfficeIMO.OfficeColor color) -> OfficeIMO.PowerPoint.PowerPointTextRun!
+OfficeIMO.PowerPoint.PowerPointTextRun.SetFontFamily(string! fontFamily) -> OfficeIMO.PowerPoint.PowerPointTextRun!
 OfficeIMO.PowerPoint.PowerPointTextRun.SetFontSize(OfficeIMO.OfficeLength size) -> OfficeIMO.PowerPoint.PowerPointTextRun!
-OfficeIMO.PowerPoint.PowerPointTextRun.SetHighlightColor(string! color) -> OfficeIMO.PowerPoint.PowerPointTextRun!
 OfficeIMO.PowerPoint.PowerPointTextRun.SetItalic(bool isItalic = true) -> OfficeIMO.PowerPoint.PowerPointTextRun!
 OfficeIMO.PowerPoint.PowerPointTextRun.SetStrikethrough(bool strikethrough = true) -> OfficeIMO.PowerPoint.PowerPointTextRun!
 OfficeIMO.PowerPoint.PowerPointTextRun.SetUnderline(bool underline = true) -> OfficeIMO.PowerPoint.PowerPointTextRun!
+OfficeIMO.PowerPoint.PowerPointTextStyle.BackgroundColor.get -> OfficeIMO.OfficeColor?
+OfficeIMO.PowerPoint.PowerPointTextStyle.Color.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextStyle.Color.get -> string?
+OfficeIMO.PowerPoint.PowerPointTextStyle.FontFamily.get -> string?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextStyle.FontName.get -> string?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextStyle.HighlightColor.get -> string?
+OfficeIMO.PowerPoint.PowerPointTextStyle.PowerPointTextStyle(OfficeIMO.OfficeLength? fontSize = null, string? fontFamily = null, OfficeIMO.OfficeColor? color = null, bool? bold = null, bool? italic = null, bool? underline = null, OfficeIMO.OfficeColor? backgroundColor = null, bool? strikethrough = null) -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextStyle.PowerPointTextStyle(OfficeIMO.OfficeLength? fontSize = null, string? fontName = null, string? color = null, bool? bold = null, bool? italic = null, bool? underline = null, string? highlightColor = null, bool? strikethrough = null) -> void
 OfficeIMO.PowerPoint.PowerPointTextStyle.UnderlineStyle.get -> OfficeIMO.PowerPoint.PowerPointUnderlineStyle?
+OfficeIMO.PowerPoint.PowerPointTextStyle.WithBackgroundColor(OfficeIMO.OfficeColor? backgroundColor) -> OfficeIMO.PowerPoint.PowerPointTextStyle
+OfficeIMO.PowerPoint.PowerPointTextStyle.WithColor(OfficeIMO.OfficeColor? color) -> OfficeIMO.PowerPoint.PowerPointTextStyle
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextStyle.WithColor(string? color) -> OfficeIMO.PowerPoint.PowerPointTextStyle
+OfficeIMO.PowerPoint.PowerPointTextStyle.WithFontFamily(string? fontFamily) -> OfficeIMO.PowerPoint.PowerPointTextStyle
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextStyle.WithFontName(string? fontName) -> OfficeIMO.PowerPoint.PowerPointTextStyle
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextStyle.WithHighlightColor(string? highlightColor) -> OfficeIMO.PowerPoint.PowerPointTextStyle
 OfficeIMO.PowerPoint.PowerPointTextStyle.WithUnderlineStyle(OfficeIMO.PowerPoint.PowerPointUnderlineStyle? underlineStyle) -> OfficeIMO.PowerPoint.PowerPointTextStyle
 override OfficeIMO.PowerPoint.PowerPointContentPlanSlide.Kind.get -> OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind
 static OfficeIMO.PowerPoint.PowerPointDocument.SignPackage(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options = null) -> OfficeIMO.Security.OfficePackageSigningResult!

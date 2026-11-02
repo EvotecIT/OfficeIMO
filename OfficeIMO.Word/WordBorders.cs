@@ -56,10 +56,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Gets or sets the left border color using a hexadecimal value.
-        /// </summary>
-        public string? LeftColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? LeftColorValue {
             get {
                 var color = _section._sectionProperties.GetFirstChild<PageBorders>()?.LeftBorder?.Color?.Value;
                 return Helpers.NormalizeOpenXmlColor(color);
@@ -79,14 +77,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the left border color using a <see cref="OfficeIMO.OfficeColor"/> value.
         /// </summary>
-        public OfficeIMO.OfficeColor LeftColor {
-            get {
-                var hex = LeftColorHex;
-                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("LeftColorHex is null"));
-            }
-            set {
-                LeftColorHex = value.ToRgbHex();
-            }
+        public OfficeIMO.OfficeColor? LeftColor {
+            get => Helpers.ParseNativeColor(LeftColorValue);
+            set => LeftColorValue = value?.ToRgbHex();
         }
 
         /// <summary>
@@ -194,10 +187,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Gets or sets the right border color using a hexadecimal value.
-        /// </summary>
-        public string? RightColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? RightColorValue {
             get {
                 var color = _section._sectionProperties.GetFirstChild<PageBorders>()?.RightBorder?.Color?.Value;
                 return Helpers.NormalizeOpenXmlColor(color);
@@ -217,14 +208,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the right border color using a <see cref="OfficeIMO.OfficeColor"/> value.
         /// </summary>
-        public OfficeIMO.OfficeColor RightColor {
-            get {
-                var hex = RightColorHex;
-                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("RightColorHex is null"));
-            }
-            set {
-                RightColorHex = value.ToRgbHex();
-            }
+        public OfficeIMO.OfficeColor? RightColor {
+            get => Helpers.ParseNativeColor(RightColorValue);
+            set => RightColorValue = value?.ToRgbHex();
         }
 
         /// <summary>
@@ -332,10 +318,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Gets or sets the top border color using a hexadecimal value.
-        /// </summary>
-        public string? TopColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? TopColorValue {
             get {
                 var color = _section._sectionProperties.GetFirstChild<PageBorders>()?.TopBorder?.Color?.Value;
                 return Helpers.NormalizeOpenXmlColor(color);
@@ -355,14 +339,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the top border color using a <see cref="OfficeIMO.OfficeColor"/> value.
         /// </summary>
-        public OfficeIMO.OfficeColor TopColor {
-            get {
-                var hex = TopColorHex;
-                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("TopColorHex is null"));
-            }
-            set {
-                TopColorHex = value.ToRgbHex();
-            }
+        public OfficeIMO.OfficeColor? TopColor {
+            get => Helpers.ParseNativeColor(TopColorValue);
+            set => TopColorValue = value?.ToRgbHex();
         }
 
         /// <summary>
@@ -473,10 +452,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Gets or sets the bottom border color using a hexadecimal value.
-        /// </summary>
-        public string? BottomColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? BottomColorValue {
             get {
                 var color = _section._sectionProperties.GetFirstChild<PageBorders>()?.BottomBorder?.Color?.Value;
                 return Helpers.NormalizeOpenXmlColor(color);
@@ -496,14 +473,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the bottom border color using a <see cref="OfficeIMO.OfficeColor"/> value.
         /// </summary>
-        public OfficeIMO.OfficeColor BottomColor {
-            get {
-                var hex = BottomColorHex;
-                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("BottomColorHex is null"));
-            }
-            set {
-                BottomColorHex = value.ToRgbHex();
-            }
+        public OfficeIMO.OfficeColor? BottomColor {
+            get => Helpers.ParseNativeColor(BottomColorValue);
+            set => BottomColorValue = value?.ToRgbHex();
         }
 
         /// <summary>

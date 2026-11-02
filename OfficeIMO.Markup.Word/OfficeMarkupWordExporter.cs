@@ -135,9 +135,9 @@ internal sealed class OfficeMarkupWordExporter {
         };
         if (style.TextCase is { } textCase && textCase != OfficeTextCase.None) paragraph.TransformTextCase(textCase, CultureInfo.InvariantCulture);
         if (style.SmallCaps != null) paragraph.CapsStyle = style.SmallCaps.Value ? WordCapsStyle.SmallCaps : WordCapsStyle.None;
-        if (!string.IsNullOrWhiteSpace(style.TextColor)) paragraph.ColorHex = style.TextColor!;
-        if (!string.IsNullOrWhiteSpace(style.HighlightColor)) paragraph.RunShadingFillColorHex = style.HighlightColor!;
-        if (!string.IsNullOrWhiteSpace(style.FillColor)) paragraph.ShadingFillColorHex = style.FillColor!;
+        if (OfficeIMO.OfficeColor.TryParse(style.TextColor, out OfficeIMO.OfficeColor textColor)) paragraph.Color = textColor;
+        if (OfficeIMO.OfficeColor.TryParse(style.HighlightColor, out OfficeIMO.OfficeColor highlightColor)) paragraph.BackgroundColor = highlightColor;
+        if (OfficeIMO.OfficeColor.TryParse(style.FillColor, out OfficeIMO.OfficeColor fillColor)) paragraph.ShadingFillColor = fillColor;
         if (TryParseAlignment(style.TextAlign, out WordParagraphAlignment alignment)) paragraph.ParagraphAlignment = alignment;
     }
 

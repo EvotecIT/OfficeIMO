@@ -29,8 +29,8 @@ public partial class Word {
         table.Rows[1].Cells[0].Paragraphs[0].Text = "Body";
         using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordTable result = Assert.Single(restored.Tables);
-        Assert.Equal("FFFF00", result.Rows[0].Cells[0].ShadingFillColorHex);
-        Assert.Equal(string.Empty, result.Rows[1].Cells[0].ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("FFFF00"), result.Rows[0].Cells[0].ShadingFillColor);
+        Assert.Null(result.Rows[1].Cells[0].ShadingFillColor);
     }
 
     [Theory]
@@ -84,8 +84,8 @@ public partial class Word {
         Assert.Equal(360, paragraph.NativeLineSpacingValue);
         Assert.True(paragraph.Bold);
         Assert.Equal(WordBorderStyle.Double, cell.Borders.TopStyle);
-        Assert.Equal("FF0000", cell.Borders.TopColorHex);
-        Assert.Equal(string.Empty, cell.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("FF0000"), cell.Borders.TopColor);
+        Assert.Null(cell.ShadingFillColor);
     }
 
     [Theory]

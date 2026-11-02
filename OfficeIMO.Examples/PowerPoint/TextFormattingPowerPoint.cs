@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox title = slide.AddTitle("Text Formatting",                global::OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(1.4));
             if (title.Paragraphs.Count > 0) {
-                PowerPointTextStyle.Title.WithColor("1F4E79").Apply(title.Paragraphs[0]);
+                PowerPointTextStyle.Title.WithColor(OfficeColor.Parse("1F4E79")).Apply(title.Paragraphs[0]);
             }
 
             PowerPointTextBox text = slide.AddTextBox(string.Empty,                global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Top.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Height.ToCentimeters()));
@@ -35,15 +35,15 @@ namespace OfficeIMO.Examples.PowerPoint {
                 p.Alignment = PowerPointTextAlignment.Left;
                 p.SpaceAfter = global::OfficeIMO.OfficeLength.Points(6);
             });
-            PowerPointTextStyle.Subtitle.WithColor("1F4E79").Apply(heading);
+            PowerPointTextStyle.Subtitle.WithColor(OfficeColor.Parse("1F4E79")).Apply(heading);
 
             PowerPointParagraph line = text.AddParagraph();
             line.AddText("Mix ");
-            line.AddFormattedText("bold", bold: true).SetColor("C00000");
+            line.AddFormattedText("bold", bold: true).SetColor(OfficeColor.Parse("C00000"));
             line.AddText(", ");
-            line.AddFormattedText("italic", italic: true).SetColor("0070C0");
+            line.AddFormattedText("italic", italic: true).SetColor(OfficeColor.Parse("0070C0"));
             line.AddText(", and ");
-            line.AddFormattedText("underline", underline: PowerPointUnderlineStyle.Single).SetColor("38761D");
+            line.AddFormattedText("underline", underline: PowerPointUnderlineStyle.Single).SetColor(OfficeColor.Parse("38761D"));
             line.AddText(" runs in one paragraph.");
 
             PowerPointParagraph nativeStyles = text.AddParagraph();
@@ -51,7 +51,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointTextRun decorated = nativeStyles.AddText("wavy double + double strike");
             decorated.UnderlineStyle = PowerPointUnderlineStyle.WavyDouble;
             decorated.StrikeStyle = PowerPointStrikeStyle.Double;
-            decorated.Color = "7030A0";
+            decorated.Color = OfficeColor.Parse("7030A0");
             nativeStyles.AddText(" H");
             nativeStyles.AddText("2").SetSubscript();
             nativeStyles.AddText("O and x");
@@ -72,7 +72,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             callout.OutlineColor = "5B9BD5";
             callout.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
             callout.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.3));
-            callout.ApplyTextStyle(PowerPointTextStyle.Body.WithColor("1F4E79"));
+            callout.ApplyTextStyle(PowerPointTextStyle.Body.WithColor(OfficeColor.Parse("1F4E79")));
 
             presentation.Save();
             if (openPowerPoint) ExampleFileLauncher.Open(filePath);

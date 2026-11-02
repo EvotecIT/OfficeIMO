@@ -30,21 +30,21 @@ namespace OfficeIMO.PowerPoint {
             return this;
         }
 
-        /// <summary>Sets <see cref="FontName"/> and returns this run.</summary>
-        public PowerPointTextRun SetFontName(string fontName) {
-            FontName = fontName;
+        /// <summary>Sets <see cref="FontFamily"/> and returns this run.</summary>
+        public PowerPointTextRun SetFontFamily(string fontFamily) {
+            FontFamily = fontFamily;
             return this;
         }
 
         /// <summary>Sets <see cref="Color"/> and returns this run.</summary>
-        public PowerPointTextRun SetColor(string color) {
+        public PowerPointTextRun SetColor(global::OfficeIMO.OfficeColor color) {
             Color = color;
             return this;
         }
 
-        /// <summary>Sets <see cref="HighlightColor"/> and returns this run.</summary>
-        public PowerPointTextRun SetHighlightColor(string color) {
-            HighlightColor = color;
+        /// <summary>Sets <see cref="BackgroundColor"/> and returns this run.</summary>
+        public PowerPointTextRun SetBackgroundColor(global::OfficeIMO.OfficeColor color) {
+            BackgroundColor = color;
             return this;
         }
     }

@@ -42,22 +42,6 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the stroke color as hexadecimal string.
-        /// </summary>
-        public string ColorHex {
-            get {
-                var v = _line.StrokeColor?.Value ?? string.Empty;
-                if (v.StartsWith("#", StringComparison.Ordinal)) v = v.Substring(1);
-                return v.ToUpperInvariant();
-            }
-            set {
-                var v = value;
-                if (!string.IsNullOrEmpty(v) && !v.StartsWith("#", StringComparison.Ordinal)) v = "#" + v;
-                _line.StrokeColor = v;
-            }
-        }
-
-        /// <summary>
         /// Gets or sets the stroke color using <see cref="OfficeIMO.OfficeColor"/>.
         /// </summary>
         public Color Color {

@@ -97,8 +97,8 @@ namespace OfficeIMO.Tests {
                 cell.FontSize = OfficeIMO.OfficeLength.Points(21);
                 cell.Bold = true;
                 cell.Italic = true;
-                cell.FontName = "Arial";
-                cell.Color = "112233";
+                cell.FontFamily = "Arial";
+                cell.Color = OfficeColor.Parse("112233");
                 cell.Text = "Three\nFour\r\nFive";
                 presentation.Save();
             }
@@ -135,12 +135,12 @@ namespace OfficeIMO.Tests {
             PowerPointParagraph paragraph = presentation.AddSlide().AddTextBox("Lead ").Paragraphs[0];
 
             PowerPointTextRun run = paragraph.AddText("One\nTwo").SetBold();
-            run.Color = "445566";
+            run.Color = OfficeColor.Parse("445566");
 
             Assert.False(paragraph.Runs[0].Bold);
             Assert.All(paragraph.Runs.Skip(1), line => {
                 Assert.True(line.Bold);
-                Assert.Equal("445566", line.Color);
+                Assert.Equal(OfficeColor.Parse("445566"), line.Color);
             });
             A.Break lineBreak = Assert.Single(paragraph.Paragraph.Elements<A.Break>());
             Assert.True(lineBreak.RunProperties?.Bold?.Value);

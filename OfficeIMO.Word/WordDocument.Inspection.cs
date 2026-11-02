@@ -228,26 +228,26 @@ namespace OfficeIMO.Word {
                 LineSpacingValue = paragraph.NativeLineSpacingValue,
                 LineSpacingRule = paragraph.NativeLineSpacingRule?.ToString()
                     ?? paragraph._paragraph.ParagraphProperties?.SpacingBetweenLines?.LineRule?.InnerText,
-                ShadingFillColorHex = NormalizeColorHex(paragraph.ShadingFillColorHex),
+                ShadingFillColor = paragraph.ShadingFillColor,
                 ShadingPattern = paragraph.ShadingPattern,
                 LeftBorder = BuildParagraphBorderSnapshot(
                     NormalizeOpenXmlEnumValue(paragraph.Borders.LeftStyle),
-                    NormalizeColorHex(paragraph.Borders.LeftColorHex),
+                    paragraph.Borders.LeftColorValue,
                     paragraph.Borders.LeftSize,
                     paragraph.Borders.LeftSpace),
                 RightBorder = BuildParagraphBorderSnapshot(
                     NormalizeOpenXmlEnumValue(paragraph.Borders.RightStyle),
-                    NormalizeColorHex(paragraph.Borders.RightColorHex),
+                    paragraph.Borders.RightColorValue,
                     paragraph.Borders.RightSize,
                     paragraph.Borders.RightSpace),
                 TopBorder = BuildParagraphBorderSnapshot(
                     NormalizeOpenXmlEnumValue(paragraph.Borders.TopStyle),
-                    NormalizeColorHex(paragraph.Borders.TopColorHex),
+                    paragraph.Borders.TopColorValue,
                     paragraph.Borders.TopSize,
                     paragraph.Borders.TopSpace),
                 BottomBorder = BuildParagraphBorderSnapshot(
                     NormalizeOpenXmlEnumValue(paragraph.Borders.BottomStyle),
-                    NormalizeColorHex(paragraph.Borders.BottomColorHex),
+                    paragraph.Borders.BottomColorValue,
                     paragraph.Borders.BottomSize,
                     paragraph.Borders.BottomSpace),
                 IsRightToLeft = paragraph.BiDi,
@@ -307,9 +307,9 @@ namespace OfficeIMO.Word {
                     DoubleStrike = run.DoubleStrike,
                     FontSize = run.FontSize,
                     FontFamily = run.FontFamily,
-                    ColorHex = NormalizeColorHex(run.ColorHex),
+                    Color = run.Color,
                     HighlightColor = NormalizeOpenXmlEnumValue(run.Highlight),
-                    RunShadingFillColorHex = NormalizeColorHex(run.RunShadingFillColorHex),
+                    BackgroundColor = run.BackgroundColor,
                     RunShadingPattern = ((run.IsHyperLink ? run.Hyperlink?._runProperties : run._runProperties)
                         ?.Shading?.Val?.Value).ToOfficeEnum(),
                     VerticalTextAlignment = NormalizeOpenXmlEnumValue(run.VerticalTextAlignment),
@@ -457,22 +457,22 @@ namespace OfficeIMO.Word {
                         ColumnIndex = columnIndex,
                         ColumnSpan = cell.ColumnSpan,
                         RowSpan = cell.RowSpan,
-                        ShadingFillColorHex = NormalizeColorHex(cell.ShadingFillColorHex),
+                        ShadingFillColor = cell.ShadingFillColor,
                         LeftBorder = BuildBorderSnapshot(
                             NormalizeOpenXmlEnumValue(cell.Borders.LeftStyle),
-                            NormalizeColorHex(cell.Borders.LeftColorHex),
+                            cell.Borders.LeftColorValue,
                             cell.Borders.LeftSize),
                         RightBorder = BuildBorderSnapshot(
                             NormalizeOpenXmlEnumValue(cell.Borders.RightStyle),
-                            NormalizeColorHex(cell.Borders.RightColorHex),
+                            cell.Borders.RightColorValue,
                             cell.Borders.RightSize),
                         TopBorder = BuildBorderSnapshot(
                             NormalizeOpenXmlEnumValue(cell.Borders.TopStyle),
-                            NormalizeColorHex(cell.Borders.TopColorHex),
+                            cell.Borders.TopColorValue,
                             cell.Borders.TopSize),
                         BottomBorder = BuildBorderSnapshot(
                             NormalizeOpenXmlEnumValue(cell.Borders.BottomStyle),
-                            NormalizeColorHex(cell.Borders.BottomColorHex),
+                            cell.Borders.BottomColorValue,
                             cell.Borders.BottomSize),
                         HasHorizontalMerge = cell.HasHorizontalMerge,
                         HasVerticalMerge = cell.HasVerticalMerge,
@@ -603,37 +603,33 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static string? NormalizeColorHex(string? value) {
-            return string.IsNullOrWhiteSpace(value) ? null : value;
-        }
-
         private static WordTableCellBorderInfo? BuildBorderSnapshot(
             string? style,
-            string? colorHex,
+            string? colorValue,
             OfficeLength? size) {
-            if (string.IsNullOrWhiteSpace(style) && string.IsNullOrWhiteSpace(colorHex) && !size.HasValue) {
+            if (string.IsNullOrWhiteSpace(style) && string.IsNullOrWhiteSpace(colorValue) && !size.HasValue) {
                 return null;
             }
 
             return new WordTableCellBorderInfo {
                 Style = style,
-                ColorHex = colorHex,
+                Color = Helpers.ParseNativeColor(colorValue),
                 Size = size,
             };
         }
 
         private static WordParagraphBorderInfo? BuildParagraphBorderSnapshot(
             string? style,
-            string? colorHex,
+            string? colorValue,
             OfficeLength? size,
             OfficeLength? space) {
-            if (string.IsNullOrWhiteSpace(style) && string.IsNullOrWhiteSpace(colorHex) && !size.HasValue && !space.HasValue) {
+            if (string.IsNullOrWhiteSpace(style) && string.IsNullOrWhiteSpace(colorValue) && !size.HasValue && !space.HasValue) {
                 return null;
             }
 
             return new WordParagraphBorderInfo {
                 Style = style,
-                ColorHex = colorHex,
+                Color = Helpers.ParseNativeColor(colorValue),
                 Size = size,
                 Space = space,
             };

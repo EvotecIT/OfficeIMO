@@ -17,33 +17,33 @@ namespace OfficeIMO.Examples.Word {
                 document.Sections[0].SetMargins(WordMargin.Normal);
                 var watermark = document.Sections[0].AddWatermark(WordWatermarkStyle.Text, "Red");
                 watermark.Color = Color.Red;
-                Console.WriteLine($"Section 0 hex: {watermark.ColorHex}");
+                Console.WriteLine($"Section 0 hex: {watermark.Color}");
 
                 // Section 1 - OfficeColor.Green
                 document.AddSection();
                 document.Sections[1].SetMargins(WordMargin.Normal);
                 watermark = document.Sections[1].AddWatermark(WordWatermarkStyle.Text, "Green");
                 watermark.Color = Color.Green;
-                Console.WriteLine($"Section 1 hex: {watermark.ColorHex}");
+                Console.WriteLine($"Section 1 hex: {watermark.Color}");
 
                 // Section 2 - OfficeColor.Blue
                 document.AddSection();
                 document.Sections[2].SetMargins(WordMargin.Normal);
                 watermark = document.Sections[2].AddWatermark(WordWatermarkStyle.Text, "Blue");
                 watermark.Color = Color.Blue;
-                Console.WriteLine($"Section 2 hex: {watermark.ColorHex}");
+                Console.WriteLine($"Section 2 hex: {watermark.Color}");
 
                 // Section 3 - Hex without '#'
                 document.AddSection();
                 document.Sections[3].SetMargins(WordMargin.Moderate);
                 watermark = document.Sections[3].AddWatermark(WordWatermarkStyle.Text, "Magenta");
-                watermark.ColorHex = "ff00ff";
+                watermark.Color = OfficeColor.Parse("ff00ff");
 
                 // Section 4 - Hex with '#'
                 document.AddSection();
                 document.Sections[4].SetMargins(WordMargin.Moderate);
                 watermark = document.Sections[4].AddWatermark(WordWatermarkStyle.Text, "Cyan");
-                watermark.ColorHex = "#00ffff";
+                watermark.Color = OfficeColor.Parse("#00ffff");
 
                 document.Save();
                 if (openWord) document.OpenInApplication();

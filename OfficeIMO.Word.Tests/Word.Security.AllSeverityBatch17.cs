@@ -176,9 +176,12 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddList(WordListStyle.Bulleted);
 
-        list.ColorHex = "auto";
+        list.Color = OfficeColor.Red;
+        var nativeColor = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!
+            .Descendants<DocumentFormat.OpenXml.Wordprocessing.Color>().First(color => color.Val?.Value == "FF0000");
+        nativeColor.Val = "auto";
         Assert.Null(list.Color);
-        list.ColorHex = "not-a-color";
+        nativeColor.Val = "not-a-color";
         Assert.Null(list.Color);
     }
 

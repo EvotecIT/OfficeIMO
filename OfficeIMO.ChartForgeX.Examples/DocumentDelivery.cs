@@ -109,7 +109,7 @@ internal static class DocumentDelivery {
     private static void Text(PowerPointSlide slide, string text, double left, double top, double width, double height,
         double size, string color) {
         var box = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),            global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(height));
-        box.FontName = Style.FontFamily; box.FontSize = global::OfficeIMO.OfficeLength.Points((int)Math.Round(size)); box.Color = color.TrimStart('#');
+        box.FontFamily = Style.FontFamily; box.FontSize = global::OfficeIMO.OfficeLength.Points((int)Math.Round(size)); box.Color = OfficeIMO.OfficeColor.Parse(color);
     }
 
     private static string Heading(VisualSpecimen specimen) => specimen.Artifact.Title + " · " + specimen.ModeName;

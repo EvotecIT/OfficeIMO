@@ -39,8 +39,7 @@ namespace OfficeIMO.Examples.Word {
                 var watermark = section0Header.AddWatermark(WordWatermarkStyle.Text, "Watermark");
                 watermark.Color = Color.Red;
 
-                // ColorHex normally returns hex colors, but for watermark it returns string as the underlying value is in string name, not hex
-                Console.WriteLine(watermark.ColorHex);
+                Console.WriteLine(watermark.Color);
 
                 Console.WriteLine(watermark.Rotation);
 

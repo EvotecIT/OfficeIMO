@@ -315,12 +315,12 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         int unsupported = ApplyOdpFontSize(fontSize, target);
         string? fontFamily = SelectOdfFontFamily(source.FontFamily ?? paragraph.FontFamily,
             ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
-        if (fontFamily != null) target.FontName = fontFamily;
+        if (fontFamily != null) target.FontFamily = fontFamily;
         OdfColor? color = source.Color ?? paragraph.Color;
-        if (color.HasValue) target.Color = color.Value.ToString().TrimStart('#');
+        if (color.HasValue) target.Color = global::OfficeIMO.OfficeColor.Parse(color.Value.ToString());
         OdfColor? background = source.HasTextBackgroundOverride
             ? source.BackgroundColor : paragraph.BackgroundColor;
-        if (background.HasValue) target.HighlightColor = background.Value.ToString().TrimStart('#');
+        if (background.HasValue) target.BackgroundColor = global::OfficeIMO.OfficeColor.Parse(background.Value.ToString());
         return unsupported;
     }
 
@@ -345,12 +345,12 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         int unsupported = ApplyOdpFontSize(fontSize, target);
         string? fontFamily = SelectOdfFontFamily(source.FontFamily ?? paragraph.FontFamily,
             ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
-        if (fontFamily != null) target.FontName = fontFamily;
+        if (fontFamily != null) target.FontFamily = fontFamily;
         OdfColor? color = source.Color ?? paragraph.Color;
-        if (color.HasValue) target.Color = color.Value.ToString().TrimStart('#');
+        if (color.HasValue) target.Color = global::OfficeIMO.OfficeColor.Parse(color.Value.ToString());
         OdfColor? background = source.HasTextBackgroundOverride
             ? source.BackgroundColor : paragraph.BackgroundColor;
-        if (background.HasValue) target.HighlightColor = background.Value.ToString().TrimStart('#');
+        if (background.HasValue) target.BackgroundColor = global::OfficeIMO.OfficeColor.Parse(background.Value.ToString());
         return unsupported;
     }
 
@@ -374,9 +374,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         int unsupported = ApplyOdpFontSize(source.FontSize, target);
         string? fontFamily = SelectOdfFontFamily(source.FontFamily,
             ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
-        if (fontFamily != null) target.FontName = fontFamily;
-        if (source.Color.HasValue) target.Color = source.Color.Value.ToString().TrimStart('#');
-        if (source.BackgroundColor.HasValue) target.HighlightColor = source.BackgroundColor.Value.ToString().TrimStart('#');
+        if (fontFamily != null) target.FontFamily = fontFamily;
+        if (source.Color.HasValue) target.Color = global::OfficeIMO.OfficeColor.Parse(source.Color.Value.ToString());
+        if (source.BackgroundColor.HasValue) target.BackgroundColor = global::OfficeIMO.OfficeColor.Parse(source.BackgroundColor.Value.ToString());
         return unsupported;
     }
 

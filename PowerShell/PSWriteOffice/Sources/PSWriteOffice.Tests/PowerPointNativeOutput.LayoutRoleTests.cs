@@ -63,7 +63,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
             .Where(p => p.Runs.Any(run => run.FontSize?.ToPoints() == 72)).ToList();
         Assert.Equal(text, string.Concat(paragraphs.Select(paragraph => paragraph.Text)));
         Assert.Equal("Verdana", saved.GetThemeFonts().MajorLatin);
-        Assert.All(paragraphs.SelectMany(paragraph => paragraph.Runs), run => Assert.Contains(run.FontName, new[] { "Verdana", "+mj-lt" }));
+        Assert.All(paragraphs.SelectMany(paragraph => paragraph.Runs), run => Assert.Contains(run.FontFamily, new[] { "Verdana", "+mj-lt" }));
         Assert.DoesNotContain(saved.Slides.SelectMany(slide => slide.CreateVisualSnapshot().Diagnostics), d => d.Code == "powerpoint-text-overflow");
     }
 }

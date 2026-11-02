@@ -38,7 +38,7 @@ public partial class PowerPointImageExportTests {
         table.GetCell(1, 0).Text = "North";
         table.GetCell(1, 1).Text = "42";
         table.GetCell(0, 0).FillColor = "146C94";
-        table.GetCell(0, 0).Color = "FFFFFF";
+        table.GetCell(0, 0).Color = OfficeColor.Parse("FFFFFF");
 
         PowerPointAutoShape edge = slide.AddRectangle(OfficeIMO.OfficeLength.Points(-12), OfficeIMO.OfficeLength.Points(148), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(48));
         edge.FillColor = "D7263D";

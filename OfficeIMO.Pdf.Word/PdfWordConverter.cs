@@ -731,7 +731,7 @@ namespace OfficeIMO.Pdf.Word {
                 // Light text was drawn on a coloured panel that a reflowed paragraph does not keep; on the white
                 // page it would be invisible, so it keeps the document text colour.
                 if (source.Color.HasValue && source.Color.Value.A > 0 && !IsNearWhite(source.Color.Value)) {
-                    run.SetColorHex(source.Color.Value.ToRgbHex());
+                    run.SetColor(source.Color.Value);
                 }
                 string? fontFamily = PdfCore.PdfFontFamilyNames.ToFamilyName(source.BaseFont);
                 if (!string.IsNullOrWhiteSpace(fontFamily)) {
@@ -1080,13 +1080,13 @@ namespace OfficeIMO.Pdf.Word {
         /// </summary>
         private static void ApplyCellStyle(WordTableCell cell, WordParagraph paragraph, PdfCore.PdfLogicalTableCellStyle style) {
             if (style.FillColor.HasValue) {
-                cell.ShadingFillColorHex = style.FillColor.Value.ToRgbHex();
+                cell.ShadingFillValue = style.FillColor.Value.ToRgbHex();
             }
             if (paragraph.Text.Length == 0) return;
             if (style.IsBold) paragraph.SetBold();
             if (style.IsItalic) paragraph.SetItalic();
             if (style.TextColor.HasValue && style.TextColor.Value.A > 0 && !IsBlack(style.TextColor.Value)) {
-                paragraph.SetColorHex(style.TextColor.Value.ToRgbHex());
+                paragraph.SetColor(style.TextColor.Value);
             }
             string? fontFamily = PdfCore.PdfFontFamilyNames.ToFamilyName(style.FontName);
             if (!string.IsNullOrWhiteSpace(fontFamily)) paragraph.SetFontFamily(fontFamily!);

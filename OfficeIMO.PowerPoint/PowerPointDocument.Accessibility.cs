@@ -154,7 +154,7 @@ namespace OfficeIMO.PowerPoint {
             foreach (PowerPointParagraph paragraph in textBox.Paragraphs) {
                 foreach (PowerPointTextRun run in paragraph.Runs) {
                     if (string.IsNullOrWhiteSpace(run.Text)) continue;
-                    OfficeColor? foreground = ParseColor(run.Color ?? textBox.Color);
+                    OfficeColor? foreground = run.Color ?? textBox.Color;
                     double? fontSize = run.FontSize?.ToPoints() ?? textBox.FontSize?.ToPoints();
                     if (!foreground.HasValue || !fontSize.HasValue) continue;
                     inspectedRun = true;
@@ -175,7 +175,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (!inspectedRun && !string.IsNullOrWhiteSpace(textBox.Text)) {
-                OfficeColor? foreground = ParseColor(textBox.Color);
+                OfficeColor? foreground = textBox.Color;
                 double? fontSize = textBox.FontSize?.ToPoints();
                 if (foreground.HasValue && fontSize.HasValue) {
                     double required = fontSize.Value >= options.LargeTextThreshold.ToPoints()

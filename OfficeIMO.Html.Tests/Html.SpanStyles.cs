@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
 
-            Assert.Equal("FF0000", run.ColorHex);
+            Assert.Equal(OfficeColor.Parse("FF0000"), run.Color);
             Assert.Equal("Arial", run.FontFamily);
             Assert.Equal(18, run.FontSize?.ToPoints());
         }
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(WordUnderlineStyle.Single, underRun.Underline);
 
             var markRun = runs.First(r => r.Text == "mark");
-            Assert.Equal("FFFF00", markRun.RunShadingFillColorHex);
+            Assert.Equal(OfficeColor.Parse("FFFF00"), markRun.BackgroundColor);
         }
 
         [Fact]

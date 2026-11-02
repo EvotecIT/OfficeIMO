@@ -235,13 +235,13 @@ public sealed class PowerPointFinalGeometryLengthTests {
             var regular = slide.AddTextBox("Regular threshold", OfficeLength.Points(10), OfficeLength.Points(10),
                 OfficeLength.Points(200), OfficeLength.Points(40));
             regular.FontSize = OfficeLength.Points(18);
-            regular.Color = "888888";
+            regular.Color = OfficeColor.Parse("888888");
             regular.FillColor = "FFFFFF";
             var bold = slide.AddTextBox("Bold threshold", OfficeLength.Points(10), OfficeLength.Points(70),
                 OfficeLength.Points(200), OfficeLength.Points(40));
             bold.FontSize = OfficeLength.Points(14);
             bold.Bold = true;
-            bold.Color = "888888";
+            bold.Color = OfficeColor.Parse("888888");
             bold.FillColor = "FFFFFF";
             document.Save(output);
         }

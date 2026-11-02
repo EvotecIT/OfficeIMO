@@ -103,7 +103,7 @@ namespace OfficeIMO.PowerPoint {
         private static OfficeFontInfo ResolveParagraphFont(PowerPointTextBox textBox, PowerPointParagraph paragraph, PowerPointShapeBoundsMapping mapping, string? defaultFontFamily) {
             PowerPointEffectiveRunStyle effective = PowerPointEffectiveRunStyleResolver.ResolveParagraph(
                 paragraph, textBox.TextBody?.ListStyle, textBox.MasterTextStyle);
-            return new OfficeFontInfo(effective.FontName ?? textBox.FontName ?? ResolveTextBoxFallbackFont(textBox, defaultFontFamily),
+            return new OfficeFontInfo(effective.FontName ?? textBox.FontFamily ?? ResolveTextBoxFallbackFont(textBox, defaultFontFamily),
                 mapping.MapFontSize(effective.FontSizePoints ?? textBox.FontSize?.ToPoints() ?? 18),
                 ResolveEffectiveFontStyle(effective, textBox.Bold, textBox.Italic));
         }

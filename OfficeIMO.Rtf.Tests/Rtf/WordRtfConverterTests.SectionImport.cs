@@ -56,11 +56,11 @@ public partial class WordRtfConverterTests {
         Assert.Equal(WordBorderStyle.Single, word.Borders.TopStyle);
         Assert.Equal(OfficeLength.Points(1.5), word.Borders.TopSize);
         Assert.Equal(OfficeLength.Points(24), word.Borders.TopSpace);
-        Assert.Equal("FF0000", word.Borders.TopColorHex);
+        Assert.Equal(OfficeColor.Parse("FF0000"), word.Borders.TopColor);
         Assert.Equal(WordBorderStyle.Double, word.Borders.BottomStyle);
         Assert.Equal(OfficeLength.Points(2.25), word.Borders.BottomSize);
         Assert.Equal(OfficeLength.Points(30), word.Borders.BottomSpace);
-        Assert.Equal("0000FF", word.Borders.BottomColorHex);
+        Assert.Equal(OfficeColor.Parse("0000FF"), word.Borders.BottomColor);
         PageBorders appliedPageBorders = word.Sections[0]._sectionProperties.GetFirstChild<PageBorders>()!;
         Assert.Equal(PageBorderDisplayValues.NotFirstPage, appliedPageBorders.Display?.Value);
         Assert.Equal(PageBorderZOrderValues.Front, appliedPageBorders.ZOrder?.Value);

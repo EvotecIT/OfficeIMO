@@ -95,7 +95,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void PdfIncludesMarkersInsideHeaderTextBoxes() {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();
-        WordList list = document.AddCustomBulletList('◆', "Arial", "000000");
+        WordList list = document.AddCustomBulletList('◆', "Arial", OfficeColor.Parse("000000"));
         WordParagraph host = document.Header!.Default!.AddParagraph("Before ");
         WordTextBox box = host.AddTextBox("Header box marker", WordImageTextWrapping.Square);
         host.AddText(" After");
@@ -185,7 +185,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void PdfTextBoxMarkersUseLevelFormatting() {
         using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomBulletList('*', "Arial", "FF0000");
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("FF0000"));
         list.Numbering.Levels[0].OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()!
             .Append(new Bold(), new FontSize { Val = "36" });
         WordTextBox box = document.AddTextBox("Styled box");
@@ -253,7 +253,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void ImageExportIncludesFormattedTextBoxListMarkers() {
         using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomBulletList('◆', "Arial", "FF0000");
+        WordList list = document.AddCustomBulletList('◆', "Arial", OfficeColor.Parse("FF0000"));
         WordTextBox box = document.AddTextBox("Image box item");
         AttachToList(box.Paragraphs[0], list.NumberId);
 
@@ -268,7 +268,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void ImageExportIncludesNestedTextBoxListMarkersOnce() {
         using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomBulletList('◆', "Arial", "FF0000");
+        WordList list = document.AddCustomBulletList('◆', "Arial", OfficeColor.Parse("FF0000"));
         WordTextBox outer = document.AddTextBox("Outer box");
         WordTextBox nested = outer.Paragraphs[0].AddTextBox("Nested item", WordImageTextWrapping.Square);
         AttachToList(nested.Paragraphs[0], list.NumberId);
@@ -285,7 +285,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void PdfTableMarkersUseLevelFormatting() {
         using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomBulletList('*', "Arial", "FF0000");
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("FF0000"));
         WordListLevel level = list.Numbering.Levels[0];
         level.OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()!.Append(new Bold(), new FontSize { Val = "36" });
         level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(108D);
@@ -350,7 +350,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void FullLevelOverrideDoesNotInheritOmittedAbstractProperties() {
         using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomBulletList('\uf0b7', "Symbol", "FF0000");
+        WordList list = document.AddCustomBulletList('\uf0b7', "Symbol", OfficeColor.Parse("FF0000"));
         WordParagraph item = list.AddItem("Override replacement");
         Level abstractLevel = list.Numbering.Levels[0].OpenXmlElement;
         abstractLevel.GetFirstChild<PreviousParagraphProperties>()!.GetFirstChild<Indentation>()!.Left = "1800";
@@ -372,7 +372,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void NumberingInheritedThroughStylesCanBeCancelledByDirectZeroId() {
         using WordDocument document = WordDocument.Create();
-        WordList bullets = document.AddCustomBulletList('◆', "Arial", "000000");
+        WordList bullets = document.AddCustomBulletList('◆', "Arial", OfficeColor.Parse("000000"));
         bullets.AddItem("Seed");
         Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         styles.Append(new Style(new StyleParagraphProperties(new NumberingProperties(
@@ -425,7 +425,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void HtmlPreservesDefaultStyleNumberingOnPlainParagraphs() {
         using WordDocument document = WordDocument.Create();
-        WordList bullets = document.AddCustomBulletList('◆', "Arial", "000000");
+        WordList bullets = document.AddCustomBulletList('◆', "Arial", OfficeColor.Parse("000000"));
         Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         Style defaultStyle = styles.Elements<Style>()
             .Single(style => style.Type?.Value == StyleValues.Paragraph && style.Default?.Value == true);

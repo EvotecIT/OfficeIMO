@@ -876,9 +876,9 @@ Describe 'Word DSL surface' {
             $table = $document.Tables[0]
             $table.RowsCount | Should -Be 3
             $table.Rows[0].Cells[0].Paragraphs[0].Text | Should -Be 'Name'
-            $table.Rows[0].Cells[0].ShadingFillColorHex | Should -Not -Be 'ffeeee'
+            $table.Rows[0].Cells[0].ShadingFillColor | Should -Not -Be ([OfficeIMO.OfficeColor]::Parse('ffeeee'))
             $table.Rows[1].Cells[0].Paragraphs[0].Text | Should -Be 'Section'
-            $table.Rows[1].Cells[0].ShadingFillColorHex | Should -Be 'ffeeee'
+            $table.Rows[1].Cells[0].ShadingFillColor | Should -Be ([OfficeIMO.OfficeColor]::Parse('ffeeee'))
             $table.Rows[2].Cells[0].Paragraphs[0].Text | Should -Be 'Directory'
         } finally {
             $document.Dispose()
@@ -1019,8 +1019,8 @@ Describe 'Word DSL surface' {
         $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
-            $table.Rows[0].Cells[0].ShadingFillColorHex | Should -Be 'ffeeee'
-            $table.Rows[1].Cells[0].ShadingFillColorHex | Should -Not -Be 'ffeeee'
+            $table.Rows[0].Cells[0].ShadingFillColor | Should -Be ([OfficeIMO.OfficeColor]::Parse('ffeeee'))
+            $table.Rows[1].Cells[0].ShadingFillColor | Should -Not -Be ([OfficeIMO.OfficeColor]::Parse('ffeeee'))
         } finally {
             $document.Dispose()
         }
@@ -1636,8 +1636,8 @@ Describe 'Word DSL surface' {
                 $shape |
                     Set-OfficeWordShape -Left 24 -Top 12 -Rotation 2 -ZIndex 3 -PassThru |
                     Should -Not -BeNullOrEmpty
-                $shape.FillColorHex | Should -Be 'ddeeff'
-                $shape.StrokeColorHex | Should -Be '1f4e79'
+                $shape.FillColor | Should -Be ([OfficeIMO.OfficeColor]::Parse('ddeeff'))
+                $shape.StrokeColor | Should -Be ([OfficeIMO.OfficeColor]::Parse('1f4e79'))
             }
         } | Out-Null
 
@@ -1650,8 +1650,8 @@ Describe 'Word DSL surface' {
         $images[0].HorizontalFlip | Should -BeTrue
 
         $shapes.Count | Should -Be 1
-        $shapes[0].FillColorHex | Should -Be 'ddeeff'
-        $shapes[0].StrokeColorHex | Should -Be '1f4e79'
+        $shapes[0].FillColor | Should -Be ([OfficeIMO.OfficeColor]::Parse('ddeeff'))
+        $shapes[0].StrokeColor | Should -Be ([OfficeIMO.OfficeColor]::Parse('1f4e79'))
     }
 
     It 'wraps OfficeIMO Word table cell read and style helpers' {
@@ -1667,7 +1667,7 @@ Describe 'Word DSL surface' {
                 Get-OfficeWordTableCell -Row 1 -Column 1 |
                 Set-OfficeWordTableCell -ShadingFillColor '#DDEEFF' -Width 2400 -WidthType Dxa -WrapText $false -FitText $true -PassThru
 
-            $cell.ShadingFillColorHex | Should -Be 'DDEEFF'
+            $cell.ShadingFillColor | Should -Be ([OfficeIMO.OfficeColor]::Parse('DDEEFF'))
             $cell.Width.LengthValue.ToTwips() | Should -Be 2400
             $cell.FitText | Should -BeTrue
         } | Out-Null
@@ -1677,7 +1677,7 @@ Describe 'Word DSL surface' {
             $table = $document.Tables[0]
             $cell = $table | Get-OfficeWordTableCell -Row 1 -Column 1
 
-            $cell.ShadingFillColorHex | Should -Be 'DDEEFF'
+            $cell.ShadingFillColor | Should -Be ([OfficeIMO.OfficeColor]::Parse('DDEEFF'))
             $cell.Width.LengthValue.ToTwips() | Should -Be 2400
             $cell.Width.Kind.ToString() | Should -Be 'Length'
         } finally {
@@ -1843,7 +1843,7 @@ Describe 'Word DSL surface' {
             $styledText.Bold | Should -BeTrue
             $styledText.Italic | Should -BeTrue
             $styledText.Underline.ToString() | Should -Be 'Single'
-            $styledText.ColorHex | Should -Be 'c00000'
+            $styledText.Color | Should -Be ([OfficeIMO.OfficeColor]::Parse('c00000'))
             $styledText.FontSize.ToPoints() | Should -Be 14
             $styledText.FontFamily | Should -Be 'Aptos'
             $styledText.Highlight.ToString() | Should -Be 'Yellow'

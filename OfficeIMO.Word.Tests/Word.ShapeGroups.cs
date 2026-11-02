@@ -18,11 +18,11 @@ namespace OfficeIMO.Tests {
                 WordParagraph paragraph = document.AddParagraph();
                 WordShapeGroup group = paragraph.AddShapeGroup(new[] {
                     new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(72), OfficeLength.Points(36)) {
-                        FillColorHex = "#336699",
-                        StrokeColorHex = "112233"
+                        FillColor = OfficeColor.Parse("#336699"),
+                        StrokeColor = OfficeColor.Parse("112233")
                     },
                     new WordShapeGroupItem(WordShapeType.Ellipse, OfficeLength.Points(90), OfficeLength.Points(18), OfficeLength.Points(54), OfficeLength.Points(54)) {
-                        FillColorHex = "F0A000"
+                        FillColor = OfficeColor.Parse("F0A000")
                     }
                 });
 

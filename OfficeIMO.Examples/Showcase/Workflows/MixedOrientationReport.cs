@@ -37,7 +37,7 @@ internal static class MixedOrientationReport {
             cell.Paragraphs[0].Text = rows[row, column];
             cell.Paragraphs[0].Bold = row == 0;
             cell.MarginTop = cell.MarginBottom = global::OfficeIMO.OfficeLength.Centimeters(0.15D);
-            if (row == 0) cell.ShadingFillColorHex = "E8EEF8";
+            if (row == 0) cell.ShadingFillColor = OfficeColor.Parse("E8EEF8");
         }
         foreach (var paragraph in document.Paragraphs) {
             paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(paragraph.Style == WordParagraphStyles.Heading1 ? 26 : paragraph.Style == WordParagraphStyles.Heading2 ? 15 : 11);

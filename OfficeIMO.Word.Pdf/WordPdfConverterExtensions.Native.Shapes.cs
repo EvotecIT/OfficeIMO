@@ -180,7 +180,7 @@ namespace OfficeIMO.Word.Pdf {
                 } else if (TryGetNativeDrawingSolidFillColor(shapeProperties, out OfficeColor drawingFill, themeColors)) {
                     nativeShape.FillColor = drawingFill;
                 } else {
-                    global::OfficeIMO.OfficeColor? fill = ParseNativeColor(wordShape.FillColorHex);
+                    global::OfficeIMO.OfficeColor? fill = ParseNativeColor(wordShape.FillColorValue);
                     if (fill.HasValue) {
                         nativeShape.FillColor = fill.Value;
                     }
@@ -199,14 +199,14 @@ namespace OfficeIMO.Word.Pdf {
                               (nativeShape.Kind == OfficeShapeKind.Line ||
                                wordShape.Stroked == true ||
                                hasDrawingStrokeColor ||
-                               (wordShape._wpsShape != null && !string.IsNullOrWhiteSpace(wordShape.StrokeColorHex)));
+                               (wordShape._wpsShape != null && !string.IsNullOrWhiteSpace(wordShape.StrokeColorValue)));
             if (!drawStroke) {
                 nativeShape.StrokeColor = null;
                 nativeShape.StrokeWidth = 0;
                 return;
             }
 
-            global::OfficeIMO.OfficeColor? stroke = hasDrawingStrokeColor ? drawingStroke : ParseNativeColor(wordShape.StrokeColorHex);
+            global::OfficeIMO.OfficeColor? stroke = hasDrawingStrokeColor ? drawingStroke : ParseNativeColor(wordShape.StrokeColorValue);
             OfficeColor strokeColor = stroke ?? OfficeColor.Black;
             // This native shape carries stroke alpha separately for running-canvas admission.
             var strokeRgb = strokeColor.ToNormalizedRgb();

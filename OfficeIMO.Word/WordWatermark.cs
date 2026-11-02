@@ -205,27 +205,25 @@ namespace OfficeIMO.Word {
         /// </summary>
         public OfficeIMO.OfficeColor? Color {
             get {
-                if (ColorHex == "") {
+                string value = ColorValue;
+                if (value == "") {
                     return null;
                 }
 
-                return OfficeIMO.OfficeColor.Parse(ColorHex);
+                return OfficeIMO.OfficeColor.Parse(value);
 
             }
             set {
                 if (value != null) {
-                    this.ColorHex = value.Value.ToRgbHex();
+                    this.ColorValue = value.Value.ToRgbHex();
                 }
             }
         }
 
         /// <summary>
-        /// Gets or sets the fill color of the watermark.
-        /// The value can be a named color (e.g., "red") or a three- or six-digit hex value with
-        /// or without the leading '#'. Three-digit hex values are expanded to six digits.
-        /// Invalid inputs will throw <see cref="ArgumentException"/>.
+        /// Native watermark fill colour without the leading '#'.
         /// </summary>
-        public string ColorHex {
+        internal string ColorValue {
             get {
                 var shape = _shape;
                 if (shape?.FillColor?.Value != null) {

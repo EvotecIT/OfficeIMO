@@ -24,16 +24,16 @@ public sealed class PowerPointNativeTextLayoutTests {
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(440),OfficeIMO.OfficeLength.Points(260));
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox plain = slide.AddTextBox("PLAIN baseline",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(15),global::OfficeIMO.OfficeLength.Points(175),global::OfficeIMO.OfficeLength.Points(44));
-        plain.FontName = "NativeFixture";
+        plain.FontFamily = "NativeFixture";
         plain.FontSize = global::OfficeIMO.OfficeLength.Points(13);
 
         PowerPointTextBox wrapped = slide.AddTextBox("ALPHA",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(68),global::OfficeIMO.OfficeLength.Points(175),global::OfficeIMO.OfficeLength.Points(90));
-        wrapped.FontName = "NativeFixture";
+        wrapped.FontFamily = "NativeFixture";
         wrapped.FontSize = global::OfficeIMO.OfficeLength.Points(13);
         wrapped.Paragraphs[0].AddText(" beta gamma delta epsilon zeta eta theta").Italic = true;
 
         PowerPointTextBox linked = slide.AddTextBox("LINKONE LINKTWO LINKTHREE ",global::OfficeIMO.OfficeLength.Points(230),global::OfficeIMO.OfficeLength.Points(15),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(90));
-        linked.FontName = "NativeFixture";
+        linked.FontFamily = "NativeFixture";
         linked.FontSize = global::OfficeIMO.OfficeLength.Points(13);
         linked.Paragraphs[0].Runs[0].SetHyperlink("https://officeimo.net/native-layout");
         linked.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
@@ -41,7 +41,7 @@ public sealed class PowerPointNativeTextLayoutTests {
         linked.Paragraphs[0].AddText("TAIL").Bold = true;
 
         PowerPointTextBox spaced = slide.AddTextBox("FIRST",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(175),global::OfficeIMO.OfficeLength.Points(375),global::OfficeIMO.OfficeLength.Points(75));
-        spaced.FontName = "NativeFixture";
+        spaced.FontFamily = "NativeFixture";
         spaced.FontSize = global::OfficeIMO.OfficeLength.Points(13);
         spaced.Paragraphs[0].Runs[0].Underline = true;
         spaced.Paragraphs[0].SetSpaceAfter(global::OfficeIMO.OfficeLength.Points(9));
@@ -86,7 +86,7 @@ public sealed class PowerPointNativeTextLayoutTests {
         PowerPointTextBox box = presentation.AddSlide().AddTextBox("EXPLICIT",
             OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20),
             OfficeIMO.OfficeLength.Points(300), OfficeIMO.OfficeLength.Points(80));
-        box.FontName = "NativeFixture";
+        box.FontFamily = "NativeFixture";
         box.FontSize = OfficeIMO.OfficeLength.Points(13);
         PowerPointParagraph paragraph = box.Paragraphs[0];
         paragraph.Paragraph.ParagraphProperties = new A.ParagraphProperties(

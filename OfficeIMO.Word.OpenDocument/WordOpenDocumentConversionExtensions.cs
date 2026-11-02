@@ -560,8 +560,8 @@ public static partial class WordOpenDocumentConversionExtensions {
         ApplyWordDecoration(source, target);
         if (source.FontSize.HasValue) target.FontSize = OdfLength.Points(source.FontSize.Value.ToPoints());
         if (!string.IsNullOrWhiteSpace(source.FontFamily)) target.FontFamily = source.FontFamily;
-        if (OdfColor.TryParse(source.ColorHex, out OdfColor color)) target.Color = color;
-        if (OdfColor.TryParse(source.RunShadingFillColorHex, out OdfColor shading)) target.BackgroundColor = shading;
+        if (OdfColor.TryParse(source.Color?.ToRgbHex(), out OdfColor color)) target.Color = color;
+        if (OdfColor.TryParse(source.BackgroundColor?.ToRgbHex(), out OdfColor shading)) target.BackgroundColor = shading;
         else if (TryMapWordHighlight(source.HighlightColor, out OdfColor highlight)) target.BackgroundColor = highlight;
     }
 
@@ -573,8 +573,8 @@ public static partial class WordOpenDocumentConversionExtensions {
         ApplyWordDecoration(source, target);
         if (source.FontSize.HasValue) target.FontSize = OdfLength.Points(source.FontSize.Value.ToPoints());
         if (!string.IsNullOrWhiteSpace(source.FontFamily)) target.FontFamily = source.FontFamily;
-        if (OdfColor.TryParse(source.ColorHex, out OdfColor color)) target.Color = color;
-        if (OdfColor.TryParse(source.RunShadingFillColorHex, out OdfColor shading)) target.BackgroundColor = shading;
+        if (OdfColor.TryParse(source.Color?.ToRgbHex(), out OdfColor color)) target.Color = color;
+        if (OdfColor.TryParse(source.BackgroundColor?.ToRgbHex(), out OdfColor shading)) target.BackgroundColor = shading;
         else if (TryMapWordHighlight(source.HighlightColor, out OdfColor highlight)) target.BackgroundColor = highlight;
     }
 
@@ -761,11 +761,11 @@ public static partial class WordOpenDocumentConversionExtensions {
             WordUnderlineStyle.DashDotDotHeavy or WordUnderlineStyle.WavyHeavy ||
         (run.RunShadingPattern.HasValue && run.RunShadingPattern.Value != WordShadingPattern.Nil &&
             run.RunShadingPattern.Value != WordShadingPattern.Clear) ||
-        (!string.IsNullOrWhiteSpace(run.RunShadingFillColorHex) && !string.IsNullOrWhiteSpace(run.HighlightColor));
+        (!string.IsNullOrWhiteSpace(run.BackgroundColor?.ToRgbHex()) && !string.IsNullOrWhiteSpace(run.HighlightColor));
 
     private static bool HasUnsupportedTableFormatting(WordTableInfo table) => table.StyleName != null ||
         table.Description != null || table.RepeatHeaderRow || table.ColumnWidths.Count > 0 ||
-        table.Rows.SelectMany(row => row.Cells).Any(cell => cell.ShadingFillColorHex != null || cell.LeftBorder != null ||
+        table.Rows.SelectMany(row => row.Cells).Any(cell => cell.ShadingFillColor?.ToRgbHex() != null || cell.LeftBorder != null ||
             cell.RightBorder != null || cell.TopBorder != null || cell.BottomBorder != null);
 
     private static int CountHeaderFooterBlocks(WordSectionInfo section) =>

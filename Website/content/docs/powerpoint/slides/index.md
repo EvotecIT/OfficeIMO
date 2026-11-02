@@ -55,11 +55,11 @@ var heading = text.AddParagraph("Highlights", p => {
     p.Alignment = PowerPointTextAlignment.Left;
     p.SpaceAfter = global::OfficeIMO.OfficeLength.Points(6);
 });
-PowerPointTextStyle.Subtitle.WithColor("1F4E79").Apply(heading);
+PowerPointTextStyle.Subtitle.WithColor(OfficeColor.Parse("1F4E79")).Apply(heading);
 
 var line = text.AddParagraph();
 line.AddText("Ship ");
-line.AddFormattedText("faster", bold: true).SetColor("C00000");
+line.AddFormattedText("faster", bold: true).SetColor(OfficeColor.Parse("C00000"));
 line.AddText(" with cleaner automated decks.");
 
 text.AddBullet("Release completed on schedule");

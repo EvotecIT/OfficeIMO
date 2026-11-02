@@ -89,7 +89,7 @@ namespace OfficeIMO.Word.Pdf {
             bool preserveConfiguredFontSlots = appliedNativeDefaultFont || hasConfiguredPdfOptions;
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots = RegisterNativeDocumentFonts(document, pdfOptions, preserveConfiguredFontSlots, allowDocumentFontEmbedding, nativeFontMap);
             ApplyNativeTextFallbacks(document, options, pdfOptions, registeredFontSlots, allowSystemFontEmbedding, listMarkers);
-            pdfOptions.BackgroundColor = ParseNativeColor(document.Background?.Color);
+            pdfOptions.BackgroundColor = document.Background?.Color;
             pdfOptions.CreateOutlineFromHeadings = true;
             ApplyNativeBiDiViewerPreferences(document, pdfOptions);
             // Standard slots still without a font file take the theme fallback font, embedded, before any text is measured.

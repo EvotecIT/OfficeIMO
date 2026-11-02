@@ -34,7 +34,7 @@ public partial class Html {
 
         Assert.Equal(paragraphCount, document.Paragraphs.Count);
         Assert.All(document.Paragraphs, paragraph =>
-            Assert.Equal("800080", paragraph.ShadingFillColorHex));
+            Assert.Equal(OfficeColor.Parse("800080"), paragraph.ShadingFillColor));
         Assert.Equal(3, converter.InlineStyleParseCount);
     }
 
@@ -68,7 +68,7 @@ public partial class Html {
         WordTable table = Assert.Single(document.Tables);
         Assert.Equal(cellCount, table.Rows[0].Cells.Count);
         Assert.All(table.Rows[0].Cells, cell =>
-            Assert.Equal("800080", cell.ShadingFillColorHex));
+            Assert.Equal(OfficeColor.Parse("800080"), cell.ShadingFillColor));
         Assert.Equal(1, converter.TableBackgroundParseCount);
     }
 

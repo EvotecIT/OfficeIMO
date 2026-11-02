@@ -19,7 +19,7 @@ internal static class WorkflowFooter {
         footer.AddField(WordFieldType.NumPages);
         foreach (WordParagraph run in footer.GetRuns()) {
             run.FontSize = OfficeLength.Points(8.5);
-            run.ColorHex = "5B6575";
+            run.Color = OfficeColor.Parse("5B6575");
         }
     }
 }

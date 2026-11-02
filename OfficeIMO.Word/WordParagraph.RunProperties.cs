@@ -306,22 +306,24 @@ namespace OfficeIMO.Word {
         /// </summary>
         public OfficeIMO.OfficeColor? Color {
             get {
-                if (ColorHex == "") {
-                    return null;
-                }
-                return Helpers.ParseColor(ColorHex);
+                string value = RunColorValue;
+                return value.Length > 0 && OfficeIMO.OfficeColor.TryParseHex(value, out OfficeIMO.OfficeColor color)
+                    ? color
+                    : null;
             }
             set {
                 if (value != null) {
                     SetRunColor(value.Value);
+                } else {
+                    RunColorValue = string.Empty;
                 }
             }
         }
 
         /// <summary>
-        /// Gets or sets the text color as a hexadecimal string.
+        /// Gets or sets the native run colour value (hexadecimal or <c>auto</c>); empty removes it.
         /// </summary>
-        public string ColorHex {
+        internal string RunColorValue {
             get {
                 var runProperties = ScopedRunProperties;
                 if (runProperties != null && runProperties.Color != null) {

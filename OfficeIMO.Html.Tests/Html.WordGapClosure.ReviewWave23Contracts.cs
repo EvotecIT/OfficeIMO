@@ -20,8 +20,8 @@ public partial class HtmlWordGapClosure {
             document.Paragraphs,
             candidate => candidate.Text == "Text");
 
-        Assert.Equal("FF0000", paragraph.Borders.LeftColorHex);
-        Assert.Equal("FF0000", paragraph.Borders.RightColorHex);
+        Assert.Equal(OfficeColor.Parse("FF0000"), paragraph.Borders.LeftColor);
+        Assert.Equal(OfficeColor.Parse("FF0000"), paragraph.Borders.RightColor);
     }
 
     [Fact]
@@ -34,7 +34,7 @@ public partial class HtmlWordGapClosure {
             candidate => candidate.Text == "Text");
 
         Assert.Equal(WordHighlightColor.None, run.Highlight);
-        Assert.Equal(string.Empty, run.RunShadingFillColorHex);
+        Assert.Null(run.BackgroundColor);
         Assert.Contains(
             """<mark style="background-color:transparent">Text</mark>""",
             document.ToHtml());

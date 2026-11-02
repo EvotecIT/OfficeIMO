@@ -728,10 +728,10 @@ public static partial class PdfPowerPointConverterExtensions {
                 if (style.FillColor.HasValue) cell.FillColor = style.FillColor.Value.ToRgbHex();
                 if (style.IsBold) cell.Bold = true;
                 if (style.IsItalic) cell.Italic = true;
-                if (style.TextColor.HasValue && style.TextColor.Value.A > 0) cell.Color = style.TextColor.Value.ToRgbHex();
+                if (style.TextColor.HasValue && style.TextColor.Value.A > 0) cell.Color = global::OfficeIMO.OfficeColor.FromRgb(style.TextColor.Value.R, style.TextColor.Value.G, style.TextColor.Value.B);
                 string? family = PdfCore.PdfFontFamilyNames.ToFamilyName(style.FontName);
                 if (!string.IsNullOrWhiteSpace(family)) {
-                    cell.FontName = family!.StartsWith("Helvetica", StringComparison.OrdinalIgnoreCase) ? "Arial" : family;
+                    cell.FontFamily = family!.StartsWith("Helvetica", StringComparison.OrdinalIgnoreCase) ? "Arial" : family;
                 }
             }
         }

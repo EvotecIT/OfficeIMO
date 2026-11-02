@@ -35,7 +35,7 @@ internal static class ProjectRoadmap {
                 cell.FontSize = global::OfficeIMO.OfficeLength.Points(19);
                 cell.Bold = row == 0;
                 cell.FillColor = row == 0 ? "17365D" : "F1F5F9";
-                cell.Color = row == 0 ? "FFFFFF" : "17365D";
+                cell.Color = OfficeColor.Parse(row == 0 ? "FFFFFF" : "17365D");
                 cell.PaddingLeft = global::OfficeIMO.OfficeLength.Points(12);
                 cell.VerticalAlignment = PowerPointTextVerticalAlignment.Center;
             }
@@ -49,7 +49,7 @@ internal static class ProjectRoadmap {
         void Text(PowerPointSlide slide, string value, double x, double y, double width, double height, int size) {
             var box = slide.AddTextBox(value,global::OfficeIMO.OfficeLength.Centimeters(x),global::OfficeIMO.OfficeLength.Centimeters(y),global::OfficeIMO.OfficeLength.Centimeters(width),global::OfficeIMO.OfficeLength.Centimeters(height));
             box.FontSize = global::OfficeIMO.OfficeLength.Points(size);
-            box.Color = "17365D";
+            box.Color = OfficeColor.Parse("17365D");
         }
     }
 }

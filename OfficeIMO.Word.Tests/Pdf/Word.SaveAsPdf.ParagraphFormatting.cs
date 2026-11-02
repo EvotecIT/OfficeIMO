@@ -355,15 +355,15 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph paragraph = document.AddParagraph("Native shaded panel paragraph");
-                paragraph.ShadingFillColorHex = "E6F2FF";
+                paragraph.ShadingFillColor = OfficeColor.Parse("E6F2FF");
                 paragraph.Borders.TopStyle = WordBorderStyle.Single;
                 paragraph.Borders.BottomStyle = WordBorderStyle.Single;
                 paragraph.Borders.LeftStyle = WordBorderStyle.Single;
                 paragraph.Borders.RightStyle = WordBorderStyle.Single;
-                paragraph.Borders.TopColorHex = "336699";
-                paragraph.Borders.BottomColorHex = "336699";
-                paragraph.Borders.LeftColorHex = "336699";
-                paragraph.Borders.RightColorHex = "336699";
+                paragraph.Borders.TopColor = OfficeColor.Parse("336699");
+                paragraph.Borders.BottomColor = OfficeColor.Parse("336699");
+                paragraph.Borders.LeftColor = OfficeColor.Parse("336699");
+                paragraph.Borders.RightColor = OfficeColor.Parse("336699");
                 paragraph.Borders.TopSize = OfficeLength.Points(1);
                 paragraph.Borders.BottomSize = OfficeLength.Points(1);
                 paragraph.Borders.LeftSize = OfficeLength.Points(1);
@@ -443,9 +443,9 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph first = document.AddParagraph("Adjacent shaded heading");
-                first.ShadingFillColorHex = "F0E68C";
+                first.ShadingFillColor = OfficeColor.Parse("F0E68C");
                 WordParagraph second = document.AddParagraph("Adjacent shaded value");
-                second.ShadingFillColorHex = "F0E68C";
+                second.ShadingFillColor = OfficeColor.Parse("F0E68C");
                 document.AddParagraph("After shaded block");
 
                 document.Save();
@@ -508,7 +508,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph paragraph = document.AddParagraph("Native bordered paragraph heading");
                 paragraph.Borders.BottomStyle = WordBorderStyle.Single;
-                paragraph.Borders.BottomColorHex = "336699";
+                paragraph.Borders.BottomColor = OfficeColor.Parse("336699");
                 paragraph.Borders.BottomSize = OfficeLength.Points(1.5);
                 paragraph.Borders.BottomSpace = OfficeLength.Points(3);
                 paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(8D);
@@ -546,7 +546,7 @@ namespace OfficeIMO.Tests {
 
                 WordParagraph paragraph = document.AddParagraph("Native top bordered paragraph");
                 paragraph.Borders.TopStyle = WordBorderStyle.Single;
-                paragraph.Borders.TopColorHex = "008000";
+                paragraph.Borders.TopColor = OfficeColor.Parse("008000");
                 paragraph.Borders.TopSize = OfficeLength.Points(2);
                 paragraph.Borders.TopSpace = OfficeLength.Points(4);
                 paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(8D);
@@ -581,10 +581,10 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph paragraph = document.AddParagraph("Native side bordered paragraph");
                 paragraph.Borders.LeftStyle = WordBorderStyle.Single;
-                paragraph.Borders.LeftColorHex = "FF0000";
+                paragraph.Borders.LeftColor = OfficeColor.Parse("FF0000");
                 paragraph.Borders.LeftSize = OfficeLength.Points(1.5);
                 paragraph.Borders.RightStyle = WordBorderStyle.Single;
-                paragraph.Borders.RightColorHex = "0000FF";
+                paragraph.Borders.RightColor = OfficeColor.Parse("0000FF");
                 paragraph.Borders.RightSize = OfficeLength.Points(2.5);
 
                 document.Save();
@@ -618,14 +618,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph tight = document.AddParagraph("TightSpace");
                 tight.Borders.LeftStyle = WordBorderStyle.Single;
-                tight.Borders.LeftColorHex = "444444";
+                tight.Borders.LeftColor = OfficeColor.Parse("444444");
                 tight.Borders.LeftSize = OfficeLength.Points(1);
                 tight.Borders.LeftSpace = OfficeLength.Points(0);
                 tight.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(4D);
 
                 WordParagraph wide = document.AddParagraph("WideSpace");
                 wide.Borders.LeftStyle = WordBorderStyle.Single;
-                wide.Borders.LeftColorHex = "444444";
+                wide.Borders.LeftColor = OfficeColor.Parse("444444");
                 wide.Borders.LeftSize = OfficeLength.Points(1);
                 wide.Borders.LeftSpace = OfficeLength.Points(24);
 

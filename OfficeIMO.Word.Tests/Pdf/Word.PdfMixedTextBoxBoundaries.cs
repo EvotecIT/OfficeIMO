@@ -185,7 +185,7 @@ public partial class Word {
         paragraph.AddTextBox("BOX", WordImageTextWrapping.Square);
         WordShape shape = drawingMl ? paragraph.AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(36D), OfficeIMO.OfficeLength.Points(20D))
             : paragraph.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(36D), OfficeIMO.OfficeLength.Points(20D), OfficeIMO.OfficeColor.Parse("#CCB399"));
-        shape.FillColorHex = "#CCB399";
+        shape.FillColor = OfficeColor.Parse("#CCB399");
         paragraph.AddText("SUFFIX");
         Assert.Empty(document.ValidateDocument());
         byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });

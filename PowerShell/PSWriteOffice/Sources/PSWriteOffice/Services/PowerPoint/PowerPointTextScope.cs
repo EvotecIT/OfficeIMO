@@ -72,9 +72,9 @@ internal static class PowerPointTextFormatting {
         if (strikethrough) run.Strikethrough = true;
         if (underline.HasValue) run.UnderlineStyle = underline;
         var context = new PowerPointLayoutContext(document, PowerPointLayoutTheme.From(theme));
-        if (color.HasValue) run.Color = context.ResolveColor(color);
-        if (highlight.HasValue) run.HighlightColor = context.ResolveColor(highlight);
-        if (font != null) run.FontName = font;
+        if (color.HasValue) run.Color = OfficeIMO.OfficeColor.Parse(context.ResolveColor(color)!);
+        if (highlight.HasValue) run.BackgroundColor = OfficeIMO.OfficeColor.Parse(context.ResolveColor(highlight)!);
+        if (font != null) run.FontFamily = font;
         if (size.HasValue) run.FontSize = size.Value;
         if (link != null) run.SetHyperlink(link);
     }

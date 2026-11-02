@@ -32,11 +32,11 @@ public static partial class WordRtfConverterExtensions {
             run.FontId = rtfDocument.AddFont(fontFamily);
         }
 
-        if (!string.IsNullOrWhiteSpace(wordRun.ColorHex) &&
-            TryParseHexColor(wordRun.ColorHex, out byte foregroundRed, out byte foregroundGreen, out byte foregroundBlue)) {
+        if (!string.IsNullOrWhiteSpace(wordRun.RunColorValue) &&
+            TryParseHexColor(wordRun.RunColorValue, out byte foregroundRed, out byte foregroundGreen, out byte foregroundBlue)) {
             run.ForegroundColorIndex = GetOrAddColor(rtfDocument, foregroundRed, foregroundGreen, foregroundBlue);
         }
-        if (string.Equals(wordRun.ColorHex, "auto", StringComparison.OrdinalIgnoreCase)) run.ForegroundColorIndex = 0;
+        if (string.Equals(wordRun.RunColorValue, "auto", StringComparison.OrdinalIgnoreCase)) run.ForegroundColorIndex = 0;
 
         if (wordRun.Highlight.HasValue &&
             TryGetRtfHighlightColor(wordRun.Highlight.Value.ToOpenXml(), out byte highlightRed, out byte highlightGreen, out byte highlightBlue)) {
@@ -100,9 +100,9 @@ public static partial class WordRtfConverterExtensions {
         if (rtfDocument != null && run.ForegroundColorIndex.HasValue) {
             string? colorHex = GetColorHex(rtfDocument, run.ForegroundColorIndex.Value);
             if (colorHex != null) {
-                wordRun.ColorHex = colorHex;
+                wordRun.RunColorValue = colorHex;
             } else if (run.ForegroundColorIndex == 0) {
-                wordRun.ColorHex = "auto";
+                wordRun.RunColorValue = "auto";
             }
         }
 

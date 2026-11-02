@@ -3881,7 +3881,7 @@ namespace OfficeIMO.Tests {
             document.BuiltinDocumentProperties.Title = "Google Docs Paragraph Shading";
 
             var paragraph = document.AddParagraph("Shaded paragraph");
-            paragraph.ShadingFillColorHex = "D9EAF7";
+            paragraph.ShadingFillColor = OfficeColor.Parse("D9EAF7");
 
             return document;
         }
@@ -3892,11 +3892,11 @@ namespace OfficeIMO.Tests {
 
             var paragraph = document.AddParagraph("Bordered paragraph");
             paragraph.Borders.TopStyle = WordBorderStyle.Single;
-            paragraph.Borders.TopColorHex = "336699";
+            paragraph.Borders.TopColor = OfficeColor.Parse("336699");
             paragraph.Borders.TopSize = OfficeLength.Points(1);
             paragraph.Borders.TopSpace = OfficeLength.Points(6);
             paragraph.Borders.LeftStyle = WordBorderStyle.Single;
-            paragraph.Borders.LeftColorHex = "CC3300";
+            paragraph.Borders.LeftColor = OfficeColor.Parse("CC3300");
             paragraph.Borders.LeftSize = OfficeLength.Points(1.5);
             paragraph.Borders.LeftSpace = OfficeLength.Points(4);
 
@@ -4001,15 +4001,15 @@ namespace OfficeIMO.Tests {
             firstCellParagraph.Text = "Cell ";
             firstCellParagraph.AddFormattedText("Bold", bold: true);
             firstCellParagraph.AddHyperLink(" Link", new Uri("https://example.com"));
-            table.Rows[0].Cells[0].ShadingFillColorHex = "FFCC00";
+            table.Rows[0].Cells[0].ShadingFillColor = OfficeColor.Parse("FFCC00");
             table.Rows[0].Cells[0].Borders.LeftStyle = WordBorderStyle.Single;
-            table.Rows[0].Cells[0].Borders.LeftColorHex = "FF0000";
+            table.Rows[0].Cells[0].Borders.LeftColor = OfficeColor.Parse("FF0000");
             table.Rows[0].Cells[0].Borders.LeftSize = global::OfficeIMO.OfficeLength.Points(1);
             table.Rows[0].Cells[0].Borders.TopStyle = WordBorderStyle.Dashed;
-            table.Rows[0].Cells[0].Borders.TopColorHex = "0000FF";
+            table.Rows[0].Cells[0].Borders.TopColor = OfficeColor.Parse("0000FF");
             table.Rows[0].Cells[0].Borders.TopSize = global::OfficeIMO.OfficeLength.Points(1.5);
             table.Rows[0].Cells[0].Borders.BottomStyle = WordBorderStyle.Dotted;
-            table.Rows[0].Cells[0].Borders.BottomColorHex = "00AA00";
+            table.Rows[0].Cells[0].Borders.BottomColor = OfficeColor.Parse("00AA00");
             table.Rows[0].Cells[0].Borders.BottomSize = global::OfficeIMO.OfficeLength.Points(2);
 
             table.Rows[0].Cells[1].Paragraphs[0].Text = "Value";
@@ -4097,9 +4097,9 @@ namespace OfficeIMO.Tests {
 
             var headerTable = document.Sections[0].Header.Default!.AddTable(2, 2, WordTableStyle.TableGrid);
             headerTable.Rows[0].Cells[0].Paragraphs[0].Text = "H1";
-            headerTable.Rows[0].Cells[0].ShadingFillColorHex = "D9EAF7";
+            headerTable.Rows[0].Cells[0].ShadingFillColor = OfficeColor.Parse("D9EAF7");
             headerTable.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
-            headerTable.Rows[0].Cells[0].Borders.RightColorHex = "336699";
+            headerTable.Rows[0].Cells[0].Borders.RightColor = OfficeColor.Parse("336699");
             headerTable.Rows[0].Cells[0].Borders.RightSize = global::OfficeIMO.OfficeLength.Points(1);
             headerTable.Rows[0].Cells[1].Paragraphs[0].Text = "H2";
             headerTable.Rows[1].Cells[0].Paragraphs[0].Text = "H3";
@@ -4123,9 +4123,9 @@ namespace OfficeIMO.Tests {
 
             var footerTable = document.Sections[0].Footer.Default!.AddTable(2, 2, WordTableStyle.TableGrid);
             footerTable.Rows[0].Cells[0].Paragraphs[0].Text = "F1";
-            footerTable.Rows[0].Cells[0].ShadingFillColorHex = "D9EAF7";
+            footerTable.Rows[0].Cells[0].ShadingFillColor = OfficeColor.Parse("D9EAF7");
             footerTable.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
-            footerTable.Rows[0].Cells[0].Borders.RightColorHex = "336699";
+            footerTable.Rows[0].Cells[0].Borders.RightColor = OfficeColor.Parse("336699");
             footerTable.Rows[0].Cells[0].Borders.RightSize = global::OfficeIMO.OfficeLength.Points(1);
             footerTable.Rows[0].Cells[1].Paragraphs[0].Text = "F2";
             footerTable.Rows[1].Cells[0].Paragraphs[0].Text = "F3";
@@ -4142,9 +4142,9 @@ namespace OfficeIMO.Tests {
 
             var footerTable = document.Sections[0].Footer.First!.AddTable(2, 2, WordTableStyle.TableGrid);
             footerTable.Rows[0].Cells[0].Paragraphs[0].Text = "F1";
-            footerTable.Rows[0].Cells[0].ShadingFillColorHex = "D9EAF7";
+            footerTable.Rows[0].Cells[0].ShadingFillColor = OfficeColor.Parse("D9EAF7");
             footerTable.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
-            footerTable.Rows[0].Cells[0].Borders.RightColorHex = "336699";
+            footerTable.Rows[0].Cells[0].Borders.RightColor = OfficeColor.Parse("336699");
             footerTable.Rows[0].Cells[0].Borders.RightSize = global::OfficeIMO.OfficeLength.Points(1);
             footerTable.Rows[0].Cells[1].Paragraphs[0].Text = "F2";
             footerTable.Rows[1].Cells[0].Paragraphs[0].Text = "F3";
@@ -4161,9 +4161,9 @@ namespace OfficeIMO.Tests {
 
             var footerTable = document.Sections[0].Footer.Even!.AddTable(2, 2, WordTableStyle.TableGrid);
             footerTable.Rows[0].Cells[0].Paragraphs[0].Text = "F1";
-            footerTable.Rows[0].Cells[0].ShadingFillColorHex = "D9EAF7";
+            footerTable.Rows[0].Cells[0].ShadingFillColor = OfficeColor.Parse("D9EAF7");
             footerTable.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
-            footerTable.Rows[0].Cells[0].Borders.RightColorHex = "336699";
+            footerTable.Rows[0].Cells[0].Borders.RightColor = OfficeColor.Parse("336699");
             footerTable.Rows[0].Cells[0].Borders.RightSize = global::OfficeIMO.OfficeLength.Points(1);
             footerTable.Rows[0].Cells[1].Paragraphs[0].Text = "F2";
             footerTable.Rows[1].Cells[0].Paragraphs[0].Text = "F3";
@@ -4187,9 +4187,9 @@ namespace OfficeIMO.Tests {
 
             var headerTable = document.Sections[0].Header.Even!.AddTable(2, 2, WordTableStyle.TableGrid);
             headerTable.Rows[0].Cells[0].Paragraphs[0].Text = "H1";
-            headerTable.Rows[0].Cells[0].ShadingFillColorHex = "D9EAF7";
+            headerTable.Rows[0].Cells[0].ShadingFillColor = OfficeColor.Parse("D9EAF7");
             headerTable.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
-            headerTable.Rows[0].Cells[0].Borders.RightColorHex = "336699";
+            headerTable.Rows[0].Cells[0].Borders.RightColor = OfficeColor.Parse("336699");
             headerTable.Rows[0].Cells[0].Borders.RightSize = global::OfficeIMO.OfficeLength.Points(1);
             headerTable.Rows[0].Cells[1].Paragraphs[0].Text = "H2";
             headerTable.Rows[1].Cells[0].Paragraphs[0].Text = "H3";

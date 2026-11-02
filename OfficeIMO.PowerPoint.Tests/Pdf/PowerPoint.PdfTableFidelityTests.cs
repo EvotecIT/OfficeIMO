@@ -77,7 +77,7 @@ public sealed class PowerPointPdfTableFidelityTests {
         cell.Text = "Alpha beta gamma delta epsilon zeta";
         cell.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize);
         cell.Bold = false;
-        cell.Color = "FF0000";
+        cell.Color = OfficeColor.Parse("FF0000");
         cell.PaddingLeft = global::OfficeIMO.OfficeLength.Points(0);
         cell.PaddingRight = global::OfficeIMO.OfficeLength.Points(9);
         cell.PaddingTop = global::OfficeIMO.OfficeLength.Points(8);
@@ -115,7 +115,7 @@ public sealed class PowerPointPdfTableFidelityTests {
         cell.Text = "Large";
         cell.Bold = true;
         cell.FontSize = global::OfficeIMO.OfficeLength.Points(28);
-        cell.Color = "FF0000";
+        cell.Color = OfficeColor.Parse("FF0000");
         cell.AddText(" regular");
         // AddRun copies the template for editing convenience; unspecify the
         // second run to reproduce genuine imported runs with no local style.
@@ -145,7 +145,7 @@ public sealed class PowerPointPdfTableFidelityTests {
         table.StyleId = null;
         var cell = table.GetCell(0, 0);
         cell.Text = "First\nSecond\nTail";
-        cell.FontName = "Helvetica";
+        cell.FontFamily = "Helvetica";
         cell.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         if (onMaster) {
             // Legacy export wraps master frames without attaching them to a
@@ -153,7 +153,7 @@ public sealed class PowerPointPdfTableFidelityTests {
             presentation.SetThemeColor(PowerPointThemeColor.Accent2, "112233");
             var master = presentation.OpenXmlDocument.PresentationPart!.SlideMasterParts.Single();
             master.SlideMaster!.ColorMap!.Accent1 = A.ColorSchemeIndexValues.Accent2;
-            cell.FontName = "+mn-lt";
+            cell.FontFamily = "+mn-lt";
             foreach (var run in cell.Cell.TextBody!.Elements<A.Paragraph>().Single().Elements<A.Run>()) {
                 run.RunProperties!.RemoveAllChildren<A.SolidFill>();
                 run.RunProperties.Append(new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.Accent1 }));

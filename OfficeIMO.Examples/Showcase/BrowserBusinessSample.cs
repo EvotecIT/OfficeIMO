@@ -64,7 +64,7 @@ internal static class BrowserBusinessSample {
                     table.Rows[row].Cells[column].MarginTop = global::OfficeIMO.OfficeLength.Centimeters(0.08D);
                     table.Rows[row].Cells[column].MarginBottom = global::OfficeIMO.OfficeLength.Centimeters(0.08D);
                     if (row == 0) {
-                        table.Rows[row].Cells[column].ShadingFillColorHex = "E8EEF8";
+                        table.Rows[row].Cells[column].ShadingFillColor = OfficeColor.Parse("E8EEF8");
                     }
                 }
             }

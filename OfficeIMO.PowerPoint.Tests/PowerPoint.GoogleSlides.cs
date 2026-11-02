@@ -100,7 +100,8 @@ namespace OfficeIMO.Tests {
             PowerPointTextRun run = presentation.AddSlide()
                 .AddTextBox("Unsafe color",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(80))
                 .Paragraphs[0].Runs[0];
-            run.Color = "GG0000";
+            run.Color = OfficeColor.Parse("FF0000");
+            run.RunProperties!.GetFirstChild<A.SolidFill>()!.RgbColorModelHex!.Val = "GG0000";
 
             GoogleSlidesTextBox text = Assert.Single(
                 Assert.Single(presentation.BuildGoogleSlidesBatch().Slides)
@@ -392,7 +393,7 @@ namespace OfficeIMO.Tests {
             paragraph.Text = "Before ";
             paragraph.AddField("2", "slidenum", fieldId: null, configure: run => {
                 run.Bold = true;
-                run.Color = "336699";
+                run.Color = OfficeColor.Parse("336699");
             });
             paragraph.AddLineBreak();
             paragraph.AddText("After").Italic = true;
@@ -1029,14 +1030,14 @@ namespace OfficeIMO.Tests {
                         Assert.True(run.Strikethrough);
                         Assert.Equal(PowerPointCapitalization.SmallCaps, run.Capitalization);
                         Assert.True(run.BaselinePercent > 0);
-                        Assert.Equal("336699", run.Color);
+                        Assert.Equal(OfficeColor.Parse("336699"), run.Color);
                     },
                     run => {
                         Assert.Equal("text", run.Text);
                         Assert.True(run.Italic);
                         Assert.True(run.Underline);
                         Assert.True(run.BaselinePercent < 0);
-                        Assert.Equal("CC331A", run.Color);
+                        Assert.Equal(OfficeColor.Parse("CC331A"), run.Color);
                     });
                 GoogleSlidesTextBox roundTripText = Assert.Single(
                     Assert.Single(GoogleSlidesBatchCompiler.Build(imported.Document, new GoogleSlidesSaveOptions()).Slides)
@@ -1355,8 +1356,8 @@ namespace OfficeIMO.Tests {
 
             run.Bold = true;
             run.FontSize = global::OfficeIMO.OfficeLength.Points(18);
-            run.FontName = "Aptos";
-            run.Color = "336699";
+            run.FontFamily = "Aptos";
+            run.Color = OfficeColor.Parse("336699");
             run.Underline = true;
             run.Hyperlink = new Uri("https://example.test/");
             string styled = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(styledPresentation));

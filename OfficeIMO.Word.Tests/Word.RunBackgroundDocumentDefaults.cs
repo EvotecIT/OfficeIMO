@@ -48,7 +48,7 @@ public sealed class WordRunBackgroundDocumentDefaultsTests {
         if (depth >= 4) styles.Elements<Style>().Single(style => style.StyleId == "BackgroundCharacter")
             .StyleRunProperties = new StyleRunProperties(Shade("FF00FF"), new Highlight { Val = HighlightColorValues.Magenta });
         if (depth >= 5) {
-            run.RunShadingFillColorHex = "FFFFFF";
+            run.BackgroundColor = OfficeColor.Parse("FFFFFF");
             run.Highlight = WordHighlightColor.White;
         }
         if (level is "off" or "clear") {

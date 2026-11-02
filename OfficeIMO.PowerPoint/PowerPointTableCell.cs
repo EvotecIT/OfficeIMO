@@ -210,18 +210,18 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Gets or sets the font name.
+        ///     Gets or sets the font family.
         /// </summary>
-        public string? FontName {
+        public string? FontFamily {
             get => GetRun()?.RunProperties?.GetFirstChild<A.LatinFont>()?.Typeface;
-            set => FormatRuns(props => PowerPointTextPropertyFormatting.SetFontName(props, value));
+            set => FormatRuns(props => PowerPointTextPropertyFormatting.SetFontFamily(props, value));
         }
 
         /// <summary>
-        ///     Gets or sets the text color in hex format (e.g. "FF0000").
+        ///     Gets or sets the text color. Alpha below 255 is written as native DrawingML opacity.
         /// </summary>
-        public string? Color {
-            get => GetRun()?.RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val;
+        public global::OfficeIMO.OfficeColor? Color {
+            get => PowerPointTextPropertyFormatting.ReadColor(GetRun()?.RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex);
             set => FormatRuns(props => PowerPointTextPropertyFormatting.SetColor(props, value));
         }
 

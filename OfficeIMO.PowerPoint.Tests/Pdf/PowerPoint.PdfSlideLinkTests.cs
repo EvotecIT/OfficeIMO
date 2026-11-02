@@ -175,7 +175,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         PowerPointSlide second = presentation.AddSlide();
         PowerPointSlide third = presentation.AddSlide();
         PowerPointTextBox box = first.AddTextBox("FIRST ",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(160));
-        box.FontName = "Arial"; box.FontSize = global::OfficeIMO.OfficeLength.Points(16);
+        box.FontFamily = "Arial"; box.FontSize = global::OfficeIMO.OfficeLength.Points(16);
         box.Paragraphs[0].Runs[0].SetHyperlink(second);
         box.Paragraphs[0].AddText("SECOND THIRD FOURTH FIFTH SIXTH").SetHyperlink(third);
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
@@ -227,7 +227,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(220));
         PowerPointSlide first = presentation.AddSlide(); PowerPointSlide second = presentation.AddSlide();
         PowerPointTextBox box = first.AddTextBox("GROUP LINK",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(60));
-        box.FontName = "Arial"; box.FontSize = global::OfficeIMO.OfficeLength.Points(14);
+        box.FontFamily = "Arial"; box.FontSize = global::OfficeIMO.OfficeLength.Points(14);
         box.Paragraphs[0].Runs[0].SetHyperlink(second);
         PowerPointGroupShape group = first.GroupShapes(new PowerPointShape[] { box, first.AddRectangle(OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(110), OfficeIMO.OfficeLength.Points(200), OfficeIMO.OfficeLength.Points(10)) });
         PdfCore.PdfLinkAnnotation original = Assert.Single(PdfCore.PdfInspector.Inspect(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).LinkAnnotations);

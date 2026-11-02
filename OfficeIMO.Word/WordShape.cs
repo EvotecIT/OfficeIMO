@@ -430,9 +430,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the fill color as hexadecimal string (no leading '#', lowercase).
+        /// Native fill colour as hexadecimal string (no leading '#', lowercase).
         /// </summary>
-        public string FillColorHex {
+        internal string FillColorValue {
             get {
                 if (_rectangle?.FillColor?.Value is string rect) return NormalizeHexNoHash(rect);
                 if (_roundRectangle?.FillColor?.Value is string round) return NormalizeHexNoHash(round);
@@ -484,12 +484,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public OfficeIMO.OfficeColor FillColor {
             get {
-                var hex = FillColorHex;
+                var hex = FillColorValue;
                 if (string.IsNullOrEmpty(hex)) return OfficeIMO.OfficeColor.Transparent;
                 if (!hex.StartsWith("#", StringComparison.Ordinal)) hex = "#" + hex;
                 return OfficeIMO.OfficeColor.Parse(hex);
             }
-            set => FillColorHex = value.ToRgbHex();
+            set => FillColorValue = value.ToRgbHex();
         }
 
         /// <summary>
@@ -580,9 +580,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Outline color in hex format (no leading '#', lowercase). Null when not applicable.
+        /// Native outline colour in hex format (no leading '#', lowercase). Null when not applicable.
         /// </summary>
-        public string? StrokeColorHex {
+        internal string? StrokeColorValue {
             get {
                 if (_rectangle != null) return NormalizeHexNoHash(_rectangle.StrokeColor?.Value);
                 if (_roundRectangle != null) return NormalizeHexNoHash(_roundRectangle.StrokeColor?.Value);
@@ -641,12 +641,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public OfficeIMO.OfficeColor StrokeColor {
             get {
-                var hex = StrokeColorHex;
+                var hex = StrokeColorValue;
                 if (hex is not { Length: > 0 } s) return OfficeIMO.OfficeColor.Transparent;
                 if (!s.StartsWith("#", StringComparison.Ordinal)) s = "#" + s;
                 return OfficeIMO.OfficeColor.Parse(s);
             }
-            set => StrokeColorHex = value.ToRgbHex();
+            set => StrokeColorValue = value.ToRgbHex();
         }
 
         /// <summary>

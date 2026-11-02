@@ -15,7 +15,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         }
 
         if (!string.IsNullOrWhiteSpace(style.FontName)) {
-            textBox.FontName = style.FontName;
+            textBox.FontFamily = style.FontName;
         }
 
         if (style.FontSize != null) {
@@ -32,7 +32,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
         var textColor = ToPowerPointColor(style.TextColor);
         if (!string.IsNullOrWhiteSpace(textColor)) {
-            textBox.Color = textColor;
+            textBox.Color = OfficeIMO.OfficeColor.Parse(textColor!);
         }
 
         foreach (PowerPointParagraph paragraph in textBox.Paragraphs) {
@@ -42,7 +42,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
                 if (style.Baseline != null) ApplyBaseline(run, style.Baseline.Value);
                 if (style.TextCase is { } textCase && textCase != OfficeTextCase.None) run.TransformTextCase(textCase, CultureInfo.InvariantCulture);
                 if (style.SmallCaps != null) run.Capitalization = style.SmallCaps.Value ? PowerPointCapitalization.SmallCaps : PowerPointCapitalization.None;
-                if (!string.IsNullOrWhiteSpace(style.HighlightColor)) run.HighlightColor = ToPowerPointColor(style.HighlightColor);
+                if (ToPowerPointColor(style.HighlightColor) is string highlight) run.BackgroundColor = OfficeIMO.OfficeColor.Parse(highlight);
             }
         }
 

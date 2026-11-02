@@ -211,9 +211,9 @@ public partial class PowerPointSaveAsPdfTests {
         PowerPointTextBox textBox = slide.AddTextBox("Premium Slide",global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(36),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(36));
         textBox.FillColor = "FFFFFF";
         textBox.OutlineColor = "94A3B8";
-        textBox.FontName = "Georgia";
+        textBox.FontFamily = "Georgia";
         textBox.FontSize = global::OfficeIMO.OfficeLength.Points(14);
-        textBox.Color = "123456";
+        textBox.Color = OfficeColor.Parse("123456");
         textBox.Rotation = 0D;
 
         slide.AddImage(new MemoryStream(CreateMinimalRgbPng()), OfficeIMO.Drawing.OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(210)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(42)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(50)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(30)));
@@ -243,7 +243,7 @@ public partial class PowerPointSaveAsPdfTests {
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         PowerPointTextBox textBox = presentation.AddSlide().AddTextBox("Unavailable font marker",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(40));
-        textBox.FontName = unavailableFamily;
+        textBox.FontFamily = unavailableFamily;
 
         PdfCore.PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
@@ -263,7 +263,7 @@ public partial class PowerPointSaveAsPdfTests {
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         PowerPointTextBox textBox = presentation.AddSlide().AddTextBox("Portable font marker",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(40));
-        textBox.FontName = "Arial";
+        textBox.FontFamily = "Arial";
 
         PdfCore.PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
@@ -285,9 +285,9 @@ public partial class PowerPointSaveAsPdfTests {
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox first = slide.AddTextBox("First explicit family",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(40));
-        first.FontName = "Helvetica";
+        first.FontFamily = "Helvetica";
         PowerPointTextBox second = slide.AddTextBox("Second explicit family",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(74),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(40));
-        second.FontName = "Helvetica";
+        second.FontFamily = "Helvetica";
 
         PdfCore.PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
@@ -1544,12 +1544,12 @@ public partial class PowerPointSaveAsPdfTests {
         PowerPointSlide slide = presentation.AddSlide();
 
         PowerPointTextBox excluded = slide.AddTextBox("Excluded",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(26),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(28));
-        excluded.FontName = "Georgia";
+        excluded.FontFamily = "Georgia";
 
         PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(74),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(42));
         PowerPointTableCell cell = table.GetCell(0, 0);
         cell.Text = "Visible";
-        cell.FontName = "Times New Roman";
+        cell.FontFamily = "Times New Roman";
 
         byte[] bytes = presentation.ToPdf(new PowerPointPdfExportOptions {
             IncludeTextBoxes = false,
@@ -1574,12 +1574,12 @@ public partial class PowerPointSaveAsPdfTests {
         PowerPointSlide slide = presentation.AddSlide();
 
         PowerPointTextBox offSlide = slide.AddTextBox("OffSlide",global::OfficeIMO.OfficeLength.Points(-180),global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(28));
-        offSlide.FontName = "Georgia";
+        offSlide.FontFamily = "Georgia";
 
         PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(74),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(42));
         PowerPointTableCell cell = table.GetCell(0, 0);
         cell.Text = "Visible";
-        cell.FontName = "Times New Roman";
+        cell.FontFamily = "Times New Roman";
 
         byte[] bytes = presentation.ToPdf(new PowerPointPdfExportOptions {
             IncludeTextBoxes = true,
@@ -1605,7 +1605,7 @@ public partial class PowerPointSaveAsPdfTests {
         PowerPointSlide slide = presentation.AddSlide();
 
         PowerPointTextBox styled = slide.AddTextBox("StyledSerif",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(28));
-        styled.FontName = "Georgia";
+        styled.FontFamily = "Georgia";
         PowerPointTextBox plain = slide.AddTextBox("DefaultSerif",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(84),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(28));
 
         byte[] bytes = presentation.ToPdf(new PowerPointPdfExportOptions {
@@ -1656,7 +1656,7 @@ public partial class PowerPointSaveAsPdfTests {
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
         PowerPointTextBox textBox = presentation.AddSlide().AddTextBox("VisibleSans",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(36));
-        textBox.FontName = "Aptos Display";
+        textBox.FontFamily = "Aptos Display";
 
         byte[] bytes = presentation.ToPdf(new PowerPointPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),

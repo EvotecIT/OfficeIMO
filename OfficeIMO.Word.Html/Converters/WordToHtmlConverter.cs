@@ -704,7 +704,7 @@ namespace OfficeIMO.Word.Html {
                     if (options.IncludeRunColorStyles || options.IncludeRunHighlightStyles) {
                         var inlineStyles = new List<string>();
                         if (options.IncludeRunColorStyles) {
-                            var colorHex = run.ColorHex;
+                            var colorHex = run.RunColorValue;
                             if (!string.IsNullOrEmpty(colorHex) &&
                                 !string.Equals(colorHex, "auto", StringComparison.OrdinalIgnoreCase)) {
                                 string? normalized = NormalizeSixDigitHexColor(colorHex);
@@ -1028,7 +1028,7 @@ namespace OfficeIMO.Word.Html {
                 if (!string.IsNullOrEmpty(alignCss)) {
                     pStyles.Add($"text-align:{alignCss}");
                 }
-                var pBg = para.ShadingFillColorHex;
+                var pBg = para.ShadingFillValue;
                 string? normalizedParagraphBackground = NormalizeSixDigitHexColor(pBg);
                 if (normalizedParagraphBackground != null) {
                     pStyles.Add($"background-color:#{normalizedParagraphBackground}");
@@ -1230,7 +1230,7 @@ namespace OfficeIMO.Word.Html {
                             }
                             cellStyles.Add($"vertical-align:{vAlign}");
                         }
-                        var bg = cell.ShadingFillColorHex;
+                        var bg = cell.ShadingFillValue;
                         string? normalizedCellBackground = NormalizeSixDigitHexColor(bg);
                         if (normalizedCellBackground != null) {
                             cellStyles.Add($"background-color:#{normalizedCellBackground}");

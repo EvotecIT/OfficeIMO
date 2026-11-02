@@ -25,7 +25,7 @@ namespace OfficeIMO.Examples.Word
                     paragraph1 = paragraph1.AddText("Hello ");
                     paragraph1 = paragraph1.AddText("World");
                     paragraph1.SetBold();
-                    paragraph1.SetColorHex("#ff0000");
+                    paragraph1.SetColor(OfficeColor.Parse("#ff0000"));
                     paragraph1 = paragraph1.AddText("!");
                     var list2 = document.AddList(WordListStyle.Numbered);
                     int level3 = 0;

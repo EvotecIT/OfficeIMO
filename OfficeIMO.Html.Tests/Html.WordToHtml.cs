@@ -1296,15 +1296,15 @@ namespace OfficeIMO.Tests {
             var table = doc.AddTable(1, 1);
             var cell = table.Rows[0].Cells[0];
             cell.Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Right;
-            cell.ShadingFillColorHex = "FF0000";
+            cell.ShadingFillColor = OfficeColor.Parse("FF0000");
             cell.Borders.LeftStyle = WordBorderStyle.Single;
             cell.Borders.RightStyle = WordBorderStyle.Single;
             cell.Borders.TopStyle = WordBorderStyle.Single;
             cell.Borders.BottomStyle = WordBorderStyle.Single;
-            cell.Borders.LeftColorHex = "00FF00";
-            cell.Borders.RightColorHex = "00FF00";
-            cell.Borders.TopColorHex = "00FF00";
-            cell.Borders.BottomColorHex = "00FF00";
+            cell.Borders.LeftColor = OfficeColor.Parse("00FF00");
+            cell.Borders.RightColor = OfficeColor.Parse("00FF00");
+            cell.Borders.TopColor = OfficeColor.Parse("00FF00");
+            cell.Borders.BottomColor = OfficeColor.Parse("00FF00");
             cell.Borders.LeftSize = global::OfficeIMO.OfficeLength.Points(1);
             cell.Borders.RightSize = global::OfficeIMO.OfficeLength.Points(1);
             cell.Borders.TopSize = global::OfficeIMO.OfficeLength.Points(1);
@@ -1502,7 +1502,7 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             var p = doc.AddParagraph();
             var run = p.AddText("Colored");
-            run.ColorHex = "FF0000";
+            run.Color = OfficeColor.Parse("FF0000");
             run.Highlight = WordHighlightColor.Cyan;
 
             string html = doc.ToHtml(new WordHtmlExportOptions {
@@ -1518,7 +1518,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_RunColorAndHighlightStyles_AreEnabledByDefault() {
             using var doc = WordDocument.Create();
             WordParagraph run = doc.AddParagraph().AddText("Colored");
-            run.ColorHex = "FF0000";
+            run.Color = OfficeColor.Parse("FF0000");
             run.Highlight = WordHighlightColor.Cyan;
 
             string html = doc.ToHtml(new WordHtmlExportOptions());

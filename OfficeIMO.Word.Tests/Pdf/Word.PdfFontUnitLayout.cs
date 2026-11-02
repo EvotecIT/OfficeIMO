@@ -25,7 +25,7 @@ public partial class Word {
                 WordParagraph run = paragraph.AddText(fragment);
                 run.FontFamily = ManagedTextShapingTestAssets.FamilyName; run.FontSize = global::OfficeIMO.OfficeLength.Points(20);
                 run.CharacterScale = scale; run.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(1);
-                run.ColorHex = index++ % 2 == 0 ? "CC0000" : "0000CC";
+                run.Color = OfficeColor.Parse(index++ % 2 == 0 ? "CC0000" : "0000CC");
             }
             byte[] font = ManagedTextShapingTestAssets.CreateFontWithFontUnitKerning(2048, 'A', 'V', -101);
             var options = new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(

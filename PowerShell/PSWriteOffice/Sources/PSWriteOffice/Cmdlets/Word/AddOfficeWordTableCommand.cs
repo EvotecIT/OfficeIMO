@@ -232,7 +232,7 @@ public sealed class AddOfficeWordTableCommand : PSCmdlet
                 {
                     foreach (var cell in wordRow.Cells)
                     {
-                        cell.ShadingFillColorHex = backgroundColor;
+                        cell.ShadingFillColor = OfficeIMO.OfficeColor.Parse(backgroundColor);
                     }
                 }
             }
@@ -533,7 +533,7 @@ public sealed class AddOfficeWordTableCommand : PSCmdlet
         var fill = OfficeColorUtilities.ToRgbHex(style.FillColor);
         if (!string.IsNullOrWhiteSpace(fill))
         {
-            cell.ShadingFillColorHex = fill!;
+            cell.ShadingFillColor = OfficeIMO.OfficeColor.Parse(fill!);
         }
 
         if (!string.IsNullOrWhiteSpace(style.Align) &&

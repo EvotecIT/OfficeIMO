@@ -79,7 +79,7 @@ public sealed class SetOfficeWordBackgroundCommand : PSCmdlet
                 throw new PSArgumentException("Provide a hex color in #RRGGBB or RRGGBB format.", nameof(Color));
             }
 
-            document.Background.SetColorHex(Color);
+            document.Background.SetColor(OfficeIMO.OfficeColor.Parse(Color));
         }
 
         if (PassThru.IsPresent)

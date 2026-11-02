@@ -83,7 +83,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests : IDisposable {
         var linked = stored.Runs.Single(r => r.Text == "Ready");
         Assert.True(linked.Italic);
         Assert.Equal(PowerPointUnderlineStyle.Double, linked.UnderlineStyle);
-        Assert.Equal("127733", linked.Color);
+        Assert.Equal(OfficeIMO.OfficeColor.Parse("127733"), linked.Color);
         Assert.Equal("https://contoso.com/updated", linked.Hyperlink!.AbsoluteUri);
         Assert.Empty(saved.ValidateDocument());
     }

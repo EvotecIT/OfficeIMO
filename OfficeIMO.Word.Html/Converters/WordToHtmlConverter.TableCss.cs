@@ -294,10 +294,10 @@ namespace OfficeIMO.Word.Html {
                     return styles;
                 }
 
-                var left = BuildBorderCss(b.LeftStyle?.ToOpenXml(), b.LeftColorHex, WordBorderLengths.ToSize(b.LeftSize));
-                var right = BuildBorderCss(b.RightStyle?.ToOpenXml(), b.RightColorHex, WordBorderLengths.ToSize(b.RightSize));
-                var top = BuildBorderCss(b.TopStyle?.ToOpenXml(), b.TopColorHex, WordBorderLengths.ToSize(b.TopSize));
-                var bottom = BuildBorderCss(b.BottomStyle?.ToOpenXml(), b.BottomColorHex, WordBorderLengths.ToSize(b.BottomSize));
+                var left = BuildBorderCss(b.LeftStyle?.ToOpenXml(), b.LeftColorValue, WordBorderLengths.ToSize(b.LeftSize));
+                var right = BuildBorderCss(b.RightStyle?.ToOpenXml(), b.RightColorValue, WordBorderLengths.ToSize(b.RightSize));
+                var top = BuildBorderCss(b.TopStyle?.ToOpenXml(), b.TopColorValue, WordBorderLengths.ToSize(b.TopSize));
+                var bottom = BuildBorderCss(b.BottomStyle?.ToOpenXml(), b.BottomColorValue, WordBorderLengths.ToSize(b.BottomSize));
 
                 if (left == null && right == null && top == null && bottom == null) {
                     return styles;
@@ -329,10 +329,10 @@ namespace OfficeIMO.Word.Html {
                 if (b == null) return styles;
 
                 // Keep native eighth-point quantization before rounding the CSS pixel width.
-                var left = BuildBorderCss(b.LeftStyle?.ToOpenXml(), b.LeftColorHex, WordBorderLengths.ToSize(b.LeftSize));
-                var right = BuildBorderCss(b.RightStyle?.ToOpenXml(), b.RightColorHex, WordBorderLengths.ToSize(b.RightSize));
-                var top = BuildBorderCss(b.TopStyle?.ToOpenXml(), b.TopColorHex, WordBorderLengths.ToSize(b.TopSize));
-                var bottom = BuildBorderCss(b.BottomStyle?.ToOpenXml(), b.BottomColorHex, WordBorderLengths.ToSize(b.BottomSize));
+                var left = BuildBorderCss(b.LeftStyle?.ToOpenXml(), b.LeftColorValue, WordBorderLengths.ToSize(b.LeftSize));
+                var right = BuildBorderCss(b.RightStyle?.ToOpenXml(), b.RightColorValue, WordBorderLengths.ToSize(b.RightSize));
+                var top = BuildBorderCss(b.TopStyle?.ToOpenXml(), b.TopColorValue, WordBorderLengths.ToSize(b.TopSize));
+                var bottom = BuildBorderCss(b.BottomStyle?.ToOpenXml(), b.BottomColorValue, WordBorderLengths.ToSize(b.BottomSize));
 
                 if (left == null && right == null && top == null && bottom == null) {
                     return styles;

@@ -1031,7 +1031,7 @@ public partial class Word {
             WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             WordWatermark watermark = header.AddWatermark(WordWatermarkStyle.Text, "CONFIDENTIAL");
             watermark.FontFamily = "Arial";
-            watermark.ColorHex = "silver";
+            watermark.Color = OfficeColor.Parse("silver");
             watermark.Opacity = 0.35;
             document.AddParagraph("Native watermark body text");
 

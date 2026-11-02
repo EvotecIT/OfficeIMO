@@ -23,7 +23,7 @@ public partial class HtmlWordGapClosure {
             document.Paragraphs,
             candidate => candidate.Text == "Text");
 
-        Assert.Equal("800080", paragraph.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("800080"), paragraph.ShadingFillColor);
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public partial class HtmlWordGapClosure {
             document.Paragraphs,
             candidate => candidate.Text == "Text");
 
-        Assert.Equal("FF80C0", paragraph.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("FF80C0"), paragraph.ShadingFillColor);
     }
 
     [Theory]

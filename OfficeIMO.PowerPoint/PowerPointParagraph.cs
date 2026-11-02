@@ -366,11 +366,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Sets the font name of every run in the paragraph and returns the paragraph for chaining.
+        /// Sets the font family of every run in the paragraph and returns the paragraph for chaining.
         /// Use the run returned by <see cref="AddText(string)"/> to format a single run.
         /// </summary>
-        public PowerPointParagraph SetFontName(string fontName) {
-            FormatRuns(run => run.FontName = fontName);
+        public PowerPointParagraph SetFontFamily(string fontFamily) {
+            FormatRuns(run => run.FontFamily = fontFamily);
             return this;
         }
 
@@ -378,17 +378,17 @@ namespace OfficeIMO.PowerPoint {
         /// Sets the color of every run in the paragraph and returns the paragraph for chaining.
         /// Use the run returned by <see cref="AddText(string)"/> to format a single run.
         /// </summary>
-        public PowerPointParagraph SetColor(string color) {
+        public PowerPointParagraph SetColor(global::OfficeIMO.OfficeColor color) {
             FormatRuns(run => run.Color = color);
             return this;
         }
 
         /// <summary>
-        /// Sets the highlight color of every run in the paragraph and returns the paragraph for chaining.
+        /// Sets the background (highlight) color of every run in the paragraph and returns the paragraph for chaining.
         /// Use the run returned by <see cref="AddText(string)"/> to format a single run.
         /// </summary>
-        public PowerPointParagraph SetHighlightColor(string color) {
-            FormatRuns(run => run.HighlightColor = color);
+        public PowerPointParagraph SetBackgroundColor(global::OfficeIMO.OfficeColor color) {
+            FormatRuns(run => run.BackgroundColor = color);
             return this;
         }
 

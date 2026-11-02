@@ -500,25 +500,25 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Gets or sets the font name.
+        ///     Gets or sets the font family.
         /// </summary>
-        public string? FontName {
+        public string? FontFamily {
             get {
                 A.Run? run = Runs.FirstOrDefault();
                 return run?.RunProperties?.GetFirstChild<A.LatinFont>()?.Typeface;
             }
             set {
-                PowerPointTextContent.FormatRuns(EnsureTextBody(), runProps => PowerPointTextPropertyFormatting.SetFontName(runProps, value));
+                PowerPointTextContent.FormatRuns(EnsureTextBody(), runProps => PowerPointTextPropertyFormatting.SetFontFamily(runProps, value));
             }
         }
 
         /// <summary>
-        ///     Gets the RGB text color or sets an RGB or RGBA hexadecimal literal for every run.
+        ///     Gets the first run's RGB text color or sets the color of every run. Alpha below 255 is written as native opacity.
         /// </summary>
-        public string? Color {
+        public global::OfficeIMO.OfficeColor? Color {
             get {
                 A.Run? run = Runs.FirstOrDefault();
-                return run?.RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val;
+                return PowerPointTextPropertyFormatting.ReadColor(run?.RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex);
             }
             set {
                 PowerPointTextContent.FormatRuns(EnsureTextBody(), runProps => PowerPointTextPropertyFormatting.SetColor(runProps, value));

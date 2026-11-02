@@ -40,7 +40,7 @@ namespace OfficeIMO.Examples.Word {
                 // change same paragraph using section
                 document.Sections[1].Paragraphs[0].Bold = true;
                 // or Paragraphs list for the whole document
-                document.Paragraphs[1].ColorHex = "7178a8";
+                document.Paragraphs[1].Color = OfficeColor.Parse("7178a8");
 
                 var paragraph = section1.AddParagraph("We missed paragraph on 1 section (2nd page)");
                 var newParagraph = paragraph.AddParagraphAfterSelf();

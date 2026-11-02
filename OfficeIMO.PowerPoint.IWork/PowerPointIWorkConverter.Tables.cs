@@ -80,7 +80,7 @@ public static partial class PowerPointIWorkConverter {
                     }
                 }
                 if (numericColor != null) {
-                    foreach (PowerPointTextRun run in target.Paragraphs.SelectMany(paragraph => paragraph.Runs)) run.Color = numericColor;
+                    foreach (PowerPointTextRun run in target.Paragraphs.SelectMany(paragraph => paragraph.Runs)) run.Color = OfficeIMO.OfficeColor.Parse(numericColor);
                 }
             }
         }

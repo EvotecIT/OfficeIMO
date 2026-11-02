@@ -384,7 +384,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                 || paragraph.SpaceAbove.HasValue
                 || paragraph.SpaceBelow.HasValue
                 || paragraph.LineSpacingValue.HasValue
-                || !string.IsNullOrWhiteSpace(paragraph.ShadingFillColorHex)
+                || !string.IsNullOrWhiteSpace(paragraph.ShadingFillColor?.ToRgbHex())
                 || paragraph.LeftBorder != null
                 || paragraph.RightBorder != null
                 || paragraph.TopBorder != null
@@ -402,7 +402,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                     || run.Strike
                     || run.FontSize.HasValue
                     || !string.IsNullOrWhiteSpace(run.FontFamily)
-                    || !string.IsNullOrWhiteSpace(run.ColorHex));
+                    || !string.IsNullOrWhiteSpace(run.Color?.ToRgbHex()));
         }
 
         private static bool CanMapLineSpacing(WordParagraphInfo paragraph) {
@@ -438,7 +438,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                 SpaceAbovePoints = paragraph.SpaceAbove?.ToPoints(),
                 SpaceBelowPoints = paragraph.SpaceBelow?.ToPoints(),
                 LineSpacingPercent = ResolveLineSpacingPercent(paragraph),
-                ShadingFillColorHex = paragraph.ShadingFillColorHex,
+                ShadingFillColorHex = paragraph.ShadingFillColor?.ToRgbHex(),
                 LeftBorder = ConvertParagraphBorder(paragraph.LeftBorder),
                 RightBorder = ConvertParagraphBorder(paragraph.RightBorder),
                 TopBorder = ConvertParagraphBorder(paragraph.TopBorder),
@@ -465,7 +465,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                     Strike = run.Strike,
                     FontSize = run.FontSize is OfficeLength fontSize ? checked((int)fontSize.ToPoints()) : null,
                     FontFamily = run.FontFamily,
-                    ForegroundColorHex = run.ColorHex,
+                    ForegroundColorHex = run.Color?.ToRgbHex(),
                     HighlightColor = run.HighlightColor,
                     VerticalTextAlignment = run.VerticalTextAlignment,
                     CapsStyle = run.CapsStyle,
@@ -531,7 +531,7 @@ namespace OfficeIMO.Word.GoogleDocs {
 
             return new GoogleDocsTableCellBorder {
                 Style = border.Style,
-                ColorHex = border.ColorHex,
+                ColorHex = border.Color?.ToRgbHex(),
                 Size = border.Size.HasValue ? checked((uint)Math.Round(border.Size.Value.ToPoints() * 8D, MidpointRounding.AwayFromZero)) : null,
             };
         }
@@ -543,7 +543,7 @@ namespace OfficeIMO.Word.GoogleDocs {
 
             return new GoogleDocsParagraphBorder {
                 Style = border.Style,
-                ColorHex = border.ColorHex,
+                ColorHex = border.Color?.ToRgbHex(),
                 Size = border.Size.HasValue ? checked((uint)Math.Round(border.Size.Value.ToPoints() * 8D, MidpointRounding.AwayFromZero)) : null,
                 Space = border.Space.HasValue ? checked((uint)Math.Round(border.Space.Value.ToPoints(), MidpointRounding.AwayFromZero)) : null,
             };
@@ -615,7 +615,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                         ColumnIndex = cell.ColumnIndex,
                         ColumnSpan = Math.Max(1, cell.ColumnSpan),
                         RowSpan = Math.Max(1, cell.RowSpan),
-                        ShadingFillColorHex = cell.ShadingFillColorHex,
+                        ShadingFillColorHex = cell.ShadingFillColor?.ToRgbHex(),
                         LeftBorder = ConvertBorder(cell.LeftBorder),
                         RightBorder = ConvertBorder(cell.RightBorder),
                         TopBorder = ConvertBorder(cell.TopBorder),

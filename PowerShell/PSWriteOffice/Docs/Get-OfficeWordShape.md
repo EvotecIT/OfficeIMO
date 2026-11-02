@@ -38,7 +38,7 @@ Gets shapes from a Word document, section, or paragraph.
 ```powershell
 PS> $shapes = Get-OfficeWordShape -Path .\Report.docx
 $shapes |
-    Select-Object -Property Title, Description, Width, Height, FillColorHex |
+    Select-Object -Property Title, Description, Width, Height, FillColor |
     Format-Table -AutoSize
 ```
 

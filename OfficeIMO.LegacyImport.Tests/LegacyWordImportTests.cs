@@ -90,7 +90,7 @@ public sealed class LegacyWordImportTests {
         Assert.Equal("Body Text", style.Name);
         Assert.Equal("Arial", style.FontFamily);
         Assert.Equal(12d, style.FontSize?.ToPoints());
-        Assert.Equal("FF0000", style.ColorHex);
+        Assert.Equal(OfficeColor.Parse("FF0000"), style.Color);
         Assert.True(style.Bold);
         Assert.Equal(OfficeIMO.Word.WordParagraphAlignment.Left, style.Alignment);
         Assert.Equal(12d, style.LineSpacing?.ToPoints());
@@ -357,7 +357,7 @@ public sealed class LegacyWordImportTests {
         LegacyWordRunContent run = Assert.Single(paragraph.Runs);
         Assert.Null(run.FontSize);
         Assert.Null(run.FontFamily);
-        Assert.Null(run.ColorHex);
+        Assert.Null(run.Color);
         Assert.Null(paragraph.LineSpacing);
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "amipro-inline-tag-malformed");
         Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());

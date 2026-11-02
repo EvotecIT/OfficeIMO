@@ -67,15 +67,15 @@ public sealed class WordPaperFooterFormattingTests {
         WordParagraph paragraph = document.AddParagraph("Source ");
         WordParagraph independent = paragraph.AddText("Independent ");
         independent.FontSize = global::OfficeIMO.OfficeLength.Points(16);
-        independent.ColorHex = "AA0000";
+        independent.Color = OfficeColor.Parse("AA0000");
         paragraph.AddPageNumber(true);
         Style(paragraph);
         Assert.Equal(16, independent.FontSize?.ToPoints());
-        Assert.Equal("AA0000", independent.ColorHex);
+        Assert.Equal(OfficeColor.Parse("AA0000"), independent.Color);
         Assert.All(paragraph._paragraph.Elements<SimpleField>().SelectMany(field => field.Elements<Run>()),
             run => Assert.Equal("17", run.RunProperties?.FontSize?.Val?.Value));
         paragraph.FontSize = null;
-        paragraph.ColorHex = "";
+        paragraph.Color = null;
         Assert.All(paragraph._paragraph.Elements<SimpleField>().SelectMany(field => field.Elements<Run>()), run => {
             Assert.Null(run.RunProperties?.FontSize);
             Assert.Null(run.RunProperties?.Color);

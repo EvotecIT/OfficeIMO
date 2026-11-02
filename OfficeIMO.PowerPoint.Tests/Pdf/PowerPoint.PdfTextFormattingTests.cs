@@ -176,8 +176,8 @@ public sealed class PowerPointPdfTextFormattingTests {
         authored.StrikeStyle = PowerPointStrikeStyle.Double;
         authored.SetSubscript();
         authored.Capitalization = PowerPointCapitalization.SmallCaps;
-        authored.Color = "336699";
-        authored.FontName = "Aptos";
+        authored.Color = OfficeColor.Parse("336699");
+        authored.FontFamily = "Aptos";
         authored.FontSize = global::OfficeIMO.OfficeLength.Points(14D);
 
         PdfCore.PdfDocumentConversionResult conversion = presentation.ConvertToPdfWithEvidence();

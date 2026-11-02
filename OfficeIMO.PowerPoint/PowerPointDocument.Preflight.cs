@@ -198,14 +198,14 @@ namespace OfficeIMO.PowerPoint {
             for (int paragraphIndex = 0; paragraphIndex < textBox.Paragraphs.Count; paragraphIndex++) {
                 IReadOnlyList<PowerPointTextRun> runs = textBox.Paragraphs[paragraphIndex].Runs;
                 for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
-                    if (!string.IsNullOrWhiteSpace(runs[runIndex].FontName)) {
+                    if (!string.IsNullOrWhiteSpace(runs[runIndex].FontFamily)) {
                         return PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(
-                            runs[runIndex].FontName, runs[runIndex].OwnerPart) ?? "Aptos";
+                            runs[runIndex].FontFamily, runs[runIndex].OwnerPart) ?? "Aptos";
                     }
                 }
             }
 
-            return PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(textBox.FontName,
+            return PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(textBox.FontFamily,
                 textBox.RelationshipOwnerPart) ?? "Aptos";
         }
 

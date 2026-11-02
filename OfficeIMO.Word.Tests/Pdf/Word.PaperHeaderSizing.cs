@@ -99,7 +99,7 @@ public sealed class WordPaperHeaderSizingTests {
         WordParagraph body = table.Rows[1].Cells[1].Paragraphs[0];
         body.FontFamily = "Courier New";
         body.FontSize = global::OfficeIMO.OfficeLength.Points(12.5D);
-        body.ColorHex = "405060";
+        body.Color = OfficeColor.Parse("405060");
         style.FitTableColumnsToHeaders(table, 1, 2);
         using var serialized = new MemoryStream();
         document.Save(serialized);
@@ -110,7 +110,7 @@ public sealed class WordPaperHeaderSizingTests {
         WordParagraph restored = saved.Rows[1].Cells[1].Paragraphs[0];
         Assert.Equal("Courier New", restored.FontFamily);
         Assert.Equal(12.5D, restored.FontSize?.ToPoints());
-        Assert.Equal("405060", restored.ColorHex);
+        Assert.Equal(OfficeColor.Parse("405060"), restored.Color);
         Assert.Equal(family, saved.Rows[0].Cells[0].Paragraphs[0].FontFamily);
         Assert.Equal(9D, saved.Rows[0].Cells[0].Paragraphs[0].FontSize?.ToPoints());
     }

@@ -70,10 +70,10 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     private static (WordBorderStyle? Style, OfficeLength? Size, string? Color) PagesBorderSide(WordTableCellBorder border, string side) => side switch {
-        "left" => (border.LeftStyle, border.LeftSize, border.LeftColorHex),
-        "right" => (border.RightStyle, border.RightSize, border.RightColorHex),
-        "top" => (border.TopStyle, border.TopSize, border.TopColorHex),
-        "bottom" => (border.BottomStyle, border.BottomSize, border.BottomColorHex),
+        "left" => (border.LeftStyle, border.LeftSize, border.LeftColor?.ToRgbHex()),
+        "right" => (border.RightStyle, border.RightSize, border.RightColor?.ToRgbHex()),
+        "top" => (border.TopStyle, border.TopSize, border.TopColor?.ToRgbHex()),
+        "bottom" => (border.BottomStyle, border.BottomSize, border.BottomColor?.ToRgbHex()),
         _ => throw new InvalidDataException("Unknown reference edge: " + side)
     };
 }

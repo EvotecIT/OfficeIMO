@@ -991,7 +991,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static PdfCore.PdfPanelStyle CreateNativeTextBoxPanelStyle(WordTextBox textBox) {
             var style = new PdfCore.PdfPanelStyle {
-                Background = ParseNativeColor(textBox.FillColorHex),
+                Background = textBox.FillColor,
                 BorderColor = global::OfficeIMO.OfficeColor.Black,
                 BorderWidth = global::OfficeIMO.OfficeLength.Points(0.75D),
                 PaddingX = global::OfficeIMO.OfficeLength.Points(6D),

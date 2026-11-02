@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
 
                 document.Settings.SetBackgroundColor(Color.BlueViolet);
 
-                Assert.True(document.Settings.BackgroundColor == "8A2BE2");
+                Assert.True(document.Settings.BackgroundColor == OfficeColor.Parse("8A2BE2"));
 
                 document.Settings.ZoomPercentage = 150;
 
@@ -108,9 +108,9 @@ namespace OfficeIMO.Tests {
 
                 document.Settings.RemoveProtection();
 
-                Assert.True(document.Settings.BackgroundColor == "8A2BE2");
+                Assert.True(document.Settings.BackgroundColor == OfficeColor.Parse("8A2BE2"));
 
-                document.Settings.SetBackgroundColor("FFA07A");
+                document.Settings.SetBackgroundColor(OfficeColor.Parse("FFA07A"));
 
                 Assert.True(document.Settings.ZoomPercentage == 150);
 
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.FontFamily == "Times New Roman");
 
                 Assert.True(document.Settings.ProtectionType == null);
-                Assert.True(document.Settings.BackgroundColor == "FFA07A");
+                Assert.True(document.Settings.BackgroundColor == OfficeColor.Parse("FFA07A"));
                 Assert.True(document.Settings.ZoomPercentage == 100);
                 Assert.True(document.Settings.UpdateFieldsOnOpen == false);
 

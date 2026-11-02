@@ -264,12 +264,12 @@ namespace OfficeIMO.Word.Html {
 
             var colorVal = NormalizeColor(GetInlinePropertyValue(declaration, styleAttribute, "color"));
             if (colorVal != null) {
-                paragraph.SetColorHex(colorVal);
+                paragraph.SetColor(OfficeIMO.OfficeColor.Parse(colorVal));
             }
 
             string? paragraphBackground = ResolveParagraphBackground(element, parsed);
             if (!string.IsNullOrEmpty(paragraphBackground)) {
-                paragraph.ShadingFillColorHex = paragraphBackground!;
+                paragraph.ShadingFillValue = paragraphBackground!;
             }
 
             if (parsed.LineHeight.HasValue) {
@@ -551,7 +551,7 @@ namespace OfficeIMO.Word.Html {
             if (formatting.DoubleStrike) run.SetDoubleStrike();
             if (formatting.Superscript) run.SetSuperScript();
             if (formatting.Subscript) run.SetSubScript();
-            if (!string.IsNullOrEmpty(formatting.ColorHex)) run.SetColorHex(formatting.ColorHex!);
+            if (!string.IsNullOrEmpty(formatting.ColorHex)) run.SetColor(OfficeIMO.OfficeColor.Parse(formatting.ColorHex!));
             if (formatting.Highlight.HasValue) run.SetHighlight(formatting.Highlight.Value.ToOfficeEnum());
             ApplyTextBackground(run, formatting, options);
             if (formatting.FontSize.HasValue) SetRunFontSizePoints(run, formatting.FontSize.Value);

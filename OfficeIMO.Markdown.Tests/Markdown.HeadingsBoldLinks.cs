@@ -57,11 +57,11 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains(hyperlinkRuns, run =>
                 string.Equals(run.Text, "plain", StringComparison.Ordinal) &&
-                string.Equals(run.ColorHex, "aa5500", StringComparison.OrdinalIgnoreCase));
+                run.Color == OfficeColor.Parse("aa5500"));
             Assert.Contains(hyperlinkRuns, run =>
                 string.Equals(run.Text, "bold", StringComparison.Ordinal) &&
                 run.Bold &&
-                string.Equals(run.ColorHex, "aa5500", StringComparison.OrdinalIgnoreCase));
+                run.Color == OfficeColor.Parse("aa5500"));
         }
 
         [Fact]

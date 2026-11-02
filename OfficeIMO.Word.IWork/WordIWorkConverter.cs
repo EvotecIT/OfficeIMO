@@ -509,8 +509,8 @@ public static partial class WordIWorkConverter {
         if (style.FontSizePoints.HasValue) run.FontSize = global::OfficeIMO.OfficeLength.Points(style.FontSizePoints.Value);
         if (style.CharacterSpacingPoints is double spacing) run.Spacing = OfficeLength.Emus((long)ToCharacterSpacingTwips(spacing) * 635);
         if (!string.IsNullOrWhiteSpace(style.FontName)) run.FontFamily = style.FontName;
-        if (style.Color != null) run.ColorHex = style.Color.RgbHex;
-        if (style.BackgroundColor != null) run.RunShadingFillColorHex = style.BackgroundColor.RgbHex;
+        if (style.Color != null) run.RunColorValue = style.Color.RgbHex;
+        if (style.BackgroundColor != null) run.RunShadingFillValue = style.BackgroundColor.RgbHex;
     }
 
     private static void ApplyPageLayout(WordSection section, IWorkPageLayout layout) {

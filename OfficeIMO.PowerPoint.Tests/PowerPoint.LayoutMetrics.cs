@@ -22,8 +22,8 @@ public sealed class PowerPointLayoutMetricTests {
         using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
         var change = Assert.Single(Assert.Single(saved.Slides).TextBoxes, box => box.Text == "▼ -14%");
         Assert.Equal("▼ -14%", change.Text);
-        Assert.Equal(OfficeTheme.Modern.Palette.Success.ToRgbHex(),
-            Assert.Single(change.Paragraphs.SelectMany(paragraph => paragraph.Runs)).Color, ignoreCase: true);
+        Assert.Equal(OfficeTheme.Modern.Palette.Success,
+            Assert.Single(change.Paragraphs.SelectMany(paragraph => paragraph.Runs)).Color);
         Assert.DoesNotContain(Assert.Single(saved.Slides).CreateVisualSnapshot().Diagnostics,
             diagnostic => diagnostic.Code == "powerpoint-text-overflow");
         Assert.Empty(saved.ValidateDocument());
