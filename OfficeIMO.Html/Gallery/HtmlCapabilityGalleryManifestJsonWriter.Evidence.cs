@@ -29,7 +29,7 @@ public static partial class HtmlCapabilityGalleryManifestJsonWriter {
         AppendIndent(builder, 4).AppendLine("],");
         AppendIndent(builder, 4).AppendLine("\"diagnostics\": [");
         for (int index = 0; index < evidence.Diagnostics.Count; index++) {
-            HtmlDiagnostic diagnostic = evidence.Diagnostics[index];
+            HtmlDiagnostic diagnostic = evidence.NativeDiagnostics[index];
             AppendIndent(builder, 5).AppendLine("{");
             AppendStringProperty(builder, 6, "component", diagnostic.Component, comma: true);
             AppendStringProperty(builder, 6, "code", diagnostic.Code, comma: true);

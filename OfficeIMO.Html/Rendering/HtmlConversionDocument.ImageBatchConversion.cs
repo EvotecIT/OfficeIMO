@@ -16,7 +16,7 @@ public static partial class HtmlImageExportExtensions {
         var timer = Stopwatch.StartNew();
         HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
         OfficeImageExportBatchSaveResult saved = CreateHtmlConversionDocumentImageBatchOperation(document, resolved).SaveFiles(folderPath, cancellationToken);
-        return OfficeImageExportEvidence.CreateReport("HTML", resolved.Format, saved.Report.Diagnostics,
+        return OfficeImageExportEvidence.CreateReport("HTML", resolved.Format, saved.Report.NativeDiagnostics,
             saved.Report.ResultCount, timer.Elapsed, Path.GetFullPath(folderPath));
     }
 
@@ -28,7 +28,7 @@ public static partial class HtmlImageExportExtensions {
         HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
         OfficeImageExportBatchSaveResult saved = await CreateHtmlConversionDocumentImageBatchOperation(document, resolved)
             .SaveFilesAsync(folderPath, cancellationToken).ConfigureAwait(false);
-        return OfficeImageExportEvidence.CreateReport("HTML", resolved.Format, saved.Report.Diagnostics,
+        return OfficeImageExportEvidence.CreateReport("HTML", resolved.Format, saved.Report.NativeDiagnostics,
             saved.Report.ResultCount, timer.Elapsed, Path.GetFullPath(folderPath));
     }
 

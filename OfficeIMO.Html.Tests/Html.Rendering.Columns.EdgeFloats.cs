@@ -49,7 +49,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(note.Y >= bottom.Y + 20D);
         Assert.True(note.Y + note.Height <= 110D + 0.001D);
         foreach (string label in new[] { "Body", "End" }) Assert.Single(text, t => t.Text == label);
-        Assert.DoesNotContain(document.Diagnostics, d => d.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(document.NativeDiagnostics, d => d.Severity == HtmlDiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(130D, figure.X, 3);
         Assert.Equal(10D, figure.Y, 3);
         Assert.Single(text, t => t.Text == "End");
-        Assert.DoesNotContain(document.Diagnostics, d => d.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(document.NativeDiagnostics, d => d.Severity == HtmlDiagnosticSeverity.Error);
     }
 
     [Theory]
@@ -126,7 +126,7 @@ public sealed partial class HtmlRenderingTests {
         for (int n = 0; n < 8; n++) Assert.Single(text, t => t.Text == "Body" + n);
         HtmlRenderText after = Assert.Single(text, t => t.Text == "After");
         Assert.True(after.Y >= text.Where(t => t.Text.StartsWith("Body")).Max(t => t.Y + 20D));
-        Assert.DoesNotContain(document.Diagnostics, d => d.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(document.NativeDiagnostics, d => d.Severity == HtmlDiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -138,7 +138,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument document = RenderColumnEdgeFixture(html);
         foreach (string label in new[] { "Figure", "FigureNote", "Body", "After" })
             Assert.Single(document.Pages.SelectMany(p => p.Visuals).OfType<HtmlRenderText>(), t => t.Text == label);
-        Assert.DoesNotContain(document.Diagnostics, d => d.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(document.NativeDiagnostics, d => d.Severity == HtmlDiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -180,7 +180,7 @@ public sealed partial class HtmlRenderingTests {
         string text = string.Join(" ", document.Pages.SelectMany(p => p.Visuals).OfType<HtmlRenderText>().Select(t => t.Text));
         foreach (string label in new[] { "Body", "Outer", "Nested", "Tail", "After" }) Assert.Contains(label, text);
         Assert.Contains(document.Diagnostics, d => d.Code == HtmlRenderDiagnosticCodes.FloatValueUnsupported);
-        Assert.DoesNotContain(document.Diagnostics, d => d.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(document.NativeDiagnostics, d => d.Severity == HtmlDiagnosticSeverity.Error);
     }
 
     [Theory]

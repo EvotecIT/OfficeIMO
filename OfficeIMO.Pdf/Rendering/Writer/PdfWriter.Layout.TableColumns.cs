@@ -343,27 +343,27 @@ internal static partial class PdfWriter {
         };
     }
 
-    private static double ResolveTableX(PdfAlign align, PdfTableStyle style, double containerLeft, double containerWidth, double tableWidth) {
+    private static double ResolveTableX(OfficeAlignment align, PdfTableStyle style, double containerLeft, double containerWidth, double tableWidth) {
         double frameLeft = containerLeft + style.LeftIndent.ToPoints() + style.HorizontalOffset.ToPoints();
         double frameWidth = ResolveTableFrameWidth(style, containerWidth);
         double alignmentSpace = frameWidth - tableWidth;
         if (!style.AllowWidthBeyondFrame) alignmentSpace = Math.Max(0D, alignmentSpace);
-        if (align == PdfAlign.Center) {
+        if (align == OfficeAlignment.Center) {
             return frameLeft + alignmentSpace / 2D;
         }
 
-        if (align == PdfAlign.Right) {
+        if (align == OfficeAlignment.Right) {
             return frameLeft + alignmentSpace;
         }
 
         return frameLeft;
     }
 
-    private static bool IsValidPdfAlign(PdfAlign align) =>
-        align == PdfAlign.Left || align == PdfAlign.Center || align == PdfAlign.Right;
+    private static bool IsValidPdfAlign(OfficeAlignment align) =>
+        align == OfficeAlignment.Left || align == OfficeAlignment.Center || align == OfficeAlignment.Right;
 
-    private static bool IsValidPdfColumnAlign(PdfColumnAlign align) =>
-        align == PdfColumnAlign.Left || align == PdfColumnAlign.Center || align == PdfColumnAlign.Right;
+    private static bool IsValidPdfColumnAlign(OfficeAlignment align) =>
+        align == OfficeAlignment.Left || align == OfficeAlignment.Center || align == OfficeAlignment.Right;
 
     private static bool IsValidPdfCellVerticalAlign(PdfCellVerticalAlign align) =>
         align == PdfCellVerticalAlign.Top || align == PdfCellVerticalAlign.Middle || align == PdfCellVerticalAlign.Bottom;

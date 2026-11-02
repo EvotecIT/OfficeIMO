@@ -15,7 +15,7 @@ public class RtfPdfBarTabTests {
         RtfDocument source = Source("BAR", bar: true, positionTab: false, parsed: parsed);
         string before = Snapshot(source);
         PdfCore.PdfDocumentConversionResult baseline = control.ConvertToPdfWithEvidence(Options());
-        baseline.RequireNoLoss();
+        baseline.ThrowIfLoss();
 
         PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(Options());
         byte[] bytes = result.ToBytes();
@@ -37,7 +37,7 @@ public class RtfPdfBarTabTests {
         RtfDocument source = Source("A\tB", bar: true, positionTab: true, parsed: false);
         string before = Snapshot(source);
         PdfCore.PdfDocumentConversionResult baseline = control.ConvertToPdfWithEvidence(Options());
-        baseline.RequireNoLoss();
+        baseline.ThrowIfLoss();
 
         PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(Options());
 
@@ -62,7 +62,7 @@ public class RtfPdfBarTabTests {
         string before = Snapshot(source);
 
         RtfToPdfOptions options = Options();
-        if (plainPresentation) options.PdfOptions!.HeaderAlign = PdfCore.PdfAlign.Right;
+        if (plainPresentation) options.PdfOptions!.HeaderAlign = global::OfficeIMO.OfficeAlignment.Right;
         PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(options);
         using var actual = PdfPigDocument.Open(result.ToBytes());
         if (plainPresentation) {
@@ -78,8 +78,8 @@ public class RtfPdfBarTabTests {
             var header = Assert.Single(actual.GetPage(1).GetWords(), word => word.Text == "HEADER");
             Assert.Equal(header.Letters[0].StartBaseLine.X + 36D, rule.Left, 3);
         }
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         string text = PdfCore.PdfReadDocument.Open(result.ToBytes(),
             new PdfCore.PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
         Assert.Contains("BODY", text, StringComparison.Ordinal);
@@ -112,8 +112,8 @@ public class RtfPdfBarTabTests {
         Assert.Equal(OfficeConversionLossKind.Approximation,
             Assert.Single(result.Warnings, item => item.Code == "NestedTableFlattened").LossKind);
         Assert.DoesNotContain(result.Warnings, item => item.Code == "BarTabAppearanceApproximated");
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         byte[] bytes = result.ToBytes();
         using var actual = PdfPigDocument.Open(bytes);
         Assert.Empty(VerticalRules(actual.GetPage(1)));
@@ -157,8 +157,8 @@ public class RtfPdfBarTabTests {
         Assert.Equal("OfficeIMO.Rtf.Pdf", warning.Converter);
         Assert.Equal(OfficeConversionLossKind.Approximation, warning.LossKind);
         Assert.Equal("Flattened", warning.Details["RtfAction"]);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
     }
 
     private static UglyToad.PdfPig.Core.PdfRectangle[] VerticalRules(UglyToad.PdfPig.Content.Page page) => page.Paths

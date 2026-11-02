@@ -29,7 +29,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("Left שלום 42", label);
         HtmlRenderResult raw = HtmlRenderEngine.Execute(source, HtmlRenderRequest.Create(
             HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Png, options));
-        raw.Document.RequireNoLoss();
+        raw.Document.ThrowIfLoss();
         Assert.Equal(raw.ExportImages()[0].Bytes, reopened.Pages[0].ExportImage(OfficeImageExportFormat.Png,
             new PdfCore.PdfImageExportOptions { Scale = 96D / 72D, BackgroundColor = OfficeColor.White }).Bytes);
     }
@@ -49,7 +49,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(result.Report.Warnings, warning =>
             warning.Code == HtmlPdfDiagnosticCodes.FontOutlineBudgetApproximated
                 && warning.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
     }
 
 }

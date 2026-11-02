@@ -76,7 +76,7 @@ public partial class PdfDocumentVisualQualityTests {
             MarginTop = Pt(20), MarginBottom = Pt(20), Debug = new PdfDebugOptions { ShowFlowObjectBoxes = true }
         };
         void Image(PdfContentBuilder content) => content.Image(PdfPngTestImages.CreateRgbaPng(255, 0, 0, 255), Pt(40), Pt(20),
-            style: new PdfImageStyle { SpacingBefore = Pt(0), SpacingAfter = Pt(0), Align = PdfAlign.Center, ScaleDownToFit = false });
+            style: new PdfImageStyle { SpacingBefore = Pt(0), SpacingAfter = Pt(0), Align = OfficeAlignment.Center, ScaleDownToFit = false });
         byte[] bytes = PdfDocument.Create(options).Compose(document => document.Page(page => page.Content(content =>
             content.Panel(Image, new PdfPanelStyle { PaddingX = Pt(0), PaddingY = Pt(2), SpacingBefore = Pt(0), SpacingAfter = Pt(0) })))).ToBytes();
         PdfImagePlacement placement = Assert.Single(PdfImageExtractor.ExtractImagePlacements(bytes));

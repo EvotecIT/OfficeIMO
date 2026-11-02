@@ -158,11 +158,11 @@ public sealed partial class HtmlRenderingTests {
             HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.DisplayList, options)).Document;
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
         if (leftCount == 1) {
             Assert.Single(rendered.Pages, page => EnumerateRenderVisuals(page.Scene)
                 .OfType<HtmlRenderText>().Any(text => text.Text is "AHEAD" or "A01" or "AFOOT"));
-            Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Source == "table#A"
+            Assert.DoesNotContain(rendered.NativeDiagnostics, diagnostic => diagnostic.Source == "table#A"
                 && diagnostic.Detail?.StartsWith("parallel-table-repetition;", StringComparison.Ordinal) == true);
         }
         foreach (string marker in Enumerable.Range(1, leftCount).Select(index => $"A{index:00}")
@@ -190,7 +190,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = RenderFloatTablePagination(html, profile);
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableFooterRepeatSuppressed
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
         var markers = Enumerable.Range(1, 12).Select(index => $"TAIL_{index:00}")
             .Concat(Enumerable.Range(1, 4).Select(index => $"ROW_{index:00}")).Append("FOOT");
         string pdfText = string.Concat(FloatTablePaginationPdfText(html, profile));
@@ -247,6 +247,6 @@ public sealed partial class HtmlRenderingTests {
             OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(page.CreateDrawing(), 1D, OfficeColor.White);
             Assert.True(FloatPaintContainsGlyphInk(raster, text), "Retained text must also paint " + marker + ".");
         }
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 }

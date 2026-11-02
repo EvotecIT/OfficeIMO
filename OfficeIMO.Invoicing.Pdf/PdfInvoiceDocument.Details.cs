@@ -10,7 +10,7 @@ public sealed partial class PdfInvoiceDocument {
         content.Flow(group => { DetailHeading(group, title, theme); group.Table(rows, style: DetailTableStyle(theme)); }, new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.MoveToNextPage });
     private void DetailHeading(PdfContentBuilder content, string title, InvoicePdfTheme? theme) {
         if (_layout.CompactDetails) content.Paragraph(paragraph => paragraph.Bold(title, theme?.Text), style: new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(4), SpacingAfter = global::OfficeIMO.OfficeLength.Points(4) });
-        else content.H2(title, PdfAlign.Left, theme?.Text, style: SectionHeadingStyle());
+        else content.H2(title, OfficeAlignment.Left, theme?.Text, style: SectionHeadingStyle());
     }
     private void ComposeDetails(PdfContentBuilder content, InvoicePdfTheme? theme = null) {
         var references = new List<string[]>();

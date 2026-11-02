@@ -32,7 +32,7 @@ public sealed class HtmlWordMathOperatorSpacingLossTests {
         Assert.Single(native.Descendants(math + "f"));
         Assert.Equal("x+y2", string.Concat(native.Descendants(math + "t").Select(element => element.Value)));
         Assert.Empty(document.ValidateDocument());
-        HtmlDiagnostic[] losses = result.Report.Diagnostics.Where(diagnostic =>
+        HtmlDiagnostic[] losses = result.Report.NativeDiagnostics.Where(diagnostic =>
             diagnostic.Component == "OfficeIMO.Word.Html"
             && diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated).ToArray();
 
@@ -42,7 +42,7 @@ public sealed class HtmlWordMathOperatorSpacingLossTests {
             Assert.Equal(OfficeConversionLossKind.Approximation, loss.LossKind);
             Assert.True(result.Succeeded);
             Assert.True(result.HasLoss);
-            Assert.Throws<HtmlConversionException>(() => result.RequireNoLoss());
+            Assert.Throws<HtmlConversionException>(() => result.Report.ThrowIfLoss());
         } else {
             Assert.Empty(losses);
         }
@@ -65,7 +65,7 @@ public sealed class HtmlWordMathOperatorSpacingLossTests {
         XElement native = XElement.Parse(Assert.Single(document.Equations).Omml!);
         Assert.Single(native.Descendants(math + "f"));
         Assert.Equal("ab", string.Concat(native.Descendants(math + "t").Select(element => element.Value)));
-        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Component == "OfficeIMO.Word.Html"
             && diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated);
     }

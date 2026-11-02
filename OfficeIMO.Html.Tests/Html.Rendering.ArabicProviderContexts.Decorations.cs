@@ -79,6 +79,6 @@ public sealed partial class HtmlRenderingTests {
                 }
             }
         }
-        linked.RequireNoLoss();
+        linked.ThrowIfLoss();
     }
 }

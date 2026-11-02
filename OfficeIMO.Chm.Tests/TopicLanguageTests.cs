@@ -9,9 +9,9 @@ public sealed class TopicLanguageTests {
         ChmDocument book = ChmDocument.Load(ChmFixture.Archive(new Dictionary<string, byte[]> {
             ["/topic.html"] = ChmFixture.Html("<html lang='ar'><head><meta charset='utf-8'></head><body dir='rtl'><p>Text</p></body></html>")
         }), new ChmReadOptions { MaxHtmlDepth = 3 });
-        var projected = book.ToHtmlDocumentResult().RequireValue();
+        var projected = book.ToHtmlDocumentResult().Value;
         Assert.Equal("Text", projected.CreateDocumentForConversion().QuerySelector("p")!.TextContent);
-        Assert.Contains("Text", book.ToMarkdownResult().RequireValue());
+        Assert.Contains("Text", book.ToMarkdownResult().Value);
         Assert.True(book.ToEpubPublicationResult().Succeeded);
     }
 
@@ -45,7 +45,7 @@ public sealed class TopicLanguageTests {
         }));
         var projection = book.ToHtmlDocumentResult();
         Assert.Equal("pl-PL", projection.Value.Document.QuerySelector("section")!.GetAttribute("lang"));
-        Assert.Contains(projection.Report.FidelityDiagnostics, item => item.Code == "CHM_CONTAINER_ATTRIBUTE_OMITTED");
+        Assert.Contains(projection.Report.Diagnostics, item => item.Code == "CHM_CONTAINER_ATTRIBUTE_OMITTED");
         Assert.Equal("pl-PL", book.ToEpubPublicationResult().Publication.Language);
     }
 }

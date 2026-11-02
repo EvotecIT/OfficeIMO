@@ -96,11 +96,11 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
 
         Assert.Equal(2, rendered.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ColorValueUnsupported));
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Detail == "color=color(from red srgb r g b)");
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Detail == "background-color=color(from blue srgb r g b)");
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Detail == "color=color(from red srgb r g b)");
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Detail == "background-color=color(from blue srgb r g b)");
         Assert.Throws<HtmlConversionException>(() => HtmlRenderTestDriver.Render(
             html,
-            new HtmlRenderOptions { FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss }));
+            new HtmlRenderOptions { FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss }));
         Assert.Contains(HtmlRenderDiagnosticCodes.ColorValueUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.ColorValueUnsupported, out _));
     }
@@ -116,7 +116,7 @@ public sealed partial class HtmlRenderingTests {
             + "\"></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             BackgroundColor = OfficeColor.Transparent
         });
         HtmlRenderShape fill = Assert.Single(

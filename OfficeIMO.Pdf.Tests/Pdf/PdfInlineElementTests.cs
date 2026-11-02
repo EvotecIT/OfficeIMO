@@ -142,7 +142,7 @@ public class PdfInlineElementTests {
                 MarginRight = global::OfficeIMO.OfficeLength.Points(20),
                 CompressContentStreams = false
             })
-            .Paragraph(paragraph => paragraph.InlineBox(global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(12), background: fill), PdfAlign.Center)
+            .Paragraph(paragraph => paragraph.InlineBox(global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(12), background: fill), OfficeAlignment.Center)
             .ToBytes();
 
         double x = FindFilledBoxX(PdfEncoding.Latin1GetString(bytes), fill, 40, 12);

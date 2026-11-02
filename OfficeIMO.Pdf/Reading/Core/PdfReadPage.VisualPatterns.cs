@@ -384,19 +384,7 @@ public sealed partial class PdfReadPage {
         }
         if (!IsUsableTilingPatternMatrix(matrix)) return false;
         PdfDictionary resolvedResources = resources!;
-        var sourceIdentityKey = (Stream: stream, Resources: resolvedResources);
-        if (!resourceCache.SourceIdentities.TryGetValue(sourceIdentityKey, out string? sourceIdentity)) {
-            using var fingerprint = new PdfObjectGraphFingerprint(
-                _objects,
-                _limits.MaxObjectNestingDepth,
-                Math.Min(1_000_000, Math.Max(16_384, _limits.MaxIndirectObjects)),
-                cancellationToken: resourceCache.CancellationToken);
-            fingerprint.AppendRoot(stream);
-            fingerprint.AppendRoot(resolvedResources);
-            sourceIdentity = Convert.ToBase64String(fingerprint.Complete());
-            resourceCache.SourceIdentities[sourceIdentityKey] = sourceIdentity;
-        }
-        pattern = new PdfPageTilingPatternResource(tile, Math.Abs(xStep.Value), Math.Abs(yStep.Value), matrix, box.X1, box.Y2, uncolored, consumesInheritedLineState, hasMalformedStrictInvocation, sourceIdentity);
+        pattern = new PdfPageTilingPatternResource(tile, Math.Abs(xStep.Value), Math.Abs(yStep.Value), matrix, box.X1, box.Y2, uncolored, consumesInheritedLineState, hasMalformedStrictInvocation, stream, resolvedResources);
         return true;
     }
 
@@ -828,7 +816,5 @@ public sealed partial class PdfReadPage {
         internal HashSet<(PdfStream Stream, PdfDictionary Resources)> Active { get; } =
             new HashSet<(PdfStream Stream, PdfDictionary Resources)>();
 
-        internal Dictionary<(PdfStream Stream, PdfDictionary Resources), string> SourceIdentities { get; } =
-            new Dictionary<(PdfStream Stream, PdfDictionary Resources), string>();
     }
 }

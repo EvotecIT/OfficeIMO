@@ -13,7 +13,7 @@ public sealed class BibliographyReviewWave43RegressionTests {
         string originalCarrier = Assert.Single(document.NativeEntries, entry => entry.Kind == "attributes" && entry.Name == rootName).Value;
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyDocument reopened = BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document;
 
         Assert.Contains("<e:" + rootName, written.Content, StringComparison.Ordinal);
@@ -33,7 +33,7 @@ public sealed class BibliographyReviewWave43RegressionTests {
         if (format == BibliographyFormat.Nbib) item.Identifiers.Add(new BibliographyIdentifier("PMID", "1"));
         document.Items.Add(item);
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyDate reopened = Assert.Single(Assert.Single(BibliographyDocument.Parse(written.Content, format).Document.Items).Dates);
 
         Assert.Equal(10000, reopened.Year);
@@ -53,7 +53,7 @@ public sealed class BibliographyReviewWave43RegressionTests {
 #endif
         string name = new string('A', length);
         string source = "@book{x,author={" + name + "}}";
-        var options = new BibliographyReadOptions { MaximumValueLength = name.Length + 1 };
+        var options = new BibliographyReadOptions { MaxValueLength = name.Length + 1 };
         BibliographyDocument.Parse("@book{x,author={Doe}}", BibliographyFormat.BibLatex);
 #if !BIBLIOGRAPHY_PERFORMANCE_EVIDENCE || NET472
         BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, options);
@@ -78,9 +78,9 @@ public sealed class BibliographyReviewWave43RegressionTests {
         Assert.Contains(item.NativeFields, field => field.Name == "ref-type" && field.RawValue!.Contains("NAME=", StringComparison.Ordinal));
         Assert.Contains(item.NativeFields, field => field.Name == "isbn" && field.RawValue!.Contains("TYPE=", StringComparison.Ordinal));
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV123" && diagnostic.Field == "ref-type");
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV123" && diagnostic.Field == "isbn");
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV123" && diagnostic.Field == "ref-type");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV123" && diagnostic.Field == "isbn");
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public sealed class BibliographyReviewWave43RegressionTests {
         string[] expectedOrder = { "ZZ=first", "PT=Book", "ZY=second", "PT=Custom Type", "ZX=third" };
         Assert.Equal(expectedOrder, item.NativeFields.Select(field => field.Name + "=" + field.Value));
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.Nbib).Document.Items);
 
         Assert.Equal(expectedOrder, reopened.NativeFields.Select(field => field.Name + "=" + field.Value));
@@ -105,7 +105,7 @@ public sealed class BibliographyReviewWave43RegressionTests {
         BibliographyWriteResult written = document.Write();
 
         Assert.True(written.UsedOriginalSource);
-        Assert.Contains(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV220" && diagnostic.Field == "encoding");
+        Assert.Contains(written.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV220" && diagnostic.Field == "encoding");
         Assert.Contains("?", Encoding.ASCII.GetString(written.Bytes), StringComparison.Ordinal);
     }
 

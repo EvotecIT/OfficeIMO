@@ -12,7 +12,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
     public void PreservedMultilineTitleFitsClearCorridorWithoutMovingPreparedGeometry() {
         var envelope = MultilineTitlePlacementEnvelope();
         var result = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { PixelsPerInch = 96 });
-        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.TitleNotProjected);
+        Assert.DoesNotContain(result.Report.NativeDiagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.TitleNotProjected);
         void Check(VisioPage page) {
             var title = page.Shapes.Single(shape => shape.Id == "cfx-title");
             Assert.Equal("Service delivery\nThree editable services · prepared routes", title.Text?.Replace("\r\n", "\n"));
@@ -51,11 +51,11 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         envelope.Edges[0].ResolvedRoute[0].Y = 88;
         var result = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { PixelsPerInch = 96 });
         Assert.DoesNotContain(result.Page.Shapes, shape => shape.Id == "cfx-title");
-        Assert.Contains(result.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.TitleNotProjected);
+        Assert.Contains(result.Report.NativeDiagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.TitleNotProjected);
         Assert.Equal(254D / 96D, result.Page.Shapes.Single(shape => shape.Id == "api").PinY.ToInches(), 6);
         var rejected = Assert.Throws<OfficeVisioVisualFidelityException>(() => envelope.ToOfficeVisio(
             new OfficeVisioVisualOptions { PixelsPerInch = 96, RequireLossless = true }));
-        Assert.Contains(rejected.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.TitleNotProjected);
+        Assert.Contains(rejected.Report.NativeDiagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.TitleNotProjected);
     }
 
     private static VisualArtifactInterchangeEnvelope MultilineTitlePlacementEnvelope() {

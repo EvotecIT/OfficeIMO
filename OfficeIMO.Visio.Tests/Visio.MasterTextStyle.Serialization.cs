@@ -20,7 +20,7 @@ public sealed class VisioMasterTextStyleSerializationTests {
         VisioDocument document = VisioDocument.Create();
         VisioTextStyle? style = profile == 3 ? null : new VisioTextStyle {
             FontFamily = "Arial", Size = 16, Color = OfficeColor.Black, BackgroundColor = OfficeColor.Red,
-            HorizontalAlignment = VisioTextHorizontalAlignment.Center, VerticalAlignment = VisioTextVerticalAlignment.Middle,
+            HorizontalAlignment = OfficeAlignment.Center, VerticalAlignment = VisioTextVerticalAlignment.Middle,
             LeftMargin = 0, RightMargin = 0, TopMargin = 0, BottomMargin = 0
         };
         if (profile == 1) { style!.TextLocPinX = 0.5; style.TextLocPinY = 0.1; style.TextAngle = Math.PI / 2; }
@@ -166,7 +166,7 @@ public sealed class VisioMasterTextStyleSerializationTests {
 
     private static VisioTextStyle FrameStyle() => new() {
         FontFamily = "Arial", Size = 16, Bold = true, Color = OfficeColor.Red,
-        HorizontalAlignment = VisioTextHorizontalAlignment.Right, VerticalAlignment = VisioTextVerticalAlignment.Middle,
+        HorizontalAlignment = OfficeAlignment.Right, VerticalAlignment = VisioTextVerticalAlignment.Middle,
         LeftMargin = 0.1, RightMargin = 0.2, TopMargin = 0.03, BottomMargin = 0.04,
         TextPinX = 1.5, TextPinY = 0.5, TextWidth = 1, TextHeight = 0.25,
         TextLocPinX = 1, TextLocPinY = 0.125, TextAngle = -Math.PI / 2
@@ -178,7 +178,7 @@ public sealed class VisioMasterTextStyleSerializationTests {
         Assert.Equal(16, style.Size);
         Assert.True(style.Bold);
         Assert.Equal(OfficeColor.Red, style.Color);
-        Assert.Equal(VisioTextHorizontalAlignment.Right, style.HorizontalAlignment);
+        Assert.Equal(OfficeAlignment.Right, style.HorizontalAlignment);
         Assert.Equal(VisioTextVerticalAlignment.Middle, style.VerticalAlignment);
         Assert.Equal(0.1, style.LeftMargin);
         Assert.Equal(0.2, style.RightMargin);

@@ -27,35 +27,35 @@ namespace OfficeIMO.Examples.Pdf {
             style.SpacingBefore = OfficeLength.Points(6);
             style.SpacingAfter = OfficeLength.Points(14);
             style.RightAlignNumeric = true;
-            style.Alignments = new List<PdfColumnAlign> {
-                    PdfColumnAlign.Left,
-                    PdfColumnAlign.Right,
-                    PdfColumnAlign.Right,
-                    PdfColumnAlign.Right,
-                    PdfColumnAlign.Left
+            style.Alignments = new List<OfficeAlignment> {
+                    OfficeAlignment.Left,
+                    OfficeAlignment.Right,
+                    OfficeAlignment.Right,
+                    OfficeAlignment.Right,
+                    OfficeAlignment.Left
                 };
             style.ColumnWidthWeights = new List<double> { 110, 38, 58, 68, 170 };
             style.AutoFitColumns = false;
 
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Lists and Tables", PdfAlign.Left)
+                .H1("Lists and Tables", OfficeAlignment.Left)
                 .Paragraph(p => p.Text("A compact report sample for list rhythm, numeric alignment, footer rows, and wrapped table notes."))
                 .Bullets(new[] {
                     "Report-friendly list spacing",
                     "Right-aligned quantities and amounts",
                     "Footer row that remains visually distinct"
-                }, PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(55, 65, 81))
+                }, OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(55, 65, 81))
                 .Numbered(new[] {
                     "Collect line items.",
                     "Render the table with stable column widths.",
                     "Review the saved PDF before sharing it."
-                }, PdfAlign.Left, OfficeColor.FromRgb(55, 65, 81))
-                .Table(rows, PdfAlign.Left, style)
-                .Paragraph(p => p.Text("End of lists and tables sample."), PdfAlign.Right, OfficeColor.FromRgb(80, 80, 80))), new PdfCreateOptions {
+                }, OfficeAlignment.Left, OfficeColor.FromRgb(55, 65, 81))
+                .Table(rows, OfficeAlignment.Left, style)
+                .Paragraph(p => p.Text("End of lists and tables sample."), OfficeAlignment.Right, OfficeColor.FromRgb(80, 80, 80))), new PdfCreateOptions {
                     HeaderFormat = "OfficeIMO.Pdf lists and tables",
-                    HeaderAlign = PdfAlign.Left,
+                    HeaderAlign = OfficeAlignment.Left,
                     ShowHeader = true,
-                    FooterAlign = PdfAlign.Right,
+                    FooterAlign = OfficeAlignment.Right,
                     ShowPageNumbers = true
                 })
                 .Meta(title: "OfficeIMO.Pdf Lists and Tables", author: "OfficeIMO")

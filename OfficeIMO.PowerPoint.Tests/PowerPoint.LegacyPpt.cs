@@ -31,14 +31,14 @@ namespace OfficeIMO.Tests {
                 legacy,
                 new InvalidDataException("Projection failed."));
 
-            OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
-                failed.FidelityDiagnostics,
+            OfficeDiagnostic diagnostic = Assert.Single(
+                failed.Diagnostics,
                 item => item.Code == "ppt-projection-failed");
 
             Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
             Assert.True(failed.HasLoss);
             Assert.True(failed.HasImportErrors);
-            Assert.Throws<InvalidDataException>(failed.RequireNoLoss);
+            Assert.ThrowsAny<OfficeConversionException>(failed.ThrowIfLoss);
             Assert.Throws<InvalidOperationException>(() => failed.EnsureNoImportErrors());
         }
 
@@ -120,19 +120,19 @@ namespace OfficeIMO.Tests {
         public void ImportReport_ExposesTypedLossAndStrictAcceptance() {
             LegacyPptDocument legacy = LegacyPptDocument.Load(FixturePath);
             LegacyPptImportReport report = legacy.CreateImportReport();
-            IOfficeConversionReport commonReport = report;
+            OfficeConversionReport commonReport = report;
 
             Assert.Equal(report.HasConversionLoss, commonReport.HasLoss);
             Assert.Equal(
                 legacy.Diagnostics.Count(diagnostic =>
                     diagnostic.Severity != LegacyPptDiagnosticSeverity.Information)
                     + (report.UnsupportedShapeCount > 0 ? 1 : 0),
-                commonReport.FidelityDiagnostics.Count(diagnostic =>
+                commonReport.Diagnostics.Count(diagnostic =>
                     diagnostic.LossKind != OfficeConversionLossKind.None));
-            Assert.All(commonReport.FidelityDiagnostics.Where(diagnostic =>
+            Assert.All(commonReport.Diagnostics.Where(diagnostic =>
                     diagnostic.Code == "ppt-unsupported-shapes"),
                 diagnostic => Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind));
-            Assert.Throws<InvalidDataException>(commonReport.RequireNoLoss);
+            Assert.ThrowsAny<OfficeConversionException>(commonReport.ThrowIfLoss);
         }
 
         [Fact]
@@ -440,7 +440,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Load(FixturePath);
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
 
-            presentation.BuiltinDocumentProperties.Title = "Changed title";
+            presentation.Properties.Title = "Changed title";
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
             Assert.False(preflight.CanWrite);

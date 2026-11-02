@@ -95,8 +95,8 @@ public sealed class ExcelAllSeverityBatch14SecurityTests {
             }
 
             using ExcelDocument loaded = ExcelDocument.Load(path);
-            Assert.Equal("retained", loaded.CustomDocumentProperties["Valid"].Text);
-            Assert.False(loaded.CustomDocumentProperties.ContainsKey("Malformed"));
+            Assert.Equal("retained", loaded.CustomProperties["Valid"].Text);
+            Assert.False(loaded.CustomProperties.ContainsKey("Malformed"));
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }

@@ -38,9 +38,9 @@ public sealed class BibliographyReviewWave31RegressionTests {
         document.Items.Add(item);
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV243" && diagnostic.Field == "contributors");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV243" && diagnostic.Field == "contributors");
     }
 
 
@@ -56,7 +56,7 @@ public sealed class BibliographyReviewWave31RegressionTests {
         if (format == BibliographyFormat.Nbib) item.Identifiers.Add(new BibliographyIdentifier("PMID", "1"));
         document.Items.Add(item);
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyDate reopened = Assert.Single(BibliographyDocument.Parse(written.Content, format).Document.Items[0].Dates);
 
         Assert.Equal(role, reopened.Role);
@@ -76,7 +76,7 @@ public sealed class BibliographyReviewWave31RegressionTests {
         Assert.Equal(" 10.1000/example ", Assert.Single(document.Items[0].Identifiers).Value);
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyIdentifier reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items[0].Identifiers);
 
         Assert.Equal(" 10.1000/example ", reopened.Value);
@@ -103,9 +103,9 @@ public sealed class BibliographyReviewWave31RegressionTests {
         document.Items.Add(item);
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV232" && diagnostic.Field == "identifiers.DOI");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV232" && diagnostic.Field == "identifiers.DOI");
     }
 
     private static Encoding CreateBomlessEncoding(string name) {

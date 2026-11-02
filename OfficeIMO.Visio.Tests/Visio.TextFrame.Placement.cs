@@ -107,7 +107,7 @@ public sealed class VisioTextFramePlacementTests {
             Angle = Math.PI / 2, FillPattern = 0, LinePattern = 0,
             TextStyle = new VisioTextStyle {
                 FontFamily = "Arial", Size = 16, Color = OfficeColor.Black, BackgroundColor = OfficeColor.Red,
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center, VerticalAlignment = VisioTextVerticalAlignment.Middle,
+                HorizontalAlignment = OfficeAlignment.Center, VerticalAlignment = VisioTextVerticalAlignment.Middle,
                 LeftMargin = 0, RightMargin = 0, TopMargin = 0, BottomMargin = 0,
                 TextPinX = 1.5, TextPinY = 0.5, TextWidth = 1, TextHeight = 0.25,
                 TextLocPinX = 1, TextLocPinY = 0.125, TextAngle = -Math.PI / 2

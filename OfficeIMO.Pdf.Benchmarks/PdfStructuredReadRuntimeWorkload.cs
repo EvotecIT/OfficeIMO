@@ -11,7 +11,7 @@ namespace OfficeIMO.Pdf.Benchmarks;
 public sealed class PdfStructuredReadRuntimeWorkload {
     private const string Header = "Running operations";
     private readonly byte[] _source;
-    private readonly PdfLoadOptions _loadOptions = new() { Limits = PdfReadLimits.Default };
+    private readonly PdfLoadOptions _loadOptions = new() { Limits = new PdfReadLimits() };
     private readonly PdfLoadOptions _readOptions = new() {
         Profile = PdfReadProfile.Structured, Pipeline = PdfUnderstandingPipelineOptions.Structured()
     };

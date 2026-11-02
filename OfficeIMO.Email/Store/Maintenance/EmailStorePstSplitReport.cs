@@ -1,8 +1,8 @@
 namespace OfficeIMO.Email.Store;
 
 /// <summary>Verified outcome for one committed PST split part.</summary>
-public sealed class EmailStorePstSplitPartReport : IOfficeConversionReport {
-    private readonly IReadOnlyList<OfficeConversionFidelityDiagnostic> _fidelityDiagnostics;
+public sealed class EmailStorePstSplitPartReport : OfficeConversionReport {
+    private readonly IReadOnlyList<OfficeDiagnostic> _fidelityDiagnostics;
 
     internal EmailStorePstSplitPartReport(EmailStorePstSplitPlanPart plan,
         EmailStorePstWriteReport writeReport, EmailStorePstVerificationReport verification,
@@ -11,8 +11,8 @@ public sealed class EmailStorePstSplitPartReport : IOfficeConversionReport {
         WriteReport = writeReport;
         Verification = verification;
         SkippedItems = skippedItems;
-        Diagnostics = diagnostics;
-        var aggregate = new List<OfficeConversionFidelityDiagnostic>();
+        NativeDiagnostics = diagnostics;
+        var aggregate = new List<OfficeDiagnostic>();
         if (skippedItems > 0) {
             aggregate.Add(EmailStoreFidelityProjection.Create(
                 "EMAIL_STORE_PST_SPLIT_ITEMS_OMITTED",
@@ -27,10 +27,10 @@ public sealed class EmailStorePstSplitPartReport : IOfficeConversionReport {
                 OfficeConversionLossKind.Failure,
                 plan.DestinationPath));
         }
-        IReadOnlyList<OfficeConversionFidelityDiagnostic> projected =
+        IReadOnlyList<OfficeDiagnostic> projected =
             EmailStoreFidelityProjection.AppendMissing(
                 EmailStoreFidelityProjection.Project(diagnostics),
-                writeReport.FidelityDiagnostics);
+                writeReport.Diagnostics);
         _fidelityDiagnostics = EmailStoreFidelityProjection.Append(projected, aggregate.ToArray());
     }
 
@@ -43,7 +43,7 @@ public sealed class EmailStorePstSplitPartReport : IOfficeConversionReport {
     /// <summary>Selected items skipped under explicit continuation policy.</summary>
     public int SkippedItems { get; }
     /// <summary>Part-specific preservation and verification diagnostics.</summary>
-    public IReadOnlyList<EmailStoreDiagnostic> Diagnostics { get; }
+    public IReadOnlyList<EmailStoreDiagnostic> NativeDiagnostics { get; }
     /// <summary>Final bytes minus the dry-run estimate. Positive means the final PST was larger.</summary>
     public long EstimateDeltaBytes => WriteReport.BytesWritten - Plan.EstimatedBytes;
     /// <summary>Whether the final PST exceeded the configured estimated partition target.</summary>
@@ -52,29 +52,28 @@ public sealed class EmailStorePstSplitPartReport : IOfficeConversionReport {
     public bool IsVerified => Verification.IsSuccessful;
 
     /// <summary>Category-preserving part, omission, writer, and verification diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => _fidelityDiagnostics;
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics => _fidelityDiagnostics;
 
     /// <summary>Whether this part approximated, omitted, or failed to preserve selected source content.</summary>
-    public bool HasLoss => _fidelityDiagnostics.Any(static diagnostic =>
+    public override bool HasLoss => _fidelityDiagnostics.Any(static diagnostic =>
         diagnostic.LossKind != OfficeConversionLossKind.None);
 
-    /// <summary>Throws when this split part reported possible content loss.</summary>
-    public void RequireNoLoss() => EmailStoreFidelityProjection.RequireNoLoss(_fidelityDiagnostics);
 }
 
 /// <summary>Aggregate verified query/size-based PST split result.</summary>
-public sealed class EmailStorePstSplitReport : IOfficeConversionReport {
-    private readonly IReadOnlyList<OfficeConversionFidelityDiagnostic> _fidelityDiagnostics;
+public sealed class EmailStorePstSplitReport : OfficeConversionReport {
+    private readonly IReadOnlyList<OfficeDiagnostic> _fidelityDiagnostics;
 
     internal EmailStorePstSplitReport(EmailStorePstSplitPlan plan,
         IReadOnlyList<EmailStorePstSplitPartReport> parts,
         IReadOnlyList<EmailStoreDiagnostic> diagnostics) {
         Plan = plan;
         Parts = parts;
-        Diagnostics = diagnostics;
-        IReadOnlyList<OfficeConversionFidelityDiagnostic> projected =
+        NativeDiagnostics = diagnostics;
+        IReadOnlyList<OfficeDiagnostic> projected =
             OfficeConversionFidelityDiagnostics.Flatten(parts);
-        var aggregate = new List<OfficeConversionFidelityDiagnostic>();
+        var aggregate = new List<OfficeDiagnostic>();
         if (parts.Count != plan.Parts.Count) {
             aggregate.Add(EmailStoreFidelityProjection.Create(
                 "EMAIL_STORE_PST_SPLIT_PARTS_MISSING",
@@ -90,7 +89,7 @@ public sealed class EmailStorePstSplitReport : IOfficeConversionReport {
     /// <summary>Committed verified parts.</summary>
     public IReadOnlyList<EmailStorePstSplitPartReport> Parts { get; }
     /// <summary>Aggregate commit and fidelity diagnostics.</summary>
-    public IReadOnlyList<EmailStoreDiagnostic> Diagnostics { get; }
+    public IReadOnlyList<EmailStoreDiagnostic> NativeDiagnostics { get; }
     /// <summary>Total committed items.</summary>
     public int WrittenItems => Parts.Sum(part => part.WriteReport.ItemCount);
     /// <summary>Total committed output bytes.</summary>
@@ -98,15 +97,14 @@ public sealed class EmailStorePstSplitReport : IOfficeConversionReport {
     /// <summary>True when every planned part was committed and semantically verified.</summary>
     public bool IsSuccessful => Parts.Count == Plan.Parts.Count &&
         Parts.All(part => part.IsVerified) &&
-        !Diagnostics.Any(diagnostic => diagnostic.Severity == EmailStoreDiagnosticSeverity.Error);
+        !NativeDiagnostics.Any(diagnostic => diagnostic.Severity == EmailStoreDiagnosticSeverity.Error);
 
     /// <summary>Category-preserving aggregate and per-part split diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => _fidelityDiagnostics;
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics => _fidelityDiagnostics;
 
     /// <summary>Whether split approximated, omitted, or failed to preserve selected source content.</summary>
-    public bool HasLoss => _fidelityDiagnostics.Any(static diagnostic =>
+    public override bool HasLoss => _fidelityDiagnostics.Any(static diagnostic =>
         diagnostic.LossKind != OfficeConversionLossKind.None);
 
-    /// <summary>Throws when split reported possible content loss.</summary>
-    public void RequireNoLoss() => EmailStoreFidelityProjection.RequireNoLoss(_fidelityDiagnostics);
 }

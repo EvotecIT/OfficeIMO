@@ -37,7 +37,7 @@ public class PdfParagraphBuilderFeatureTests {
         var on = OfficeTextFeatureSettings.Default.With("kern", 1);
         var off = OfficeTextFeatureSettings.Default.With("kern", 0);
         var prepared = new PdfTextRun("Prepared").WithFeatureSettings(off);
-        var builder = new PdfParagraphBuilder(PdfAlign.Left, null);
+        var builder = new PdfParagraphBuilder(OfficeAlignment.Left, null);
         builder.FeatureSettings(on).Text("Current").Runs(new[] { prepared }).ResetFeatureSettings().Text("Reset");
         var runs = builder.Build().Runs;
         Assert.Equal(on, runs[0].FeatureSettings);

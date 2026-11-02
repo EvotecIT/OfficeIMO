@@ -63,7 +63,7 @@ public sealed partial class IWorkWorkflowTests {
         OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
 
         Assert.True(result.Succeeded, result.Summary + "; " + string.Join("; ",
-            result.ConversionEvidence?.FidelityDiagnostics.Select(item => item.Code + ": " + item.Message) ?? []));
+            result.ConversionEvidence?.Diagnostics.Select(item => item.Code + ": " + item.Message) ?? []));
         OfficeWorkflowConversionEvidence evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
         Assert.Equal("iwork-editable,pdf", evidence.Facts["conversionStages"]);
         Assert.Equal("False", evidence.Facts["partialEditableReconstruction"]);
@@ -71,10 +71,10 @@ public sealed partial class IWorkWorkflowTests {
         Assert.Equal(expectedSourceUnits, evidence.Facts["reconstructedSourceUnitCount"]);
         Assert.Equal("0", evidence.Facts["omittedSourceUnitCount"]);
         Assert.Equal("0", evidence.Facts["unassessedSourceUnitCount"]);
-        Assert.DoesNotContain(evidence.FidelityDiagnostics,
+        Assert.DoesNotContain(evidence.Diagnostics,
             item => item.LossKind is OfficeConversionLossKind.Omission or OfficeConversionLossKind.Failure);
-        Assert.Contains(evidence.FidelityDiagnostics, item => item.Code == "IWORK_RECORD_FIDELITY_UNASSESSED");
-        Assert.Contains(evidence.FidelityDiagnostics, item => item.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Contains(evidence.Diagnostics, item => item.Code == "IWORK_RECORD_FIDELITY_UNASSESSED");
+        Assert.Contains(evidence.Diagnostics, item => item.LossKind == OfficeConversionLossKind.Approximation);
         Assert.Contains(result.Diagnostics, item => item.Code == "conversion-output-reopened");
         Assert.Equal(sourceHash, Assert.Single(result.Diagnostics, item => item.Code == "SourceSnapshot").Details["sha256"], ignoreCase: true);
         Assert.Equal(sourceHash, Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(files.Input))));

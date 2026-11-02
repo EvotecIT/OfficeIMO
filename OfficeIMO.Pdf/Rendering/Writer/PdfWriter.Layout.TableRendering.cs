@@ -14,13 +14,13 @@ internal static partial class PdfWriter {
         layout.Lines.Count == 1 &&
         layout.Lines[0].Count > 0;
 
-    private static void RenderTableCellInlineCheckBox(LayoutResult.Page page, TableCellLayout cell, PdfColumnAlign align, System.Collections.Generic.IReadOnlyList<RichSeg> line, double textX, double innerWidth, double baselineY) {
+    private static void RenderTableCellInlineCheckBox(LayoutResult.Page page, TableCellLayout cell, OfficeAlignment align, System.Collections.Generic.IReadOnlyList<RichSeg> line, double textX, double innerWidth, double baselineY) {
         PdfTableCellCheckBox checkBox = cell.CheckBoxes[0];
         double size = checkBox.Size.ToPoints();
         double lineWidth = MeasureRichLineWidth(line);
         double lineX = align switch {
-            PdfColumnAlign.Center => textX + System.Math.Max(0D, (innerWidth - lineWidth) / 2D),
-            PdfColumnAlign.Right => textX + System.Math.Max(0D, innerWidth - lineWidth),
+            OfficeAlignment.Center => textX + System.Math.Max(0D, (innerWidth - lineWidth) / 2D),
+            OfficeAlignment.Right => textX + System.Math.Max(0D, innerWidth - lineWidth),
             _ => textX
         };
         double x = System.Math.Min(textX + System.Math.Max(0D, innerWidth - size), lineX + lineWidth + TableCellCheckBoxGap);
@@ -42,7 +42,7 @@ internal static partial class PdfWriter {
     private static void RenderTableCellObjects(
         LayoutResult.Page page,
         TableCellLayout cell,
-        PdfColumnAlign align,
+        OfficeAlignment align,
         double textX,
         double innerWidth,
         double topY,
@@ -56,7 +56,7 @@ internal static partial class PdfWriter {
                 yCursor -= TableCellCheckBoxGap;
             }
 
-            PdfAlign imageAlign = image.Style?.Align ?? MapTableCellAlignment(align);
+            OfficeAlignment imageAlign = image.Style?.Align ?? MapTableCellAlignment(align);
             ImageBlock block = image.ToImageBlock(imageAlign);
             PdfImageStyle imageStyle = block.Style ?? new PdfImageStyle {
                 Align = imageAlign
@@ -65,8 +65,8 @@ internal static partial class PdfWriter {
             PdfDocument.ValidateImageFitDimensions(block.Info, imageStyle.Fit, nameof(image.Style));
             var imageBox = ResolveTableCellImageBox(image, innerWidth);
             double x = imageStyle.Align switch {
-                PdfAlign.Center => textX + System.Math.Max(0D, (innerWidth - imageBox.Width) / 2D),
-                PdfAlign.Right => textX + System.Math.Max(0D, innerWidth - imageBox.Width),
+                OfficeAlignment.Center => textX + System.Math.Max(0D, (innerWidth - imageBox.Width) / 2D),
+                OfficeAlignment.Right => textX + System.Math.Max(0D, innerWidth - imageBox.Width),
                 _ => textX
             };
             PageImage pageImage = CreatePageImage(block, imageStyle, x, yCursor - imageBox.Height, imageBox.Width, imageBox.Height);
@@ -94,8 +94,8 @@ internal static partial class PdfWriter {
 
             double size = checkBox.Size.ToPoints();
             double x = align switch {
-                PdfColumnAlign.Center => textX + (innerWidth - size) / 2D,
-                PdfColumnAlign.Right => textX + innerWidth - size,
+                OfficeAlignment.Center => textX + (innerWidth - size) / 2D,
+                OfficeAlignment.Right => textX + innerWidth - size,
                 _ => textX
             };
             page.FormFields.Add(new FormFieldAnnotation {
@@ -122,8 +122,8 @@ internal static partial class PdfWriter {
 
             double width = System.Math.Min(formField.Width.ToPoints(), innerWidth);
             double x = align switch {
-                PdfColumnAlign.Center => textX + (innerWidth - width) / 2D,
-                PdfColumnAlign.Right => textX + innerWidth - width,
+                OfficeAlignment.Center => textX + (innerWidth - width) / 2D,
+                OfficeAlignment.Right => textX + innerWidth - width,
                 _ => textX
             };
 
@@ -215,12 +215,12 @@ internal static partial class PdfWriter {
         return heights;
     }
 
-    private static System.Collections.Generic.List<PdfAlign?>? SliceTableCellLineAlignments(TableCellTextLayout layout, int startLine, int lineCount) {
+    private static System.Collections.Generic.List<OfficeAlignment?>? SliceTableCellLineAlignments(TableCellTextLayout layout, int startLine, int lineCount) {
         if (layout.LineAlignments == null) {
             return null;
         }
 
-        var alignments = new System.Collections.Generic.List<PdfAlign?>();
+        var alignments = new System.Collections.Generic.List<OfficeAlignment?>();
         int available = System.Math.Max(0, layout.Lines.Count - startLine);
         int visible = System.Math.Max(0, System.Math.Min(lineCount, available));
         for (int i = 0; i < visible; i++) {
@@ -298,10 +298,10 @@ internal static partial class PdfWriter {
         clipWidth = clipRight - clipX;
     }
 
-    private static PdfAlign MapTableCellAlignment(PdfColumnAlign align) => align switch {
-        PdfColumnAlign.Center => PdfAlign.Center,
-        PdfColumnAlign.Right => PdfAlign.Right,
-        _ => PdfAlign.Left
+    private static OfficeAlignment MapTableCellAlignment(OfficeAlignment align) => align switch {
+        OfficeAlignment.Center => OfficeAlignment.Center,
+        OfficeAlignment.Right => OfficeAlignment.Right,
+        _ => OfficeAlignment.Left
     };
 
     private static bool[] GetRowSpanBoundarySkipColumns(TableBlock table, int boundaryRowIndex, int columnCount) {
@@ -540,11 +540,11 @@ internal static partial class PdfWriter {
                     double contentTop = frame.Top - padTop;
                     double contentWidth = Math.Max(0D, contentRight - contentLeft);
                     double contentHeight = Math.Max(0D, contentTop - contentBottom);
-                    PdfColumnAlign horizontalAlign = icon.HorizontalAlignment ?? GetTableCellAlignment(style, rowIndex, column, cell.Text);
+                    OfficeAlignment horizontalAlign = icon.HorizontalAlignment ?? GetTableCellAlignment(style, rowIndex, column, cell.Text);
                     PdfCellVerticalAlign verticalAlign = GetTableCellVerticalAlignment(style, rowIndex, column);
                     double iconX = horizontalAlign switch {
-                        PdfColumnAlign.Center => contentLeft + Math.Max(0D, (contentWidth - iconSize) / 2D),
-                        PdfColumnAlign.Right => contentRight - iconSize,
+                        OfficeAlignment.Center => contentLeft + Math.Max(0D, (contentWidth - iconSize) / 2D),
+                        OfficeAlignment.Right => contentRight - iconSize,
                         _ => contentLeft
                     };
                     double iconY = verticalAlign switch {

@@ -6,7 +6,7 @@ public sealed class BibliographyReviewWave24RegressionTests {
         BibliographyDocument document = BibliographyDocument.Parse("[{\"id\":\"x\",\"type\":\"JOUR\",\"title\":\"Before\"}]", BibliographyFormat.CslJson).Document;
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items);
 
         Assert.Equal("JOUR", reopened.NativeType);
@@ -18,7 +18,7 @@ public sealed class BibliographyReviewWave24RegressionTests {
         BibliographyDocument document = BibliographyDocument.Parse("TY  - jour\nID  - x\nTI  - Before\nER  -\n", BibliographyFormat.Ris).Document;
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.Ris).Document.Items);
 
         Assert.Equal("jour", reopened.NativeType);
@@ -30,7 +30,7 @@ public sealed class BibliographyReviewWave24RegressionTests {
         BibliographyDocument document = BibliographyDocument.Parse("[{\"id\":\"x\",\"type\":\"book\",\"DOI\":\"\",\"title\":\"Before\"}]", BibliographyFormat.CslJson).Document;
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items);
 
         Assert.Empty(reopened.Identifiers);
@@ -58,7 +58,7 @@ public sealed class BibliographyReviewWave24RegressionTests {
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items);
 
         Assert.Contains(reopened.NativeFields, field => string.Equals(field.Name, elementName, StringComparison.OrdinalIgnoreCase) && field.Value.Length == 0);
@@ -69,7 +69,7 @@ public sealed class BibliographyReviewWave24RegressionTests {
         string large = new string('x', 100);
         string source = "@string{a={" + large + "}}\n" + string.Join("\n", Enumerable.Range(0, 8).Select(index => "@string{s" + index + "=a}"));
 
-        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, new BibliographyReadOptions { MaximumInputCharacters = 512 });
+        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, new BibliographyReadOptions { MaxInputCharacters = 512 });
 
         Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001" && diagnostic.Message.Contains("cumulative expanded", StringComparison.Ordinal));
     }

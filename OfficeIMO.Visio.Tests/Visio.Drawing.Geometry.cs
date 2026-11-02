@@ -31,10 +31,10 @@ public sealed class VisioDrawingGeometryTests {
             byte[] before = document.ToLegacyXmlResult().Value;
             var result = document.ToDrawings();
             Assert.Equal(2, result.Value[0].Shapes.Count(item => item.Shape.StrokeColor?.B == 255));
-            Assert.Contains(result.Report.FidelityDiagnostics, item => item.Code == "VISIO_DRAWING_CONNECTOR_FILL" && item.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Contains(result.Report.FidelityDiagnostics, item => item.Code == "VISIO_DRAWING_CONNECTOR_CONTENT" && item.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Contains(result.Report.FidelityDiagnostics, item => item.Code == "VISIO_DRAWING_CONNECTOR_ROUTE" && item.LossKind == OfficeConversionLossKind.Approximation);
-            Assert.Throws<OfficeConversionException>(() => result.Report.RequireNoLoss());
+            Assert.Contains(result.Report.Diagnostics, item => item.Code == "VISIO_DRAWING_CONNECTOR_FILL" && item.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Contains(result.Report.Diagnostics, item => item.Code == "VISIO_DRAWING_CONNECTOR_CONTENT" && item.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Contains(result.Report.Diagnostics, item => item.Code == "VISIO_DRAWING_CONNECTOR_ROUTE" && item.LossKind == OfficeConversionLossKind.Approximation);
+            Assert.Throws<OfficeConversionException>(() => result.Report.ThrowIfLoss());
             Assert.Equal(before, document.ToLegacyXmlResult().Value);
         }
     }

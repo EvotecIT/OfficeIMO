@@ -15,8 +15,8 @@ public sealed class ReaderOfficeRichMappingTests {
     public void DocumentReader_WordRichMapping_UsesInspectionBlocksTablesLinksAndProperties() {
         using var stream = new MemoryStream();
         using (WordDocument document = WordDocument.Create(stream)) {
-            document.BuiltinDocumentProperties.Title = "Rich policy";
-            document.BuiltinDocumentProperties.Creator = "OfficeIMO";
+            document.Properties.Title = "Rich policy";
+            document.Properties.Creator = "OfficeIMO";
             document.AddParagraph("Policy").Style = WordParagraphStyles.Heading1;
             document.AddParagraph("Read ").AddHyperLink("the policy", new Uri("https://example.test/policy"));
             WordParagraph noteReference = document.AddParagraph("Supporting references");
@@ -191,8 +191,8 @@ public sealed class ReaderOfficeRichMappingTests {
     public void DocumentReader_ExcelRichMapping_UsesFormalTablesCellLinksAndProperties() {
         using var stream = new MemoryStream();
         using (ExcelDocument document = ExcelDocument.Create(stream)) {
-            document.BuiltinDocumentProperties.Title = "Rich workbook";
-            document.BuiltinDocumentProperties.Creator = "OfficeIMO";
+            document.Properties.Title = "Rich workbook";
+            document.Properties.Creator = "OfficeIMO";
             ExcelSheet sheet = document.AddSheet("Inventory");
             sheet.Cell(1, 1).SetValue("Name");
             sheet.Cell(1, 2).SetValue("Qty");
@@ -272,8 +272,8 @@ public sealed class ReaderOfficeRichMappingTests {
     public void DocumentReader_PowerPointRichMapping_UsesShapesTablesChartsLinksAndSlideGeometry() {
         using var stream = new MemoryStream();
         using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
-            presentation.BuiltinDocumentProperties.Title = "Rich deck";
-            presentation.BuiltinDocumentProperties.Creator = "OfficeIMO";
+            presentation.Properties.Title = "Rich deck";
+            presentation.Properties.Creator = "OfficeIMO";
             PowerPointSlide slide = presentation.AddSlide();
             slide.Notes.Text = "Speaker guidance";
             PowerPointTextBox title = slide.AddTextBox("Overview");

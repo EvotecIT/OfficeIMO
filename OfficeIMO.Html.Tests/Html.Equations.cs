@@ -403,7 +403,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(math + "r", Assert.Single(native.Elements()).Name);
             Assert.Equal(expectedText, Assert.Single(native.Descendants(math + "t")).Value);
             Assert.Empty(reopened.ValidateDocument());
-            Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
+            Assert.DoesNotContain(result.Report.NativeDiagnostics, diagnostic =>
                 diagnostic.Component == "OfficeIMO.Word.Html"
                 && diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated);
         }

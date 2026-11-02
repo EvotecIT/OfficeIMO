@@ -59,7 +59,7 @@ public sealed class SetOfficePdfHeaderCommand : PSCmdlet
 
     /// <summary>Header alignment.</summary>
     [Parameter]
-    public PdfAlign Align { get; set; } = PdfAlign.Center;
+    public OfficeAlignment Align { get; set; } = OfficeAlignment.Center;
 
     /// <summary>Header font size in PDF points.</summary>
     [Parameter]
@@ -111,10 +111,10 @@ public sealed class SetOfficePdfHeaderCommand : PSCmdlet
     {
         switch (Align)
         {
-            case PdfAlign.Right:
+            case OfficeAlignment.Right:
                 header.AlignRight();
                 break;
-            case PdfAlign.Left:
+            case OfficeAlignment.Left:
                 header.AlignLeft();
                 break;
             default:

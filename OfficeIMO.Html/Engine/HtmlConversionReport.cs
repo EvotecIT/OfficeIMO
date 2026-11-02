@@ -3,7 +3,7 @@ namespace OfficeIMO.Html;
 /// <summary>
 /// Immutable view of the diagnostics and fidelity outcome from one HTML conversion.
 /// </summary>
-public sealed class HtmlConversionReport : IOfficeConversionReport {
+public sealed class HtmlConversionReport : OfficeConversionReport {
     private readonly IReadOnlyList<HtmlDiagnostic> _diagnostics;
 
     internal HtmlConversionReport(IReadOnlyList<HtmlDiagnostic> diagnostics) {
@@ -11,10 +11,11 @@ public sealed class HtmlConversionReport : IOfficeConversionReport {
     }
 
     /// <summary>Structured conversion diagnostics in emission order.</summary>
-    public IReadOnlyList<HtmlDiagnostic> Diagnostics => _diagnostics;
+    public IReadOnlyList<HtmlDiagnostic> NativeDiagnostics => _diagnostics;
 
     /// <summary>Category-preserving conversion diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics =>
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics =>
         Array.AsReadOnly(_diagnostics.Select(static diagnostic =>
             HtmlFidelityProjection.From(diagnostic)).ToArray());
 
@@ -22,12 +23,9 @@ public sealed class HtmlConversionReport : IOfficeConversionReport {
     public bool Succeeded => !_diagnostics.Any(static diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
 
     /// <summary>Whether the conversion approximated, omitted, or failed any source content.</summary>
-    public bool HasLoss => _diagnostics.Any(static diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
+    public override bool HasLoss => _diagnostics.Any(static diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
 
-    /// <summary>Throws when the conversion failed or did not preserve the source faithfully.</summary>
-    public void RequireNoLoss() {
-        if (!Succeeded || HasLoss) {
-            throw new HtmlConversionException(_diagnostics);
-        }
-    }
+    /// <summary>Creates the exception that carries the HTML diagnostics of a lossy or failed conversion.</summary>
+    protected override OfficeConversionException CreateLossException() => new HtmlConversionException(this);
+
 }

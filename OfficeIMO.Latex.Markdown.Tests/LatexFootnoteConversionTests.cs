@@ -25,7 +25,7 @@ public class LatexFootnoteConversionTests {
             block => Assert.IsType<QuoteBlock>(block));
         Assert.Single(Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]).Inlines.Nodes.OfType<ItalicSequenceInline>());
         Assert.Contains(" after.", Plain(paragraph.Inlines), StringComparison.Ordinal);
-        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Feature.StartsWith("command:footnote", StringComparison.Ordinal));
+        Assert.DoesNotContain(result.Report.NativeDiagnostics, diagnostic => diagnostic.Feature.StartsWith("command:footnote", StringComparison.Ordinal));
         string pdfText = PdfDocument.Load(new System.IO.MemoryStream(source.ToPdfDocumentResult().Value.ToBytes())).ExtractText();
         foreach (string text in new[] { "Before", "after.", "First", "Second.", "One", "Two", "Quoted" })
             Assert.Single(System.Text.RegularExpressions.Regex.Matches(pdfText,
@@ -39,7 +39,7 @@ public class LatexFootnoteConversionTests {
         Assert.Equal(2, definitions.Length);
         Assert.NotEqual(definitions[0].Label, definitions[1].Label);
         Assert.Equal(new[] { "Alpha", "B" }, definitions.Select(definition => Plain(Assert.Single(definition.ChildBlocks.OfType<ParagraphBlock>()).Inlines)));
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Feature == "footnote-mark" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Simplified);
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Feature == "footnote-mark" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Simplified);
         Assert.Equal(2, result.Value.Descendants().OfType<FootnoteRefInline>().Count());
         Assert.DoesNotContain(result.Value.ToMarkdown(), "\\footnote", StringComparison.Ordinal);
     }
@@ -53,7 +53,7 @@ public class LatexFootnoteConversionTests {
         string noteMarkdown = addedDocument.ToMarkdown();
         Assert.Contains("Outer", noteMarkdown, StringComparison.Ordinal);
         Assert.Contains("Inner", noteMarkdown, StringComparison.Ordinal);
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Feature == "nested-footnote" && diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Feature == "nested-footnote" && diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);
         Assert.Contains("Opaque", result.Value.ToMarkdown(), StringComparison.Ordinal);
         Assert.Single(result.Value.Descendants().OfType<FootnoteRefInline>());
     }

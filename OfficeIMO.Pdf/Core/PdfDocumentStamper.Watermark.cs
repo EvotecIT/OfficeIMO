@@ -30,7 +30,7 @@ public sealed partial class PdfDocumentStamper {
                 canvas.TextBox(snapshot.Text, x, y, snapshot.Width, snapshot.Height,
                     new PdfCanvasTextBoxStyle {
                         Font = snapshot.Font, FontSize = snapshot.FontSize, TextColor = snapshot.Color,
-                        Align = PdfAlign.Center, VerticalAlign = PdfVerticalAlign.Middle,
+                        Align = OfficeAlignment.Center, VerticalAlign = PdfVerticalAlign.Middle,
                         PaddingX = global::OfficeIMO.OfficeLength.Points(0D), PaddingY = global::OfficeIMO.OfficeLength.Points(0D), Background = null, BorderColor = null, BorderWidth = global::OfficeIMO.OfficeLength.Points(0D)
                     }, -snapshot.RotationDegrees);
             }

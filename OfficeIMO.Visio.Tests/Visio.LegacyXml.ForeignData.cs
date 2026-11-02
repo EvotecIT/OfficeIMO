@@ -20,7 +20,7 @@ public class VisioLegacyForeignDataTests {
         var family = stencil ? VisioPackageType.Stencil : VisioPackageType.Drawing;
         using var input = Fixture(stencil, false);
         var imported = VisioDocument.LoadLegacyXml(input, family);
-        Assert.DoesNotContain(imported.Report.FidelityDiagnostics, d => d.Code == "VDX_FOREIGN_DATA");
+        Assert.DoesNotContain(imported.Report.Diagnostics, d => d.Code == "VDX_FOREIGN_DATA");
         if (stencil) imported.Value.Masters.Single().Shape.Text = "Edited master";
         else imported.Value.Pages[0].Shapes[0].Text = "Edited diagram";
         byte[] package = imported.Value.ToBytes();
@@ -31,7 +31,7 @@ public class VisioLegacyForeignDataTests {
         }
         var reopened = VisioDocument.Load(new MemoryStream(package));
         var legacy = reopened.ToLegacyXmlResult();
-        Assert.DoesNotContain(legacy.Report.FidelityDiagnostics, d => d.Code == "VDX_PACKAGE_PART" && d.Location!.Contains("media"));
+        Assert.DoesNotContain(legacy.Report.Diagnostics, d => d.Code == "VDX_PACKAGE_PART" && d.Location!.Contains("media"));
         var xml = XDocument.Load(new MemoryStream(legacy.Value));
         var foreign = Assert.Single(xml.Descendants(Ns + "ForeignData"));
         Assert.Equal("Foreign", (string?)foreign.Parent!.Attribute("Type"));
@@ -158,7 +158,7 @@ public class VisioLegacyForeignDataTests {
         using var deletedPackage = new ZipArchive(new MemoryStream(destination.ToBytes()));
         Assert.DoesNotContain(deletedPackage.Entries, entry => entry.FullName.StartsWith("visio/media/foreign") || entry.FullName.StartsWith("visio/embeddings/foreign"));
         var deletionResult = destination.ToLegacyXmlResult();
-        Assert.False(deletionResult.Report.HasOmissions, string.Join("; ", deletionResult.Report.FidelityDiagnostics.Select(diagnostic => diagnostic.Code + " " + diagnostic.Location + " " + diagnostic.Message)));
+        Assert.False(deletionResult.Report.HasOmissions, string.Join("; ", deletionResult.Report.Diagnostics.Select(diagnostic => diagnostic.Code + " " + diagnostic.Location + " " + diagnostic.Message)));
         using var output = new MemoryStream(); destination.SaveLegacyXml(output);
         Assert.Empty(XDocument.Load(new MemoryStream(output.ToArray())).Descendants(Ns + "ForeignData"));
     }

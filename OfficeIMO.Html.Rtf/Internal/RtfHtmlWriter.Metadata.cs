@@ -4,29 +4,29 @@ namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlWriter {
     private static void AppendDocumentMetadata(StringBuilder builder, RtfDocument document, string newline) {
-        AppendMeta(builder, newline, "author", document.Info.Author);
-        AppendMeta(builder, newline, "keywords", document.Info.Keywords);
-        AppendMeta(builder, newline, "description", document.Info.Subject);
-        AppendMeta(builder, newline, "officeimo-rtf-title", document.Info.Title);
-        AppendMeta(builder, newline, "officeimo-rtf-subject", document.Info.Subject);
-        AppendMeta(builder, newline, "officeimo-rtf-author", document.Info.Author);
-        AppendMeta(builder, newline, "officeimo-rtf-manager", document.Info.Manager);
-        AppendMeta(builder, newline, "officeimo-rtf-company", document.Info.Company);
-        AppendMeta(builder, newline, "officeimo-rtf-operator", document.Info.Operator);
-        AppendMeta(builder, newline, "officeimo-rtf-category", document.Info.Category);
-        AppendMeta(builder, newline, "officeimo-rtf-keywords", document.Info.Keywords);
-        AppendMeta(builder, newline, "officeimo-rtf-comments", document.Info.Comments);
-        AppendMeta(builder, newline, "officeimo-rtf-hyperlink-base", document.Info.HyperlinkBase);
-        AppendMeta(builder, newline, "officeimo-rtf-created", FormatTimestamp(document.Info.Created));
-        AppendMeta(builder, newline, "officeimo-rtf-revised", FormatTimestamp(document.Info.Revised));
-        AppendMeta(builder, newline, "officeimo-rtf-printed", FormatTimestamp(document.Info.Printed));
-        AppendMeta(builder, newline, "officeimo-rtf-backed-up", FormatTimestamp(document.Info.BackedUp));
-        AppendMeta(builder, newline, "officeimo-rtf-editing-minutes", document.Info.EditingMinutes);
-        AppendMeta(builder, newline, "officeimo-rtf-pages", document.Info.NumberOfPages);
-        AppendMeta(builder, newline, "officeimo-rtf-words", document.Info.NumberOfWords);
-        AppendMeta(builder, newline, "officeimo-rtf-characters", document.Info.NumberOfCharacters);
-        AppendMeta(builder, newline, "officeimo-rtf-characters-with-spaces", document.Info.NumberOfCharactersWithSpaces);
-        AppendMeta(builder, newline, "officeimo-rtf-internal-version", document.Info.InternalVersion);
+        AppendMeta(builder, newline, "author", document.Properties.Author);
+        AppendMeta(builder, newline, "keywords", document.Properties.Keywords);
+        AppendMeta(builder, newline, "description", document.Properties.Subject);
+        AppendMeta(builder, newline, "officeimo-rtf-title", document.Properties.Title);
+        AppendMeta(builder, newline, "officeimo-rtf-subject", document.Properties.Subject);
+        AppendMeta(builder, newline, "officeimo-rtf-author", document.Properties.Author);
+        AppendMeta(builder, newline, "officeimo-rtf-manager", document.Properties.Manager);
+        AppendMeta(builder, newline, "officeimo-rtf-company", document.Properties.Company);
+        AppendMeta(builder, newline, "officeimo-rtf-operator", document.Properties.Operator);
+        AppendMeta(builder, newline, "officeimo-rtf-category", document.Properties.Category);
+        AppendMeta(builder, newline, "officeimo-rtf-keywords", document.Properties.Keywords);
+        AppendMeta(builder, newline, "officeimo-rtf-comments", document.Properties.Comments);
+        AppendMeta(builder, newline, "officeimo-rtf-hyperlink-base", document.Properties.HyperlinkBase);
+        AppendMeta(builder, newline, "officeimo-rtf-created", FormatTimestamp(document.Properties.Created));
+        AppendMeta(builder, newline, "officeimo-rtf-revised", FormatTimestamp(document.Properties.Revised));
+        AppendMeta(builder, newline, "officeimo-rtf-printed", FormatTimestamp(document.Properties.Printed));
+        AppendMeta(builder, newline, "officeimo-rtf-backed-up", FormatTimestamp(document.Properties.BackedUp));
+        AppendMeta(builder, newline, "officeimo-rtf-editing-minutes", document.Properties.EditingMinutes);
+        AppendMeta(builder, newline, "officeimo-rtf-pages", document.Properties.NumberOfPages);
+        AppendMeta(builder, newline, "officeimo-rtf-words", document.Properties.NumberOfWords);
+        AppendMeta(builder, newline, "officeimo-rtf-characters", document.Properties.NumberOfCharacters);
+        AppendMeta(builder, newline, "officeimo-rtf-characters-with-spaces", document.Properties.NumberOfCharactersWithSpaces);
+        AppendMeta(builder, newline, "officeimo-rtf-internal-version", document.Properties.InternalVersion);
     }
 
     private static void AppendHeaderFooterMetadata(StringBuilder builder, RtfDocument document, RtfToHtmlOptions options, string newline) {

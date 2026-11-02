@@ -15,7 +15,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// <example><summary>Edit a literal file and save a copy.</summary>
 /// <code>Get-Item -LiteralPath './Review[final].pdf' | Open-OfficePdf -OutputPath ./Reviewed.pdf -PassThru -Content {
 ///     Remove-OfficePdfPage -Page last
-///     PdfMetadata -Title 'Reviewed report'
+///     PdfDocumentProperties -Title 'Reviewed report'
 /// }</code></example>
 /// <example><summary>Open matching documents for inspection.</summary>
 /// <code>$documents = Open-OfficePdf -Path './Reports/*.pdf'

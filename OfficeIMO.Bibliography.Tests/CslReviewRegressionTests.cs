@@ -12,7 +12,7 @@ public sealed class CslReviewRegressionTests {
             (index == 0 ? "<text variable=\"title\"/>" : "<text macro=\"m" + (index - 1) + "\"/>") + "</macro>").ToArray();
         if (reverse) Array.Reverse(macros);
         string xml = Header + string.Concat(macros) + "<citation><layout><text macro=\"m11\"/></layout></citation></style>";
-        Assert.Throws<InvalidDataException>(() => CslStyle.Parse(xml, new CslStyleLoadOptions { MaximumNestingDepth = 4 }));
+        Assert.Throws<InvalidDataException>(() => CslStyle.Parse(xml, new CslStyleLoadOptions { MaxNestingDepth = 4 }));
     }
 
     [Fact]
@@ -49,9 +49,9 @@ public sealed class CslReviewRegressionTests {
         string title = escaped ? string.Concat(Enumerable.Repeat("&amp;", 20)) : new string('x', 100);
         CslStyle style = CslStyle.Parse(Header + "<citation>" + IdLayout + "</citation><bibliography><sort><key variable=\"title\"/></sort>" + IdLayout + "</bibliography></style>");
         var processor = new CslProcessor(Data("[{\"id\":\"a\",\"type\":\"book\",\"title\":\"" + title + "\"}]"), style,
-            new CslRenderOptions { MaximumIntermediateCharacters = 20 });
+            new CslRenderOptions { MaxIntermediateCharacters = 20 });
         InvalidDataException error = Assert.Throws<InvalidDataException>(() => processor.RenderBibliography());
-        Assert.Contains("MaximumIntermediateCharacters", error.Message);
+        Assert.Contains("MaxIntermediateCharacters", error.Message);
     }
 
     [Theory]

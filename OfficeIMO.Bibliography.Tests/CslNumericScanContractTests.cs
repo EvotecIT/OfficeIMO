@@ -63,7 +63,7 @@ public sealed class CslNumericScanContractTests {
     [InlineData("volume", "1,2", "ordinal", 6)]
     [InlineData("page", "23-8", "roman", 10)]
     public void NumberExpansionEnforcesTheIntermediateLimit(string variable, string value, string form, int maximum) =>
-        Assert.Contains("MaximumIntermediateCharacters", Assert.Throws<InvalidDataException>(() =>
+        Assert.Contains("MaxIntermediateCharacters", Assert.Throws<InvalidDataException>(() =>
             Render(variable, value, "<number variable=\"" + variable + "\" form=\"" + form + "\"/>",
                 styleOptions: "page-range-format=\"expanded\"", maximum: maximum)).Message);
 
@@ -73,7 +73,7 @@ public sealed class CslNumericScanContractTests {
     [InlineData("page", "<text variable=\"page\"/>")]
     public void ALongLocaleConnectorCannotBypassTheIntermediateLimit(string variable, string layout) {
         string locale = "<locale><terms><term name=\"and\" form=\"symbol\">" + new string('x', 64) + "</term></terms></locale>";
-        Assert.Contains("MaximumIntermediateCharacters", Assert.Throws<InvalidDataException>(() =>
+        Assert.Contains("MaxIntermediateCharacters", Assert.Throws<InvalidDataException>(() =>
             Render(variable, "1&2", layout, locale: locale, maximum: 10)).Message);
     }
 
@@ -97,6 +97,6 @@ public sealed class CslNumericScanContractTests {
             styleOptions + ">" + locale + "<citation><layout>" + layout + "</layout></citation></style>");
         var citation = new CslCitation("cite");
         citation.Items.Add(new CslCitationItem("one") { Locator = variable == "locator" ? value : null });
-        return new CslProcessor(data, style, new CslRenderOptions { MaximumIntermediateCharacters = maximum }).Render(new[] { citation }).Citations.Single().Content;
+        return new CslProcessor(data, style, new CslRenderOptions { MaxIntermediateCharacters = maximum }).Render(new[] { citation }).Citations.Single().Content;
     }
 }

@@ -23,7 +23,7 @@ public sealed class ProjectProgressBoundaryTests {
         }
         string before = document.ToXml();
         var schedule = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true });
-        Assert.Contains(schedule.Report.Diagnostics, d => d.Severity == ProjectDiagnosticSeverity.Error && d.Message.Contains("stopped"));
+        Assert.Contains(schedule.Report.NativeDiagnostics, d => d.Severity == ProjectDiagnosticSeverity.Error && d.Message.Contains("stopped"));
         Assert.Throws<InvalidDataException>(() => document.ApplySchedule(schedule)); Assert.Equal(before, document.ToXml());
         using var copy = document.Clone(); Assert.Equal(assignment.Stop, copy.Assignments.Single().Stop);
     }

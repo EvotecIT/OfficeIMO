@@ -257,9 +257,9 @@ public static class PdfBatesNumberer {
             throw new InvalidOperationException("Bates label does not fit the configured page rectangle.");
         }
         bool top = options.Position is PdfBatesPosition.TopLeft or PdfBatesPosition.TopCenter or PdfBatesPosition.TopRight;
-        PdfAlign alignment = options.Position is PdfBatesPosition.BottomCenter or PdfBatesPosition.TopCenter
-            ? PdfAlign.Center
-            : options.Position is PdfBatesPosition.BottomRight or PdfBatesPosition.TopRight ? PdfAlign.Right : PdfAlign.Left;
+        OfficeAlignment alignment = options.Position is PdfBatesPosition.BottomCenter or PdfBatesPosition.TopCenter
+            ? OfficeAlignment.Center
+            : options.Position is PdfBatesPosition.BottomRight or PdfBatesPosition.TopRight ? OfficeAlignment.Right : OfficeAlignment.Left;
         double y = top ? options.VerticalMargin.ToPoints() : context.Height.ToPoints() - options.VerticalMargin.ToPoints() - options.Height.ToPoints();
         canvas.Text(text, options.HorizontalMargin, global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(availableWidth), options.Height, options.FontSize, options.Color, alignment, options.Font);
     }

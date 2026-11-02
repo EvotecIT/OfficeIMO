@@ -11,12 +11,12 @@ Adds a rich inline-text paragraph to a generated PDF document.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficePdfText [[-Text] <string[]>] [-Run <Object[]>] [-Align <PdfAlign>] [-Color <string>] [-BackgroundColor <string>] [-FontSize <Double>] [-Font <PdfStandardFont>] [-Bold] [-Italic] [-Underline] [-Strike] [-Baseline <PdfTextBaseline>] [-LinkUri <string>] [-LinkDestinationName <string>] [-LinkContents <string>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfText [[-Text] <string[]>] [-Run <Object[]>] [-Align <OfficeAlignment>] [-Color <string>] [-BackgroundColor <string>] [-FontSize <Double>] [-Font <PdfStandardFont>] [-Bold] [-Italic] [-Underline] [-Strike] [-Baseline <PdfTextBaseline>] [-LinkUri <string>] [-LinkDestinationName <string>] [-LinkContents <string>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficePdfText [[-Text] <string[]>] -Document <PdfDocument> [-Run <Object[]>] [-Align <PdfAlign>] [-Color <string>] [-BackgroundColor <string>] [-FontSize <Double>] [-Font <PdfStandardFont>] [-Bold] [-Italic] [-Underline] [-Strike] [-Baseline <PdfTextBaseline>] [-LinkUri <string>] [-LinkDestinationName <string>] [-LinkContents <string>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfText [[-Text] <string[]>] -Document <PdfDocument> [-Run <Object[]>] [-Align <OfficeAlignment>] [-Color <string>] [-BackgroundColor <string>] [-FontSize <Double>] [-Font <PdfStandardFont>] [-Bold] [-Italic] [-Underline] [-Strike] [-Baseline <PdfTextBaseline>] [-LinkUri <string>] [-LinkDestinationName <string>] [-LinkContents <string>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -55,10 +55,10 @@ Creates one paragraph with an external link and an internal named-destination li
 Paragraph alignment.
 
 ```yaml
-Type: PdfAlign
+Type: OfficeAlignment
 Parameter Sets: Context, Document
 Aliases: None
-Possible values: Left, Center, Right, Justify
+Possible values: Left, Center, Right, Justify, Start, End
 
 Required: False
 Position: named

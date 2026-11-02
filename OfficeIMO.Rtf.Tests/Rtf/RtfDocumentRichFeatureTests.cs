@@ -10,8 +10,8 @@ public partial class RtfDocumentRichFeatureTests {
     [Fact]
     public void Write_And_Read_Metadata_Styles_Hyperlinks_And_List_Paragraphs() {
         RtfDocument document = RtfDocument.Create();
-        document.Info.Title = "RTF Contract";
-        document.Info.Author = "OfficeIMO";
+        document.Properties.Title = "RTF Contract";
+        document.Properties.Author = "OfficeIMO";
         document.AddStyle(1, "Heading 1");
         document.AddStyle(2, "Hyperlink", RtfStyleKind.Character).Additive = true;
 
@@ -31,8 +31,8 @@ public partial class RtfDocumentRichFeatureTests {
         Assert.Contains(@"{\*\listtable", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\*\listoverridetable", rtf, StringComparison.Ordinal);
         Assert.Contains(@"HYPERLINK ""https://github.com/EvotecIT/OfficeIMO""", rtf, StringComparison.Ordinal);
-        Assert.Equal("RTF Contract", read.Document.Info.Title);
-        Assert.Equal("OfficeIMO", read.Document.Info.Author);
+        Assert.Equal("RTF Contract", read.Document.Properties.Title);
+        Assert.Equal("OfficeIMO", read.Document.Properties.Author);
         Assert.Contains(read.Document.Styles, style => style.Id == 1 && style.Name == "Heading 1");
         Assert.Contains(read.Document.Styles, style => style.Id == 2 && style.Kind == RtfStyleKind.Character && style.Additive);
         Assert.Equal(RtfTextAlignment.Center, read.Document.Paragraphs[0].Alignment);

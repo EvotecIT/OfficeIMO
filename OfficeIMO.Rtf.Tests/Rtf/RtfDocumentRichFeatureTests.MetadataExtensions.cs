@@ -45,14 +45,14 @@ public partial class RtfDocumentRichFeatureTests {
     [Fact]
     public void Write_And_Read_Generator_Metadata() {
         RtfDocument document = RtfDocument.Create();
-        document.Info.Generator = "Contoso RTF Writer";
+        document.Properties.Generator = "Contoso RTF Writer";
         document.AddParagraph("Body");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = true });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\*\generator Contoso RTF Writer;}", rtf, StringComparison.Ordinal);
-        Assert.Equal("Contoso RTF Writer", read.Document.Info.Generator);
+        Assert.Equal("Contoso RTF Writer", read.Document.Properties.Generator);
         Assert.Equal("Body", Assert.Single(read.Document.Paragraphs).ToPlainText());
     }
 

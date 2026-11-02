@@ -44,7 +44,7 @@ public partial class RtfDocumentReadWriteTests {
 
         RtfReadResult result = RtfDocument.ParseResult(rtf);
 
-        Assert.Equal("あX", result.Document.Info.Title);
+        Assert.Equal("あX", result.Document.Properties.Title);
         Assert.Equal(rtf, result.ToRtfLossless());
     }
 
@@ -81,7 +81,7 @@ public partial class RtfDocumentReadWriteTests {
         Assert.Equal(source, output.ToArray());
         Assert.Equal("ŁąŚ", result.Document.Fonts[0].Name);
         Assert.Equal("ŁąŚ", Assert.Single(result.Document.Styles).Name);
-        Assert.Equal("ŁąŚ", result.Document.Info.Title);
+        Assert.Equal("ŁąŚ", result.Document.Properties.Title);
         Assert.Equal("ŁąŚ", Assert.Single(result.Document.Paragraphs).ToPlainText());
     }
 
@@ -110,7 +110,7 @@ public partial class RtfDocumentReadWriteTests {
         Assert.Equal(source, output.ToArray());
         Assert.Equal(expectedCharacterSet, result.Document.Settings.CharacterSet);
         Assert.Null(result.Document.Settings.AnsiCodePage);
-        Assert.Equal(expectedText, result.Document.Info.Title);
+        Assert.Equal(expectedText, result.Document.Properties.Title);
         Assert.Equal(expectedText, Assert.Single(result.Document.Paragraphs).ToPlainText());
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "RTF103");
     }
@@ -121,7 +121,7 @@ public partial class RtfDocumentReadWriteTests {
 
         RtfReadResult result = RtfDocument.ParseResult(rtf);
 
-        Assert.Equal("ż Title", result.Document.Info.Title);
+        Assert.Equal("ż Title", result.Document.Properties.Title);
         AssertSingleHyperlinkField(Assert.Single(result.Document.Paragraphs), "ż Link");
     }
 
@@ -131,7 +131,7 @@ public partial class RtfDocumentReadWriteTests {
 
         RtfReadResult result = RtfDocument.ParseResult(rtf);
 
-        Assert.Equal("ż Nested ż! After", result.Document.Info.Title);
+        Assert.Equal("ż Nested ż! After", result.Document.Properties.Title);
         AssertSingleHyperlinkField(Assert.Single(result.Document.Paragraphs), "ż Nested ż! Link");
     }
 
@@ -142,7 +142,7 @@ public partial class RtfDocumentReadWriteTests {
         RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
-        Assert.Equal("ż title", result.Document.Info.Title);
+        Assert.Equal("ż title", result.Document.Properties.Title);
         Assert.Equal("ż body", result.Document.Paragraphs[0].ToPlainText());
         AssertSingleHyperlinkField(result.Document.Paragraphs[1], "ż link");
     }
@@ -154,7 +154,7 @@ public partial class RtfDocumentReadWriteTests {
         RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
-        Assert.Equal("Smile 😀", result.Document.Info.Title);
+        Assert.Equal("Smile 😀", result.Document.Properties.Title);
         Assert.Equal("Body 😀", result.Document.Paragraphs[0].ToPlainText());
         AssertSingleHyperlinkField(result.Document.Paragraphs[1], "Link 😀");
     }
@@ -166,7 +166,7 @@ public partial class RtfDocumentReadWriteTests {
         RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
-        Assert.Equal("A–B—C ‘quote’ “double” •", result.Document.Info.Title);
+        Assert.Equal("A–B—C ‘quote’ “double” •", result.Document.Properties.Title);
         Assert.Equal("A–B—C ‘quote’ “double” •", result.Document.Paragraphs[0].ToPlainText());
         AssertSingleHyperlinkField(result.Document.Paragraphs[1], "Link–•");
     }
@@ -175,7 +175,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Write_Emits_Special_Character_Controls_And_Reads_Them_Back() {
         const string specialText = "A\u2013B\u2014C \u2018quote\u2019 \u201Cdouble\u201D \u2022 \u00A0\u2011\u00AD\u2003\u2002\u2005\u200E\u200F\u200D\u200C";
         RtfDocument document = RtfDocument.Create();
-        document.Info.Title = specialText;
+        document.Properties.Title = specialText;
         RtfParagraph paragraph = document.AddParagraph();
         paragraph.AddText("Before ");
         paragraph.AddText(specialText).SetBold();
@@ -202,7 +202,7 @@ public partial class RtfDocumentReadWriteTests {
         Assert.Contains(@"\rtlmark", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\zwj", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\zwnj", rtf, StringComparison.Ordinal);
-        Assert.Equal(specialText, result.Document.Info.Title);
+        Assert.Equal(specialText, result.Document.Properties.Title);
 
         RtfParagraph readParagraph = Assert.Single(result.Document.Paragraphs);
         Assert.Equal("Before " + specialText + specialText, readParagraph.ToPlainText());

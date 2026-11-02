@@ -13,8 +13,8 @@ public sealed partial class IWorkBoundaryTests {
             duplicateMetadata: false, imageCount: 1,
             imageBytes: ValidPreviewPng(), metadataEntryCount: 2);
         var options = new IWorkReadOptions {
-            MaximumProjectedImages = 1,
-            MaximumImageMetadataEntries = 2
+            MaxProjectedImages = 1,
+            MaxImageMetadataEntries = 2
         };
         IWorkSourceDocument source = IWorkSourceDocument.Open(
             package, IWorkDocumentKind.Pages, options);

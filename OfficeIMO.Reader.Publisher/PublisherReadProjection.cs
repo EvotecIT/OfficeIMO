@@ -21,9 +21,9 @@ internal sealed partial class PublisherReadProjection {
     }
 
     internal OfficeDocumentReadResult Build() {
-        foreach (OfficeConversionFidelityDiagnostic finding in _source.ReadReport.FidelityDiagnostics) {
+        foreach (OfficeDiagnostic finding in _source.ReadReport.Diagnostics) {
             _diagnostics.Add(new OfficeDocumentDiagnostic {
-                Code = finding.Code, Message = finding.Message, Source = finding.Source,
+                Code = finding.Code, Message = finding.Message, Source = finding.Format,
                 Severity = finding.LossKind == OfficeConversionLossKind.None ? OfficeDocumentDiagnosticSeverity.Information : OfficeDocumentDiagnosticSeverity.Warning,
                 Category = OfficeDocumentDiagnosticCategory.Content, Location = Location(),
                 Attributes = new Dictionary<string, string> {

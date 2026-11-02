@@ -170,7 +170,7 @@ public class RtfEditingWorkflowTests {
         Assert.Null(importedRun.StyleId);
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RtfMergeStylesFlattened" || diagnostic.Code == "RtfMergeListsFlattened");
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RtfMergeHeaderFootersOmitted");
-        Assert.Throws<RtfConversionLossException>(() => result.Report.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => result.Report.ThrowIfLoss());
         Assert.Equal(1, sourceRun.ForegroundColorIndex);
         Assert.Equal(5, sourceRun.StyleId);
     }
@@ -186,7 +186,7 @@ public class RtfEditingWorkflowTests {
 
         Assert.Equal(new[] { "A", "B" }, destination.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
         Assert.False(result.Report.HasLoss);
-        result.Report.RequireNoLoss();
+        result.Report.ThrowIfLoss();
     }
 
     [Fact]
@@ -201,11 +201,11 @@ public class RtfEditingWorkflowTests {
 
         RtfDocumentMergeResult result = destination.AppendDocument(source);
 
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "RtfMergeSectionLayoutOmitted" &&
             diagnostic.Action == RtfConversionAction.Omitted &&
             diagnostic.Count == 1);
-        Assert.Throws<RtfConversionLossException>(() => result.Report.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => result.Report.ThrowIfLoss());
     }
 
     [Fact]

@@ -14,7 +14,7 @@ public sealed partial class PowerPointDocument {
         var timer = Stopwatch.StartNew();
         PowerPointImageExportOptions resolved = NormalizeDocumentImageExportOptions(options);
         OfficeImageExportBatchSaveResult saved = CreateImageExportBatchOperation(resolved, resolved.Format).SaveFiles(folderPath, cancellationToken);
-        return OfficeImageExportEvidence.CreateReport("PowerPoint", resolved.Format, saved.Report.Diagnostics,
+        return OfficeImageExportEvidence.CreateReport("PowerPoint", resolved.Format, saved.Report.NativeDiagnostics,
             saved.Report.ResultCount, timer.Elapsed, Path.GetFullPath(folderPath));
     }
 
@@ -26,7 +26,7 @@ public sealed partial class PowerPointDocument {
         PowerPointImageExportOptions resolved = NormalizeDocumentImageExportOptions(options);
         OfficeImageExportBatchSaveResult saved = await CreateImageExportBatchOperation(resolved, resolved.Format)
             .SaveFilesAsync(folderPath, cancellationToken).ConfigureAwait(false);
-        return OfficeImageExportEvidence.CreateReport("PowerPoint", resolved.Format, saved.Report.Diagnostics,
+        return OfficeImageExportEvidence.CreateReport("PowerPoint", resolved.Format, saved.Report.NativeDiagnostics,
             saved.Report.ResultCount, timer.Elapsed, Path.GetFullPath(folderPath));
     }
 }

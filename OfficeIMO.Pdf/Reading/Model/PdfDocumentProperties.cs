@@ -1,9 +1,9 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>
-/// Basic PDF document metadata extracted from the Info dictionary.
+/// Standard PDF document properties stored in the Info dictionary. Raw XMP metadata is exposed separately.
 /// </summary>
-public sealed class PdfMetadata {
+public sealed class PdfDocumentProperties {
     private DateTimeOffset? _creationDate;
     private DateTimeOffset? _modificationDate;
     /// <summary>Document title.</summary>
@@ -66,7 +66,7 @@ public sealed class PdfMetadata {
         ModificationDateIsProductionPrecise = productionPrecise;
     }
 
-    internal void CopySourceDatesFrom(PdfMetadata source) {
+    internal void CopySourceDatesFrom(PdfDocumentProperties source) {
         Guard.NotNull(source, nameof(source));
         SetCreationDateFromSource(source.CreationDate, source.CreationDateRaw, source.CreationDateIsProductionPrecise);
         SetModificationDateFromSource(source.ModificationDate, source.ModificationDateRaw, source.ModificationDateIsProductionPrecise);

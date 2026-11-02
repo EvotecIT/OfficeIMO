@@ -20,8 +20,7 @@ public sealed class PublicApiNamingContracts {
         Type[] rootContracts = {
             typeof(IOfficeResult),
             typeof(IOfficeResult<>),
-            typeof(IOfficeConversionReport),
-            typeof(IOfficeConversionResult<,>),
+            typeof(OfficeConversionReport),
             typeof(OfficeConversionResult<,>),
             typeof(OfficeFormatDescriptor),
             typeof(OfficeCompatibilityReport),
@@ -246,14 +245,11 @@ public sealed class PublicApiNamingContracts {
         };
 
         Assert.All(resultTypes, static resultType => {
-            Assert.True(typeof(IOfficeResult).IsAssignableFrom(resultType), resultType.FullName);
-            Assert.Contains(resultType.GetInterfaces(), static contract =>
-                contract.IsGenericType && contract.GetGenericTypeDefinition() == typeof(IOfficeConversionResult<,>));
-            Assert.NotNull(resultType.GetProperty("Value"));
-            Assert.NotNull(resultType.GetProperty("Report"));
+            Assert.Contains(resultType.GetProperties(), static property => property.Name == "Value");
+            Assert.Contains(resultType.GetProperties(), static property => property.Name == "Report"
+                && typeof(OfficeConversionReport).IsAssignableFrom(property.PropertyType));
             Assert.NotNull(resultType.GetProperty("HasLoss"));
-            Assert.NotNull(resultType.GetMethod("RequireValue", Type.EmptyTypes));
-            Assert.NotNull(resultType.GetMethod("RequireNoLoss", Type.EmptyTypes));
+            Assert.NotNull(resultType.GetMethod("ThrowIfLoss", Type.EmptyTypes));
         });
 
         Type[] parseResults = {
@@ -412,7 +408,7 @@ public sealed class PublicApiNamingContracts {
             typeof(OfficeIMO.PowerPoint.PowerPointTableCellBorders)
         };
         string[] removedNames = {
-            "ApplicationProperties", "BuiltinDocumentProperties", "CapsStyle", "CompatibilityMode",
+            "ApplicationProperties", "Properties", "CapsStyle", "CompatibilityMode",
             "CoverPageTemplate", "CustomImagePartType", "WordImagePartType", "DocumentCleanupOptions", "ImageFillMode",
             "ShapeType", "SmartArtType", "TableOfContentStyle", "TargetFrame", "TextMatchType",
             "WrapTextImage", "ExecutionMode", "ExecutionPolicy", "HeaderFooterPosition",

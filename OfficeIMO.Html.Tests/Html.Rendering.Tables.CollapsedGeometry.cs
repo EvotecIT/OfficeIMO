@@ -31,7 +31,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(rowHeight, second.Y - first.Y, 3);
         Assert.Equal(rowHeight, secondText.Y - firstText.Y, 3);
         Assert.Equal(tableHeight, TableGeometryShape(rendered, "div#after").Y, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -242,7 +242,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.True(following.Y >= foot.Y + foot.Height - 0.001D);
         }
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -275,7 +275,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Black, raster.GetPixel(285, 45));
         Assert.Equal(OfficeColor.White, raster.GetPixel(7, 44));
         Assert.Equal(OfficeColor.White, raster.GetPixel(292, 44));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -407,7 +407,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Black, raster.GetPixel(200, 44));
         Assert.Equal(OfficeColor.Black, raster.GetPixel(200, 45));
         Assert.Equal(OfficeColor.Red, raster.GetPixel(200, 46));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -440,7 +440,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(OfficeColor.Black, raster.GetPixel(200, 44));
             Assert.Equal(OfficeColor.Red, raster.GetPixel(200, 46));
         }
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private const string CollapsedGeometryFollowing = "<div id='after' style='height:10px;background:red'>After</div>";
@@ -486,7 +486,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(expectedText[index].Y, actualText[index].Y, 3);
             Assert.Equal(expectedText[index].Width, actualText[index].Width, 3);
         }
-        expected.RequireNoLoss();
-        actual.RequireNoLoss();
+        expected.ThrowIfLoss();
+        actual.ThrowIfLoss();
     }
 }

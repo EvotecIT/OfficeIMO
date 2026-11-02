@@ -30,7 +30,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         Assert.NotNull(edge.ResolvedLabelBounds);
         var options = new OfficeVisioVisualOptions { PixelsPerInch = 144, LayoutMode = OfficeVisioVisualLayoutMode.Preserve };
         var result = jsonIngress ? artifact.ToInterchangeUtf8Json().ToOfficeVisio(options) : artifact.ToOfficeVisio(options);
-        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.LayoutRecomputed ||
+        Assert.DoesNotContain(result.Report.NativeDiagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.LayoutRecomputed ||
             item.Feature == "computedRoute" || item.Feature == "selfRoute");
 
         void Check(VisioPage page) {
@@ -97,7 +97,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
             sequence ? VisualArtifactKind.Sequence : VisualArtifactKind.Flow);
         var result = artifact.ToInterchangeUtf8Json().ToOfficeVisio(new OfficeVisioVisualOptions { UseNaturalPageSize = true });
         Assert.True(result.Report.AllProjectedObjectsEditable);
-        Assert.Contains(result.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.LayoutRecomputed);
+        Assert.Contains(result.Report.NativeDiagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.LayoutRecomputed);
         Assert.Throws<NotSupportedException>(() => artifact.ToOfficeVisio(new OfficeVisioVisualOptions { LayoutMode = OfficeVisioVisualLayoutMode.Preserve }));
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
         try {

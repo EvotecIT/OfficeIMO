@@ -47,8 +47,8 @@ internal static partial class RtfReaderAdapter {
         ReaderChunk[] chunks = Read(document, source, options, formatOptions, included, token).ToArray();
         var result = DocumentReaderEngine.CreateDocumentResult(chunks, ReaderInputKind.Rtf,
             new OfficeDocumentSource { Path = source.Path, SourceId = source.SourceId, SourceHash = source.SourceHash,
-                LastWriteUtc = source.LastWriteUtc, LengthBytes = source.LengthBytes, Title = document.Info.Title,
-                Author = document.Info.Author, Subject = document.Info.Subject, Keywords = document.Info.Keywords },
+                LastWriteUtc = source.LastWriteUtc, LengthBytes = source.LengthBytes, Title = document.Properties.Title,
+                Author = document.Properties.Author, Subject = document.Properties.Subject, Keywords = document.Properties.Keywords },
             new[] { "officeimo.reader.rtf.text-and-metadata", "officeimo.rtf.semantic-model" });
         result.Metadata = new[] {
             RtfMetadata("rtf-font-count", "FontCount", document.Fonts.Count),

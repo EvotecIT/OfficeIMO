@@ -293,10 +293,9 @@ public sealed class LegacyWordImportResult : IDisposable {
     /// <summary>Returns the imported Word document.</summary>
     public WordDocument RequireValue() => Value;
     /// <summary>Returns the imported Word document or throws when the import was lossy.</summary>
-    public WordDocument RequireNoLoss() {
+    public void ThrowIfLoss() {
         try {
-            Report.RequireNoLoss();
-            return Value;
+            Report.ThrowIfLoss();
         } catch {
             Value.Dispose();
             throw;

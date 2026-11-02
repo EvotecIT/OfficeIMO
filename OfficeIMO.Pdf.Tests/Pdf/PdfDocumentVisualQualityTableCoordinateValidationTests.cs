@@ -153,8 +153,8 @@ public partial class PdfDocumentVisualQualityTests {
     public void Table_IgnoresCellAlignmentCoordinatesCoveredByRowSpan() {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.CellAlignments = new Dictionary<(int Row, int Column), PdfColumnAlign> {
-            [(1, 0)] = PdfColumnAlign.Right
+        style.CellAlignments = new Dictionary<(int Row, int Column), OfficeAlignment> {
+            [(1, 0)] = OfficeAlignment.Right
         };
 
         byte[] bytes = PdfDocument.Create()
@@ -170,10 +170,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_RejectsOutOfRangeColumnAlignment() {
         var style = PdfTableStyles.Minimal();
-        style.Alignments = new List<PdfColumnAlign> {
-            PdfColumnAlign.Left,
-            PdfColumnAlign.Right,
-            PdfColumnAlign.Center
+        style.Alignments = new List<OfficeAlignment> {
+            OfficeAlignment.Left,
+            OfficeAlignment.Right,
+            OfficeAlignment.Center
         };
 
         var exception = Assert.Throws<ArgumentException>(() =>
@@ -190,10 +190,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RowColumnTable_RejectsOutOfRangeColumnAlignment() {
         var style = PdfTableStyles.Minimal();
-        style.Alignments = new List<PdfColumnAlign> {
-            PdfColumnAlign.Left,
-            PdfColumnAlign.Right,
-            PdfColumnAlign.Center
+        style.Alignments = new List<OfficeAlignment> {
+            OfficeAlignment.Left,
+            OfficeAlignment.Right,
+            OfficeAlignment.Center
         };
 
         var exception = Assert.Throws<ArgumentException>(() =>
@@ -215,10 +215,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void ParagraphKeepWithNext_RejectsFollowingTableWithOutOfRangeColumnAlignment() {
         var style = PdfTableStyles.Minimal();
-        style.Alignments = new List<PdfColumnAlign> {
-            PdfColumnAlign.Left,
-            PdfColumnAlign.Right,
-            PdfColumnAlign.Center
+        style.Alignments = new List<OfficeAlignment> {
+            OfficeAlignment.Left,
+            OfficeAlignment.Right,
+            OfficeAlignment.Center
         };
 
         var exception = Assert.Throws<ArgumentException>(() =>

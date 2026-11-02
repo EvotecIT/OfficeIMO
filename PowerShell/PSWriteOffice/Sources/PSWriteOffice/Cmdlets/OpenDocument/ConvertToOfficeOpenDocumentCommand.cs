@@ -85,7 +85,7 @@ public sealed class ConvertToOfficeOpenDocumentCommand : PSCmdlet
                         ownedWord = word;
                     }
                     var wordResult = word.ToOpenDocumentResult(WordOptions);
-                    if (FailOnLoss.IsPresent) wordResult.RequireNoLoss();
+                    if (FailOnLoss.IsPresent) wordResult.ThrowIfLoss();
                     wordResult.Value.Save(output);
                     result = wordResult;
                     break;
@@ -97,7 +97,7 @@ public sealed class ConvertToOfficeOpenDocumentCommand : PSCmdlet
                         ownedExcel = excel;
                     }
                     var excelResult = excel.ToOpenDocumentResult(ExcelOptions);
-                    if (FailOnLoss.IsPresent) excelResult.RequireNoLoss();
+                    if (FailOnLoss.IsPresent) excelResult.ThrowIfLoss();
                     excelResult.Value.Save(output);
                     result = excelResult;
                     break;
@@ -109,7 +109,7 @@ public sealed class ConvertToOfficeOpenDocumentCommand : PSCmdlet
                         ownedPresentation = presentation;
                     }
                     var presentationResult = presentation.ToOpenDocumentResult(PowerPointOptions);
-                    if (FailOnLoss.IsPresent) presentationResult.RequireNoLoss();
+                    if (FailOnLoss.IsPresent) presentationResult.ThrowIfLoss();
                     presentationResult.Value.Save(output);
                     result = presentationResult;
                     break;

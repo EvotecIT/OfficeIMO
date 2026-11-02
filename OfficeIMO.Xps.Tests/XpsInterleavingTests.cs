@@ -50,8 +50,8 @@ public sealed class XpsInterleavingTests {
     public void AggregatePartLimitAppliesBeforePieceMaterializationAndPhysicalEntriesAreBounded() {
         var doc = XpsDocument.Create(); doc.AddPage(); doc.AddResource("payload.bin", new byte[4000], "application/octet-stream");
         byte[] interleaved = Interleave(doc.ToBytes());
-        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(interleaved, new XpsReadOptions { MaximumPartBytes = 3000 }));
-        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(interleaved, new XpsReadOptions { MaximumParts = 5 }));
+        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(interleaved, new XpsReadOptions { Limits = { MaxPartBytes = 3000 } }));
+        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(interleaved, new XpsReadOptions { Limits = { MaxParts = 5 } }));
     }
     internal static byte[] Interleave(byte[] input) {
         using var zip = new ZipArchive(new MemoryStream(input), ZipArchiveMode.Read);

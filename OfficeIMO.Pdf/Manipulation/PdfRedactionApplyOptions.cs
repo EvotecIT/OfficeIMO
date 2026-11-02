@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>Additional document-level residue removed by an explicit redaction policy.</summary>
 [Flags]
 public enum PdfRedactionCleanupScope {
-    /// <summary>Only intersecting page content and annotations are changed.</summary>
+    /// <summary>Only intersecting page content and annotations are changed, except that searched text is still removed from metadata, bookmark titles and alternate text.</summary>
     None = 0,
     /// <summary>Clear Info metadata and remove catalog/page XMP streams.</summary>
     Metadata = 1,

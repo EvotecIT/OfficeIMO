@@ -155,7 +155,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Counter_boundaries_charge_the_shared_text_budget() {
         using var package = DecimalCounterPackage(IWorkDocumentKind.Numbers,
             AttributeTable(14, Enumerable.Range(0, 20).Select(_ => ListLevelEntry(0, 0)).ToArray()));
-        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumProjectedTextItems = 10 });
+        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxProjectedTextItems = 10 });
         Assert.Contains("attribute", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message,
             StringComparison.OrdinalIgnoreCase);
     }

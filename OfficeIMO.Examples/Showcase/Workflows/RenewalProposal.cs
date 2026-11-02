@@ -6,7 +6,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
         internal static void Create(string folder) {
             using var document = WordDocument.Create(Path.Combine(folder, "example.docx"));
             document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);
-            document.BuiltinDocumentProperties.Title = "Managed service renewal";
+            document.Properties.Title = "Managed service renewal";
             document.AddParagraph("Managed service renewal").Style = WordParagraphStyles.Heading1;
             document.AddParagraph("NORTHWIND / RENEWAL 2027 / DRAFT COMMERCIAL TERMS");
             document.AddParagraph("Review the service commitments before renewing. This proposal keeps scope, price and the acceptance decision together.");

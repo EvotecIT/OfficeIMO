@@ -17,7 +17,7 @@ internal sealed partial class PdfReadDocument {
     private Dictionary<string, PdfNamedDestination>? _stringDestinations;
     private Dictionary<int, int>? _pageNumberByObject;
     private readonly PdfFontResourceCache _fontResourceCache = new();
-    private readonly PdfMetadata _metadata;
+    private readonly PdfDocumentProperties _metadata;
     private readonly PdfXmpMetadataInfo? _xmpMetadata;
     private readonly IReadOnlyList<PdfOutputIntentInfo> _outputIntents;
     private readonly bool _outputIntentsAreComplete;
@@ -127,7 +127,7 @@ internal sealed partial class PdfReadDocument {
     public IReadOnlyList<PdfReadPage> Pages { get; }
 
     /// <summary>Document metadata (when present).</summary>
-    public PdfMetadata Metadata => ReadLogicalContent(_metadata);
+    public PdfDocumentProperties Metadata => ReadLogicalContent(_metadata);
 
     /// <summary>Top-level document outline/bookmark entries.</summary>
     public IReadOnlyList<PdfOutlineItem> Outlines => ReadLogicalContent(_outlines);
@@ -191,8 +191,8 @@ internal sealed partial class PdfReadDocument {
 
     internal IReadOnlyList<PdfOutlineItem> UncheckedOutlines => _outlines;
     // Rewrites and inspection must read the parsed source, since Metadata is a mutable read model.
-    internal PdfMetadata UncheckedMetadata => ExtractMetadata();
-    internal PdfMetadata GetUncheckedMetadata(CancellationToken cancellationToken) => ExtractMetadata(cancellationToken);
+    internal PdfDocumentProperties UncheckedMetadata => ExtractMetadata();
+    internal PdfDocumentProperties GetUncheckedMetadata(CancellationToken cancellationToken) => ExtractMetadata(cancellationToken);
     internal PdfXmpMetadataInfo? UncheckedXmpMetadata => _xmpMetadata;
     internal IReadOnlyList<PdfOutputIntentInfo> UncheckedOutputIntents => _outputIntents;
     internal bool UncheckedOutputIntentsAreComplete => _outputIntentsAreComplete;

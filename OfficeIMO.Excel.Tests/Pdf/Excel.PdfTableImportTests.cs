@@ -171,7 +171,7 @@ LoadTables(pdf),            workbook,
         Assert.Equal(2, report.SourceScope.DocumentActionCount);
         Assert.True(report.HasOmittedPageContent);
         Assert.True(report.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
     }
 
     [Fact]
@@ -1597,7 +1597,7 @@ logical,            workbook,
         Assert.Equal(3, result.TotalRowCount);
         Assert.True(result.Truncated);
         Assert.True(report.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
 
         using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbook.ToArray());
         object?[,] values = reader.GetSheet(result.SheetName).ReadRange(result.Range);

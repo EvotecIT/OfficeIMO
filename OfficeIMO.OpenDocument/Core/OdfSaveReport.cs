@@ -1,7 +1,7 @@
 namespace OfficeIMO.OpenDocument;
 
 /// <summary>Describes which package entries a save rewrote, copied, removed, or could not project losslessly.</summary>
-public sealed class OdfSaveReport : global::OfficeIMO.IOfficeConversionReport {
+public sealed class OdfSaveReport : OfficeConversionReport {
     internal OdfSaveReport(IReadOnlyList<string> rewrittenEntries, IReadOnlyList<string> copiedEntries,
         IReadOnlyList<string> removedEntries, IReadOnlyList<string>? lossyEntries = null) {
         RewrittenEntries = rewrittenEntries;
@@ -20,20 +20,27 @@ public sealed class OdfSaveReport : global::OfficeIMO.IOfficeConversionReport {
     public IReadOnlyList<string> LossyEntries { get; }
 
     /// <summary>Category-preserving entry diagnostics for composed save routes.</summary>
-    public IReadOnlyList<global::OfficeIMO.OfficeConversionFidelityDiagnostic> FidelityDiagnostics =>
-        Array.AsReadOnly(RemovedEntries.Select(entry => new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
-                "ODF_ENTRY_REMOVED", "The source package entry was removed.",
-                global::OfficeIMO.OfficeConversionLossKind.Omission, "OfficeIMO.OpenDocument", entry))
-            .Concat(LossyEntries.Select(entry => new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
-                "ODF_ENTRY_OMITTED", "The source package entry was not represented in the flat document.",
-                global::OfficeIMO.OfficeConversionLossKind.Omission, "OfficeIMO.OpenDocument", entry)))
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics =>
+        Array.AsReadOnly(RemovedEntries.Select(entry => new global::OfficeIMO.OfficeDiagnostic(
+                "ODF_ENTRY_REMOVED",
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
+                "The source package entry was removed.",
+                entry,
+                "OfficeIMO.OpenDocument",
+                global::OfficeIMO.OfficeConversionLossKind.Omission))
+            .Concat(LossyEntries.Select(entry => new global::OfficeIMO.OfficeDiagnostic(
+                "ODF_ENTRY_OMITTED",
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
+                "The source package entry was not represented in the flat document.",
+                entry,
+                "OfficeIMO.OpenDocument",
+                global::OfficeIMO.OfficeConversionLossKind.Omission)))
             .ToArray());
 
     /// <summary>True when an entry was removed or projected lossily.</summary>
-    public bool HasLoss => RemovedEntries.Count != 0 || LossyEntries.Count != 0;
+    public override bool HasLoss => RemovedEntries.Count != 0 || LossyEntries.Count != 0;
 
     /// <summary>Throws when an entry was removed or projected lossily.</summary>
-    public void RequireNoLoss() {
-        if (HasLoss) throw new InvalidOperationException("OpenDocument save reported entry-level fidelity loss.");
-    }
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("OpenDocument save reported entry-level fidelity loss.", this);
 }

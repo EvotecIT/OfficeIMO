@@ -37,7 +37,7 @@ public static class OfficeDocumentReaderBuilderVisioExtensions {
                     limitations: new[] { "Formulas, native fields, custom data and binary carriers are not preserved",
                         "Earlier binary generations are rejected; page-less stencils have no page text chunks" },
                     evidence: new[] { "OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/producer-manifest.json" })).ToArray(),
-            DefaultMaxInputBytes = global::OfficeIMO.Visio.VisioLoadOptions.DefaultMaxInputBytes,
+            DefaultMaxInputBytes = global::OfficeIMO.Visio.VisioLoadLimits.DefaultMaxInputBytes,
             ReadPath = (path, readerOptions, ct) => VisioReaderAdapter.Read(
                 visioPath: path,
                 readerOptions: readerOptions,

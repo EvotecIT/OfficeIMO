@@ -131,9 +131,9 @@ public sealed class XpsReaderTests {
     [Fact]
     public void RegisteredLimitsAreSnapshottedAndCannotBeRaisedByReaderOptions() {
         var doc = Create(XpsFormat.OpenXps, new[] { "Text" });
-        var options = new ReaderXpsOptions { ReadOptions = new XpsReadOptions { MaximumInputBytes = 8 } };
+        var options = new ReaderXpsOptions { ReadOptions = new XpsReadOptions { Limits = { MaxInputBytes = 8 } } };
         var reader = new OfficeDocumentReaderBuilder().AddXpsHandler(options).Build();
-        options.ReadOptions.MaximumInputBytes = int.MaxValue;
+        options.ReadOptions.Limits.MaxInputBytes = int.MaxValue;
         Assert.Throws<IOException>(() => reader.ReadDocument(doc.ToBytes(), "input.oxps", new ReaderOptions { MaxInputBytes = int.MaxValue }));
     }
 

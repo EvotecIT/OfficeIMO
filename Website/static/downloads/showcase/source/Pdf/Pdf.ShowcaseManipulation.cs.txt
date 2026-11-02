@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Pdf {
             string extractedTextPath = Path.Combine(folderPath, "Pdf.Showcase.Manipulation.ExtractedText.txt");
 
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Source A", PdfAlign.Left)
+                .H1("Source A", OfficeAlignment.Left)
                 .Paragraph(p => p.Text("This page is created first, then merged with Source B through the fluent PdfDocument API."))
                 .Table(new[] {
                     new[] { "Capability", "Status", "Notes" },
@@ -21,7 +21,7 @@ namespace OfficeIMO.Examples.Pdf {
                     new[] { "Extract", "Ready", "Page ranges and reordered pages" }
                 }, style: UtilityTableStyle())
                 .PageBreak()
-                .H1("Source A \u2013 details", PdfAlign.Left)
+                .H1("Source A \u2013 details", OfficeAlignment.Left)
                 .PanelParagraph(
                     p => p.Bold("Page two is extracted later. ").Text("This proves the example is not just visual; it also exercises read/rewrite operations."),
                     new PdfPanelStyle {
@@ -35,7 +35,7 @@ namespace OfficeIMO.Examples.Pdf {
                 .Save(sourceAPath);
 
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Source B", PdfAlign.Left)
+                .H1("Source B", OfficeAlignment.Left)
                 .Paragraph(p => p.Text("A second input document is merged into the final pack, then a stamp is applied to the combined output."))
                 .Bullets(new[] {
                     "Merge reads source pages and rewrites a new document.",
@@ -69,7 +69,7 @@ namespace OfficeIMO.Examples.Pdf {
                         PageNumbers = new[] { page },
                         X = pageGeometry.PageWidth - pageGeometry.MarginRight,
                         Y = OfficeLength.Points(36),
-                        Align = PdfAlign.Right,
+                        Align = OfficeAlignment.Right,
                         Font = PdfStandardFont.Helvetica,
                         FontSize = OfficeLength.Points(8.5),
                         Color = OfficeTheme.Default.Palette.TextMuted
@@ -86,7 +86,7 @@ namespace OfficeIMO.Examples.Pdf {
         private static PdfCreateOptions StandardOptions(string header) {
             return new PdfCreateOptions {
                 HeaderFormat = header,
-                HeaderAlign = PdfAlign.Left,
+                HeaderAlign = OfficeAlignment.Left,
                 ShowHeader = true,
                 CreateOutlineFromHeadings = true
             };

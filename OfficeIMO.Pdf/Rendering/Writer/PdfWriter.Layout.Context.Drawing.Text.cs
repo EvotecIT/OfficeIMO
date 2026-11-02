@@ -225,7 +225,7 @@ internal static partial class PdfWriter {
                 ? EnsureGraphicsState(1D, (decorationColor ?? foregroundColor).A / 255D)
                 : null;
             void Paint() {
-                WriteClippedRichParagraph(sb, new RichParagraphBlock(runs, PdfAlign.Left, null),
+                WriteClippedRichParagraph(sb, new RichParagraphBlock(runs, OfficeAlignment.Left, null),
                     line.Lines, line.LineHeights, currentOpts, baseline, size, size * 1.2D,
                     currentPage!.Annotations, x + (clipX - x) / scale, clipY, clipWidth / scale,
                     clipHeight, x, Math.Max(0.001D, actualWidth), suppressActualText: _suppressCanvasActualTextChildren,
@@ -251,11 +251,11 @@ internal static partial class PdfWriter {
             return string.IsNullOrWhiteSpace(familyName) ? ChooseNormal(currentOpts.DefaultFont) : PdfStandardFont.Helvetica;
         }
 
-        private static PdfAlign MapDrawingTextAlignment(OfficeTextAlignment alignment) => alignment switch {
-            OfficeTextAlignment.Center => PdfAlign.Center,
-            OfficeTextAlignment.Right => PdfAlign.Right,
-            OfficeTextAlignment.Justify => PdfAlign.Justify,
-            _ => PdfAlign.Left
+        private static OfficeAlignment MapDrawingTextAlignment(OfficeTextAlignment alignment) => alignment switch {
+            OfficeTextAlignment.Center => OfficeAlignment.Center,
+            OfficeTextAlignment.Right => OfficeAlignment.Right,
+            OfficeTextAlignment.Justify => OfficeAlignment.Justify,
+            _ => OfficeAlignment.Left
         };
 
         private static PdfTextBaseline MapDrawingTextBaseline(OfficeTextBaseline baseline) => baseline switch {

@@ -247,9 +247,9 @@ public sealed class PdfLogicalReadingOrderTests {
                 [(1, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.86D, 0.92D, 0.99D),
                 [(3, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.99D, 0.95D, 0.78D)
             },
-            CellAlignments = new Dictionary<(int Row, int Column), PdfColumnAlign> {
-                [(1, 0)] = PdfColumnAlign.Center,
-                [(3, 0)] = PdfColumnAlign.Center
+            CellAlignments = new Dictionary<(int Row, int Column), OfficeAlignment> {
+                [(1, 0)] = OfficeAlignment.Center,
+                [(3, 0)] = OfficeAlignment.Center
             },
             CellVerticalAlignments = new Dictionary<(int Row, int Column), PdfCellVerticalAlign> {
                 [(1, 0)] = PdfCellVerticalAlign.Middle

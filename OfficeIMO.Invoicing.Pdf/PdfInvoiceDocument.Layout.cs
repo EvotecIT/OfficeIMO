@@ -42,7 +42,7 @@ public sealed partial class PdfInvoiceDocument {
         }));
         if (_amounts.Taxes.Count != 0)
             content.Table(taxes, style: new PdfTableStyle { HeaderRowCount = 1, FontSize = OfficeLength.Points(9), SpacingAfter = OfficeLength.Points(12),
-                Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right, PdfColumnAlign.Right, PdfColumnAlign.Left } });
+                Alignments = new List<OfficeAlignment> { OfficeAlignment.Left, OfficeAlignment.Right, OfficeAlignment.Right, OfficeAlignment.Left } });
         var summaryRows = new List<string[]>();
         void AddSummary(InvoicePdfText label, decimal? value) {
             if (value.HasValue) summaryRows.Add(new[] { Label(label), Money(value.Value) });
@@ -60,7 +60,7 @@ public sealed partial class PdfInvoiceDocument {
         });
         content.Flow(summary => summary.Table(summaryRows, style: new PdfTableStyle {
             HeaderRowCount = 0, FontSize = global::OfficeIMO.OfficeLength.Points(10), SpacingAfter = global::OfficeIMO.OfficeLength.Points(14),
-            Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right }
+            Alignments = new List<OfficeAlignment> { OfficeAlignment.Left, OfficeAlignment.Right }
         }), new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.MoveToNextPage });
         ComposeDetails(content);
     }

@@ -74,8 +74,8 @@ public sealed class ProjectionBoundaryTests {
         Assert.Contains("#note", projected.Value.SourceHtml);
         Assert.NotNull(projected.Value.Document.QuerySelector("#chm-topic-1-note"));
         Assert.True(projected.Report.HasLoss);
-        Assert.Contains(projected.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "CHM_STYLE_IDENTIFIERS");
-        Assert.Equal(multiple, projected.Report.FidelityDiagnostics.Any(diagnostic => diagnostic.Code == "CHM_COMBINED_STYLE_SCOPE"));
+        Assert.Contains(projected.Report.Diagnostics, diagnostic => diagnostic.Code == "CHM_STYLE_IDENTIFIERS");
+        Assert.Equal(multiple, projected.Report.Diagnostics.Any(diagnostic => diagnostic.Code == "CHM_COMBINED_STYLE_SCOPE"));
     }
 
     [Fact]
@@ -158,10 +158,10 @@ public sealed class ProjectionBoundaryTests {
         var html = book.ToHtmlDocumentResult();
         Assert.Equal("h2", html.Value.Document.QuerySelector("#chm-topic-1-title")!.LocalName);
         Assert.Contains("h1 { color: red; }", html.Value.SourceHtml);
-        Assert.Contains(html.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "CHM_HEADING_LEVELS"
+        Assert.Contains(html.Report.Diagnostics, diagnostic => diagnostic.Code == "CHM_HEADING_LEVELS"
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation && diagnostic.Location == "/first.html");
-        Assert.Contains(book.ToMarkdownResult().Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "CHM_HEADING_LEVELS");
-        Assert.Contains(book.ToEpubPublicationResult().Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "CHM_HEADING_LEVELS");
+        Assert.Contains(book.ToMarkdownResult().Report.Diagnostics, diagnostic => diagnostic.Code == "CHM_HEADING_LEVELS");
+        Assert.Contains(book.ToEpubPublicationResult().Report.Diagnostics, diagnostic => diagnostic.Code == "CHM_HEADING_LEVELS");
     }
 
     private static byte[] TwoTopics() => ChmFixture.Archive(new Dictionary<string, byte[]> {

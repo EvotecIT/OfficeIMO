@@ -48,7 +48,7 @@ namespace OfficeIMO.Excel.Pdf {
                 tableStyle.CellPaddings = CreateIconCellPaddings(cellIcons, tableStyle.CellPaddings, tableStyle.CellPaddingLeft?.ToPoints() ?? tableStyle.CellPaddingX.ToPoints());
             }
 
-            Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>? cellAlignments = CreateCellAlignments(styles, rowIndexes, columnOffset, exportedColumns);
+            Dictionary<(int Row, int Column), global::OfficeIMO.OfficeAlignment>? cellAlignments = CreateCellAlignments(styles, rowIndexes, columnOffset, exportedColumns);
             if (cellAlignments != null) {
                 tableStyle.CellAlignments = cellAlignments;
             }
@@ -351,7 +351,7 @@ namespace OfficeIMO.Excel.Pdf {
                     Kind = GetLegacyConditionalIconShape(conditionalIcon.Value.Kind),
                     Color = GetLegacyConditionalIconColor(conditionalIcon.Value.Kind),
                     Size = global::OfficeIMO.OfficeLength.Points(8D),
-                    HorizontalAlignment = PdfCore.PdfColumnAlign.Left
+                    HorizontalAlignment = global::OfficeIMO.OfficeAlignment.Left
                 };
             }
 
@@ -379,14 +379,14 @@ namespace OfficeIMO.Excel.Pdf {
             return paddings;
         }
 
-        private static Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>? CreateCellAlignments(ExcelCellStyleInfo?[,]? styles, IReadOnlyList<int> rowIndexes, int columnOffset = 0, int exportedColumns = 0) {
+        private static Dictionary<(int Row, int Column), global::OfficeIMO.OfficeAlignment>? CreateCellAlignments(ExcelCellStyleInfo?[,]? styles, IReadOnlyList<int> rowIndexes, int columnOffset = 0, int exportedColumns = 0) {
             if (styles == null) {
                 return null;
             }
 
             int columnEnd = exportedColumns > 0 ? columnOffset + exportedColumns : styles.GetLength(1);
             int columns = Math.Min(columnEnd, styles.GetLength(1));
-            Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>? alignments = null;
+            Dictionary<(int Row, int Column), global::OfficeIMO.OfficeAlignment>? alignments = null;
             for (int localRow = 0; localRow < rowIndexes.Count; localRow++) {
                 int row = rowIndexes[localRow];
                 if (row < 0 || row >= styles.GetLength(0)) {
@@ -394,9 +394,9 @@ namespace OfficeIMO.Excel.Pdf {
                 }
 
                 for (int column = columnOffset; column < columns; column++) {
-                    PdfCore.PdfColumnAlign? alignment = ToPdfHorizontalAlignment(styles[row, column]?.HorizontalAlignment);
+                    global::OfficeIMO.OfficeAlignment? alignment = ToPdfHorizontalAlignment(styles[row, column]?.HorizontalAlignment);
                     if (alignment.HasValue) {
-                        alignments ??= new Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>();
+                        alignments ??= new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeAlignment>();
                         alignments[(localRow, column - columnOffset)] = alignment.Value;
                     }
                 }
@@ -497,19 +497,19 @@ namespace OfficeIMO.Excel.Pdf {
             return -1;
         }
 
-        private static PdfCore.PdfColumnAlign? ToPdfHorizontalAlignment(string? alignment) {
+        private static global::OfficeIMO.OfficeAlignment? ToPdfHorizontalAlignment(string? alignment) {
             if (string.IsNullOrWhiteSpace(alignment)) {
                 return null;
             }
 
             switch (alignment!.Trim().ToLowerInvariant()) {
                 case "left":
-                    return PdfCore.PdfColumnAlign.Left;
+                    return global::OfficeIMO.OfficeAlignment.Left;
                 case "center":
                 case "centercontinuous":
-                    return PdfCore.PdfColumnAlign.Center;
+                    return global::OfficeIMO.OfficeAlignment.Center;
                 case "right":
-                    return PdfCore.PdfColumnAlign.Right;
+                    return global::OfficeIMO.OfficeAlignment.Right;
                 default:
                     return null;
             }

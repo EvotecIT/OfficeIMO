@@ -27,7 +27,7 @@ internal sealed partial class PublisherPageProjector {
         bool metafile = format is OfficeImageFormat.Wmf or OfficeImageFormat.Emf;
         if (!effects.HasProjection && !metafile) return image.Bytes;
         _context.AccountImageProcessing(image.ByteCount);
-        long maximumPixels = _context.Options.MaximumRasterPixels;
+        long maximumPixels = _context.Options.MaxRasterPixels;
         if (effects.HasProjection) {
             maximumPixels = Math.Min(maximumPixels, _context.RemainingImageProcessingPixels / 2);
             if (maximumPixels < 1) throw new InvalidDataException("Publisher image processing pixel limit exceeded.");
@@ -42,7 +42,7 @@ internal sealed partial class PublisherPageProjector {
                 OfficeConversionLossKind.Approximation, PublisherEscherReader.ShapeLocation(objectId));
         }
         contentType = "image/png";
-        return OfficeRasterImageEncoder.Encode(raster, OfficeImageExportFormat.Png, null, _context.Options.MaximumImageBytes, _context.Token);
+        return OfficeRasterImageEncoder.Encode(raster, OfficeImageExportFormat.Png, null, _context.Options.MaxImageBytes, _context.Token);
     }
 
     private OfficeRasterImage DecodeEffectRaster(PublisherImage image, uint objectId, long maximumPixels) {
@@ -57,7 +57,7 @@ internal sealed partial class PublisherPageProjector {
         var options = new OfficeRasterDecodeOptions {
             MaximumDecodedPixels = Math.Min(maximumPixels, 50_000_000),
             MaximumInspectionWorkPixels = Math.Max(1, inspectionPixels),
-            MaximumEncodedBytes = Math.Min(_context.Options.MaximumImageBytes, 128 * 1024 * 1024),
+            MaximumEncodedBytes = Math.Min(_context.Options.MaxImageBytes, 128 * 1024 * 1024),
             ImageCodec = _context.Options.ImageCodec, CancellationToken = _context.Token
         };
         if (!OfficeRasterImageDecoder.TryDecode(image.Bytes, options, out OfficeRasterImage? raster, out OfficeRasterDecodeInfo info)

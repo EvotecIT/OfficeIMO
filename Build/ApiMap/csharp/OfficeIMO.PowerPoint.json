@@ -12232,6 +12232,15 @@
       "category": "naming",
       "reason": "Package signature operations use the same stems; VBA and PDF external-signature workflows remain explicit.",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointDocument.BuiltinDocumentProperties",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.Properties",
+      "category": "naming",
+      "reason": "Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate.",
+      "applied": true
     }
   ],
   "packageMoves": [

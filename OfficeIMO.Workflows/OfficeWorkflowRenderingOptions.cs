@@ -46,7 +46,7 @@ internal sealed partial class OfficeWorkflowRenderingOptions {
     /// <summary>Shared PDF output settings for recovered Publisher pages.</summary>
     public PdfCreateOptions? PublisherPdf { get; set; }
     /// <summary>Rejects source or PDF-stage conversion losses for drawing, publication and DjVu PDF routes before publication.</summary>
-    public bool RequireNoLoss { get; set; }
+    public bool FailOnLoss { get; set; }
     /// <summary>Native XPS/OpenXPS semantic preservation and PDF output settings.</summary>
     public XpsToPdfOptions? Xps { get; set; }
     /// <summary>Scanned-page PDF and stored-text settings. Workflow OCR uses separate explicit OCR operations.</summary>
@@ -117,7 +117,7 @@ internal sealed partial class OfficeWorkflowRenderingOptions {
         if (routeId != "odg-pdf") copy.Draw = null;
         if (routeId != "visio-pdf") copy.Visio = null;
         if (routeId != "publisher-pdf") { copy.PublisherRead = null; copy.PublisherPdf = null; }
-        if (routeId is not "odg-pdf" and not "visio-pdf" and not "djvu-pdf" and not "publisher-pdf") copy.RequireNoLoss = false;
+        if (routeId is not "odg-pdf" and not "visio-pdf" and not "djvu-pdf" and not "publisher-pdf") copy.FailOnLoss = false;
         if (routeId != "djvu-pdf") copy.DjVu = null;
         if (routeId != "xps-pdf") copy.Xps = null;
         if (routeId != "txt-pdf") copy.PlainText = null;
@@ -152,7 +152,7 @@ internal sealed partial class OfficeWorkflowRenderingOptions {
             throw new ArgumentException("Visio workflow conversion requires DiagramPages settings.");
         if (copy.Html?.ResourceResolver != null)
             throw new ArgumentException("Workflow HTML resources use the scoped source resolver. Use the native HTML adapter for runtime custom resolvers.");
-        if (copy.RequireNoLoss && route.Id is not "odg-pdf" and not "visio-pdf" and not "djvu-pdf" and not "publisher-pdf")
+        if (copy.FailOnLoss && route.Id is not "odg-pdf" and not "visio-pdf" and not "djvu-pdf" and not "publisher-pdf")
             throw new ArgumentException("Lossless acceptance requires a drawing, publication or DjVu PDF route.");
         if (copy.PlainText != null && route.Id != "txt-pdf") throw new ArgumentException("Plain-text settings require TXT-to-PDF conversion.");
         if (copy.LegacyDocLossPolicy is not OfficeConversionLossPolicy.Block and not OfficeConversionLossPolicy.Allow ||

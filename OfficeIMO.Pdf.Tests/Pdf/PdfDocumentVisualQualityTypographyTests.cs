@@ -142,7 +142,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau."), PdfAlign.Justify)
+            .Paragraph(p => p.Text("Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau."), OfficeAlignment.Justify)
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -171,8 +171,8 @@ public partial class PdfDocumentVisualQualityTests {
         var cell = new PdfTableCell(
             firstRuns.Concat(secondRuns),
             new[] {
-                new PdfTableCellParagraph(firstRuns, align: PdfAlign.Justify),
-                new PdfTableCellParagraph(secondRuns, align: PdfAlign.Justify)
+                new PdfTableCellParagraph(firstRuns, align: OfficeAlignment.Justify),
+                new PdfTableCellParagraph(secondRuns, align: OfficeAlignment.Justify)
             });
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) })
             .Table(new[] { new[] { cell } }, style: PdfTableStyles.Minimal())
@@ -202,7 +202,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Paragraph(p => p
                 .Text("Alpha beta gamma")
                 .LineBreak()
-                .Text("Second line continues with enough words to wrap naturally."), PdfAlign.Justify)
+                .Text("Second line continues with enough words to wrap naturally."), OfficeAlignment.Justify)
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -231,7 +231,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .H1("Illi", PdfAlign.Right)
+            .H1("Illi", OfficeAlignment.Right)
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -261,7 +261,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Column(column =>
                             column.Item(item =>
-                                item.H2("ComposeHead", PdfAlign.Center, global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)))))))
+                                item.H2("ComposeHead", OfficeAlignment.Center, global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -295,7 +295,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.H3("ColumnHead", PdfAlign.Right, global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)))))))
+                                column.H3("ColumnHead", OfficeAlignment.Right, global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -451,7 +451,7 @@ public partial class PdfDocumentVisualQualityTests {
             FooterFormat = "Illi",
             FooterFont = PdfStandardFont.Helvetica,
             FooterFontSize = global::OfficeIMO.OfficeLength.Points(10),
-            FooterAlign = PdfAlign.Right,
+            FooterAlign = OfficeAlignment.Right,
             FooterOffsetY = global::OfficeIMO.OfficeLength.Points(12)
         };
 

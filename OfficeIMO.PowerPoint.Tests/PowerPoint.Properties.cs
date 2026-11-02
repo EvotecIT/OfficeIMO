@@ -12,11 +12,11 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
-                    presentation.BuiltinDocumentProperties.Title = "Roundtrip deck";
-                    presentation.BuiltinDocumentProperties.Creator = "OfficeIMO Tests";
-                    presentation.BuiltinDocumentProperties.Keywords = "officeimo,powerpoint";
-                    presentation.BuiltinDocumentProperties.Subject = "Properties";
-                    presentation.BuiltinDocumentProperties.Category = "Testing";
+                    presentation.Properties.Title = "Roundtrip deck";
+                    presentation.Properties.Creator = "OfficeIMO Tests";
+                    presentation.Properties.Keywords = "officeimo,powerpoint";
+                    presentation.Properties.Subject = "Properties";
+                    presentation.Properties.Category = "Testing";
                     presentation.ApplicationProperties.Company = "Evotec";
                     presentation.ApplicationProperties.Manager = "Automation";
                     presentation.ApplicationProperties.Application = "OfficeIMO.PowerPoint";
@@ -27,11 +27,11 @@ namespace OfficeIMO.Tests {
                 }
 
                 using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
-                    Assert.Equal("Roundtrip deck", presentation.BuiltinDocumentProperties.Title);
-                    Assert.Equal("OfficeIMO Tests", presentation.BuiltinDocumentProperties.Creator);
-                    Assert.Equal("officeimo,powerpoint", presentation.BuiltinDocumentProperties.Keywords);
-                    Assert.Equal("Properties", presentation.BuiltinDocumentProperties.Subject);
-                    Assert.Equal("Testing", presentation.BuiltinDocumentProperties.Category);
+                    Assert.Equal("Roundtrip deck", presentation.Properties.Title);
+                    Assert.Equal("OfficeIMO Tests", presentation.Properties.Creator);
+                    Assert.Equal("officeimo,powerpoint", presentation.Properties.Keywords);
+                    Assert.Equal("Properties", presentation.Properties.Subject);
+                    Assert.Equal("Testing", presentation.Properties.Category);
                     Assert.Equal("Evotec", presentation.ApplicationProperties.Company);
                     Assert.Equal("Automation", presentation.ApplicationProperties.Manager);
                     Assert.Equal("OfficeIMO.PowerPoint", presentation.ApplicationProperties.Application);

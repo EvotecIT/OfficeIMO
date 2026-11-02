@@ -10,8 +10,8 @@ namespace OfficeIMO.Tests {
         public void InspectionSnapshotCapturesStableStructureAndSemanticData() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            document.Title = "Inspection sample";
-            document.Author = "OfficeIMO";
+            document.Properties.Title = "Inspection sample";
+            document.Properties.Author = "OfficeIMO";
             document.PackageTheme = new VisioPackageTheme { Name = "Premium Blue" };
             document.UseMastersByDefault = true;
             VisioPage page = document.AddPage("Topology", OfficeLength.Inches(8), OfficeLength.Inches(5));

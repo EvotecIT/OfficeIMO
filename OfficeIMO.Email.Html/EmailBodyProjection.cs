@@ -204,7 +204,7 @@ public static class EmailBodyProjection {
         var resourceIdentity = new EmailBodyResourceIdentityIndex(projectedResources);
         Uri? baseUri = effective.BaseUri ?? ResolveBaseUri(source.Body.HtmlContentLocation);
         HtmlConversionDocumentOptions htmlOptions = effective.HtmlOptions?.Clone() ??
-            HtmlConversionDocumentOptions.CreateUntrustedProfile();
+            HtmlConversionDocumentOptions.UntrustedDefaults;
         htmlOptions.BaseUri ??= baseUri;
         baseUri = htmlOptions.BaseUri;
         htmlOptions.UseBodyContentsOnly = true;

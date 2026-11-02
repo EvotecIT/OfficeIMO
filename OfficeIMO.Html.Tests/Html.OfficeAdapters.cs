@@ -573,7 +573,7 @@ public partial class HtmlOfficeAdapters {
 
         Assert.Equal("Imported", importedSheet.Name);
         Assert.NotEmpty(output.ToArray());
-        HtmlDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics);
+        HtmlDiagnostic diagnostic = Assert.Single(result.Report.NativeDiagnostics);
         Assert.Equal(HtmlConversionDiagnosticCodes.SemanticContentMissing, diagnostic.Code);
         Assert.Equal(HtmlDiagnosticSeverity.Error, diagnostic.Severity);
         Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);

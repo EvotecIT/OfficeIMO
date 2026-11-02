@@ -30,12 +30,12 @@ namespace OfficeIMO.Tests {
 
                 retainedSheet.Cell(1, 1).SetValue("Live after failure");
                 retainedProperty.Value = "Property after failure";
-                Assert.Same(retainedProperty, document.CustomDocumentProperties["Review"]);
+                Assert.Same(retainedProperty, document.CustomProperties["Review"]);
                 document.Save(targetPath);
 
                 using var reopened = ExcelDocument.Load(targetPath);
                 Assert.Equal("Live after failure", reopened["Report"].Cell(1, 1).GetValue<string>());
-                Assert.Equal("Property after failure", reopened.CustomDocumentProperties["Review"].Value);
+                Assert.Equal("Property after failure", reopened.CustomProperties["Review"].Value);
             } finally {
                 Directory.Delete(directory, recursive: true);
             }

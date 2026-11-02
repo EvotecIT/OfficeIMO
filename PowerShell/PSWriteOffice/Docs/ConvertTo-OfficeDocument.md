@@ -43,7 +43,7 @@ Get-ChildItem ./reports -Filter *.pdf | ConvertTo-OfficeDocument -OutputDirector
 
 ### EXAMPLE 3
 ```powershell
-ConvertTo-OfficeDocument -InputDirectory ./source -OutputDirectory ./pdf -TargetExtension pdf -CheckpointDirectory ./state -ConversionOptions (New-OfficeConversionOptions -RequireNoLoss)
+ConvertTo-OfficeDocument -InputDirectory ./source -OutputDirectory ./pdf -TargetExtension pdf -CheckpointDirectory ./state -ConversionOptions (New-OfficeConversionOptions -ThrowIfLoss)
 ```
 
 

@@ -1,7 +1,7 @@
 namespace OfficeIMO.Publisher.Internal;
 
 internal sealed class PublisherParseContext {
-    private readonly List<OfficeConversionFidelityDiagnostic> _diagnostics = new();
+    private readonly List<OfficeDiagnostic> _diagnostics = new();
     private readonly HashSet<string> _diagnosticKeys = new(StringComparer.Ordinal);
     internal PublisherParseContext(PublisherReadOptions options, CancellationToken token) { Options = options; Token = token; }
     internal PublisherReadOptions Options { get; }
@@ -16,7 +16,7 @@ internal sealed class PublisherParseContext {
     private int _imageStoreEntries;
     private long _tableModelItems, _tableModelCharacters;
     private long _parsedGradientStops;
-    internal IReadOnlyList<OfficeConversionFidelityDiagnostic> Diagnostics => _diagnostics;
+    internal IReadOnlyList<OfficeDiagnostic> Diagnostics => _diagnostics;
     internal void Record() {
         Token.ThrowIfCancellationRequested();
         if (Records >= Options.Limits.MaxRecords) throw new InvalidDataException("Publisher native record limit exceeded.");
@@ -24,10 +24,10 @@ internal sealed class PublisherParseContext {
     }
     internal void CheckDepth(int depth) {
         Token.ThrowIfCancellationRequested();
-        if (depth > Options.MaximumNestingDepth) throw new InvalidDataException("Publisher nesting limit exceeded.");
+        if (depth > Options.MaxNestingDepth) throw new InvalidDataException("Publisher nesting limit exceeded.");
     }
     internal void AccountImage(int bytes) {
-        if (bytes > Options.MaximumTotalImageBytes - ImageBytes) throw new InvalidDataException("Publisher total image byte limit exceeded.");
+        if (bytes > Options.MaxTotalImageBytes - ImageBytes) throw new InvalidDataException("Publisher total image byte limit exceeded.");
         ImageBytes += bytes;
     }
     internal void AccountImageStoreEntry() {
@@ -39,7 +39,7 @@ internal sealed class PublisherParseContext {
         if (bytes > Options.Limits.MaxInputBytes - _imageProcessingBytes) throw new InvalidDataException("Publisher image processing byte limit exceeded.");
         _imageProcessingBytes += bytes;
     }
-    internal long RemainingImageProcessingPixels => Options.MaximumImageProcessingPixels - _imageProcessingPixels;
+    internal long RemainingImageProcessingPixels => Options.MaxImageProcessingPixels - _imageProcessingPixels;
     internal void AccountImageProcessingPixels(long pixels) {
         Token.ThrowIfCancellationRequested();
         if (pixels > RemainingImageProcessingPixels) throw new InvalidDataException("Publisher image processing pixel limit exceeded.");
@@ -106,6 +106,6 @@ internal sealed class PublisherParseContext {
     }
     internal void Add(string code, string message, OfficeConversionLossKind kind, string? location = null) {
         if (_diagnosticKeys.Add(code + "\n" + location))
-            _diagnostics.Add(new OfficeConversionFidelityDiagnostic(code, message, kind, "OfficeIMO.Publisher", location));
+            _diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(code, kind == global::OfficeIMO.OfficeConversionLossKind.None ? global::OfficeIMO.OfficeDiagnosticSeverity.Information : global::OfficeIMO.OfficeDiagnosticSeverity.Warning, message, location, "OfficeIMO.Publisher", kind));
     }
 }

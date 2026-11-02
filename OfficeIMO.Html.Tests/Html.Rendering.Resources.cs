@@ -16,7 +16,7 @@ public sealed partial class HtmlRenderingTests {
             + "<p>Visible text</p>";
         var options = new HtmlRenderOptions {
             ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(null),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
 
         options.Fonts.Add("Arial", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
@@ -24,7 +24,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(html, options);
 
         Assert.False(rendered.HasLoss);
-        Assert.Contains(rendered.Diagnostics, diagnostic =>
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
             && diagnostic.Source == "https://assets.example.test/hidden.png"
             && diagnostic.Severity == HtmlDiagnosticSeverity.Info
@@ -41,7 +41,7 @@ public sealed partial class HtmlRenderingTests {
                 request.Uri.AbsolutePath.EndsWith("site.css", StringComparison.Ordinal)
                     ? new HtmlResolvedResource(Encoding.UTF8.GetBytes(stylesheet), "text/css")
                     : null),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
 
         options.Fonts.Add("Arial", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
@@ -49,7 +49,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(html, options);
 
         Assert.False(rendered.HasLoss);
-        Assert.Contains(rendered.Diagnostics, diagnostic =>
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
             && diagnostic.Source == "unused.png"
             && diagnostic.Severity == HtmlDiagnosticSeverity.Info
@@ -85,18 +85,18 @@ public sealed partial class HtmlRenderingTests {
                 : (await HtmlRenderEngine.ExecuteAsync(document, request)).Document;
         }
 
-        HtmlDiagnostic unused = Assert.Single(rendered.Diagnostics, diagnostic =>
+        HtmlDiagnostic unused = Assert.Single(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
             && diagnostic.Source == "unused.png");
         Assert.Equal(HtmlDiagnosticSeverity.Info, unused.Severity);
         Assert.Equal(OfficeConversionLossKind.None, unused.LossKind);
 
-        HtmlDiagnostic used = Assert.Single(rendered.Diagnostics, diagnostic =>
+        HtmlDiagnostic used = Assert.Single(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
             && diagnostic.Source == "used.png");
         Assert.Equal(HtmlDiagnosticSeverity.Warning, used.Severity);
         Assert.Equal(OfficeConversionLossKind.Omission, used.LossKind);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(html, options);
 
-        HtmlDiagnostic missing = Assert.Single(rendered.Diagnostics, diagnostic =>
+        HtmlDiagnostic missing = Assert.Single(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
             && diagnostic.Detail == "https://assets.example.test/b/logo.png");
         Assert.Equal(HtmlDiagnosticSeverity.Info, missing.Severity);
@@ -151,7 +151,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain("/icon.png", requested);
         Assert.Contains("/preload.png", requested);
         Assert.Contains("/visible.png", requested);
-        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
             && diagnostic.Source.EndsWith("/icon.png", StringComparison.Ordinal));
     }

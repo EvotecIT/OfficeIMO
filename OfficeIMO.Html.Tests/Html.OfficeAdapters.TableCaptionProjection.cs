@@ -84,12 +84,12 @@ public partial class HtmlOfficeAdapters {
         Assert.Equal("Fluoride", table.Cell(2, 1).GetValue<string>());
         Assert.Equal(RegulatoryTableCaption, table.Cell(4, 1).GetValue<string>());
         Assert.Equal(RegulatoryTableLink, table.GetHyperlinks()["A4"].Target);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation
             && diagnostic.Detail?.Contains("originalLength=" + RegulatoryTableCaption.Length,
                 StringComparison.Ordinal) == true);
-        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentOmitted
             && diagnostic.Message.Contains("caption", StringComparison.OrdinalIgnoreCase));
     }
@@ -128,14 +128,14 @@ public partial class HtmlOfficeAdapters {
         PowerPointTable firstTable = Assert.Single(captionSlide.Tables);
         Assert.Equal("Row 1", firstTable.GetCell(0, 0).Text);
         Assert.Equal("Standard 1", firstTable.GetCell(0, 1).Text);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.Detail?.Contains("projection=paginatedNativeTable", StringComparison.Ordinal) == true);
     }
 
     [Fact]
     public void PowerPointCaptionMetadataLimitDoesNotOmitTheTable() {
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxMetadataCharacters = 12;
         const string html = "<main><h1>Water</h1><table><caption>Caption exceeds metadata limit</caption>"
             + "<tr><th>Term</th><th>Value</th></tr><tr><td>pH</td><td>7</td></tr></table></main>";

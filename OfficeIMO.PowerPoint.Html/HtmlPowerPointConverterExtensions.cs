@@ -128,7 +128,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         if (result.Succeeded) return result.Value;
 
         result.Value.Dispose();
-        throw new HtmlConversionException(result.Report.Diagnostics);
+        throw new HtmlConversionException(result.Report.NativeDiagnostics);
     }
 
     private static void ImportSlide(IElement section, HtmlSemanticSection? semanticSection, PptCore.PowerPointSlide slide, HtmlToPowerPointOptions options, HtmlToPowerPointResult result, HtmlImportBudget budget) {

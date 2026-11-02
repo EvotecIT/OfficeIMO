@@ -1,0 +1,30 @@
+{
+  "solution": {
+    "path": "OfficeIMO.slnx",
+    "projects": [
+      "OfficeIMO.Core\\OfficeIMO.Core.csproj",
+      "OfficeIMO.Excel.OpenDocument\\OfficeIMO.Excel.OpenDocument.csproj",
+      "OfficeIMO.Excel.Pdf\\OfficeIMO.Excel.Pdf.csproj",
+      "OfficeIMO.Excel\\OfficeIMO.Excel.csproj",
+      "OfficeIMO.OpenDocument.Converters.Tests\\OfficeIMO.OpenDocument.Converters.Tests.csproj",
+      "OfficeIMO.OpenDocument.Odg.Pdf\\OfficeIMO.OpenDocument.Odg.Pdf.csproj",
+      "OfficeIMO.OpenDocument.Odp.Pdf\\OfficeIMO.OpenDocument.Odp.Pdf.csproj",
+      "OfficeIMO.OpenDocument.Ods.Pdf\\OfficeIMO.OpenDocument.Ods.Pdf.csproj",
+      "OfficeIMO.OpenDocument.Odt.Pdf\\OfficeIMO.OpenDocument.Odt.Pdf.csproj",
+      "OfficeIMO.OpenDocument.Tests\\OfficeIMO.OpenDocument.Tests.csproj",
+      "OfficeIMO.OpenDocument\\OfficeIMO.OpenDocument.csproj",
+      "OfficeIMO.Pdf.Excel\\OfficeIMO.Pdf.Excel.csproj",
+      "OfficeIMO.Pdf.PowerPoint\\OfficeIMO.Pdf.PowerPoint.csproj",
+      "OfficeIMO.Pdf.Word\\OfficeIMO.Pdf.Word.csproj",
+      "OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj",
+      "OfficeIMO.PowerPoint.OpenDocument\\OfficeIMO.PowerPoint.OpenDocument.csproj",
+      "OfficeIMO.PowerPoint.Pdf\\OfficeIMO.PowerPoint.Pdf.csproj",
+      "OfficeIMO.PowerPoint\\OfficeIMO.PowerPoint.csproj",
+      "OfficeIMO.Reader.Core\\OfficeIMO.Reader.Core.csproj",
+      "OfficeIMO.Reader.OpenDocument\\OfficeIMO.Reader.OpenDocument.csproj",
+      "OfficeIMO.Word.OpenDocument\\OfficeIMO.Word.OpenDocument.csproj",
+      "OfficeIMO.Word.Pdf\\OfficeIMO.Word.Pdf.csproj",
+      "OfficeIMO.Word\\OfficeIMO.Word.csproj"
+    ]
+  }
+}

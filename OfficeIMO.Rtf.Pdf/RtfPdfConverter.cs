@@ -11,7 +11,7 @@ internal static partial class RtfPdfConverter {
         RtfTableTraversalGuard.ValidateDocument(document);
         RtfToPdfOptions normalized = options ?? new RtfToPdfOptions();
         normalized.PdfOptions = normalized.PdfOptions?.CreateDocumentSnapshot(useThemeDefaults: false);
-        foreach (RtfConversionDiagnostic diagnostic in document.GetStyleConversionDiagnostics().Diagnostics) {
+        foreach (RtfConversionDiagnostic diagnostic in document.GetStyleConversionDiagnostics().NativeDiagnostics) {
             AddConversionWarning(normalized, diagnostic.Code, diagnostic.SourcePath ?? "Styles", diagnostic.Message, diagnostic.Action);
         }
         PdfCore.PdfCreateOptions pdfOptions = normalized.PdfOptions ?? PdfCore.PdfCreateOptions.CreateNeutralOptions();

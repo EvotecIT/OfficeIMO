@@ -29,8 +29,8 @@ public sealed class LatexIndependentConversionTests {
             Assert.Equal("This is an example of a footnote.", Assert.Single(note.ChildBlocks.OfType<ParagraphBlock>()).Inlines.Nodes.OfType<MarkdownTextRun>().Single().Text);
             foreach (string text in new[] { "This is the third item", "This is the second paragraph", "This is an example of a footnote" })
                 Assert.Contains(text, pdf, StringComparison.Ordinal);
-            Assert.Contains(result.Report.Diagnostics, static diagnostic => diagnostic.Feature == "environment:verse");
-            Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+            Assert.Contains(result.Report.NativeDiagnostics, static diagnostic => diagnostic.Feature == "environment:verse");
+            Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         }
     }
 }

@@ -1,3 +1,4 @@
+#pragma warning disable RS0026 // Existing optional-parameter overload families keep their shape.
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Drawing;
 
@@ -6,7 +7,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Result of a source-document to PDF conversion, pairing the generated PDF document with a snapshot of conversion diagnostics.
 /// </summary>
-public sealed partial class PdfDocumentConversionResult : IOfficeConversionResult<PdfDocument, PdfConversionReport> {
+public sealed partial class PdfDocumentConversionResult : IOfficeResult<PdfDocument> {
     private readonly PdfConversionReport _sourceReport;
 
     /// <summary>
@@ -19,7 +20,7 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
         _sourceReport = conversionReport;
         Value = document;
         Report = SnapshotReport(conversionReport);
-        SourceConversionReports = Array.Empty<IOfficeConversionReport>();
+        SourceConversionReports = Array.Empty<OfficeConversionReport>();
         ConversionReports = CreateConversionReports(SourceConversionReports, Report);
     }
 
@@ -27,7 +28,7 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
         PdfDocument document,
         PdfConversionReport sourceReport,
         PdfConversionReport conversionReportSnapshot,
-        IReadOnlyList<IOfficeConversionReport> sourceConversionReports) {
+        IReadOnlyList<OfficeConversionReport> sourceConversionReports) {
         Guard.NotNull(document, nameof(document));
         Guard.NotNull(sourceReport, nameof(sourceReport));
         Guard.NotNull(conversionReportSnapshot, nameof(conversionReportSnapshot));
@@ -53,10 +54,10 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
     public PdfConversionReport Report { get; }
 
     /// <summary>Reports from semantic or format-projection stages that ran before PDF layout.</summary>
-    public IReadOnlyList<IOfficeConversionReport> SourceConversionReports { get; }
+    public IReadOnlyList<OfficeConversionReport> SourceConversionReports { get; }
 
     /// <summary>Ordered source-stage reports followed by the PDF-stage report.</summary>
-    public IReadOnlyList<IOfficeConversionReport> ConversionReports { get; }
+    public IReadOnlyList<OfficeConversionReport> ConversionReports { get; }
 
     /// <summary>Warnings captured by the PDF conversion stage.</summary>
     public IReadOnlyList<PdfConversionWarning> Warnings => Report.Warnings;
@@ -68,7 +69,7 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
     public bool HasLoss => ConversionReports.Any(static report => report.HasLoss);
 
     /// <summary>All source and PDF-stage diagnostics with their original loss categories preserved.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics =>
+    public IReadOnlyList<OfficeDiagnostic> Diagnostics =>
         OfficeConversionFidelityDiagnostics.Flatten(ConversionReports);
 
     /// <summary>Counts grouped conversion diagnostics captured with this result.</summary>
@@ -77,13 +78,13 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
     /// <summary>Returns the generated PDF document.</summary>
     public PdfDocument RequireValue() => Value;
 
-    /// <summary>Returns the generated PDF document only when every conversion stage reported no possible content loss.</summary>
-    public PdfDocument RequireNoLoss() {
-        foreach (IOfficeConversionReport report in ConversionReports) {
-            report.RequireNoLoss();
+    /// <summary>Throws an <see cref="OfficeConversionException"/> when any source or PDF conversion stage reports possible content loss.</summary>
+    public void ThrowIfLoss() {
+        foreach (OfficeConversionReport report in ConversionReports) {
+            report.ThrowIfLoss();
         }
-        return Value;
     }
+
 
     /// <summary>
     /// Returns a new conversion result with the supplied PDF document while preserving the captured conversion diagnostics.
@@ -108,9 +109,9 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
     /// Returns a new conversion result with a typed source-stage report prepended before existing
     /// source stages and the PDF-stage report.
     /// </summary>
-    public PdfDocumentConversionResult WithSourceConversionReport(IOfficeConversionReport report) {
+    public PdfDocumentConversionResult WithSourceConversionReport(OfficeConversionReport report) {
         Guard.NotNull(report, nameof(report));
-        var reports = new IOfficeConversionReport[SourceConversionReports.Count + 1];
+        var reports = new OfficeConversionReport[SourceConversionReports.Count + 1];
         reports[0] = report;
         for (int i = 0; i < SourceConversionReports.Count; i++) {
             reports[i + 1] = SourceConversionReports[i];
@@ -288,7 +289,7 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
             artifactSha256,
             warningSummary,
             hasLoss,
-            FidelityDiagnostics,
+            Diagnostics,
             issues);
     }
 
@@ -315,8 +316,9 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
         }
     }
 
-    /// <summary>Serializes to a private stage and returns bytes only when every conversion stage remains lossless.</summary>
-    public byte[] ToBytesLossless(System.Threading.CancellationToken cancellationToken = default) {
+    /// <summary>Renders the converted PDF. With <paramref name="failOnLoss"/>, bytes are staged privately and returned only when every conversion stage remains lossless.</summary>
+    public byte[] ToBytes(bool failOnLoss, System.Threading.CancellationToken cancellationToken = default) {
+        if (!failOnLoss) return ToBytes(cancellationToken);
         (byte[] bytes, _) = StageLossless(cancellationToken);
         return bytes;
     }
@@ -337,8 +339,9 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
         return result.WithReport(Report, SourceConversionReports);
     }
 
-    /// <summary>Publishes staged bytes to a stream only after every conversion stage remains lossless.</summary>
-    public PdfSaveResult SaveLossless(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
+    /// <summary>Writes the converted PDF. With <paramref name="failOnLoss"/>, bytes are staged privately and published only when every conversion stage remains lossless.</summary>
+    public PdfSaveResult Save(Stream stream, bool failOnLoss, System.Threading.CancellationToken cancellationToken = default) {
+        if (!failOnLoss) return Save(stream, cancellationToken);
         ValidateLosslessDestination(stream);
         (byte[] bytes, PdfSaveResult result) = StageLossless(cancellationToken);
         OfficeStreamWriter.WriteAllBytes(stream, bytes);
@@ -361,8 +364,9 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
         return result.WithReport(Report, SourceConversionReports);
     }
 
-    /// <summary>Atomically publishes staged bytes to a file only after every conversion stage remains lossless.</summary>
-    public PdfSaveResult SaveLossless(string path, System.Threading.CancellationToken cancellationToken = default) {
+    /// <summary>Writes the converted PDF. With <paramref name="failOnLoss"/>, bytes are staged privately and committed atomically only when every conversion stage remains lossless.</summary>
+    public PdfSaveResult Save(string path, bool failOnLoss, System.Threading.CancellationToken cancellationToken = default) {
+        if (!failOnLoss) return Save(path, cancellationToken);
         string fullPath = PdfDocument.ValidateOutputPath(path);
         (byte[] bytes, PdfSaveResult result) = StageLossless(cancellationToken);
         OfficeFileCommit.WriteAllBytes(fullPath, bytes);
@@ -408,8 +412,9 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
         return result.WithReport(Report, SourceConversionReports);
     }
 
-    /// <summary>Asynchronously publishes staged bytes to a stream only after every conversion stage remains lossless.</summary>
-    public async System.Threading.Tasks.Task<PdfSaveResult> SaveLosslessAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
+    /// <summary>Asynchronously writes the converted PDF. With <paramref name="failOnLoss"/>, bytes are staged privately and published only when every conversion stage remains lossless.</summary>
+    public async System.Threading.Tasks.Task<PdfSaveResult> SaveAsync(Stream stream, bool failOnLoss, System.Threading.CancellationToken cancellationToken = default) {
+        if (!failOnLoss) return await SaveAsync(stream, cancellationToken).ConfigureAwait(false);
         ValidateLosslessDestination(stream);
         (byte[] bytes, PdfSaveResult result) = await StageLosslessAsync(cancellationToken).ConfigureAwait(false);
         await OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken).ConfigureAwait(false);
@@ -429,8 +434,9 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
         return result.WithReport(Report, SourceConversionReports);
     }
 
-    /// <summary>Asynchronously and atomically publishes staged bytes to a file only after every conversion stage remains lossless.</summary>
-    public async System.Threading.Tasks.Task<PdfSaveResult> SaveLosslessAsync(string path, System.Threading.CancellationToken cancellationToken = default) {
+    /// <summary>Asynchronously writes the converted PDF. With <paramref name="failOnLoss"/>, bytes are staged privately and committed atomically only when every conversion stage remains lossless.</summary>
+    public async System.Threading.Tasks.Task<PdfSaveResult> SaveAsync(string path, bool failOnLoss, System.Threading.CancellationToken cancellationToken = default) {
+        if (!failOnLoss) return await SaveAsync(path, cancellationToken).ConfigureAwait(false);
         string fullPath = PdfDocument.ValidateOutputPath(path);
         (byte[] bytes, PdfSaveResult result) = await StageLosslessAsync(cancellationToken).ConfigureAwait(false);
         await OfficeFileCommit.WriteAllBytesAsync(fullPath, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -439,19 +445,19 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
 
     internal (byte[] Bytes, PdfSaveResult Result) StageLossless(
         System.Threading.CancellationToken cancellationToken, Action<PdfSaveResult?>? accept = null) {
-        if (accept == null) RequireNoLoss(); else accept(null);
+        if (accept == null) ThrowIfLoss(); else accept(null);
         using var staging = new MemoryStream();
         PdfSaveResult result = Save(staging, cancellationToken);
-        if (accept == null) result.RequireNoLoss(); else accept(result);
+        if (accept == null) result.ThrowIfLoss(); else accept(result);
         return (staging.ToArray(), result);
     }
 
     internal async System.Threading.Tasks.Task<(byte[] Bytes, PdfSaveResult Result)> StageLosslessAsync(
         System.Threading.CancellationToken cancellationToken, Action<PdfSaveResult?>? accept = null) {
-        if (accept == null) RequireNoLoss(); else accept(null);
+        if (accept == null) ThrowIfLoss(); else accept(null);
         using var staging = new MemoryStream();
         PdfSaveResult result = await SaveAsync(staging, cancellationToken).ConfigureAwait(false);
-        if (accept == null) result.RequireNoLoss(); else accept(result);
+        if (accept == null) result.ThrowIfLoss(); else accept(result);
         return (staging.ToArray(), result);
     }
 
@@ -502,19 +508,19 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
         return snapshot;
     }
 
-    private static IOfficeConversionReport[] SnapshotSourceReports(
-        IReadOnlyList<IOfficeConversionReport> sourceConversionReports) {
-        var snapshot = new IOfficeConversionReport[sourceConversionReports.Count];
+    private static OfficeConversionReport[] SnapshotSourceReports(
+        IReadOnlyList<OfficeConversionReport> sourceConversionReports) {
+        var snapshot = new OfficeConversionReport[sourceConversionReports.Count];
         for (int i = 0; i < sourceConversionReports.Count; i++) {
             snapshot[i] = sourceConversionReports[i];
         }
         return snapshot;
     }
 
-    private static IOfficeConversionReport[] CreateConversionReports(
-        IReadOnlyList<IOfficeConversionReport> sourceConversionReports,
+    private static OfficeConversionReport[] CreateConversionReports(
+        IReadOnlyList<OfficeConversionReport> sourceConversionReports,
         PdfConversionReport pdfReport) {
-        var reports = new IOfficeConversionReport[sourceConversionReports.Count + 1];
+        var reports = new OfficeConversionReport[sourceConversionReports.Count + 1];
         for (int i = 0; i < sourceConversionReports.Count; i++) {
             reports[i] = sourceConversionReports[i];
         }
@@ -608,7 +614,7 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
             HasRequiredMetadata(options);
     }
 
-    private static void AddMetadataIssues(List<PdfConversionProofIssue> issues, PdfMetadata metadata, PdfConversionProofOptions options) {
+    private static void AddMetadataIssues(List<PdfConversionProofIssue> issues, PdfDocumentProperties metadata, PdfConversionProofOptions options) {
         AddMetadataIssue(issues, "Metadata.Title", options.RequiredMetadataTitle, metadata.Title);
         AddMetadataIssue(issues, "Metadata.Author", options.RequiredMetadataAuthor, metadata.Author);
         AddMetadataIssue(issues, "Metadata.Subject", options.RequiredMetadataSubject, metadata.Subject);

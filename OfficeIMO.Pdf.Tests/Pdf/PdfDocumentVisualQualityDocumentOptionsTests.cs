@@ -164,23 +164,23 @@ public partial class PdfDocumentVisualQualityTests {
             PdfDocument.Create(new PdfCreateOptions {
                     ShowHeader = true,
                     HeaderFormat = "Header",
-                    HeaderAlign = (PdfAlign)99
+                    HeaderAlign = (OfficeAlignment)99
                 })
                 .Paragraph(p => p.Text("Invalid header alignment"))
                 .ToBytes());
 
-        Assert.Contains("PDF header alignment must be Left, Center, or Right.", headerAlignException.Message, StringComparison.Ordinal);
+        Assert.Contains("PDF header alignment must be Left, Center, Right, Start, or End.", headerAlignException.Message, StringComparison.Ordinal);
 
         var headerJustifyException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(new PdfCreateOptions {
                     ShowHeader = true,
                     HeaderFormat = "Header",
-                    HeaderAlign = PdfAlign.Justify
+                    HeaderAlign = OfficeAlignment.Justify
                 })
                 .Paragraph(p => p.Text("Unsupported header alignment"))
                 .ToBytes());
 
-        Assert.Contains("PDF header alignment must be Left, Center, or Right.", headerJustifyException.Message, StringComparison.Ordinal);
+        Assert.Contains("PDF header alignment must be Left, Center, Right, Start, or End.", headerJustifyException.Message, StringComparison.Ordinal);
 
         var footerException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(new PdfCreateOptions {
@@ -214,22 +214,22 @@ public partial class PdfDocumentVisualQualityTests {
         var footerAlignException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(new PdfCreateOptions {
                     ShowPageNumbers = true,
-                    FooterAlign = (PdfAlign)99
+                    FooterAlign = (OfficeAlignment)99
                 })
                 .Paragraph(p => p.Text("Invalid footer alignment"))
                 .ToBytes());
 
-        Assert.Contains("PDF footer alignment must be Left, Center, or Right.", footerAlignException.Message, StringComparison.Ordinal);
+        Assert.Contains("PDF footer alignment must be Left, Center, Right, Start, or End.", footerAlignException.Message, StringComparison.Ordinal);
 
         var footerJustifyException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(new PdfCreateOptions {
                     ShowPageNumbers = true,
-                    FooterAlign = PdfAlign.Justify
+                    FooterAlign = OfficeAlignment.Justify
                 })
                 .Paragraph(p => p.Text("Unsupported footer alignment"))
                 .ToBytes());
 
-        Assert.Contains("PDF footer alignment must be Left, Center, or Right.", footerJustifyException.Message, StringComparison.Ordinal);
+        Assert.Contains("PDF footer alignment must be Left, Center, Right, Start, or End.", footerJustifyException.Message, StringComparison.Ordinal);
     }
 
     [Fact]

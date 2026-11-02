@@ -129,7 +129,7 @@ internal static class HtmlStaticBudgetRunner {
         int bodyEnd = html.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
         const string probe = "<img src=\"https://officeimo.invalid/budget-cancellation.png\" alt=\"probe\">";
         string input = bodyEnd >= 0 ? html.Insert(bodyEnd, probe) : html + probe;
-        Task<byte[]> conversion = HtmlConversionDocument.Parse(input).ToPdfBytesAsync(options, cancellation.Token);
+        Task<byte[]> conversion = ConvertToPdfBytesAsync(input, options, cancellation.Token);
         try {
             await started.Task.WaitAsync(CancellationStartTimeout).ConfigureAwait(false);
             var stopwatch = Stopwatch.StartNew();
@@ -248,5 +248,10 @@ internal static class HtmlStaticBudgetRunner {
     private static void WriteHelp() {
         Console.WriteLine("html-static-budget [--output <new-directory>] [--iterations 2-10] [--measure-only] [--require-clean-source]");
         Console.WriteLine("Measures the frozen H4/advanced-held-out corpus in fresh cold and warmed worker processes, including all declared static output contracts, allocations, process-tree peak memory, output bytes, determinism, and cancellation.");
+    }
+
+    private static async Task<byte[]> ConvertToPdfBytesAsync(string html, HtmlToPdfOptions options, CancellationToken cancellationToken) {
+        OfficeConversionResult<PdfDocument> result = await HtmlConversionDocument.Parse(html).ToPdfAsync(options, cancellationToken).ConfigureAwait(false);
+        return result.Value.ToBytes(cancellationToken: cancellationToken);
     }
 }

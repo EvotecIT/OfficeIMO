@@ -83,7 +83,7 @@ public sealed class PdfPipelineReportTests {
             .Paragraph(paragraph => paragraph.Text("Pipeline mutation"))
             .ToBytes();
 
-        PdfDocument updated = PdfDocument.Load(new System.IO.MemoryStream(source)).UpdateMetadata(title: "After");
+        PdfDocument updated = PdfDocument.Load(new System.IO.MemoryStream(source)).UpdateProperties(title: "After");
         using var stream = new MemoryStream();
 
         PdfSaveResult result = updated.SaveWithEvidence(stream);

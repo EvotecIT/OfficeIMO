@@ -4,11 +4,11 @@ using System.Collections.Generic;
 namespace OfficeIMO.ChartForgeX;
 
 /// <summary>Describes fidelity decisions made while converting one visual artifact.</summary>
-public sealed class OfficeVisualConversionReport : IOfficeConversionReport {
+public sealed class OfficeVisualConversionReport : OfficeConversionReport {
     private readonly List<string> _warnings = new List<string>();
-    private readonly List<OfficeConversionFidelityDiagnostic> _fidelityDiagnostics = new List<OfficeConversionFidelityDiagnostic>();
+    private readonly List<OfficeDiagnostic> _fidelityDiagnostics = new List<OfficeDiagnostic>();
     private readonly IReadOnlyList<string> _readOnlyWarnings;
-    private readonly IReadOnlyList<OfficeConversionFidelityDiagnostic> _readOnlyFidelityDiagnostics;
+    private readonly IReadOnlyList<OfficeDiagnostic> _readOnlyFidelityDiagnostics;
 
     /// <summary>Creates an empty visual conversion report.</summary>
     public OfficeVisualConversionReport() {
@@ -29,21 +29,24 @@ public sealed class OfficeVisualConversionReport : IOfficeConversionReport {
     public IReadOnlyList<string> Warnings => _readOnlyWarnings;
 
     /// <summary>Gets category-preserving visual conversion diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => _readOnlyFidelityDiagnostics;
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics => _readOnlyFidelityDiagnostics;
 
     /// <summary>Gets whether the conversion approximated or omitted source semantics.</summary>
-    public bool HasLoss => _fidelityDiagnostics.Exists(static diagnostic =>
+    public override bool HasLoss => _fidelityDiagnostics.Exists(static diagnostic =>
         diagnostic.LossKind != OfficeConversionLossKind.None);
 
     /// <summary>Throws when the conversion reported possible fidelity loss.</summary>
-    public void RequireNoLoss() {
-        if (HasLoss) throw new InvalidOperationException(
-            "ChartForgeX visual conversion reported possible fidelity loss. Inspect FidelityDiagnostics for details.");
-    }
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("ChartForgeX visual conversion reported possible fidelity loss. Inspect Diagnostics for details.", this);
 
     internal void Warn(string code, string message, OfficeConversionLossKind lossKind, string? location = null) {
         _warnings.Add(message);
-        _fidelityDiagnostics.Add(new OfficeConversionFidelityDiagnostic(
-            code, message, lossKind, "OfficeIMO.ChartForgeX", location));
+        _fidelityDiagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
+            code,
+            lossKind == global::OfficeIMO.OfficeConversionLossKind.None ? global::OfficeIMO.OfficeDiagnosticSeverity.Information : global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
+            message,
+            location,
+            "OfficeIMO.ChartForgeX",
+            lossKind));
     }
 }

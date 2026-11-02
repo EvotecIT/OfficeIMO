@@ -28,16 +28,16 @@ public sealed class AsciiDocProcessorOptions {
     public IAsciiDocIncludeResolver? IncludeResolver { get; set; }
 
     /// <summary>Maximum nested includes.</summary>
-    public int MaximumIncludeDepth { get; set; } = 16;
+    public int MaxIncludeDepth { get; set; } = 16;
 
     /// <summary>Maximum resolved include files.</summary>
-    public int MaximumIncludeCount { get; set; } = 256;
+    public int MaxIncludeCount { get; set; } = 256;
 
     /// <summary>Maximum total characters returned by include resolvers.</summary>
-    public int MaximumIncludedCharacters { get; set; } = 16 * 1024 * 1024;
+    public int MaxIncludedCharacters { get; set; } = 16 * 1024 * 1024;
 
     /// <summary>Maximum characters in the processed source.</summary>
-    public int MaximumOutputLength { get; set; } = 64 * 1024 * 1024;
+    public int MaxOutputLength { get; set; } = 64 * 1024 * 1024;
 
     /// <summary>Attribute expansion behavior.</summary>
     public AsciiDocUndefinedAttributeBehavior UndefinedAttributeBehavior { get; set; } = AsciiDocUndefinedAttributeBehavior.Preserve;
@@ -46,7 +46,7 @@ public sealed class AsciiDocProcessorOptions {
     public AsciiDocExtensionRegistry? Extensions { get; set; }
 
     /// <summary>Maximum custom directive invocations.</summary>
-    public int MaximumExtensionInvocations { get; set; } = 256;
+    public int MaxExtensionInvocations { get; set; } = 256;
 }
 
 /// <summary>Diagnostic from explicit preprocessing.</summary>

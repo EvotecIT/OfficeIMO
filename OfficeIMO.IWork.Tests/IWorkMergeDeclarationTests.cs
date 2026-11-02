@@ -44,7 +44,7 @@ public sealed partial class IWorkBoundaryTests {
         IWorkConversionReport report = ConvertUnitReport(package, kind,
             readOptions: new IWorkReadOptions { PreserveSourceRecords = false });
         Assert.Empty(report.PreservedRecords);
-        Assert.Contains(report.FidelityDiagnostics, issue => issue.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED"
+        Assert.Contains(report.Diagnostics, issue => issue.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED"
             && issue.LossKind == OfficeConversionLossKind.Unassessed);
         Assert.Equal(new[] { "47/2/3[1]/2", "47/2/3[2]/2" }, report.SourceDeclarationIssues.Select(issue => issue.FieldPath));
     }
@@ -168,7 +168,7 @@ public sealed partial class IWorkBoundaryTests {
         };
         using MemoryStream package = MergeTestPackage(IWorkDocumentKind.Numbers, owner);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumProtobufFieldCount = 8 });
+            new IWorkReadOptions { MaxProtobufFieldCount = 8 });
         Assert.Contains("field limit", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -176,7 +176,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Merge_formula_depth_is_preserved_through_physical_entry_parsing() {
         using MemoryStream package = MergeTestPackage(IWorkDocumentKind.Numbers, MergeTestOwner(MergeTestPair(3, 0, 3, 1)));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumProtobufDepth = 6 });
+            new IWorkReadOptions { MaxProtobufDepth = 6 });
         Assert.Contains("depth", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -187,16 +187,16 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = MergeTestPackage(IWorkDocumentKind.Numbers,
             MergeTestOwner(BytesField(3, new byte[] { 0x80 }), BytesField(3, BytesField(2, formula))));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumFormulaNodes = 1 });
+            new IWorkReadOptions { MaxFormulaNodes = 1 });
         Assert.Contains("syntax-node limit", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
     [Fact]
     public void Merge_evidence_budget_is_fatal_cumulative_and_snapshotted() {
         using MemoryStream package = MergeTestPackage(IWorkDocumentKind.Numbers, ConflictingMergeTestOwner());
-        var options = new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 };
+        var options = new IWorkReadOptions { MaxSourceDeclarationIssues = 1 };
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers, options);
-        options.MaximumSourceDeclarationIssues = 10;
+        options.MaxSourceDeclarationIssues = 10;
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -204,7 +204,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Shared_model_conflicts_report_each_physical_path_once() {
         using MemoryStream package = MergeTestPackage(IWorkDocumentKind.Numbers, ConflictingMergeTestOwner(), repeatModel: true);
         IWorkNumbersProjection projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumSourceDeclarationIssues = 2 }).ReadNumbers();
+            new IWorkReadOptions { MaxSourceDeclarationIssues = 2 }).ReadNumbers();
         Assert.Equal(2, Assert.Single(projection.Sheets).Tables.Count);
         Assert.Equal(2, projection.SourceDeclarationIssues.Count);
     }

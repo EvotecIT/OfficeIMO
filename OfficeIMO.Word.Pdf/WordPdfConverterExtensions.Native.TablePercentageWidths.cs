@@ -47,7 +47,7 @@ public static partial class WordPdfConverterExtensions {
     private static void ApplyNativeLegacyPercentageTableDefaultIndent(WordTable table, TableLayout layout,
         PdfCore.PdfTableStyle style, NativeTableStyleDefaults defaults) {
         if (UsesModernNativeWordLayout(table.Document) ||
-            MapNativeTableAlignment(ResolveNativeTableAlignment(table, defaults)) != PdfCore.PdfAlign.Left ||
+            MapNativeTableAlignment(ResolveNativeTableAlignment(table, defaults)) != global::OfficeIMO.OfficeAlignment.Left ||
             GetNativeTableLeftIndent(table._tableProperties?.TableIndentation).HasValue || defaults.LeftIndent.HasValue)
             return;
 

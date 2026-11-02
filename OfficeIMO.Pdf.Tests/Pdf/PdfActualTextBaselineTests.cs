@@ -35,7 +35,7 @@ public sealed class PdfActualTextBaselineTests {
         TextLayoutEngine.TextLine line = Assert.Single(TextLayoutEngine.BuildLines(page.GetTextSpans()));
         Assert.Equal(space.Y, line.Y, 6);
         Assert.False(words[0].TryGetGlyphs(out _));
-        report.RequireNoLoss();
+        report.ThrowIfLoss();
     }
 
     [Theory]

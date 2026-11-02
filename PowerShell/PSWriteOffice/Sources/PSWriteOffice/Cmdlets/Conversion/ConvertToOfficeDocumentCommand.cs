@@ -24,7 +24,7 @@ namespace PSWriteOffice.Cmdlets.Conversion;
 /// </example>
 /// <example>
 ///   <summary>Run a resumable directory job with an explicit loss policy.</summary>
-///   <code>ConvertTo-OfficeDocument -InputDirectory ./source -OutputDirectory ./pdf -TargetExtension pdf -CheckpointDirectory ./state -ConversionOptions (New-OfficeConversionOptions -RequireNoLoss)</code>
+///   <code>ConvertTo-OfficeDocument -InputDirectory ./source -OutputDirectory ./pdf -TargetExtension pdf -CheckpointDirectory ./state -ConversionOptions (New-OfficeConversionOptions -ThrowIfLoss)</code>
 /// </example>
 [Cmdlet(VerbsData.ConvertTo, "OfficeDocument", DefaultParameterSetName = "File", SupportsShouldProcess = true)]
 [OutputType(typeof(OfficeConversionReport), typeof(OfficeBatchSummary), typeof(OfficeBatchItemReport))]

@@ -6,12 +6,12 @@ namespace OfficeIMO.Pdf;
 internal abstract class PdfListBlock : IPdfBlock {
     protected PdfListBlock(
         System.Collections.Generic.IEnumerable<string> items,
-        PdfAlign align,
+        OfficeAlignment align,
         global::OfficeIMO.OfficeColor? color,
         PdfListStyle? style,
         string validationName) {
         Guard.NotNull(items, nameof(items));
-        Guard.LeftCenterRightAlign(align, nameof(align), validationName);
+        align = Guard.LeftCenterRightAlign(align, nameof(align), validationName);
 
         var richItems = new System.Collections.Generic.List<PdfListItem>();
         foreach (string? item in items) {
@@ -30,12 +30,12 @@ internal abstract class PdfListBlock : IPdfBlock {
 
     protected PdfListBlock(
         System.Collections.Generic.IEnumerable<PdfListItem> items,
-        PdfAlign align,
+        OfficeAlignment align,
         global::OfficeIMO.OfficeColor? color,
         PdfListStyle? style,
         string validationName) {
         Guard.NotNull(items, nameof(items));
-        Guard.LeftCenterRightAlign(align, nameof(align), validationName);
+        align = Guard.LeftCenterRightAlign(align, nameof(align), validationName);
 
         var richItems = new System.Collections.Generic.List<PdfListItem>();
         bool hasCustomMarkers = false;
@@ -62,7 +62,7 @@ internal abstract class PdfListBlock : IPdfBlock {
 
     internal bool HasCustomMarkers { get; }
 
-    public PdfAlign Align { get; }
+    public OfficeAlignment Align { get; }
 
     public global::OfficeIMO.OfficeColor? Color { get; }
 
@@ -79,8 +79,8 @@ internal abstract class PdfListBlock : IPdfBlock {
     internal string GetMarker(int itemIndex) =>
         RichItems[itemIndex].Marker ?? GetDefaultMarker(itemIndex);
 
-    internal PdfAlign GetMarkerAlign(PdfListStyle? style) =>
-        style?.MarkerAlign ?? (IsNumbered ? PdfAlign.Right : PdfAlign.Left);
+    internal OfficeAlignment GetMarkerAlign(PdfListStyle? style) =>
+        style?.MarkerAlign ?? (IsNumbered ? OfficeAlignment.Right : OfficeAlignment.Left);
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<string> CreateTextSnapshot(
         System.Collections.Generic.List<PdfListItem> items) {

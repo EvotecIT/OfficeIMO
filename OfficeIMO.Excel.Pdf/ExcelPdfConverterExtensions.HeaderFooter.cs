@@ -52,9 +52,9 @@ namespace OfficeIMO.Excel.Pdf {
                         header.EvenPagesText(string.Empty);
                     }
 
-                    AddHeaderImage(header, preparedImages.HeaderLeft, PdfCore.PdfAlign.Left, headerFooter.HeaderLeft, headerFooter.FirstHeaderLeft, headerFooter.EvenHeaderLeft);
-                    AddHeaderImage(header, preparedImages.HeaderCenter, PdfCore.PdfAlign.Center, headerFooter.HeaderCenter, headerFooter.FirstHeaderCenter, headerFooter.EvenHeaderCenter);
-                    AddHeaderImage(header, preparedImages.HeaderRight, PdfCore.PdfAlign.Right, headerFooter.HeaderRight, headerFooter.FirstHeaderRight, headerFooter.EvenHeaderRight);
+                    AddHeaderImage(header, preparedImages.HeaderLeft, global::OfficeIMO.OfficeAlignment.Left, headerFooter.HeaderLeft, headerFooter.FirstHeaderLeft, headerFooter.EvenHeaderLeft);
+                    AddHeaderImage(header, preparedImages.HeaderCenter, global::OfficeIMO.OfficeAlignment.Center, headerFooter.HeaderCenter, headerFooter.FirstHeaderCenter, headerFooter.EvenHeaderCenter);
+                    AddHeaderImage(header, preparedImages.HeaderRight, global::OfficeIMO.OfficeAlignment.Right, headerFooter.HeaderRight, headerFooter.FirstHeaderRight, headerFooter.EvenHeaderRight);
                 });
             }
 
@@ -90,14 +90,14 @@ namespace OfficeIMO.Excel.Pdf {
                         footer.EvenPagesText(string.Empty);
                     }
 
-                    AddFooterImage(footer, preparedImages.FooterLeft, PdfCore.PdfAlign.Left, headerFooter.FooterLeft, headerFooter.FirstFooterLeft, headerFooter.EvenFooterLeft);
-                    AddFooterImage(footer, preparedImages.FooterCenter, PdfCore.PdfAlign.Center, headerFooter.FooterCenter, headerFooter.FirstFooterCenter, headerFooter.EvenFooterCenter);
-                    AddFooterImage(footer, preparedImages.FooterRight, PdfCore.PdfAlign.Right, headerFooter.FooterRight, headerFooter.FirstFooterRight, headerFooter.EvenFooterRight);
+                    AddFooterImage(footer, preparedImages.FooterLeft, global::OfficeIMO.OfficeAlignment.Left, headerFooter.FooterLeft, headerFooter.FirstFooterLeft, headerFooter.EvenFooterLeft);
+                    AddFooterImage(footer, preparedImages.FooterCenter, global::OfficeIMO.OfficeAlignment.Center, headerFooter.FooterCenter, headerFooter.FirstFooterCenter, headerFooter.EvenFooterCenter);
+                    AddFooterImage(footer, preparedImages.FooterRight, global::OfficeIMO.OfficeAlignment.Right, headerFooter.FooterRight, headerFooter.FirstFooterRight, headerFooter.EvenFooterRight);
                 });
             }
         }
 
-        private static void AddHeaderImage(PdfCore.PdfHeaderBuilder header, PreparedHeaderFooterImage? image, PdfCore.PdfAlign align, string defaultZone, string firstZone, string evenZone) {
+        private static void AddHeaderImage(PdfCore.PdfHeaderBuilder header, PreparedHeaderFooterImage? image, global::OfficeIMO.OfficeAlignment align, string defaultZone, string firstZone, string evenZone) {
             if (image != null) {
                 bool defaultHasImage = HasPicturePlaceholder(defaultZone);
                 bool firstHasImage = HasPicturePlaceholder(firstZone);
@@ -118,10 +118,10 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         // Excel sets a header picture inline with the section's text, standing on its baseline.
-        private static PdfCore.PdfHeaderFooterImage CreateInlineHeaderImage(PreparedHeaderFooterImage image, PdfCore.PdfAlign align) =>
+        private static PdfCore.PdfHeaderFooterImage CreateInlineHeaderImage(PreparedHeaderFooterImage image, global::OfficeIMO.OfficeAlignment align) =>
             new PdfCore.PdfHeaderFooterImage(image.Bytes, OfficeLength.Points(image.WidthPoints), OfficeLength.Points(image.HeightPoints), align) { RestsOnHeaderBaseline = true };
 
-        private static void AddFooterImage(PdfCore.PdfFooterBuilder footer, PreparedHeaderFooterImage? image, PdfCore.PdfAlign align, string defaultZone, string firstZone, string evenZone) {
+        private static void AddFooterImage(PdfCore.PdfFooterBuilder footer, PreparedHeaderFooterImage? image, global::OfficeIMO.OfficeAlignment align, string defaultZone, string firstZone, string evenZone) {
             if (image != null) {
                 bool defaultHasImage = HasPicturePlaceholder(defaultZone);
                 bool firstHasImage = HasPicturePlaceholder(firstZone);

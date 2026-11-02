@@ -21,7 +21,7 @@ public sealed partial class IWorkBoundaryTests {
         });
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
             IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumTableCatalogEntries = 1 });
+            new IWorkReadOptions { MaxTableCatalogEntries = 1 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             source.ReadNumbers());

@@ -97,7 +97,7 @@ public class PdfDrawingInteropTests {
     [Fact]
     public void Options_SnapshotDefaultDrawingStyle() {
         var style = new PdfDrawingStyle {
-            Align = PdfAlign.Center,
+            Align = OfficeAlignment.Center,
             SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
             SpacingAfter = global::OfficeIMO.OfficeLength.Points(9),
             KeepWithNext = true,
@@ -107,24 +107,24 @@ public class PdfDrawingInteropTests {
             DefaultDrawingStyle = style
         };
 
-        style.Align = PdfAlign.Right;
+        style.Align = OfficeAlignment.Right;
         style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(1);
         style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(2);
         style.KeepWithNext = false;
         style.ConstrainToContentWidth = false;
 
         PdfDrawingStyle readback = options.DefaultDrawingStyle!;
-        readback.Align = PdfAlign.Left;
+        readback.Align = OfficeAlignment.Left;
         readback.SpacingAfter = global::OfficeIMO.OfficeLength.Points(20);
 
         PdfCreateOptions clone = options.Clone();
 
-        Assert.Equal(PdfAlign.Center, options.DefaultDrawingStyle!.Align);
+        Assert.Equal(OfficeAlignment.Center, options.DefaultDrawingStyle!.Align);
         Assert.Equal(4, options.DefaultDrawingStyle.SpacingBefore.ToPoints());
         Assert.Equal(9, options.DefaultDrawingStyle.SpacingAfter.ToPoints());
         Assert.True(options.DefaultDrawingStyle.KeepWithNext);
         Assert.True(options.DefaultDrawingStyle.ConstrainToContentWidth);
-        Assert.Equal(PdfAlign.Center, clone.DefaultDrawingStyle!.Align);
+        Assert.Equal(OfficeAlignment.Center, clone.DefaultDrawingStyle!.Align);
         Assert.Equal(9, clone.DefaultDrawingStyle.SpacingAfter.ToPoints());
         Assert.True(clone.DefaultDrawingStyle.KeepWithNext);
         Assert.True(clone.DefaultDrawingStyle.ConstrainToContentWidth);
@@ -133,7 +133,7 @@ public class PdfDrawingInteropTests {
     [Fact]
     public void Options_ApplyThemeSnapshotsDefaultDrawingStyle() {
         var drawingStyle = new PdfDrawingStyle {
-            Align = PdfAlign.Center,
+            Align = OfficeAlignment.Center,
             SpacingAfter = global::OfficeIMO.OfficeLength.Points(8),
             KeepWithNext = true
         };
@@ -142,23 +142,23 @@ public class PdfDrawingInteropTests {
         };
         var options = new PdfCreateOptions().ApplyTheme(theme);
 
-        drawingStyle.Align = PdfAlign.Right;
+        drawingStyle.Align = OfficeAlignment.Right;
         drawingStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(1);
         drawingStyle.KeepWithNext = false;
 
         PdfCreateOptions clone = options.Clone();
 
-        Assert.Equal(PdfAlign.Center, options.DefaultDrawingStyle!.Align);
+        Assert.Equal(OfficeAlignment.Center, options.DefaultDrawingStyle!.Align);
         Assert.Equal(8, options.DefaultDrawingStyle.SpacingAfter.ToPoints());
         Assert.True(options.DefaultDrawingStyle.KeepWithNext);
-        Assert.Equal(PdfAlign.Center, clone.DefaultDrawingStyle!.Align);
+        Assert.Equal(OfficeAlignment.Center, clone.DefaultDrawingStyle!.Align);
         Assert.True(clone.DefaultDrawingStyle.KeepWithNext);
     }
 
     [Fact]
     public void DefaultDrawingStyle_AppliesAlignmentAndSpacingToFollowingShapesAndRows() {
         var style = new PdfDrawingStyle {
-            Align = PdfAlign.Center,
+            Align = OfficeAlignment.Center,
             SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
             SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
         };
@@ -183,7 +183,7 @@ public class PdfDrawingInteropTests {
                                 column.Shape(shape))))))
             .ToBytes();
 
-        style.Align = PdfAlign.Right;
+        style.Align = OfficeAlignment.Right;
         style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0);
 
         var (objects, _) = PdfSyntax.ParseObjects(bytes);
@@ -227,7 +227,7 @@ public class PdfDrawingInteropTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
             });
         if (scaledCanvas) doc.Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(90D)));
-        else doc.Drawing(drawing, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6);
+        else doc.Drawing(drawing, align: OfficeAlignment.Center, spacingBefore: 4, spacingAfter: 6);
 
         drawing.Shapes[0].Shape.Width = 20;
         drawing.Shapes[0].Shape.FillColor = OfficeColor.Red;

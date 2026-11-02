@@ -12,10 +12,10 @@ public sealed class IWorkWholeAxisFormulaCorpusTests {
         using var converted = ExcelIWorkConverter.ConvertNumbersToExcelResult(Path.Combine(root, "cross-table-formulas.numbers"),
             conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         Assert.False(converted.IsVisualFallback);
-        IWorkDiagnostic diagnostic = Assert.Single(converted.Report.Diagnostics,
+        IWorkDiagnostic diagnostic = Assert.Single(converted.Report.NativeDiagnostics,
             d => d.Code == "IWORK_NUMBERS_TABLE_BODY_RANGE_APPROXIMATED");
         Assert.Equal(global::OfficeIMO.OfficeConversionLossKind.Approximation, diagnostic.LossKind);
-        Assert.Throws<InvalidOperationException>(() => converted.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => converted.Report.ThrowIfLoss());
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         foreach (JsonElement expected in manifest.RootElement.GetProperty("cases").EnumerateArray()) {

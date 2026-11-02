@@ -34,7 +34,7 @@ public sealed partial class IWorkBoundaryTests {
         }
         package.Position = 0;
         var report = ConvertUnitReport(package, kind, visual: true,
-            readOptions: new IWorkReadOptions { PreserveSourceRecords = false, MaximumSourceDeclarationIssues = 1 });
+            readOptions: new IWorkReadOptions { PreserveSourceRecords = false, MaxSourceDeclarationIssues = 1 });
         var issue = Assert.Single(report.SourceDeclarationIssues);
         Assert.Equal(19ul, issue.Owner.RecordIdentifier);
         Assert.Equal("11", issue.FieldPath);

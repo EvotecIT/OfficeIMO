@@ -7,7 +7,7 @@ internal static class EditCases {
         Directory.CreateDirectory(output);
         using (var project = ProjectDocument.Load(Path.Combine(fixtures, "delivery.xml"))) {
             var task = project.Tasks.Add("New root"); task.IsManual = false; task.Duration = ProjectDuration.WorkingDays(2);
-            project.Save(Path.Combine(output, "root-task-added.xml"), new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+            project.Save(Path.Combine(output, "root-task-added.xml"), new ProjectSaveOptions { AllowLoss = true });
             File.WriteAllText(Path.Combine(output, "root-task-added.expected.json"), "{\"tasks\":[{\"uid\":" + task.Uid + ",\"name\":\"New root\",\"outlineLevel\":1,\"durationMinutes\":960}]}");
         }
         using (var project = ProjectDocument.Load(Path.Combine(fixtures, "calendars.xml"))) {
@@ -17,7 +17,7 @@ internal static class EditCases {
             exception.ToDate = new DateTime(2026, 10, 13);
             project.Save(Path.Combine(output, "calendar-date.xml"));
             calendar.Exceptions.Remove(exception);
-            project.Save(Path.Combine(output, "calendar-remove.xml"), new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+            project.Save(Path.Combine(output, "calendar-remove.xml"), new ProjectSaveOptions { AllowLoss = true });
         }
         using (var project = ProjectDocument.Create()) {
             project.Settings.StartDate = new DateTime(2026, 10, 5, 8, 0, 0);

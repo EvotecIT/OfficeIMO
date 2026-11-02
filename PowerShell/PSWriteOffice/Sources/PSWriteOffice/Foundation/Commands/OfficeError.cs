@@ -27,7 +27,7 @@ public static class OfficeError {
             return (report.Diagnostics.FirstOrDefault(d => d.LossKind != OfficeConversionLossKind.None)
                 ?? report.Diagnostics.FirstOrDefault(d => d.Severity == OfficeDiagnosticSeverity.Error))?.Code;
         }
-        return exception.Report.FidelityDiagnostics.FirstOrDefault(d => d.LossKind != OfficeConversionLossKind.None)?.Code;
+        return exception.Report.Diagnostics.FirstOrDefault(d => d.LossKind != OfficeConversionLossKind.None)?.Code;
     }
     /// <summary>Classifies reachable argument, permission, I/O and cancellation failures.</summary>
     public static ErrorCategory Category(Exception exception) => exception switch {

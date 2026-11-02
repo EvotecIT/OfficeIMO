@@ -116,7 +116,7 @@ public sealed class ReaderOdfRtfProjectionPrerequisiteTests {
         byte[] bytes;
         string name;
         if (format == "odf") {
-            OdtDocument document = OdtDocument.Create(); document.Metadata.Title = "Source title";
+            OdtDocument document = OdtDocument.Create(); document.Properties.Title = "Source title";
             document.AddParagraph("visible text").AddImage(Convert.FromBase64String(
                 "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="),
                 "pixel.png", OdfLength.Centimeters(1), OdfLength.Centimeters(1));

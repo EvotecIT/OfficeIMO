@@ -9,19 +9,19 @@ public sealed partial class OfficeWorkflowRunner {
         ChmDocument source = ChmDocument.Load(input, reading, token);
         ChmConversionOptions conversion = settings.Chm?.Clone() ?? new ChmConversionOptions();
         conversion.MaxOutputBytes = Math.Min(conversion.MaxOutputBytes, request.Limits.MaximumOutputBytes);
-        byte[] bytes; IOfficeConversionReport report;
+        byte[] bytes; OfficeConversionReport report;
         switch (request.Route!.Id) {
             case "chm-pdf": {
                 var rendering = settings.Html?.ClonePdf() ?? new OfficeIMO.Html.Pdf.HtmlToPdfOptions();
                 if (!emitHtmlTaggedStructure) rendering.PdfOptions.SetTaggedStructureMode(OfficeIMO.Pdf.PdfTaggedStructureMode.None);
-                var result = source.ToPdfBytesResult(conversion, rendering, token); bytes = result.RequireValue(); report = result.Report; break;
+                var result = source.ToPdfBytesResult(conversion, rendering, token); bytes = result.Value; report = result.Report; break;
             }
             case "chm-epub": {
                 var result = source.ToEpubBytesResult(conversion, writeOptions: new OfficeIMO.Epub.EpubWriteOptions { MaxOutputBytes = conversion.MaxOutputBytes }, cancellationToken: token);
-                bytes = result.RequireValue(); report = result.Report; break;
+                bytes = result.Value; report = result.Report; break;
             }
             default: {
-                var result = source.ToMarkdownResult(conversion, cancellationToken: token); bytes = EncodeUtf8Bounded(result.RequireValue(), conversion.MaxOutputBytes); report = result.Report; break;
+                var result = source.ToMarkdownResult(conversion, cancellationToken: token); bytes = EncodeUtf8Bounded(result.Value, conversion.MaxOutputBytes); report = result.Report; break;
             }
         }
         var evidence = new OfficeWorkflowConversionEvidence(report, new Dictionary<string, string> {

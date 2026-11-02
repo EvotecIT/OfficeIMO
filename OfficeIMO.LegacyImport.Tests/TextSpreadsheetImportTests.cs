@@ -40,7 +40,7 @@ public sealed class TextSpreadsheetImportTests {
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "SYLK_FORMATTING_OMITTED");
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "SYLK_RECORDS_OMITTED");
         Assert.True(imported.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => imported.Report.ThrowIfLoss());
     }
 
     [Fact]

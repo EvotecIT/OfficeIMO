@@ -42,11 +42,11 @@ ChmConversionResult<OfficeIMO.Html.HtmlConversionDocument> htmlBook =
         TopicPaths = new[] { "/introduction.html", "/installation.html" },
         MaxOutputBytes = 32L * 1024 * 1024
     });
-foreach (var finding in htmlBook.Report.FidelityDiagnostics)
+foreach (var finding in htmlBook.Report.Diagnostics)
     Console.WriteLine($"{finding.Code}: {finding.Message}");
 ```
 
-Topic selection retains book order and rejects unknown or non-topic paths. `RequireValue()` rejects conversion failure; `Report.RequireNoLoss()` additionally rejects reported approximations and omissions. Raw archive extraction and converted-document fidelity are separate contracts.
+Topic selection retains book order and rejects unknown or non-topic paths. `RequireValue()` rejects conversion failure; `Report.ThrowIfLoss()` additionally rejects reported approximations and omissions. Raw archive extraction and converted-document fidelity are separate contracts.
 
 ## Bounds and ownership
 

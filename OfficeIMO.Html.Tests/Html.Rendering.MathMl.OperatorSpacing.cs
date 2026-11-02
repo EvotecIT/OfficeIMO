@@ -36,7 +36,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("<msup><mrow><mo lspace='.5em'>+</mo></mrow><mn>2</mn></msup>", "mo[operator-spacing-in-msup]")]
     public void HtmlMathMl_DiagnosesSpacingOutsideTheQualifiedOrdinaryRowSubset(string content, string detail) {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render("<math><mrow>" + content + "</mrow></math>");
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, d => d.Code == HtmlRenderDiagnosticCodes.MathMlContentUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, d => d.Code == HtmlRenderDiagnosticCodes.MathMlContentUnsupported);
         Assert.Equal(detail, diagnostic.Detail);
         Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
         Assert.NotEmpty(rendered.Text);

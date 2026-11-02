@@ -66,7 +66,7 @@ internal static class HtmlMhtmlEvidenceRunner {
             using var source = new MemoryStream(archive, writable: false);
             HtmlConversionDocumentOptions? htmlOptions = null;
             if (maxCssRules.HasValue) {
-                htmlOptions = HtmlConversionDocumentOptions.CreateUntrustedProfile();
+                htmlOptions = HtmlConversionDocumentOptions.UntrustedDefaults;
                 HtmlConversionLimits limits = htmlOptions.Limits.Clone();
                 limits.MaxCssRules = maxCssRules.Value;
                 htmlOptions.Limits = limits;
@@ -107,12 +107,12 @@ internal static class HtmlMhtmlEvidenceRunner {
             browserReference = "not-recorded",
             sourceCommit,
             worktreeDirty,
-            maxCssRules = maxCssRules ?? HtmlConversionLimits.CreateUntrustedProfile().MaxCssRules,
+            maxCssRules = maxCssRules ?? HtmlConversionLimits.UntrustedDefaults.MaxCssRules,
             isolatedOfficeimoIntent = isolatedIntent,
             userAgent,
             userAgentStyles = selectedDefaults.UserAgentStyles.ToString(),
             defaultFontFamily = selectedDefaults.DefaultFontFamily,
-            maxSelectorEvaluations = HtmlConversionLimits.CreateUntrustedProfile().MaxSelectorEvaluations,
+            maxSelectorEvaluations = HtmlConversionLimits.UntrustedDefaults.MaxSelectorEvaluations,
             ownerVersions,
             ownerBoundary = "HTML PDF option and render APIs are owned by OfficeIMO.Html; no separate forwarder assembly is attributed.",
             conversionScope = "layout and PDF conversion of preloaded MHTML; PDF serialization included, archive load and saved-artifact inspection excluded",

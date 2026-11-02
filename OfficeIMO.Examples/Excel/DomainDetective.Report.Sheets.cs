@@ -40,11 +40,11 @@ namespace OfficeIMO.Examples.Excel
             using var doc = ExcelDocument.Create(filePath);
             // Document properties
             {
-                doc.BuiltinDocumentProperties.Title = "Domain Detective — Excelish Sheets";
-                doc.BuiltinDocumentProperties.Creator = "OfficeIMO";
+                doc.Properties.Title = "Domain Detective — Excelish Sheets";
+                doc.Properties.Creator = "OfficeIMO";
                 doc.ApplicationProperties.Company = "Evotec";
                 doc.ApplicationProperties.ApplicationName = "OfficeIMO.Excel";
-                doc.BuiltinDocumentProperties.Keywords = "excel,report,sheets,domains";
+                doc.Properties.Keywords = "excel,report,sheets,domains";
             }
 
             // Overview sheet

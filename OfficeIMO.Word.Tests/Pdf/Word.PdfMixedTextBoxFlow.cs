@@ -102,8 +102,8 @@ public partial class Word {
             Assert.Equal(warning.Code, Assert.Single(result.Report.Warnings,
                 item => item.LossKind != OfficeIMO.OfficeConversionLossKind.None).Code);
         // Running-story paint is deferred until ToBytes; the report must be truthful already.
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         using var pdf = PdfDocument.Open(result.ToBytes());
         string visible = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
         int previous = -1;
@@ -129,7 +129,7 @@ public partial class Word {
         var result = document.ConvertToPdfWithEvidence(CellTextBoxDiagnosticOptions());
         Assert.DoesNotContain(result.Report.Warnings, item => item.Code == "native-mixed-text-box-layout-approximated");
         Assert.False(result.HasLoss);
-        result.RequireNoLoss();
+        result.ThrowIfLoss();
         using var pdf = PdfDocument.Open(result.ToBytes());
         string visible = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
         Assert.Contains("PREFIXSUFFIX", visible, StringComparison.Ordinal);

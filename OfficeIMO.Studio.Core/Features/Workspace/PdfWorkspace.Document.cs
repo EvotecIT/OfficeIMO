@@ -13,7 +13,7 @@ internal sealed partial class PdfWorkspace {
 
     internal bool CanEditAttachments => CanPlan(PdfMutationOperation.ModifyAttachments);
 
-    internal PdfMetadata? Metadata => DocumentInfo?.Metadata;
+    internal PdfDocumentProperties? Metadata => DocumentInfo?.Metadata;
 
     internal IReadOnlyList<PdfAttachmentInfo> Attachments => DocumentInfo?.Attachments ?? [];
 
@@ -21,7 +21,7 @@ internal sealed partial class PdfWorkspace {
         CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null) =>
         // Empty strings clear a field; the engine keeps the Info dictionary and XMP packet in step.
         MutateBytesAsync(PdfWorkspaceOperationKind.Metadata, "Updated document properties", [],
-            bytes => LoadDocument(bytes).UpdateMetadata(title, author, subject, keywords).ToBytes(),
+            bytes => LoadDocument(bytes).UpdateProperties(title, author, subject, keywords).ToBytes(),
             cancellationToken, progress);
 
     internal Task EditBookmarksAsync(string description, IReadOnlyList<int> pages, Action<PdfBookmarkEditSession> edit,
@@ -74,17 +74,17 @@ internal sealed partial class PdfWorkspace {
                 double lineHeight = options.FontSize * 1.6D;
                 double headerY = options.Margin * 0.6D;
                 double footerY = Math.Max(0D, context.Height.ToPoints() - options.Margin * 0.6D - lineHeight);
-                void Draw(string? template, double y, PdfAlign align) {
+                void Draw(string? template, double y, OfficeAlignment align) {
                     if (string.IsNullOrWhiteSpace(template)) return;
                     canvas.Text(Expand(template), global::OfficeIMO.OfficeLength.Points(options.Margin), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(lineHeight), fontSize: global::OfficeIMO.OfficeLength.Points(options.FontSize),
                         color: global::OfficeIMO.OfficeColor.FromRgb(71, 84, 103), align: align);
                 }
-                Draw(options.HeaderLeft, headerY, PdfAlign.Left);
-                Draw(options.HeaderCenter, headerY, PdfAlign.Center);
-                Draw(options.HeaderRight, headerY, PdfAlign.Right);
-                Draw(options.FooterLeft, footerY, PdfAlign.Left);
-                Draw(options.FooterCenter, footerY, PdfAlign.Center);
-                Draw(options.FooterRight, footerY, PdfAlign.Right);
+                Draw(options.HeaderLeft, headerY, OfficeAlignment.Left);
+                Draw(options.HeaderCenter, headerY, OfficeAlignment.Center);
+                Draw(options.HeaderRight, headerY, OfficeAlignment.Right);
+                Draw(options.FooterLeft, footerY, OfficeAlignment.Left);
+                Draw(options.FooterCenter, footerY, OfficeAlignment.Center);
+                Draw(options.FooterRight, footerY, OfficeAlignment.Right);
             }, stampOptions).ToBytes(),
             cancellationToken, progress);
     }

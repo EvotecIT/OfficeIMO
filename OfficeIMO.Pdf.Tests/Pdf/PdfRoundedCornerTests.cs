@@ -35,8 +35,8 @@ public class PdfRoundedCornerTests {
 
     [Fact]
     public void TableCornerRadius_RoundsOuterBox_ClipsCellBorder_AndKeepsInlineText() {
-        byte[] rounded = PdfDocument.Create(d => d.Content(c => c.Table(Callout(), PdfAlign.Left, CalloutStyle(6)))).ToBytes();
-        byte[] square = PdfDocument.Create(d => d.Content(c => c.Table(Callout(), PdfAlign.Left, CalloutStyle(0)))).ToBytes();
+        byte[] rounded = PdfDocument.Create(d => d.Content(c => c.Table(Callout(), OfficeAlignment.Left, CalloutStyle(6)))).ToBytes();
+        byte[] square = PdfDocument.Create(d => d.Content(c => c.Table(Callout(), OfficeAlignment.Left, CalloutStyle(0)))).ToBytes();
 
         string roundedRaw = PdfTestContentText.ReadDecoded(rounded);
         string squareRaw = PdfTestContentText.ReadDecoded(square);

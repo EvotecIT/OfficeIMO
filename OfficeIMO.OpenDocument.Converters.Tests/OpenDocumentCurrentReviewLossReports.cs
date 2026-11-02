@@ -74,7 +74,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             item => item.Feature == "text-decorations");
         Assert.Equal(OdfConversionMappingStatus.Approximated, mapping.Status);
         Assert.Equal(2, mapping.Count);
-        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoLoss());
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.ThrowIfLoss());
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         Assert.Equal(OdfTextDecorationType.Double, converted.LineThroughType);
         Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "run-formatting"
             && mapping.Status != OdfConversionMappingStatus.Converted);
-        conversion.Report.RequireNoLoss();
+        conversion.Report.ThrowIfLoss();
     }
 
     [Fact]
@@ -113,7 +113,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         Assert.Equal("#D9EAF7", converted.BackgroundColor?.ToString());
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "paragraph-formatting"
             && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoLoss());
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.ThrowIfLoss());
     }
 
     [Fact]
@@ -152,7 +152,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         Assert.Equal("Important note", annotation.Text);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "comments"
             && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoLoss());
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.ThrowIfLoss());
     }
 
     [Fact]
@@ -439,7 +439,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             Assert.Equal(OdfTextPosition.Superscript, field.TextPosition);
             Assert.Equal("#336699", field.Color?.ToString());
         }
-        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoLoss());
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.ThrowIfLoss());
         Assert.True(OdpPresentation.Load(new MemoryStream(conversion.Value.ToBytes())).Validate().IsValid);
 
         OdfConversionResult<PowerPointDocument> reverse = conversion.Value.ToPowerPointDocumentResult();
@@ -1415,7 +1415,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "text-decorations"
             && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoLoss());
+        Assert.Throws<OdfConversionLossException>(() => conversion.Report.ThrowIfLoss());
     }
 
     [Fact]

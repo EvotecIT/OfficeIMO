@@ -13,7 +13,7 @@ public static partial class OfficeDrawingPortableExporter {
     /// <param name="json">Complete version 1 JSON, or null on unsupported content or exceeded budgets.</param>
     /// <param name="diagnostics">A stable failure code and source location, or an empty collection on success.</param>
     public static bool TryExportJson(OfficeDrawing drawing, OfficeDrawingPortableOptions options,
-        out string? json, out IReadOnlyList<OfficeConversionFidelityDiagnostic> diagnostics) {
+        out string? json, out IReadOnlyList<OfficeDiagnostic> diagnostics) {
         if (drawing == null) throw new ArgumentNullException(nameof(drawing));
         if (options == null) throw new ArgumentNullException(nameof(options));
         options.Validate();
@@ -24,11 +24,10 @@ public static partial class OfficeDrawingPortableExporter {
             List<Element> elements = context.Project(drawing, OfficeTransform.Identity, null, 0, "elements");
             ValidateOutputDepth(elements, 1, options.MaximumDepth);
             json = Serialize(drawing.Width, drawing.Height, elements, options.MaximumJsonCharacters);
-            diagnostics = Array.Empty<OfficeConversionFidelityDiagnostic>();
+            diagnostics = Array.Empty<OfficeDiagnostic>();
             return true;
         } catch (ProjectionException error) {
-            diagnostics = Array.AsReadOnly(new[] { new OfficeConversionFidelityDiagnostic(error.Code,
-                error.Message, OfficeConversionLossKind.Failure, "OfficeIMO.Core.PortableDrawing", error.Location) });
+            diagnostics = Array.AsReadOnly(new[] { new global::OfficeIMO.OfficeDiagnostic(error.Code, global::OfficeIMO.OfficeDiagnosticSeverity.Warning, error.Message, error.Location, "OfficeIMO.Core.PortableDrawing", OfficeConversionLossKind.Failure) });
             return false;
         }
     }

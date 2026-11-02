@@ -77,10 +77,10 @@ public class RtfPdfImportTests {
 
         RtfDocument document = LoadSemanticPdf(pdf).ToRtfDocument(CreateImportOptions());
 
-        Assert.Equal("PDF Import Title", document.Info.Title);
-        Assert.Equal("OfficeIMO", document.Info.Author);
-        Assert.Equal("PDF to RTF", document.Info.Subject);
-        Assert.Equal("pdf,rtf", document.Info.Keywords);
+        Assert.Equal("PDF Import Title", document.Properties.Title);
+        Assert.Equal("OfficeIMO", document.Properties.Author);
+        Assert.Equal("PDF to RTF", document.Properties.Subject);
+        Assert.Equal("pdf,rtf", document.Properties.Keywords);
         Assert.Equal(7200, document.PageSetup.PaperWidthTwips);
         Assert.Equal(7200, document.PageSetup.PaperHeightTwips);
         Assert.Contains(document.Styles, style => style.Name == "Heading 1" && style.Bold == true);

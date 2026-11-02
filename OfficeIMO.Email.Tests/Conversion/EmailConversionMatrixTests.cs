@@ -72,15 +72,15 @@ public sealed class EmailConversionMatrixTests {
 
         Assert.False(report.CanWrite);
         Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_PROTECTED_CONTENT_REWRITE");
-        IOfficeConversionReport commonReport = report;
-        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
-            commonReport.FidelityDiagnostics,
+        OfficeConversionReport commonReport = report;
+        OfficeDiagnostic diagnostic = Assert.Single(
+            commonReport.Diagnostics,
             item => item.Code == "EMAIL_PROTECTED_CONTENT_REWRITE");
         Assert.True(commonReport.HasLoss);
         Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
-        Assert.Equal("OfficeIMO.Email", diagnostic.Source);
+        Assert.Equal("OfficeIMO.Email", diagnostic.Format);
         Assert.Equal("protection", diagnostic.Location);
-        Assert.Throws<InvalidOperationException>(commonReport.RequireNoLoss);
+        Assert.ThrowsAny<OfficeConversionException>(commonReport.ThrowIfLoss);
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public sealed class EmailConversionMatrixTests {
                     OfficeConversionLossKind.Approximation)
             });
 
-        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(report.FidelityDiagnostics);
+        OfficeDiagnostic diagnostic = Assert.Single(report.Diagnostics);
 
         Assert.True(report.HasPotentialDataLoss);
         Assert.True(report.HasLoss);
@@ -137,9 +137,9 @@ public sealed class EmailConversionMatrixTests {
             new[] { simple, actionable });
         Assert.False(report.CanWrite);
         Assert.True(report.HasLoss);
-        Assert.All(report.FidelityDiagnostics, diagnostic =>
+        Assert.All(report.Diagnostics, diagnostic =>
             Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind));
-        Assert.Throws<InvalidOperationException>(report.RequireNoLoss);
+        Assert.ThrowsAny<OfficeConversionException>(report.ThrowIfLoss);
     }
 
     [Theory]
@@ -154,9 +154,9 @@ public sealed class EmailConversionMatrixTests {
             new[] { stopped });
 
         Assert.Equal(OfficeConversionLossKind.Failure, stopped.LossKind);
-        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(report.FidelityDiagnostics).LossKind);
+        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(report.Diagnostics).LossKind);
         Assert.False(report.CanWrite);
-        Assert.Throws<InvalidOperationException>(report.RequireNoLoss);
+        Assert.ThrowsAny<OfficeConversionException>(report.ThrowIfLoss);
     }
 
     private static EmailDocument CreateDocument(OutlookItemKind kind) {

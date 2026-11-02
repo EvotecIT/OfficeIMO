@@ -97,7 +97,7 @@ public sealed partial class IWorkWorkflowTests {
         Assert.Equal("EditableReconstruction", evidence.Facts["projectionKind"]);
         if (source == "key") {
             Assert.Equal("True", evidence.Facts["partialEditableReconstruction"]);
-            Assert.Contains(evidence.FidelityDiagnostics, d => d.Code == "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED");
+            Assert.Contains(evidence.Diagnostics, d => d.Code == "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED");
         }
         int unitCount = int.Parse(evidence.Facts["sourceUnitCount"], System.Globalization.CultureInfo.InvariantCulture);
         int reconstructed = int.Parse(evidence.Facts["reconstructedSourceUnitCount"], System.Globalization.CultureInfo.InvariantCulture);
@@ -128,8 +128,8 @@ public sealed partial class IWorkWorkflowTests {
         };
         Assert.Equal(tables.Sum(table => table.Cells.Count(cell => cell.HasDecodeError)),
             int.Parse(evidence.Facts["sourceCellIssueCount"], System.Globalization.CultureInfo.InvariantCulture));
-        Assert.Contains(evidence.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
-        Assert.Throws<InvalidOperationException>(evidence.RequireNoLoss);
+        Assert.Contains(evidence.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
+        Assert.ThrowsAny<OfficeConversionException>(evidence.ThrowIfLoss);
         Assert.Equal(new FileInfo(files.Input).Length, result.InputBytes);
     }
 
@@ -152,7 +152,7 @@ public sealed partial class IWorkWorkflowTests {
         Assert.Equal("0", evidence.Facts["sourceMissingReferenceTargetCount"]);
         Assert.Equal("0", evidence.Facts["sourceMalformedReferenceCount"]);
         Assert.Equal("0", evidence.Facts["sourceRejectedReferenceSetCount"]);
-        Assert.Contains(evidence.FidelityDiagnostics, d => d.Code == "IWORK_SOURCE_REFERENCES_UNRESOLVED"
+        Assert.Contains(evidence.Diagnostics, d => d.Code == "IWORK_SOURCE_REFERENCES_UNRESOLVED"
             && d.LossKind == OfficeConversionLossKind.Unassessed);
         using var reopened = OfficeIMO.Word.WordDocument.Load(files.Output);
         Assert.Contains(reopened.Paragraphs, paragraph => paragraph.Text == "Value");
@@ -177,7 +177,7 @@ public sealed partial class IWorkWorkflowTests {
         OfficeWorkflowRunner runner = IWorkWorkflow.CreateRunner(reading, policy);
         policy.RequireCompleteVisualCoverage = false;
         policy.Mode = IWorkConversionMode.EditableOnly;
-        reading.MaximumPackageBytes = 1;
+        reading.MaxPackageBytes = 1;
         var request = files.Request("pages-docx");
         request.RegisteredConversionSettings = null; // Exercise the runner's captured policy.
         OfficeWorkflowResult result = await runner.RunAsync(request);
@@ -206,11 +206,11 @@ public sealed partial class IWorkWorkflowTests {
         Assert.Equal(2, Directory.GetFiles(files.Root).Length);
         if (!inputLimit) {
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
-            Assert.NotEmpty(evidence.FidelityDiagnostics);
+            Assert.NotEmpty(evidence.Diagnostics);
             Assert.Matches("^[a-f0-9]{64}$", evidence.Facts["packageContentSha256"]);
             Assert.True(int.Parse(evidence.Facts["totalRecordCount"], System.Globalization.CultureInfo.InvariantCulture) > 0);
-            foreach (var finding in evidence.FidelityDiagnostics)
-                Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == finding.Code && diagnostic.Details["source"] == finding.Source
+            foreach (var finding in evidence.Diagnostics)
+                Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == finding.Code && diagnostic.Details["source"] == finding.Format
                     && diagnostic.Details["lossKind"] == finding.LossKind.ToString());
         }
     }
@@ -404,12 +404,12 @@ public sealed partial class IWorkWorkflowTests {
         await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
         settings.ConversionOptions.Mode = IWorkConversionMode.EditableOnly;
         settings.ConversionOptions.RequireCompleteVisualCoverage = true;
-        settings.ReadOptions.MaximumPackageBytes = 1;
+        settings.ReadOptions.MaxPackageBytes = 1;
         proceed.SetResult();
         OfficeWorkflowResult result = await run;
         Assert.True(result.Succeeded, result.Summary);
         Assert.Equal("VisualFallback", result.ConversionEvidence!.Facts["projectionKind"]);
-        Assert.Contains(result.ConversionEvidence.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Contains(result.ConversionEvidence.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }
 
     [Theory]
@@ -455,10 +455,10 @@ public sealed partial class IWorkWorkflowTests {
         public IOfficeConversionSettings Snapshot() => new OtherSettings();
     }
 
-    private sealed class EmptyReport : IOfficeConversionReport {
-        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => Array.Empty<OfficeConversionFidelityDiagnostic>();
-        public bool HasLoss => false;
-        public void RequireNoLoss() { }
+    private sealed class EmptyReport : OfficeConversionReport {
+        protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+        private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics => Array.Empty<OfficeDiagnostic>();
+        public override bool HasLoss => false;
     }
 
     private sealed class MutatingGuard(string path) : IOfficePublicationGuard {

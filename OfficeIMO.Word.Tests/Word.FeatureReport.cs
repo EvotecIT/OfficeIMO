@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
             File.Delete(filePath);
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.BuiltinDocumentProperties.Creator = "Ada Lovelace";
+                document.Properties.Creator = "Ada Lovelace";
                 document.SetDocumentVariable("ClientName", "Evotec");
                 document.AddParagraph("Target heading").AddBookmark("TargetBookmark");
                 AddFeatureReportComplexField(document.AddParagraph("Reference: ")._paragraph, " REF ", " \"TargetBookmark\" \\h ", "Target heading", dirty: true, locked: true);

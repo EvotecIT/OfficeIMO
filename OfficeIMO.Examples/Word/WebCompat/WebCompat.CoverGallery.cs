@@ -17,7 +17,7 @@ namespace OfficeIMO.Examples.Word {
                 string filePath = System.IO.Path.Combine(folderPath, $"WebCompat-Cover-{tpl}.docx");
                 Console.WriteLine("[*] Generating: " + filePath);
                 using var doc = WordDocument.Create(filePath);
-                doc.BuiltinDocumentProperties.Title = $"Cover: {tpl}";
+                doc.Properties.Title = $"Cover: {tpl}";
                 doc.ApplicationProperties.Company = "OfficeIMO";
 
                 doc.AddCoverPage(tpl);
@@ -40,7 +40,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "WebCompat-Cover-Confidential.docx");
             Console.WriteLine("[*] Generating: " + filePath);
             using var doc = WordDocument.Create(filePath);
-            doc.BuiltinDocumentProperties.Title = "Confidential Report";
+            doc.Properties.Title = "Confidential Report";
             doc.AddCoverPage(WordCoverPageTemplate.IonDark);
 
             // Optional: add text watermark so we can observe how Online renders it

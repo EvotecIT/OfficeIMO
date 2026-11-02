@@ -36,7 +36,7 @@ internal static partial class NativeKeynoteWriterSmoke {
         }
         using var unchanged = new MemoryStream(new byte[] { 9, 8, 7 });
         try {
-            document.Save(unchanged, new IWorkKeynoteWriteOptions { MaximumImages = 2 });
+            document.Save(unchanged, new IWorkKeynoteWriteOptions { MaxImages = 2 });
             throw new InvalidOperationException("NativeAOT image-count budget was not enforced.");
         } catch (InvalidDataException) { }
         Require(unchanged.ToArray().SequenceEqual(new byte[] { 9, 8, 7 }), "NativeAOT image-budget failure changed the destination.");

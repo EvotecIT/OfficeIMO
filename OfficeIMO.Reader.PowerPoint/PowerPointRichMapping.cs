@@ -18,7 +18,7 @@ internal static class PowerPointRichMapping {
         ReaderPowerPointOptions options,
         OfficeDocumentReadResult result,
         CancellationToken cancellationToken) {
-        PowerPointBuiltinDocumentProperties properties = presentation.BuiltinDocumentProperties;
+        PowerPointBuiltinDocumentProperties properties = presentation.Properties;
         result.Source.Title = properties.Title;
         result.Source.Author = properties.Creator;
         result.Source.Subject = properties.Subject;

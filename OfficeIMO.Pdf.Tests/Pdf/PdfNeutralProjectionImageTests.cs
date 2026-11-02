@@ -70,12 +70,12 @@ public sealed class PdfNeutralProjectionImageTests {
         Assert.Equal("3", warning.Details["sourcePage"]);
         Assert.Equal((int)severity, (int)warning.Severity);
         Assert.Equal(expectedLoss != OfficeConversionLossKind.None, result.HasLoss);
-        Assert.Equal(expectedLoss, Assert.Single(result.Report.FidelityDiagnostics).LossKind);
+        Assert.Equal(expectedLoss, Assert.Single(result.Report.Diagnostics).LossKind);
         if (expectedLoss == OfficeConversionLossKind.None) {
-            result.RequireNoLoss();
+            result.ThrowIfLoss();
             Assert.Equal(PdfConversionFidelityStatus.Faithful, result.Report.FidelityStatus);
         } else {
-            Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
             Assert.Equal(PdfConversionFidelityStatus.Degraded, result.Report.FidelityStatus);
         }
     }
@@ -92,7 +92,7 @@ public sealed class PdfNeutralProjectionImageTests {
         Assert.Equal(OfficeConversionLossKind.Unassessed, warning.ToFidelityDiagnostic().LossKind);
         Assert.True(report.HasLoss);
         Assert.Equal(PdfConversionFidelityStatus.Degraded, report.FidelityStatus);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
     }
 
     [Theory]

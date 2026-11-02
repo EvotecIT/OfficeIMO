@@ -7,7 +7,7 @@ public sealed class AsciiDocIncludeRequest {
         CurrentSourceName = currentSourceName;
         Depth = depth;
         Attributes = attributes;
-        MaximumContentLength = maximumContentLength;
+        MaxContentLength = maximumContentLength;
         CancellationToken = cancellationToken;
     }
 
@@ -24,7 +24,7 @@ public sealed class AsciiDocIncludeRequest {
     public AsciiDocDocumentAttributes Attributes { get; }
 
     /// <summary>Remaining UTF-16 character budget for this resolution. Resolvers must bound reads before materializing content.</summary>
-    public int MaximumContentLength { get; }
+    public int MaxContentLength { get; }
 
     /// <summary>Cancellation requested by the processing caller.</summary>
     public System.Threading.CancellationToken CancellationToken { get; }
@@ -89,7 +89,7 @@ public sealed class AsciiDocRootedFileIncludeResolver : IAsciiDocIncludeResolver
         if (!AllowSymbolicLinks && ContainsReparsePoint(candidate)) return null;
         using var stream = new FileStream(candidate, FileMode.Open, FileAccess.Read, FileShare.Read);
         return new AsciiDocIncludeResult(OfficeIMO.Core.Internal.OfficeTextReader.ReadAllText(
-            stream, request.MaximumContentLength, cancellationToken: request.CancellationToken), candidate);
+            stream, request.MaxContentLength, cancellationToken: request.CancellationToken), candidate);
     }
 
     private string GetBaseDirectory(string? sourceName) {

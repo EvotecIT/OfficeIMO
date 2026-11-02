@@ -130,7 +130,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal("", Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
         using var limited = DateFormatPackage(IWorkDocumentKind.Numbers, "dd/MM/y", new DateTime(2026, 1, 5), empty: true, columns: 2);
         Assert.Contains("source-wide limit", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(limited,
-            new IWorkReadOptions { MaximumMaterializedCells = 1 }).ReadNumbers()).Message);
+            new IWorkReadOptions { MaxMaterializedCells = 1 }).ReadNumbers()).Message);
     }
 
     private static byte[] DateFormat(string pattern) => Message(VarintField(1, 261), StringField(14, pattern));
@@ -140,17 +140,17 @@ public sealed partial class IWorkBoundaryTests {
         using var package = DateFormatPackage(IWorkDocumentKind.Numbers, "dd/MM/y", new DateTime(2026, 1, 5),
             empty: true, columns: 2, sheetName: "");
         var projection = IWorkSourceDocument.Open(package, new IWorkReadOptions {
-            MaximumProjectedTextCharacters = 7, MaximumProjectedTextItems = 1
+            MaxProjectedTextCharacters = 7, MaxProjectedTextItems = 1
         }).ReadNumbers();
         Assert.Equal(2, projection.Sheets[0].Tables[0].Cells.Count);
         Assert.Same(projection.Sheets[0].Tables[0].Cells[0].NumberFormat, projection.Sheets[0].Tables[0].Cells[1].NumberFormat);
         package.Position = 0;
         Assert.Contains("Text character", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumProjectedTextCharacters = 6 }).ReadNumbers()).Message);
+            new IWorkReadOptions { MaxProjectedTextCharacters = 6 }).ReadNumbers()).Message);
         using var oversized = DateFormatPackage(IWorkDocumentKind.Numbers, "dd/MM/y", new DateTime(2026, 1, 5),
             format: Message(DateFormat("dd/MM/y"), Message(Enumerable.Repeat(VarintField(99, 0), 17).ToArray())));
         Assert.Contains("field", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(oversized,
-            new IWorkReadOptions { MaximumProtobufFieldCount = 16 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
+            new IWorkReadOptions { MaxProtobufFieldCount = 16 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

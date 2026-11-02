@@ -30,7 +30,7 @@ public sealed class HtmlEditableLayoutWordTests {
         Assert.Equal("Visible text.", string.Concat(word.Paragraphs.Select(paragraph => paragraph.Text)));
         WordComment comment = Assert.Single(word.Comments);
         Assert.Equal("reviewer note", comment.Text);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail == "htmlComment=true; semanticFlow=true");
     }
@@ -113,7 +113,7 @@ public sealed class HtmlEditableLayoutWordTests {
         using WordDocument word = result.Value;
 
         Assert.Equal(int.MaxValue, Assert.Single(word.TextBoxes).HorizontalPositionOffset?.ToEmus());
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail != null
             && diagnostic.Detail.Contains("nativeRange", StringComparison.Ordinal));
@@ -129,7 +129,7 @@ public sealed class HtmlEditableLayoutWordTests {
         WordTextBox textBox = Assert.Single(word.TextBoxes);
         Assert.Equal(HtmlToWordConverter.MaximumDrawingExtent, textBox.Width.ToEmus());
         Assert.Equal(HtmlToWordConverter.MaximumDrawingExtent, textBox.Height.ToEmus());
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail != null
             && diagnostic.Detail.Contains("sizeRange", StringComparison.Ordinal));
@@ -145,7 +145,7 @@ public sealed class HtmlEditableLayoutWordTests {
         using WordDocument word = result.Value;
 
         Assert.Empty(word.TextBoxes);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Detail == "mixedInlinePictures=true");
     }
 
@@ -176,7 +176,7 @@ public sealed class HtmlEditableLayoutWordTests {
 
         Assert.Empty(word.TextBoxes);
         Assert.NotEmpty(word.Find("Ambiguous anchor", StringComparison.Ordinal));
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail != null
             && diagnostic.Detail.Contains("continuousSurfaceHeight", StringComparison.Ordinal));
@@ -212,7 +212,7 @@ public sealed class HtmlEditableLayoutWordTests {
 
             Assert.Empty(word.TextBoxes);
             Assert.NotEmpty(word.Find("Path styled anchor", StringComparison.Ordinal));
-            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
                 diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
                 && diagnostic.Detail == "externalStylesheetSources=true; semanticFlow=true");
         } finally {
@@ -244,7 +244,7 @@ public sealed class HtmlEditableLayoutWordTests {
 
         Assert.Empty(word.TextBoxes);
         Assert.NotEmpty(word.Find("Linked styled anchor", StringComparison.Ordinal));
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail == "externalStylesheetSources=true; semanticFlow=true");
     }

@@ -37,99 +37,104 @@ internal static partial class PdfRedactionApplier {
         var selectedKinds = new HashSet<PdfLogicalElementKind>(kinds);
         StringComparison comparison = plan.SearchMatchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
         var workBudget = new PdfRedactionSearchWorkBudget("search verification");
-        foreach (KeyValuePair<int, PdfRedactionArea[]> page in areasByPage) {
-            int pageNumber = page.Key;
-            cancellationToken.ThrowIfCancellationRequested();
-            if (pageNumber < 1 || pageNumber > rewritten.Pages.Count)
-                throw new InvalidOperationException("The rewritten PDF is missing a searched redaction page.");
-            string remaining = rewritten.Pages[pageNumber - 1].ExtractText(cancellationToken);
-            foreach (string literal in literals) {
+        try {
+            foreach (KeyValuePair<int, PdfRedactionArea[]> page in areasByPage) {
+                int pageNumber = page.Key;
                 cancellationToken.ThrowIfCancellationRequested();
-                workBudget.ChargeTextScan(remaining, literal);
-                if (PdfTextSearchNormalization.ContainsExact(remaining, literal, comparison)) ThrowSurvivingText(pageNumber);
-                // ExtractText does not preserve every cell wrap or embedded /ActualText line break.
-                // Reuse the planner's native normalization so a surviving wrapped occurrence fails closed.
-                var nativeOptions = new PdfTextSearchOptions {
-                    MatchCase = plan.SearchMatchCase,
-                    IncludeTextRenderingMode3 = true,
-                    PageNumbers = new[] { pageNumber }
-                };
-                if (PdfTextEditor.Find(output, literal, nativeOptions, outputOptions, workBudget, cancellationToken).Count > 0)
-                    ThrowSurvivingText(pageNumber);
-            }
-            PdfLogicalTextBlock[] rewrittenBlocks = rewrittenBlocksByPage != null &&
-                rewrittenBlocksByPage.TryGetValue(pageNumber, out PdfLogicalTextBlock[]? pageRewrittenBlocks)
-                ? pageRewrittenBlocks : Array.Empty<PdfLogicalTextBlock>();
-            if (rewrittenLogical != null) {
-                foreach (PdfLogicalTextBlock block in rewrittenBlocks) {
+                if (pageNumber < 1 || pageNumber > rewritten.Pages.Count)
+                    throw new InvalidOperationException("The rewritten PDF is missing a searched redaction page.");
+                string remaining = rewritten.Pages[pageNumber - 1].ExtractText(cancellationToken);
+                foreach (string literal in literals) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    foreach (Regex regex in regexes) if (workBudget.IsMatch(regex, block.Text)) ThrowSurvivingText(pageNumber);
-                }
-            }
-            if (page.Value.Any(static area => area.RequiresGlyphRewrite)) {
-                foreach (Regex regex in regexes) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (PdfTextEditor.HasRegexRedactionMatch(output, regex, pageNumber, outputOptions, workBudget, cancellationToken))
+                    workBudget.ChargeTextScan(remaining, literal);
+                    if (PdfTextSearchNormalization.ContainsExact(remaining, literal, comparison)) ThrowSurvivingText(pageNumber);
+                    // ExtractText does not preserve every cell wrap or embedded /ActualText line break.
+                    // Reuse the planner's native normalization so a surviving wrapped occurrence fails closed.
+                    var nativeOptions = new PdfTextSearchOptions {
+                        MatchCase = plan.SearchMatchCase,
+                        IncludeTextRenderingMode3 = true,
+                        PageNumbers = new[] { pageNumber }
+                    };
+                    if (PdfTextEditor.Find(output, literal, nativeOptions, outputOptions, workBudget, cancellationToken).Count > 0)
                         ThrowSurvivingText(pageNumber);
                 }
-            }
-            foreach (string literal in literals) {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (PdfTextEditor.HasHiddenLayerRedactionMatch(output, literal, plan.SearchMatchCase, pageNumber, outputOptions, workBudget, cancellationToken))
-                    ThrowSurvivingText(pageNumber);
-            }
-            foreach (Regex regex in regexes) {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (PdfTextEditor.HasHiddenLayerRegexRedactionMatch(output, regex, pageNumber, outputOptions, workBudget, cancellationToken))
-                    ThrowSurvivingText(pageNumber);
-            }
-            if (sourceLogical != null) {
-                PdfLogicalTextBlock[] sourceBlocks = sourceBlocksByPage != null &&
-                    sourceBlocksByPage.TryGetValue(pageNumber, out PdfLogicalTextBlock[]? pageSourceBlocks)
-                    ? pageSourceBlocks : Array.Empty<PdfLogicalTextBlock>();
-                var rewrittenSpans = new List<(PdfTextSpan Span, PdfTextSpanBounds Bounds)>();
-                foreach (PdfLogicalTextBlock block in rewrittenBlocks) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    foreach (PdfTextSpan span in block.Spans)
-                        rewrittenSpans.Add((span, PdfTextSpanGeometry.GetRedactionBounds(span)));
-                }
-                Dictionary<int, string> wrappedLiterals = PdfRedactionPlanner.MatchLiteralsAcrossBlocks(
-                    sourceBlocks, literals, comparison, workBudget, static _ => true, cancellationToken,
-                    readOptions?.Limits.MaxTextSearchFlowComparisons ?? PdfReadLimits.DefaultMaxTextSearchFlowComparisons);
-                for (int blockIndex = 0; blockIndex < sourceBlocks.Length; blockIndex++) {
-                    PdfLogicalTextBlock block = sourceBlocks[blockIndex];
-                    cancellationToken.ThrowIfCancellationRequested();
-                    bool selected = selectedKinds.Contains(block.Kind) || wrappedLiterals.ContainsKey(blockIndex);
-                    for (int i = 0; !selected && i < literals.Length; i++) {
-                        workBudget.ChargeTextScan(block.Text, literals[i]);
-                        selected = Contains(block.Text, literals[i], comparison);
+                PdfLogicalTextBlock[] rewrittenBlocks = rewrittenBlocksByPage != null &&
+                    rewrittenBlocksByPage.TryGetValue(pageNumber, out PdfLogicalTextBlock[]? pageRewrittenBlocks)
+                    ? pageRewrittenBlocks : Array.Empty<PdfLogicalTextBlock>();
+                if (rewrittenLogical != null) {
+                    foreach (PdfLogicalTextBlock block in rewrittenBlocks) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        foreach (Regex regex in regexes) if (workBudget.IsMatch(regex, block.Text)) ThrowSurvivingText(pageNumber);
                     }
-                    for (int i = 0; !selected && i < regexes.Length; i++)
-                        selected = workBudget.IsMatch(regexes[i], block.Text);
-                    if (!selected) continue;
-                    foreach (PdfTextSpan span in block.Spans) {
-                        if (string.IsNullOrEmpty(span.Text)) continue;
-                        PdfTextSpanBounds sourceBounds = PdfTextSpanGeometry.GetRedactionBounds(span);
-                        foreach (PdfRedactionArea area in page.Value) {
-                            cancellationToken.ThrowIfCancellationRequested();
-                            workBudget.Charge(1L);
-                            // Precise plans retain the rest of the matching block. Their glyph
-                            // residuals and expected survivors are checked by VerifyAppliedPlan.
-                            if (area.RequiresGlyphRewrite) continue;
-                            if (!area.IntersectsRectangle(sourceBounds.Left, sourceBounds.Bottom, sourceBounds.Width, sourceBounds.Height))
-                                continue;
-                            foreach ((PdfTextSpan candidateSpan, PdfTextSpanBounds candidateBounds) in rewrittenSpans) {
+                }
+                if (page.Value.Any(static area => area.RequiresGlyphRewrite)) {
+                    foreach (Regex regex in regexes) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (PdfTextEditor.HasRegexRedactionMatch(output, regex, pageNumber, outputOptions, workBudget, cancellationToken))
+                            ThrowSurvivingText(pageNumber);
+                    }
+                }
+                foreach (string literal in literals) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (PdfTextEditor.HasHiddenLayerRedactionMatch(output, literal, plan.SearchMatchCase, pageNumber, outputOptions, workBudget, cancellationToken))
+                        ThrowSurvivingText(pageNumber);
+                }
+                foreach (Regex regex in regexes) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (PdfTextEditor.HasHiddenLayerRegexRedactionMatch(output, regex, pageNumber, outputOptions, workBudget, cancellationToken))
+                        ThrowSurvivingText(pageNumber);
+                }
+                if (sourceLogical != null) {
+                    PdfLogicalTextBlock[] sourceBlocks = sourceBlocksByPage != null &&
+                        sourceBlocksByPage.TryGetValue(pageNumber, out PdfLogicalTextBlock[]? pageSourceBlocks)
+                        ? pageSourceBlocks : Array.Empty<PdfLogicalTextBlock>();
+                    var rewrittenSpans = new List<(PdfTextSpan Span, PdfTextSpanBounds Bounds)>();
+                    foreach (PdfLogicalTextBlock block in rewrittenBlocks) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        foreach (PdfTextSpan span in block.Spans)
+                            rewrittenSpans.Add((span, PdfTextSpanGeometry.GetRedactionBounds(span)));
+                    }
+                    Dictionary<int, string> wrappedLiterals = PdfRedactionPlanner.MatchLiteralsAcrossBlocks(
+                        sourceBlocks, literals, comparison, workBudget, static _ => true, cancellationToken,
+                        readOptions?.Limits.MaxTextSearchFlowComparisons ?? PdfReadLimits.DefaultMaxTextSearchFlowComparisons);
+                    for (int blockIndex = 0; blockIndex < sourceBlocks.Length; blockIndex++) {
+                        PdfLogicalTextBlock block = sourceBlocks[blockIndex];
+                        cancellationToken.ThrowIfCancellationRequested();
+                        bool selected = selectedKinds.Contains(block.Kind) || wrappedLiterals.ContainsKey(blockIndex);
+                        for (int i = 0; !selected && i < literals.Length; i++) {
+                            workBudget.ChargeTextScan(block.Text, literals[i]);
+                            selected = Contains(block.Text, literals[i], comparison);
+                        }
+                        for (int i = 0; !selected && i < regexes.Length; i++)
+                            selected = workBudget.IsMatch(regexes[i], block.Text);
+                        if (!selected) continue;
+                        foreach (PdfTextSpan span in block.Spans) {
+                            if (string.IsNullOrEmpty(span.Text)) continue;
+                            PdfTextSpanBounds sourceBounds = PdfTextSpanGeometry.GetRedactionBounds(span);
+                            foreach (PdfRedactionArea area in page.Value) {
                                 cancellationToken.ThrowIfCancellationRequested();
                                 workBudget.Charge(1L);
-                                if (!string.IsNullOrWhiteSpace(candidateSpan.Text) &&
-                                    sourceBounds.Left < candidateBounds.Right && sourceBounds.Right > candidateBounds.Left &&
-                                    sourceBounds.Bottom < candidateBounds.Top && sourceBounds.Top > candidateBounds.Bottom)
-                                    ThrowSurvivingText(pageNumber);
+                                // Precise plans retain the rest of the matching block. Their glyph
+                                // residuals and expected survivors are checked by VerifyAppliedPlan.
+                                if (area.RequiresGlyphRewrite) continue;
+                                if (!area.IntersectsRectangle(sourceBounds.Left, sourceBounds.Bottom, sourceBounds.Width, sourceBounds.Height))
+                                    continue;
+                                foreach ((PdfTextSpan candidateSpan, PdfTextSpanBounds candidateBounds) in rewrittenSpans) {
+                                    cancellationToken.ThrowIfCancellationRequested();
+                                    workBudget.Charge(1L);
+                                    if (!string.IsNullOrWhiteSpace(candidateSpan.Text) &&
+                                        sourceBounds.Left < candidateBounds.Right && sourceBounds.Right > candidateBounds.Left &&
+                                        sourceBounds.Bottom < candidateBounds.Top && sourceBounds.Top > candidateBounds.Bottom)
+                                        ThrowSurvivingText(pageNumber);
+                                }
                             }
                         }
                     }
                 }
             }
+        } catch (InvalidDataException) when (workBudget.IsExceeded) {
+            throw PdfMutationBlockedException.FailedProof(PdfMutationPlanner.Plan(plan.Preflight, PdfMutationOperation.Redact),
+                PdfMutationProof.RedactionResidue, "The redaction search verification work limit was exceeded; no output was verified.");
         }
     }
 

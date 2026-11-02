@@ -38,16 +38,16 @@ public sealed class ProjectNativeTests {
         using var saved = new MemoryStream(); native.Save(saved); Assert.Equal(bytes, saved.ToArray());
     }
     [Theory]
-    [InlineData(OfficeConversionLossPolicy.Block)]
-    [InlineData(OfficeConversionLossPolicy.Allow)]
-    public void UnsupportedNativeNotesEditsNeverProduceAnUnqualifiedRewrite(OfficeConversionLossPolicy policy) {
+    [InlineData(false)]
+    [InlineData(true)]
+    public void UnsupportedNativeNotesEditsNeverProduceAnUnqualifiedRewrite(bool allowLoss) {
         using var document = ProjectDocument.Load(Fixture("delivery.mpp"));
         document.Tasks.GetByUid(3).Notes = "Changed";
         using var target = new MemoryStream(new byte[16], true);
-        Assert.Throws<InvalidDataException>(() => document.Save(target, new ProjectSaveOptions { LossPolicy = policy }));
+        Assert.Throws<InvalidDataException>(() => document.Save(target, new ProjectSaveOptions { AllowLoss = allowLoss }));
         Assert.Equal(new byte[16], target.ToArray());
-        Assert.Throws<InvalidDataException>(() => document.Clone(new ProjectSaveOptions { LossPolicy = policy }));
-        Assert.Throws<InvalidOperationException>(() => document.ToXml());
+        Assert.Throws<InvalidDataException>(() => document.Clone(new ProjectSaveOptions { AllowLoss = allowLoss }));
+        Assert.ThrowsAny<InvalidOperationException>(() => document.ToXml());
     }
     [Fact]
     public void NativeInputAndOutputBudgetsAndCancellationAreEnforced() {

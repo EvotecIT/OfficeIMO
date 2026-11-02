@@ -135,7 +135,7 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            PdfCore.PdfAlign objectAlign = ResolveNativeParagraphAlign(paragraph, allowJustify: false);
+            global::OfficeIMO.OfficeAlignment objectAlign = ResolveNativeParagraphAlign(paragraph, allowJustify: false);
             PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap);
             if (marker is { Marker.Length: 0 }) ApplyNativeMarkerlessListIndent(paragraph, style);
             bool inlineListMarker = marker is { Marker.Length: > 0 };
@@ -223,7 +223,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             RecordNativeParagraphBarTabDiagnostics(paragraph, options, "body paragraph");
-            PdfCore.PdfAlign align = ResolveNativeDisplayMathAlign(paragraph) ?? ResolveNativeParagraphAlign(paragraph);
+            global::OfficeIMO.OfficeAlignment align = ResolveNativeDisplayMathAlign(paragraph) ?? ResolveNativeParagraphAlign(paragraph);
             global::OfficeIMO.OfficeColor? defaultColor = ResolveNativeParagraphDefaultColor(paragraph);
             int headingLevel = nativeDefaults.NoteContentSection != null ? 0 : GetHeadingLevel(paragraph);
             string headingText = !needsAnchorLine && headingLevel > 0 && marker == null
@@ -352,7 +352,7 @@ namespace OfficeIMO.Word.Pdf {
             style.SpacingBefore.ToPoints() + MeasureNativeEmptyParagraphLineHeight(paragraph, nativeDefaults, nativeFontMap) +
             ((style.SpacingAfter?.ToPoints()) ?? nativeDefaults.ParagraphSpacingAfter);
 
-        private static void RenderNativeFormFields(INativePdfFlow pdf, IReadOnlyList<W.SdtRun> formFieldControls, PdfCore.PdfAlign align) {
+        private static void RenderNativeFormFields(INativePdfFlow pdf, IReadOnlyList<W.SdtRun> formFieldControls, global::OfficeIMO.OfficeAlignment align) {
             for (int index = 0; index < formFieldControls.Count; index++) {
                 W.SdtRun formField = formFieldControls[index];
                 double spacingBefore = index == 0 ? 0D : 2D;
@@ -392,7 +392,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RenderNativeCheckBoxes(INativePdfFlow pdf, IReadOnlyList<W.SdtRun> checkboxControls, PdfCore.PdfAlign align) {
+        private static void RenderNativeCheckBoxes(INativePdfFlow pdf, IReadOnlyList<W.SdtRun> checkboxControls, global::OfficeIMO.OfficeAlignment align) {
             for (int index = 0; index < checkboxControls.Count; index++) {
                 W.SdtRun checkbox = checkboxControls[index];
                 pdf.CheckBox(
@@ -409,7 +409,7 @@ namespace OfficeIMO.Word.Pdf {
         /// Word lays out a paragraph that holds only display math (m:oMathPara) by the
         /// equation's own justification, centred unless m:oMathParaPr says otherwise.
         /// </summary>
-        private static PdfCore.PdfAlign? ResolveNativeDisplayMathAlign(WordParagraph paragraph) {
+        private static global::OfficeIMO.OfficeAlignment? ResolveNativeDisplayMathAlign(WordParagraph paragraph) {
             W.Paragraph? source = paragraph._paragraph;
             DocumentFormat.OpenXml.Math.Paragraph? mathParagraph = source?.Elements<DocumentFormat.OpenXml.Math.Paragraph>().FirstOrDefault();
             if (source == null || mathParagraph == null) return null;
@@ -417,13 +417,13 @@ namespace OfficeIMO.Word.Pdf {
             if (hasOtherText) return null;
             string? justification = mathParagraph.ParagraphProperties?.Justification?.Val?.InnerText;
             return justification switch {
-                "left" => PdfCore.PdfAlign.Left,
-                "right" => PdfCore.PdfAlign.Right,
-                _ => PdfCore.PdfAlign.Center
+                "left" => global::OfficeIMO.OfficeAlignment.Left,
+                "right" => global::OfficeIMO.OfficeAlignment.Right,
+                _ => global::OfficeIMO.OfficeAlignment.Center
             };
         }
 
-        private static void RenderNativeRepeatingSections(INativePdfFlow pdf, IReadOnlyList<W.SdtRun> repeatingSectionControls, PdfCore.PdfAlign align, global::OfficeIMO.OfficeColor? color) {
+        private static void RenderNativeRepeatingSections(INativePdfFlow pdf, IReadOnlyList<W.SdtRun> repeatingSectionControls, global::OfficeIMO.OfficeAlignment align, global::OfficeIMO.OfficeColor? color) {
             foreach (W.SdtRun repeatingSection in repeatingSectionControls) {
                 foreach (string itemText in GetNativeRepeatingSectionItems(repeatingSection)) {
                     if (string.IsNullOrWhiteSpace(itemText)) {
@@ -775,7 +775,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static bool RenderNativeParagraphImages(INativePdfFlow pdf, WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordPdfExportOptions? options, PdfCore.PdfParagraphStyle anchorStyle, int groupedImageCount, NativeObjectParagraphSpacing? paragraphSpacing, IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>? inlineImages = null, WordSection? anchorSection = null) {
+        private static bool RenderNativeParagraphImages(INativePdfFlow pdf, WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, global::OfficeIMO.OfficeAlignment align, WordPdfExportOptions? options, PdfCore.PdfParagraphStyle anchorStyle, int groupedImageCount, NativeObjectParagraphSpacing? paragraphSpacing, IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>? inlineImages = null, WordSection? anchorSection = null) {
             int imageLimit = options?.MaxImagesPerParagraph ?? 1_000;
             if (imageLimit <= 0) throw new ArgumentOutOfRangeException(nameof(WordPdfExportOptions.MaxImagesPerParagraph));
             var positions = paragraph._paragraph!.Descendants().Select((element, index) => (element, index))
@@ -831,7 +831,7 @@ namespace OfficeIMO.Word.Pdf {
             return drawings;
         }
 
-        private static void RenderNativeRunCharts(INativePdfFlow pdf, IReadOnlyList<OfficeDrawing> drawings, PdfCore.PdfAlign align, double spacingBefore, double spacingAfter, NativeObjectParagraphSpacing? paragraphSpacing) {
+        private static void RenderNativeRunCharts(INativePdfFlow pdf, IReadOnlyList<OfficeDrawing> drawings, global::OfficeIMO.OfficeAlignment align, double spacingBefore, double spacingAfter, NativeObjectParagraphSpacing? paragraphSpacing) {
             for (int index = 0; index < drawings.Count; index++) {
                 OfficeDrawing drawing = drawings[index];
                 double before = index == 0 ? spacingBefore : 2D;
@@ -903,7 +903,7 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyList<WordParagraph> paragraphs = GetNativeTextBoxParagraphs(textBox);
             if (paragraphs.Count == 0 && !string.IsNullOrWhiteSpace(fallbackText)) {
                 PdfCore.PdfPanelStyle fallbackStyle = CreateNativeTextBoxPanelStyle(textBox);
-                pdf.PanelParagraph(builder => builder.Text(NormalizeNativeDirectText(fallbackText)), fallbackStyle, PdfCore.PdfAlign.Left);
+                pdf.PanelParagraph(builder => builder.Text(NormalizeNativeDirectText(fallbackText)), fallbackStyle, global::OfficeIMO.OfficeAlignment.Left);
                 return;
             }
 
@@ -1008,19 +1008,19 @@ namespace OfficeIMO.Word.Pdf {
             return style;
         }
 
-        private static PdfCore.PdfAlign MapNativeTextBoxBoxAlign(WordTextBoxHorizontalAlignment alignment) {
+        private static global::OfficeIMO.OfficeAlignment MapNativeTextBoxBoxAlign(WordTextBoxHorizontalAlignment alignment) {
             switch (alignment) {
                 case WordTextBoxHorizontalAlignment.Center:
-                    return PdfCore.PdfAlign.Center;
+                    return global::OfficeIMO.OfficeAlignment.Center;
                 case WordTextBoxHorizontalAlignment.Right:
                 case WordTextBoxHorizontalAlignment.Outside:
-                    return PdfCore.PdfAlign.Right;
+                    return global::OfficeIMO.OfficeAlignment.Right;
                 default:
-                    return PdfCore.PdfAlign.Left;
+                    return global::OfficeIMO.OfficeAlignment.Left;
             }
         }
 
-        private static void RenderNativeHeading(INativePdfFlow pdf, int level, string text, Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align, global::OfficeIMO.OfficeColor? color, WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
+        private static void RenderNativeHeading(INativePdfFlow pdf, int level, string text, Action<PdfCore.PdfParagraphBuilder> build, global::OfficeIMO.OfficeAlignment align, global::OfficeIMO.OfficeColor? color, WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
             PdfCore.PdfHeadingStyle style = CreateNativeWordHeadingStyle(level, paragraph, paragraphStyle, nativeDefaults, nativeFontMap);
             string normalizedText = NormalizeNativeDirectText(text);
             if (string.IsNullOrWhiteSpace(normalizedText)) {

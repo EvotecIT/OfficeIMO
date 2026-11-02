@@ -17,7 +17,7 @@ namespace OfficeIMO.Word {
             _document = document;
             _wordprocessingDocument = document._wordprocessingDocument;
 
-            document.BuiltinDocumentProperties = this;
+            document.Properties = this;
         }
         /// <summary>
         /// Gets or sets the creator of the document.

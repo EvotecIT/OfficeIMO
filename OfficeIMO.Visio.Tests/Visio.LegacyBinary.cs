@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
             Assert.Null(imported.Value.FilePath);
             Assert.Equal(OfficeLegacyImportQuality.Structured, imported.Report.Quality);
             Assert.True(imported.Report.HasLoss);
-            Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => imported.Report.ThrowIfLoss());
             for (int index = 0; index < expected.Pages.Count; index++) {
                 VisioShape[] shapes = Flatten(imported.Value.Pages[index].Shapes).ToArray();
                 VisioShape[] originals = Flatten(expected.Pages[index].Shapes).ToArray();
@@ -77,8 +77,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(64, shape.FillColor.A);
             }
             var drawing = imported.Value.Pages[0].ToDrawing();
-            Assert.DoesNotContain(drawing.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "VISIO_DRAWING_GEOMETRY_FALLBACK");
-            Assert.Contains(drawing.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "VISIO_DRAWING_FILL_PATTERN");
+            Assert.DoesNotContain(drawing.Report.Diagnostics, diagnostic => diagnostic.Code == "VISIO_DRAWING_GEOMETRY_FALLBACK");
+            Assert.Contains(drawing.Report.Diagnostics, diagnostic => diagnostic.Code == "VISIO_DRAWING_FILL_PATTERN");
             var conversion = imported.Value.ToPdfDocumentResult(new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages });
             byte[] pdf = conversion.ToBytes();
             Assert.True(pdf.Length > 100);

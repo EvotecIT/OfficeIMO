@@ -19,8 +19,8 @@ public sealed partial class IWorkBoundaryTests {
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
             IWorkDocumentKind.Pages,
             new IWorkReadOptions {
-                MaximumPackageBytes = 40_002,
-                MaximumDecodedImageBytes = 1_622
+                MaxPackageBytes = 40_002,
+                MaxDecodedImageBytes = 1_622
             });
 
         Assert.Null(source.PreferredRasterPreview);

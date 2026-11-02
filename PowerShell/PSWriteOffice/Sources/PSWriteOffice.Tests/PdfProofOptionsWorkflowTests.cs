@@ -22,7 +22,7 @@ public sealed class PdfProofOptionsWorkflowTests {
                 document.Save(source);
             }
             using (var original = PdfDocument.Load(source)) {
-                using var changed = original.UpdateMetadata(CancellationToken.None, title: "Changed title");
+                using var changed = original.UpdateProperties(CancellationToken.None, title: "Changed title");
                 changed.Save(difference);
             }
             using var runspace = OpenRunspace();

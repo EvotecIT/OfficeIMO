@@ -87,8 +87,8 @@ public sealed class PageRenderTests {
         int[] errors = native.Zip(actual, (a, b) => Math.Abs(a - b)).ToArray();
         Assert.True(errors.Max() <= 5);
         Assert.True(errors.Average() <= 0.25); // Includes the exact alpha channel.
-        Assert.Contains(rendered.FidelityDiagnostics, d => d.Code == "djvu.render.short-iw44-edge" && d.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.Throws<OfficeConversionException>(() => rendered.RequireNoLoss());
+        Assert.Contains(rendered.Diagnostics, d => d.Code == "djvu.render.short-iw44-edge" && d.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Throws<OfficeConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Fact]

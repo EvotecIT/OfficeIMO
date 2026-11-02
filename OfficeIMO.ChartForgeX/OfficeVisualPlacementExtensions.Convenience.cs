@@ -28,14 +28,14 @@ public static partial class OfficeVisualPlacementExtensions {
     /// <summary>Adds a visual to PDF flow, with proportional width constrained to the actual content frame by default.</summary>
     /// <remarks>Use the overload with an out conversion result to inspect fidelity diagnostics.</remarks>
     public static PdfContentBuilder AddVisualArtifact(this PdfContentBuilder content, VisualArtifact artifact,
-        OfficeVisualConversionOptions? options = null, PdfAlign? align = null, double? spacingBefore = null,
+        OfficeVisualConversionOptions? options = null, OfficeAlignment? align = null, double? spacingBefore = null,
         double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) =>
         content.AddVisualArtifact(artifact, out _, options, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
 
     /// <summary>Adds a visual to an existing PDF document's flow.</summary>
     /// <remarks>Use the overload with an out conversion result to inspect fidelity diagnostics.</remarks>
     public static PdfDocument AddVisualArtifact(this PdfDocument document, VisualArtifact artifact,
-        OfficeVisualConversionOptions? options = null, PdfAlign? align = null, double? spacingBefore = null,
+        OfficeVisualConversionOptions? options = null, OfficeAlignment? align = null, double? spacingBefore = null,
         double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) =>
         document.AddVisualArtifact(artifact, out _, options, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
 }

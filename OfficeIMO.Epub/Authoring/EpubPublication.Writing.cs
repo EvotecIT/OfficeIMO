@@ -20,17 +20,15 @@ public sealed partial class EpubPublication {
         var entries = new Dictionary<string, byte[]>(_entries, StringComparer.Ordinal);
         bool changed = _changed || modifiedAt.HasValue;
         bool rewriteArchive = changed || !compress;
-        var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
+        var diagnostics = new List<OfficeDiagnostic>();
         if (rewriteArchive && _originalHasZipSignature) {
             if (!removeSignatures) throw new InvalidOperationException("Edits invalidate the ZIP directory signature. Explicit signature removal is required.");
-            diagnostics.Add(new OfficeConversionFidelityDiagnostic("EPUB_WRITE_ZIP_SIGNATURE_REMOVED",
-                "Invalidated ZIP central-directory signature was removed by explicit policy.", OfficeConversionLossKind.Omission, "OfficeIMO.Epub"));
+            diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic("EPUB_WRITE_ZIP_SIGNATURE_REMOVED", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, "Invalidated ZIP central-directory signature was removed by explicit policy.", null, "OfficeIMO.Epub", OfficeConversionLossKind.Omission));
         }
         if (changed && _originalEntries.ContainsKey("META-INF/signatures.xml")) {
             if (!removeSignatures) throw new InvalidOperationException("Edits invalidate package signatures. Explicit signature removal is required.");
             entries.Remove("META-INF/signatures.xml");
-            diagnostics.Add(new OfficeConversionFidelityDiagnostic("EPUB_WRITE_SIGNATURE_REMOVED",
-                "Invalidated META-INF/signatures.xml was removed by explicit policy.", OfficeConversionLossKind.Omission, "OfficeIMO.Epub", "META-INF/signatures.xml"));
+            diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic("EPUB_WRITE_SIGNATURE_REMOVED", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, "Invalidated META-INF/signatures.xml was removed by explicit policy.", "META-INF/signatures.xml", "OfficeIMO.Epub", OfficeConversionLossKind.Omission));
         }
         if (changed && _encryption.Any(item => item.RequiresDecryption)) throw new NotSupportedException("Editing packages with unsupported resource encryption is unavailable.");
         if (_encryption.Count != 0 && Identifier != _originalIdentifier) throw new NotSupportedException("Encrypted/obfuscated package identity must remain unchanged.");
@@ -99,8 +97,13 @@ public sealed partial class EpubPublication {
             .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
         retainedOrigins.UnionWith(merged.Keys);
         foreach (string path in _originalEntries.Keys.Except(retainedOrigins, StringComparer.Ordinal)
-            .Where(path => path != "META-INF/signatures.xml").OrderBy(path => path, StringComparer.Ordinal)) diagnostics.Add(new OfficeConversionFidelityDiagnostic(
-            "EPUB_WRITE_ENTRY_REMOVED", "Original entry was explicitly removed by editing.", OfficeConversionLossKind.Omission, "OfficeIMO.Epub", path));
+            .Where(path => path != "META-INF/signatures.xml").OrderBy(path => path, StringComparer.Ordinal)) diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
+            "EPUB_WRITE_ENTRY_REMOVED",
+            global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
+            "Original entry was explicitly removed by editing.",
+            path,
+            "OfficeIMO.Epub",
+            OfficeConversionLossKind.Omission));
         return new EpubWriteResult(output, new EpubWriteReport(false, preserved, regenerated, removed, diagnostics, renamed, merged));
     }
 

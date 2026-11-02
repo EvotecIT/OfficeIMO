@@ -340,7 +340,7 @@ internal sealed partial class LatexStructuralParser {
 
     private void EnforceDepth(int depth) {
         _cancellationToken.ThrowIfCancellationRequested();
-        if (depth > _options.MaximumNestingDepth) throw new InvalidDataException("LaTeX source exceeds MaximumNestingDepth.");
+        if (depth > _options.MaxNestingDepth) throw new InvalidDataException("LaTeX source exceeds MaxNestingDepth.");
     }
 
     private static bool IsArgumentTrivia(LatexTokenView token) =>

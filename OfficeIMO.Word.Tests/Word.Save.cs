@@ -25,9 +25,9 @@ namespace OfficeIMO.Tests {
             File.Delete(filePath4);
 
             using (var document = WordDocument.Create()) {
-                document.BuiltinDocumentProperties.Title = "This is my title";
-                document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
-                document.BuiltinDocumentProperties.Keywords = "word, docx, test";
+                document.Properties.Title = "This is my title";
+                document.Properties.Creator = "Przemysław Kłys";
+                document.Properties.Keywords = "word, docx, test";
 
                 Assert.Empty(document.Paragraphs);
 
@@ -112,9 +112,9 @@ namespace OfficeIMO.Tests {
             Assert.False(File.Exists(filePath1));
 
             using var document = WordDocument.Create(filePath1);
-            document.BuiltinDocumentProperties.Title = "This is my title";
-            document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
-            document.BuiltinDocumentProperties.Keywords = "word, docx, test";
+            document.Properties.Title = "This is my title";
+            document.Properties.Creator = "Przemysław Kłys";
+            document.Properties.Keywords = "word, docx, test";
 
             document.AddParagraph("This is my test");
 
@@ -129,9 +129,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_SaveToStream() {
             using var document = WordDocument.Create();
-            document.BuiltinDocumentProperties.Title = "This is my title";
-            document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
-            document.BuiltinDocumentProperties.Keywords = "word, docx, test";
+            document.Properties.Title = "This is my title";
+            document.Properties.Creator = "Przemysław Kłys";
+            document.Properties.Keywords = "word, docx, test";
             document.AddParagraph("Hello world!");
 
             using var outputStream = new MemoryStream();
@@ -144,9 +144,9 @@ namespace OfficeIMO.Tests {
 
             using var resultDoc = WordDocument.Load(outputStream);
 
-            Assert.True(resultDoc.BuiltinDocumentProperties.Title == "This is my title");
-            Assert.True(resultDoc.BuiltinDocumentProperties.Creator == "Przemysław Kłys");
-            Assert.True(resultDoc.BuiltinDocumentProperties.Keywords == "word, docx, test");
+            Assert.True(resultDoc.Properties.Title == "This is my title");
+            Assert.True(resultDoc.Properties.Creator == "Przemysław Kłys");
+            Assert.True(resultDoc.Properties.Keywords == "word, docx, test");
 
             var paragraph = Assert.Single(resultDoc.Paragraphs);
             Assert.Equal("Hello world!", paragraph.Text);
@@ -161,9 +161,9 @@ namespace OfficeIMO.Tests {
             Assert.False(File.Exists(filePath));
 
             using var document = WordDocument.Create();
-            document.BuiltinDocumentProperties.Title = "This is my title";
-            document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
-            document.BuiltinDocumentProperties.Keywords = "word, docx, test";
+            document.Properties.Title = "This is my title";
+            document.Properties.Creator = "Przemysław Kłys";
+            document.Properties.Keywords = "word, docx, test";
             document.AddParagraph("Hello world!");
 
             using var outputStream = new MemoryStream();
@@ -179,9 +179,9 @@ namespace OfficeIMO.Tests {
             }
 
             using (var resultDoc = WordDocument.Load(filePath)) {
-                Assert.True(resultDoc.BuiltinDocumentProperties.Title == "This is my title");
-                Assert.True(resultDoc.BuiltinDocumentProperties.Creator == "Przemysław Kłys");
-                Assert.True(resultDoc.BuiltinDocumentProperties.Keywords == "word, docx, test");
+                Assert.True(resultDoc.Properties.Title == "This is my title");
+                Assert.True(resultDoc.Properties.Creator == "Przemysław Kłys");
+                Assert.True(resultDoc.Properties.Keywords == "word, docx, test");
 
                 var paragraph = Assert.Single(resultDoc.Paragraphs);
                 Assert.Equal("Hello world!", paragraph.Text);
@@ -190,9 +190,9 @@ namespace OfficeIMO.Tests {
             }
 
             using (var resultDoc = WordDocument.Load(filePath)) {
-                Assert.True(resultDoc.BuiltinDocumentProperties.Title == "This is my title");
-                Assert.True(resultDoc.BuiltinDocumentProperties.Creator == "Przemysław Kłys");
-                Assert.True(resultDoc.BuiltinDocumentProperties.Keywords == "word, docx, test");
+                Assert.True(resultDoc.Properties.Title == "This is my title");
+                Assert.True(resultDoc.Properties.Creator == "Przemysław Kłys");
+                Assert.True(resultDoc.Properties.Keywords == "word, docx, test");
             }
         }
 

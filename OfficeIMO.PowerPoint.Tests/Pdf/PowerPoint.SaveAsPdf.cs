@@ -254,7 +254,7 @@ public partial class PowerPointSaveAsPdfTests {
             warning => warning.Code == "font-family-substitution" &&
                        warning.Message.Contains(unavailableFamily, StringComparison.Ordinal) &&
                        warning.Details["substitutionReason"] == "FontUnavailable");
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
     }
 
     [Fact]

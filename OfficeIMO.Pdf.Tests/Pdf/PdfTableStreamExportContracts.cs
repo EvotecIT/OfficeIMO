@@ -53,9 +53,9 @@ public class PdfTableStreamExportContracts {
 
         using var wordDocument = wordResult.Value;
         using var excelDocument = excelResult.Value;
-        Assert.Throws<InvalidOperationException>(() => wordResult.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => excelResult.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => powerPointResult.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => wordResult.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => excelResult.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => powerPointResult.ThrowIfLoss());
         using var powerPointPresentation = powerPointResult.Value;
         Assert.NotEmpty(wordDocument.ToBytes());
         Assert.NotEmpty(excelDocument.ToBytes());
@@ -752,9 +752,9 @@ public class PdfTableStreamExportContracts {
             Assert.True(excelResult.Report.HasLoss);
             Assert.True(powerPointResult.Report.HasLoss);
             Assert.True(editablePowerPointResult.Report.HasLoss);
-            Assert.Throws<InvalidOperationException>(() => wordResult.RequireNoLoss());
-            Assert.Throws<InvalidOperationException>(() => excelResult.RequireNoLoss());
-            Assert.Throws<InvalidOperationException>(() => powerPointResult.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => wordResult.ThrowIfLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => excelResult.ThrowIfLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => powerPointResult.ThrowIfLoss());
             Assert.Contains(wordResult.Report.Warnings, static warning =>
                 warning.Code == "pdf-form-definitions-not-reconstructed");
             Assert.Contains(powerPointResult.Report.Warnings, static warning =>
@@ -1001,7 +1001,7 @@ public class PdfTableStreamExportContracts {
         PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Invoice"))
             .ToBytes()))
-            .UpdateMetadata(title: "Invoice");
+            .UpdateProperties(title: "Invoice");
         WordPdfImportOptions visualOptions = WordPdfImportOptions.CreateVisualPages();
         visualOptions.IncludeMetadata = false;
         PdfWordConversionResult visualResult = opened.ConvertToWordWithEvidence(visualOptions);
@@ -1052,7 +1052,7 @@ public class PdfTableStreamExportContracts {
         PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(PdfDocument.Create()
                 .Paragraph(paragraph => paragraph.Text("Invoice metadata source"))
                 .ToBytes()))
-            .UpdateMetadata(title: "Invoice", author: "Accounts payable");
+            .UpdateProperties(title: "Invoice", author: "Accounts payable");
         PdfDocumentReadResult logical = opened.Read();
         PdfTableExtractionScopeReport scope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
         Assert.True(scope.HasDocumentMetadata);
@@ -1073,14 +1073,14 @@ public class PdfTableStreamExportContracts {
         using (hybrid.Value)
         using (visual.Value) {
             Assert.True(excel.HasLoss);
-            Assert.Throws<InvalidOperationException>(() => excel.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => excel.ThrowIfLoss());
             Assert.All(new[] { tables, editable, hybrid, visual }, static result => {
                 Assert.True(result.HasLoss);
                 Assert.True(result.HasOmittedPageContent);
                 Assert.Contains(result.Warnings, static warning =>
                     warning.Code == "pdf-metadata-not-reconstructed" &&
                     warning.LossKind == OfficeConversionLossKind.Omission);
-                Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+                Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
             });
         }
     }

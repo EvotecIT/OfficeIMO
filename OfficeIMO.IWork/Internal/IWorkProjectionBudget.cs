@@ -19,55 +19,55 @@ internal sealed class IWorkProjectionBudget {
         _options = options;
     }
 
-    internal int MaximumProtobufFieldCount => _options.MaximumProtobufFieldCount;
+    internal int MaxProtobufFieldCount => _options.MaxProtobufFieldCount;
 
     internal int RemainingTableCatalogEntries =>
-        _options.MaximumTableCatalogEntries - _tableCatalogEntryCount;
+        _options.MaxTableCatalogEntries - _tableCatalogEntryCount;
 
     internal void AddTableCatalogEntries(int count) {
-        if (count < 0 || _tableCatalogEntryCount > _options.MaximumTableCatalogEntries - count) {
+        if (count < 0 || _tableCatalogEntryCount > _options.MaxTableCatalogEntries - count) {
             throw new InvalidDataException(
-                $"iWork table catalog entries exceed the configured source-wide limit of {_options.MaximumTableCatalogEntries}.");
+                $"iWork table catalog entries exceed the configured source-wide limit of {_options.MaxTableCatalogEntries}.");
         }
         _tableCatalogEntryCount += count;
     }
 
     internal int RemainingTableDimensionEntries =>
-        _options.MaximumTableDimensionEntries - _tableDimensionEntryCount;
+        _options.MaxTableDimensionEntries - _tableDimensionEntryCount;
 
     internal void AddTableDimensionEntries(int count) {
-        if (count < 0 || _tableDimensionEntryCount > _options.MaximumTableDimensionEntries - count)
+        if (count < 0 || _tableDimensionEntryCount > _options.MaxTableDimensionEntries - count)
             throw IWorkProtobuf.LimitException(
-                $"iWork table dimension entries exceed the configured source-wide limit of {_options.MaximumTableDimensionEntries}.");
+                $"iWork table dimension entries exceed the configured source-wide limit of {_options.MaxTableDimensionEntries}.");
         _tableDimensionEntryCount += count;
     }
 
     internal void AddTable() {
-        if (_tableCount >= _options.MaximumProjectedTables) {
+        if (_tableCount >= _options.MaxProjectedTables) {
             throw new InvalidDataException(
-                $"iWork table count exceeds the configured projection limit of {_options.MaximumProjectedTables}.");
+                $"iWork table count exceeds the configured projection limit of {_options.MaxProjectedTables}.");
         }
         _tableCount++;
     }
 
     internal void AddTableBorderEntries(int count) {
-        if (count < 0 || _tableBorderEntryCount > _options.MaximumTableBorderEntries - count)
+        if (count < 0 || _tableBorderEntryCount > _options.MaxTableBorderEntries - count)
             throw IWorkProtobuf.LimitException(
-                $"iWork table stroke declarations exceed the configured source-wide limit of {_options.MaximumTableBorderEntries}.");
+                $"iWork table stroke declarations exceed the configured source-wide limit of {_options.MaxTableBorderEntries}.");
         _tableBorderEntryCount += count;
     }
 
     internal void AddImage() {
-        if (_imageCount >= _options.MaximumProjectedImages) {
+        if (_imageCount >= _options.MaxProjectedImages) {
             throw new InvalidDataException(
-                $"iWork image count exceeds the configured projection limit of {_options.MaximumProjectedImages}.");
+                $"iWork image count exceeds the configured projection limit of {_options.MaxProjectedImages}.");
         }
         _imageCount++;
     }
 
     internal void AddDrawableReferences(int count) {
-        long maximum = Math.Min(int.MaxValue, (long)_options.MaximumProjectedTables
-            + _options.MaximumProjectedImages + _options.MaximumProjectedTextItems);
+        long maximum = Math.Min(int.MaxValue, (long)_options.MaxProjectedTables
+            + _options.MaxProjectedImages + _options.MaxProjectedTextItems);
         if (count < 0 || _drawableReferenceCount > maximum - count) {
             throw IWorkProtobuf.LimitException(
                 $"iWork drawable references exceed the configured combined projection limit of {maximum}.");
@@ -76,20 +76,20 @@ internal sealed class IWorkProjectionBudget {
     }
 
     internal long RemainingDecodedImageBytes =>
-        _options.MaximumDecodedImageBytes - _decodedImageByteCount;
+        _options.MaxDecodedImageBytes - _decodedImageByteCount;
 
     internal void AddDecodedImageBytes(long count) {
-        if (count < 0 || _decodedImageByteCount > _options.MaximumDecodedImageBytes - count) {
+        if (count < 0 || _decodedImageByteCount > _options.MaxDecodedImageBytes - count) {
             throw new InvalidDataException(
-                $"Decoded image data exceeds the configured image limit of {_options.MaximumDecodedImageBytes} bytes.");
+                $"Decoded image data exceeds the configured image limit of {_options.MaxDecodedImageBytes} bytes.");
         }
         _decodedImageByteCount += count;
     }
 
     internal void AddProjectedImageBytes(long count) {
-        if (count < 0 || _projectedImageByteCount > _options.MaximumProjectedImageBytes - count) {
+        if (count < 0 || _projectedImageByteCount > _options.MaxProjectedImageBytes - count) {
             throw new InvalidDataException(
-                $"Projected destination image data exceeds the configured limit of {_options.MaximumProjectedImageBytes} bytes.");
+                $"Projected destination image data exceeds the configured limit of {_options.MaxProjectedImageBytes} bytes.");
         }
         _projectedImageByteCount += count;
     }
@@ -99,34 +99,34 @@ internal sealed class IWorkProjectionBudget {
     }
 
     internal void AddTextItems(int count) {
-        if (count < 0 || _textItemCount > _options.MaximumProjectedTextItems - count) {
+        if (count < 0 || _textItemCount > _options.MaxProjectedTextItems - count) {
             throw new InvalidDataException(
-                $"Text item count exceeds the configured projection limit of {_options.MaximumProjectedTextItems}.");
+                $"Text item count exceeds the configured projection limit of {_options.MaxProjectedTextItems}.");
         }
         _textItemCount += count;
     }
 
     internal void AddTextBoundaries(int count) {
-        if (count < 0 || _textBoundaryCount > _options.MaximumProjectedTextItems - count) {
+        if (count < 0 || _textBoundaryCount > _options.MaxProjectedTextItems - count) {
             throw new InvalidDataException(
-                $"Text attribute count exceeds the configured projection limit of {_options.MaximumProjectedTextItems}.");
+                $"Text attribute count exceeds the configured projection limit of {_options.MaxProjectedTextItems}.");
         }
         _textBoundaryCount += count;
     }
 
     internal void AddTextCharacters(int count) {
-        if (count < 0 || _textCharacterCount > _options.MaximumProjectedTextCharacters - count) {
+        if (count < 0 || _textCharacterCount > _options.MaxProjectedTextCharacters - count) {
             throw new InvalidDataException(
-                $"Text character count exceeds the configured projection limit of {_options.MaximumProjectedTextCharacters}.");
+                $"Text character count exceeds the configured projection limit of {_options.MaxProjectedTextCharacters}.");
         }
         _textCharacterCount += count;
     }
 
     internal void AddFormulaRenderingOperations(long count) {
         if (count < 0
-            || _formulaRenderingOperations > _options.MaximumFormulaRenderingOperations - count) {
+            || _formulaRenderingOperations > _options.MaxFormulaRenderingOperations - count) {
             throw new InvalidDataException(
-                $"Formula rendering work exceeds the configured source-wide limit of {_options.MaximumFormulaRenderingOperations} operations.");
+                $"Formula rendering work exceeds the configured source-wide limit of {_options.MaxFormulaRenderingOperations} operations.");
         }
         _formulaRenderingOperations += count;
     }
@@ -154,17 +154,17 @@ internal sealed class IWorkProjectionBudget {
         }
         if (count > int.MaxValue) {
             throw new InvalidDataException(
-                $"Text item count exceeds the configured projection limit of {_options.MaximumProjectedTextItems}.");
+                $"Text item count exceeds the configured projection limit of {_options.MaxProjectedTextItems}.");
         }
         AddTextItems((int)count);
         if (includeCharacters) {
             if (characterCount > int.MaxValue) {
                 throw new InvalidDataException(
-                    $"Text character count exceeds the configured projection limit of {_options.MaximumProjectedTextCharacters}.");
+                    $"Text character count exceeds the configured projection limit of {_options.MaxProjectedTextCharacters}.");
             }
             AddTextCharacters((int)characterCount);
         }
     }
 
-    internal int MaximumTextStyleInheritanceDepth => _options.MaximumTextStyleInheritanceDepth;
+    internal int MaxTextStyleInheritanceDepth => _options.MaxTextStyleInheritanceDepth;
 }

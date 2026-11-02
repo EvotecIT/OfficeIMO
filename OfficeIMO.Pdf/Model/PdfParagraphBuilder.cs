@@ -22,15 +22,15 @@ public sealed partial class PdfParagraphBuilder {
     private OfficeIMO.Drawing.OfficeTextFeatureSettings _currentFeatureSettings = OfficeIMO.Drawing.OfficeTextFeatureSettings.Default;
 
     /// <summary>Paragraph alignment.</summary>
-    public PdfAlign Align { get; }
+    public OfficeAlignment Align { get; }
     /// <summary>Default text color applied when no run color is specified.</summary>
     public global::OfficeIMO.OfficeColor? DefaultColor { get; }
 
     /// <summary>Create a new paragraph builder.</summary>
     /// <param name="align">Paragraph alignment.</param>
     /// <param name="defaultColor">Optional default text color.</param>
-    public PdfParagraphBuilder(PdfAlign align, global::OfficeIMO.OfficeColor? defaultColor) {
-        Guard.ParagraphAlign(align, nameof(align), "Paragraph");
+    public PdfParagraphBuilder(OfficeAlignment align, global::OfficeIMO.OfficeColor? defaultColor) {
+        align = Guard.ParagraphAlign(align, nameof(align), "Paragraph");
         Align = align; DefaultColor = defaultColor; _currentColor = defaultColor;
     }
 

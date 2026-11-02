@@ -122,7 +122,7 @@ internal sealed class IWorkTableCommentCatalog(IWorkSourceDocument source, IWork
     private IWorkWireMessage? ReadMessage(IWorkArchiveRecord record) {
         if (_messages.TryGetValue(record.Identifier, out IWorkWireMessage? message)) return message;
         try {
-            IWorkProtobuf.CountFields(record.Payload, 1, source.Options.MaximumProtobufFieldCount);
+            IWorkProtobuf.CountFields(record.Payload, 1, source.Options.MaxProtobufFieldCount);
             message = source.Index.Message(record);
         } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             references.Declarations.Record(record, "$", null);

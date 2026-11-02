@@ -22,7 +22,7 @@ public sealed partial class IWorkBoundaryTests {
         AssertTileDeclaration(Assert.Single(report.SourceDeclarationIssues, issue => issue.Owner.RecordIdentifier == 12), "5[1]/6", 1,
             IWorkSourceDeclarationIssueKind.UnsupportedField);
         Assert.Empty(report.SourceCellIssues);
-        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED"
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED"
             && diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
     }
 
@@ -40,7 +40,7 @@ public sealed partial class IWorkBoundaryTests {
                 BytesField(7, new byte[] { 0, 0, (byte)cell.Length, 0 }))));
         Assert.Contains("source-wide limit", Assert.Throws<InvalidDataException>(() =>
             ReadSelectedRichTable(IWorkSourceDocument.Open(overBudget, kind,
-                new IWorkReadOptions { MaximumMaterializedCells = 1 }), kind)).Message);
+                new IWorkReadOptions { MaxMaterializedCells = 1 }), kind)).Message);
     }
 
     [Theory]
@@ -83,7 +83,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] cell = FeatureCell(empty: false);
         using MemoryStream shared = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), cellPayload: cell, repeatModel: true);
         IWorkNumbersProjection projection = IWorkSourceDocument.Open(shared,
-            new IWorkReadOptions { MaximumSourceDeclarationIssues = 2 }).ReadNumbers();
+            new IWorkReadOptions { MaxSourceDeclarationIssues = 2 }).ReadNumbers();
         Assert.Equal(2, Assert.Single(projection.Sheets).Tables.Count);
         AssertTileDeclaration(Assert.Single(projection.SourceDeclarationIssues, issue => issue.Owner.RecordIdentifier == 12), "5[1]/6", 1,
             IWorkSourceDeclarationIssueKind.UnsupportedField);
@@ -91,7 +91,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream distinct = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), rows: 2,
             tilePayload: Message(BytesField(5, row(0)), BytesField(5, row(1))));
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(distinct, new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 }).ReadNumbers()).Message);
+            IWorkSourceDocument.Open(distinct, new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers()).Message);
     }
 
     [Fact]

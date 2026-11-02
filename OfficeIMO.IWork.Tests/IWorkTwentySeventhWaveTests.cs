@@ -10,7 +10,7 @@ public sealed partial class IWorkBoundaryTests {
     public void New_pages_header_footer_text_is_charged_once() {
         using MemoryStream package = CreatePagesPackageWithHeaderFooterVariants();
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaximumProjectedTextItems = 14 });
+            new IWorkReadOptions { MaxProjectedTextItems = 14 });
 
         IWorkPagesProjection projection = source.ReadPages();
 

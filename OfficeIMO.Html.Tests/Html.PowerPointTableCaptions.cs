@@ -25,14 +25,14 @@ public sealed class HtmlPowerPointTableCaptionTests {
         PowerPointTable firstTable = Assert.Single(captionSlide.Tables);
         Assert.Equal("Row 1", firstTable.GetCell(0, 0).Text);
         Assert.Equal("Standard 1", firstTable.GetCell(0, 1).Text);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.Detail?.Contains("projection=paginatedNativeTable", StringComparison.Ordinal) == true);
     }
 
     [Fact]
     public void PowerPointCaptionMetadataLimitDoesNotOmitTheTable() {
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxMetadataCharacters = 12;
         const string html = "<main><h1>Water</h1><table><caption>Caption exceeds metadata limit</caption>"
             + "<tr><th>Term</th><th>Value</th></tr><tr><td>pH</td><td>7</td></tr></table></main>";

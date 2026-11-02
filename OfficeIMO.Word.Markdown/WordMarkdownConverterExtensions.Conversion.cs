@@ -9,7 +9,7 @@ namespace OfficeIMO.Word.Markdown;
 public static partial class WordMarkdownConverterExtensions {
     private static OfficeConversionReport CreateReport(WordMarkdownConversionReport evidence, string source, string target, TimeSpan elapsed, string? path = null) =>
         new OfficeConversionReport(source, target, path, elapsed: elapsed,
-            diagnostics: evidence.Diagnostics.Select(d => new OfficeDiagnostic(d.Code, d.Severity, d.Message, d.Location,
+            diagnostics: evidence.NativeDiagnostics.Select(d => new OfficeDiagnostic(d.Code, d.Severity, d.Message, d.Location,
                 format: d.Format ?? source, lossKind: d.LossKind)));
 
     /// <summary>Converts Word to a Markdown document.</summary>

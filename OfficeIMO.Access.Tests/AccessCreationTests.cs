@@ -14,7 +14,7 @@ namespace OfficeIMO.Access.Tests {
             AccessTable table = database.Tables.Add("Items"); table.Columns.Add("Owner", AccessDataType.Int32); table.Columns.Add("SID", AccessDataType.Guid);
             Guid sid = Guid.Parse("01234567-89ab-cdef-0123-456789abcdef"); AccessRowValues row = new AccessRowValues { ["Owner"] = 123, ["SID"] = sid };
             if (variableMember) { table.Columns.Add("Note", AccessDataType.ShortText); row["Note"] = "Separate variable payload"; }
-            table.AppendRow(row); database.AssessSave().RequireNoLoss();
+            table.AppendRow(row); database.AssessSave().ThrowIfLoss();
             using AccessDocument source = AccessDocument.Load(new MemoryStream(Save(database))); using AccessDataReader reader = source.Tables["Items"].OpenDataReader();
             Assert.True(reader.Read()); Assert.Equal(123, reader["Owner"]); Assert.Equal(sid, reader["SID"]);
             if (variableMember) Assert.Equal("Separate variable payload", reader["Note"]);
@@ -106,7 +106,7 @@ namespace OfficeIMO.Access.Tests {
                     table.Columns.Add("Text", AccessDataType.ShortText); table.Indexes.AddUnique("UniqueText", "Text");
                     table.AppendRow(new AccessRowValues { ["Id"] = 1, ["Text"] = "a b " }); table.AppendRow(new AccessRowValues { ["Id"] = 2, ["Text"] = "A B" }); break;
             }
-            AccessSaveOptions options = new AccessSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow };
+            AccessSaveOptions options = new AccessSaveOptions { AllowLoss = true };
             Assert.Equal(AccessOperationStatus.Unsupported, document.AssessSave(options).Status);
             using MemoryStream destination = new MemoryStream(new byte[] { 1, 2, 3 }, true); destination.Position = 1;
             Assert.Throws<AccessOperationNotSupportedException>(() => document.Save(destination, options)); Assert.Equal(1, destination.Position); Assert.Equal(new byte[] { 1, 2, 3 }, destination.ToArray());
@@ -117,12 +117,12 @@ namespace OfficeIMO.Access.Tests {
         [Fact]
         public void AssessmentCacheInvalidationBudgetsAndCancellationProtectOutput() {
             using AccessDocument document = AccessDocument.Create(); AccessTable table = document.Tables.Add("Items"); table.Columns.Add("Id", AccessDataType.AutoNumber); table.Indexes.AddPrimaryKey("PK_Items", "Id");
-            table.AppendRow(new AccessRowValues()); document.AssessSave().RequireNoLoss();
+            table.AppendRow(new AccessRowValues()); document.AssessSave().ThrowIfLoss();
             using (AccessUpdateScope update = document.BeginUpdate()) { table.AppendRow(new AccessRowValues()); }
             table.AppendRow(new AccessRowValues());
             using AccessDocument source = AccessDocument.Load(new MemoryStream(Save(document))); Assert.Equal(2, source.Tables["Items"].RowCount);
             Assert.Equal(AccessOperationStatus.Unsupported, document.AssessSave(new AccessSaveOptions { MaxOutputBytes = 4096 }).Status);
-            using CancellationTokenSource assessmentCancellation = new CancellationTokenSource(); document.AssessSave(cancellationToken: assessmentCancellation.Token).RequireNoLoss(); assessmentCancellation.Cancel();
+            using CancellationTokenSource assessmentCancellation = new CancellationTokenSource(); document.AssessSave(cancellationToken: assessmentCancellation.Token).ThrowIfLoss(); assessmentCancellation.Cancel();
             Assert.NotEmpty(Save(document)); // An old assessment token cannot cancel a later save.
             using MemoryStream output = new MemoryStream(); output.WriteByte(42); output.Position = 0;
             using CancellationTokenSource cancelled = new CancellationTokenSource(); cancelled.Cancel(); Assert.ThrowsAny<OperationCanceledException>(() => document.Save(output, cancellationToken: cancelled.Token)); Assert.Equal(new byte[] { 42 }, output.ToArray());

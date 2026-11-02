@@ -25,11 +25,11 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 FooterFont = PdfStandardFont.Helvetica,
                 FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
                 FooterFormat = "OfficeIMO.Pdf hello-world - page {page}/{pages}",
-                FooterAlign = PdfAlign.Center,
+                FooterAlign = OfficeAlignment.Center,
                 ShowPageNumbers = true
             })
             .Meta(title: "OfficeIMO.Pdf Hello World", author: "OfficeIMO")
-            .H1("OfficeIMO.Pdf Hello World", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
+            .H1("OfficeIMO.Pdf Hello World", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
             .Paragraph(p => p.Text("This deterministic smoke page protects basic headings, paragraphs, metadata, and footer rendering."))
             .Paragraph(p => p.Text("It is intentionally small so visual regressions in the simplest document path are easy to spot."))
             .ToBytes();
@@ -42,11 +42,11 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 FooterFont = PdfStandardFont.Helvetica,
                 FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
                 FooterFormat = "OfficeIMO.Pdf core layout - page {page}/{pages}",
-                FooterAlign = PdfAlign.Right,
+                FooterAlign = OfficeAlignment.Right,
                 ShowPageNumbers = true
             })
             .Meta(title: "OfficeIMO.Pdf Core Layout", author: "OfficeIMO")
-            .H1("Core Layout Baseline", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
+            .H1("Core Layout Baseline", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
             .Paragraph(p => p
                 .Text("This page mixes ")
                 .Bold("rich text")
@@ -78,7 +78,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 new[] { "Lists", "Bullets and numbered steps align with wrapped text.", "Guarded" },
                 new[] { "Tables", "Long text stays inside cells and body text remains readable after colored headers.", "Guarded" }
             }, style: CreateCoreTableStyle())
-            .Paragraph(p => p.Text("End of core layout baseline."), PdfAlign.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80))
+            .Paragraph(p => p.Text("End of core layout baseline."), OfficeAlignment.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80))
             .ToBytes();
     }
 
@@ -98,29 +98,29 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 HeaderFont = PdfStandardFont.Helvetica,
                 HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
                 HeaderFormat = "OfficeIMO.Pdf lists and tables",
-                HeaderAlign = PdfAlign.Left,
+                HeaderAlign = OfficeAlignment.Left,
                 ShowHeader = true,
                 FooterFont = PdfStandardFont.Helvetica,
                 FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
                 FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
-                FooterAlign = PdfAlign.Right,
+                FooterAlign = OfficeAlignment.Right,
                 ShowPageNumbers = true
             })
             .Meta(title: "OfficeIMO.Pdf Lists and Tables", author: "OfficeIMO")
-            .H1("Lists and Tables", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
+            .H1("Lists and Tables", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
             .Paragraph(p => p.Text("A compact report sample for list rhythm, numeric alignment, footer rows, and wrapped table notes."))
             .Bullets(new[] {
                 "Report-friendly list spacing",
                 "Right-aligned quantities and amounts",
                 "Footer row that remains visually distinct"
-            }, PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(55, 65, 81))
+            }, OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(55, 65, 81))
             .Numbered(new[] {
                 "Collect line items.",
                 "Render the table with stable column widths.",
                 "Review the generated PDF through the raster gate."
-            }, PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(55, 65, 81))
-            .Table(rows, PdfAlign.Left, CreateLineItemTableStyle())
-            .Paragraph(p => p.Text("End of lists and tables sample."), PdfAlign.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80))
+            }, OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(55, 65, 81))
+            .Table(rows, OfficeAlignment.Left, CreateLineItemTableStyle())
+            .Paragraph(p => p.Text("End of lists and tables sample."), OfficeAlignment.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80))
             .ToBytes();
     }
 
@@ -139,17 +139,17 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 HeaderFont = PdfStandardFont.Helvetica,
                 HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
                 HeaderFormat = "OfficeIMO.Pdf default styles",
-                HeaderAlign = PdfAlign.Left,
+                HeaderAlign = OfficeAlignment.Left,
                 ShowHeader = true,
                 FooterFont = PdfStandardFont.Helvetica,
                 FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
                 FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
-                FooterAlign = PdfAlign.Right,
+                FooterAlign = OfficeAlignment.Right,
                 ShowPageNumbers = true,
                 DefaultTableStyle = PdfTableStyles.Light()
             })
             .Meta(title: "OfficeIMO.Pdf Default Styles", author: "OfficeIMO")
-            .H1("Default Styles", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
+            .H1("Default Styles", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
             .Paragraph(p => p.Text("This sample uses document-level defaults for text color, headers, footers, and the light table preset."))
             .PanelParagraph(
                 p => p.Text("The default table style should be good enough for a simple business report without every caller hand-tuning colors and padding."),
@@ -171,16 +171,16 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 HeaderFont = PdfStandardFont.Helvetica,
                 HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
                 HeaderFormat = "OfficeIMO.Pdf styled runs",
-                HeaderAlign = PdfAlign.Left,
+                HeaderAlign = OfficeAlignment.Left,
                 ShowHeader = true,
                 FooterFont = PdfStandardFont.Helvetica,
                 FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
                 FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
-                FooterAlign = PdfAlign.Right,
+                FooterAlign = OfficeAlignment.Right,
                 ShowPageNumbers = true
             })
             .Meta(title: "OfficeIMO.Pdf Styled Runs", author: "OfficeIMO")
-            .H1("Styled Runs", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
+            .H1("Styled Runs", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
             .Paragraph(p => p.Text("A compact visual sample for inline font style, color, underline, strike-through, and stateful run toggles."))
             .PanelParagraph(
                 p => p
@@ -216,7 +216,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 .Color(global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180)).Text("informational ")
                 .Color(global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52)).Text("healthy ")
                 .Color(global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55)).Text("normal."))
-            .Paragraph(p => p.Text("End of styled runs sample."), PdfAlign.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80))
+            .Paragraph(p => p.Text("End of styled runs sample."), OfficeAlignment.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80))
             .ToBytes();
     }
 
@@ -228,12 +228,12 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 HeaderFont = PdfStandardFont.Helvetica,
                 HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
                 HeaderFormat = "OfficeIMO.Pdf tabs and leaders",
-                HeaderAlign = PdfAlign.Left,
+                HeaderAlign = OfficeAlignment.Left,
                 ShowHeader = true,
                 FooterFont = PdfStandardFont.Helvetica,
                 FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
                 FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
-                FooterAlign = PdfAlign.Right,
+                FooterAlign = OfficeAlignment.Right,
                 ShowPageNumbers = true,
                 DefaultParagraphStyle = new PdfParagraphStyle {
                     DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(252),
@@ -242,7 +242,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 }
             })
             .Meta(title: "OfficeIMO.Pdf Tabs and Leaders", author: "OfficeIMO")
-            .H1("Tabs and Leaders", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
+            .H1("Tabs and Leaders", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
             .Paragraph(p => p.Text("A compact visual gate for Word-like paragraph tabs, leader styles, and structured readback rhythm."))
             .HR(style: new PdfHorizontalRuleStyle {
                 Color = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
@@ -274,7 +274,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                     SpacingBefore = global::OfficeIMO.OfficeLength.Points(10),
                     SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
                 })
-            .Paragraph(p => p.Text("End of tabs and leaders sample."), PdfAlign.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80))
+            .Paragraph(p => p.Text("End of tabs and leaders sample."), OfficeAlignment.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80))
             .ToBytes();
     }
 }

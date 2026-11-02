@@ -77,7 +77,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.7);
         style.FooterSeparatorColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.21, 0.32, 0.43);
         style.FooterSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.9);
-        style.Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Right };
+        style.Alignments = new List<OfficeAlignment> { OfficeAlignment.Right };
         style.MaxWidth = global::OfficeIMO.OfficeLength.Points(180);
         style.LeftIndent = global::OfficeIMO.OfficeLength.Points(24);
         style.KeepWithNext = true;
@@ -91,14 +91,14 @@ public partial class PdfDocumentVisualQualityTests {
         style.RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(1.5);
         style.FooterSeparatorColor = global::OfficeIMO.OfficeColor.White;
         style.FooterSeparatorWidth = global::OfficeIMO.OfficeLength.Points(2.1);
-        style.Alignments[0] = PdfColumnAlign.Left;
+        style.Alignments[0] = OfficeAlignment.Left;
         style.MaxWidth = global::OfficeIMO.OfficeLength.Points(260);
         style.LeftIndent = global::OfficeIMO.OfficeLength.Points(36);
         style.KeepWithNext = false;
 
         PdfTableStyle readback = options.DefaultTableStyle!;
         readback.CellPaddingX = global::OfficeIMO.OfficeLength.Points(44);
-        readback.Alignments![0] = PdfColumnAlign.Center;
+        readback.Alignments![0] = OfficeAlignment.Center;
 
         PdfCreateOptions clone = options.Clone();
 
@@ -109,14 +109,14 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(0.7, options.DefaultTableStyle.RowSeparatorWidth.ToPoints());
         Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.21, 0.32, 0.43), options.DefaultTableStyle.FooterSeparatorColor);
         Assert.Equal(0.9, options.DefaultTableStyle.FooterSeparatorWidth.ToPoints());
-        Assert.Equal(PdfColumnAlign.Right, options.DefaultTableStyle.Alignments![0]);
+        Assert.Equal(OfficeAlignment.Right, options.DefaultTableStyle.Alignments![0]);
         Assert.Equal(180, options.DefaultTableStyle.MaxWidth?.ToPoints());
         Assert.Equal(24, options.DefaultTableStyle.LeftIndent.ToPoints());
         Assert.True(options.DefaultTableStyle.KeepWithNext);
         Assert.Equal(12, clone.DefaultTableStyle!.CellPaddingX.ToPoints());
         Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.21, 0.32, 0.43), clone.DefaultTableStyle.FooterSeparatorColor);
         Assert.Equal(0.9, clone.DefaultTableStyle.FooterSeparatorWidth.ToPoints());
-        Assert.Equal(PdfColumnAlign.Right, clone.DefaultTableStyle.Alignments![0]);
+        Assert.Equal(OfficeAlignment.Right, clone.DefaultTableStyle.Alignments![0]);
         Assert.Equal(180, clone.DefaultTableStyle.MaxWidth?.ToPoints());
         Assert.Equal(24, clone.DefaultTableStyle.LeftIndent.ToPoints());
         Assert.True(clone.DefaultTableStyle.KeepWithNext);
@@ -179,7 +179,7 @@ public partial class PdfDocumentVisualQualityTests {
             PaddingX = global::OfficeIMO.OfficeLength.Points(12),
             PaddingY = global::OfficeIMO.OfficeLength.Points(8),
             MaxWidth = global::OfficeIMO.OfficeLength.Points(180),
-            Align = PdfAlign.Center,
+            Align = OfficeAlignment.Center,
             SpacingBefore = global::OfficeIMO.OfficeLength.Points(5),
             SpacingAfter = global::OfficeIMO.OfficeLength.Points(13),
             KeepTogether = true,
@@ -190,7 +190,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         style.PaddingX = global::OfficeIMO.OfficeLength.Points(30);
-        style.Align = PdfAlign.Right;
+        style.Align = OfficeAlignment.Right;
         style.Background = global::OfficeIMO.OfficeColor.Black;
         style.KeepWithNext = false;
 
@@ -205,7 +205,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(12, options.DefaultPanelStyle.PaddingX.ToPoints());
         Assert.Equal(8, options.DefaultPanelStyle.PaddingY.ToPoints());
         Assert.Equal(180, (options.DefaultPanelStyle.MaxWidth?.ToPoints()));
-        Assert.Equal(PdfAlign.Center, options.DefaultPanelStyle.Align);
+        Assert.Equal(OfficeAlignment.Center, options.DefaultPanelStyle.Align);
         Assert.Equal(5, options.DefaultPanelStyle.SpacingBefore.ToPoints());
         Assert.Equal(13, options.DefaultPanelStyle.SpacingAfter.ToPoints());
         Assert.True(options.DefaultPanelStyle.KeepTogether);

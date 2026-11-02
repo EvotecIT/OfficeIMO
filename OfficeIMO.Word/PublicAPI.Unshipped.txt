@@ -24,6 +24,12 @@ OfficeIMO.Word.WordParagraphStyles.Subtitle = 13 -> OfficeIMO.Word.WordParagraph
 OfficeIMO.Word.WordParagraphStyles.Title = 12 -> OfficeIMO.Word.WordParagraphStyles
 OfficeIMO.Word.WordSection.AddTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern) -> OfficeIMO.Word.WordTable!
 OfficeIMO.Word.WordTableCell.AddTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern, bool removePrecedingParagraph = false) -> OfficeIMO.Word.WordTable!
+*REMOVED*OfficeIMO.Word.Legacy.LegacyWordImportResult.RequireNoLoss() -> OfficeIMO.Word.WordDocument!
+*REMOVED*OfficeIMO.Word.WordDocument.BuiltinDocumentProperties.get -> OfficeIMO.Word.WordBuiltinDocumentProperties!
+*REMOVED*OfficeIMO.Word.WordDocument.CustomDocumentProperties.get -> System.Collections.Generic.Dictionary<string!, OfficeIMO.Word.WordCustomProperty!>!
+OfficeIMO.Word.Legacy.LegacyWordImportResult.ThrowIfLoss() -> void
+OfficeIMO.Word.WordDocument.CustomProperties.get -> System.Collections.Generic.Dictionary<string!, OfficeIMO.Word.WordCustomProperty!>!
+OfficeIMO.Word.WordDocument.Properties.get -> OfficeIMO.Word.WordBuiltinDocumentProperties!
 
 *REMOVED*static OfficeIMO.Word.WordDocument.SignPackageSignature(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options = null) -> OfficeIMO.Security.OfficePackageSigningResult!
 static OfficeIMO.Word.WordDocument.SignPackage(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options) -> OfficeIMO.Security.OfficePackageSigningResult!

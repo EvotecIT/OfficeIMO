@@ -11,12 +11,12 @@ Adds PowerShell-friendly text or rich text runs to the active fixed-position PDF
 ## SYNTAX
 ### Text (Default)
 ```powershell
-Add-OfficePdfCanvasText [-Text] <string[]> -X <double> -Y <double> [-Width <Double>] [-Height <Double>] [-Color <string>] [-Align <PdfAlign>] [-FontSize <Double>] [-LineHeight <Double>] [-Bold] [-Italic] [-Underline] [-Strike] [-BackgroundColor <string>] [-Font <PdfStandardFont>] [-Baseline <PdfTextBaseline>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfCanvasText [-Text] <string[]> -X <double> -Y <double> [-Width <Double>] [-Height <Double>] [-Color <string>] [-Align <OfficeAlignment>] [-FontSize <Double>] [-LineHeight <Double>] [-Bold] [-Italic] [-Underline] [-Strike] [-BackgroundColor <string>] [-Font <PdfStandardFont>] [-Baseline <PdfTextBaseline>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Run
 ```powershell
-Add-OfficePdfCanvasText -Run <Object[]> -X <double> -Y <double> [-Width <Double>] [-Height <Double>] [-Color <string>] [-Align <PdfAlign>] [-FontSize <Double>] [-LineHeight <Double>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfCanvasText -Run <Object[]> -X <double> -Y <double> [-Width <Double>] [-Height <Double>] [-Color <string>] [-Align <OfficeAlignment>] [-FontSize <Double>] [-LineHeight <Double>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -46,10 +46,10 @@ The enclosing callback supplies the active page, while the run collection remain
 Text alignment within the positioned rectangle.
 
 ```yaml
-Type: PdfAlign
+Type: OfficeAlignment
 Parameter Sets: Text, Run
 Aliases: None
-Possible values: Left, Center, Right, Justify
+Possible values: Left, Center, Right, Justify, Start, End
 
 Required: False
 Position: named

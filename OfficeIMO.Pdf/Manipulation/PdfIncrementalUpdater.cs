@@ -125,9 +125,9 @@ internal static partial class PdfIncrementalUpdater {
         }
 
         PdfDocumentInfo documentInfo = PdfInspector.Inspect(pdf, PdfReadDocument.Open(pdf, readOptions, cancellationToken), cancellationToken);
-        PdfMetadata existing = documentInfo.Metadata;
+        PdfDocumentProperties existing = documentInfo.Metadata;
         PdfXmpMetadataInfo? existingXmp = documentInfo.XmpMetadata;
-        var updated = new PdfMetadata {
+        var updated = new PdfDocumentProperties {
             Title = title ?? existing.Title ?? existingXmp?.Title,
             Author = author ?? existing.Author ?? existingXmp?.Creator,
             Subject = subject ?? existing.Subject ?? existingXmp?.Description,
@@ -194,7 +194,7 @@ internal static partial class PdfIncrementalUpdater {
         Dictionary<int, PdfIndirectObject> objects,
         PdfDocumentSecurityInfo security,
         PdfXmpMetadataInfo? existingXmp,
-        PdfMetadata updated,
+        PdfDocumentProperties updated,
         bool createXmpMetadata,
         List<int> changedObjectNumbers) {
         if (!security.RootObjectNumber.HasValue ||

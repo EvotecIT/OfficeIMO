@@ -116,11 +116,11 @@ public sealed class PdfPaintedGlyphPreservationTests {
             fontSize: 12D));
 
         Assert.Empty(document.AnalyzeTextEncoding());
-        if (preservesPaintedGlyphs) report.RequireNoLoss();
+        if (preservesPaintedGlyphs) report.ThrowIfLoss();
         else Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-bidirectional-text-layout");
 
         Assert.NotEmpty(document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
-        if (preservesPaintedGlyphs) report.RequireNoLoss();
+        if (preservesPaintedGlyphs) report.ThrowIfLoss();
         else Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-bidirectional-text-layout");
     }
 

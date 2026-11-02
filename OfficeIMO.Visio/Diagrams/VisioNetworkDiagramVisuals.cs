@@ -154,7 +154,7 @@ namespace OfficeIMO.Visio.Diagrams {
             style.FontFamily = string.IsNullOrWhiteSpace(style.FontFamily) ? "Aptos" : style.FontFamily;
             style.Size = Math.Max(style.Size ?? 0D, 9.5D);
             style.Bold = true;
-            style.HorizontalAlignment = VisioTextHorizontalAlignment.Left;
+            style.HorizontalAlignment = OfficeAlignment.Left;
             style.VerticalAlignment = VisioTextVerticalAlignment.Middle;
             style.LeftMargin = 0.08D;
             style.RightMargin = 0.08D;

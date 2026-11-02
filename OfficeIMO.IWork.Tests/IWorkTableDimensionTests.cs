@@ -168,7 +168,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Dimension_entry_budget_counts_all_buckets_and_headers_before_destination_creation() {
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Numbers, repeatTable: true);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumTableDimensionEntries = 12 });
+            new IWorkReadOptions { MaxTableDimensionEntries = 12 });
         Assert.Contains("source-wide", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 

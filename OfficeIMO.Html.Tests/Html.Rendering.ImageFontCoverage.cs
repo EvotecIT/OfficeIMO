@@ -43,7 +43,7 @@ public sealed class HtmlImageFontCoverageTests {
         var options = new HtmlToPdfOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             TextShapingProvider = provider,
             TextShapingLanguage = "syr"
         };
@@ -62,7 +62,7 @@ public sealed class HtmlImageFontCoverageTests {
         } else {
             Assert.Equal(synchronous, asynchronous);
             PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
-            pdf.RequireNoLoss();
+            pdf.ThrowIfLoss();
             Assert.Equal(expectedText, PdfCore.PdfReadDocument.Open(pdf.ToBytes()).ExtractText().Trim());
             OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(
                 pdf, OfficeImageExportFormat.Png, new PdfCore.PdfImageExportOptions { Scale = 96D / 72D }));
@@ -85,7 +85,7 @@ public sealed class HtmlImageFontCoverageTests {
         var options = new HtmlToPdfOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             TextShapingProvider = provider,
             TextShapingLanguage = "syr"
         };
@@ -120,7 +120,7 @@ public sealed class HtmlImageFontCoverageTests {
         var options = new HtmlToPdfOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
         options.Fonts.Add("Primary", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B'))
             .Add("Spacing Fallback", ManagedTextShapingTestAssets.CreateFontWithEmptyGlyphs(2, separator))
@@ -147,7 +147,7 @@ public sealed class HtmlImageFontCoverageTests {
         var options = new HtmlToPdfOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
         options.Fonts.Add("Primary", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B'));
 

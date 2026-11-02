@@ -64,7 +64,7 @@ public sealed class PstAllocationMapRegistrationTests {
         byte[] expectedState = System.Text.Encoding.UTF8.GetBytes("synthetic-ordinal=40");
         try {
             using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path,
-                new EmailStorePstWriterOptions(failOnDataLoss: true, checkpointPath: checkpoint,
+                new EmailStorePstWriterOptions(failOnLoss: true, checkpointPath: checkpoint,
                     checkpointIntervalItems: int.MaxValue))) {
                 string folder = writer.AddFolder("Original");
                 for (int index = 0; index < 40; index++) writer.AddItem(folder, CreateMessage(index));

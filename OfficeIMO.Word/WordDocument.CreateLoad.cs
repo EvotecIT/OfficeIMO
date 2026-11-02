@@ -395,7 +395,7 @@ namespace OfficeIMO.Word {
             new WordBackground(this);
             new WordDocumentStatistics(this);
             new WordCompatibilitySettings(this);
-            //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(this);
+            //CustomProperties customDocumentProperties = new CustomProperties(this);
             LoadSections();
         }
 

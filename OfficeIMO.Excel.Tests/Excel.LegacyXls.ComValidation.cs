@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
             string importEvidence = GetLegacyXlsImportEvidence(result);
-            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(result.NativeDiagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.True(result.ImportReport.CellCount >= 16, importEvidence);
             Assert.True(result.ImportReport.FormulaCellCount >= 1, importEvidence);
             Assert.True(result.ImportReport.DataValidationCount >= 1, importEvidence);
@@ -106,7 +106,7 @@ namespace OfficeIMO.Tests {
                 using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
                     ReportUnsupportedContent = true
                 });
-                Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+                Assert.DoesNotContain(result.NativeDiagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
 
                 string sourceName = Path.GetFileNameWithoutExtension(workbookPath);
                 string boundedSourceName = sourceName.Substring(0, Math.Min(sourceName.Length, 32));

@@ -55,7 +55,7 @@ public partial class PdfDocumentVisualQualityTests {
         var block = new TableBlock(new[] {
             new[] { "Name", "Value" },
             body
-        }, PdfAlign.Left, style);
+        }, OfficeAlignment.Left, style);
 
         block.AddLink((1, 0), "https://evotec.xyz");
         body[0] = "Mutated";
@@ -102,7 +102,7 @@ public partial class PdfDocumentVisualQualityTests {
             global::OfficeIMO.OfficeLength.Points(12),
             new PdfImageStyle { AlternativeText = "Original logo" });
         PdfTableCell cell = PdfTableCell.WithImages("Logo", new[] { image });
-        var block = new TableBlock(new[] { new[] { cell } }, PdfAlign.Left, null);
+        var block = new TableBlock(new[] { new[] { cell } }, OfficeAlignment.Left, null);
 
         cell.Images[0].Style!.AlternativeText = "Changed logo";
 

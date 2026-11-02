@@ -3,7 +3,7 @@ using System.Threading;
 namespace OfficeIMO.Epub;
 
 public sealed partial class EpubPublication {
-    private void ValidatePublication(XDocument package, IReadOnlyDictionary<string, byte[]> entries, List<OfficeConversionFidelityDiagnostic> diagnostics, CancellationToken token, bool changed) {
+    private void ValidatePublication(XDocument package, IReadOnlyDictionary<string, byte[]> entries, List<OfficeDiagnostic> diagnostics, CancellationToken token, bool changed) {
         XElement root = package.Root!;
         XElement metadata = root.Element(Opf + "metadata")!;
         if (!metadata.Elements(Dc + "title").Any(element => !string.IsNullOrWhiteSpace(element.Value)) ||
@@ -59,9 +59,7 @@ public sealed partial class EpubPublication {
         XElement[] spine = root.Element(Opf + "spine")!.Elements(Opf + "itemref").ToArray();
         foreach (var repeated in spine.GroupBy(item => (string?)item.Attribute("idref"), StringComparer.Ordinal).Where(group => group.Count() > 1)) {
             if (_originalBytes == null) throw new InvalidDataException("Authored spine positions must have distinct manifest ids.");
-            diagnostics.Add(new OfficeConversionFidelityDiagnostic("EPUB_WRITE_RETAINED_DUPLICATE_SPINE",
-                "Repeated source reading positions were preserved; duplicate itemrefs do not conform to EPUB authoring requirements.",
-                OfficeConversionLossKind.None, "OfficeIMO.Epub", PackagePath));
+            diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic("EPUB_WRITE_RETAINED_DUPLICATE_SPINE", global::OfficeIMO.OfficeDiagnosticSeverity.Information, "Repeated source reading positions were preserved; duplicate itemrefs do not conform to EPUB authoring requirements.", PackagePath, "OfficeIMO.Epub", OfficeConversionLossKind.None));
         }
         if (!spine.Any(item => (string?)item.Attribute("linear") != "no")) throw new InvalidDataException("At least one linear reading position is required.");
         foreach (XElement position in spine) {
@@ -120,7 +118,7 @@ public sealed partial class EpubPublication {
                 if (!checkedMediaTypes.TryGetValue(item.MediaType, out bool hasRemoteResources)) {
                     ValidateContent(content, item.MediaType);
                     string analysisContent = content.ToString(SaveOptions.DisableFormatting);
-                    var limits = OfficeIMO.Html.HtmlConversionLimits.CreateUntrustedProfile();
+                    var limits = OfficeIMO.Html.HtmlConversionLimits.UntrustedDefaults;
                     // ParseXml already bounded the retained bytes; canonical escaping can enlarge this snapshot.
                     limits.MaxInputCharacters = (int)Math.Min(Math.Max(_maximumEntryBytes, analysisContent.Length), int.MaxValue);
                     var resources = OfficeIMO.Html.HtmlResourcePipeline.BuildManifest(

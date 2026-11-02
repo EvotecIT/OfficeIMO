@@ -9,14 +9,14 @@ internal sealed class DeferredTableBlock : IPdfBlock {
     internal DeferredTableBlock(
         System.Func<System.Collections.Generic.IEnumerable<PdfTableCell[]>> rowFactory,
         int batchSize,
-        PdfAlign align,
+        OfficeAlignment align,
         PdfTableStyle? style) {
         Guard.NotNull(rowFactory, nameof(rowFactory));
         if (batchSize <= 0) {
             throw new System.ArgumentOutOfRangeException(nameof(batchSize), "Deferred table batch size must be greater than zero.");
         }
 
-        Guard.LeftCenterRightAlign(align, nameof(align), "Deferred table");
+        align = Guard.LeftCenterRightAlign(align, nameof(align), "Deferred table");
         _rowFactory = rowFactory;
         BatchSize = batchSize;
         Align = align;
@@ -24,7 +24,7 @@ internal sealed class DeferredTableBlock : IPdfBlock {
     }
 
     internal int BatchSize { get; }
-    internal PdfAlign Align { get; }
+    internal OfficeAlignment Align { get; }
     internal PdfTableStyle? Style { get; }
 
     internal System.Collections.Generic.IEnumerable<PdfTableCell[]> EnumerateRows() {

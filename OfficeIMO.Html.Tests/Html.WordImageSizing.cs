@@ -21,7 +21,7 @@ public partial class HtmlWordGapClosure {
         Assert.Equal(contentWidth, (drawing.Width?.ToPixels())!.Value, precision: 2);
         Assert.Equal(contentWidth * 600D / 1600D, (drawing.Height?.ToPixels())!.Value, precision: 2);
         Assert.Contains(document.Paragraphs, paragraph => paragraph.Text == "After");
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation
             && diagnostic.Source == "Wide photo");

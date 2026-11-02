@@ -493,7 +493,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void ReinitializePackageBoundHelpers() {
-            CustomDocumentProperties.SetChangeHandler(MarkCustomDocumentPropertiesChanged);
+            CustomProperties.SetChangeHandler(MarkCustomDocumentPropertiesChanged);
             LoadCustomDocumentProperties();
             ExcelChartAxisIdGenerator.Initialize(_spreadSheetDocument);
         }

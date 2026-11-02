@@ -12,7 +12,7 @@ public partial class VisioPage {
             OfficeLength.Inches(HeightInches - margin.ToInches() - titleHeight.ToInches() / 2), width, titleHeight, text);
         shape.TextStyle = new VisioTextStyle {
             Size = 22, Bold = true,
-            HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+            HorizontalAlignment = OfficeAlignment.Center,
             VerticalAlignment = VisioTextVerticalAlignment.Middle
         };
         return shape;

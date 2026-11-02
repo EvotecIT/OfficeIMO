@@ -35,7 +35,7 @@ reads current criteria and table ownership. Creating the handle preserves deferr
 workbook exports. `AddTableOfContents` returns the sheet it creates, and
 `AddPivotManualGrouping` returns the created `ExcelPivotGroupingInfo`.
 
-`CustomDocumentProperties.Add` returns the attached `ExcelCustomProperty`, so edits
+`CustomProperties.Add` returns the attached `ExcelCustomProperty`, so edits
 to the returned value are saved with the workbook. The collection also implements
 `IDictionary<string, ExcelCustomProperty>` and `ICollection<KeyValuePair<string, ExcelCustomProperty>>`.
 
@@ -253,7 +253,7 @@ OfficeIMO throws a preflight error with the unsupported feature name so the
 caller can save as `.xlsx`, remove the feature, or choose a different workflow.
 `OfficeIMO.OfficeConverter.Convert(...)` uses those same load and save paths and blocks
 legacy sources with unsupported or preserve-only content by default. Set
-`LossPolicy` to `OfficeConversionLossPolicy.Allow` on conversion or save options
+`AllowLoss = true` on `ExcelSaveOptions`
 only after reviewing that loss. See
 [XLS and XLSX compatibility](../Docs/officeimo.excel.legacy-xls-compatibility.md) for
 the current capability matrix and safety contract. Use the
@@ -270,13 +270,13 @@ using OfficeIMO.Excel;
 
 var imported = ExcelDocument.ImportSpreadsheetXml("archive.xml");
 using var workbook = imported.Value;
-foreach (var diagnostic in imported.Report.FidelityDiagnostics)
+foreach (var diagnostic in imported.Report.Diagnostics)
     Console.WriteLine(diagnostic.Message);
-imported.Report.RequireNoLoss(); // Optional strict admission, before editing or saving.
+imported.Report.ThrowIfLoss(); // Optional strict admission, before editing or saving.
 workbook.Save("editable.xlsx");
 
 var exported = workbook.ExportSpreadsheetXml();
-exported.Report.RequireNoLoss(); // Review omissions before publishing the XML bytes.
+exported.Report.ThrowIfLoss(); // Review omissions before publishing the XML bytes.
 File.WriteAllBytes("exchange.xml", exported.Value);
 ```
 
@@ -385,7 +385,7 @@ The importer never saves back to these source formats, executes macros, activate
 
 The later Lotus, WB1, and Windows WKS readers use separate record and formula layouts. `RequireStructured = true` accepts these selected profiles and rejects salvage-only generations. Independent upstream Lotus 98, Quattro WB1, and Works Windows fixtures exercise import and XLSX save/reopen; the older later-Lotus BOF variants also have specification-built numeric/formula checks. Text outside the qualified ASCII profile is replaced with a diagnostic. Review `Report.Findings` before using a converted workbook for calculations.
 
-Structured WK-derived profiles accept a valid BOF/EOF workbook with no cells and currently require ASCII text. Formula translation is allow-listed, bounded, charged against the import-wide text budget, and never evaluates the source expression. Unsupported tokens retain only a finite cached value with a loss diagnostic. `Structured` means the record stream passed the profile grammar, not that conversion is lossless; inspect `Report.Findings`, or call `imported.RequireNoLoss()` when salvage recovery, inert content, or any known approximation must fail the workflow.
+Structured WK-derived profiles accept a valid BOF/EOF workbook with no cells and currently require ASCII text. Formula translation is allow-listed, bounded, charged against the import-wide text budget, and never evaluates the source expression. Unsupported tokens retain only a finite cached value with a loss diagnostic. `Structured` means the record stream passed the profile grammar, not that conversion is lossless; inspect `Report.Findings`, or call `imported.ThrowIfLoss()` when salvage recovery, inert content, or any known approximation must fail the workflow.
 
 SYLK and DIF use the same file, byte-array, and caller-owned stream overloads. Detection checks the content signature; an extension alone is insufficient. Stream import starts at the current position and leaves the stream open. Input bytes, physical records, cell count, and retained text are bounded by `LegacySpreadsheetImportOptions.Limits`; oversized cells, non-finite numbers, duplicate SYLK cell definitions, missing terminators, and data after a terminator are rejected. Source dimensions do not allocate blank grids. SYLK records accept at most 64 fields; omission reports retain at most 64 distinct record/topic kinds and an overflow notice.
 
@@ -794,7 +794,7 @@ Inspect named table definitions with `document.GetTables()` for the workbook or 
 
 Worksheet handles remain usable after saving, including when the save rebuilds the underlying package. You can keep an `ExcelSheet`, save the workbook, then continue editing or inspecting that worksheet. This includes saving a fresh workbook as a template or macro-enabled package and adding VBA to an open workbook. Removed worksheet handles still raise `InvalidOperationException` when inspected and cannot become handles to replacement sheets. Picture handles and captured mutation plans retain their separate package-lifetime checks.
 
-You can also retain `BuiltinDocumentProperties`, `ApplicationProperties`, and individual `CustomDocumentProperties` values across saves. Later edits update the current workbook; removing or replacing a custom property detaches its previous value. After a transactional mutation rolls back, retained worksheet handles read the restored metadata and can continue changing names and visibility.
+You can also retain `Properties`, `ApplicationProperties`, and individual `CustomProperties` values across saves. Later edits update the current workbook; removing or replacing a custom property detaches its previous value. After a transactional mutation rolls back, retained worksheet handles read the restored metadata and can continue changing names and visibility.
 
 ```csharp
 using var document = ExcelDocument.Load("sales.xlsx");

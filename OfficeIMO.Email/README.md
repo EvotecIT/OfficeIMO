@@ -248,7 +248,7 @@ foreach (EmailDiagnostic diagnostic in report.Diagnostics) {
 
 if (report.CanWrite) {
     EmailWriteResult result = writer.Write(message, "converted.eml");
-    result.RequireNoLoss();
+    result.ThrowIfLoss();
 }
 ```
 

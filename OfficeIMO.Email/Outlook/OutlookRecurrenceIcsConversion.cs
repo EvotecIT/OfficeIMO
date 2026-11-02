@@ -39,11 +39,11 @@ public sealed class OutlookRecurrenceIcsIssue {
 }
 
 /// <summary>Structured evidence for a recurrence/iCalendar conversion.</summary>
-public sealed class OutlookRecurrenceIcsConversionReport : IOfficeConversionReport {
+public sealed class OutlookRecurrenceIcsConversionReport : OfficeConversionReport {
     private readonly List<OutlookRecurrenceIcsIssue> _issues = new List<OutlookRecurrenceIcsIssue>();
-    private readonly List<OfficeConversionFidelityDiagnostic> _fidelityDiagnostics = new List<OfficeConversionFidelityDiagnostic>();
+    private readonly List<OfficeDiagnostic> _fidelityDiagnostics = new List<OfficeDiagnostic>();
     private readonly IReadOnlyList<OutlookRecurrenceIcsIssue> _readOnlyIssues;
-    private readonly IReadOnlyList<OfficeConversionFidelityDiagnostic> _readOnlyFidelityDiagnostics;
+    private readonly IReadOnlyList<OfficeDiagnostic> _readOnlyFidelityDiagnostics;
     /// <summary>Creates an empty recurrence conversion report.</summary>
     public OutlookRecurrenceIcsConversionReport() {
         _readOnlyIssues = _issues.AsReadOnly();
@@ -56,27 +56,21 @@ public sealed class OutlookRecurrenceIcsConversionReport : IOfficeConversionRepo
     /// <summary>Whether no warning or error indicates information loss.</summary>
     public bool IsLossless => !HasLoss;
     /// <summary>Category-preserving recurrence conversion evidence.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => _readOnlyFidelityDiagnostics;
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics => _readOnlyFidelityDiagnostics;
     /// <summary>Whether recurrence conversion approximated, omitted, or failed to preserve source content.</summary>
-    public bool HasLoss => _fidelityDiagnostics.Any(static diagnostic =>
+    public override bool HasLoss => _fidelityDiagnostics.Any(static diagnostic =>
         diagnostic.LossKind != OfficeConversionLossKind.None);
-    /// <summary>Throws when recurrence conversion reported possible content loss.</summary>
-    public void RequireNoLoss() {
-        OfficeConversionFidelityDiagnostic? firstLoss = _fidelityDiagnostics.FirstOrDefault(static diagnostic =>
-            diagnostic.LossKind != OfficeConversionLossKind.None);
-        if (firstLoss != null) {
-            throw new InvalidOperationException(
-                "Outlook recurrence conversion reported possible content loss. First diagnostic: " + firstLoss.Code + ".");
-        }
-    }
     internal void Add(string code, string message, OutlookRecurrenceIcsIssueSeverity severity) {
         var issue = new OutlookRecurrenceIcsIssue(code, message, severity);
         _issues.Add(issue);
-        _fidelityDiagnostics.Add(new OfficeConversionFidelityDiagnostic(
+        _fidelityDiagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
             issue.Code,
+            issue.LossKind == global::OfficeIMO.OfficeConversionLossKind.None ? global::OfficeIMO.OfficeDiagnosticSeverity.Information : global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
             string.IsNullOrWhiteSpace(issue.Message) ? issue.Code + " was reported without a diagnostic message." : issue.Message,
-            issue.LossKind,
-            "OfficeIMO.Email.Outlook"));
+            null,
+            "OfficeIMO.Email.Outlook",
+            issue.LossKind));
     }
 }
 

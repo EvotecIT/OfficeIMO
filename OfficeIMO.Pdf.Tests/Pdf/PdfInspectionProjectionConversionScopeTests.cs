@@ -62,7 +62,7 @@ public sealed class PdfInspectionProjectionConversionScopeTests {
             Assert.True(powerpoint.HasOmittedPageContent);
         }
         PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
-        using (word.Value) Assert.NotEmpty(word.Report.FidelityDiagnostics);
+        using (word.Value) Assert.NotEmpty(word.Report.Diagnostics);
         Assert.Contains("Native page text", logical.ToHtmlResult().Value);
         Assert.Contains("Native page text", logical.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile()).Value);
         PdfRtfConversionResult rtf = logical.ToRtfDocumentResult();

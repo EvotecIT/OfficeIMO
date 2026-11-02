@@ -18,7 +18,7 @@ public static class VisioDrawingExtensions {
         var context = new VisioDrawingProjection(operation, report, cancellationToken);
         var drawings = new List<OfficeDrawing>(document.Pages.Count);
         for (int index = 0; index < document.Pages.Count; index++) drawings.Add(context.Project(document.Pages[index], index + 1));
-        if (operation.RequireNoLoss) report.RequireNoLoss();
+        if (operation.FailOnLoss) report.ThrowIfLoss();
         return new OfficeConversionResult<IReadOnlyList<OfficeDrawing>, VisioDrawingConversionReport>(drawings.AsReadOnly(), report);
     }
 
@@ -30,7 +30,7 @@ public static class VisioDrawingExtensions {
         VisioDrawingOptions operation = (options ?? new VisioDrawingOptions()).Snapshot();
         var report = new VisioDrawingConversionReport(operation.SourceName ?? page.OwnerDocument?.FilePath);
         OfficeDrawing drawing = new VisioDrawingProjection(operation, report, cancellationToken).Project(page, 1);
-        if (operation.RequireNoLoss) report.RequireNoLoss();
+        if (operation.FailOnLoss) report.ThrowIfLoss();
         return new OfficeConversionResult<OfficeDrawing, VisioDrawingConversionReport>(drawing, report);
     }
 }

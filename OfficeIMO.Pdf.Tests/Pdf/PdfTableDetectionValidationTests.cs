@@ -463,10 +463,10 @@ public sealed class PdfTableDetectionValidationTests {
     }
 
     [Theory]
-    [InlineData(PdfColumnAlign.Center)]
-    [InlineData(PdfColumnAlign.Right)]
-    public void LogicalTables_RetainAlignedRegularFontProseTables(PdfColumnAlign alignment) {
-        var cellAlignments = new Dictionary<(int Row, int Column), PdfColumnAlign>();
+    [InlineData(OfficeAlignment.Center)]
+    [InlineData(OfficeAlignment.Right)]
+    public void LogicalTables_RetainAlignedRegularFontProseTables(OfficeAlignment alignment) {
+        var cellAlignments = new Dictionary<(int Row, int Column), OfficeAlignment>();
         for (int row = 0; row < 3; row++) {
             cellAlignments[(row, 0)] = alignment;
             cellAlignments[(row, 1)] = alignment;

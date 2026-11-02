@@ -498,7 +498,7 @@ public class PdfXGroundworkTests {
             "%PDF-1.7\n5 2 obj\n<< /Title (Wrong generation) >>\nendobj\n" +
             "trailer\n<< /Info 5 1 R >>\n%%EOF\n");
 
-        PdfMetadata metadata = PdfReadDocument.Open(matching).Metadata;
+        PdfDocumentProperties metadata = PdfReadDocument.Open(matching).Metadata;
 
         Assert.Equal("Generation two", metadata.Title);
         Assert.Equal("PDF/X-4", metadata.PdfXVersion);

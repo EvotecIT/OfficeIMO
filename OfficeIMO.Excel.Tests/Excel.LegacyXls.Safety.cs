@@ -14,14 +14,14 @@ namespace OfficeIMO.Tests {
                 new LegacyXlsWorkbook(),
                 new InvalidDataException("Projection failed."));
 
-            OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
-                failed.FidelityDiagnostics,
+            OfficeDiagnostic diagnostic = Assert.Single(
+                failed.Diagnostics,
                 item => item.Code == "xls-projection-failed");
 
             Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
             Assert.True(failed.HasLoss);
             Assert.True(failed.HasImportErrors);
-            Assert.Throws<InvalidDataException>(failed.RequireNoLoss);
+            Assert.ThrowsAny<OfficeConversionException>(failed.ThrowIfLoss);
             Assert.Throws<InvalidOperationException>(() => failed.EnsureNoImportErrors());
         }
 
@@ -109,12 +109,12 @@ namespace OfficeIMO.Tests {
             Assert.True(result.HasUnsupportedFeatures);
             Assert.True(result.HasConversionLoss);
             Assert.True(result.Summary.HasConversionLoss);
-            IOfficeConversionReport commonResult = result;
-            Assert.Contains(commonResult.FidelityDiagnostics,
+            OfficeConversionReport commonResult = result;
+            Assert.Contains(commonResult.Diagnostics,
                 diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
             Assert.True(result.Summary.HasLoss);
-            Assert.Throws<InvalidDataException>(commonResult.RequireNoLoss);
-            Assert.Throws<InvalidDataException>(result.Summary.RequireNoLoss);
+            Assert.ThrowsAny<OfficeConversionException>(commonResult.ThrowIfLoss);
+            Assert.ThrowsAny<OfficeConversionException>(result.Summary.ThrowIfLoss);
             LegacyXlsImportReport report = result.CreateImportReport();
             Assert.True(report.PreservedFeatureRecordCount > 0);
             Assert.True(report.HasUnsupportedFeatures);

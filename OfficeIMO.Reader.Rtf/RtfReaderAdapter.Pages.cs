@@ -185,7 +185,7 @@ internal static partial class RtfReaderAdapter {
             },
             Attributes = new Dictionary<string, string> {
                 ["explicitPageCount"] = pages.Count.ToString(CultureInfo.InvariantCulture),
-                ["savedPageCount"] = document.Info.NumberOfPages?.ToString(CultureInfo.InvariantCulture) ?? string.Empty
+                ["savedPageCount"] = document.Properties.NumberOfPages?.ToString(CultureInfo.InvariantCulture) ?? string.Empty
             }
         };
     }

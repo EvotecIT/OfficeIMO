@@ -42,7 +42,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(40D, first.X, 3);
         Assert.Equal(0D, second.X, 3);
         Assert.True(second.Y > first.Y);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]

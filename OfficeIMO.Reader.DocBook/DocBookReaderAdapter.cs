@@ -34,7 +34,7 @@ internal static partial class DocBookReaderAdapter {
         DocBookConversionOptions conversionOptions = options.ConversionOptions;
         conversionOptions.MaxTableRows = Math.Min(conversionOptions.MaxTableRows, Math.Max(1, reader.MaxTableRows));
         DocBookConversionResult<OfficeDocumentModel> conversion = document.ToOfficeDocumentModel(sourceName, conversionOptions, cancellationToken);
-        DocBookDiagnostic[] diagnostics = document.Validate(cancellationToken: cancellationToken).Diagnostics.Concat(conversion.Diagnostics).ToArray();
+        DocBookDiagnostic[] diagnostics = document.Validate(cancellationToken: cancellationToken).Diagnostics.Concat(conversion.NativeDiagnostics).ToArray();
         IReadOnlyList<string>? warnings = includeChunkWarnings && options.IncludeDiagnostics
             ? diagnostics.Where(d => d.Severity != DocBookDiagnosticSeverity.Info)
                 .Select(d => d.Code + ": " + d.Message).ToArray()

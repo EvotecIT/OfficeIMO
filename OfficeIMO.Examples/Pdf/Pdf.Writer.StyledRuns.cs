@@ -7,14 +7,14 @@ namespace OfficeIMO.Examples.Pdf {
             string path = Path.Combine(folderPath, "Pdf.StyledRuns.pdf");
             var options = new PdfCreateOptions {
                 HeaderFormat = "OfficeIMO.Pdf styled runs",
-                HeaderAlign = PdfAlign.Left,
+                HeaderAlign = OfficeAlignment.Left,
                 ShowHeader = true,
-                FooterAlign = PdfAlign.Right,
+                FooterAlign = OfficeAlignment.Right,
                 ShowPageNumbers = true
             };
 
             var doc = PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Styled Runs", PdfAlign.Left)
+                .H1("Styled Runs", OfficeAlignment.Left)
                 .Paragraph(p => p.Text("A compact visual sample for inline font style, color, underline, strike-through, and stateful run toggles."))
                 .PanelParagraph(
                     p => p
@@ -66,7 +66,7 @@ namespace OfficeIMO.Examples.Pdf {
                     .Color(global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180)).Text("informational ")
                     .Color(global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52)).Text("healthy ")
                     .Color(global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55)).Text("normal."))
-                .Paragraph(p => p.Text("End of styled runs sample."), PdfAlign.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80))), options)
+                .Paragraph(p => p.Text("End of styled runs sample."), OfficeAlignment.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80))), options)
                 .Meta(title: "OfficeIMO.Pdf Styled Runs", author: "OfficeIMO");
             doc.Save(path);
             if (open) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true });

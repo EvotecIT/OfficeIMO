@@ -22,8 +22,17 @@
     "csproj": "OfficeIMO.Word.Html/OfficeIMO.Word.Html.csproj",
     "targetFrameworks": [
       "netstandard2.0;net8.0;net10.0",
-      "$(TargetFrameworks);net472"
-    ],
+      "$(TargetFrameworks);net472",
+    {
+      "old": "OfficeIMO.Word.Html.WordHtmlImportOptions.CreateUntrustedHtmlProfile()",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Word.Html.WordHtmlImportOptions.UntrustedDefaults",
+      "category": "limits",
+      "reason": "Profiles for untrusted input use one discoverable name across formats.",
+      "applied": true
+    }
+  ],
     "projectReferences": [
       "OfficeIMO.Core",
       "OfficeIMO.Html",

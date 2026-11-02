@@ -335,14 +335,14 @@ internal static partial class PdfFormFiller {
         return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
     }
 
-    private static PdfAlign MapFormTextAlignment(PdfFormFieldTextAlignment? alignment) {
+    private static OfficeAlignment MapFormTextAlignment(PdfFormFieldTextAlignment? alignment) {
         switch (alignment) {
             case PdfFormFieldTextAlignment.Center:
-                return PdfAlign.Center;
+                return OfficeAlignment.Center;
             case PdfFormFieldTextAlignment.Right:
-                return PdfAlign.Right;
+                return OfficeAlignment.Right;
             default:
-                return PdfAlign.Left;
+                return OfficeAlignment.Left;
         }
     }
 

@@ -119,7 +119,7 @@ public sealed class EpubWritingContracts {
         using var archive = new ZipArchive(new MemoryStream(result.Bytes));
         Assert.Null(archive.GetEntry("META-INF/signatures.xml"));
         Assert.True(result.HasLoss);
-        Assert.Throws<OfficeConversionException>(() => result.RequireNoLoss());
+        Assert.Throws<OfficeConversionException>(() => result.ThrowIfLoss());
     }
 
     [Fact]
@@ -255,7 +255,7 @@ public sealed class EpubWritingContracts {
         Assert.All(book.EntryPaths.Where(path => path != book.PackagePath), path => Assert.Equal(ReadEntry(source, path), ReadEntry(result.Bytes, path)));
         Assert.Equal(4, book.Read().Chapters.Count);
         Assert.False(result.HasLoss);
-        if (name == "pkg-spine-duplicate-item-rendering") Assert.Contains(result.Report.FidelityDiagnostics,
+        if (name == "pkg-spine-duplicate-item-rendering") Assert.Contains(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == "EPUB_WRITE_RETAINED_DUPLICATE_SPINE");
     }
 
@@ -268,7 +268,7 @@ public sealed class EpubWritingContracts {
         EpubWriteResult result = book.Write();
         Assert.Contains("EPUB/extra.bin", result.Report.RemovedEntries);
         Assert.True(result.HasLoss);
-        Assert.Throws<OfficeConversionException>(() => result.RequireNoLoss());
+        Assert.Throws<OfficeConversionException>(() => result.ThrowIfLoss());
         book.AddResource("cover", "EPUB/cover.png", "image/png", new byte[] { 1 });
         book.SetCoverImage("cover");
         Assert.Throws<InvalidOperationException>(() => book.RemoveResource("cover"));
@@ -376,8 +376,8 @@ public sealed class EpubWritingContracts {
         EpubWriteResult result = book.Write(new EpubWriteOptions { RemoveInvalidatedSignatures = true, CompressEntries = !compressionOnly });
         Assert.False(OfficeProvenanceZip.HasCentralDirectorySignature(result.Bytes, 100));
         Assert.True(result.HasLoss);
-        Assert.Contains(result.Report.FidelityDiagnostics, item => item.Code == "EPUB_WRITE_ZIP_SIGNATURE_REMOVED");
-        Assert.Throws<OfficeConversionException>(() => result.RequireNoLoss());
+        Assert.Contains(result.Report.Diagnostics, item => item.Code == "EPUB_WRITE_ZIP_SIGNATURE_REMOVED");
+        Assert.Throws<OfficeConversionException>(() => result.ThrowIfLoss());
     }
 
     [Fact]

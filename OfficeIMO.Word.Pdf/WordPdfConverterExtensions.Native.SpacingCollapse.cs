@@ -62,7 +62,7 @@ namespace OfficeIMO.Word.Pdf {
                 ResetSpacingCollapse();
             }
 
-            public void Paragraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null) {
+            public void Paragraph(Action<PdfCore.PdfParagraphBuilder> build, global::OfficeIMO.OfficeAlignment align = global::OfficeIMO.OfficeAlignment.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null) {
                 PdfCore.PdfParagraphStyle? collapsedStyle = style;
                 if (style != null) {
                     collapsedStyle = style.Clone();
@@ -84,7 +84,7 @@ namespace OfficeIMO.Word.Pdf {
                 _pendingSpacingAfter = (style?.SpacingAfter.ToPoints());
             }
 
-            public void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null) {
+            public void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, global::OfficeIMO.OfficeAlignment align = global::OfficeIMO.OfficeAlignment.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null) {
                 PdfCore.PdfPanelStyle? collapsedStyle = style;
                 if (style != null) {
                     collapsedStyle = style.Clone();
@@ -95,7 +95,7 @@ namespace OfficeIMO.Word.Pdf {
                 _pendingSpacingAfter = paragraphStyle?.SpacingAfter?.ToPoints() ?? (style?.SpacingAfter.ToPoints());
             }
 
-            public void Heading(int level, string text, Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align, global::OfficeIMO.OfficeColor? color, PdfCore.PdfHeadingStyle? style) {
+            public void Heading(int level, string text, Action<PdfCore.PdfParagraphBuilder> build, global::OfficeIMO.OfficeAlignment align, global::OfficeIMO.OfficeColor? color, PdfCore.PdfHeadingStyle? style) {
                 PdfCore.PdfHeadingStyle? collapsedStyle = style;
                 if (style != null) {
                     collapsedStyle = style.Clone();
@@ -106,39 +106,39 @@ namespace OfficeIMO.Word.Pdf {
                 _pendingSpacingAfter = (style?.SpacingAfter?.ToPoints());
             }
 
-            public void RichNumbered(IEnumerable<PdfCore.PdfListItem> items, PdfCore.PdfAlign align, global::OfficeIMO.OfficeColor? color, int startNumber, PdfCore.PdfListStyle? style) {
+            public void RichNumbered(IEnumerable<PdfCore.PdfListItem> items, global::OfficeIMO.OfficeAlignment align, global::OfficeIMO.OfficeColor? color, int startNumber, PdfCore.PdfListStyle? style) {
                 PdfCore.PdfListStyle? collapsedStyle = CollapseListStyle(style);
                 _inner.RichNumbered(items, align, color, startNumber, collapsedStyle);
                 _pendingSpacingAfter = ((style?.SpacingAfter)?.ToPoints());
             }
 
-            public void RichBullets(IEnumerable<PdfCore.PdfListItem> items, PdfCore.PdfAlign align, global::OfficeIMO.OfficeColor? color, PdfCore.PdfListStyle? style) {
+            public void RichBullets(IEnumerable<PdfCore.PdfListItem> items, global::OfficeIMO.OfficeAlignment align, global::OfficeIMO.OfficeColor? color, PdfCore.PdfListStyle? style) {
                 PdfCore.PdfListStyle? collapsedStyle = CollapseListStyle(style);
                 _inner.RichBullets(items, align, color, collapsedStyle);
                 _pendingSpacingAfter = ((style?.SpacingAfter)?.ToPoints());
             }
 
-            public void TextField(string name, double width, double height, string value, PdfCore.PdfAlign align, double fontSize, double spacingBefore, double spacingAfter, PdfCore.PdfFormFieldStyle? style = null) {
+            public void TextField(string name, double width, double height, string value, global::OfficeIMO.OfficeAlignment align, double fontSize, double spacingBefore, double spacingAfter, PdfCore.PdfFormFieldStyle? style = null) {
                 _inner.TextField(name, width, height, value, align, fontSize, spacingBefore, spacingAfter, style);
                 ResetSpacingCollapse();
             }
 
-            public void ChoiceField(string name, IEnumerable<string> options, string? value, double width, double height, PdfCore.PdfAlign align, double fontSize, double spacingBefore, double spacingAfter, bool isComboBox, PdfCore.PdfFormFieldStyle? style = null) {
+            public void ChoiceField(string name, IEnumerable<string> options, string? value, double width, double height, global::OfficeIMO.OfficeAlignment align, double fontSize, double spacingBefore, double spacingAfter, bool isComboBox, PdfCore.PdfFormFieldStyle? style = null) {
                 _inner.ChoiceField(name, options, value, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox, style);
                 ResetSpacingCollapse();
             }
 
-            public void CheckBox(string name, bool isChecked, double size, PdfCore.PdfAlign align, double spacingBefore, double spacingAfter, string checkedValueName = "Yes", PdfCore.PdfFormFieldStyle? style = null) {
+            public void CheckBox(string name, bool isChecked, double size, global::OfficeIMO.OfficeAlignment align, double spacingBefore, double spacingAfter, string checkedValueName = "Yes", PdfCore.PdfFormFieldStyle? style = null) {
                 _inner.CheckBox(name, isChecked, size, align, spacingBefore, spacingAfter, checkedValueName, style);
                 ResetSpacingCollapse();
             }
 
-            public void Shape(OfficeShape shape, PdfCore.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+            public void Shape(OfficeShape shape, global::OfficeIMO.OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
                 _inner.Shape(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
                 ResetSpacingCollapse();
             }
 
-            public void Drawing(OfficeDrawing drawing, PdfCore.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+            public void Drawing(OfficeDrawing drawing, global::OfficeIMO.OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
                 _inner.Drawing(drawing, align, spacingBefore.HasValue ? CollapseSpacingBefore(spacingBefore.Value) : null, spacingAfter, style, linkUri, linkContents);
                 _pendingSpacingAfter = spacingAfter;
             }
@@ -148,12 +148,12 @@ namespace OfficeIMO.Word.Pdf {
                 ResetSpacingCollapse();
             }
 
-            public void Table(IEnumerable<PdfCore.PdfTableCell[]> rows, PdfCore.PdfAlign align, PdfCore.PdfTableStyle? style) {
+            public void Table(IEnumerable<PdfCore.PdfTableCell[]> rows, global::OfficeIMO.OfficeAlignment align, PdfCore.PdfTableStyle? style) {
                 _inner.Table(rows, align, style);
                 ResetSpacingCollapse();
             }
 
-            public void Image(byte[] bytes, double width, double height, PdfCore.PdfAlign? align = null, PdfCore.PdfImageStyle? style = null) {
+            public void Image(byte[] bytes, double width, double height, global::OfficeIMO.OfficeAlignment? align = null, PdfCore.PdfImageStyle? style = null) {
                 _inner.Image(bytes, width, height, align, style);
                 ResetSpacingCollapse();
             }

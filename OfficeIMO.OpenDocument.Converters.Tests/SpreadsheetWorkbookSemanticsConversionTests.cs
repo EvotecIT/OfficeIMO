@@ -104,19 +104,19 @@ public sealed class SpreadsheetWorkbookSemanticsConversionTests {
     public void SpreadsheetMetadataMapsCreatorAndSubjectInBothDirections() {
         using ExcelDocument source = ExcelDocument.Create();
         source.AddSheet("Data");
-        source.BuiltinDocumentProperties.Title = "Quarterly report";
-        source.BuiltinDocumentProperties.Creator = "Alice";
-        source.BuiltinDocumentProperties.Subject = "Forecast";
+        source.Properties.Title = "Quarterly report";
+        source.Properties.Creator = "Alice";
+        source.Properties.Subject = "Forecast";
 
         OdsDocument ods = OdsDocument.Load(new MemoryStream(source.ToOpenDocument().ToBytes()));
-        Assert.Equal("Quarterly report", ods.Metadata.Title);
-        Assert.Equal("Alice", ods.Metadata.Creator);
-        Assert.Equal("Forecast", ods.Metadata.Subject);
+        Assert.Equal("Quarterly report", ods.Properties.Title);
+        Assert.Equal("Alice", ods.Properties.Creator);
+        Assert.Equal("Forecast", ods.Properties.Subject);
 
         using ExcelDocument roundTrip = ods.ToExcelDocument();
-        Assert.Equal("Quarterly report", roundTrip.BuiltinDocumentProperties.Title);
-        Assert.Equal("Alice", roundTrip.BuiltinDocumentProperties.Creator);
-        Assert.Equal("Forecast", roundTrip.BuiltinDocumentProperties.Subject);
+        Assert.Equal("Quarterly report", roundTrip.Properties.Title);
+        Assert.Equal("Alice", roundTrip.Properties.Creator);
+        Assert.Equal("Forecast", roundTrip.Properties.Subject);
     }
 
     [Fact]

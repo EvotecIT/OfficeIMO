@@ -41,7 +41,9 @@ public sealed class ExcelSpreadsheetXmlTests {
             </Row></Table></Worksheet><Worksheet ss:Name="Empty"><Table/></Worksheet>
             """);
         var result = ExcelDocument.ImportSpreadsheetXml(source);
-        using var document = result.RequireNoLoss();
+        var documentResult = result;
+        documentResult.ThrowIfLoss();
+        using var document = documentResult.Value;
         Assert.Equal(2, document.Sheets.Count);
         var sheet = document.Sheets[0];
         Assert.Equal("  00127 & Łódź  ", sheet.Cell(3, 2).GetValue<string>());
@@ -70,7 +72,7 @@ public sealed class ExcelSpreadsheetXmlTests {
         var result = document.ExportSpreadsheetXml();
         Assert.Equal("Workbook", XDocument.Parse(Encoding.UTF8.GetString(result.Value)).Root!.Name.LocalName);
         var imported = ExcelDocument.ImportSpreadsheetXml(result.Value);
-        using var copy = imported.RequireValue();
+        using var copy = imported.Value;
         Assert.Equal("A & B", copy.Sheets[0].Name);
         Assert.Equal("00127", copy.Sheets[0].Cell(2, 2).GetValue<string>());
         Assert.False(copy.Sheets[0].Cell(2, 3).GetValue<bool>());
@@ -179,9 +181,9 @@ public sealed class ExcelSpreadsheetXmlTests {
             """));
         using var document = result.Value;
         Assert.True(result.HasLoss);
-        Assert.Throws<OfficeConversionException>(() => result.RequireNoLoss());
+        Assert.Throws<OfficeConversionException>(() => result.ThrowIfLoss());
         Assert.Equal("C", document.Sheets[0].Cell(1, 3).GetValue<string>());
-        Assert.Contains(result.Report.FidelityDiagnostics, item => item.Message.Contains("Unsupported"));
+        Assert.Contains(result.Report.Diagnostics, item => item.Message.Contains("Unsupported"));
         document.Sheets[0].AddTable("D1:F1", hasHeader: true, name: "DataTable", style: ExcelTableStyle.TableStyleMedium9);
         Assert.True(document.ExportSpreadsheetXml().HasLoss);
     }

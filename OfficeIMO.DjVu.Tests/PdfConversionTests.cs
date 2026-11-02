@@ -50,7 +50,7 @@ public sealed class PdfConversionTests {
         Assert.Equal("fixture-provider", report.Pages[2].Recognition!.Provider);
         Assert.Equal(.99, report.Pages[2].Recognition!.Confidence!.Value, 8);
         Assert.NotNull(report.OcrReport);
-        Assert.Contains(report.FidelityDiagnostics, d => d.Code == "djvu.pdf.stored-text-corrupt");
+        Assert.Contains(report.Diagnostics, d => d.Code == "djvu.pdf.stored-text-corrupt");
         var pdf = PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes()));
         Assert.Equal(4, pdf.Pages.Count);
         Assert.Contains("Zażółć 😀", pdf.ExtractText());
@@ -75,7 +75,7 @@ public sealed class PdfConversionTests {
         var result = await document.ToPdfDocumentResultAsync(settings);
         var report = Assert.IsType<DjVuPdfConversionReport>(Assert.Single(result.SourceConversionReports));
         Assert.Equal(DjVuPdfTextSource.None, report.Pages[0].TextSource);
-        Assert.Contains(report.FidelityDiagnostics, d => d.Code == "djvu.pdf.ocr-geometry-missing");
+        Assert.Contains(report.Diagnostics, d => d.Code == "djvu.pdf.ocr-geometry-missing");
         Assert.Equal(string.Empty, PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).ExtractText().Trim());
     }
 

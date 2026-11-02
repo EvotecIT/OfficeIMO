@@ -58,7 +58,7 @@ public class PdfDelimitedTokenFrameTests {
             };
             PdfTableCell cell = new(text);
             if (route == 2) {
-                var inner = new TableBlock(new[] { new[] { cell } }, PdfAlign.Left, style);
+                var inner = new TableBlock(new[] { new[] { cell } }, OfficeAlignment.Left, style);
                 cell = new PdfTableCell(Array.Empty<PdfTextRun>(), null, blocks: new IPdfBlock[] { inner });
                 style = style.Clone(); style.CellPaddingX = style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D);
             }

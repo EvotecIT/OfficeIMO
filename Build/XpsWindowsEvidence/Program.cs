@@ -38,7 +38,7 @@ internal static class Program {
                     reopened.Pages[fixture.PageIndex].ToDrawing(), background: OfficeColor.White);
                 byte[] pdf = reopened.ToPdf();
                 OfficeRasterImage pdfRaster = OfficeDrawingRasterRenderer.Render(
-                    PdfReadDocument.Open(pdf).Pages[fixture.PageIndex].ToDrawing(), scale: 4D / 3D, background: OfficeColor.White);
+                    PdfDocument.Load(new MemoryStream(pdf, writable: false)).Pages[fixture.PageIndex].ToDrawing(), scale: 4D / 3D, background: OfficeColor.White);
                 File.WriteAllBytes(Path.Combine(directory, "native.png"), OfficePngWriter.Encode(native));
                 File.WriteAllBytes(Path.Combine(directory, "managed.png"), OfficePngWriter.Encode(managed));
                 File.WriteAllBytes(Path.Combine(directory, "pdf.png"), OfficePngWriter.Encode(pdfRaster));
@@ -53,7 +53,7 @@ internal static class Program {
                     fixture.Name, fixture.Producer, fixture.PageIndex,
                     DocumentCount = reopened.Documents.Count, PageCount = reopened.Pages.Count,
                     Text = reopened.Pages[fixture.PageIndex].ExtractText(),
-                    PdfText = PdfReadDocument.Open(pdf).Pages[fixture.PageIndex].ExtractText(),
+                    PdfText = PdfDocument.Load(new MemoryStream(pdf, writable: false)).Pages[fixture.PageIndex].ExtractText(),
                     SourceSha256 = HashFile(sourcePath),
                     NativeSha256 = HashFile(Path.Combine(directory, "native.png")),
                     ManagedSha256 = HashFile(Path.Combine(directory, "managed.png")),
@@ -76,7 +76,7 @@ internal static class Program {
             Consumer = "Microsoft WPF XpsDocument / DocumentPaginator / RenderTargetBitmap, 96 dpi",
             NativeAssemblies = new[] { Describe(typeof(NativeXps).Assembly), Describe(typeof(RenderTargetBitmap).Assembly) },
             OfficeAssemblies = new[] { Describe(typeof(XpsDocument).Assembly), Describe(typeof(XpsToPdfOptions).Assembly),
-                Describe(typeof(OfficeRasterImage).Assembly), Describe(typeof(PdfReadDocument).Assembly) },
+                Describe(typeof(OfficeRasterImage).Assembly), Describe(typeof(PdfDocument).Assembly) },
             Scope = "Microsoft XPS authored fixtures and one independent WPF two-document, three-page producer. No OpenXPS, interleaved, StoryFragments, printing, viewer or independent PDF-reader conformance claim.",
             Comparison = "RGB channels on white at 96 dpi. Stable interior excludes a one-pixel border and native 3x3 neighborhoods where any neighbor differs from the center by more than 4 in any channel. Differences remain evidence; successful collection is not equivalence.",
             Failures = failures, Results = results
@@ -111,7 +111,7 @@ internal static class Program {
     private static object CheckIndependentLifecycle(XpsDocument document, int pageIndex, string directory, OfficeRasterImage native) {
         string text = "Native WPF page " + (pageIndex + 1);
         if (document.Pages[pageIndex].ExtractText() != text ||
-            PdfReadDocument.Open(document.ToPdf()).Pages[pageIndex].ExtractText() != text)
+            PdfDocument.Load(new MemoryStream(document.ToPdf(), writable: false)).Pages[pageIndex].ExtractText() != text)
             throw new InvalidDataException("Independent WPF text did not survive extraction and searchable PDF conversion.");
         string roundTripPath = Path.Combine(directory, "roundtrip.xps");
         document.Save(roundTripPath);

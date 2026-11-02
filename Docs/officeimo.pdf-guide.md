@@ -246,7 +246,7 @@ its fixed advance.
 
 ## Paragraph justification
 
-`PdfAlign.Justify` uses `PdfParagraphStyle.JustificationMode` to select expandable boundaries. `Words`, the default, distributes extra width between word separators. `Characters` distributes it uniformly between shaped grapheme clusters, keeping combining sequences and shaped ligatures together. `JustifyExplicitLineBreaks` and `JustifyLastLine` independently select expansion for explicit-break and final lines; both default to `false`.
+`OfficeAlignment.Justify` uses `PdfParagraphStyle.JustificationMode` to select expandable boundaries. `Words`, the default, distributes extra width between word separators. `Characters` distributes it uniformly between shaped grapheme clusters, keeping combining sequences and shaped ligatures together. `JustifyExplicitLineBreaks` and `JustifyLastLine` independently select expansion for explicit-break and final lines; both default to `false`.
 
 ```csharp
 var style = new PdfParagraphStyle {
@@ -258,7 +258,7 @@ var document = PdfDocument.Create();
 document.Compose(layout => layout.Content(content => content
     .Paragraph(paragraph => paragraph
         .Text("Distributed first line").LineBreak().Text("Final line"),
-        PdfAlign.Justify, style: style)));
+        OfficeAlignment.Justify, style: style)));
 document.Save("distributed-text.pdf");
 ```
 
@@ -409,7 +409,7 @@ PdfDocument.Create(document => document
         .Border(OfficeColor.FromRgb(148, 163, 184))
         .Padding(vertical: 10, horizontal: 12)
         .MaxWidth(420)
-        .Align(PdfAlign.Center)
+        .Align(OfficeAlignment.Center)
         .KeepTogether()
         .Content(article => article
             .H1("Accessible report")
@@ -434,7 +434,7 @@ Add `using OfficeIMO.Drawing;` when applying an `OfficeRenderingProfile`.
 `Managed` selects the shared dependency-light provider for its
 [horizontal static-font Arabic/Hebrew/Latin profile](../OfficeIMO.Core/README.md#managed-multilingual-shaping),
 including supported mark attachment and required Arabic ligatures. A declined run
-reports approximation loss, so `RequireNoLoss()` rejects its fallback. Supply a
+reports approximation loss, so `ThrowIfLoss()` rejects its fallback. Supply a
 profile containing your embedded font family, fallbacks, language and shaping
 provider when the document requires broader scripts or reproducible font selection.
 
@@ -512,7 +512,7 @@ text coverage, the chosen font is embedded, and an `/ActualText` wrapper owns
 extraction. The writer preserves shaped glyph substitutions and X/Y offsets,
 marks the original text for extraction, and clips paint to the drawing text
 box. Without that font/provider contract it retains searchable stacked text and
-reports `vertical-text-stacked-fallback`; `PdfConversionReport.RequireNoLoss()`
+reports `vertical-text-stacked-fallback`; `PdfConversionReport.ThrowIfLoss()`
 rejects that approximation. The [vertical PDF reference gate](../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Vertical/SOURCE.md)
 records the tested CJK scope and independent render/extraction checks.
 
@@ -1344,7 +1344,7 @@ foreach (PdfLogicalPage page in result.Pages) {
 }
 
 string markdown = result.ExtractMarkdown();
-PdfMetadata metadata = result.Metadata;
+PdfDocumentProperties metadata = result.Metadata;
 PdfDocumentSecurityInfo security = result.Security;
 IReadOnlyList<PdfOutlineItem> outlines = result.Outlines;
 IReadOnlyList<PdfLogicalLinkAnnotation> links = result.Links;
@@ -2282,6 +2282,10 @@ Redaction search, matching, and verification include artifact text, including pa
 
 `MatchCase` applies to every copy a search reaches, including alternate text, annotations, form values and metadata, so a copy in different case stays when `MatchCase` is true.
 
+Search also includes live bookmark titles. A matching title is cleared in full, including when it is the only match; the item, its children, sibling links, counts, and destinations remain. Literal, escaped, hex, UTF-16 and PDFDocEncoding titles use the same search criteria and saved-output residue checks. Bookmark titles are document-level data, so page limits do not exclude matching titles. This cleanup runs regardless of `CleanupScope`. Plans and evidence list each removal as `BookmarkTitle`, with no title value in `Text`.
+
+Redaction preserves local destination arrays, `/GoTo` actions and standard `/Named` navigation (`NextPage`, `PrevPage`, `FirstPage`, `LastPage`), including safe `/Next` chains and additional actions. The same action proof covers bookmarks, opening actions and link annotations; other named commands remain refused. A matching named-destination identifier or outline `/Dest` string blocks the plan because renaming it could break navigation bindings. URI opening and outline actions, and every other unsupported navigation action type, remain refused. Removing tagged annotations also repairs their OBJR kids and ParentTree entries and detaches reply relationships to removed annotations. Unexplained references still block the rewrite. Existing URI link-annotation handling remains available; its destination strings use the annotation search and residue checks. Presentation navigation (`/PresSteps`, `/NA`, `/PA`) remains refused. These navigation permissions apply only to Redact; other mutation operations keep their existing rules. If post-save search verification exhausts its bounded work budget, application throws `PdfMutationBlockedException` with `FullRewrite.ProofFailed.RedactionResidue`; it returns no verified output.
+
 Use `PdfRedactionSearchOptions.PageNumbers` to restrict candidate discovery to selected one-based pages. An empty set searches all pages. By default, search marks complete matching logical text blocks, so present the resulting areas for review rather than assuming that only the matched substring will be removed.
 
 Set `TextSelection` to `MatchedGlyphs` to select only the encoded glyphs belonging
@@ -2346,7 +2350,7 @@ searched page stays. XFA data holding the text is removed from hybrid forms, and
 that depends on XFA is refused. Output still holding a searched value is refused. Field
 names themselves are not changed: a field name containing searched text blocks the plan.
 JavaScript actions, field `/AA` and document `/Names` JavaScript retain the active-content
-refusal. Catalog XMP, XMP on searched pages, and `/Info` holding searched text are removed regardless of `CleanupScope` and disclosed in the plan. A final check of
+refusal. Matching XMP is detached from every live owner, including structure elements, nested dictionaries and stream dictionaries sharing one metadata stream. Nonmatching metadata stays. Data exclusively owned by excluded pages stays. Matching `/Info` is also removed regardless of `CleanupScope`; the plan discloses metadata cleanup. A final check of
 saved string objects and decoded text-bearing streams refuses unexpected residue; PDF
 names and dictionary keys are excluded. A search with no live match is blocked if an
 earlier revision still holds searched text. Search labels and evidence omit matched

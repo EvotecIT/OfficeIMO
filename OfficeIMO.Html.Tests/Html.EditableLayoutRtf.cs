@@ -45,7 +45,7 @@ public sealed class HtmlEditableLayoutRtfTests {
         string html = "<div style='position:absolute;width:180px;height:70px'>" +
             string.Concat(Enumerable.Range(0, 12).Select(index => "<span>" + index + "</span>")) +
             "</div>";
-        HtmlToRtfOptions options = HtmlToRtfOptions.CreateUntrustedHtmlProfile();
+        HtmlToRtfOptions options = HtmlToRtfOptions.UntrustedDefaults;
         options.MaxHtmlNodes = 10;
 
         HtmlRtfConversionLimitException exception = Assert.Throws<HtmlRtfConversionLimitException>(
@@ -59,7 +59,7 @@ public sealed class HtmlEditableLayoutRtfTests {
         const string html = "<div style='position:absolute;width:180px;height:70px'>" +
             "<span><span><span><span><span><span>Deep</span></span></span></span></span></span>" +
             "</div>";
-        HtmlToRtfOptions options = HtmlToRtfOptions.CreateUntrustedHtmlProfile();
+        HtmlToRtfOptions options = HtmlToRtfOptions.UntrustedDefaults;
         options.MaxHtmlDepth = 5;
 
         HtmlRtfConversionLimitException exception = Assert.Throws<HtmlRtfConversionLimitException>(
@@ -96,7 +96,7 @@ public sealed class HtmlEditableLayoutRtfTests {
 
         Assert.DoesNotContain(@"\phpg", rtf, StringComparison.Ordinal);
         Assert.Contains("Ambiguous frame", rtf, StringComparison.Ordinal);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail != null
             && diagnostic.Detail.Contains("continuousSurfaceHeight", StringComparison.Ordinal));
@@ -139,7 +139,7 @@ public sealed class HtmlEditableLayoutRtfTests {
         string rtf = result.Value.ToRtf();
 
         Assert.DoesNotContain(@"\phpg", rtf, StringComparison.Ordinal);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Detail == "mixedInlinePictures=true");
     }
 

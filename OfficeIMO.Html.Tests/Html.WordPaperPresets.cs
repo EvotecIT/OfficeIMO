@@ -22,7 +22,7 @@ public sealed class HtmlWordPaperPresetTests {
         } else {
             Assert.Empty(word.TextBoxes);
             Assert.NotEmpty(word.Find("Preset region", StringComparison.Ordinal));
-            Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
+            Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
                 && diagnostic.Detail != null && diagnostic.Detail.Contains("maximumPageHeight", StringComparison.Ordinal));
         }
     }

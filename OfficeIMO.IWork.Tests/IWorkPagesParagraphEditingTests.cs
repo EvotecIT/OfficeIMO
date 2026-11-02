@@ -166,7 +166,7 @@ public sealed class IWorkPagesParagraphEditingTests {
         var nested = IWorkSourceDocument.Open(outer.ToArray(), IWorkDocumentKind.Pages); var edit = nested.BeginEdit();
         Assert.Throws<NotSupportedException>(() => edit.SetPagesBodyParagraphText(nested.ReadPages().Body.SourceIdentity!, 2, "Edited text"));
         Assert.Equal(nested.ComputePackageContentHash(), edit.SaveBytesResult().Report.OutputPackageContentHash);
-        var bounded = IWorkSourceDocument.Open(original.BeginEdit().SaveBytes(), options: new() { MaximumProjectedTextCharacters = 1 });
+        var bounded = IWorkSourceDocument.Open(original.BeginEdit().SaveBytes(), options: new() { MaxProjectedTextCharacters = 1 });
         edit = bounded.BeginEdit();
         Assert.Throws<InvalidDataException>(() => edit.SetPagesBodyParagraphText(body.SourceIdentity!, 2, "Edited text"));
         Assert.Equal(bounded.ComputePackageContentHash(), edit.SaveBytesResult().Report.OutputPackageContentHash);

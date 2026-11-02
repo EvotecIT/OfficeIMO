@@ -99,7 +99,7 @@ public sealed class AsciiDocReferencesAndCellsTests {
         Assert.Contains("Version one with **new emphasis**.", markdown);
         Assert.Contains("Anonymous.", markdown);
         Assert.DoesNotContain("Version two", markdown);
-        Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Feature == "footnote");
+        Assert.DoesNotContain(conversion.Report.NativeDiagnostics, diagnostic => diagnostic.Feature == "footnote");
     }
 
     [Fact]

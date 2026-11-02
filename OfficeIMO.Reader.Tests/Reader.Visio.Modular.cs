@@ -34,16 +34,16 @@ public sealed class ReaderVisioModularTests {
             OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetCapabilities(),
             item => item.Id == OfficeDocumentReaderBuilderVisioExtensions.HandlerId);
 
-        Assert.Equal(VisioLoadOptions.DefaultMaxInputBytes, capability.DefaultMaxInputBytes);
+        Assert.Equal(VisioLoadLimits.DefaultMaxInputBytes, capability.DefaultMaxInputBytes);
         Assert.Equal(
-            VisioLoadOptions.DefaultMaxInputBytes,
+            VisioLoadLimits.DefaultMaxInputBytes,
             OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetHandlerDefaultMaxInputBytes("diagram.vsdx"));
         Assert.Null(VisioReaderAdapter.CreateLoadOptions(new ReaderOptions()));
 
         VisioLoadOptions mapped = Assert.IsType<VisioLoadOptions>(
             VisioReaderAdapter.CreateLoadOptions(new ReaderOptions { MaxInputBytes = 700L * 1024L * 1024L }));
 
-        Assert.Equal(700L * 1024L * 1024L, mapped.MaxInputBytes);
+        Assert.Equal(700L * 1024L * 1024L, mapped.Limits.MaxInputBytes);
     }
 
     [Fact]
@@ -269,8 +269,8 @@ public sealed class ReaderVisioModularTests {
     private static MemoryStream BuildSampleVisio() {
         var stream = new MemoryStream();
         VisioDocument document = VisioDocument.Create(stream);
-        document.Title = "Topology";
-        document.Author = "OfficeIMO";
+        document.Properties.Title = "Topology";
+        document.Properties.Author = "OfficeIMO";
         VisioPage page = document.AddPage("Topology", OfficeLength.Inches(8), OfficeLength.Inches(5));
         VisioShape gateway = page.AddRectangle(OfficeLength.Inches(1.5), OfficeLength.Inches(3.5), OfficeLength.Inches(1.4), OfficeLength.Inches(0.7), "Gateway");
         gateway.SetShapeData("Owner", "Platform", "Owner", VisioShapeDataType.String);

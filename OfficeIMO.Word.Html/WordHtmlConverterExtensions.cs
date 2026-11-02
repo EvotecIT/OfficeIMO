@@ -36,7 +36,7 @@ namespace OfficeIMO.Word.Html {
         internal static WordHtmlImportOptions CreateWordOptionsForSharedDocument(HtmlInputTrust trust = HtmlInputTrust.Untrusted) {
             return trust == HtmlInputTrust.Trusted
                 ? WordHtmlImportOptions.CreateTrustedDocumentProfile()
-                : WordHtmlImportOptions.CreateUntrustedHtmlProfile();
+                : WordHtmlImportOptions.UntrustedDefaults;
         }
 
         private static WordHtmlImportOptions ResolveWordOptionsForSharedDocument(

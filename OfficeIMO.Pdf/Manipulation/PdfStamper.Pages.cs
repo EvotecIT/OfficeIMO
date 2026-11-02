@@ -517,9 +517,9 @@ internal static partial class PdfStamper {
         return array;
     }
 
-    private static double AlignHorizontal(double x, double available, double actual, PdfAlign align) => align switch {
-        PdfAlign.Center => x + (available - actual) / 2D,
-        PdfAlign.Right => x + available - actual,
+    private static double AlignHorizontal(double x, double available, double actual, OfficeAlignment align) => align switch {
+        OfficeAlignment.Center => x + (available - actual) / 2D,
+        OfficeAlignment.Right => x + available - actual,
         _ => x
     };
 

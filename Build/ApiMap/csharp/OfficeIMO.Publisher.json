@@ -1,0 +1,14 @@
+{
+  "package": "OfficeIMO.Publisher",
+  "changes": [
+    {
+      "old": "OfficeIMO.Publisher.PublisherReadOptions.MaximumPages / MaximumNestingDepth / MaximumImageBytes / MaximumTotalImageBytes / MaximumRasterPixels / MaximumImageProcessingPixels",
+      "kind": "property",
+      "action": "rename",
+      "new": "MaxPages / MaxNestingDepth / MaxImageBytes / MaxTotalImageBytes / MaxRasterPixels / MaxImageProcessingPixels",
+      "category": "limits",
+      "reason": "Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object.",
+      "applied": true
+    }
+  ]
+}

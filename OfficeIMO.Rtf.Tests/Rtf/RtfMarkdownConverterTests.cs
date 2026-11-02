@@ -761,7 +761,7 @@ public class RtfMarkdownConverterTests {
         Assert.Contains("[^fn1]: Footnote body", markdown, StringComparison.Ordinal);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RTFMD015");
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RTFMD012");
-        result.RequireNoLoss();
+        result.ThrowIfLoss();
     }
 
     [Fact]
@@ -785,8 +785,8 @@ public class RtfMarkdownConverterTests {
         Assert.Contains("[^fn1]: Rich **bold** and [link](https://example.test/note)", markdown, StringComparison.Ordinal);
         Assert.Contains("Second *paragraph*", markdown, StringComparison.Ordinal);
         Assert.Equal(2, definition.ParagraphBlocks.Count);
-        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Action == RtfConversionAction.Omitted || diagnostic.Action == RtfConversionAction.Flattened);
-        result.RequireNoLoss();
+        Assert.DoesNotContain(result.Report.NativeDiagnostics, diagnostic => diagnostic.Action == RtfConversionAction.Omitted || diagnostic.Action == RtfConversionAction.Flattened);
+        result.ThrowIfLoss();
     }
 
     [Fact]
@@ -846,9 +846,9 @@ public class RtfMarkdownConverterTests {
         RtfConversionResult<string> result = document.ToMarkdownResult();
 
         Assert.Contains("Premium text", result.Value, StringComparison.Ordinal);
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RTFMD021" &&
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "RTFMD021" &&
             diagnostic.Action == RtfConversionAction.Flattened);
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RTFMD022" &&
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "RTFMD022" &&
             diagnostic.Action == RtfConversionAction.Flattened);
         Assert.True(result.HasLoss);
     }
@@ -863,7 +863,7 @@ public class RtfMarkdownConverterTests {
         });
 
         Assert.Contains("Hidden", result.Value, StringComparison.Ordinal);
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RTFMD021" &&
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "RTFMD021" &&
             diagnostic.Action == RtfConversionAction.Flattened &&
             diagnostic.Feature != null && diagnostic.Feature.Contains("hidden-visibility", StringComparison.Ordinal));
         Assert.True(result.HasLoss);

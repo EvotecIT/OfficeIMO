@@ -353,7 +353,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument source =
                    PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Visible slide text");
-                source.BuiltinDocumentProperties.Title = title;
+                source.Properties.Title = title;
                 encryptedBytes = source.ToEncryptedBytes(password,
                     PowerPointFileFormat.Ppt);
             }
@@ -364,7 +364,7 @@ namespace OfficeIMO.Tests {
             using var input = new MemoryStream(encryptedBytes);
             using PowerPointDocument reopened =
                 PowerPointDocument.LoadEncrypted(input, password);
-            Assert.Equal(title, reopened.BuiltinDocumentProperties.Title);
+            Assert.Equal(title, reopened.Properties.Title);
         }
 
         [Fact]
@@ -375,7 +375,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument source =
                    PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Encrypted slide text");
-                source.BuiltinDocumentProperties.Title = title;
+                source.Properties.Title = title;
                 encryptedBytes = source.ToEncryptedBytes(password,
                     PowerPointFileFormat.Ppt,
                     new PowerPointSaveOptions {
@@ -389,7 +389,7 @@ namespace OfficeIMO.Tests {
             using var input = new MemoryStream(encryptedBytes);
             using PowerPointDocument reopened =
                 PowerPointDocument.LoadEncrypted(input, password);
-            Assert.Equal(title, reopened.BuiltinDocumentProperties.Title);
+            Assert.Equal(title, reopened.Properties.Title);
         }
 
         [Fact]

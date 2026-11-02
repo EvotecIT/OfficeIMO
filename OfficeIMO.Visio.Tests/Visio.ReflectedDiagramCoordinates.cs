@@ -163,7 +163,7 @@ public sealed class VisioReflectedDiagramCoordinateTests {
         page.SelectShapes(shape => true).Align(VisioHorizontalAlignment.Right);
         foreach (VisioDocument current in Reopenings(document)) {
             Assert.Equal(6.5, current.Pages[0].FindShapeById("1")!.GetShapeBounds().Right.ToInches(), 8);
-            Assert.Contains(current.Pages[0].ToDrawing().Report.FidelityDiagnostics, finding => finding.Code == "VISIO_SHAPE_CACHED_REFLECTION");
+            Assert.Contains(current.Pages[0].ToDrawing().Report.Diagnostics, finding => finding.Code == "VISIO_SHAPE_CACHED_REFLECTION");
         }
         document = Create(false, false, group: true);
         xml = System.Xml.Linq.XDocument.Load(new MemoryStream(document.ToLegacyXmlResult().Value));

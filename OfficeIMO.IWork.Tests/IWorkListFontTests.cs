@@ -84,7 +84,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = ListDeclarationPackage(IWorkDocumentKind.Numbers,
             Message(VarintField(11, 2), StringField(16, "•"), StringField(23, new string('F', 100))),
             inherited: false, indent: 0, aliases: true);
-        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumProjectedTextCharacters = 250 });
+        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxProjectedTextCharacters = 250 });
         Assert.Contains("text character", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message,
             StringComparison.OrdinalIgnoreCase);
     }

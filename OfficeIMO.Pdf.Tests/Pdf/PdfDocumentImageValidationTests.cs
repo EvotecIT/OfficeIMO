@@ -67,7 +67,7 @@ public class PdfDocumentImageValidationTests {
         var data = new byte[] { 1, 2, 3 };
         var imageInfo = new OfficeImageInfo(OfficeImageFormat.Png, 1, 1);
 
-        var block = new ImageBlock(data, 24, 24, PdfAlign.Left, imageInfo);
+        var block = new ImageBlock(data, 24, 24, OfficeAlignment.Left, imageInfo);
 
         data[0] = 9;
 
@@ -199,7 +199,7 @@ public class PdfDocumentImageValidationTests {
     [Fact]
     public void Options_SnapshotDefaultImageStyle() {
         var style = new PdfImageStyle {
-            Align = PdfAlign.Center,
+            Align = OfficeAlignment.Center,
             Fit = OfficeImageFit.Contain,
             ClipPath = OfficeClipPath.Rectangle(12, 10),
             SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
@@ -212,7 +212,7 @@ public class PdfDocumentImageValidationTests {
             DefaultImageStyle = style
         };
 
-        style.Align = PdfAlign.Right;
+        style.Align = OfficeAlignment.Right;
         style.Fit = OfficeImageFit.Cover;
         style.ClipPath = OfficeClipPath.Rectangle(4, 4);
         style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(1);
@@ -222,14 +222,14 @@ public class PdfDocumentImageValidationTests {
         style.RotationAngle = 0;
 
         PdfImageStyle readback = options.DefaultImageStyle!;
-        readback.Align = PdfAlign.Left;
+        readback.Align = OfficeAlignment.Left;
         readback.ClipPath = OfficeClipPath.Rectangle(2, 2);
         readback.ScaleDownToFit = false;
         readback.RotationAngle = 3;
 
         PdfCreateOptions clone = options.Clone();
 
-        Assert.Equal(PdfAlign.Center, options.DefaultImageStyle!.Align);
+        Assert.Equal(OfficeAlignment.Center, options.DefaultImageStyle!.Align);
         Assert.Equal(OfficeImageFit.Contain, options.DefaultImageStyle.Fit);
         Assert.Equal(12, options.DefaultImageStyle.ClipPath!.Width);
         Assert.Equal(4, options.DefaultImageStyle.SpacingBefore.ToPoints());
@@ -237,7 +237,7 @@ public class PdfDocumentImageValidationTests {
         Assert.True(options.DefaultImageStyle.KeepWithNext);
         Assert.True(options.DefaultImageStyle.ScaleDownToFit);
         Assert.Equal(12, options.DefaultImageStyle.RotationAngle);
-        Assert.Equal(PdfAlign.Center, clone.DefaultImageStyle!.Align);
+        Assert.Equal(OfficeAlignment.Center, clone.DefaultImageStyle!.Align);
         Assert.Equal(12, clone.DefaultImageStyle.ClipPath!.Width);
         Assert.True(clone.DefaultImageStyle.KeepWithNext);
         Assert.True(clone.DefaultImageStyle.ScaleDownToFit);
@@ -247,7 +247,7 @@ public class PdfDocumentImageValidationTests {
     [Fact]
     public void Options_ApplyThemeSnapshotsDefaultImageStyle() {
         var imageStyle = new PdfImageStyle {
-            Align = PdfAlign.Center,
+            Align = OfficeAlignment.Center,
             Fit = OfficeImageFit.Contain,
             SpacingBefore = global::OfficeIMO.OfficeLength.Points(3),
             SpacingAfter = global::OfficeIMO.OfficeLength.Points(8),
@@ -259,7 +259,7 @@ public class PdfDocumentImageValidationTests {
         };
         var options = new PdfCreateOptions().ApplyTheme(theme);
 
-        imageStyle.Align = PdfAlign.Right;
+        imageStyle.Align = OfficeAlignment.Right;
         imageStyle.Fit = OfficeImageFit.Cover;
         imageStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(1);
         imageStyle.KeepWithNext = false;
@@ -267,12 +267,12 @@ public class PdfDocumentImageValidationTests {
 
         PdfCreateOptions clone = options.Clone();
 
-        Assert.Equal(PdfAlign.Center, options.DefaultImageStyle!.Align);
+        Assert.Equal(OfficeAlignment.Center, options.DefaultImageStyle!.Align);
         Assert.Equal(OfficeImageFit.Contain, options.DefaultImageStyle.Fit);
         Assert.Equal(8, options.DefaultImageStyle.SpacingAfter.ToPoints());
         Assert.True(options.DefaultImageStyle.KeepWithNext);
         Assert.True(options.DefaultImageStyle.ScaleDownToFit);
-        Assert.Equal(PdfAlign.Center, clone.DefaultImageStyle!.Align);
+        Assert.Equal(OfficeAlignment.Center, clone.DefaultImageStyle!.Align);
         Assert.True(clone.DefaultImageStyle.KeepWithNext);
         Assert.True(clone.DefaultImageStyle.ScaleDownToFit);
     }
@@ -339,25 +339,25 @@ public class PdfDocumentImageValidationTests {
         var imageInfo = new OfficeImageInfo(OfficeImageFormat.Png, 1, 1);
 
         Assert.Throws<ArgumentNullException>(() =>
-            new ImageBlock(null!, 24, 24, PdfAlign.Left, imageInfo));
+            new ImageBlock(null!, 24, 24, OfficeAlignment.Left, imageInfo));
 
         Assert.Throws<ArgumentException>(() =>
-            new ImageBlock(Array.Empty<byte>(), 24, 24, PdfAlign.Left, imageInfo));
+            new ImageBlock(Array.Empty<byte>(), 24, 24, OfficeAlignment.Left, imageInfo));
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new ImageBlock(new byte[] { 1 }, 0, 24, PdfAlign.Left, imageInfo));
+            new ImageBlock(new byte[] { 1 }, 0, 24, OfficeAlignment.Left, imageInfo));
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new ImageBlock(new byte[] { 1 }, 24, double.PositiveInfinity, PdfAlign.Left, imageInfo));
+            new ImageBlock(new byte[] { 1 }, 24, double.PositiveInfinity, OfficeAlignment.Left, imageInfo));
 
         Assert.Throws<ArgumentException>(() =>
-            new ImageBlock(new byte[] { 1 }, 24, 24, PdfAlign.Justify, imageInfo));
+            new ImageBlock(new byte[] { 1 }, 24, 24, OfficeAlignment.Justify, imageInfo));
 
         Assert.Throws<ArgumentNullException>(() =>
-            new ImageBlock(new byte[] { 1 }, 24, 24, PdfAlign.Left, null!));
+            new ImageBlock(new byte[] { 1 }, 24, 24, OfficeAlignment.Left, null!));
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new ImageBlock(new byte[] { 1 }, 24, 24, PdfAlign.Left, imageInfo, fit: (OfficeImageFit)42));
+            new ImageBlock(new byte[] { 1 }, 24, 24, OfficeAlignment.Left, imageInfo, fit: (OfficeImageFit)42));
     }
 
     [Theory]
@@ -928,7 +928,7 @@ public class PdfDocumentImageValidationTests {
     public void DefaultImageStyle_AppliesAlignmentFitAndSpacingToFollowingImages() {
         byte[] jpeg = CreateMinimalJpeg(200, 100);
         var style = new PdfImageStyle {
-            Align = PdfAlign.Center,
+            Align = OfficeAlignment.Center,
             Fit = OfficeImageFit.Contain,
             SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
             SpacingAfter = global::OfficeIMO.OfficeLength.Points(12)
@@ -949,7 +949,7 @@ public class PdfDocumentImageValidationTests {
             .Paragraph(p => p.Text("AfterDefaultImage"))
             .ToBytes();
 
-        style.Align = PdfAlign.Right;
+        style.Align = OfficeAlignment.Right;
         style.Fit = OfficeImageFit.Cover;
         style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
 
@@ -967,7 +967,7 @@ public class PdfDocumentImageValidationTests {
     public void RowColumnImage_UsesDefaultImageStyleWhenStyleIsNotProvided() {
         byte[] png = CreateMinimalRgbPng();
         var style = new PdfImageStyle {
-            Align = PdfAlign.Center,
+            Align = OfficeAlignment.Center,
             SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
             SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
         };

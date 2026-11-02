@@ -425,7 +425,7 @@ public partial class PdfDocumentVisualQualityTests {
             PaddingX = global::OfficeIMO.OfficeLength.Points(14),
             PaddingY = global::OfficeIMO.OfficeLength.Points(8),
             MaxWidth = global::OfficeIMO.OfficeLength.Points(180),
-            Align = PdfAlign.Center,
+            Align = OfficeAlignment.Center,
             SpacingAfter = global::OfficeIMO.OfficeLength.Points(16)
         };
         var options = new PdfCreateOptions {
@@ -449,7 +449,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         style.PaddingX = global::OfficeIMO.OfficeLength.Points(2);
         style.MaxWidth = global::OfficeIMO.OfficeLength.Points(300);
-        style.Align = PdfAlign.Right;
+        style.Align = OfficeAlignment.Right;
         style.Background = global::OfficeIMO.OfficeColor.Black;
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));

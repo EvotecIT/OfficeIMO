@@ -43,7 +43,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
               </section>
             </main>
             """;
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         limits.MaxImageBytes = 2;
         limits.MaxTotalImageBytes = 2;
 
@@ -67,7 +67,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
               </section>
             </main>
             """;
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxImages = 1;
         limits.MaxShapes = 1;
 
@@ -77,7 +77,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
 
         Assert.Equal(1, result.Images);
         Assert.Single(workbook.Sheets[0].Images);
-        Assert.Contains(result.Report.Diagnostics,
+        Assert.Contains(result.Report.NativeDiagnostics,
             diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ResourceTypeUnsupported
                 && diagnostic.Detail == "mediaType=image/heic");
     }
@@ -88,7 +88,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
             <img src="data:image/heic;base64,AA==" alt="Unsupported">
             <img src="data:image/png;base64,AQID" alt="Accepted">
             """;
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxImages = 1;
         limits.MaxShapes = 1;
 
@@ -99,7 +99,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         ExcelImage image = Assert.Single(Assert.Single(workbook.Sheets).Images);
         Assert.Equal("Accepted", image.Description);
         Assert.Equal(1, result.Images);
-        Assert.Contains(result.Report.Diagnostics,
+        Assert.Contains(result.Report.NativeDiagnostics,
             diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ResourceTypeUnsupported
                 && diagnostic.Detail == "mediaType=image/heic");
     }
@@ -110,7 +110,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
             <img src="data:image/png;base64,!!!!" alt="Malformed">
             <img src="data:image/png;base64,AQID" alt="Would otherwise be accepted">
             """;
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxImages = 1;
         limits.MaxShapes = 1;
 
@@ -131,7 +131,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         const string png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAEAQH/69DjmQAAAABJRU5ErkJggg==";
         string html = "<img src='data:image/png;base64,!!!!' alt='Malformed'>"
             + "<img src='data:image/png;base64," + png + "' alt='Would otherwise be accepted'>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxImages = 1;
         limits.MaxShapes = 2;
 
@@ -151,7 +151,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
     public void OneNoteHtml_MalformedImageDoesNotConsumeTheSharedImageBudget() {
         const string html = "<img src='data:image/png;base64,!!!!' alt='Malformed'>"
             + "<img src='data:image/png;base64,AQID' alt='Accepted'>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxImages = 1;
         limits.MaxShapes = 1;
 
@@ -181,7 +181,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
               </section>
             </main>
             """;
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxAnnotations = 1;
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
@@ -246,7 +246,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
     [Fact]
     public void ExcelHtml_GenericEmptyTableDoesNotConsumeTableOrWorksheetBudget() {
         const string html = "<table></table><table><tr><td>value</td></tr></table>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxTables = 1;
         limits.MaxSemanticContainers = 1;
 
@@ -269,7 +269,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
               <section class="officeimo-sheet" data-officeimo-sheet="Data"><table><tr><td>value</td></tr></table></section>
             </main>
             """;
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxTables = 1;
         limits.MaxSemanticContainers = 2;
 
@@ -281,7 +281,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         Assert.Equal(1, result.Cells);
         Assert.True(workbook.Sheets[1].TryGetCellText(1, 1, out string text));
         Assert.Equal("value", text);
-        Assert.DoesNotContain(result.Report.Diagnostics,
+        Assert.DoesNotContain(result.Report.NativeDiagnostics,
             diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
                 && diagnostic.Detail?.StartsWith(nameof(HtmlImportLimits.MaxTables), StringComparison.Ordinal) == true);
     }
@@ -293,7 +293,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
             <table><tr><td>rejected</td></tr></table>
             <p>Narrative retained</p>
             """;
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxTables = 1;
         limits.MaxSemanticContainers = 2;
 
@@ -304,7 +304,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         Assert.Equal(2, result.Sheets);
         Assert.Contains(workbook.Sheets,
             sheet => Enumerable.Range(1, 4).Any(row => sheet.Cell(row, 1).GetValue<string>() == "Narrative retained"));
-        Assert.Contains(result.Report.Diagnostics,
+        Assert.Contains(result.Report.NativeDiagnostics,
             diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
                 && diagnostic.Detail?.StartsWith(nameof(HtmlImportLimits.MaxTables), StringComparison.Ordinal) == true);
     }
@@ -399,7 +399,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
               </section>
             </main>
             """;
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxChartCategories = 2;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
@@ -439,7 +439,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
               </section>
             </main>
             """;
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxChartPoints = 4;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
@@ -469,7 +469,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
               </section>
             </main>
             """;
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxChartSeries = 101;
         limits.MaxChartCategories = 1000;
         limits.MaxChartPoints = 101_000;
@@ -481,7 +481,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
 
         Assert.Equal(0, result.Charts);
         Assert.Empty(Assert.Single(presentation.Slides).Charts);
-        Assert.Contains(result.Report.Diagnostics,
+        Assert.Contains(result.Report.NativeDiagnostics,
             diagnostic =>
                 diagnostic.Code ==
                     HtmlConversionDiagnosticCodes.TargetLimitExceeded &&
@@ -501,7 +501,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
               </section>
             </main>
             """;
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxShapes = 1;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
@@ -527,7 +527,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
               </section>
             </main>
             """;
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxCharts = 1;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
@@ -561,7 +561,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
               </section>
             </main>
             """;
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxCharts = 1;
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
@@ -609,7 +609,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         string limitKind,
         string expectedCode,
         string expectedSource) {
-        HtmlConversionLimits limits = HtmlConversionLimits.CreateTrustedProfile();
+        HtmlConversionLimits limits = new HtmlConversionLimits();
         string html;
         switch (limitKind) {
             case "rules":
@@ -661,7 +661,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
               <section class="officeimo-slide"><p>oversized</p></section>
             </main>
             """;
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxMetadataCharacters = 4;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
@@ -770,7 +770,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
 
     [Fact]
     public void PowerPointHtml_RejectedTextDoesNotConsumeTheSharedShapeBudget() {
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         limits.MaxShapes = 2;
         limits.MaxMetadataCharacters = 12;
         const string html = "<section><h2>Title</h2><p>This text is too large</p><p>Accepted</p></section>";
@@ -789,7 +789,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
 
     [Fact]
     public void PowerPointHtml_RejectedPictureDoesNotConsumeTheSharedShapeBudget() {
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         limits.MaxShapes = 2;
         const string html = "<section><img src='https://example.test/not-embedded.png'><p>Accepted</p></section>";
 

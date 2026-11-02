@@ -11,7 +11,7 @@ Creates discoverable renderer and reconstruction settings for general conversion
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficeConversionOptions [-WordOptions <WordPdfExportOptions>] [-ExcelOptions <ExcelPdfExportOptions>] [-PowerPointOptions <PowerPointPdfExportOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-MarkdownOptions <MarkdownPdfExportOptions>] [-RtfOptions <RtfToPdfOptions>] [-TextOptions <PdfTextImportOptions>] [-DrawOptions <OdgToPdfOptions>] [-VisioOptions <VisioToPdfOptions>] [-XpsOptions <XpsToPdfOptions>] [-ChmOptions <ChmConversionOptions>] [-DjVuOptions <DjVuToPdfOptions>] [-PublisherReadOptions <PublisherReadOptions>] [-PublisherPdfOptions <PdfCreateOptions>] [-CompressPdfOutput] [-WorksheetLayout <ExcelPdfWorksheetLayoutMode>] [-PdfHtmlProfile <PdfHtmlProfile>] [-RequireNoLoss] [-AllowLegacyImportLoss] [-PageRange <string>] [-PdfWordMode <WordPdfImportMode>] [-PdfPowerPointMode <PowerPointPdfImportMode>] [-RasterDpi <Double>] [<CommonParameters>]
+New-OfficeConversionOptions [-WordOptions <WordPdfExportOptions>] [-ExcelOptions <ExcelPdfExportOptions>] [-PowerPointOptions <PowerPointPdfExportOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-MarkdownOptions <MarkdownPdfExportOptions>] [-RtfOptions <RtfToPdfOptions>] [-TextOptions <PdfTextImportOptions>] [-DrawOptions <OdgToPdfOptions>] [-VisioOptions <VisioToPdfOptions>] [-XpsOptions <XpsToPdfOptions>] [-ChmOptions <ChmConversionOptions>] [-DjVuOptions <DjVuToPdfOptions>] [-PublisherReadOptions <PublisherReadOptions>] [-PublisherPdfOptions <PdfCreateOptions>] [-CompressPdfOutput] [-WorksheetLayout <ExcelPdfWorksheetLayoutMode>] [-PdfHtmlProfile <PdfHtmlProfile>] [-ThrowIfLoss] [-AllowLegacyImportLoss] [-PageRange <string>] [-PdfWordMode <WordPdfImportMode>] [-PdfPowerPointMode <PowerPointPdfImportMode>] [-RasterDpi <Double>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,7 +21,7 @@ Format-specific options apply only to their matching routes.
 
 ### EXAMPLE 1
 ```powershell
-$options = New-OfficeConversionOptions -RequireNoLoss -ExcelOptions (New-OfficeExcelPdfOptions -UseWorksheetCharts)
+$options = New-OfficeConversionOptions -ThrowIfLoss -ExcelOptions (New-OfficeExcelPdfOptions -UseWorksheetCharts)
 ConvertTo-OfficeDocument -InputPath ./report.xlsx -OutputPath ./report.pdf -ConversionOptions $options
 ```
 
@@ -284,7 +284,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -RequireNoLoss
+### -ThrowIfLoss
 Reject any reduction reported by the selected route.
 
 ```yaml

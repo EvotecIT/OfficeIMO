@@ -6,8 +6,8 @@ namespace OfficeIMO.Pdf;
 /// Options controlling page geometry and default typography for a PDF document.
 /// </summary>
 public sealed partial class PdfCreateOptions {
-    private PdfAlign _headerAlign = PdfAlign.Center;
-    private PdfAlign _footerAlign = PdfAlign.Center;
+    private OfficeAlignment _headerAlign = OfficeAlignment.Center;
+    private OfficeAlignment _footerAlign = OfficeAlignment.Center;
     private System.Collections.Generic.List<PdfFooterSegment>? _headerSegments;
     private System.Collections.Generic.List<PdfFooterSegment>? _firstPageHeaderSegments;
     private System.Collections.Generic.List<PdfFooterSegment>? _evenPageHeaderSegments;

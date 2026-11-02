@@ -1927,7 +1927,7 @@ height: global::OfficeIMO.OfficeLength.Points(210D),
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 CompressContentStreams = false
             })
-            .Drawing(drawing, PdfAlign.Left)
+            .Drawing(drawing, OfficeAlignment.Left)
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -2066,7 +2066,7 @@ height: global::OfficeIMO.OfficeLength.Points(190D),
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 CompressContentStreams = false
             })
-            .Drawing(drawing, PdfAlign.Left)
+            .Drawing(drawing, OfficeAlignment.Left)
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -2269,7 +2269,7 @@ height: global::OfficeIMO.OfficeLength.Points(190D)));
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 CompressContentStreams = false
             })
-            .Drawing(drawing, PdfAlign.Left)
+            .Drawing(drawing, OfficeAlignment.Left)
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -2307,7 +2307,7 @@ height: global::OfficeIMO.OfficeLength.Points(210D)));
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 CompressContentStreams = false
             })
-            .Drawing(drawing, PdfAlign.Left)
+            .Drawing(drawing, OfficeAlignment.Left)
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));

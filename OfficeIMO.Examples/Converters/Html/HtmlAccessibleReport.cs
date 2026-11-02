@@ -25,7 +25,7 @@ internal static partial class Html {
         HtmlPdfAccessibilityValidationResult validation = HtmlPdfAccessibilityValidator.Validate(result);
         if (!validation.IsValid)
             throw new InvalidDataException(string.Join(Environment.NewLine, validation.Issues.Select(issue => issue.Message)));
-        result.Output.RequireNoLoss();
+        result.Output.ThrowIfLoss();
         return result;
     }
 

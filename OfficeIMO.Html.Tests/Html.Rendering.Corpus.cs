@@ -403,7 +403,7 @@ public sealed partial class HtmlRenderingTests {
         foreach (string code in scenario.ForbiddenDiagnosticCodes) {
             Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == code);
         }
-        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(rendered.NativeDiagnostics, diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
         HtmlRenderVisual[] visuals = rendered.Pages.SelectMany(page => EnumerateCorpusVisuals(page.Scene)).ToArray();
         foreach (string source in scenario.RequiredVisualSources) {
             Assert.Contains(visuals, visual => string.Equals(visual.Source, source, StringComparison.Ordinal));

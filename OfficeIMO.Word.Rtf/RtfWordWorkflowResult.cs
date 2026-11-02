@@ -20,8 +20,5 @@ public sealed class RtfWordWorkflowResult<T> {
     public RtfConversionReport Report { get; }
 
     /// <summary>Throws when any stage reported fidelity loss or a blocked feature.</summary>
-    public RtfWordWorkflowResult<T> RequireNoLoss() {
-        Report.RequireNoLoss();
-        return this;
-    }
+    public void ThrowIfLoss() => Report.ThrowIfLoss();
 }

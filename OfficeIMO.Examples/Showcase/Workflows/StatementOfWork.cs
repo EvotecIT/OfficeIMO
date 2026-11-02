@@ -6,7 +6,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
         internal static void Create(string folder) {
             using var document = WordDocument.Create(Path.Combine(folder, "example.docx"));
             document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);
-            document.BuiltinDocumentProperties.Title = "Statement of work";
+            document.Properties.Title = "Statement of work";
             document.AddParagraph("Statement of work").Style = WordParagraphStyles.Heading1;
             document.AddParagraph("NORTHWIND / DOCUMENT AUTOMATION / SOW-018");
             document.AddParagraph("Deliver an editable reporting workflow with a clear boundary between implementation and acceptance. This example is a scope record, not a legal template.");

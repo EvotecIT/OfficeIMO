@@ -15,7 +15,7 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(PdfTabAlignment.DecimalSeparator, PdfJustificationMode.Characters)]
     public void JustificationPreservesNonLeftTabAnchorsOnExplicitBreakAndFinalLines(
         PdfTabAlignment alignment, PdfJustificationMode mode) {
-        byte[] Render(PdfAlign paragraphAlignment, bool justifyBreaks, bool justifyFinal) {
+        byte[] Render(OfficeAlignment paragraphAlignment, bool justifyBreaks, bool justifyFinal) {
             var style = new PdfParagraphStyle {
                 JustificationMode = mode,
                 JustifyExplicitLineBreaks = justifyBreaks,
@@ -27,9 +27,9 @@ public partial class PdfDocumentVisualQualityTests {
                 paragraphAlignment, style: style).ToBytes();
         }
 
-        using var natural = PdfPigDocument.Open(Render(PdfAlign.Left, true, true));
-        using var policyOff = PdfPigDocument.Open(Render(PdfAlign.Justify, false, false));
-        using var justified = PdfPigDocument.Open(Render(PdfAlign.Justify, true, true));
+        using var natural = PdfPigDocument.Open(Render(OfficeAlignment.Left, true, true));
+        using var policyOff = PdfPigDocument.Open(Render(OfficeAlignment.Justify, false, false));
+        using var justified = PdfPigDocument.Open(Render(OfficeAlignment.Justify, true, true));
         List<List<Letter>> expected = GetNonWhitespaceLetterLines(natural.GetPage(1));
         List<List<Letter>> disabled = GetNonWhitespaceLetterLines(policyOff.GetPage(1));
         List<List<Letter>> actual = GetNonWhitespaceLetterLines(justified.GetPage(1));

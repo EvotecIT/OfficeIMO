@@ -561,7 +561,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool FinalDocument {
             get {
-                if (_document.CustomDocumentProperties.TryGetValue("_MarkAsFinal", out var markFinalProperty)) {
+                if (_document.CustomProperties.TryGetValue("_MarkAsFinal", out var markFinalProperty)) {
                     if (markFinalProperty?.Value is string valueString) {
                         return string.Equals(valueString, "1", StringComparison.Ordinal);
                     }
@@ -570,10 +570,10 @@ namespace OfficeIMO.Word {
             }
             set {
                 string newValue = value ? "1" : "0";
-                if (_document.CustomDocumentProperties.ContainsKey("_MarkAsFinal")) {
-                    _document.CustomDocumentProperties["_MarkAsFinal"].Value = newValue;
+                if (_document.CustomProperties.ContainsKey("_MarkAsFinal")) {
+                    _document.CustomProperties["_MarkAsFinal"].Value = newValue;
                 } else {
-                    _document.CustomDocumentProperties.Add("_MarkAsFinal", new WordCustomProperty(newValue));
+                    _document.CustomProperties.Add("_MarkAsFinal", new WordCustomProperty(newValue));
                 }
             }
         }

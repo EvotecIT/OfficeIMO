@@ -4,16 +4,16 @@ namespace OfficeIMO.Pdf;
 /// Reusable placement and rhythm style for OfficeIMO.Drawing-backed flow objects.
 /// </summary>
 public sealed class PdfDrawingStyle {
-    private PdfAlign _align = PdfAlign.Left;
+    private OfficeAlignment _align = OfficeAlignment.Left;
     private global::OfficeIMO.OfficeLength _spacingBefore;
     private global::OfficeIMO.OfficeLength _spacingAfter;
     private string? _alternativeText;
 
     /// <summary>Object alignment within the current content frame.</summary>
-    public PdfAlign Align {
+    public OfficeAlignment Align {
         get => _align;
         set {
-            Guard.LeftCenterRightAlign(value, nameof(Align), "Drawing");
+            value = Guard.LeftCenterRightAlign(value, nameof(Align), "Drawing");
             _align = value;
         }
     }

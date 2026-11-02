@@ -10,11 +10,11 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfBarTabTests {
     [Theory]
-    [InlineData(PdfAlign.Left)]
-    [InlineData(PdfAlign.Center)]
-    [InlineData(PdfAlign.Right)]
-    [InlineData(PdfAlign.Justify)]
-    public void BarRulesKeepTextStopsAndGlyphFlowIndependentOfParagraphAlignment(PdfAlign align) {
+    [InlineData(OfficeAlignment.Left)]
+    [InlineData(OfficeAlignment.Center)]
+    [InlineData(OfficeAlignment.Right)]
+    [InlineData(OfficeAlignment.Justify)]
+    public void BarRulesKeepTextStopsAndGlyphFlowIndependentOfParagraphAlignment(OfficeAlignment align) {
         byte[] Render(bool bar) {
             PdfParagraphStyle style = ParagraphStyle();
             style.LeftIndent = global::OfficeIMO.OfficeLength.Points(36);

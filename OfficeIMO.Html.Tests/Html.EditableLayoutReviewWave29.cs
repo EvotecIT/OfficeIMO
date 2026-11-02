@@ -24,7 +24,7 @@ public sealed class HtmlEditableLayoutReviewWave29Tests {
 
             Assert.Empty(word.TextBoxes);
             Assert.NotEmpty(word.Find("Element styled anchor", StringComparison.Ordinal));
-            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
                 diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
                 && diagnostic.Detail == "externalStylesheetSources=true; semanticFlow=true");
         } finally {
@@ -76,7 +76,7 @@ public sealed class HtmlEditableLayoutReviewWave29Tests {
     public async Task RedirectedStylesheetAliasesShareBudgetState() {
         const string css = ".target{color:red}";
         int cssBytes = Encoding.UTF8.GetByteCount(css);
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssBytes = cssBytes;
         limits.MaxTotalCssBytes = cssBytes;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
@@ -107,7 +107,7 @@ public sealed class HtmlEditableLayoutReviewWave29Tests {
         const string externalCss = ".target{color:red}";
         int seedBytes = Encoding.UTF8.GetByteCount(seedCss);
         int externalBytes = Encoding.UTF8.GetByteCount(externalCss);
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssBytes = Math.Max(seedBytes, externalBytes);
         limits.MaxTotalCssBytes = seedBytes + externalBytes - 1;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(

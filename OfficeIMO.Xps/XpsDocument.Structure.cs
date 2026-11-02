@@ -48,7 +48,7 @@ public sealed partial class XpsDocument {
         if (next == null) parent.Add(item); else next.AddBeforeSelf(item);
     }
     internal string NewPartName(string prefix, string suffix) {
-        for (int i = 1; i <= _limits.MaximumParts; i++) {
+        for (int i = 1; i <= _limits.MaxParts; i++) {
             string name = prefix + i.ToString(CultureInfo.InvariantCulture) + suffix;
             if (!_parts.ContainsKey(name)) return name;
         }
@@ -69,13 +69,13 @@ public sealed partial class XpsDocument {
             string name = XpsPackage.Resolve(_sequence, (string?)reference.Attribute("Source") ?? "");
             if (_documentCache.TryGetValue(name, out var existing)) {
                 pageReferences += existing.Markup.Elements().Count();
-                if (pageReferences > _limits.MaximumPages) throw new InvalidDataException("XPS page limit exceeded.");
+                if (pageReferences > _limits.MaxPages) throw new InvalidDataException("XPS page limit exceeded.");
                 continue;
             }
             var xml = RequiredXml(name, "FixedDocument", "fixeddocument", token);
             if (xml.Elements().Any(e => e.Name != ns + "PageContent")) throw new NotSupportedException("Unsupported content in XPS fixed document.");
             pageReferences += xml.Elements().Count();
-            if (pageReferences > _limits.MaximumPages) throw new InvalidDataException("XPS page limit exceeded.");
+            if (pageReferences > _limits.MaxPages) throw new InvalidDataException("XPS page limit exceeded.");
             _documentCache.Add(name, new XpsFixedDocument(this, name, xml));
             foreach (var pageRef in xml.Elements()) {
                 token.ThrowIfCancellationRequested();
@@ -105,7 +105,7 @@ public sealed partial class XpsDocument {
             if (first) { index.Starts.Add(part, xml.HasElements ? index.Pages.Count : -1); index.Targets.Add(part, new Dictionary<string, int>(StringComparer.Ordinal)); }
             foreach (var pageRef in xml.Elements()) {
                 token.ThrowIfCancellationRequested();
-                if (index.Pages.Count >= _limits.MaximumPages) throw new InvalidDataException("XPS page limit exceeded.");
+                if (index.Pages.Count >= _limits.MaxPages) throw new InvalidDataException("XPS page limit exceeded.");
                 index.Pages.Add(ResolvePage(part, pageRef, pending));
                 if (!first) continue;
                 foreach (var target in pageRef.Elements(ns + "PageContent.LinkTargets").Elements(ns + "LinkTarget")) {
@@ -143,7 +143,7 @@ public sealed partial class XpsDocument {
         if (changes != null) foreach (var change in changes) replacementTypes[change.Key.PartName] = XpsPackage.Type("fixeddocument");
         if (pending != null) replacementTypes[pending.PartName] = XpsPackage.Type("fixedpage");
         foreach (var item in replacements) {
-            if (item.Value.Length > _limits.MaximumPartBytes) throw new InvalidDataException("XPS part byte limit exceeded.");
+            if (item.Value.Length > _limits.MaxPartBytes) throw new InvalidDataException("XPS part byte limit exceeded.");
             _ = XpsPackage.Xml(item.Value, _limits, default);
         }
         _ = PrepareOutput(default, replacements, replacementTypes, pending);
@@ -158,7 +158,7 @@ public sealed partial class XpsDocument {
     }
     internal XElement ValidatePageMarkup(XElement markup) {
         byte[] bytes = XpsPackage.Serialize(markup);
-        if (bytes.Length > _limits.MaximumPartBytes) throw new InvalidDataException("XPS part byte limit exceeded.");
+        if (bytes.Length > _limits.MaxPartBytes) throw new InvalidDataException("XPS part byte limit exceeded.");
         return XpsPackage.Xml(bytes, _limits, default);
     }
     internal void CommitDocument(XpsFixedDocument document, XElement markup, XpsPage? pending = null, bool attach = false) {

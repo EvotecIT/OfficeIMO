@@ -37,8 +37,8 @@ internal static partial class NativeKeynoteWriterSmoke {
             && saved.Slides[0].Tables.Single().GetCell(1, 2).Text == "1200.5"
             && saved.Slides[1].Tables.Single().GetCell(0, 0).Text == "A😀B" + Environment.NewLine + "Zażółć — café",
             "NativeAOT table PPTX did not retain content through save/reopen.");
-        foreach (var options in new[] { new IWorkKeynoteWriteOptions { MaximumTables = 2 },
-            new IWorkKeynoteWriteOptions { MaximumTableCells = 20 } }) {
+        foreach (var options in new[] { new IWorkKeynoteWriteOptions { MaxTables = 2 },
+            new IWorkKeynoteWriteOptions { MaxTableCells = 20 } }) {
             using var unchanged = new MemoryStream(new byte[] { 9, 8, 7 });
             try { document.Save(unchanged, options); throw new InvalidOperationException("NativeAOT table budget was not enforced."); }
             catch (InvalidDataException) { }

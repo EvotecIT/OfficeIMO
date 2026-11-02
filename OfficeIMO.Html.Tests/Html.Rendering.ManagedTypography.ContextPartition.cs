@@ -20,7 +20,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeTrueTypeFont.ShapedTextRun expected = font.CreateShapedTextRun(source, shaped);
         PaintedTestGlyph[] painted = ObservePaintedTrueTypeGlyphs(rendered, text);
 
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
         Assert.Equal(source, rendered.Text.Trim());
         Assert.Equal(expected.Measure(16D), text.Sum(item => Assert.IsType<double>(item.TextAdvanceWidth)), 8);
         Assert.Equal(expected._glyphs.Select(glyph => (int)glyph.GlyphId), painted.Select(glyph => glyph.GlyphId));
@@ -51,9 +51,9 @@ public sealed partial class HtmlRenderingTests {
         double expectedAdvance = TypographyPartitionText(markedOnly).Sum(item => Assert.IsType<double>(item.TextAdvanceWidth))
             + TypographyPartitionText(tailOnly).Sum(item => Assert.IsType<double>(item.TextAdvanceWidth));
 
-        combined.RequireNoLoss();
-        markedOnly.RequireNoLoss();
-        tailOnly.RequireNoLoss();
+        combined.ThrowIfLoss();
+        markedOnly.ThrowIfLoss();
+        tailOnly.ThrowIfLoss();
         Assert.Equal(marked + tail, combined.Text.Trim());
         Assert.Equal(expectedAdvance, combinedText.Sum(item => Assert.IsType<double>(item.TextAdvanceWidth)), 8);
         Assert.Contains(combinedText, item => item.Text.Contains("\u0301") && item.PreparedShaping != null);

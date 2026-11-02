@@ -13,10 +13,10 @@ public enum AsciiDocUndefinedAttributeBehavior {
 /// <summary>Bounded attribute-reference substitution options.</summary>
 public sealed class AsciiDocAttributeSubstitutionOptions {
     /// <summary>Maximum recursive expansion passes.</summary>
-    public int MaximumDepth { get; set; } = 32;
+    public int MaxDepth { get; set; } = 32;
 
     /// <summary>Maximum produced character count.</summary>
-    public int MaximumOutputLength { get; set; } = 64 * 1024 * 1024;
+    public int MaxOutputLength { get; set; } = 64 * 1024 * 1024;
 
     /// <summary>Unset reference behavior.</summary>
     public AsciiDocUndefinedAttributeBehavior UndefinedAttributeBehavior { get; set; } = AsciiDocUndefinedAttributeBehavior.Preserve;
@@ -84,9 +84,9 @@ public static class AsciiDocAttributeSubstitutor {
         HashSet<string> active,
         int depth,
         int baseOffset) {
-        if (depth > options.MaximumDepth) {
+        if (depth > options.MaxDepth) {
             diagnostics.Add(new AsciiDocEvaluationDiagnostic("ADOCEVAL003", AsciiDocDiagnosticSeverity.Error,
-                "Attribute expansion exceeded MaximumDepth.", baseOffset));
+                "Attribute expansion exceeded MaxDepth.", baseOffset));
             return value;
         }
 
@@ -154,11 +154,11 @@ public static class AsciiDocAttributeSubstitutor {
     }
 
     private static void EnforceLength(StringBuilder output, AsciiDocAttributeSubstitutionOptions options) {
-        if (output.Length > options.MaximumOutputLength) throw new InvalidDataException("Attribute expansion exceeds MaximumOutputLength.");
+        if (output.Length > options.MaxOutputLength) throw new InvalidDataException("Attribute expansion exceeds MaxOutputLength.");
     }
 
     private static void ValidateOptions(AsciiDocAttributeSubstitutionOptions options) {
-        if (options.MaximumDepth < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumDepth must be positive.");
-        if (options.MaximumOutputLength < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumOutputLength must be positive.");
+        if (options.MaxDepth < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaxDepth must be positive.");
+        if (options.MaxOutputLength < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaxOutputLength must be positive.");
     }
 }

@@ -20,7 +20,7 @@ public sealed class PublisherGeometryGuideTests {
         Assert.Equal(OfficeShapeKind.Path, shape.Kind);
         Assert.Equal(new OfficePoint(shape.Width / 4, shape.Height / 4), shape.PathCommands[0].Point);
         Assert.Equal(shape.Width * 3 / 4, shape.PathCommands[1].Point.X, 10);
-        Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics, item => item.Code.StartsWith("PUB_CUSTOM_PATH_GUIDE"));
+        Assert.DoesNotContain(publication.ReadReport.Diagnostics, item => item.Code.StartsWith("PUB_CUSTOM_PATH_GUIDE"));
     }
 
     [Theory]
@@ -44,7 +44,7 @@ public sealed class PublisherGeometryGuideTests {
         input = OfficeCompoundFileWriter.Rewrite(source, new Dictionary<string, byte[]> { ["Escher/EscherStm"] = replacement });
         PublisherDocument publication = PublisherDocument.Load(input);
         Assert.Equal(OfficeShapeKind.Rectangle, Artwork(publication).Kind);
-        Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics, item => item.Location == "Contents/object/293"
+        Assert.DoesNotContain(publication.ReadReport.Diagnostics, item => item.Location == "Contents/object/293"
             && item.Code.StartsWith("PUB_CUSTOM_PATH_"));
     }
 
@@ -98,7 +98,7 @@ public sealed class PublisherGeometryGuideTests {
         Assert.Equal(OfficeShapeKind.Path, shape.Kind);
         Assert.Equal(shape.Width / 100 * (localStroke ? 1 : 0), shape.PathCommands[0].Point.X, 10);
         Assert.Equal(shape.Width * (localStroke ? 0.45 : 0.4), shape.PathCommands[1].Point.X, 10);
-        Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_GUIDES_INVALID");
+        Assert.DoesNotContain(publication.ReadReport.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_GUIDES_INVALID");
     }
 
     [Fact]
@@ -147,11 +147,11 @@ public sealed class PublisherGeometryGuideTests {
         Assert.Equal(OfficeShapeKind.Path, shape.Kind);
         Assert.Equal(new OfficePoint(shape.Width / 4, shape.Height / 4), shape.PathCommands[0].Point);
         Assert.Equal(new OfficePoint(shape.Width * 3 / 4, shape.Height / 4), shape.PathCommands[1].Point);
-        Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics, item => item.Code.StartsWith("PUB_CUSTOM_PATH_GUIDE"));
+        Assert.DoesNotContain(publication.ReadReport.Diagnostics, item => item.Code.StartsWith("PUB_CUSTOM_PATH_GUIDE"));
         var svg = publication.ToSvgResult();
-        Assert.Contains(svg.Report.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_RENDERING_UNQUALIFIED"
+        Assert.Contains(svg.Report.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_RENDERING_UNQUALIFIED"
             && item.Message.Contains("producer rounding") && item.Location == "Contents/object/293");
-        Assert.Throws<OfficeConversionException>(() => svg.RequireNoLoss());
+        Assert.Throws<OfficeConversionException>(() => svg.ThrowIfLoss());
         var pdf = publication.ToPdfDocumentResult();
         Assert.Contains(publication.ReadReport, pdf.SourceConversionReports);
         Assert.Equal(publication.Pages.Count, PdfDocument.Load(new System.IO.MemoryStream(pdf.ToBytes())).Pages.Count);
@@ -168,7 +168,7 @@ public sealed class PublisherGeometryGuideTests {
         var publication = PublisherDocument.Load(Input(new[] { (operation, first, (ushort)0, (ushort)0) }));
         Assert.Equal(OfficeShapeKind.Rectangle, Artwork(publication).Kind);
         Assert.NotEmpty(publication.TextStories);
-        Assert.Contains(publication.ReadReport.FidelityDiagnostics, item => item.Code == code
+        Assert.Contains(publication.ReadReport.Diagnostics, item => item.Code == code
             && item.Location == "Contents/object/293" && item.LossKind == OfficeConversionLossKind.Approximation);
     }
 
@@ -188,7 +188,7 @@ public sealed class PublisherGeometryGuideTests {
             new() { [0x0145] = PublisherCustomPathTests.Vertices(new[] { (0, 0), (21600, 0), (0, 21600) }) });
         var publication = PublisherDocument.Load(input);
         Assert.Equal(OfficeShapeKind.Rectangle, Artwork(publication).Kind);
-        Assert.Contains(publication.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_SCALING_UNSUPPORTED");
+        Assert.Contains(publication.ReadReport.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_SCALING_UNSUPPORTED");
     }
 
     [Fact]

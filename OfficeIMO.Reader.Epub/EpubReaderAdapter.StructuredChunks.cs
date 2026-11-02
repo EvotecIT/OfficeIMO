@@ -92,7 +92,7 @@ internal static partial class EpubReaderAdapter {
         resourcePolicy.ResolvedUrlTransform = transform;
         markdownOptions.ResourceUrlPolicy = resourcePolicy;
 
-        HtmlConversionDocumentOptions conversionOptions = HtmlConversionDocumentOptions.CreateUntrustedProfile();
+        HtmlConversionDocumentOptions conversionOptions = HtmlConversionDocumentOptions.UntrustedDefaults;
         AllowEpubVirtualFileLocations(conversionOptions.UrlPolicy);
         AllowEpubVirtualFileLocations(conversionOptions.ResourceUrlPolicy);
         htmlOptions.ConversionOptions = conversionOptions;

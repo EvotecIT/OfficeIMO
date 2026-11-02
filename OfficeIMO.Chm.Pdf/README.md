@@ -11,7 +11,7 @@ ChmConversionResult<byte[]> result = book.ToPdfBytesResult(
     new ChmConversionOptions { MaxOutputBytes = 32L * 1024 * 1024 },
     new HtmlToPdfOptions());
 File.WriteAllBytes("manual.pdf", result.RequireValue());
-foreach (var diagnostic in result.Report.FidelityDiagnostics)
+foreach (var diagnostic in result.Report.Diagnostics)
     Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
 ```
 

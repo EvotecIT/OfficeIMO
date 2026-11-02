@@ -126,7 +126,7 @@ public class HtmlTextFormattingConversionTests {
 
         Assert.Equal("LONGHAND", string.Concat(text.Select(item => item.Text)));
         Assert.True(Assert.Single(text, item => item.Text == "ONGHAND").Font.Size < Assert.Single(text, item => item.Text == "L").Font.Size);
-        Assert.Contains(rendered.Diagnostics, diagnostic =>
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.FontVariantApproximated
             && diagnostic.Detail.Contains("font-variant-caps=small-caps", StringComparison.Ordinal));
     }

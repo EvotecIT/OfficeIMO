@@ -66,7 +66,7 @@ public sealed class VisioPdfWorkflowTests {
             Assert.Equal(extension[1..].ToUpperInvariant(), evidence.Facts["sourceFormat"]);
             Assert.Contains(result.Diagnostics, d => d.Code == "conversion-output-reopened");
             if (extension != ".vsdx")
-                Assert.Contains(evidence.FidelityDiagnostics, d => d.Code == "VDX_MODEL_PROFILE" && d.LossKind == OfficeConversionLossKind.Approximation);
+                Assert.Contains(evidence.Diagnostics, d => d.Code == "VDX_MODEL_PROFILE" && d.LossKind == OfficeConversionLossKind.Approximation);
             Assert.Equal(before, File.ReadAllBytes(input));
         } finally { Directory.Delete(root, true); }
     }
@@ -96,7 +96,7 @@ public sealed class VisioPdfWorkflowTests {
                     RegisteredSettings = new OfficeWorkflowRouteSettings {
                         Visio = new() {
                             Mode = VisioPdfProjectionMode.DiagramPages,
-                            DrawingOptions = new() { RequireNoLoss = sourceStrict }
+                            DrawingOptions = new() { FailOnLoss = sourceStrict }
                         }
                     }
                 }
@@ -104,8 +104,8 @@ public sealed class VisioPdfWorkflowTests {
             Assert.False(result.Succeeded);
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
             Assert.True(evidence.HasLoss);
-            Assert.Contains(evidence.FidelityDiagnostics, d => d.Code == "VISIO_DRAWING_METADATA" && d.Location!.StartsWith("page:1:First:shape:"));
-            if (extension != ".vsdx") Assert.Contains(evidence.FidelityDiagnostics, d => d.Code == "VDX_MODEL_PROFILE");
+            Assert.Contains(evidence.Diagnostics, d => d.Code == "VISIO_DRAWING_METADATA" && d.Location!.StartsWith("page:1:First:shape:"));
+            if (extension != ".vsdx") Assert.Contains(evidence.Diagnostics, d => d.Code == "VDX_MODEL_PROFILE");
             Assert.Equal(before, File.ReadAllBytes(input));
             Assert.Equal(sentinel, File.ReadAllBytes(output));
             Assert.Empty(Directory.GetFiles(root, ".*.tmp"));

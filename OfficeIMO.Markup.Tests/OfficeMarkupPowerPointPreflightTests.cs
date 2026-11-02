@@ -47,7 +47,7 @@ Second overlapping box
                 finding => finding.Code == "layout-shape-collision");
             Assert.Contains(explicitCollisionScan.Report.Preflight.Findings,
                 finding => finding.Code == "layout-shape-collision");
-            Assert.Contains(explicitCollisionScan.Report.FidelityDiagnostics,
+            Assert.Contains(explicitCollisionScan.Report.Diagnostics,
                 diagnostic => diagnostic.Code == "layout-shape-collision" &&
                               diagnostic.LossKind == OfficeConversionLossKind.Approximation);
             Assert.True(explicitCollisionScan.Report.HasLoss);
@@ -83,13 +83,13 @@ This shape is outside the slide.
 
         using (result.Value) {
             Assert.True(result.Report.Preflight.ErrorCount > 0);
-            OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
-                result.Report.FidelityDiagnostics,
-                item => item.Source == "OfficeIMO.Markup.PowerPoint.Preflight" &&
+            OfficeDiagnostic diagnostic = Assert.Single(
+                result.Report.Diagnostics,
+                item => item.Format == "OfficeIMO.Markup.PowerPoint.Preflight" &&
                         item.LossKind == OfficeConversionLossKind.Failure);
             Assert.StartsWith("slide:1", diagnostic.Location, StringComparison.Ordinal);
             Assert.True(result.Report.HasLoss);
-            Assert.Throws<PowerPointDeckPreflightException>(() => result.Report.RequireNoLoss());
+            Assert.ThrowsAny<PowerPointDeckPreflightException>(() => result.Report.ThrowIfLoss());
         }
     }
 

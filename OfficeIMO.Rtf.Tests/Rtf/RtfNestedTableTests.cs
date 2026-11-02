@@ -175,9 +175,9 @@ public class RtfNestedTableTests {
         Assert.Contains("Inner A", markdown, StringComparison.Ordinal);
         Assert.Contains("Inner B", markdown, StringComparison.Ordinal);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RTFMD016");
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "RTFMD016" && diagnostic.Action == RtfConversionAction.Flattened);
-        Assert.Throws<RtfConversionLossException>(() => result.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => result.ThrowIfLoss());
     }
 
     [Fact]

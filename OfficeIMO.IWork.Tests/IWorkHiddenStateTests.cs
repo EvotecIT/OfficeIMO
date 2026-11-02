@@ -22,7 +22,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(IWorkSourceDeclarationIssueKind.UnsupportedField, issue.Kind);
         Assert.Equal(11ul, issue.Owner.RecordIdentifier);
         Assert.Empty(report.PreservedRecords);
-        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_HIDDEN_STATES_UNASSESSED"
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_HIDDEN_STATES_UNASSESSED"
             && diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
     }
 
@@ -137,11 +137,11 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = HiddenStatePackage(IWorkDocumentKind.Numbers,
             HiddenOwner(rowFields: BytesField(2, new byte[] { 0x80 })));
         Assert.Contains("dimension entries", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumTableDimensionEntries = 4 }).ReadNumbers()).Message);
+            new IWorkReadOptions { MaxTableDimensionEntries = 4 }).ReadNumbers()).Message);
         using MemoryStream depth = HiddenStatePackage(IWorkDocumentKind.Numbers,
             HiddenOwner(rowFields: BytesField(2, VarintField(2, 0))));
         Assert.Contains("depth", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(depth,
-            new IWorkReadOptions { MaximumProtobufDepth = 3 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
+            new IWorkReadOptions { MaxProtobufDepth = 3 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -149,13 +149,13 @@ public sealed partial class IWorkBoundaryTests {
         byte[] rowFields = BytesField(2, VarintField(2, 1));
         using MemoryStream shared = HiddenStatePackage(IWorkDocumentKind.Numbers, HiddenOwner(rowFields: rowFields), repeatModel: true);
         IWorkNumbersProjection projection = IWorkSourceDocument.Open(shared,
-            new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 }).ReadNumbers();
+            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers();
         Assert.Equal(2, Assert.Single(projection.Sheets).Tables.Count);
         Assert.Single(projection.SourceDeclarationIssues);
         using MemoryStream distinct = HiddenStatePackage(IWorkDocumentKind.Numbers,
             HiddenOwner(rowFields: Message(rowFields, rowFields)));
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(distinct,
-            new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 }).ReadNumbers()).Message);
+            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers()).Message);
     }
 
     [Fact]

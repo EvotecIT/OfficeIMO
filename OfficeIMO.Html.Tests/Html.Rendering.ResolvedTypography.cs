@@ -25,7 +25,7 @@ public sealed partial class HtmlRenderingTests {
             string.Join(" | ", text.Select(item => "Layout=" + item.TextAdvanceWidth
                 + "; Prepared=" + item.PreparedShaping?.Measure(item.Font.Size))));
         Assert.Equal("AV", rendered.Text.Trim());
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Theory]
@@ -57,12 +57,12 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("abc", rendered.Text.Trim());
         if (fontDirected) {
             Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Approximation);
-            Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+            Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
         } else {
-            rendered.RequireNoLoss();
+            rendered.ThrowIfLoss();
             Assert.Contains(text, item => item.PreparedShaping != null);
             PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
-            pdf.RequireNoLoss();
+            pdf.ThrowIfLoss();
             Assert.Equal("abc", PdfCore.PdfReadDocument.Open(pdf.ToBytes()).ExtractText().Trim());
             OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
             OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(
@@ -92,7 +92,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(expected, ObservePaintedTrueTypeGlyphs(rendered, text).Select(glyph => glyph.GlyphId));
         Assert.Contains(text, item => item.PreparedShaping != null);
         Assert.Equal(expectedPaint, rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private static HtmlConversionDocument ResolvedTypographyDocument(string content, string direction, bool bold = false) =>

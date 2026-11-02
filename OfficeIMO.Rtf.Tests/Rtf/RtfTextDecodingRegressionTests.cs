@@ -55,6 +55,6 @@ public class RtfTextDecodingRegressionTests {
     [InlineData(@"{\rtf1\ansi{\info{\title \uc1\u945{\b X}Y}}Body\par}", "αXY")]
     [InlineData("{\\rtf1\\ansi{\\info{\\title Hello\r\nWorld}}Body\\par}", "HelloWorld")]
     public void Read_Metadata_Uses_The_Same_Fallback_And_Trivia_Rules(string rtf, string expected) {
-        Assert.Equal(expected, RtfDocument.ParseResult(rtf).Document.Info.Title);
+        Assert.Equal(expected, RtfDocument.ParseResult(rtf).Document.Properties.Title);
     }
 }

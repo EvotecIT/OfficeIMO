@@ -1,3 +1,4 @@
+#pragma warning disable RS0026 // Existing optional-parameter overload families keep their shape.
 using System.Threading;
 
 namespace OfficeIMO.Pdf;
@@ -824,7 +825,7 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Creates a new PDF with updated metadata. Null values preserve existing fields; empty strings clear fields.
     /// </summary>
-    public PdfDocument UpdateMetadata(string? title = null, string? author = null, string? subject = null, string? keywords = null) {
+    public PdfDocument UpdateProperties(string? title = null, string? author = null, string? subject = null, string? keywords = null) {
         return UpdateMetadata(title, author, subject, keywords, ReadOptions);
     }
 
@@ -912,19 +913,19 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Creates a new PDF with exactly the supplied metadata.
     /// </summary>
-    public PdfDocument ReplaceMetadata(PdfMetadata metadata) {
+    public PdfDocument ReplaceProperties(PdfDocumentProperties metadata) {
         Guard.NotNull(metadata, nameof(metadata));
         return ReplaceMetadata(metadata, ReadOptions);
     }
 
-    private PdfDocument ReplaceMetadata(PdfMetadata metadata, PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) =>
+    private PdfDocument ReplaceMetadata(PdfDocumentProperties metadata, PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) =>
         ApplyMutation(input => PdfMetadataEditor.ReplaceMetadata(input, metadata, readOptions, cancellationToken),
             readOptions, cancellationToken: cancellationToken);
 
     /// <summary>
     /// Attempts to create a new PDF with exactly the supplied metadata, returning diagnostics when blocked or failed.
     /// </summary>
-    internal PdfOperationResult<PdfDocument> ReplaceMetadataResult(PdfMetadata metadata, PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocument> ReplaceMetadataResult(PdfDocumentProperties metadata, PdfLoadOptions? options = null) {
         Guard.NotNull(metadata, nameof(metadata));
         return TryMutationOperation(
             "Replace metadata",

@@ -118,7 +118,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeConversionLossKind.Approximation, approximation.LossKind);
         Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, approximation.Severity);
         HtmlRenderOptions strict = options.Clone();
-        strict.Policy.RequireNoLoss = true;
+        strict.Policy.FailOnLoss = true;
         OfficeImageExportPolicyException strictFailure = Assert.Throws<OfficeImageExportPolicyException>(() =>
             document.ExportImage(OfficeImageExportFormat.Png, strict));
         Assert.Contains(strictFailure.Diagnostics, diagnostic =>

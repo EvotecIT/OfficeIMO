@@ -21,7 +21,7 @@ internal static partial class PdfWordConverter {
             PdfCore.PdfDocumentInfo sourceInfo = source.Inspect(null, token);
             int[] selectedPageNumbers = pages.Select(static page => page.PageNumber).ToArray();
             var selectedPageNumberSet = new HashSet<int>(selectedPageNumbers);
-            PdfCore.PdfMetadata sourceMetadata = source.Reader.Metadata();
+            PdfCore.PdfDocumentProperties sourceMetadata = source.Reader.Metadata();
             if (options.IncludeMetadata) CopyMetadata(sourceMetadata, target);
             ReportMetadataFidelity(sourceMetadata, sourceInfo.HasXmpMetadata, options);
             ReportAttachmentsNotReconstructed(sourceInfo.AttachmentCount, options);

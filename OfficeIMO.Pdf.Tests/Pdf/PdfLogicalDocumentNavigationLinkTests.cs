@@ -184,7 +184,7 @@ public partial class PdfDocumentReadResultTests {
                 .H1("Jump to details", linkDestinationName: "Details", linkContents: "Heading jump metadata")
                 .Element(element => element.Content(nested => nested.H2(
                     "Nested jump to details",
-                    PdfAlign.Left,
+                    OfficeAlignment.Left,
                     linkContents: "Nested heading jump metadata",
                     linkDestinationName: "Details")))
                 .Spacer(global::OfficeIMO.OfficeLength.Points(18))

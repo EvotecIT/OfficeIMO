@@ -132,8 +132,8 @@ internal static partial class PdfWriter {
                     ? MeasureRichLineWidth(textLayout.Lines[0], currentOpts)
                     : 0D;
                 double firstLineOffset = block.Align switch {
-                    PdfAlign.Center => System.Math.Max(0D, (alignmentWidth - firstLineWidth) / 2D),
-                    PdfAlign.Right => System.Math.Max(0D, alignmentWidth - firstLineWidth),
+                    OfficeAlignment.Center => System.Math.Max(0D, (alignmentWidth - firstLineWidth) / 2D),
+                    OfficeAlignment.Right => System.Math.Max(0D, alignmentWidth - firstLineWidth),
                     _ => 0D
                 };
                 items.Add(new PreparedListItem(item, markers[itemIndex], textLayout, firstLineOffset, markerFallbacks[itemIndex]));
@@ -162,21 +162,21 @@ internal static partial class PdfWriter {
                 items);
         }
 
-        private (double X, double Width, PdfAlign Align) GetListMarkerPlacement(
+        private (double X, double Width, OfficeAlignment Align) GetListMarkerPlacement(
             PreparedListLayout prepared, PreparedListItem item) {
             double x = prepared.ListLeftIndent + item.FirstLineOffset;
-            PdfAlign align = prepared.Block.GetMarkerAlign(prepared.Style);
+            OfficeAlignment align = prepared.Block.GetMarkerAlign(prepared.Style);
             if (prepared.Style?.MarkerAlignsAtIndent != true)
                 return (x, prepared.MarkerWidth, align);
 
             double width = item.MarkerFallback?.Width ?? EstimateSimpleTextWidthForOptions(item.Marker, prepared.MarkerFont,
                 prepared.MarkerNamedFont, prepared.MarkerSize, currentOpts, prepared.Style?.MarkerFeatureSettings);
             x -= align switch {
-                PdfAlign.Right => width,
-                PdfAlign.Center => width / 2D,
+                OfficeAlignment.Right => width,
+                OfficeAlignment.Center => width / 2D,
                 _ => 0D
             };
-            return (x, width, PdfAlign.Left);
+            return (x, width, OfficeAlignment.Left);
         }
 
         private static double MeasurePreparedListHeight(PreparedListLayout prepared, bool frameFit = false) {

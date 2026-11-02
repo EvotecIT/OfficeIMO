@@ -130,7 +130,7 @@ public sealed class ReaderPublisherReviewTests {
         Assert.Equal(3, Regex.Matches(PdfReadDocument.Open(conversion.ToBytes()).ExtractText(), "AmbiguousTable").Count);
         Assert.Contains(conversion.Warnings, warning => warning.Code == "model-table-correlation-unassessed"
             && warning.LossKind == OfficeConversionLossKind.Unassessed);
-        Assert.Throws<InvalidOperationException>(() => conversion.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => conversion.ThrowIfLoss());
     }
 
     [Theory]

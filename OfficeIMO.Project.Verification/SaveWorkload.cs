@@ -9,7 +9,7 @@ internal static class SaveWorkload {
     internal static int Run(int count, ProjectFileFormat format) {
         if (count < 1 || count > 10000) throw new ArgumentOutOfRangeException(nameof(count));
         if (format != ProjectFileFormat.Xml && format != ProjectFileFormat.Mpp14) throw new ArgumentException("Choose Xml or Mpp14.");
-        var options = new ProjectSaveOptions { Format = format, Indent = false, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var options = new ProjectSaveOptions { Format = format, Indent = false, AllowLoss = true };
         byte[] source;
         using (var authored = ProjectDocument.Create()) {
             var start = new DateTime(2026, 10, 5, 8, 0, 0);

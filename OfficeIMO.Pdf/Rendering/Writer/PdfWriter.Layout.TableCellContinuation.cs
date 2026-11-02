@@ -43,7 +43,7 @@ internal static partial class PdfWriter {
         List<double> PrefixHeights(List<double> values) => Enumerable.Repeat(0D, consumedLines).Concat(values).ToList();
         List<T>? Prefix<T>(List<T>? values, T empty) => values == null ? null : Enumerable.Repeat(empty, consumedLines).Concat(values).ToList();
         var paragraphRanges = remainder.ParagraphRanges?.Select(range => range with { StartLine = range.StartLine + consumedLines }).ToList();
-        return new TableCellTextLayout(lines, PrefixHeights(remainder.LineHeights), Prefix(remainder.LineAlignments, (PdfAlign?)null),
+        return new TableCellTextLayout(lines, PrefixHeights(remainder.LineHeights), Prefix(remainder.LineAlignments, (OfficeAlignment?)null),
             Prefix(remainder.LineXOffsets, 0D), Prefix(remainder.LineWidths, 0D), 0D, PrefixHeights(remainder.LineBoxHeights), paragraphRanges);
     }
 

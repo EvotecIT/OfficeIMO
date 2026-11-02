@@ -119,7 +119,7 @@ public sealed class PdfCreationOfficeThemeReviewRegressions {
         document.Content.H1("ExplicitDefaultHeading")
             .H2("ExplicitBlockHeading", new PdfHeadingStyle { Font = PdfStandardFont.Helvetica })
             .Heading(3, "ExplicitRunHeading", paragraph => paragraph.Font(PdfStandardFont.Courier).Text("ExplicitRunHeading"),
-                PdfAlign.Left, null, new PdfHeadingStyle { Font = PdfStandardFont.TimesRoman })
+                OfficeAlignment.Left, null, new PdfHeadingStyle { Font = PdfStandardFont.TimesRoman })
             .Text("ExplicitBody");
         document.Compose(builder => builder.Page(page => page.Theme(boardroom)
             .DefaultTextStyle(style => style.Font(PdfStandardFont.Courier))

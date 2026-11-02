@@ -15,7 +15,7 @@ public sealed partial class EpubPublication {
         var package = new List<EpubDiagnostic>();
         try {
             EpubWriteReport report = Write(options, cancellationToken).Report;
-            foreach (var diagnostic in report.FidelityDiagnostics) Add(package, diagnostic.Code,
+            foreach (var diagnostic in report.Diagnostics) Add(package, diagnostic.Code,
                 EpubDiagnosticSeverity.Warning, diagnostic.Message, PackagePath);
         } catch (Exception error) when (IsPreflightFailure(error)) {
             Add(package, "EPUB_PREFLIGHT_WRITE_FAILED", EpubDiagnosticSeverity.Error, error.Message, PackagePath);

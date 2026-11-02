@@ -191,7 +191,7 @@ public sealed class HtmlNormalizationElementCorrelationTests {
         var native = baseline.CreateSourceDocumentForConversion();
         var normalization = new HtmlNormalizationOptions {
             UseBodyContentsOnly = false, PreserveSkippedElementMarkers = true,
-            CollapseTextWhitespace = false, Limits = HtmlConversionLimits.CreateTrustedProfile()
+            CollapseTextWhitespace = false, Limits = new HtmlConversionLimits()
         };
         string normalized = HtmlNormalizer.Normalize(native, normalization);
         int maximum = Math.Max(baseline.SourceHtml.Length, normalized.Length);

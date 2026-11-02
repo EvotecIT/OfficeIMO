@@ -94,12 +94,12 @@ public sealed class VisioDrawingProjectionTests {
         var result = document.ToPdfDocumentResult(new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages, SourceName = "source.vdx" });
         VisioDrawingConversionReport report = Assert.IsType<VisioDrawingConversionReport>(Assert.Single(result.SourceConversionReports));
         Assert.Equal("source.vdx", report.SourceName);
-        Assert.Contains(result.FidelityDiagnostics, diagnostic => diagnostic.Code == "VISIO_DRAWING_METADATA" && diagnostic.LossKind == OfficeConversionLossKind.Omission && diagnostic.Location!.StartsWith("page:1:Page:shape:"));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "VISIO_DRAWING_METADATA" && diagnostic.LossKind == OfficeConversionLossKind.Omission && diagnostic.Location!.StartsWith("page:1:Page:shape:"));
         byte[] sentinel = { 1, 2, 3 }; using var destination = new MemoryStream(); destination.Write(sentinel, 0, sentinel.Length);
-        Assert.Throws<OfficeConversionException>(() => result.SaveLossless(destination));
+        Assert.Throws<OfficeConversionException>(() => result.Save(destination, failOnLoss: true));
         Assert.Equal(sentinel, destination.ToArray());
         Assert.Throws<OfficeConversionException>(() => document.ToPdfDocumentResult(new VisioToPdfOptions {
-            Mode = VisioPdfProjectionMode.DiagramPages, DrawingOptions = new VisioDrawingOptions { RequireNoLoss = true }
+            Mode = VisioPdfProjectionMode.DiagramPages, DrawingOptions = new VisioDrawingOptions { FailOnLoss = true }
         }));
     }
 
@@ -118,7 +118,7 @@ public sealed class VisioDrawingProjectionTests {
             PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(conversion.ToBytes()));
             Assert.Equal(candidate.Pages.Count, pdf.Pages.Count);
             Assert.Contains(text, NormalizeText(pdf.ExtractText()), StringComparison.OrdinalIgnoreCase);
-            Assert.Contains(conversion.FidelityDiagnostics, diagnostic => diagnostic.Code == "VISIO_DRAWING_TEXT_LAYOUT");
+            Assert.Contains(conversion.Diagnostics, diagnostic => diagnostic.Code == "VISIO_DRAWING_TEXT_LAYOUT");
             Assert.Equal(before, candidate.ToLegacyXmlResult().Value);
         }
     }
@@ -131,7 +131,7 @@ public sealed class VisioDrawingProjectionTests {
         PdfExtractedImage image = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(conversion.ToBytes())).Pages.SelectMany(page => page.GetImages()));
         Assert.True(OfficeRasterImageDecoder.TryDecode(image.Bytes, out OfficeRasterImage? raster));
         Assert.Equal((113, 155), (raster!.Width, raster.Height));
-        Assert.Contains(conversion.FidelityDiagnostics, diagnostic => diagnostic.Code == "VISIO_BITMAP_SIZE_NORMALIZED" && diagnostic.LossKind == OfficeConversionLossKind.None);
+        Assert.Contains(conversion.Diagnostics, diagnostic => diagnostic.Code == "VISIO_BITMAP_SIZE_NORMALIZED" && diagnostic.LossKind == OfficeConversionLossKind.None);
         Assert.Throws<InvalidDataException>(() => document.ToDrawings(new VisioDrawingOptions { MaximumTotalImageBytes = 1 }));
         Assert.Equal(before, document.ToLegacyXmlResult().Value);
         VisioDocument repeated = VisioDocument.LoadLegacyXml(new MemoryStream(before)).Value;
@@ -143,7 +143,7 @@ public sealed class VisioDrawingProjectionTests {
     public void JustifiedParagraphsReachTheSharedParagraphLayout() {
         VisioPage page = VisioDocument.Create().AddPage("Justified");
         VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), "One two three\nfour five six");
-        shape.TextStyle = new VisioTextStyle { HorizontalAlignment = VisioTextHorizontalAlignment.Justify };
+        shape.TextStyle = new VisioTextStyle { HorizontalAlignment = OfficeAlignment.Justify };
         OfficeDrawing scene = page.ToDrawing().Value;
         OfficeDrawingEffectGroup group = Assert.Single(scene.Elements.OfType<OfficeDrawingEffectGroup>());
         OfficeDrawingRichText text = Assert.Single(group.Drawing.Elements.OfType<OfficeDrawingRichText>());
@@ -162,7 +162,7 @@ public sealed class VisioDrawingProjectionTests {
             byte[] before = document.ToLegacyXmlResult().Value;
             var result = document.ToPdfDocumentResult(DiagramOptions());
             Assert.Contains("Fit me fully", NormalizeText(PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).ExtractText()));
-            Assert.Contains(result.FidelityDiagnostics, item => item.Code == "VISIO_DRAWING_TEXT_CLIPPED" &&
+            Assert.Contains(result.Diagnostics, item => item.Code == "VISIO_DRAWING_TEXT_CLIPPED" &&
                 item.LossKind == OfficeConversionLossKind.Omission && item.Location!.StartsWith("page:1:Fitting:shape:"));
             Assert.Equal(before, document.ToLegacyXmlResult().Value);
         }

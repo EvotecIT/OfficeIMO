@@ -25,7 +25,7 @@ public sealed partial class IWorkSourceDocument {
         _cancellationToken = cancellationToken;
         _index = new IWorkObjectIndex(Records, options, cancellationToken);
         BuildVersions = Array.AsReadOnly(ReadBuildVersions(Entries, cancellationToken).ToArray());
-        Previews = Array.AsReadOnly(ReadPreviews(Entries, options.MaximumDecodedImageBytes,
+        Previews = Array.AsReadOnly(ReadPreviews(Entries, options.MaxDecodedImageBytes,
             cancellationToken).ToArray());
         Diagnostics = Array.AsReadOnly(new[] {
             new IWorkDiagnostic(IWorkDiagnosticSeverity.Information, "IWORK_SOURCE_READ",
@@ -273,13 +273,13 @@ public sealed partial class IWorkSourceDocument {
             int declaredSheetCount;
             try {
                 declaredSheetCount = IWorkProtobuf.CountFields(document.Payload, 1,
-                    options.MaximumProtobufFieldCount);
+                    options.MaxProtobufFieldCount);
             } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
                 continue;
             }
-            if (declaredSheetCount > options.MaximumProjectedSheets) {
+            if (declaredSheetCount > options.MaxProjectedSheets) {
                 throw new InvalidDataException(
-                    $"Numbers sheet count exceeds the configured projection limit of {options.MaximumProjectedSheets}.");
+                    $"Numbers sheet count exceeds the configured projection limit of {options.MaxProjectedSheets}.");
             }
             IWorkWireMessage message;
             try {

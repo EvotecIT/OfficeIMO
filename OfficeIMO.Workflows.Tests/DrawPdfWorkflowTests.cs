@@ -40,8 +40,8 @@ public sealed class DrawPdfWorkflowTests {
             });
             Assert.False(result.Succeeded);
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
-            foreach (OfficeConversionFidelityDiagnostic finding in baseline.Report.FidelityDiagnostics.Where(d => d.LossKind != OfficeConversionLossKind.None))
-                Assert.Contains(evidence.FidelityDiagnostics, d => d.Code == finding.Code && d.Source == finding.Source && d.LossKind == finding.LossKind);
+            foreach (OfficeDiagnostic finding in baseline.Report.Diagnostics.Where(d => d.LossKind != OfficeConversionLossKind.None))
+                Assert.Contains(evidence.Diagnostics, d => d.Code == finding.Code && d.Format == finding.Format && d.LossKind == finding.LossKind);
             Assert.Equal(original, File.ReadAllBytes(output));
             Assert.Empty(Directory.GetFiles(directory, ".*.tmp"));
         } finally { Directory.Delete(directory, true); }
@@ -82,7 +82,7 @@ public sealed class DrawPdfWorkflowTests {
             OfficeWorkflowConversionEvidence evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
             Assert.Equal("2", evidence.Facts["sourcePages"]);
             Assert.Equal(extension == ".fodg" ? "FODG" : "ODG", evidence.Facts["sourceFormat"]);
-            Assert.Contains(evidence.FidelityDiagnostics, d => d.Location == "page:2:Empty");
+            Assert.Contains(evidence.Diagnostics, d => d.Location == "page:2:Empty");
             Assert.True(evidence.HasLoss);
             Assert.Contains(result.Diagnostics, d => d.Code == "conversion-output-reopened");
             Assert.Equal(before, File.ReadAllBytes(input));
@@ -112,7 +112,7 @@ public sealed class DrawPdfWorkflowTests {
         try {
             string input = Path.Combine(directory, "source" + extension), output = Path.Combine(directory, "result.pdf");
             var drawing = OdgDocument.Create();
-            drawing.Metadata.Title = "Unprojected metadata";
+            drawing.Properties.Title = "Unprojected metadata";
             drawing.AddPage("Rejected");
             if (extension == ".fodg") drawing.SaveFlatXml(input); else drawing.Save(input);
             byte[] original = { 1, 2, 3 };
@@ -131,7 +131,7 @@ public sealed class DrawPdfWorkflowTests {
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
             Assert.True(evidence.HasLoss);
             Assert.Equal("1", evidence.Facts["sourcePages"]);
-            Assert.Contains(evidence.FidelityDiagnostics, d => d.Location == "document-metadata");
+            Assert.Contains(evidence.Diagnostics, d => d.Location == "document-metadata");
             Assert.Contains(result.Diagnostics, d => d.Code == "ODF_SKIPPED" && d.Details!["location"] == "document-metadata");
             Assert.Equal(original, File.ReadAllBytes(output));
         } finally { Directory.Delete(directory, true); }

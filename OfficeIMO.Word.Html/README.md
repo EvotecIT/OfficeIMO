@@ -127,7 +127,7 @@ Imported tables use a default column grid that fits the section text area or con
 
 ```csharp
 using OfficeIMO.Html;
-var safeOptions = WordHtmlImportOptions.CreateUntrustedHtmlProfile();
+var safeOptions = WordHtmlImportOptions.UntrustedDefaults;
 safeOptions.MaxHtmlNodes = 5000;
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
@@ -147,7 +147,7 @@ once. Imports with `MaxTotalImageBytes` stay sequential so responses that exceed
 budget can be rejected before their bodies are read.
 
 - `CreateOfficeIMOProfile()` keeps the compatibility-oriented defaults.
-- `CreateUntrustedHtmlProfile()` keeps external document resources offline by default and enables bounded conversion. WebP images normalized to PNG are limited to four million decoded pixels; `MaxDecodedImagePixels` configures this limit independently of encoded-byte limits. Oversized images retain their alternative text and produce a diagnostic.
+- `UntrustedDefaults` keeps external document resources offline by default and enables bounded conversion. WebP images normalized to PNG are limited to four million decoded pixels; `MaxDecodedImagePixels` configures this limit independently of encoded-byte limits. Oversized images retain their alternative text and produce a diagnostic.
 - `CreateTrustedDocumentProfile()` enables document-provided stylesheet links for known-good HTML while keeping resource validation.
 - `new WordHtmlImportOptions()` embeds data URI images only; use a trusted/compatibility profile or set `ImageProcessing = WordHtmlImageProcessingMode.Embed` for trusted remote image fetching.
 - Local file images are not loaded by default; use a trusted/compatibility profile or add `Uri.UriSchemeFile` to `AllowedImageUriSchemes` for trusted local files.

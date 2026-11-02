@@ -68,7 +68,7 @@ public sealed class AsciiDocSubstitutionAndExtensionTests {
 
         AsciiDocProcessingResult result = AsciiDocProcessor.Process("issue::1[]\nissue::2[]\n", new AsciiDocProcessorOptions {
             Extensions = registry,
-            MaximumExtensionInvocations = 1
+            MaxExtensionInvocations = 1
         });
 
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "ADOCPROC008");

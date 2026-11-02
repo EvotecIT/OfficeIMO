@@ -80,6 +80,36 @@
       "reason": "Fluent authoring forwards preparation and defaults to the corresponding model operation.",
       "replacement": "Use the model argument order for stencils and connectors; configure callbacks remain optional fluent composition.",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.Visio.VisioTextHorizontalAlignment",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeAlignment",
+      "replacement": "HorzAlign is mapped explicitly; Start and End write Left and Right.",
+      "category": "naming",
+      "reason": "Shared left, center, right, justify, start and end intent uses one Core enum; format enums remain only for values with no shared meaning.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Visio.VisioLoadOptions.MaxInputBytes / MaxLegacyXmlCharacters / MaxPackageXmlCharacters / MaxLegacyXmlDepth / MaxLegacyXmlElements / DefaultMaxInputBytes",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Visio.VisioLoadOptions.Limits (VisioLoadLimits)",
+      "replacement": "new VisioLoadOptions { Limits = { MaxInputBytes = null } }",
+      "category": "limits",
+      "reason": "Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Visio.VisioDocument.Title / Author",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Visio.VisioDocument.Properties (VisioDocumentProperties)",
+      "replacement": "document.Properties.Title = \"...\"",
+      "category": "naming",
+      "reason": "Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate.",
+      "applied": true
     }
   ],
   "extraChanges": [

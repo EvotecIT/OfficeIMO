@@ -40,11 +40,11 @@ namespace OfficeIMO.Examples.Excel
             var rows = GenerateFakeData(50, seed: 42);
             using var doc = ExcelDocument.Create(filePath);
             {
-                doc.BuiltinDocumentProperties.Title = "Domain Detective — Classic Sheets";
-                doc.BuiltinDocumentProperties.Creator = "OfficeIMO";
+                doc.Properties.Title = "Domain Detective — Classic Sheets";
+                doc.Properties.Creator = "OfficeIMO";
                 doc.ApplicationProperties.Company = "Evotec";
                 doc.ApplicationProperties.ApplicationName = "OfficeIMO.Excel";
-                doc.BuiltinDocumentProperties.Keywords = "excel,report,sheets,classic";
+                doc.Properties.Keywords = "excel,report,sheets,classic";
             }
 
             // Overview

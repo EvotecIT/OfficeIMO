@@ -49,7 +49,7 @@ public sealed class PdfNormalizedEncodingCoverageTests {
         // This single source cluster has no spatial-order ambiguity. Exact NFD
         // text proves the painted NFC glyph did not rewrite or duplicate source.
         Assert.Equal(source, PdfReadDocument.Open(bytes).ExtractText().Trim());
-        report.RequireNoLoss();
+        report.ThrowIfLoss();
     }
 
     [Fact]

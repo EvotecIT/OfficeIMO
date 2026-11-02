@@ -30,10 +30,10 @@ internal static partial class PdfWriter {
             var markerPlacement = GetListMarkerPlacement(prepared, preparedItem);
             double markerX = currentOpts.MarginLeft.ToPoints() + markerPlacement.X;
             double markerWidth = markerPlacement.Width;
-            PdfAlign markerAlign = markerPlacement.Align;
+            OfficeAlignment markerAlign = markerPlacement.Align;
             double textX = currentOpts.MarginLeft.ToPoints() + prepared.ListLeftIndent + prepared.MarkerWidth + prepared.MarkerGap;
             double textWidth = prepared.AlignmentWidth;
-            PdfAlign textAlign = prepared.Block.Align;
+            OfficeAlignment textAlign = prepared.Block.Align;
             double size = prepared.Size;
             double leading = prepared.Leading;
             double spacingBefore = itemIndex == 0 ? prepared.SpacingBefore : 0D;

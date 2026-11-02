@@ -127,7 +127,7 @@ internal static class CslNumberSyntax {
     private static bool Hex(char value) => AsciiDigit(value) || value >= 'A' && value <= 'F' || value >= 'a' && value <= 'f';
 
     internal static void Append(StringBuilder output, string value, int start, int count, int maximumCharacters) {
-        if (count > maximumCharacters - output.Length) throw new InvalidDataException("CSL rendering exceeds MaximumIntermediateCharacters.");
+        if (count > maximumCharacters - output.Length) throw new InvalidDataException("CSL rendering exceeds MaxIntermediateCharacters.");
         output.Append(value, start, count);
     }
 }

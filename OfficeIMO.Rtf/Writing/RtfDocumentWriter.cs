@@ -37,7 +37,7 @@ internal static partial class RtfDocumentWriter {
         WriteHtmlEncapsulation(builder, document, options, unicodeSkipCount);
         if (options.IncludeGenerator) {
             builder.Append(@"{\*\generator ");
-            builder.Append(EscapeText(string.IsNullOrWhiteSpace(document.Info.Generator) ? "OfficeIMO.Rtf" : document.Info.Generator!.Trim(), unicodeSkipCount));
+            builder.Append(EscapeText(string.IsNullOrWhiteSpace(document.Properties.Generator) ? "OfficeIMO.Rtf" : document.Properties.Generator!.Trim(), unicodeSkipCount));
             builder.Append(";}");
         }
 
@@ -211,7 +211,7 @@ internal static partial class RtfDocumentWriter {
     }
 
     private static void WriteInfo(StringBuilder builder, RtfDocument document, int unicodeSkipCount) {
-        RtfDocumentInfo info = document.Info;
+        RtfDocumentInfo info = document.Properties;
         if (!HasText(info.Title) && !HasText(info.Subject) && !HasText(info.Author) &&
             !HasText(info.Manager) && !HasText(info.Company) && !HasText(info.Operator) &&
             !HasText(info.Category) && !HasText(info.Keywords) && !HasText(info.Comments) &&

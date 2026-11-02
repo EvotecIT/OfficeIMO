@@ -26,7 +26,7 @@ internal static class NativePagesMixedFontListSmoke {
             "Rejected fractional-size input changed the package or list counters.");
         using var output = new MemoryStream(); output.WriteByte(9);
         try {
-            document.Save(output, new() { MaximumTextRuns = 1 });
+            document.Save(output, new() { MaxTextRuns = 1 });
             throw new InvalidOperationException("Mixed-family runs bypassed the save budget.");
         } catch (InvalidDataException) { }
         Require(output.ToArray().SequenceEqual(new byte[] { 9 }), "Run-budget rejection changed the caller stream.");

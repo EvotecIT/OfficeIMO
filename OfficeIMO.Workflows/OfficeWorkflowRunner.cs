@@ -589,7 +589,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 break;
             case ".html":
                 // The output byte limit bounds this artifact. Ingestion size budgets would reject valid large output.
-                HtmlConversionLimits htmlLimits = HtmlConversionLimits.CreateUntrustedProfile();
+                HtmlConversionLimits htmlLimits = HtmlConversionLimits.UntrustedDefaults;
                 htmlLimits.MaxInputCharacters = (int)Math.Min(loadOptions.Limits.MaxInputBytes, int.MaxValue);
                 htmlLimits.MaxHtmlNodes = null;
                 _ = await HtmlConversionDocument.LoadAsync(

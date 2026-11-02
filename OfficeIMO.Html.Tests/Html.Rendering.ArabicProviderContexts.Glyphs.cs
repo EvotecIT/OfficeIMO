@@ -34,7 +34,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(ArabicContextForms.Substring(1).Reverse().Select(provider.GlyphId),
             blue.PreparedShaping.Result.Glyphs.Select(glyph => glyph.GlyphId));
         Assert.Equal(ArabicContextWord + "\nم رحبا", rendered.Text.Trim().Replace("\r\n", "\n"));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public sealed partial class HtmlRenderingTests {
         byte[] font = PreparedArabicProviderFont();
         HtmlRenderDocument plain = RenderArabicContext(ArabicContextWord,
             provider: new PreparedArabicContextProvider(font, mergeFirstCluster: true), fontData: font);
-        plain.RequireNoLoss();
+        plain.ThrowIfLoss();
         var provider = new PreparedArabicContextProvider(font, mergeFirstCluster: true);
         HtmlRenderDocument split = RenderArabicContext(PreparedArabicColorWord, provider: provider, fontData: font);
 
@@ -51,6 +51,6 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(split.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.Throws<HtmlConversionException>(() => split.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => split.ThrowIfLoss());
     }
 }

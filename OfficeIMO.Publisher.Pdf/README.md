@@ -11,7 +11,7 @@ using OfficeIMO.Publisher.Pdf;
 var publication = PublisherDocument.Load("brochure.pub");
 var converted = publication.ToPdfDocumentResult();
 
-foreach (var diagnostic in publication.ReadReport.FidelityDiagnostics)
+foreach (var diagnostic in publication.ReadReport.Diagnostics)
     Console.WriteLine($"{diagnostic.LossKind}: {diagnostic.Message}");
 
 var saved = converted.Save("brochure.pdf");

@@ -14,7 +14,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Reused_pages_headers_charge_the_character_budget_for_each_destination() {
         using MemoryStream package = CreatePagesPackageWithSharedHeader();
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaximumProjectedTextCharacters = 12 });
+            new IWorkReadOptions { MaxProjectedTextCharacters = 12 });
 
         Assert.Throws<InvalidDataException>(() => source.ReadPages());
     }

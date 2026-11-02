@@ -29,7 +29,7 @@ public partial class PdfPageImageRendererTests {
     [InlineData("/CA 0", "1 Tr ")]
     public void RenderPage_FullyTransparentSpacedTextDoesNotConsumePositioningBudgets(string opacity, string renderingMode) {
         const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
-        string text = new string('A', PdfReadLimits.Default.MaxPositionedTextCharactersPerPage + 1);
+        string text = new string('A', new PdfReadLimits().MaxPositionedTextCharactersPerPage + 1);
         byte[] pdf = BuildSingleStreamPdf("/Zero gs BT /F1 10 Tf 1 Tc " + renderingMode + "20 100 Td (" + text + ") Tj ET",
             "<< /Font << /F1 5 0 R >> /ExtGState << /Zero 6 0 R >> >>", font,
             "6 0 obj\n<< /Type /ExtGState " + opacity + " >>\nendobj");
@@ -376,7 +376,7 @@ public partial class PdfPageImageRendererTests {
     [InlineData("0 0 1 1 re W n ", 20)]
     public void RenderPage_NonpaintingSpacedTextDoesNotConsumePositioningBudget(string clip, int x) {
         const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
-        string text = new string('A', PdfReadLimits.Default.MaxPositionedTextCharactersPerPage + 1);
+        string text = new string('A', new PdfReadLimits().MaxPositionedTextCharactersPerPage + 1);
         byte[] pdf = BuildSingleStreamPdf(clip + "BT /F1 10 Tf 1 Tc " + x + " 100 Td (" + text + ") Tj ET",
             "<< /Font << /F1 5 0 R >> >>", font);
         PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
@@ -559,7 +559,7 @@ public partial class PdfPageImageRendererTests {
     [Fact]
     public void RenderPage_DefaultBudgetRejectsOversizedSpacedRun() {
         const string font = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj";
-        string text = new string('A', PdfReadLimits.Default.MaxPositionedTextCharactersPerPage + 1);
+        string text = new string('A', new PdfReadLimits().MaxPositionedTextCharactersPerPage + 1);
         byte[] pdf = BuildSingleStreamPdf("BT /F1 10 Tf -6 Tc 20 100 Td (" + text + ") Tj ET",
             "<< /Font << /F1 5 0 R >> >>", font);
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfPageImageRenderer.RenderPage(pdf));

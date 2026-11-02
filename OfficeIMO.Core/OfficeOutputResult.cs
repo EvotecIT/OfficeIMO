@@ -12,7 +12,7 @@ public interface IOfficeOutputResult : IOfficeResult {
 
 /// <summary>Pairs output status with the typed fidelity evidence from a document conversion.</summary>
 /// <typeparam name="TReport">Format-specific conversion report.</typeparam>
-public sealed class OfficeOutputResult<TReport> : IOfficeOutputResult where TReport : class, IOfficeConversionReport {
+public sealed class OfficeOutputResult<TReport> : IOfficeOutputResult where TReport : OfficeConversionReport {
     private OfficeOutputResult(string? outputPath, TReport? report, Exception? exception) {
         OutputPath = outputPath;
         Report = report;
@@ -37,11 +37,10 @@ public sealed class OfficeOutputResult<TReport> : IOfficeOutputResult where TRep
     }
 
     /// <summary>Requires successful output and conversion evidence without reported loss.</summary>
-    public OfficeOutputResult<TReport> RequireNoLoss() {
+    public void ThrowIfLoss() {
         RequireSuccess();
         if (Report == null) throw new InvalidOperationException("Document output has no conversion report.");
-        Report.RequireNoLoss();
-        return this;
+        Report.ThrowIfLoss();
     }
 
     /// <summary>Creates a successful output result after the native writer has completed.</summary>

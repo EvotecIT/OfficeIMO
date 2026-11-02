@@ -76,7 +76,7 @@ public sealed class PdfListMarkerFeatureTests {
             MarkerFontSize = global::OfficeIMO.OfficeLength.Points(20D),
             MarkerWidth = global::OfficeIMO.OfficeLength.Points(30D),
             MarkerGap = global::OfficeIMO.OfficeLength.Points(12D),
-            MarkerAlign = PdfAlign.Right,
+            MarkerAlign = OfficeAlignment.Right,
             MarkerFeatureSettings = kerning < 0 ? null : OfficeTextFeatureSettings.Default.With("kern", kerning)
         };
         var items = new[] { new PdfListItem("body", marker: "AV") };

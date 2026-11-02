@@ -21,7 +21,7 @@ public sealed class RtfWordLegacyNumberingTests {
         RtfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
         using WordDocument word = conversion.Value;
         Assert.False(conversion.Report.HasLoss);
-        conversion.Report.RequireNoLoss();
+        conversion.Report.ThrowIfLoss();
         int firstId = Id(word.Paragraphs[0]);
         Assert.Equal(firstId, Id(word.Paragraphs[1]));
         Assert.Equal(new[] { "Alpha.", "Bravo." }, word.Paragraphs.Select(paragraph => paragraph.Text));
@@ -149,9 +149,9 @@ public sealed class RtfWordLegacyNumberingTests {
         Assert.Equal(expected + "Content", visible.Text);
         Assert.All(word.Paragraphs, item => Assert.Null(item._paragraphProperties?.NumberingProperties));
         Assert.True(conversion.Report.HasLoss);
-        Assert.Contains(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "RtfWordLegacyNumberingFlattened"
+        Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "RtfWordLegacyNumberingFlattened"
             && diagnostic.Action == RtfConversionAction.Flattened && diagnostic.Count == 1);
-        Assert.Throws<RtfConversionLossException>(conversion.Report.RequireNoLoss);
+        Assert.Throws<RtfConversionLossException>(conversion.Report.ThrowIfLoss);
         AssertArtifact(word, (string?)null);
         Assert.Equal(before, Native(source));
     }
@@ -171,7 +171,7 @@ public sealed class RtfWordLegacyNumberingTests {
 
         RtfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
         using WordDocument word = conversion.Value;
-        conversion.Report.RequireNoLoss();
+        conversion.Report.ThrowIfLoss();
         Assert.NotEqual(Id(word.Paragraphs[0]), Id(word.Paragraphs[1]));
         Assert.Equal(Id(word.Paragraphs[1]), Id(word.Paragraphs[2]));
         AssertArtifact(word, "5.", "9.", "10.");
@@ -207,7 +207,7 @@ public sealed class RtfWordLegacyNumberingTests {
 
         RtfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
         using WordDocument word = conversion.Value;
-        conversion.Report.RequireNoLoss();
+        conversion.Report.ThrowIfLoss();
         AssertNoteBindings(word, kind);
         Assert.Empty(new OpenXmlValidator().Validate(word._wordprocessingDocument));
         using var bytes = new MemoryStream();
@@ -262,7 +262,7 @@ public sealed class RtfWordLegacyNumberingTests {
 
         RtfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
         using WordDocument word = conversion.Value;
-        conversion.Report.RequireNoLoss();
+        conversion.Report.ThrowIfLoss();
         AssertRtfInlineNote(word, kind, shape);
         Assert.Empty(new OpenXmlValidator().Validate(word._wordprocessingDocument));
         using WordDocument reopened = WordDocument.Load(new MemoryStream(word.ToBytes()));

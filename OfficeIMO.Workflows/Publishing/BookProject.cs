@@ -8,10 +8,10 @@ namespace OfficeIMO.Workflows;
 
 /// <summary>An editable publication and its retained manuscript review state. Instances are mutable and not thread-safe.</summary>
 public sealed partial class BookProject {
-    private readonly IReadOnlyList<OfficeConversionFidelityDiagnostic> _diagnostics;
+    private readonly IReadOnlyList<OfficeDiagnostic> _diagnostics;
     private EpubPublication _publication;
     private byte[]? _undo, _redo;
-    private BookProject(EpubPublication publication, IEnumerable<OfficeConversionFidelityDiagnostic> diagnostics, bool acknowledged) {
+    private BookProject(EpubPublication publication, IEnumerable<OfficeDiagnostic> diagnostics, bool acknowledged) {
         _publication = publication;
         _diagnostics = Array.AsReadOnly(diagnostics.ToArray());
         ImportLossAcknowledged = acknowledged;
@@ -41,7 +41,7 @@ public sealed partial class BookProject {
         _publication = restored; _redo = null; _undo = current.LongLength <= 128L * 1024 * 1024 ? current : null;
     }
     /// <summary>Retained category-preserving manuscript import diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> ImportDiagnostics => _diagnostics;
+    public IReadOnlyList<OfficeDiagnostic> ImportDiagnostics => _diagnostics;
     /// <summary>Whether the author has reviewed and accepted non-fatal import losses.</summary>
     public bool ImportLossAcknowledged { get; private set; }
     /// <summary>Whether import review permits export. Native writer validation still runs for every export.</summary>
@@ -68,7 +68,7 @@ public sealed partial class BookProject {
     /// <summary>Starts a project from the shared manuscript import result.</summary>
     public static BookProject FromImport(EpubManuscriptResult result) {
         if (result == null) throw new ArgumentNullException(nameof(result));
-        return new BookProject(result.Publication, result.Report.FidelityDiagnostics, false);
+        return new BookProject(result.Publication, result.Report.Diagnostics, false);
     }
     /// <summary>Opens an existing EPUB for package-preserving editing without claiming that its content was converted.</summary>
     public static BookProject FromEpub(byte[] bytes, CancellationToken cancellationToken = default) {

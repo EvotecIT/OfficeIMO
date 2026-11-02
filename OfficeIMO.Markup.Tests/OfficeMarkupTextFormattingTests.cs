@@ -40,9 +40,9 @@ public class OfficeMarkupTextFormattingTests {
         Assert.Equal(OfficeConversionLossKind.Approximation, legacyWarning.LossKind);
         Assert.Equal(
             new[] { OfficeConversionLossKind.Omission, OfficeConversionLossKind.Approximation },
-            report.FidelityDiagnostics.Select(static diagnostic => diagnostic.LossKind));
+            report.Diagnostics.Select(static diagnostic => diagnostic.LossKind));
         Assert.True(report.HasLoss);
-        Assert.Throws<OfficeMarkupConversionException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeMarkupConversionException>(() => report.ThrowIfLoss());
     }
 
     [Fact]
@@ -57,8 +57,8 @@ public class OfficeMarkupTextFormattingTests {
         Assert.False(report.Succeeded);
         Assert.True(report.HasLoss);
         Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
-        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(report.FidelityDiagnostics).LossKind);
-        Assert.Throws<OfficeMarkupConversionException>(() => report.RequireNoLoss());
+        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(report.Diagnostics).LossKind);
+        Assert.ThrowsAny<OfficeMarkupConversionException>(() => report.ThrowIfLoss());
     }
 
     [Fact]
@@ -80,11 +80,11 @@ public class OfficeMarkupTextFormattingTests {
         using (excel.Value)
         using (powerPoint.Value)
         using (word.Value) {
-            Assert.Contains(excel.Report.FidelityDiagnostics,
+            Assert.Contains(excel.Report.Diagnostics,
                 diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Contains(powerPoint.Report.FidelityDiagnostics,
+            Assert.Contains(powerPoint.Report.Diagnostics,
                 diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Contains(word.Report.FidelityDiagnostics,
+            Assert.Contains(word.Report.Diagnostics,
                 diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
         }
     }

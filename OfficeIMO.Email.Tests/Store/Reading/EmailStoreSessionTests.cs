@@ -399,7 +399,7 @@ public sealed class EmailStoreSessionTests {
                 diagnostic.Code == "EMAIL_STORE_EXPORT_ITEM_FAILED" &&
                 diagnostic.Message.Contains("denied", StringComparison.OrdinalIgnoreCase)));
             Assert.True(report.HasLoss);
-            Assert.Contains(report.FidelityDiagnostics, diagnostic =>
+            Assert.Contains(report.Diagnostics, diagnostic =>
                 diagnostic.Code == "EMAIL_STORE_MBOX_ITEMS_OMITTED" &&
                 diagnostic.LossKind == OfficeConversionLossKind.Omission);
             Assert.Equal("Valid", Assert.Single(EmailMailbox.Load(destination).Messages).Document.Subject);
@@ -417,20 +417,20 @@ public sealed class EmailStoreSessionTests {
 
             EmailStoreMboxExportReport report = session.ExportToMbox(destination,
                 new EmailStoreMboxExportOptions(
-                    EmailStoreMboxExportFidelityPolicy.RequireNoLoss,
+                    EmailStoreMboxExportFidelityPolicy.FailOnLoss,
                     continueOnError: true));
 
             Assert.Null(report.DestinationPath);
             Assert.False(File.Exists(destination));
             Assert.Equal(1, report.SucceededCount);
             Assert.Equal(1, report.FailedCount);
-            Assert.Contains(report.FidelityDiagnostics, diagnostic =>
+            Assert.Contains(report.Diagnostics, diagnostic =>
                 diagnostic.Code == "EMAIL_STORE_MBOX_ITEMS_OMITTED" &&
                 diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Contains(report.FidelityDiagnostics, diagnostic =>
+            Assert.Contains(report.Diagnostics, diagnostic =>
                 diagnostic.Code == "EMAIL_STORE_MBOX_STRICT_REJECTED" &&
                 diagnostic.LossKind == OfficeConversionLossKind.Failure);
-            Assert.Throws<InvalidDataException>(report.RequireNoLoss);
+            Assert.ThrowsAny<OfficeConversionException>(report.ThrowIfLoss);
         } finally {
             if (File.Exists(destination)) File.Delete(destination);
         }

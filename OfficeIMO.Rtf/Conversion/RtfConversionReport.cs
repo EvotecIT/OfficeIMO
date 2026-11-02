@@ -3,23 +3,25 @@ using OfficeIMO.Rtf.Diagnostics;
 namespace OfficeIMO.Rtf;
 
 /// <summary>Shared fidelity and policy report used by every RTF conversion adapter.</summary>
-public sealed class RtfConversionReport : IOfficeConversionReport {
+public sealed class RtfConversionReport : OfficeConversionReport {
     private readonly List<RtfConversionDiagnostic> _diagnostics = new List<RtfConversionDiagnostic>();
 
     /// <summary>Snapshot of recorded diagnostics in conversion order.</summary>
-    public IReadOnlyList<RtfConversionDiagnostic> Diagnostics => _diagnostics.AsReadOnly();
+    public IReadOnlyList<RtfConversionDiagnostic> NativeDiagnostics => _diagnostics.AsReadOnly();
 
     /// <summary>Category-preserving diagnostics for composed conversion routes.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => Array.AsReadOnly(
-        _diagnostics.Select(static diagnostic => new OfficeConversionFidelityDiagnostic(
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics => Array.AsReadOnly(
+        _diagnostics.Select(static diagnostic => new global::OfficeIMO.OfficeDiagnostic(
             string.IsNullOrWhiteSpace(diagnostic.Code) ? "RTF_DIAGNOSTIC_UNSPECIFIED" : diagnostic.Code,
+            global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
             diagnostic.Message,
-            GetLossKind(diagnostic),
+            diagnostic.SourcePath,
             "OfficeIMO.Rtf",
-            diagnostic.SourcePath)).ToArray());
+            GetLossKind(diagnostic))).ToArray());
 
     /// <summary>Whether the report contains a flattened, omitted, blocked, or error condition.</summary>
-    public bool HasLoss => _diagnostics.Any(static diagnostic => GetLossKind(diagnostic) != OfficeConversionLossKind.None);
+    public override bool HasLoss => _diagnostics.Any(static diagnostic => GetLossKind(diagnostic) != OfficeConversionLossKind.None);
 
     /// <summary>Adds a conversion diagnostic.</summary>
     public RtfConversionDiagnostic Add(
@@ -44,7 +46,7 @@ public sealed class RtfConversionReport : IOfficeConversionReport {
     /// <summary>Adds diagnostics from another report.</summary>
     public void Merge(RtfConversionReport? report) {
         if (report == null || ReferenceEquals(report, this)) return;
-        foreach (RtfConversionDiagnostic diagnostic in report.Diagnostics) {
+        foreach (RtfConversionDiagnostic diagnostic in report.NativeDiagnostics) {
             _diagnostics.Add(diagnostic);
         }
     }
@@ -67,9 +69,7 @@ public sealed class RtfConversionReport : IOfficeConversionReport {
     }
 
     /// <summary>Throws when the report contains any fidelity loss or blocked feature.</summary>
-    public void RequireNoLoss() {
-        if (HasLoss) throw new RtfConversionLossException(this);
-    }
+    protected override OfficeConversionException CreateLossException() => new RtfConversionLossException(this);
 
     private static OfficeConversionLossKind GetLossKind(RtfConversionDiagnostic diagnostic) =>
         diagnostic.Severity == RtfConversionSeverity.Error || diagnostic.Action == RtfConversionAction.Blocked

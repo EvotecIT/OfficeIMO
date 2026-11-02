@@ -8,7 +8,7 @@ namespace OfficeIMO.IWork.Tests;
 public sealed class IWorkPublicApiContracts {
     [Fact]
     public void ConversionReportsAndResultsUseTheSharedLossContract() {
-        Assert.Contains(typeof(IOfficeConversionReport), typeof(IWorkConversionReport).GetInterfaces());
+        Assert.True(typeof(OfficeConversionReport).IsAssignableFrom(typeof(IWorkConversionReport)));
 
         AssertConversionResult(typeof(PagesToWordResult));
         AssertConversionResult(typeof(NumbersToExcelResult));
@@ -63,7 +63,7 @@ public sealed class IWorkPublicApiContracts {
         Assert.NotNull(resultType.GetProperty("Report"));
         Assert.NotNull(resultType.GetProperty("HasLoss"));
         Assert.NotNull(resultType.GetMethod("RequireValue", Type.EmptyTypes));
-        Assert.NotNull(resultType.GetMethod("RequireNoLoss", Type.EmptyTypes));
+        Assert.NotNull(resultType.GetMethod("ThrowIfLoss", Type.EmptyTypes));
         Assert.Null(resultType.GetProperty("Document"));
         Assert.Null(resultType.GetProperty("ImportReport"));
         Assert.Null(resultType.GetProperty("HasConversionLoss"));

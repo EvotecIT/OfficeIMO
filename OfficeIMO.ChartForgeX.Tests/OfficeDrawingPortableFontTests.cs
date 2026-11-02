@@ -23,7 +23,7 @@ namespace OfficeIMO.ChartForgeX.Tests {
             drawing.AddPositionedText("AV", 0, 0, advance, 20, new OfficeImageFrameTransform(0, 0, 0),
                 new OfficeFontInfo(familyList, 12), OfficeColor.Black, textAdvanceWidth: advance);
             Assert.Equal(accepted, OfficeDrawingPortableExporter.TryExportJson(drawing,
-                new OfficeDrawingPortableOptions(Family), out string? json, out IReadOnlyList<OfficeConversionFidelityDiagnostic> diagnostics));
+                new OfficeDrawingPortableOptions(Family), out string? json, out IReadOnlyList<OfficeDiagnostic> diagnostics));
             if (accepted) {
                 Assert.NotNull(json);
                 Assert.Empty(diagnostics);

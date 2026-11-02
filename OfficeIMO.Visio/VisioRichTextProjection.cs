@@ -138,7 +138,7 @@ internal sealed partial class VisioRichTextProjection {
         List<XElement>? paragraphs = paragraph?.Elements(ns + "Row").Take(2).ToList();
         XElement? para = paragraphs?.Count == 1 ? paragraphs[0] : null;
         if (para != null && TryInt(Cell(para, "HorzAlign"), out int align) && align >= 0 && align <= 3)
-            alignment = VisioDrawingTextAlignment.ToOfficeTextAlignment((VisioTextHorizontalAlignment)align);
+            alignment = VisioDrawingTextAlignment.ToOfficeTextAlignment((OfficeAlignment)align);
         return new VisioRichTextProjection(runs, alignment);
     }
 

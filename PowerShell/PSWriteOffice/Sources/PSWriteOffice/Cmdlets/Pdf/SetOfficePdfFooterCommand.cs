@@ -58,7 +58,7 @@ public sealed class SetOfficePdfFooterCommand : PSCmdlet
 
     /// <summary>Footer alignment.</summary>
     [Parameter]
-    public PdfAlign Align { get; set; } = PdfAlign.Center;
+    public OfficeAlignment Align { get; set; } = OfficeAlignment.Center;
 
     /// <summary>Footer font size in PDF points.</summary>
     [Parameter]
@@ -104,10 +104,10 @@ public sealed class SetOfficePdfFooterCommand : PSCmdlet
     {
         switch (Align)
         {
-            case PdfAlign.Right:
+            case OfficeAlignment.Right:
                 footer.AlignRight();
                 break;
-            case PdfAlign.Left:
+            case OfficeAlignment.Left:
                 footer.AlignLeft();
                 break;
             default:

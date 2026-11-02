@@ -108,7 +108,7 @@ internal static class RtfBenchmarkBudgetRunner {
             RtfReadResult result = RtfDocument.ParseResult(fixture.Rtf);
             outputBytes = Encoding.UTF8.GetByteCount(result.ToRtfLossless());
         } else if (string.Equals(operation, "ParseUntrusted", StringComparison.OrdinalIgnoreCase)) {
-            RtfReadResult result = RtfDocument.ParseResult(fixture.Rtf, RtfReadOptions.CreateUntrustedProfile());
+            RtfReadResult result = RtfDocument.ParseResult(fixture.Rtf, RtfReadOptions.UntrustedDefaults);
             outputBytes = Encoding.UTF8.GetByteCount(result.ToRtfLossless());
         } else if (string.Equals(operation, "Lossless", StringComparison.OrdinalIgnoreCase)) {
             outputBytes = Encoding.UTF8.GetByteCount(RtfDocument.ParseResult(fixture.Rtf).EditLossless().ToRtf());

@@ -45,7 +45,7 @@ public sealed class ReaderHtmlOptions {
 
         var options = MarkdownHtmlImportOptions.CreatePortableProfile();
         options.MaxInputCharacters = maxInputCharacters;
-        HtmlConversionDocumentOptions conversionOptions = HtmlConversionDocumentOptions.CreateUntrustedProfile();
+        HtmlConversionDocumentOptions conversionOptions = HtmlConversionDocumentOptions.UntrustedDefaults;
         conversionOptions.Limits.MaxInputCharacters = maxInputCharacters;
 
         return new ReaderHtmlOptions {

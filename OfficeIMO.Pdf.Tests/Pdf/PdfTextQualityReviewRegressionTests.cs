@@ -71,7 +71,7 @@ public sealed class PdfTextQualityReviewRegressionTests {
         byte[] pdf = PdfDocument.Create(options).Paragraph(p => p.Runs(new[] {
             new PdfTextRun("A ", font: PdfStandardFont.Helvetica),
             new PdfTextRun("A A A A A A A A A A A A A A A A", fontFamily: "Embedded")
-        }), align: PdfAlign.Justify).ToBytes();
+        }), align: OfficeAlignment.Justify).ToBytes();
         string raw = Encoding.ASCII.GetString(pdf);
         Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /Type1", raw, StringComparison.Ordinal);

@@ -938,7 +938,7 @@ public class PdfFormCreationTests {
                         .ChoiceField("Left.Country", new[] { "Poland", "Germany" }, value: "Poland", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(20)))
                     .PercentColumn(50, column => column
                         .Paragraph(p => p.Text("Right column"))
-                        .CheckBox("Right.Enabled", isChecked: true, size: global::OfficeIMO.OfficeLength.Points(14), align: PdfAlign.Center, spacingAfter: global::OfficeIMO.OfficeLength.Points(8))
+                        .CheckBox("Right.Enabled", isChecked: true, size: global::OfficeIMO.OfficeLength.Points(14), align: OfficeAlignment.Center, spacingAfter: global::OfficeIMO.OfficeLength.Points(8))
                         .MultiSelectChoiceField("Right.Countries", new[] { "Poland", "Germany", "United States" }, values: new[] { "Germany" }, width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(44))
                         .RadioButtonGroup("Right.Contact", new[] { "Email", "Phone" }, value: "Phone", size: global::OfficeIMO.OfficeLength.Points(12), gap: global::OfficeIMO.OfficeLength.Points(4))));
             })))
@@ -985,10 +985,10 @@ public class PdfFormCreationTests {
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().TextField(" "));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().TextField("Name", width: global::OfficeIMO.OfficeLength.Points(0)));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().TextField("Name", height: global::OfficeIMO.OfficeLength.Points(-1)));
-        Assert.Throws<ArgumentException>(() => PdfDocument.Create().TextField("Name", align: PdfAlign.Justify));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().TextField("Name", align: OfficeAlignment.Justify));
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().CheckBox(" "));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().CheckBox("AcceptTerms", size: 0));
-        Assert.Throws<ArgumentException>(() => PdfDocument.Create().CheckBox("AcceptTerms", align: PdfAlign.Justify));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().CheckBox("AcceptTerms", align: OfficeAlignment.Justify));
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().CheckBox("AcceptTerms", checkedValueName: " "));
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().CheckBox("AcceptTerms", checkedValueName: "Off"));
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().ChoiceField(" ", new[] { "One" }));
@@ -999,7 +999,7 @@ public class PdfFormCreationTests {
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().ChoiceField("Country", new[] { "One" }, value: "Two"));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().ChoiceField("Country", new[] { "One" }, width: 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().ChoiceField("Country", new[] { "One" }, height: -1));
-        Assert.Throws<ArgumentException>(() => PdfDocument.Create().ChoiceField("Country", new[] { "One" }, align: PdfAlign.Justify));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().ChoiceField("Country", new[] { "One" }, align: OfficeAlignment.Justify));
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().MultiSelectChoiceField("Countries", Array.Empty<string>()));
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().MultiSelectChoiceField("Countries", new[] { "One" }, values: Array.Empty<string>()));
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().MultiSelectChoiceField("Countries", new[] { "One" }, values: new[] { "Two" }));
@@ -1015,7 +1015,7 @@ public class PdfFormCreationTests {
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "Y\u2713" }));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "One" }, size: 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "One" }, gap: -1));
-        Assert.Throws<ArgumentException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "One" }, align: PdfAlign.Justify));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "One" }, align: OfficeAlignment.Justify));
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { BorderWidth = global::OfficeIMO.OfficeLength.Points(-1) });
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { CornerRadius = global::OfficeIMO.OfficeLength.Points(-1) });
 

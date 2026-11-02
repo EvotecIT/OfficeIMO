@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_UpdateFieldsAndGetReport_ExposesStableDiagnosticCodesAndEvaluationBasis() {
             using WordDocument document = WordDocument.Create();
-            document.BuiltinDocumentProperties.Creator = "Ada";
+            document.Properties.Creator = "Ada";
             document.AddParagraph("Author: ").AddField(WordFieldType.Author);
             document.AddParagraph("Page: ").AddField(WordFieldType.Page);
             document.AddParagraph("List: ").AddField(WordFieldType.ListNum);
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_UpdateFieldsAndGetReport_PreservesContainingReplacementReasonForNestedLayoutField() {
             using WordDocument document = WordDocument.Create();
-            document.BuiltinDocumentProperties.Creator = "Ada";
+            document.Properties.Creator = "Ada";
             AddNestedComplexFields(
                 document.AddParagraph()._paragraph,
                 " AUTHOR ",
@@ -120,18 +120,18 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.Metadata.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.BuiltinDocumentProperties.Creator = "Ada Lovelace";
-                document.BuiltinDocumentProperties.Title = "Premium Gap Plan";
-                document.BuiltinDocumentProperties.Subject = "Field evaluator";
-                document.BuiltinDocumentProperties.Keywords = "officeimo,fields";
-                document.BuiltinDocumentProperties.Description = "Structured field diagnostics";
-                document.BuiltinDocumentProperties.LastModifiedBy = "Grace Hopper";
-                document.BuiltinDocumentProperties.Created = new DateTime(2024, 1, 2, 3, 4, 5);
-                document.BuiltinDocumentProperties.Modified = new DateTime(2024, 1, 3, 4, 5, 6);
-                document.CustomDocumentProperties["ClientName"] = new WordCustomProperty("Evotec");
-                document.CustomDocumentProperties["Ticket"] = new WordCustomProperty(42);
-                document.CustomDocumentProperties["Reviewed"] = new WordCustomProperty(true);
-                document.CustomDocumentProperties["Due"] = new WordCustomProperty(new DateTime(2024, 2, 3, 12, 0, 0));
+                document.Properties.Creator = "Ada Lovelace";
+                document.Properties.Title = "Premium Gap Plan";
+                document.Properties.Subject = "Field evaluator";
+                document.Properties.Keywords = "officeimo,fields";
+                document.Properties.Description = "Structured field diagnostics";
+                document.Properties.LastModifiedBy = "Grace Hopper";
+                document.Properties.Created = new DateTime(2024, 1, 2, 3, 4, 5);
+                document.Properties.Modified = new DateTime(2024, 1, 3, 4, 5, 6);
+                document.CustomProperties["ClientName"] = new WordCustomProperty("Evotec");
+                document.CustomProperties["Ticket"] = new WordCustomProperty(42);
+                document.CustomProperties["Reviewed"] = new WordCustomProperty(true);
+                document.CustomProperties["Due"] = new WordCustomProperty(new DateTime(2024, 2, 3, 12, 0, 0));
 
                 document.AddParagraph("Author: ").AddField(WordFieldType.Author);
                 document.AddParagraph("Title: ").AddField(WordFieldType.Title);
@@ -196,7 +196,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.DottedMetadata.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.CustomDocumentProperties["Client.Name"] = new WordCustomProperty("Evotec");
+                document.CustomProperties["Client.Name"] = new WordCustomProperty("Evotec");
                 document.SetDocumentVariable("Case.Id", "INC-42");
                 document.AddParagraph("Client: ")._paragraph.Append(BuildSimpleField(" DOCPROPERTY Client.Name ", "stale-client"));
                 document.AddParagraph("Case: ")._paragraph.Append(BuildSimpleField(" DOCVARIABLE Case.Id ", "stale-case"));
@@ -315,7 +315,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.EmptySimpleField.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.BuiltinDocumentProperties.Creator = "Ada Lovelace";
+                document.Properties.Creator = "Ada Lovelace";
                 document.AddParagraph("Author: ")._paragraph.Append(new SimpleField { Instruction = " AUTHOR " });
                 document.Save();
             }
@@ -647,9 +647,9 @@ namespace OfficeIMO.Tests {
             var updateTime = new DateTime(2026, 6, 30, 15, 16, 17);
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.BuiltinDocumentProperties.Created = new DateTime(2024, 1, 2, 3, 4, 5);
-                document.BuiltinDocumentProperties.Modified = new DateTime(2024, 1, 3, 4, 5, 6);
-                document.BuiltinDocumentProperties.LastPrinted = new DateTime(2024, 1, 4, 5, 6, 7);
+                document.Properties.Created = new DateTime(2024, 1, 2, 3, 4, 5);
+                document.Properties.Modified = new DateTime(2024, 1, 3, 4, 5, 6);
+                document.Properties.LastPrinted = new DateTime(2024, 1, 4, 5, 6, 7);
 
                 document.AddParagraph("Created custom: ").AddField(WordFieldType.CreateDate, customFormat: "yyyy/MM/dd");
                 document.AddParagraph("Saved default: ").AddField(WordFieldType.SaveDate);
@@ -713,7 +713,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.DateTextFormat.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.BuiltinDocumentProperties.Created = new DateTime(2024, 1, 2, 3, 4, 5);
+                document.Properties.Created = new DateTime(2024, 1, 2, 3, 4, 5);
                 document.AddParagraph("Created upper: ")._paragraph.Append(BuildSimpleField(" CREATEDATE \\@ \"MMMM d, yyyy\" \\* Upper ", "stale-created"));
                 document.Save();
             }
@@ -733,11 +733,11 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.InfoRevision.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.BuiltinDocumentProperties.Title = "Premium Gap Plan";
-                document.BuiltinDocumentProperties.Category = "Market readiness";
-                document.BuiltinDocumentProperties.Revision = "7";
-                document.BuiltinDocumentProperties.Version = "2026.6";
-                document.BuiltinDocumentProperties.LastPrinted = new DateTime(2024, 1, 4, 5, 6, 7);
+                document.Properties.Title = "Premium Gap Plan";
+                document.Properties.Category = "Market readiness";
+                document.Properties.Revision = "7";
+                document.Properties.Version = "2026.6";
+                document.Properties.LastPrinted = new DateTime(2024, 1, 4, 5, 6, 7);
 
                 document.AddParagraph("Revision direct: ").AddField(WordFieldType.RevNum);
                 document.AddParagraph("Info title: ").AddField(WordFieldType.Info, parameters: new List<string> { "Title" });
@@ -1124,9 +1124,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.MetadataTextFormats.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.BuiltinDocumentProperties.Creator = "Ada Lovelace";
-                document.BuiltinDocumentProperties.Title = "MIXED TITLE";
-                document.BuiltinDocumentProperties.Subject = "release status";
+                document.Properties.Creator = "Ada Lovelace";
+                document.Properties.Title = "MIXED TITLE";
+                document.Properties.Subject = "release status";
                 document.AddParagraph("Author upper: ")._paragraph.Append(BuildSimpleField(" AUTHOR \\* Upper ", "stale-author"));
                 document.AddParagraph("Title lower: ")._paragraph.Append(BuildSimpleField(" TITLE \\* Lower ", "stale-title"));
                 document.AddParagraph("Subject caps: ")._paragraph.Append(BuildSimpleField(" SUBJECT \\* Caps ", "stale-subject"));
@@ -1169,8 +1169,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.NestedComplexFields.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.BuiltinDocumentProperties.Creator = "Ada Lovelace";
-                document.BuiltinDocumentProperties.Title = "Premium Gap Plan";
+                document.Properties.Creator = "Ada Lovelace";
+                document.Properties.Title = "Premium Gap Plan";
 
                 AddNestedComplexFields(
                     document.AddParagraph()._paragraph,
@@ -1350,7 +1350,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.NestedInstructionFormula.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.CustomDocumentProperties["Rate"] = new WordCustomProperty("0.125");
+                document.CustomProperties["Rate"] = new WordCustomProperty("0.125");
                 AddNestedInstructionComplexField(
                     document.AddParagraph()._paragraph,
                     " = ",

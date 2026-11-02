@@ -134,13 +134,13 @@ public sealed class IWorkPagesImageWritingTests {
         var document = IWorkPagesDocument.Create(); document.AddImage(payload, 120, 80, "Alt 😀"); document.AddImage(payload, 80, 120);
         var limits = new IWorkPagesWriteOptions();
         switch (boundary) {
-            case "count": limits.MaximumImages = 1; break;
-            case "encoded": limits.MaximumEncodedImageBytes = payload.Length; break;
-            case "decoded": limits.MaximumDecodedImageBytes = 24 * 16 * 4; break;
-            case "characters": limits.MaximumTextCharacters = 9; break;
-            case "paragraphs": limits.MaximumParagraphs = 1; break;
-            case "runs": limits.MaximumTextRuns = 1; break;
-            case "package": limits.MaximumPackageBytes = 64; break;
+            case "count": limits.MaxImages = 1; break;
+            case "encoded": limits.MaxEncodedImageBytes = payload.Length; break;
+            case "decoded": limits.MaxDecodedImageBytes = 24 * 16 * 4; break;
+            case "characters": limits.MaxTextCharacters = 9; break;
+            case "paragraphs": limits.MaxParagraphs = 1; break;
+            case "runs": limits.MaxTextRuns = 1; break;
+            case "package": limits.MaxPackageBytes = 64; break;
         }
         byte[] sentinel = [9, 8, 7]; using var output = new MemoryStream(); output.Write(sentinel);
         Assert.Throws<InvalidDataException>(() => document.Save(output, limits)); Assert.Equal(sentinel, output.ToArray());
@@ -156,8 +156,8 @@ public sealed class IWorkPagesImageWritingTests {
     public void Exact_image_budgets_count_each_instance_description_and_attachment_marker() {
         byte[] payload = IWorkKeynoteImageWritingTests.ImageBytes(false);
         var document = IWorkPagesDocument.Create(); document.AddImage(payload, 120, 80, "Alt 😀"); document.AddImage(payload, 80, 120);
-        byte[] bytes = document.SaveBytes(new() { MaximumImages = 2, MaximumEncodedImageBytes = payload.Length * 2L,
-            MaximumDecodedImageBytes = 24 * 16 * 4 * 2, MaximumTextCharacters = 10, MaximumParagraphs = 2, MaximumTextRuns = 2 });
+        byte[] bytes = document.SaveBytes(new() { MaxImages = 2, MaxEncodedImageBytes = payload.Length * 2L,
+            MaxDecodedImageBytes = 24 * 16 * 4 * 2, MaxTextCharacters = 10, MaxParagraphs = 2, MaxTextRuns = 2 });
         Assert.Equal(2, IWorkSourceDocument.Open(bytes).ReadPages().Images.Count);
     }
 

@@ -70,7 +70,7 @@ public sealed partial class PowerPointInheritedLinkOwnerTests {
         Assert.Equal(kind == "next" ? 1 : 2, pdf.LinkAnnotations.Count);
         if (kind == "external") Assert.All(pdf.LinkAnnotations, link => Assert.Equal(expected, link.Uri));
         else Assert.All(pdf.LinkAnnotations, link => Assert.Equal("powerpoint-slide-2", link.DestinationName));
-        if (kind == "next") Assert.Contains(conversion.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "internal-slide-target-omitted");
+        if (kind == "next") Assert.Contains(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "internal-slide-target-omitted");
     }
 
     private static OpenXmlPart Owner(PowerPointSlide slide, bool master) => master

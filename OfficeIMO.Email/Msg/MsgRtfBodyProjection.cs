@@ -9,11 +9,11 @@ internal static class MsgRtfBodyProjection {
         if (string.IsNullOrEmpty(rtf)) return null;
 
         try {
-            RtfReadOptions options = RtfReadOptions.CreateUntrustedProfile();
+            RtfReadOptions options = RtfReadOptions.UntrustedDefaults;
             int maximum = checked((int)Math.Min(state.Options.MaxDecodedPropertyBytes, int.MaxValue));
-            options.MaxInputBytes = maximum;
-            options.MaxInputCharacters = maximum;
-            options.MaxTextCharacters = maximum;
+            options.Limits.MaxInputBytes = maximum;
+            options.Limits.MaxInputCharacters = maximum;
+            options.Limits.MaxTextCharacters = maximum;
             RtfReadResult result = RtfDocument.ParseResult(rtf!, options, state.CancellationToken);
             AddDiagnostics(result.Diagnostics, state.Diagnostics, location);
             string? html = result.Document.HtmlEncapsulation?.Html;

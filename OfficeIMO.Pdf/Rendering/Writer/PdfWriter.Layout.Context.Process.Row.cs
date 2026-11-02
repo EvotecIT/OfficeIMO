@@ -548,8 +548,8 @@ internal static partial class PdfWriter {
                             if (needed > remainingForFinalItem && consumed == 0) { remain = 0; break; }
                             if (spacingBefore > 0) yCol -= spacingBefore;
                             double xImg = xCol;
-                            if (imageStyle.Align == PdfAlign.Center) xImg = xCol + Math.Max(0, (wCol - ciimg.Width) / 2);
-                            else if (imageStyle.Align == PdfAlign.Right) xImg = xCol + Math.Max(0, wCol - ciimg.Width);
+                            if (imageStyle.Align == OfficeAlignment.Center) xImg = xCol + Math.Max(0, (wCol - ciimg.Width) / 2);
+                            else if (imageStyle.Align == OfficeAlignment.Right) xImg = xCol + Math.Max(0, wCol - ciimg.Width);
                             PageImage pageImage = CreatePageImage(ib2, imageStyle, xImg, yCol - ciimg.Height, ciimg.Width, ciimg.Height);
                             RecordFlowPlacement(yCol);
                             ReserveImageNavigationTarget(pageImage);

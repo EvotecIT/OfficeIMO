@@ -195,7 +195,7 @@ internal static partial class PdfWriter {
             return ((ChoiceFieldBlock)block).SpacingAfter;
         }
 
-        private static PdfAlign GetFormFieldAlign(IPdfBlock block) {
+        private static OfficeAlignment GetFormFieldAlign(IPdfBlock block) {
             if (block is TextFieldBlock textField) {
                 return textField.Align;
             }

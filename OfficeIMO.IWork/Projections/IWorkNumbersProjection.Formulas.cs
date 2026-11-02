@@ -8,8 +8,8 @@ internal static partial class IWorkNumbersReader {
         var labels = new Dictionary<IWorkTable, string?>();
         foreach (IWorkNumbersSheet sheet in sheets) foreach (IWorkTable table in sheet.Tables) {
             source.CancellationToken.ThrowIfCancellationRequested();
-            string? sheetName = IWorkFormulaReader.QuoteTableName(sheet.Name, source.Options.MaximumFormulaCharacters);
-            string? tableName = IWorkFormulaReader.QuoteTableName(table.Name, source.Options.MaximumFormulaCharacters);
+            string? sheetName = IWorkFormulaReader.QuoteTableName(sheet.Name, source.Options.MaxFormulaCharacters);
+            string? tableName = IWorkFormulaReader.QuoteTableName(table.Name, source.Options.MaxFormulaCharacters);
             labels.Add(table, sheetName != null && tableName != null ? sheetName + "::" + tableName + "::" : null);
         }
         IReadOnlyDictionary<Guid, IWorkFormulaTableBinding> qualifiers = IWorkFormulaTableBindings.Create(labels.Keys,

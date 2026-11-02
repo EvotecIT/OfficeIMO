@@ -140,7 +140,7 @@ public sealed class IWorkCorpusTests {
         Assert.True(report.TotalRecordCount >= report.PreservedRecords.Count);
         Assert.NotEmpty(report.PreservedRecords);
         Assert.True(report.HasLoss);
-        Assert.Contains(report.FidelityDiagnostics, diagnostic =>
+        Assert.Contains(report.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_RECORD_FIDELITY_UNASSESSED"
             && diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
     }
@@ -207,7 +207,7 @@ public sealed class IWorkCorpusTests {
     public void Numbers_enforces_the_configured_merged_range_bound() {
         IWorkSourceDocument source = IWorkSourceDocument.Open(
             Fixture("numbers-parser/test-9-merges.numbers"),
-            new IWorkReadOptions { MaximumTableMergedRanges = 1 });
+            new IWorkReadOptions { MaxTableMergedRanges = 1 });
 
         Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
     }
@@ -230,11 +230,11 @@ public sealed class IWorkCorpusTests {
     public void Numbers_formula_projection_honors_node_and_character_bounds() {
         const string RelativePath = "numbers-parser/test-10-formulas.numbers";
         IWorkSourceDocument nodeBounded = IWorkSourceDocument.Open(Fixture(RelativePath),
-            new IWorkReadOptions { MaximumFormulaNodes = 1 });
+            new IWorkReadOptions { MaxFormulaNodes = 1 });
         Assert.Throws<InvalidDataException>(() => nodeBounded.ReadNumbers());
 
         IWorkNumbersProjection characterBounded = IWorkSourceDocument.Open(Fixture(RelativePath),
-            new IWorkReadOptions { MaximumFormulaCharacters = 4 }).ReadNumbers();
+            new IWorkReadOptions { MaxFormulaCharacters = 4 }).ReadNumbers();
         IWorkTableCell formula = characterBounded.Sheets[0].Tables[0].GetCell(2, 2)!;
         Assert.False(formula.FormulaIsComplete);
         Assert.Equal("=#FORMULA!", formula.Formula);
@@ -587,9 +587,9 @@ public sealed class IWorkCorpusTests {
     [Fact]
     public void Rejects_configured_record_and_package_bounds() {
         Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(
-            Fixture("nim-iwork/simple.pages"), new IWorkReadOptions { MaximumRecordCount = 1 }));
+            Fixture("nim-iwork/simple.pages"), new IWorkReadOptions { MaxRecordCount = 1 }));
         Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(
-            Fixture("nim-iwork/simple.pages"), new IWorkReadOptions { MaximumPackageBytes = 1024 }));
+            Fixture("nim-iwork/simple.pages"), new IWorkReadOptions { MaxPackageBytes = 1024 }));
     }
 
     [Fact]

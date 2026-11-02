@@ -40,7 +40,7 @@ public partial class Word {
                 item => item.Code == "native-paragraph-frame-flattened");
             Assert.Equal(OfficeIMO.OfficeConversionLossKind.Approximation, warning.LossKind);
             Assert.True(result.HasLoss);
-            Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
             using var output = new MemoryStream();
             var saved = result.Save(output);
             Assert.True(saved.Succeeded);
@@ -79,8 +79,8 @@ public partial class Word {
         PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "native-paragraph-frame-flattened");
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Approximation, warning.LossKind);
         Assert.True(result.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         string text = PdfReadDocument.Open(result.ToBytes()).ExtractText();
         Assert.Contains("BEFORE", text, StringComparison.Ordinal);
         Assert.Contains("AFTER", text, StringComparison.Ordinal);
@@ -93,8 +93,8 @@ public partial class Word {
 
         PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(CreateFrameFlowBreakPdfOptions());
 
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
     }
 
     [Theory]
@@ -134,7 +134,7 @@ public partial class Word {
         PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(CreateFrameFlowBreakPdfOptions());
 
         Assert.DoesNotContain(result.Warnings, item => item.Code == "native-paragraph-frame-flattened");
-        result.RequireNoLoss();
+        result.ThrowIfLoss();
         string text = PdfReadDocument.Open(result.ToBytes()).ExtractText();
         Assert.Contains("BEFORE", text, StringComparison.Ordinal);
         Assert.Contains("AFTER", text, StringComparison.Ordinal);

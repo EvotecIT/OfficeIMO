@@ -22,7 +22,7 @@ public static partial class OfficeOcrConversionExtensions {
         var converted = source.Document.ConvertToPowerPointWithEvidence(options, cancellationToken);
         PowerPointDocument value = converted.Value;
         try {
-            report = PdfConversionEvidence.CreateReport("Pdf", new IOfficeConversionReport[] { converted.Report },
+            report = PdfConversionEvidence.CreateReport("Pdf", new OfficeConversionReport[] { converted.Report },
                 elapsed: timer.Elapsed, itemsWritten: value.Slides.Count, target: "PowerPoint");
             if (options?.FailOnLoss == true) report.ThrowIfLoss();
             return value;

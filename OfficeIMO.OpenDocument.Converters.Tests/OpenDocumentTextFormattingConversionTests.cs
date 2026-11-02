@@ -201,7 +201,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
     [Fact]
     public void OdtParagraphLowercasePreservesFinalSigmaAcrossFormattingBoundaries() {
         OdtDocument odt = OdtDocument.Create();
-        odt.Metadata.Language = "el-GR";
+        odt.Properties.Language = "el-GR";
         OdtParagraph paragraph = odt.AddParagraph();
         paragraph.TextTransform = OdfTextTransform.Lowercase;
         paragraph.AddSpan("Ο").Bold = true;
@@ -225,7 +225,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("tr-TR");
             CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("tr-TR");
             OdtDocument odt = OdtDocument.Create();
-            odt.Metadata.Language = "en-US";
+            odt.Properties.Language = "en-US";
             OdtParagraph lowercase = odt.AddParagraph("I");
             lowercase.TextTransform = OdfTextTransform.Lowercase;
             OdtParagraph capitalize = odt.AddParagraph("istanbul");
@@ -262,7 +262,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
     [Fact]
     public void OdpParagraphLowercasePreservesFinalSigmaAcrossFormattingBoundaries() {
         OdpPresentation odp = OdpPresentation.Create();
-        odp.Metadata.Language = "el-GR";
+        odp.Properties.Language = "el-GR";
         OdpParagraph paragraph = odp.AddSlide("Text")
             .AddTextBox(OdfRect.FromCentimeters(1, 1, 10, 3), null, "Text")
             .AddParagraph();
@@ -287,7 +287,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
             CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("en-US");
             OdpPresentation odp = OdpPresentation.Create();
-            odp.Metadata.Language = "tr-TR";
+            odp.Properties.Language = "tr-TR";
             OdpTextBox textBox = odp.AddSlide("Text")
                 .AddTextBox(OdfRect.FromCentimeters(1, 1, 10, 3), null, "Text");
             OdpParagraph capitalize = textBox.AddParagraph("istanbul");

@@ -91,8 +91,8 @@ public sealed class ProjectSaveOptions {
     public ProjectMpxEncoding? MpxEncoding { get; set; }
     /// <summary>MPX field separator. Null retains the source separator or uses a comma for new output. Rewrites reject +, -, ., % and ? because these conflict with dependency syntax.</summary>
     public char? MpxSeparator { get; set; }
-    /// <summary>Blocks save when modeled edits may invalidate unmodeled source content.</summary>
-    public OfficeConversionLossPolicy LossPolicy { get; set; } = OfficeConversionLossPolicy.Block;
+    /// <summary>Allows a save when modeled edits may invalidate unmodeled source content. Default: false, which blocks it.</summary>
+    public bool AllowLoss { get; set; }
     /// <summary>Existing-file behavior. Associated saves replace by default through the shared atomic writer.</summary>
     public OfficeConversionFileConflictPolicy FileConflictPolicy { get; set; } = OfficeConversionFileConflictPolicy.Replace;
     /// <summary>Returns original bytes when no edits were made.</summary>
@@ -105,7 +105,7 @@ public sealed class ProjectSaveOptions {
         if (MpxEncoding.HasValue && !Enum.IsDefined(typeof(ProjectMpxEncoding), MpxEncoding.Value)) throw new ArgumentOutOfRangeException(nameof(MpxEncoding));
         if (MpxSeparator.HasValue && (MpxSeparator.Value < 33 || MpxSeparator.Value > 126 || char.IsLetterOrDigit(MpxSeparator.Value) || MpxSeparator.Value == '"'))
             throw new ArgumentOutOfRangeException(nameof(MpxSeparator));
-        if (!Enum.IsDefined(typeof(ProjectFileFormat), Format) || !Enum.IsDefined(typeof(OfficeConversionLossPolicy), LossPolicy) ||
+        if (!Enum.IsDefined(typeof(ProjectFileFormat), Format) ||
             !Enum.IsDefined(typeof(OfficeConversionFileConflictPolicy), FileConflictPolicy) ||
             MaxOutputBytes < 1 || MaxOutputBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(ProjectSaveOptions));
     }

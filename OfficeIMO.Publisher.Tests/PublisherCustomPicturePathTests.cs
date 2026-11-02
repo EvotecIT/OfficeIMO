@@ -22,7 +22,7 @@ public sealed class PublisherCustomPicturePathTests {
         OfficeDrawingGroup group = publication.Pages.SelectMany(page => PublisherNativeTests.Elements(page.Drawing))
             .OfType<OfficeDrawingGroup>().Single(item => item.SourceElementIds?.Contains("publisher-object-362") == true);
         Assert.Single(group.InnerDrawing.Images);
-        Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_INVALID");
+        Assert.DoesNotContain(publication.ReadReport.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_INVALID");
         OfficeRasterImage unmasked = OfficeDrawingRasterRenderer.Render(group.InnerDrawing);
         Assert.True(unmasked.GetPixel(unmasked.Width / 2, unmasked.Height / 2).A > 0);
         var drawing = new OfficeDrawing(group.ClipPath.Width, group.ClipPath.Height)

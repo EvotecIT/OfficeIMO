@@ -41,10 +41,9 @@ public sealed class KeynoteToPowerPointResult : IDisposable {
     }
 
     /// <summary>Returns the converted PowerPoint presentation or throws when the conversion was lossy.</summary>
-    public PowerPointDocument RequireNoLoss() {
+    public void ThrowIfLoss() {
         try {
-            Report.RequireNoLoss();
-            return Value;
+            Report.ThrowIfLoss();
         } catch {
             Value.Dispose();
             throw;

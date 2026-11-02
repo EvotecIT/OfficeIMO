@@ -20,7 +20,7 @@ public sealed class HtmlExcelNamedTableLossTests {
             var options = new ExcelHtmlSaveOptions { ExportProfile = profile };
             foreach (var result in new[] { original.ToHtmlResult(options), workbook.ToHtmlResult(options), workbook.Sheets[0].ToHtmlResult(options) }) {
                 Assert.True(result.Report.HasLoss);
-                var omission = Assert.Single(result.Report.Diagnostics, d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true);
+                var omission = Assert.Single(result.Report.NativeDiagnostics, d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true);
                 Assert.Equal("excel:table:Orders/OrderItems", omission.Source);
                 Assert.Equal(HtmlConversionDiagnosticCodes.ContentOmitted, omission.Code);
                 Assert.Equal(OfficeConversionLossKind.Omission, omission.LossKind);
@@ -67,7 +67,7 @@ public sealed class HtmlExcelNamedTableLossTests {
             result = workbook.ToHtmlResult(options);
         }
         Assert.True(result.Report.HasLoss);
-        var omission = Assert.Single(result.Report.Diagnostics.Where(d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true));
+        var omission = Assert.Single(result.Report.NativeDiagnostics.Where(d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true));
         Assert.Contains("range=A1:B2", omission.Detail);
     }
 
@@ -89,7 +89,7 @@ public sealed class HtmlExcelNamedTableLossTests {
                 IncludeHiddenSheets = includeHidden
             }
         });
-        var omitted = result.Report.Diagnostics.Where(d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true).ToArray();
+        var omitted = result.Report.NativeDiagnostics.Where(d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true).ToArray();
         Assert.Equal(omissionCount, omitted.Length);
         if (omissionCount != 0) Assert.True(result.Report.HasLoss);
     }
@@ -105,7 +105,7 @@ public sealed class HtmlExcelNamedTableLossTests {
         AddTableSheet(workbook, "Inventory", "StockItems");
         var options = new ExcelHtmlSaveOptions { ExportProfile = profile };
         var result = worksheetOnly ? orders.ToHtmlResult(options) : workbook.ToHtmlResult(options);
-        var omitted = result.Report.Diagnostics.Where(d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true).ToArray();
+        var omitted = result.Report.NativeDiagnostics.Where(d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true).ToArray();
 
         Assert.True(result.Report.HasLoss);
         Assert.Equal(worksheetOnly ? 1 : 2, omitted.Length);
@@ -126,7 +126,7 @@ public sealed class HtmlExcelNamedTableLossTests {
         plain.Cell(1, 1).SetValue("Preserved plain value");
         var result = plain.ToHtmlResult();
         Assert.False(result.Report.HasLoss);
-        Assert.DoesNotContain(result.Report.Diagnostics, d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true);
+        Assert.DoesNotContain(result.Report.NativeDiagnostics, d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true);
         Assert.Contains("Preserved plain value", result.Value);
     }
 

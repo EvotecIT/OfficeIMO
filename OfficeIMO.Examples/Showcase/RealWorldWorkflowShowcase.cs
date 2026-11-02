@@ -31,7 +31,7 @@ internal static class RealWorldWorkflowShowcase {
         #region Excerpt:customer-delivery-summary
         using WordDocument document = WordDocument.Create(sourcePath);
         document.Settings.FontSize = OfficeLength.Points(11);
-        document.BuiltinDocumentProperties.Title = "Customer delivery summary";
+        document.Properties.Title = "Customer delivery summary";
         document.AddHeadersAndFooters();
         document.HeaderDefaultOrCreate.AddParagraph("Northwind Operations · Quarterly service review").FontSize = global::OfficeIMO.OfficeLength.Points(9);
         document.FooterDefaultOrCreate.AddPageNumber(includeTotalPages: true);
@@ -155,8 +155,8 @@ internal static class RealWorldWorkflowShowcase {
 
         #region Excerpt:change-approval-memo
         RtfDocument document = RtfDocument.Create();
-        document.Info.Title = "Change approval memo";
-        document.Info.Author = "Platform operations";
+        document.Properties.Title = "Change approval memo";
+        document.Properties.Author = "Platform operations";
 
         int accent = document.AddColor(35, 95, 180);
         int headerFill = document.AddColor(226, 236, 250);

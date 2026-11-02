@@ -87,8 +87,8 @@ public sealed partial class IWorkBoundaryTests {
             ("Preview-micro.png", CreateSizedPreviewPng(80, 100)),
             ("Preview.png", CreateSizedPreviewPng(100, 100)));
         var options = new IWorkReadOptions {
-            MaximumPackageBytes = 41_000,
-            MaximumDecodedImageBytes = 41_000
+            MaxPackageBytes = 41_000,
+            MaxDecodedImageBytes = 41_000
         };
 
         IWorkSourceDocument source = IWorkSourceDocument.Open(

@@ -35,7 +35,7 @@ public static class LatexTokenizer {
         int index = 0;
         while (index < source.Length) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (tokens.Count >= options.MaximumTokenCount) throw new InvalidDataException("LaTeX source exceeds MaximumTokenCount.");
+            if (tokens.Count >= options.MaxTokenCount) throw new InvalidDataException("LaTeX source exceeds MaxTokenCount.");
             int start = index;
             char current = source[index];
             LatexTokenKind kind;
@@ -169,14 +169,14 @@ public static class LatexTokenizer {
 
     internal static void Validate(string source, LatexParseOptions options) {
         options.ValidateNamedModes();
-        if (options.MaximumInputBytes.HasValue && options.MaximumInputBytes.Value < 1) throw new ArgumentOutOfRangeException(nameof(options));
-        if (options.MaximumInputLength.HasValue && options.MaximumInputLength.Value < 0) throw new ArgumentOutOfRangeException(nameof(options));
-        if (options.MaximumInputLength.HasValue && source.Length > options.MaximumInputLength.Value) throw new ArgumentException("LaTeX source exceeds MaximumInputLength.", nameof(source));
-        if (options.MaximumTokenCount < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumTokenCount must be positive.");
-        if (options.MaximumNestingDepth < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumNestingDepth must be positive.");
-        if (options.MaximumExpansionDepth < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumExpansionDepth must be positive.");
-        if (options.MaximumExpansionLength < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumExpansionLength must be positive.");
-        if (options.MaximumExpansionInputLength < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumExpansionInputLength must be positive.");
-        if (options.MaximumExpansionTokenCount < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumExpansionTokenCount must be positive.");
+        if (options.MaxInputBytes.HasValue && options.MaxInputBytes.Value < 1) throw new ArgumentOutOfRangeException(nameof(options));
+        if (options.MaxInputLength.HasValue && options.MaxInputLength.Value < 0) throw new ArgumentOutOfRangeException(nameof(options));
+        if (options.MaxInputLength.HasValue && source.Length > options.MaxInputLength.Value) throw new ArgumentException("LaTeX source exceeds MaxInputLength.", nameof(source));
+        if (options.MaxTokenCount < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaxTokenCount must be positive.");
+        if (options.MaxNestingDepth < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaxNestingDepth must be positive.");
+        if (options.MaxExpansionDepth < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaxExpansionDepth must be positive.");
+        if (options.MaxExpansionLength < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaxExpansionLength must be positive.");
+        if (options.MaxExpansionInputLength < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaxExpansionInputLength must be positive.");
+        if (options.MaxExpansionTokenCount < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaxExpansionTokenCount must be positive.");
     }
 }

@@ -200,7 +200,7 @@ public class PdfSignatureMutationAnalyzerTests {
         int infoObjectNumber = objects.Keys.Max() + 1;
         byte[] infoObject = PdfObjectBytes.WrapIndirectObject(
             infoObjectNumber,
-            PdfInfoDictionaryBuilder.Build(new PdfMetadata { Title = title }));
+            PdfInfoDictionaryBuilder.Build(new PdfDocumentProperties { Title = title }));
         return PdfIncrementalObjectWriter.Append(
             source,
             objects,

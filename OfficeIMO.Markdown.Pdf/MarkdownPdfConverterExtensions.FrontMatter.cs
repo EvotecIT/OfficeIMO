@@ -40,7 +40,7 @@ public static partial class MarkdownPdfConverterExtensions {
             options.Anchors?.RegisterNamed(pdf, anchor!);
         }
 
-        pdf.H1(title, PdfCore.PdfAlign.Left, visualTheme.DocumentHeaderTitleColorSnapshot, style: new PdfCore.PdfHeadingStyle {
+        pdf.H1(title, global::OfficeIMO.OfficeAlignment.Left, visualTheme.DocumentHeaderTitleColorSnapshot, style: new PdfCore.PdfHeadingStyle {
             FontSize = visualTheme.DocumentHeaderTitleFontSizeSnapshot,
             LineHeight = 1.12,
             SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),

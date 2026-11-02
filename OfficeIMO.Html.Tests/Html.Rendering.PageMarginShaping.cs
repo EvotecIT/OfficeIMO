@@ -43,7 +43,7 @@ public sealed partial class HtmlRenderingTests {
                 (glyph.GlyphId, glyph.AdvanceWidth, glyph.OffsetX, glyph.OffsetY, glyph.UnicodeText)));
         Assert.Equal(margin.PreparedShaping.Measure(margin.Font.Size), margin.TextAdvanceWidth!.Value, 6);
         Assert.Equal(text, rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -63,10 +63,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(text, margin.PreparedShaping!.Text);
         Assert.Equal(margin.PreparedShaping.Measure(margin.Font.Size), artifact.Width, 6);
         Assert.Equal(24D, artifact.Height, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
 
         PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
-        pdf.RequireNoLoss();
+        pdf.ThrowIfLoss();
         byte[] saved = pdf.ToBytes();
         Assert.Equal(text, PdfCore.PdfReadDocument.Open(saved).ExtractText().Trim());
         OfficeImageExportResult image = document.ExportImage(OfficeImageExportFormat.Png, options);
@@ -83,7 +83,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             PageMarginShapingSource("bottom-center", text, "width:max-content", string.Empty));
         PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
-        pdf.RequireNoLoss();
+        pdf.ThrowIfLoss();
         byte[] bytes = pdf.ToBytes();
 
         Assert.True(string.IsNullOrWhiteSpace(PdfCore.PdfReadDocument.Open(bytes).ExtractText()));
@@ -108,7 +108,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.NotNull(run.PreparedShaping);
             Assert.Equal(run.PreparedShaping!.Measure(run.Font.Size), run.TextAdvanceWidth!.Value, 6);
         });
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -126,7 +126,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal("A\u0301", run.Text);
             Assert.NotNull(run.PreparedShaping);
         });
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -146,7 +146,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.NotNull(run.PreparedShaping);
         });
         Assert.Equal(leading, text[1].LayoutY - text[0].LayoutY, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -165,7 +165,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.NotNull(run.PreparedShaping);
             Assert.Equal(run.PreparedShaping!.Measure(run.Font.Size), run.TextAdvanceWidth!.Value, 6);
         });
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -183,7 +183,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(body.PreparedShaping!.Result.Glyphs.Select(glyph => glyph.GlyphId),
             margin.PreparedShaping.Result.Glyphs.Select(glyph => glyph.GlyphId));
         Assert.Equal(body.TextAdvanceWidth, margin.TextAdvanceWidth);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -193,11 +193,11 @@ public sealed partial class HtmlRenderingTests {
             PageMarginShapingSource("top-center", content, "width:1px;line-height:0", string.Empty)),
             PageMarginShapingOptions(cff: true));
 
-        Assert.Contains(rendered.Diagnostics, item => item.Source == "@page @top-center"
+        Assert.Contains(rendered.NativeDiagnostics, item => item.Source == "@page @top-center"
             && item.Detail == "text-layout-limit" && item.LossKind == OfficeConversionLossKind.Omission);
         Assert.Equal(OfficeTextLayoutEngine.MaximumLayoutLines,
             PageMarginShapedText(PageMarginGeometryBox(Assert.Single(rendered.Pages), "top-center")).Length);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Theory]
@@ -226,7 +226,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(expected, margin.TextAdvanceWidth!.Value, 6);
         Assert.NotEmpty(provider.Requests);
         Assert.All(provider.Requests, request => Assert.Equal("fa", request.Language));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -236,10 +236,10 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(
             PageMarginShapingSource("top-center", "لَا", "width:80px", string.Empty)), options);
 
-        Assert.Contains(rendered.Diagnostics, item => item.Source == "@page @top-center"
+        Assert.Contains(rendered.NativeDiagnostics, item => item.Source == "@page @top-center"
             && item.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported
             && item.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Fact]
@@ -252,7 +252,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(0, provider.Calls);
         Assert.Empty(PageMarginShapedText(PageMarginGeometryBox(Assert.Single(rendered.Pages), "top-center")));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private static HtmlToPdfOptions PageMarginShapingOptions(bool cff = false, byte[]? fontData = null) {

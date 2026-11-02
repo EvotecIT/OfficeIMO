@@ -44,7 +44,7 @@ var standardsOptions = new HtmlRenderOptions {
     Mode = HtmlRenderMode.Paged,
     PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(5D), global::OfficeIMO.OfficeLength.Inches(4D)),
     Margins = HtmlRenderMargins.All(32D),
-    FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+    FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
 };
 string secondPageSvg = standardsSource.ToSvg(standardsOptions, pageIndex: 1);
 using PdfDocument standardsPdf = standardsSource.ToPdf(new HtmlToPdfOptions(standardsOptions));

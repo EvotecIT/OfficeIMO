@@ -50,7 +50,7 @@ public sealed class ProjectRecurrenceTests {
         var schedule = project.CalculateSchedule(); schedule.Report.ThrowIfErrors();
         Assert.Equal(first, schedule.Tasks.Single(t => t.TaskUid == summary.Children[0].Uid).Start);
         Assert.Equal(first.AddDays(7), schedule.Tasks.Single(t => t.TaskUid == summary.Children[1].Uid).Start);
-        using var copy = project.Clone(new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        using var copy = project.Clone(new ProjectSaveOptions { AllowLoss = true });
         Assert.True(copy.Tasks.GetByUid(summary.Uid).IsRecurring);
         Assert.Equal(first.AddDays(7), copy.Tasks.GetByUid(summary.Children[1].Uid).ConstraintDate);
     }

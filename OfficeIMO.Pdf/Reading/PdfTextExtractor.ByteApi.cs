@@ -31,7 +31,7 @@ internal static partial class PdfTextExtractor {
 
     private static (string? Title, string? Author, string? Subject, string? Keywords) GetMetadata(
         PdfReadDocument document) {
-        PdfMetadata metadata = document.Metadata;
+        PdfDocumentProperties metadata = document.Metadata;
         return (metadata.Title, metadata.Author, metadata.Subject, metadata.Keywords);
     }
 

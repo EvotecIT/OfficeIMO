@@ -354,14 +354,14 @@ public partial class RtfDocumentReadWriteTests {
     [Fact]
     public void Write_Emits_Unicode_Surrogate_Pairs_And_Reads_Them_Back() {
         RtfDocument document = RtfDocument.Create();
-        document.Info.Title = "Smile 😀";
+        document.Properties.Title = "Smile 😀";
         document.AddParagraph("Body 😀");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
         RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\u-10179?\u-8704?", rtf, StringComparison.Ordinal);
-        Assert.Equal("Smile 😀", result.Document.Info.Title);
+        Assert.Equal("Smile 😀", result.Document.Properties.Title);
         Assert.Equal("Body 😀", Assert.Single(result.Document.Paragraphs).ToPlainText());
     }
 
@@ -371,7 +371,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Write_Uses_Document_Unicode_Skip_Count_For_Metadata_And_Body(int skipCount, string expectedControl, string expectedEncodedText, string expectedPlainText) {
         RtfDocument document = RtfDocument.Create();
         document.Settings.SetUnicodeSkipCount(skipCount);
-        document.Info.Title = "ż Text";
+        document.Properties.Title = "ż Text";
         document.AddParagraph("ż Text");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
@@ -381,7 +381,7 @@ public partial class RtfDocumentReadWriteTests {
         Assert.Contains(@"{\title " + expectedEncodedText + "}", rtf, StringComparison.Ordinal);
         Assert.Contains(expectedEncodedText + @"\par", rtf, StringComparison.Ordinal);
         Assert.Equal(skipCount, result.Document.Settings.UnicodeSkipCount);
-        Assert.Equal(expectedPlainText, result.Document.Info.Title);
+        Assert.Equal(expectedPlainText, result.Document.Properties.Title);
         Assert.Equal(expectedPlainText, Assert.Single(result.Document.Paragraphs).ToPlainText());
     }
 
@@ -408,7 +408,7 @@ public partial class RtfDocumentReadWriteTests {
 
         RtfReadResult result = RtfDocument.ParseResult(rtf);
 
-        Assert.Equal("ż? Title", result.Document.Info.Title);
+        Assert.Equal("ż? Title", result.Document.Properties.Title);
     }
 
     [Fact]

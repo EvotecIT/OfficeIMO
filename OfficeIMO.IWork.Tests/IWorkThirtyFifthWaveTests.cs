@@ -12,7 +12,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_slide_bound_is_enforced_before_nested_references_are_parsed() {
         using MemoryStream package = CreateKeynotePackageWithMalformedSecondSlideReference();
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote,
-            new IWorkReadOptions { MaximumProjectedSlides = 1 });
+            new IWorkReadOptions { MaxProjectedSlides = 1 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadKeynote());
 
@@ -25,7 +25,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Merges", 1, 1, 1d, malformedSecondMergePair: true)
         });
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumTableMergedRanges = 1 });
+            new IWorkReadOptions { MaxTableMergedRanges = 1 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
 
@@ -38,7 +38,7 @@ public sealed partial class IWorkBoundaryTests {
             includeMalformedSecondSheetReference: true);
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-                new IWorkReadOptions { MaximumProjectedSheets = 1 }));
+                new IWorkReadOptions { MaxProjectedSheets = 1 }));
 
         Assert.Contains("sheet count", exception.Message, StringComparison.OrdinalIgnoreCase);
     }

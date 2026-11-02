@@ -14,17 +14,17 @@ namespace OfficeIMO.Excel.Pdf {
         private static void AddWorksheetChart(PdfCore.PdfContentBuilder item, WorksheetChartExportData chart, string sheetName, ExcelPdfExportOptions options) {
             ExcelChartInfo snapshot = chart.Snapshot;
             if (string.IsNullOrWhiteSpace(snapshot.Title) && !string.IsNullOrWhiteSpace(snapshot.Name)) {
-                item.H2(snapshot.Name, PdfCore.PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(31, 78, 121));
+                item.H2(snapshot.Name, global::OfficeIMO.OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(31, 78, 121));
             }
 
             bool useStyledRadialLegend = HasStyledRadialPoints(snapshot);
             OfficeChartRenderingResult rendering = OfficeChartDrawingRenderer.RenderWithQuality(
                 CreateOfficeChartSnapshotCore(snapshot, options, preserveWorksheetLegend: useStyledRadialLegend));
             AddChartQualityWarning(options, sheetName, snapshot, rendering.QualityReport);
-            item.Drawing(rendering.Drawing, PdfCore.PdfAlign.Left, spacingBefore: global::OfficeIMO.OfficeLength.Points(2D), spacingAfter: global::OfficeIMO.OfficeLength.Points(6D));
+            item.Drawing(rendering.Drawing, global::OfficeIMO.OfficeAlignment.Left, spacingBefore: global::OfficeIMO.OfficeLength.Points(2D), spacingAfter: global::OfficeIMO.OfficeLength.Points(6D));
             // The shared chart legend renders point fill, no-fill, hatch, and outline. A table cell
             // can only reproduce a solid fill, so keep the data table uncolored for styled radial charts.
-            item.Table(CreateChartLegendRows(snapshot), PdfCore.PdfAlign.Left,
+            item.Table(CreateChartLegendRows(snapshot), global::OfficeIMO.OfficeAlignment.Left,
                 CreateChartLegendStyle(useStyledRadialLegend ? 0 : GetChartLegendColorCount(snapshot), options.ChartStyle));
         }
 

@@ -12,7 +12,7 @@ internal static class BibliographyWriter {
         if (options.Mode == BibliographyWriterMode.Preserve && format == document.SourceFormat && !document.IsModifiedWithCancellation(cancellationToken) && document.OriginalText != null) {
             Encoding preservedEncoding = document.OriginalBytes == null ? ResolvePreservedEncoding(document.OriginalText, format, options.Encoding, cancellationToken) : options.Encoding;
             if (document.OriginalBytes == null) InspectEncoding(document.OriginalText, preservedEncoding, report, cancellationToken);
-            if (options.RequireNoLoss) report.RequireNoLoss();
+            if (options.FailOnLoss) report.ThrowIfLoss();
             byte[] bytes = document.OriginalBytes != null ? BibliographyEncoding.CloneBytes(document.OriginalBytes, cancellationToken) : BibliographyEncoding.Encode(document.OriginalText, preservedEncoding, cancellationToken);
             return new BibliographyWriteResult(document.OriginalText, bytes, format, true, report);
         }
@@ -40,7 +40,7 @@ internal static class BibliographyWriter {
                 throw new ArgumentOutOfRangeException(nameof(options), format, "Unknown bibliography format.");
         }
         InspectEncoding(content, options.Encoding, report, cancellationToken);
-        if (options.RequireNoLoss) report.RequireNoLoss();
+        if (options.FailOnLoss) report.ThrowIfLoss();
         return new BibliographyWriteResult(content, BibliographyEncoding.Encode(content, options.Encoding, cancellationToken), format, false, report);
     }
 

@@ -419,7 +419,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
         style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(24);
         style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(70) };
-        style.Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Center, PdfColumnAlign.Center, PdfColumnAlign.Center };
+        style.Alignments = new List<OfficeAlignment> { OfficeAlignment.Center, OfficeAlignment.Center, OfficeAlignment.Center };
         style.VerticalAlignments = new List<PdfCellVerticalAlign> { PdfCellVerticalAlign.Bottom, PdfCellVerticalAlign.Bottom, PdfCellVerticalAlign.Bottom };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -463,7 +463,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
         style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(24);
         style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45) };
-        style.Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Center, PdfColumnAlign.Center, PdfColumnAlign.Center };
+        style.Alignments = new List<OfficeAlignment> { OfficeAlignment.Center, OfficeAlignment.Center, OfficeAlignment.Center };
         style.VerticalAlignments = new List<PdfCellVerticalAlign> { PdfCellVerticalAlign.Bottom, PdfCellVerticalAlign.Bottom, PdfCellVerticalAlign.Bottom };
 
         byte[] bytes = PdfDocument.Create(options)

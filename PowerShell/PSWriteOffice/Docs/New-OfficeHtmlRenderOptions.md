@@ -115,7 +115,7 @@ Fidelity policy for unsupported content.
 Type: HtmlRenderFidelityPolicy
 Parameter Sets: Default
 Aliases: None
-Possible values: AllowDiagnosedLoss, RequireNoLoss
+Possible values: AllowDiagnosedLoss, ThrowIfLoss
 
 Required: False
 Position: named

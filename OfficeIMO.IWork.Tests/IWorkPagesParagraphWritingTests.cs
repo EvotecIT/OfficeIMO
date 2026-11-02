@@ -105,7 +105,7 @@ public sealed class IWorkPagesParagraphWritingTests {
         var document = IWorkPagesDocument.Create();
         var layout = new IWorkPagesParagraphLayout(tabStops: Stops());
         document.AddParagraph("First\tvalue", layout); document.AddParagraph("Second\tvalue", layout);
-        var limits = new IWorkPagesWriteOptions { MaximumTabStops = 7 };
+        var limits = new IWorkPagesWriteOptions { MaxTabStops = 7 };
         using var output = new MemoryStream(new byte[] { 9, 8, 7 });
         Assert.Throws<InvalidDataException>(() => document.Save(output, limits)); Assert.Equal(new byte[] { 9, 8, 7 }, output.ToArray());
         string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-IWork-Paragraph-" + Guid.NewGuid().ToString("N"));
@@ -114,14 +114,14 @@ public sealed class IWorkPagesParagraphWritingTests {
             string path = Path.Combine(folder, "existing.pages"); File.WriteAllBytes(path, new byte[] { 9, 8, 7 });
             Assert.Throws<InvalidDataException>(() => document.Save(path, overwrite: true, options: limits));
             Assert.Equal(new byte[] { 9, 8, 7 }, File.ReadAllBytes(path)); Assert.Single(Directory.GetFiles(folder));
-            limits.MaximumTabStops = 8;
+            limits.MaxTabStops = 8;
             var projection = IWorkSourceDocument.Open(new MemoryStream(document.SaveBytes(limits))).ReadPages();
             Assert.All(projection.Body.Paragraphs.Take(2), paragraph => Assert.Equal(4, paragraph.Style.TabStops!.Count));
             using var cancelled = new CancellationTokenSource(); cancelled.Cancel();
             Assert.Throws<OperationCanceledException>(() => document.Save(path, overwrite: true, options: limits, cancellationToken: cancelled.Token));
             Assert.Equal(new byte[] { 9, 8, 7 }, File.ReadAllBytes(path));
         } finally { Directory.Delete(folder, recursive: true); }
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaximumTabStops = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaxTabStops = 0 }));
     }
 
     [Fact]

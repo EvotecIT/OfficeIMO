@@ -33,11 +33,11 @@ public sealed partial class HtmlRenderingTests {
             }
         };
         HtmlRenderDocument result = asyncRender ? await HtmlRenderEngine.RenderAsync(source, options) : HtmlRenderEngine.Render(source, options);
-        HtmlDiagnostic missing = Assert.Single(result.Diagnostics, item =>
+        HtmlDiagnostic missing = Assert.Single(result.NativeDiagnostics, item =>
             item.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable && item.Source == "used.png");
         Assert.Equal(HtmlDiagnosticSeverity.Warning, missing.Severity);
         Assert.Equal(OfficeConversionLossKind.Omission, missing.LossKind);
-        Assert.Throws<HtmlConversionException>(() => result.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => result.ThrowIfLoss());
     }
 
     [Theory]

@@ -4,9 +4,6 @@ namespace OfficeIMO.Html;
 /// Shared native-artifact limits for HTML import adapters such as Excel and PowerPoint.
 /// </summary>
 public sealed class HtmlImportLimits {
-    /// <summary>Creates the bounded default profile used for untrusted semantic HTML.</summary>
-    public static HtmlImportLimits CreateDefault() => new HtmlImportLimits();
-
     /// <summary>Maximum semantic sheets, slides, or equivalent top-level containers.</summary>
     public int MaxSemanticContainers { get; set; } = 1_000;
 

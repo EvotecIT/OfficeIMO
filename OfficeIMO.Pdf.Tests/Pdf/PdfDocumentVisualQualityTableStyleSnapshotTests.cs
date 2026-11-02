@@ -15,10 +15,10 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void TableStyle_AlignmentListsSnapshotAssignedCollections() {
-        var horizontal = new List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Center };
+        var horizontal = new List<OfficeAlignment> { OfficeAlignment.Left, OfficeAlignment.Center };
         var vertical = new List<PdfCellVerticalAlign> { PdfCellVerticalAlign.Top, PdfCellVerticalAlign.Middle };
-        var cellHorizontal = new Dictionary<(int Row, int Column), PdfColumnAlign> {
-            [(1, 1)] = PdfColumnAlign.Right
+        var cellHorizontal = new Dictionary<(int Row, int Column), OfficeAlignment> {
+            [(1, 1)] = OfficeAlignment.Right
         };
         var cellVertical = new Dictionary<(int Row, int Column), PdfCellVerticalAlign> {
             [(1, 1)] = PdfCellVerticalAlign.Bottom
@@ -30,18 +30,18 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellAlignments = cellHorizontal;
         style.CellVerticalAlignments = cellVertical;
 
-        horizontal[0] = PdfColumnAlign.Right;
+        horizontal[0] = OfficeAlignment.Right;
         vertical[0] = PdfCellVerticalAlign.Bottom;
-        cellHorizontal[(1, 1)] = PdfColumnAlign.Center;
+        cellHorizontal[(1, 1)] = OfficeAlignment.Center;
         cellVertical[(1, 1)] = PdfCellVerticalAlign.Middle;
 
         Assert.NotNull(style.Alignments);
         Assert.NotNull(style.VerticalAlignments);
         Assert.NotNull(style.CellAlignments);
         Assert.NotNull(style.CellVerticalAlignments);
-        Assert.Equal(PdfColumnAlign.Left, style.Alignments![0]);
+        Assert.Equal(OfficeAlignment.Left, style.Alignments![0]);
         Assert.Equal(PdfCellVerticalAlign.Top, style.VerticalAlignments![0]);
-        Assert.Equal(PdfColumnAlign.Right, style.CellAlignments![(1, 1)]);
+        Assert.Equal(OfficeAlignment.Right, style.CellAlignments![(1, 1)]);
         Assert.Equal(PdfCellVerticalAlign.Bottom, style.CellVerticalAlignments![(1, 1)]);
     }
 
@@ -240,8 +240,8 @@ public partial class PdfDocumentVisualQualityTests {
                 OffsetY = global::OfficeIMO.OfficeLength.Points(-0.5)
             }
         };
-        style.CellAlignments = new Dictionary<(int Row, int Column), PdfColumnAlign> {
-            [(0, 0)] = PdfColumnAlign.Right
+        style.CellAlignments = new Dictionary<(int Row, int Column), OfficeAlignment> {
+            [(0, 0)] = OfficeAlignment.Right
         };
         style.CellVerticalAlignments = new Dictionary<(int Row, int Column), PdfCellVerticalAlign> {
             [(0, 0)] = PdfCellVerticalAlign.Bottom
@@ -284,7 +284,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(-0.5, clone.CellIcons![(0, 0)].OffsetY.ToPoints());
         Assert.NotNull(clone.CellAlignments);
         Assert.NotNull(clone.CellVerticalAlignments);
-        Assert.Equal(PdfColumnAlign.Right, clone.CellAlignments![(0, 0)]);
+        Assert.Equal(OfficeAlignment.Right, clone.CellAlignments![(0, 0)]);
         Assert.Equal(PdfCellVerticalAlign.Bottom, clone.CellVerticalAlignments![(0, 0)]);
         Assert.Equal(11, clone.CellSpacing.ToPoints());
         Assert.NotNull(clone.RowMinHeights);

@@ -13,7 +13,8 @@ internal static class ManuscriptRelationshipsFixture {
         var result = EpubManuscript.ImportHtml(source, new EpubManuscriptOptions {
             Identifier = "urn:officeimo:fixture:manuscript-relationships", TypographyProfile = EpubTypographyProfile.Prose
         });
-        var book = result.RequireNoLoss();
+        result.ThrowIfLoss();
+        var book = result.Value;
         if (book.Spine.Count != 2) throw new InvalidDataException("Related sections must share a chapter while the independent heading starts another.");
         book.SetAccessibilityMetadata(new EpubAccessibilityMetadata {
             AccessModes = ["textual"], SufficientAccessModes = new IReadOnlyList<string>[] { ["textual"] },

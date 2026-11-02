@@ -17,7 +17,7 @@ public sealed class BibliographyReviewWave60RegressionTests {
 #endif
         XElement element = new XElement("extra", Enumerable.Range(0, nodes).Select(static _ => new XElement("x")));
         var items = new List<BibliographyItem>();
-        var limits = new BibliographyLimitGuard(new BibliographyReadOptions { MaximumValueLength = 1024 });
+        var limits = new BibliographyLimitGuard(new BibliographyReadOptions { MaxValueLength = 1024 });
 #if !BIBLIOGRAPHY_PERFORMANCE_EVIDENCE || NET472
         Assert.Throws<BibliographyLimitException>(() => { EndNoteXmlCodec.SerializeBoundedElement(element, items, limits); });
 #else
@@ -33,7 +33,7 @@ public sealed class BibliographyReviewWave60RegressionTests {
     public void EndNote_retained_element_serialization_observes_cancellation_between_nodes() {
         XElement element = new XElement("extra", Enumerable.Range(0, 500_000).Select(static _ => new XElement("x")));
         var items = new List<BibliographyItem>();
-        var limits = new BibliographyLimitGuard(new BibliographyReadOptions { MaximumValueLength = 8 * 1024 * 1024 });
+        var limits = new BibliographyLimitGuard(new BibliographyReadOptions { MaxValueLength = 8 * 1024 * 1024 });
 
         BibliographyCancellationTest.AssertObserved(token =>
             EndNoteXmlCodec.SerializeBoundedElement(element, items, limits, token));
@@ -43,7 +43,7 @@ public sealed class BibliographyReviewWave60RegressionTests {
     public void CSL_retained_escaped_native_JSON_observes_cancellation_during_canonical_write() {
         string escapedValue = string.Concat(Enumerable.Repeat("\\u0061", 4 * 1024 * 1024));
         string source = "[{\"id\":\"x\",\"type\":\"book\",\"custom\":\"" + escapedValue + "\",\"title\":\"Before\"}]";
-        var options = new BibliographyReadOptions { MaximumInputCharacters = source.Length + 1, MaximumValueLength = 4 * 1024 * 1024 + 1 };
+        var options = new BibliographyReadOptions { MaxInputCharacters = source.Length + 1, MaxValueLength = 4 * 1024 * 1024 + 1 };
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, options).Document;
         document.Items[0].Title = "After";
 
@@ -57,7 +57,7 @@ public sealed class BibliographyReviewWave60RegressionTests {
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.CslJson).Document;
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
 
         Assert.Contains("{ \"a\" : 1 }", written.Content, StringComparison.Ordinal);
         Assert.Equal("{ \"a\" : 1 }", Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items[0].NativeFields).RawValue);

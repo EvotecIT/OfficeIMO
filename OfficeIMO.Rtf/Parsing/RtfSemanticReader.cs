@@ -96,7 +96,7 @@ internal static partial class RtfSemanticReader {
             ReadPageSetup(root, _document.PageSetup);
             ReadNoteSettings(root, _document.NoteSettings);
             ReadDocumentSettings(root, _document.Settings);
-            ReadInfo(root, _document.Info, ansiCodePage, unicodeSkipCount);
+            ReadInfo(root, _document.Properties, ansiCodePage, unicodeSkipCount);
             _document.ReplaceUserProperties(ReadUserProperties(root, ansiCodePage, unicodeSkipCount));
             _document.ReplaceDocumentVariables(ReadDocumentVariables(root, ansiCodePage, unicodeSkipCount));
             RtfHtmlEncapsulation? htmlEncapsulation = ReadHtmlEncapsulation(root, ansiCodePage, unicodeSkipCount: 1);
@@ -133,7 +133,7 @@ internal static partial class RtfSemanticReader {
 
         private void WalkGroup(RtfGroup group, CharacterState state, int depth, bool allowDestinationSkip) {
             _limits.CheckCancellation();
-            if (depth > _options.MaxDepth) {
+            if (depth > _options.Limits.MaxDepth) {
                 _diagnostics.Add(new RtfDiagnostic(RtfDiagnosticSeverity.Error, "RTF100", "Maximum RTF group depth was exceeded.", group.Position));
                 return;
             }

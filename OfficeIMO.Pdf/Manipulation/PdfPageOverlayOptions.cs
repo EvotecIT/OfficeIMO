@@ -17,7 +17,7 @@ public sealed class PdfPageOverlayOptions {
     private double? _height;
     private double _opacity = 1D;
     private OfficeBlendMode _blendMode = OfficeBlendMode.Normal;
-    private PdfAlign _horizontalAlignment = PdfAlign.Center;
+    private OfficeAlignment _horizontalAlignment = OfficeAlignment.Center;
     private PdfVerticalAlign _verticalAlignment = PdfVerticalAlign.Middle;
     private PdfPageOverlayFit _fit = PdfPageOverlayFit.Contain;
 
@@ -43,10 +43,10 @@ public sealed class PdfPageOverlayOptions {
         }
     }
     /// <summary>Horizontal alignment inside the target page or target rectangle.</summary>
-    public PdfAlign HorizontalAlignment {
+    public OfficeAlignment HorizontalAlignment {
         get => _horizontalAlignment;
         set {
-            Guard.LeftCenterRightAlign(value, nameof(HorizontalAlignment), "Imported PDF page");
+            value = Guard.LeftCenterRightAlign(value, nameof(HorizontalAlignment), "Imported PDF page");
             _horizontalAlignment = value;
         }
     }

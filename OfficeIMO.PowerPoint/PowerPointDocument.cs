@@ -37,7 +37,7 @@ namespace OfficeIMO.PowerPoint {
             _document = document;
             _filePath = filePath;
             _presentationPart = document.PresentationPart ?? document.AddPresentationPart();
-            BuiltinDocumentProperties = new PowerPointBuiltinDocumentProperties(document);
+            Properties = new PowerPointBuiltinDocumentProperties(document);
             ApplicationProperties = new PowerPointApplicationProperties(document);
             if (isNewDocument || _presentationPart.Presentation == null) {
                 // New presentation - create with required initial structure
@@ -106,7 +106,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Built-in package properties for the presentation.
         /// </summary>
-        public PowerPointBuiltinDocumentProperties BuiltinDocumentProperties { get; }
+        public PowerPointBuiltinDocumentProperties Properties { get; }
 
         /// <summary>
         ///     Extended application properties for the presentation.

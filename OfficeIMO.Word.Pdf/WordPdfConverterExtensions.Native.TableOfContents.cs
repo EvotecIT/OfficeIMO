@@ -146,7 +146,7 @@ namespace OfficeIMO.Word.Pdf {
         private static void RenderNativeTableOfContents(INativePdfFlow pdf, WordTableOfContent tableOfContent, IReadOnlyList<NativeTableOfContentsEntry> entries, double? contentWidth, bool renderTitle = true) {
             if (renderTitle) {
                 string title = string.IsNullOrWhiteSpace(tableOfContent.Text) ? "Table of Contents" : tableOfContent.Text;
-                pdf.Paragraph(builder => builder.FontSize(global::OfficeIMO.OfficeLength.Points(11D)).Text(NormalizeNativeDirectText(title)), PdfCore.PdfAlign.Left, null, new PdfCore.PdfParagraphStyle {
+                pdf.Paragraph(builder => builder.FontSize(global::OfficeIMO.OfficeLength.Points(11D)).Text(NormalizeNativeDirectText(title)), global::OfficeIMO.OfficeAlignment.Left, null, new PdfCore.PdfParagraphStyle {
                     SpacingAfter = global::OfficeIMO.OfficeLength.Points(5D),
                     KeepWithNext = true
                 });
