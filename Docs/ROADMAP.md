@@ -875,7 +875,7 @@ native oracle or unresolved writer holds its dependent criteria and stays visibl
 
 Use the [native codec structure and qualification record](../Build/Publisher/WriterProbe/README.md#native-codec-structure) as the bounded modern-generation writer baseline.
 
-- [ ] Establish repair-free opening of the exact generated one-page publication containing styled text, a shape and an embedded image before native resave, through direct native UI observation or an independently qualified native repair-path observation. Qualify a repair-positive control and recovery paths beyond the [observed native diagnostic, consent and object-loading sites](../Build/Publisher/WriterProbe/qualification.json). Successful COM open, native save/reopen and PDF export do not establish that no repair occurred. Keep the candidate internal to the opt-in feasibility tooling until this acceptance criterion is satisfied.
+- [ ] Complete native writer acceptance with a repair-positive control and recovery-path qualification beyond the [observed native diagnostic, consent and object-loading sites](../Build/Publisher/WriterProbe/qualification.json), using the [exact combined candidate's direct native opening](../Build/Publisher/WriterProbe/README.md#direct-native-opening) as the opening baseline. Qualify successful recovery separately from a file-problem warning or refused consent. Successful COM open, native save/reopen and PDF export do not establish that no repair occurred. Keep the candidate internal to the opt-in feasibility tooling until the remaining native acceptance criteria are satisfied.
 
 #### PUB01 — Editable publication model
 

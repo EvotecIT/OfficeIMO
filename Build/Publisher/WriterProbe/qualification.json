@@ -30295,5 +30295,42 @@
       "Selected zero diagnostics and successful open/save/export do not establish complete validity or visible text recovery.",
       "The exact mixed candidate remains internal; no public native-writer promotion, dependency or lifecycle support expansion inferred."
     ]
+  },
+  "nativeUiOpening": {
+    "observedOn": "2026-11-02",
+    "method": "Normal Windows file-association opening of unchanged synthetic PUB copies, followed by direct observation of the native document and its modal notices; no automation Open or native save in this observation.",
+    "nativeVersion": "16.0.20527.20088",
+    "nativeExecutableSha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed",
+    "candidateSha256": "37e0e91a36c900f2b1a7c73fe3cb606b477464787e60a70375d8985ebd520bcf",
+    "nativeTextControlSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+    "candidate": {
+      "openedBeforeNativeResave": true,
+      "visibleContent": ["Styled text", "Red rectangle", "Embedded multicolour image"],
+      "pageCount": 1,
+      "repairOrRecoveryPromptAccepted": false,
+      "fileProblemWarningObserved": false,
+      "nativeSavePerformed": false,
+      "sourceHashUnchangedAfterClose": true
+    },
+    "nativeTextControl": {
+      "opened": true,
+      "fileProblemWarningObserved": false,
+      "nativeSavePerformed": false,
+      "sourceHashUnchangedAfterClose": true
+    },
+    "damagedNativeTextControl": {
+      "sha256": "8ec6b477871d0744671b9dd0bdaec0fc0c69fa03448ffc24d34102f32f95c915",
+      "mutation": "Same single frame-field type mutation as observations.validationConsentControl.",
+      "fileProblemAndTrustedSourceWarningObserved": true,
+      "successfulRecovery": "unqualified",
+      "nativeSavePerformed": false
+    },
+    "limits": [
+      "The native installation reports read-and-print-only mode; native editing and saving are not qualified by this UI run.",
+      "Licensing, optional subscription and retirement notices are separate from file-problem or recovery diagnostics.",
+      "A visible warning request is not successful recovery and does not establish coverage of silent repair paths.",
+      "The direct opening observation applies only to the exact combined candidate and native Text control hashes."
+    ],
+    "canClosePUB00": false
   }
 }

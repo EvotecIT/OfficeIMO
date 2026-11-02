@@ -650,6 +650,23 @@ unchanged and both owned processes close. The Full attempt remains incomplete;
 no post-open drain, successful repair or native resave is claimed. Accepted
 recovery and the later suppression paths still need positive qualification.
 
+### Direct native opening
+
+`nativeUiOpening` records normal Windows file-association opening of the exact
+combined candidate, before native resave, in Publisher 16.0.20527.20088. Its styled
+text, red rectangle and embedded image appear on one page without accepting a
+file-problem, repair or recovery prompt. The independent native Text control also
+opens. Both source hashes remain unchanged after closing their windows.
+
+The modified Text control used by `observations.validationConsentControl`
+produces a visible file-problem and trusted-source warning on that same route.
+This is a positive warning-path observation; successful recovery remains
+unqualified. The installation reports read-and-print-only mode, so this UI
+observation establishes opening behavior only. It does not establish native
+editing, saving, silent repair coverage or acceptance of other specimens.
+PUB00 and public source-free native creation remain gated by the recovery
+qualification in the roadmap.
+
 The `sourceEditing.objectOrdering` record covers existing document/master object
 stacking through `ObjectIds` and `SetPageObjectOrder`. Independent native
 `MixedObjectOrder`/`MixedObjectOrderReversed` controls establish drawing-record
