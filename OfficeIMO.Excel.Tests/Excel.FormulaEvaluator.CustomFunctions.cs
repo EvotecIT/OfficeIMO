@@ -5,6 +5,28 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
+        [Theory]
+        [InlineData("\"00123\"", ExcelFormulaValueKind.Text, "00123")]
+        [InlineData("A1", ExcelFormulaValueKind.Text, "00123")]
+        [InlineData("IFERROR(B1,99)", ExcelFormulaValueKind.Blank, null)]
+        [InlineData("INDEX(B1:B2,1)", ExcelFormulaValueKind.Blank, null)]
+        public void FormulaEvaluator_CustomCallbacksRetainNumericTextAndBlankArgumentTypes(
+            string argument, ExcelFormulaValueKind expectedKind, string? expectedText) {
+            using var document = ExcelDocument.Create();
+            var observed = new List<ExcelFormulaValue>();
+            document.Calculation.RegisterCustomFunction("ECHO", (_, arguments) => {
+                observed.AddRange(arguments);
+                return arguments[0];
+            });
+            var sheet = document.AddSheet("Custom");
+            sheet.CellValue(1, 1, "00123");
+            sheet.CellFormula(1, 4, $"ECHO({argument})");
+            Assert.Equal(1, document.Calculate());
+            ExcelFormulaValue value = Assert.Single(observed);
+            Assert.Equal(expectedKind, value.Kind);
+            Assert.Equal(expectedText, value.Text);
+        }
+
         [Fact]
         public void FormulaEvaluator_CalculatesRegisteredCustomFunctions() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");

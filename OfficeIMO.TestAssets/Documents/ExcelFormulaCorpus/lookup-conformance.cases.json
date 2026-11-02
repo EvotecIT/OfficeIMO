@@ -1,0 +1,894 @@
+[
+  {
+    "Row": 1,
+    "Formula": "MATCH(20,Data!A1:A6)"
+  },
+  {
+    "Row": 11,
+    "Formula": "MATCH(20,Data!A1:A6,0)"
+  },
+  {
+    "Row": 21,
+    "Formula": "MATCH(21,Data!A1:A6,1)"
+  },
+  {
+    "Row": 31,
+    "Formula": "MATCH(21,Data!D1:D6,-1)"
+  },
+  {
+    "Row": 41,
+    "Formula": "VLOOKUP(20,Data!A1:B6,2)"
+  },
+  {
+    "Row": 51,
+    "Formula": "VLOOKUP(21,Data!A1:B6,2,TRUE)"
+  },
+  {
+    "Row": 61,
+    "Formula": "VLOOKUP(\"Al*\",Data!C1:G6,5,FALSE)"
+  },
+  {
+    "Row": 71,
+    "Formula": "MATCH(\"B~?ta\",Data!C1:C6,0)"
+  },
+  {
+    "Row": 81,
+    "Formula": "MATCH(\"B~*ta\",Data!C1:C6,0)"
+  },
+  {
+    "Row": 91,
+    "Formula": "XMATCH(\"Al*\",Data!C1:C6,2)"
+  },
+  {
+    "Row": 101,
+    "Formula": "XMATCH(\"Al*\",Data!C1:C6,2,-1)"
+  },
+  {
+    "Row": 111,
+    "Formula": "XLOOKUP(\"B~?ta\",Data!C1:C6,Data!B1:B6,,2)"
+  },
+  {
+    "Row": 121,
+    "Formula": "XMATCH(20,Data!A1:A6,0,2)"
+  },
+  {
+    "Row": 131,
+    "Formula": "XMATCH(20,Data!D1:D6,0,-2)"
+  },
+  {
+    "Row": 141,
+    "Formula": "XMATCH(21,Data!A1:A6,-1,2)"
+  },
+  {
+    "Row": 151,
+    "Formula": "XMATCH(21,Data!D1:D6,1,-2)"
+  },
+  {
+    "Row": 161,
+    "Formula": "XLOOKUP(21,Data!A1:A6,Data!B1:B6,,-1,2)"
+  },
+  {
+    "Row": 171,
+    "Formula": "XLOOKUP(21,Data!D1:D6,Data!E1:E6,,1,-2)"
+  },
+  {
+    "Row": 181,
+    "Formula": "XMATCH(\"Al*\",Data!C1:C6,2,2)"
+  },
+  {
+    "Row": 191,
+    "Formula": "MATCH(1,Data!F1:F6,0)"
+  },
+  {
+    "Row": 201,
+    "Formula": "MATCH(\"1\",Data!F1:F6,0)"
+  },
+  {
+    "Row": 211,
+    "Formula": "MATCH(TRUE,Data!F1:F6,0)"
+  },
+  {
+    "Row": 221,
+    "Formula": "MATCH(FALSE,Data!F1:F6,0)"
+  },
+  {
+    "Row": 231,
+    "Formula": "XLOOKUP(1,Data!F1:F6,Data!G1:G6)"
+  },
+  {
+    "Row": 241,
+    "Formula": "XLOOKUP(\"1\",Data!F1:F6,Data!G1:G6)"
+  },
+  {
+    "Row": 251,
+    "Formula": "XLOOKUP(TRUE,Data!F1:F6,Data!G1:G6)"
+  },
+  {
+    "Row": 261,
+    "Formula": "MATCH(30,{10,20,30},0)"
+  },
+  {
+    "Row": 271,
+    "Formula": "SUM(INDEX(Data!A1:B6,0,1))"
+  },
+  {
+    "Row": 281,
+    "Formula": "SUM(INDEX(Data!A1:B6,3,0))"
+  },
+  {
+    "Row": 291,
+    "Formula": "INDEX(Data!A1:B6,0,1)"
+  },
+  {
+    "Row": 301,
+    "Formula": "INDEX(Data!A1:B6,3,0)"
+  },
+  {
+    "Row": 311,
+    "Formula": "INDEX({10,20;30,40},0,2)"
+  },
+  {
+    "Row": 321,
+    "Formula": "XLOOKUP(20,Data!A1:A6,Data!B1:C6)"
+  },
+  {
+    "Row": 331,
+    "Formula": "IFERROR(SUM(INDEX(Data!A1:B6,0,NA())),99)"
+  },
+  {
+    "Row": 341,
+    "Formula": "Calc+Nested"
+  },
+  {
+    "Row": 351,
+    "Formula": "VLOOKUP(21,Data!A1:B6,2,)"
+  },
+  {
+    "Row": 361,
+    "Formula": "MATCH(20,Data!A1:A6,)"
+  },
+  {
+    "Row": 371,
+    "Formula": "VLOOKUP(21,Data!A1:B6,2,0.00000001)"
+  },
+  {
+    "Row": 381,
+    "Formula": "INDEX(Data!A1:B6,3)"
+  },
+  {
+    "Row": 391,
+    "Formula": "INDEX(Data!A1:B6,3,)"
+  },
+  {
+    "Row": 401,
+    "Formula": "INDEX(Data!A1:B6,,2)"
+  },
+  {
+    "Row": 411,
+    "Formula": "INDEX(Data!A1:B6,1.9,1)"
+  },
+  {
+    "Row": 421,
+    "Formula": "INDEX(Data!A1:B6,\"2\",1)"
+  },
+  {
+    "Row": 431,
+    "Formula": "INDEX(Data!A1:B6,TRUE,1)"
+  },
+  {
+    "Row": 441,
+    "Formula": "VLOOKUP(20,Data!A1:B6,2.9,FALSE)"
+  },
+  {
+    "Row": 451,
+    "Formula": "SUM(INDEX((Data!A1:A2,Data!A4:A6),0,1,2))"
+  },
+  {
+    "Row": 461,
+    "Formula": "MATCH(\"A\",{1,2,3},1)"
+  },
+  {
+    "Row": 471,
+    "Formula": "MATCH(0,{\"A\",\"B\"},1)"
+  },
+  {
+    "Row": 481,
+    "Formula": "INDEX(Data!F1:F6,5)"
+  },
+  {
+    "Row": 491,
+    "Formula": "ISBLANK(INDEX(Data!F1:F6,5))"
+  },
+  {
+    "Row": 501,
+    "Formula": "INDEX(Data!F1:F6,5)=\"\""
+  },
+  {
+    "Row": 511,
+    "Formula": "INDEX(Data!F1:F6,5)&\"x\""
+  },
+  {
+    "Row": 521,
+    "Formula": "LEN(INDEX(Data!F1:F6,5))"
+  },
+  {
+    "Row": 531,
+    "Formula": "ISNUMBER(INDEX(Data!F1:F6,5))"
+  },
+  {
+    "Row": 541,
+    "Formula": "ISBLANK(OFFSET(Data!F1,4,0))"
+  },
+  {
+    "Row": 551,
+    "Formula": "OFFSET(Data!F1,4,0)=\"\""
+  },
+  {
+    "Row": 561,
+    "Formula": "OFFSET(Data!F1,4,0)&\"x\""
+  },
+  {
+    "Row": 571,
+    "Formula": "ISBLANK(XLOOKUP(40,Data!A1:A6,Data!F1:F6))"
+  },
+  {
+    "Row": 581,
+    "Formula": "XLOOKUP(40,Data!A1:A6,Data!F1:F6)=\"\""
+  },
+  {
+    "Row": 591,
+    "Formula": "XLOOKUP(40,Data!A1:A6,Data!F1:F6)&\"x\""
+  },
+  {
+    "Row": 601,
+    "Formula": "ISBLANK(VLOOKUP(40,Data!A1:F6,6,FALSE))"
+  },
+  {
+    "Row": 611,
+    "Formula": "VLOOKUP(40,Data!A1:F6,6,FALSE)=\"\""
+  },
+  {
+    "Row": 621,
+    "Formula": "VLOOKUP(40,Data!A1:F6,6,FALSE)&\"x\""
+  },
+  {
+    "Row": 631,
+    "Formula": "ISBLANK(IFERROR(INDEX(Data!F1:F6,5),77))"
+  },
+  {
+    "Row": 641,
+    "Formula": "IFERROR(INDEX(Data!F1:F6,5),77)&\"x\""
+  },
+  {
+    "Row": 651,
+    "Formula": "ISBLANK(IF(TRUE,INDEX(Data!F1:F6,5),77))"
+  },
+  {
+    "Row": 661,
+    "Formula": "IF(TRUE,INDEX(Data!F1:F6,5),77)&\"x\""
+  },
+  {
+    "Row": 671,
+    "Formula": "ISBLANK(CHOOSE(1,INDEX(Data!F1:F6,5)))"
+  },
+  {
+    "Row": 681,
+    "Formula": "COUNT(INDEX(Data!F1:F6,5))"
+  },
+  {
+    "Row": 691,
+    "Formula": "COUNTA(INDEX(Data!F1:F6,5))"
+  },
+  {
+    "Row": 701,
+    "Formula": "COUNTBLANK(INDEX(Data!F1:F6,5))"
+  },
+  {
+    "Row": 711,
+    "Formula": "AVERAGE(INDEX(Data!F1:F6,5),2)"
+  },
+  {
+    "Row": 721,
+    "Formula": "TEXT(INDEX(Data!F1:F6,5),\"0\")"
+  },
+  {
+    "Row": 731,
+    "Formula": "VALUE(INDEX(Data!F1:F6,5))"
+  },
+  {
+    "Row": 741,
+    "Formula": "CHOOSE(2,10,,20)"
+  },
+  {
+    "Row": 751,
+    "Formula": "IF(TRUE,,7)"
+  },
+  {
+    "Row": 761,
+    "Formula": "MATCH(2,{1,#N/A,2},0)"
+  },
+  {
+    "Row": 771,
+    "Formula": "XLOOKUP(2,{1,#N/A,2},{10,20,30})"
+  },
+  {
+    "Row": 781,
+    "Formula": "RANDBETWEEN(INDEX(Data!F1:F6,5),0)"
+  },
+  {
+    "Row": 791,
+    "Formula": "IPMT(INDEX(Data!F1:F6,5),1,2,100)"
+  },
+  {
+    "Row": 801,
+    "Formula": "PPMT(INDEX(Data!F1:F6,5),1,2,100)"
+  },
+  {
+    "Row": 811,
+    "Formula": "MATCH(Keys!H1,Keys!A1:A3,0)"
+  },
+  {
+    "Row": 821,
+    "Formula": "XMATCH(Keys!H1,Keys!A1:A3)"
+  },
+  {
+    "Row": 831,
+    "Formula": "VLOOKUP(Keys!H1,Keys!A1:B3,2,FALSE)"
+  },
+  {
+    "Row": 841,
+    "Formula": "HLOOKUP(Keys!H1,Keys!D1:F2,2,FALSE)"
+  },
+  {
+    "Row": 851,
+    "Formula": "XLOOKUP(Keys!H1,Keys!A1:A3,Keys!B1:B3)"
+  },
+  {
+    "Row": 861,
+    "Formula": "IFERROR(MATCH(Keys!H1,Keys!A1:A2,0),77)"
+  },
+  {
+    "Row": 871,
+    "Formula": "IFERROR(XMATCH(Keys!H1,Keys!A1:A2),77)"
+  },
+  {
+    "Row": 881,
+    "Formula": "IFERROR(VLOOKUP(Keys!H1,Keys!A1:B2,2,FALSE),77)"
+  },
+  {
+    "Row": 891,
+    "Formula": "IFERROR(HLOOKUP(Keys!H1,Keys!D1:E2,2,FALSE),77)"
+  },
+  {
+    "Row": 901,
+    "Formula": "IFERROR(XLOOKUP(Keys!H1,Keys!A1:A2,Keys!B1:B2),77)"
+  },
+  {
+    "Row": 911,
+    "Formula": "XMATCH(Keys!H1,Keys!J1:J3,0,2)"
+  },
+  {
+    "Row": 921,
+    "Formula": "XMATCH(Keys!H1,Keys!L1:L3,0,-2)"
+  },
+  {
+    "Row": 931,
+    "Formula": "XLOOKUP(Keys!H1,Keys!J1:J3,Keys!B1:B3,,0,2)"
+  },
+  {
+    "Row": 941,
+    "Formula": "XLOOKUP(Keys!H1,Keys!L1:L3,Keys!B1:B3,,0,-2)"
+  },
+  {
+    "Row": 951,
+    "Formula": "MATCH(0,Keys!A1:A5,0)"
+  },
+  {
+    "Row": 961,
+    "Formula": "MATCH(\"0\",Keys!A1:A5,0)"
+  },
+  {
+    "Row": 971,
+    "Formula": "MATCH(FALSE,Keys!A1:A5,0)"
+  },
+  {
+    "Row": 981,
+    "Formula": "MATCH(INDEX(Keys!H1:H2,1),Keys!A1:A3,0)"
+  },
+  {
+    "Row": 991,
+    "Formula": "MATCH(OFFSET(Keys!H1,0,0),Keys!A1:A3,0)"
+  },
+  {
+    "Row": 1001,
+    "Formula": "MATCH(EmptyKey,Keys!A1:A3,0)"
+  },
+  {
+    "Row": 1011,
+    "Formula": "ISBLANK(HLOOKUP(1,Data!A1:G6,5,FALSE))"
+  },
+  {
+    "Row": 1021,
+    "Formula": "HLOOKUP(1,Data!A1:G6,5,FALSE)&\"x\""
+  },
+  {
+    "Row": 1031,
+    "Formula": "COUNT(VLOOKUP(40,Data!A1:F6,6,FALSE))"
+  },
+  {
+    "Row": 1041,
+    "Formula": "ISBLANK(IFERROR(NA(),Data!F5))"
+  },
+  {
+    "Row": 1051,
+    "Formula": "ISBLANK(IFNA(INDEX(Data!F1:F6,5),77))"
+  },
+  {
+    "Row": 1061,
+    "Formula": "IFS(TRUE,INDEX(Data!F1:F6,5))&\"x\""
+  },
+  {
+    "Row": 1071,
+    "Formula": "SWITCH(1,1,INDEX(Data!F1:F6,5))&\"x\""
+  },
+  {
+    "Row": 1081,
+    "Formula": "IF(FALSE,77,INDEX(Data!F1:F6,5))&\"x\""
+  },
+  {
+    "Row": 1091,
+    "Formula": "ISBLANK(XLOOKUP(999,Data!A1:A6,Data!F1:F6,Data!F5))"
+  },
+  {
+    "Row": 1101,
+    "Formula": "XLOOKUP(999,Data!A1:A6,Data!F1:F6,Data!F5)&\"x\""
+  },
+  {
+    "Row": 1111,
+    "Formula": "XMATCH(Keys!H1,{0;\"\"},0)"
+  },
+  {
+    "Row": 1121,
+    "Formula": "XMATCH(Keys!H1,Keys!A1:A6,0,-1)"
+  },
+  {
+    "Row": 1131,
+    "Formula": "XLOOKUP(Keys!H1,Keys!A1:A6,Keys!B1:B6,,0,-1)"
+  },
+  {
+    "Row": 1141,
+    "Formula": "XMATCH(\"\",Keys!A1:A3)"
+  },
+  {
+    "Row": 1151,
+    "Formula": "XMATCH(,Keys!A1:A3)"
+  },
+  {
+    "Row": 1161,
+    "Formula": "XLOOKUP(,Keys!A1:A3,Keys!B1:B3)"
+  },
+  {
+    "Row": 1171,
+    "Formula": "MATCH(,Keys!A1:A3,0)"
+  },
+  {
+    "Row": 1181,
+    "Formula": "VLOOKUP(,Keys!A1:B3,2,FALSE)"
+  },
+  {
+    "Row": 1191,
+    "Formula": "XMATCH(\"Al*\",Data!C1:C6,2,-2)"
+  },
+  {
+    "Row": 1201,
+    "Formula": "XLOOKUP(\"Al*\",Data!C1:C6,Data!B1:B6,,2,2)"
+  },
+  {
+    "Row": 1211,
+    "Formula": "XLOOKUP(\"Al*\",Data!C1:C6,Data!B1:B6,,2,-2)"
+  },
+  {
+    "Row": 1221,
+    "Formula": "XMATCH(\"Alpha\",Data!C1:C6,2,2)"
+  },
+  {
+    "Row": 1231,
+    "Formula": "XMATCH(2,{1;#N/A;2},0)"
+  },
+  {
+    "Row": 1241,
+    "Formula": "VLOOKUP(2,{1,10;#N/A,20;2,30},2,FALSE)"
+  },
+  {
+    "Row": 1251,
+    "Formula": "HLOOKUP(2,{1,#N/A,2;10,20,30},2,FALSE)"
+  },
+  {
+    "Row": 1261,
+    "Formula": "XMATCH(2,{2;#N/A;1},0,-1)"
+  },
+  {
+    "Row": 1271,
+    "Formula": "XLOOKUP(2,{2;#N/A;1},{30;20;10},,0,-1)"
+  },
+  {
+    "Row": 1281,
+    "Formula": "VLOOKUP(2,{1,10;#N/A,20;3,30},2,TRUE)"
+  },
+  {
+    "Row": 1291,
+    "Formula": "XLOOKUP(20,Data!A1:A6,Data!B1:B6,,0,2)"
+  },
+  {
+    "Row": 1301,
+    "Formula": "XMATCH(20,Data!A1:A6,-1,2)"
+  },
+  {
+    "Row": 1311,
+    "Formula": "XMATCH(20,Data!A1:A6,1,2)"
+  },
+  {
+    "Row": 1321,
+    "Formula": "XLOOKUP(20,Data!D1:D6,Data!E1:E6,,0,-2)"
+  },
+  {
+    "Row": 1331,
+    "Formula": "XMATCH(2,{1;2;2;2;3},0,2)"
+  },
+  {
+    "Row": 1341,
+    "Formula": "XMATCH(2,{3;2;2;2;1},0,-2)"
+  },
+  {
+    "Row": 1351,
+    "Formula": "XMATCH(2,{1;2;2;2;2;2;3},0,2)"
+  },
+  {
+    "Row": 1361,
+    "Formula": "XMATCH(2,{3;2;2;2;2;2;1},0,-2)"
+  },
+  {
+    "Row": 1371,
+    "Formula": "VALUE(\"\")"
+  },
+  {
+    "Row": 1381,
+    "Formula": "VALUE(TRUE)"
+  },
+  {
+    "Row": 1391,
+    "Formula": "VALUE(1)"
+  },
+  {
+    "Row": 1401,
+    "Formula": "VALUE(Data!F5)"
+  },
+  {
+    "Row": 1411,
+    "Formula": "INDEX(Data!A1:B6,0)"
+  },
+  {
+    "Row": 1421,
+    "Formula": "INDEX({10,20;30,40},1)"
+  },
+  {
+    "Row": 1431,
+    "Formula": "ISBLANK(IFS(TRUE,Data!F5))"
+  },
+  {
+    "Row": 1441,
+    "Formula": "ISBLANK(SWITCH(1,1,Data!F5))"
+  },
+  {
+    "Row": 1451,
+    "Formula": "COUNT(IF(TRUE,Data!F5,77))"
+  },
+  {
+    "Row": 1461,
+    "Formula": "AVERAGE(IF(TRUE,Data!F5,77),2)"
+  },
+  {
+    "Row": 1471,
+    "Formula": "COUNT(IFERROR(Data!F5,77))"
+  },
+  {
+    "Row": 1481,
+    "Formula": "COUNT(XLOOKUP(40,Data!A1:A6,Data!F1:F6))"
+  },
+  {
+    "Row": 1491,
+    "Formula": "COUNT(IFERROR(XLOOKUP(40,Data!A1:A6,Data!F1:F6),77))"
+  },
+  {
+    "Row": 1501,
+    "Formula": "XMATCH(Keys!H1,Keys!J1:J4,0,2)"
+  },
+  {
+    "Row": 1511,
+    "Formula": "XMATCH(Keys!H1,Keys!L1:L4,0,-2)"
+  },
+  {
+    "Row": 1521,
+    "Formula": "XMATCH(0,Keys!J1:J4,0,2)"
+  },
+  {
+    "Row": 1531,
+    "Formula": "XMATCH(21,Data!D1:D6,-1,-2)"
+  },
+  {
+    "Row": 1541,
+    "Formula": "INDEX(Data!A1:B6,1)"
+  },
+  {
+    "Row": 1551,
+    "Formula": "VALUE(FALSE)"
+  },
+  {
+    "Row": 1561,
+    "Formula": "VALUE(Data!F3)"
+  },
+  {
+    "Row": 1571,
+    "Formula": "COUNT(IFS(TRUE,Data!F5))"
+  },
+  {
+    "Row": 1581,
+    "Formula": "COUNT(SWITCH(1,1,Data!F5))"
+  },
+  {
+    "Row": 1591,
+    "Formula": "COUNT(CHOOSE(1,Data!F5))"
+  },
+  {
+    "Row": 1601,
+    "Formula": "COUNT(IF(TRUE,Data!F3,77))"
+  },
+  {
+    "Row": 1611,
+    "Formula": "COUNT(IF(TRUE,TRUE,77))"
+  },
+  {
+    "Row": 1621,
+    "Formula": "COUNT(IFERROR(Data!F3,77))"
+  },
+  {
+    "Row": 1631,
+    "Formula": "COUNT(VLOOKUP(20,Data!A1:F6,6,FALSE))"
+  },
+  {
+    "Row": 1641,
+    "Formula": "COUNT(IFERROR(Data!F2,77))"
+  },
+  {
+    "Row": 1651,
+    "Formula": "COUNT(XLOOKUP(999,Data!A1:A6,Data!F1:F6,Data!F5))"
+  },
+  {
+    "Row": 1661,
+    "Formula": "COUNT(VLOOKUP(30,Data!A1:F6,6,FALSE))"
+  },
+  {
+    "Row": 1671,
+    "Formula": "COUNT(IFNA(Data!F3,77))"
+  },
+  {
+    "Row": 1681,
+    "Formula": "INDEX(Data!F1:F6,0,1)"
+  },
+  {
+    "Row": 1691,
+    "Formula": "XLOOKUP(40,Data!A1:A6,Data!F1:G6)"
+  },
+  {
+    "Row": 1701,
+    "Formula": "XLOOKUP(50,Data!A1:A6,Data!F1:G6)"
+  },
+  {
+    "Row": 1711,
+    "Formula": "MATCH(1,1/0,0)"
+  },
+  {
+    "Row": 1721,
+    "Formula": "XMATCH(1,1/0)"
+  },
+  {
+    "Row": 1731,
+    "Formula": "VLOOKUP(1,1/0,1,FALSE)"
+  },
+  {
+    "Row": 1741,
+    "Formula": "HLOOKUP(1,1/0,1,FALSE)"
+  },
+  {
+    "Row": 1751,
+    "Formula": "XLOOKUP(1,1/0,{10})"
+  },
+  {
+    "Row": 1761,
+    "Formula": "IFNA(MATCH(1,1/0,0),99)"
+  },
+  {
+    "Row": 1771,
+    "Formula": "MATCH(1,{#DIV/0!},0)"
+  },
+  {
+    "Row": 1781,
+    "Formula": "XMATCH(1,{#DIV/0!})"
+  },
+  {
+    "Row": 1791,
+    "Formula": "VLOOKUP(1,{#DIV/0!},1,FALSE)"
+  },
+  {
+    "Row": 1801,
+    "Formula": "HLOOKUP(1,{#DIV/0!},1,FALSE)"
+  },
+  {
+    "Row": 1811,
+    "Formula": "XLOOKUP(1,{#DIV/0!},{10})"
+  },
+  {
+    "Row": 1821,
+    "Formula": "SUMPRODUCT(Data!A1:A5,Data!F1:F5)"
+  },
+  {
+    "Row": 1831,
+    "Formula": "SUMPRODUCT(Data!F1:F5)"
+  },
+  {
+    "Row": 1841,
+    "Formula": "SUMPRODUCT(Data!A1:A5,Data!F1:F5,Data!F1:F5)"
+  },
+  {
+    "Row": 1851,
+    "Formula": "SUMPRODUCT(Data!F5,2)"
+  },
+  {
+    "Row": 1861,
+    "Formula": "SUMPRODUCT(INDEX(Data!F1:F6,5),2)"
+  },
+  {
+    "Row": 1871,
+    "Formula": "SUMPRODUCT(IFERROR(Data!F5,77),2)"
+  },
+  {
+    "Row": 1881,
+    "Formula": "SUMPRODUCT(TRUE,2)"
+  },
+  {
+    "Row": 1891,
+    "Formula": "SUMPRODUCT(\"1\",2)"
+  },
+  {
+    "Row": 1901,
+    "Formula": "SUMPRODUCT({1;\"1\";TRUE;FALSE;0},{10;20;30;40;50})"
+  },
+  {
+    "Row": 1911,
+    "Formula": "SUMPRODUCT(Data!F5,NA())"
+  },
+  {
+    "Row": 1921,
+    "Formula": "SUMPRODUCT(Data!F1:F6,Data!A1:A6)"
+  },
+  {
+    "Row": 1931,
+    "Formula": "IFERROR(SUMPRODUCT(Data!F1:F5,Data!A1:A5),99)"
+  },
+  {
+    "Row": 1941,
+    "Formula": "INDEX({10,20;30,40},2)"
+  },
+  {
+    "Row": 1951,
+    "Formula": "SUM(INDEX({10,20;30,40},2))"
+  },
+  {
+    "Row": 1961,
+    "Formula": "INDEX({10,20;30,40},2,)"
+  },
+  {
+    "Row": 1971,
+    "Formula": "SUMPRODUCT(Data!F5,Data!F5)"
+  },
+  {
+    "Row": 1981,
+    "Formula": "SUMPRODUCT(Data!F5)"
+  },
+  {
+    "Row": 1991,
+    "Formula": "SUMPRODUCT(Data!F5:F5,{2})"
+  },
+  {
+    "Row": 2001,
+    "Formula": "SUMPRODUCT(0,2)"
+  },
+  {
+    "Row": 2011,
+    "Formula": "SUMPRODUCT(Data!F2,2)"
+  },
+  {
+    "Row": 2021,
+    "Formula": "SUMPRODUCT(Data!F3,2)"
+  },
+  {
+    "Row": 2031,
+    "Formula": "SUMPRODUCT(NA(),Data!F5)"
+  },
+  {
+    "Row": 2041,
+    "Formula": "SUMPRODUCT({#N/A;0},{0;0})"
+  },
+  {
+    "Row": 2051,
+    "Formula": "SUMPRODUCT({\"\";0},{2;3})"
+  },
+  {
+    "Row": 2061,
+    "Formula": "SUMPRODUCT(Data!F4:F5,Data!A1:A2)"
+  },
+  {
+    "Row": 2071,
+    "Formula": "SUMPRODUCT(Data!F5:F6,Data!A1:A2)"
+  },
+  {
+    "Row": 2081,
+    "Formula": "SUMPRODUCT({1,2},{3;4})"
+  },
+  {
+    "Row": 2091,
+    "Formula": "SUMPRODUCT({1,2;3,4},{5;6;7;8})"
+  },
+  {
+    "Row": 2101,
+    "Formula": "SUMPRODUCT({1,2;3,4},{5,6;7,8})"
+  },
+  {
+    "Row": 2111,
+    "Formula": "SUMPRODUCT({1;2},{3;4;5})"
+  },
+  {
+    "Row": 2121,
+    "Formula": "SUMPRODUCT(2,{3;4})"
+  },
+  {
+    "Row": 2131,
+    "Formula": "SUMPRODUCT(NA(),{3;4})"
+  },
+  {
+    "Row": 2141,
+    "Formula": "SUMPRODUCT({1;2},{#N/A;2;3})"
+  },
+  {
+    "Row": 2151,
+    "Formula": "SUMPRODUCT({#N/A;2},{1;2;3})"
+  },
+  {
+    "Row": 2161,
+    "Formula": "SUMPRODUCT({#N/A},{1;2})"
+  },
+  {
+    "Row": 2171,
+    "Formula": "SUMPRODUCT(Data!F6,{1;2})"
+  },
+  {
+    "Row": 2181,
+    "Formula": "SUMPRODUCT(BlankExpression,2)"
+  },
+  {
+    "Row": 2191,
+    "Formula": "SUMPRODUCT(BlankAlias,2)"
+  },
+  {
+    "Row": 2201,
+    "Formula": "ISBLANK(BlankExpression)"
+  },
+  {
+    "Row": 2211,
+    "Formula": "SUMPRODUCT(BlankReference,2)"
+  },
+  {
+    "Row": 2221,
+    "Formula": "SUMPRODUCT(BlankExpression)"
+  }
+]

@@ -211,6 +211,7 @@ Console.WriteLine($"{report.ItemsWritten} pages, loss: {report.HasLoss}");
 ## More
 
 - [Excel guide](../Docs/officeimo.excel-guide.md): styles, validation, conditional formats, pivot tables, slicers, sparklines, templates, formulas and calculation, protection, links, images, printing, legacy `.xls` and image export.
+- [Formula calculation](../Docs/officeimo.excel-guide.md#formula-inspection-and-calculation-policy): typed errors and lookup modes, reference-valued `INDEX` and `XLOOKUP`, and named scalar and array expressions.
 - [Compatibility matrix](COMPATIBILITY.md) and the [generated operation contract](../Docs/Compatibility/generated/package-operations.md): exactly what is supported, preserved or rejected.
 - [Large-workbook guidance](../Docs/officeimo.excel.large-workbook-guidance.md), [remote loading](../Docs/officeimo.excel.remote-loading.md) and [legacy XLS compatibility](../Docs/officeimo.excel.legacy-xls-compatibility.md).
 - [Examples](../OfficeIMO.Examples/Excel) and the [migration guide](../MIGRATION.md).

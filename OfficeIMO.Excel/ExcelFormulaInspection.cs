@@ -708,7 +708,7 @@ namespace OfficeIMO.Excel {
     }
 
     /// <summary>
-    /// Describes the current lightweight formula calculation support in OfficeIMO.Excel.
+    /// Describes the current formula calculation support in OfficeIMO.Excel.
     /// </summary>
     public sealed class ExcelFormulaCapabilities {
         private static readonly string[] Functions = { "SUM", "AVERAGE", "AVERAGEA", "MIN", "MINA", "MAX", "MAXA", "COUNT", "COUNTA", "COUNTBLANK", "SUBTOTAL", "COUNTIF", "SUMIF", "AVERAGEIF", "COUNTIFS", "SUMIFS", "AVERAGEIFS", "MINIFS", "MAXIFS", "PRODUCT", "MEDIAN", "LARGE", "SMALL", "MODE.SNGL", "MODE", "GEOMEAN", "HARMEAN", "AVEDEV", "DEVSQ", "SUMXMY2", "SUMX2MY2", "SUMX2PY2", "SUMSQ", "SUMPRODUCT", "PROB", "STDEV.S", "STDEV.P", "VAR.S", "VAR.P", "PERCENTILE.INC", "PERCENTILE.EXC", "QUARTILE.INC", "QUARTILE.EXC", "PERCENTRANK.INC", "PERCENTRANK.EXC", "RANK.EQ", "RANK.AVG", "COVAR", "COVARIANCE.P", "COVARIANCE.S", "CORREL", "SLOPE", "INTERCEPT", "RSQ", "FORECAST.LINEAR", "PMT", "IPMT", "PPMT", "PV", "FV", "NPER", "NPV", "RATE", "IRR", "XIRR", "XNPV", "GETPIVOTDATA", "VLOOKUP", "HLOOKUP", "XLOOKUP", "INDEX", "MATCH", "XMATCH", "CONCAT", "CONCATENATE", "TEXT", "TEXTJOIN", "TEXTBEFORE", "TEXTAFTER", "FORMULATEXT", "LEFT", "RIGHT", "MID", "LEN", "TRIM", "UPPER", "LOWER", "PROPER", "SUBSTITUTE", "FIND", "SEARCH", "VALUE", "EXACT", "REPT", "ABS", "SIGN", "ROUND", "ROUNDUP", "ROUNDDOWN", "MROUND", "TRUNC", "INT", "CEILING.MATH", "FLOOR.MATH", "CEILING", "FLOOR", "EVEN", "ODD", "FACT", "COMBIN", "GCD", "LCM", "POWER", "SQRT", "LN", "LOG", "LOG10", "EXP", "PI", "RADIANS", "DEGREES", "MOD", "ROW", "COLUMN", "ROWS", "COLUMNS", "OFFSET", "RANDBETWEEN", "DATE", "TIME", "DATEVALUE", "TIMEVALUE", "TODAY", "NOW", "YEAR", "MONTH", "DAY", "HOUR", "MINUTE", "SECOND", "DATEDIF", "YEARFRAC", "EDATE", "EOMONTH", "DAYS", "DAYS360", "WEEKDAY", "WEEKNUM", "ISOWEEKNUM", "NETWORKDAYS", "WORKDAY", "WORKDAY.INTL", "IF", "IFS", "SWITCH", "CHOOSE", "ISBLANK", "ISNUMBER", "ISLOGICAL", "TRUE", "FALSE", "NA", "ISTEXT", "ISERROR", "ISERR", "ISNA", "ISFORMULA", "AND", "OR", "NOT", "IFERROR", "IFNA" };
@@ -716,12 +716,12 @@ namespace OfficeIMO.Excel {
         private static readonly string[] AllFunctions = Functions.Concat(ArrayFunctions).ToArray();
         private static readonly HashSet<string> FunctionSet = new HashSet<string>(AllFunctions, StringComparer.OrdinalIgnoreCase);
         private static readonly string[] Operators = { "+", "-", "*", "/", "^", "%", "&", ">", "<", ">=", "<=", "=", "<>" };
-        private static readonly string[] OperandKinds = { "number literal", "text literal", "same-sheet A1 cell reference", "same-sheet A1 range for function arguments", "cross-sheet A1 cell/range reference", "A1-backed named range reference", "named numeric/text/Boolean/error constants and bounded aliases", "simple table structured reference", "same-sheet numeric/text comparison for IF/IFS/SWITCH/AND/OR/NOT", "bounded dependency depth and circular-reference graph diagnostics" };
+        private static readonly string[] OperandKinds = { "number literal", "text literal", "same-sheet A1 cell reference", "same-sheet A1 range for function arguments", "cross-sheet A1 cell/range reference", "A1-backed named range reference", "named numeric/text/Boolean/error constants and bounded aliases", "named scalar, array and reference-valued expressions", "rectangular literal array", "simple table structured reference", "same-sheet numeric/text comparison for IF/IFS/SWITCH/AND/OR/NOT", "bounded dependency depth and circular-reference graph diagnostics" };
 
         private ExcelFormulaCapabilities() {
         }
 
-        /// <summary>Current OfficeIMO.Excel lightweight formula capability model.</summary>
+        /// <summary>Current OfficeIMO.Excel formula capability model.</summary>
         public static ExcelFormulaCapabilities Current { get; } = new ExcelFormulaCapabilities();
 
         internal static bool IsBuiltInFunction(string name) {

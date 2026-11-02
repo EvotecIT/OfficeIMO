@@ -2331,7 +2331,7 @@ namespace OfficeIMO.Tests {
                 AssertNumericFormula(worksheet, 74, 5d, "SUM(OFFSET(A1,0,0,2,1))");
                 AssertNumericFormula(worksheet, 75, 8d, "A1^A2");
                 AssertNumericFormula(worksheet, 76, 25d, "(A1+A2)^2");
-                AssertNumericFormula(worksheet, 77, 10d, "IF(A1>2,10,)");
+                AssertNumericFormula(worksheet, 77, 0d, "IF(A1>2,10,)");
                 AssertNumericFormula(worksheet, 78, 2d, "COUNT(A1,,A2)");
             } finally {
                 TryDelete(openXmlPath);

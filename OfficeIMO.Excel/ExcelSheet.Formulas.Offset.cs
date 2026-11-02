@@ -11,7 +11,6 @@ namespace OfficeIMO.Excel {
             // Multi-cell OFFSET is a reference argument, not a scalar or a dynamic spill in this subset.
             if (r1 != r2 || c1 != c2) return false;
             result = ResolveFormulaDependency(sheet, r1, c1);
-            if (!result.HasValue && !result.IsUnresolvedFormula) result = new FormulaArgumentValue(0d, "0");
             return !result.IsUnresolvedFormula;
         }
 
@@ -35,7 +34,7 @@ namespace OfficeIMO.Excel {
                 double[] parameters = { 0d, 0d, (double)baseEndRow - baseRow + 1d, (double)baseEndColumn - baseColumn + 1d };
                 for (int index = 1; index < tokens.Count; index++) {
                     if (index >= 3 && string.IsNullOrWhiteSpace(tokens[index])) continue;
-                    if (!TryResolveFormulaArgument(tokens[index], out FormulaArgumentValue value) || value.IsUnresolvedFormula) return false;
+                    if (!TryResolveFormulaValueArgument(tokens[index], out FormulaArgumentValue value)) return false;
                     if (value.IsError) { if (!error.IsError) error = value; continue; }
                     if (!IsFiniteFormulaNumber(value)) return false;
                     parameters[index - 1] = Math.Truncate(value.Number!.Value);
