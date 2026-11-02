@@ -23,6 +23,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LogicalEndAlignmentSavesAsRightAlignedHorzAlign() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Notes");
+            VisioShape textBox = page.AddTextBox("note", OfficeLength.Inches(4), OfficeLength.Inches(7), OfficeLength.Inches(5), OfficeLength.Inches(0.6), "Aligned");
+            textBox.TextStyle = new VisioTextStyle { HorizontalAlignment = OfficeAlignment.End };
+
+            document.Save();
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            Assert.Equal(OfficeAlignment.Right, Assert.Single(loaded.Pages[0].Shapes).TextStyle?.HorizontalAlignment);
+        }
+
+        [Fact]
         public void PageCanAddEditableTextBoxAdornment() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 

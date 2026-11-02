@@ -59,6 +59,23 @@ public sealed class PdfContentBuilderTypedTableTests {
     }
 
     [Fact]
+    public void TypedColumnsResolveLogicalAlignmentAndRejectJustify() {
+        var options = new OfficeTableOptions();
+        options.Exclude.Add(nameof(Row.Unused));
+        options.Alignments.Add(OfficeAlignment.Start);
+        options.Alignments.Add(OfficeAlignment.End);
+        using var document = PdfDocument.Create(builder => builder.Content(content => content.Table(new[] { new Row("Ada", 1m) }, options)));
+        var block = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+        Assert.Equal(new[] { OfficeAlignment.Left, OfficeAlignment.Right }, block.Style!.Alignments!.Take(2));
+
+        var justified = new OfficeTableOptions();
+        justified.Exclude.Add(nameof(Row.Unused));
+        justified.Alignments.Add(OfficeAlignment.Justify);
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create(builder => builder.Content(content =>
+            content.Table(new[] { new Row("Ada", 1m) }, justified))));
+    }
+
+    [Fact]
     public void EmptyTypedRowsKeepHeadersAndExistingArrayOverloadsKeepTheirCells() {
         using var document = PdfDocument.Create(builder => builder.Content(content => content
             .Table(Array.Empty<Row>(), new OfficeTableOptions { Include = { nameof(Row.Name) } })

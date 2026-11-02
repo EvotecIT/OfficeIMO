@@ -212,7 +212,7 @@ public partial class PdfDocumentVisualQualityTests {
                 }, align: (OfficeAlignment)99)
                 .ToBytes());
 
-        Assert.Contains("Table alignment must be Left, Center, or Right.", invalidTableAlignException.Message, StringComparison.Ordinal);
+        Assert.Contains("Table alignment must be Left, Center, Right, Start, or End.", invalidTableAlignException.Message, StringComparison.Ordinal);
 
         var unsupportedTableAlignException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()
@@ -222,7 +222,7 @@ public partial class PdfDocumentVisualQualityTests {
                 }, align: OfficeAlignment.Justify)
                 .ToBytes());
 
-        Assert.Contains("Table alignment must be Left, Center, or Right.", unsupportedTableAlignException.Message, StringComparison.Ordinal);
+        Assert.Contains("Table alignment must be Left, Center, Right, Start, or End.", unsupportedTableAlignException.Message, StringComparison.Ordinal);
 
         var composeTableAlignException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()
@@ -236,7 +236,7 @@ public partial class PdfDocumentVisualQualityTests {
                                 }, align: (OfficeAlignment)99)))))
                 .ToBytes());
 
-        Assert.Contains("Table alignment must be Left, Center, or Right.", composeTableAlignException.Message, StringComparison.Ordinal);
+        Assert.Contains("Table alignment must be Left, Center, Right, Start, or End.", composeTableAlignException.Message, StringComparison.Ordinal);
 
         var tableWithLinksAlignException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()
@@ -250,7 +250,7 @@ public partial class PdfDocumentVisualQualityTests {
                     },
                     align: OfficeAlignment.Justify));
 
-        Assert.Contains("Table alignment must be Left, Center, or Right.", tableWithLinksAlignException.Message, StringComparison.Ordinal);
+        Assert.Contains("Table alignment must be Left, Center, Right, Start, or End.", tableWithLinksAlignException.Message, StringComparison.Ordinal);
 
         var invalidCaptionAlign = PdfTableStyles.Minimal();
         invalidCaptionAlign.Caption = "Caption";
@@ -258,7 +258,7 @@ public partial class PdfDocumentVisualQualityTests {
         var invalidCaptionAlignException = Assert.Throws<ArgumentException>(() =>
             invalidCaptionAlign.CaptionAlign = (OfficeAlignment)99);
 
-        Assert.Contains("Table caption alignment must be Left, Center, or Right.", invalidCaptionAlignException.Message, StringComparison.Ordinal);
+        Assert.Contains("Table caption alignment must be Left, Center, Right, Start, or End.", invalidCaptionAlignException.Message, StringComparison.Ordinal);
 
         var unsupportedCaptionAlign = PdfTableStyles.Minimal();
         unsupportedCaptionAlign.Caption = "Caption";
@@ -266,14 +266,14 @@ public partial class PdfDocumentVisualQualityTests {
         var unsupportedCaptionAlignException = Assert.Throws<ArgumentException>(() =>
             unsupportedCaptionAlign.CaptionAlign = OfficeAlignment.Justify);
 
-        Assert.Contains("Table caption alignment must be Left, Center, or Right.", unsupportedCaptionAlignException.Message, StringComparison.Ordinal);
+        Assert.Contains("Table caption alignment must be Left, Center, Right, Start, or End.", unsupportedCaptionAlignException.Message, StringComparison.Ordinal);
 
         var invalidColumnAlign = PdfTableStyles.Minimal();
 
         var invalidColumnAlignException = Assert.Throws<ArgumentException>(() =>
             invalidColumnAlign.Alignments = new List<OfficeAlignment> { (OfficeAlignment)99 });
 
-        Assert.Contains("Table column alignments must be Left, Center, or Right.", invalidColumnAlignException.Message, StringComparison.Ordinal);
+        Assert.Contains("Table column alignments must be Left, Center, Right, Start, or End.", invalidColumnAlignException.Message, StringComparison.Ordinal);
 
         var invalidVerticalAlign = PdfTableStyles.Minimal();
 
@@ -289,7 +289,7 @@ public partial class PdfDocumentVisualQualityTests {
                 [(0, 0)] = (OfficeAlignment)99
             });
 
-        Assert.Contains("Table column alignments must be Left, Center, or Right.", invalidCellAlignException.Message, StringComparison.Ordinal);
+        Assert.Contains("Table column alignments must be Left, Center, Right, Start, or End.", invalidCellAlignException.Message, StringComparison.Ordinal);
 
         var invalidCellVerticalAlign = PdfTableStyles.Minimal();
 
