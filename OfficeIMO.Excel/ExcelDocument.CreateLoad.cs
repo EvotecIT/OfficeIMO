@@ -317,6 +317,7 @@ namespace OfficeIMO.Excel {
                     unchangedPackageBytes: unchangedPackageBytes,
                     persistenceMode: options.PersistenceMode);
                 document._packageCopyOnWriteStream = normalizedStream as ExcelCopyOnWriteStream;
+                document._packageOnCopyOnWriteStream = document._packageCopyOnWriteStream != null ? memDoc : null;
                 document._sourceMaxCharactersInPart = effectiveOpenSettings.MaxCharactersInPart;
                 // The streaming readers apply neither setting, so those loads stay on the SDK route.
                 document._readSnapshotAllowed = effectiveOpenSettings.MaxCharactersInPart == 0
