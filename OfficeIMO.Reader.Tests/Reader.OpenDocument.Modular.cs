@@ -36,7 +36,7 @@ public class ReaderOpenDocumentModularTests {
         byte[] bytes = OdfDocument.LoadFlatXml(stream).ToBytes();
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddOpenDocumentHandler(
             new ReaderOpenDocumentOptions { MaxExtractedCharacters = 1000 }).Build();
-        ReaderResourceLimitException error = Assert.Throws<ReaderResourceLimitException>(() => reader.Read(bytes, "repeated." + kind).ToArray());
+        ReaderResourceLimitException error = Assert.Throws<ReaderResourceLimitException>(() => reader.Enumerate(bytes, "repeated." + kind).ToArray());
         Assert.Equal("OpenDocument.MaxExtractedCharacters", error.LimitName); Assert.Equal(1000, error.Maximum);
     }
 
@@ -45,7 +45,7 @@ public class ReaderOpenDocumentModularTests {
         string payload = new string('x', 299) + "\U0001F600" + new string('y', 400);
         OdtDocument document = OdtDocument.Create();
         document.AddParagraph(payload);
-        ReaderChunk[] chunks = CreateReader().Read(document.ToBytes(), "unicode.odt",
+        ReaderChunk[] chunks = CreateReader().Enumerate(document.ToBytes(), "unicode.odt",
             new ReaderOptions { MaxChars = 300 }).ToArray();
         Assert.Equal(payload, string.Concat(chunks.Select(chunk => chunk.Text)));
         Assert.All(chunks, chunk => {
@@ -62,10 +62,10 @@ public class ReaderOpenDocumentModularTests {
         byte[] bytes = document.ToBytes(new OdfSaveOptions {
             Encryption = new OdfEncryptionOptions { Password = "reader-test-password" }
         });
-        ReaderChunk chunk = Assert.Single(CreateReader().Read(bytes, "encrypted.odt",
+        ReaderChunk chunk = Assert.Single(CreateReader().Enumerate(bytes, "encrypted.odt",
             new ReaderOptions { OpenPassword = "reader-test-password" }));
         Assert.Equal("Encrypted reader content", chunk.Text);
-        Assert.Throws<OdfEncryptedPackageException>(() => CreateReader().Read(bytes, "encrypted.odt",
+        Assert.Throws<OdfEncryptedPackageException>(() => CreateReader().Enumerate(bytes, "encrypted.odt",
             new ReaderOptions { OpenPassword = "wrong" }).ToArray());
     }
 
@@ -92,7 +92,7 @@ public class ReaderOpenDocumentModularTests {
             document = text;
         }
         OfficeDocumentReader reader = CreateReader();
-        ReaderChunk[] chunks = reader.Read(document.ToBytes(), "bounded." + kind,
+        ReaderChunk[] chunks = reader.Enumerate(document.ToBytes(), "bounded." + kind,
             new ReaderOptions { MaxChars = 300 }).ToArray();
         Assert.True(chunks.Length > 1);
         Assert.All(chunks, chunk => {
@@ -110,7 +110,7 @@ public class ReaderOpenDocumentModularTests {
         byte[] package = RewriteHeadingLevel(document.ToBytes(), "11");
 
         OfficeDocumentReader reader = CreateReader();
-            ReaderChunk chunk = Assert.Single(reader.Read(package, "heading.odt"));
+            ReaderChunk chunk = Assert.Single(reader.Enumerate(package, "heading.odt"));
 
             Assert.Equal("Imported heading", chunk.Text);
             Assert.Equal("###### Imported heading", chunk.Markdown);
@@ -131,7 +131,7 @@ public class ReaderOpenDocumentModularTests {
         sheet.Cell(2, 1).SetString("Outside row");
 
         OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.OpenDocument(a1Range: "B1:C2");
-            ReaderChunk chunk = Assert.Single(reader.Read(document.ToBytes(), "range.ods"));
+            ReaderChunk chunk = Assert.Single(reader.Enumerate(document.ToBytes(), "range.ods"));
 
             Assert.Equal("B1:C2", chunk.Location.A1Range);
             ReaderTable table = Assert.Single(chunk.Tables!);
@@ -150,7 +150,7 @@ public class ReaderOpenDocumentModularTests {
         OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.OpenDocument(
             a1Range: "A1048577:A1048578");
 
-        ReaderChunk chunk = Assert.Single(reader.Read(document.ToBytes(), "large-grid.ods"));
+        ReaderChunk chunk = Assert.Single(reader.Enumerate(document.ToBytes(), "large-grid.ods"));
 
         Assert.Equal("A1048577:A1048578", chunk.Location.A1Range);
         ReaderTable table = Assert.Single(chunk.Tables!);
@@ -168,7 +168,7 @@ public class ReaderOpenDocumentModularTests {
         document.AddSheet("Data").Cell(0, 0).SetString("A");
         OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.OpenDocument(a1Range: requestedRange);
 
-        Assert.Throws<FormatException>(() => reader.Read(document.ToBytes(), "range.ods").ToList());
+        Assert.Throws<FormatException>(() => reader.Enumerate(document.ToBytes(), "range.ods").ToList());
     }
 
     [Fact]
@@ -184,7 +184,7 @@ public class ReaderOpenDocumentModularTests {
         slide.GetOrCreateSpeakerNotes().AddParagraph("Explain the result.");
 
         OfficeDocumentReader reader = CreateReader();
-            ReaderChunk chunk = Assert.Single(reader.Read(document.ToBytes(), "summary.odp"));
+            ReaderChunk chunk = Assert.Single(reader.Enumerate(document.ToBytes(), "summary.odp"));
 
             Assert.Equal(1, chunk.Location.Slide);
             Assert.Equal("Summary", chunk.Location.HeadingPath);
@@ -201,7 +201,7 @@ public class ReaderOpenDocumentModularTests {
         OdpTable table = slide.AddTable(OdfRect.FromCentimeters(1, 1, 20, 4), 1, 257, "Wide table");
         table.Cell(0, 256).Text = "Truncated column";
 
-        ReaderChunk chunk = Assert.Single(CreateReader().Read(document.ToBytes(), "wide.odp"));
+        ReaderChunk chunk = Assert.Single(CreateReader().Enumerate(document.ToBytes(), "wide.odp"));
 
         ReaderTable extracted = Assert.Single(chunk.Tables!);
         Assert.True(extracted.Truncated);
@@ -220,7 +220,7 @@ public class ReaderOpenDocumentModularTests {
         sheet.Cell(1, 1).SetDecimal(42.5m);
 
         OfficeDocumentReader reader = CreateReader();
-            ReaderChunk chunk = Assert.Single(reader.Read(document.ToBytes(), "metrics.ods"));
+            ReaderChunk chunk = Assert.Single(reader.Enumerate(document.ToBytes(), "metrics.ods"));
 
             Assert.Equal("Metrics", chunk.Location.Sheet);
             Assert.Equal("A1:B2", chunk.Location.A1Range);
@@ -243,7 +243,7 @@ public class ReaderOpenDocumentModularTests {
         table.Cell(1, 1).Text = "Approved";
 
         OfficeDocumentReader reader = CreateReader();
-            IReadOnlyList<ReaderChunk> chunks = reader.Read(document.ToBytes(), "policy.odt").ToList();
+            IReadOnlyList<ReaderChunk> chunks = reader.Enumerate(document.ToBytes(), "policy.odt").ToList();
 
             Assert.Equal(ReaderInputKind.OpenDocument, reader.DetectKind("policy.odt"));
             Assert.Contains(chunks, chunk => chunk.Location.SourceBlockKind == "heading" && chunk.Text == "Policy");
@@ -262,7 +262,7 @@ public class ReaderOpenDocumentModularTests {
         OdtTable table = document.AddTable(1, 257, "Wide");
         table.Cell(0, 256).Text = "Truncated column";
 
-        ReaderChunk chunk = Assert.Single(CreateReader().Read(document.ToBytes(), "wide.odt"));
+        ReaderChunk chunk = Assert.Single(CreateReader().Enumerate(document.ToBytes(), "wide.odt"));
 
         ReaderTable extracted = Assert.Single(chunk.Tables!);
         Assert.True(extracted.Truncated);

@@ -27,7 +27,7 @@ namespace OfficeIMO.Archives.Qualification {
                 return traversal.Entries.Count;
             });
             Measure("Reader", () => {
-                var chunks = reader.Read(input, new() { ComputeHashes = false }).ToArray();
+                var chunks = reader.Enumerate(input, new() { ComputeHashes = false }).ToArray();
                 if (!chunks.Any(c => c.Text.Contains("complete"))) throw new InvalidDataException("Reader payload mismatch.");
                 return chunks.Length;
             });

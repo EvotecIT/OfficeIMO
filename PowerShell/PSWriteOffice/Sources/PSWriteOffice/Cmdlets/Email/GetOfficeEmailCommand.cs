@@ -42,7 +42,7 @@ public sealed class GetOfficeEmailCommand : PSCmdlet
         var input = OfficeFileCommandUtilities.ResolvePath(this, Path);
         if (string.Equals(System.IO.Path.GetExtension(input), ".emlx", StringComparison.OrdinalIgnoreCase))
         {
-            var storeResult = new EmailStoreReader(StoreOptions ?? CreateStoreOptions()).Read(input);
+            var storeResult = new EmailStoreReader(StoreOptions ?? CreateStoreOptions()).ReadDocument(input);
             if (AsResult.IsPresent)
             {
                 WriteObject(storeResult);
@@ -64,7 +64,7 @@ public sealed class GetOfficeEmailCommand : PSCmdlet
             throw new PSArgumentException("-StoreOptions is supported only for Apple Mail .emlx artifacts.", nameof(StoreOptions));
         }
 
-        var result = new EmailDocumentReader(Options ?? EmailReaderOptions.Default).Read(input);
+        var result = new EmailDocumentReader(Options ?? EmailReaderOptions.Default).ReadDocument(input);
         WriteObject(AsResult.IsPresent ? result : result.Document);
     }
 

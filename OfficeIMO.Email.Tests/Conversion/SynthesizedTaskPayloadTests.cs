@@ -12,7 +12,7 @@ public sealed class SynthesizedTaskPayloadTests {
             EmailDocument leaf;
             string code;
             if (kind == "Protected") {
-                leaf = new EmailDocumentReader(new EmailReaderOptions(preserveRawSource: true)).Read(Encoding.ASCII.GetBytes(
+                leaf = new EmailDocumentReader(new EmailReaderOptions(preserveRawSource: true)).ReadDocument(Encoding.ASCII.GetBytes(
                     "Subject: Protected\r\nContent-Type: application/pkcs7-mime; smime-type=enveloped-data\r\n" +
                     "Content-Transfer-Encoding: base64\r\n\r\nAQID\r\n")).Document;
                 Assert.True(leaf.Protection.IsProtected);
@@ -22,7 +22,7 @@ public sealed class SynthesizedTaskPayloadTests {
                 leaf.Properties["Emlx:Metadata:remote-id"] = "42";
                 code = "EMAIL_EMLX_METADATA_NOT_REPRESENTED";
             } else {
-                leaf = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(
+                leaf = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(
                     "Content-Type: text/vcard\r\n\r\nBEGIN:VCARD\r\nVERSION:4.0\r\nFN:Contact\r\nNICKNAME:First,Second\r\nEND:VCARD\r\n")).Document;
                 Assert.True(leaf.MimeSemanticProjectionIsIncomplete);
                 code = "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE";
@@ -72,7 +72,7 @@ public sealed class SynthesizedTaskPayloadTests {
         EmailWriteResult result = await new EmailDocumentWriter().WriteAsync(root, output, format);
         Assert.False(result.HasErrors);
         Assert.Equal(1, source.AsyncOpenCount);
-        EmailDocument read = new EmailDocumentReader().Read(output.ToArray()).Document;
+        EmailDocument read = new EmailDocumentReader().ReadDocument(output.ToArray()).Document;
         Assert.Equal(new byte[] { 7, 8, 9 }, Assert.Single(read.TaskCommunication!.EmbeddedTask!.Attachments).Content);
 
         var oversized = new AsyncSource(new byte[4096]);
@@ -109,7 +109,7 @@ public sealed class SynthesizedTaskPayloadTests {
         original.TaskCommunication!.EmbeddedTask!.Attachments.Add(new EmailAttachment { FileName = "old.bin", Content = new byte[4096], Length = 4096 });
         byte[] artifact = new EmailDocumentWriter().ToBytes(original, format, out EmailWriteResult initial);
         initial.RequireNoLoss();
-        EmailDocument root = new EmailDocumentReader().Read(artifact).Document;
+        EmailDocument root = new EmailDocumentReader().ReadDocument(artifact).Document;
         OutlookTaskCommunication communication = root.TaskCommunication!;
         EmailDocument discarded = communication.EmbeddedTask!;
         discarded.Headers.Add(new EmailHeader("DKIM-Signature", "v=1; bh=old; b=old"));
@@ -127,7 +127,7 @@ public sealed class SynthesizedTaskPayloadTests {
             using var output = new MemoryStream();
             EmailWriteResult result = asynchronous ? await writer.WriteAsync(root, output, format) : writer.Write(root, output, format);
             Assert.False(result.HasErrors);
-            EmailDocument read = new EmailDocumentReader().Read(output.ToArray()).Document;
+            EmailDocument read = new EmailDocumentReader().ReadDocument(output.ToArray()).Document;
             Assert.Equal("Replacement", read.TaskCommunication!.EmbeddedTask!.Subject);
             Assert.Empty(read.TaskCommunication.EmbeddedTask.Attachments);
         }

@@ -45,7 +45,7 @@ public sealed class ReaderSourceProvenanceTests {
             var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().Build();
             OfficeDocumentReadResult sync = reader.ReadDocument(relativePath);
             OfficeDocumentReadResult asyncResult = await reader.ReadDocumentAsync(relativePath);
-            IReadOnlyList<ReaderChunk> asyncChunks = await reader.ReadAsync(relativePath);
+            IReadOnlyList<ReaderChunk> asyncChunks = (await reader.ReadDocumentAsync(relativePath)).Chunks;
             OfficeDocumentReadResult batch = Assert.Single(await reader.ReadDocumentsAsync(new[] { relativePath }));
             foreach (OfficeDocumentReadResult actual in new[] { asyncResult, batch }) {
                 Assert.Equal(sync.Source.Path, actual.Source.Path);
@@ -73,7 +73,7 @@ public sealed class ReaderSourceProvenanceTests {
             Assert.Equal(sync.Source.SourceId, asyncResult.Source.SourceId);
             Assert.Equal(sync.Source.LastWriteUtc, asyncResult.Source.LastWriteUtc);
             AssertChunkProvenance(sync.Chunks, asyncResult.Chunks);
-            AssertChunkProvenance(sync.Chunks, await reader.ReadAsync(relativePath));
+            AssertChunkProvenance(sync.Chunks, (await reader.ReadDocumentAsync(relativePath)).Chunks);
         } finally { File.Delete(path); }
     }
 
@@ -87,9 +87,9 @@ public sealed class ReaderSourceProvenanceTests {
                 ReadPath = (name, _, _) => new[] { new ReaderChunk { Text = "file", Location = new ReaderLocation { Path = name } } },
                 ReadStream = (_, name, _, _) => new[] { new ReaderChunk { Text = "stream", Location = new ReaderLocation { Path = name } } }
             }).Build();
-            Assert.Equal("file", Assert.Single(await reader.ReadAsync(path)).Text);
             Assert.Equal("file", Assert.Single((await reader.ReadDocumentAsync(path)).Chunks).Text);
-            Assert.Equal("stream", Assert.Single(reader.Read(Encoding.UTF8.GetBytes("input"), "input.rdr")).Text);
+            Assert.Equal("file", Assert.Single((await reader.ReadDocumentAsync(path)).Chunks).Text);
+            Assert.Equal("stream", Assert.Single(reader.Enumerate(Encoding.UTF8.GetBytes("input"), "input.rdr")).Text);
         } finally { File.Delete(path); }
     }
 

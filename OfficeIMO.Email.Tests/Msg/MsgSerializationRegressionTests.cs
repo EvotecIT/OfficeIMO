@@ -11,7 +11,7 @@ public sealed class MsgSerializationRegressionTests {
         source.MapiProperties.Add(new MapiProperty(0x0E07, MapiPropertyType.Integer32, unknownFlag));
         source.MessageMetadata.IsDraft = true;
 
-        EmailDocument result = new EmailDocumentReader().Read(
+        EmailDocument result = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg)).Document;
         int flags = Assert.IsType<int>(result.MapiProperties.Single(property =>
             property.PropertyId == 0x0E07).Value);
@@ -32,7 +32,7 @@ public sealed class MsgSerializationRegressionTests {
         source.MessageMetadata.Categories.Add("retained category");
         source.Headers.Add(new EmailHeader("X-Retained", "value"));
         byte[] first = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
-        EmailDocument edited = new EmailDocumentReader().Read(first).Document;
+        EmailDocument edited = new EmailDocumentReader().ReadDocument(first).Document;
 
         edited.Subject = null;
         edited.MessageId = null;
@@ -43,7 +43,7 @@ public sealed class MsgSerializationRegressionTests {
         edited.MessageMetadata.Categories.Clear();
         edited.Headers.Clear();
         byte[] second = new EmailDocumentWriter().ToBytes(edited, EmailFileFormat.OutlookMsg);
-        EmailDocument roundTrip = new EmailDocumentReader().Read(second).Document;
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(second).Document;
 
         Assert.Null(roundTrip.Subject);
         Assert.Null(roundTrip.MessageId);
@@ -73,13 +73,13 @@ public sealed class MsgSerializationRegressionTests {
             Content = new byte[] { 1, 2, 3, 4 },
             Length = 4
         });
-        EmailDocument edited = new EmailDocumentReader().Read(
+        EmailDocument edited = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg)).Document;
         EmailAttachment attachment = Assert.Single(edited.Attachments);
         attachment.Content = null;
         attachment.Length = 0;
 
-        EmailDocument roundTrip = new EmailDocumentReader().Read(
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(edited, EmailFileFormat.OutlookMsg)).Document;
 
         EmailAttachment cleared = Assert.Single(roundTrip.Attachments);
@@ -97,7 +97,7 @@ public sealed class MsgSerializationRegressionTests {
             "ok\r\nBcc: injected@example.com"));
 
         byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
-        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(bytes).Document;
         MapiProperty transportHeaders = roundTrip.MapiProperties.Single(property => property.PropertyId == 0x007D);
 
         EmailHeader header = Assert.Single(roundTrip.Headers);
@@ -117,7 +117,7 @@ public sealed class MsgSerializationRegressionTests {
         source.Headers.Add(new EmailHeader("Reply-To", "Replies <reply@example.com>"));
 
         byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
-        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(bytes).Document;
 
         Assert.Equal(4, roundTrip.Recipients.Count);
         Assert.Contains(roundTrip.Recipients, recipient => recipient.Kind == EmailRecipientKind.To &&
@@ -143,7 +143,7 @@ public sealed class MsgSerializationRegressionTests {
         byte[] msg = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
 
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
-            new EmailDocumentReader(new EmailReaderOptions(maxTnefAttributeCount: 1)).Read(msg));
+            new EmailDocumentReader(new EmailReaderOptions(maxTnefAttributeCount: 1)).ReadDocument(msg));
 
         Assert.Equal(nameof(EmailReaderOptions.MaxTnefAttributeCount), exception.LimitName);
         Assert.Equal(2, exception.ActualValue);
@@ -161,7 +161,7 @@ public sealed class MsgSerializationRegressionTests {
         semanticPart.IsProjectedSemanticContent = true;
         source.Attachments.Add(semanticPart);
 
-        EmailDocument result = new EmailDocumentReader().Read(
+        EmailDocument result = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg)).Document;
 
         Assert.Empty(result.Attachments);

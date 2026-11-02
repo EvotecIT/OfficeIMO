@@ -184,10 +184,10 @@ public sealed class ReaderIntegrityRegressionsTests {
             File.WriteAllText(path, "OLD");
             IOException error = await Assert.ThrowsAsync<IOException>(async () => {
                 if (surface == "document-async") await reader.ReadDocumentAsync(path);
-                else if (surface == "chunks-async") await reader.ReadAsync(path);
+                else if (surface == "chunks-async") (await reader.ReadDocumentAsync(path)).Chunks;
                 else if (surface == "document") reader.ReadDocument(path);
-                else if (surface == "chunks") reader.Read(path).ToArray();
-                else reader.EnumerateChunks(path).ToArray();
+                else if (surface == "chunks") reader.Enumerate(path).ToArray();
+                else reader.Enumerate(path).ToArray();
             });
             Assert.Contains("Source changed", error.Message);
         } finally { File.Delete(path); }

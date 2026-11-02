@@ -15,9 +15,9 @@ public sealed partial class NativeAppleExportTests {
         // Vendor fields are retained in the MIME source but not all fit Outlook;
         // explicitly choose Warn for this typed conversion.
         var writer = new EmailDocumentWriter(new EmailWriterOptions(EmailConversionLossPolicy.Warn));
-        using EmailReadResult msg = new EmailDocumentReader().Read(writer.ToBytes(source.Document, EmailFileFormat.OutlookMsg));
+        using EmailReadResult msg = new EmailDocumentReader().ReadDocument(writer.ToBytes(source.Document, EmailFileFormat.OutlookMsg));
         AssertCalendarOccurrences(msg.Document);
-        using EmailReadResult eml = new EmailDocumentReader().Read(writer.ToBytes(msg.Document, EmailFileFormat.Eml));
+        using EmailReadResult eml = new EmailDocumentReader().ReadDocument(writer.ToBytes(msg.Document, EmailFileFormat.Eml));
         AssertCalendarOccurrences(eml.Document);
     }
 
@@ -93,9 +93,9 @@ public sealed partial class NativeAppleExportTests {
                 diagnostic.Code == "EMAIL_ICALENDAR_TIMEZONE_UNRESOLVED");
             Assert.Equal(expected.UtcDateTime, ProjectedDate(read.Document).UtcDateTime);
             var writer = new EmailDocumentWriter(new EmailWriterOptions(EmailConversionLossPolicy.Warn));
-            using EmailReadResult msg = new EmailDocumentReader().Read(writer.ToBytes(read.Document, EmailFileFormat.OutlookMsg));
+            using EmailReadResult msg = new EmailDocumentReader().ReadDocument(writer.ToBytes(read.Document, EmailFileFormat.OutlookMsg));
             Assert.Equal(expected.UtcDateTime, ProjectedDate(msg.Document).UtcDateTime);
-            using EmailReadResult eml = new EmailDocumentReader().Read(writer.ToBytes(msg.Document, EmailFileFormat.Eml));
+            using EmailReadResult eml = new EmailDocumentReader().ReadDocument(writer.ToBytes(msg.Document, EmailFileFormat.Eml));
             Assert.Equal(expected.UtcDateTime, ProjectedDate(eml.Document).UtcDateTime);
 
             DateTimeOffset ProjectedDate(EmailDocument document) => (task
@@ -104,7 +104,7 @@ public sealed partial class NativeAppleExportTests {
         }
     }
 
-    private static EmailReadResult ReadCalendar(string text) => new EmailDocumentReader().Read(
+    private static EmailReadResult ReadCalendar(string text) => new EmailDocumentReader().ReadDocument(
         Encoding.UTF8.GetBytes("Content-Type: text/calendar; charset=utf-8\r\n\r\n" + text));
 
     private static void AssertCalendarOccurrences(EmailDocument document) {

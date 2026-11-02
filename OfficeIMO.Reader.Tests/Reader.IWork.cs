@@ -383,7 +383,7 @@ public sealed class ReaderIWorkTests {
     [Fact]
     public void ChunkOnlyReadCarriesSourceWarnings() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddIWorkHandler().Build();
-        ReaderChunk[] chunks = reader.Read(Fixture("picodocs/sample-v14.4.pages")).ToArray();
+        ReaderChunk[] chunks = reader.Enumerate(Fixture("picodocs/sample-v14.4.pages")).ToArray();
         Assert.Contains(chunks.SelectMany(chunk => chunk.Warnings ?? Array.Empty<string>()),
             warning => warning.Contains("IWORK_PAGES_TEXT_UNSUPPORTED", StringComparison.Ordinal));
     }

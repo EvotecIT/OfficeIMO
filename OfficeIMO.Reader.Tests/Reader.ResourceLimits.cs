@@ -73,9 +73,9 @@ public sealed class ReaderResourceLimitTests {
         var options = Limited(new ReaderResourceLimits { MaxChunks = 1 });
         using var input = new MemoryStream(Encoding.UTF8.GetBytes(new string('a', 600)));
         var error = Assert.Throws<ReaderResourceLimitException>(() => {
-            if (route == "chunks") reader.Read(input, "source.txt", options).ToArray();
+            if (route == "chunks") reader.Enumerate(input, "source.txt", options).ToArray();
             else if (route == "document") reader.ReadDocument(input, "source.txt", options);
-            else reader.EnumerateChunks(input, "source.txt", options).ToArray();
+            else reader.Enumerate(input, "source.txt", options).ToArray();
         });
         Assert.Equal(nameof(ReaderResourceLimits.MaxChunks), error.LimitName);
         Assert.True(input.CanRead);
@@ -94,9 +94,9 @@ public sealed class ReaderResourceLimitTests {
             var options = Limited(new ReaderResourceLimits { MaxChunks = 1 });
             Assert.Throws<ReaderResourceLimitException>(() => {
                 if (detailed) reader.ReadFolderDetailed(folder, options: options);
-                else reader.ReadFolder(folder, options: options).ToArray();
+                else reader.EnumerateFolder(folder, options: options).ToArray();
             });
-            Assert.Equal(2, reader.ReadFolder(folder, options: Limited(new ReaderResourceLimits { MaxChunks = 2 })).Count());
+            Assert.Equal(2, reader.EnumerateFolder(folder, options: Limited(new ReaderResourceLimits { MaxChunks = 2 })).Count());
         } finally { Directory.Delete(folder, true); }
     }
 
@@ -117,7 +117,7 @@ public sealed class ReaderResourceLimitTests {
         }
         var reader = RichBuilder().Build();
         using var input = new MemoryStream(new byte[] { 1 });
-        Assert.Throws<ReaderResourceLimitException>(() => reader.Read(input, "item.rich", Limited(limits)).ToArray());
+        Assert.Throws<ReaderResourceLimitException>(() => reader.Enumerate(input, "item.rich", Limited(limits)).ToArray());
         await Assert.ThrowsAsync<ReaderResourceLimitException>(() => reader.ReadDocumentAsync(input, "item.rich", Limited(limits)));
 
         var processed = new OfficeDocumentReaderBuilder().AddPlainTextHandlers()
@@ -142,8 +142,8 @@ public sealed class ReaderResourceLimitTests {
         if (limit == "documents") limits.MaxNestedDocuments = 2;
         if (limit == "depth") limits.MaxNestedDepth = 1;
         var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddZipHandler().Build();
-        Assert.Throws<ReaderResourceLimitException>(() => reader.Read(outer, "outer.zip", Limited(limits)).ToArray());
-        Assert.Equal(2, reader.Read(outer, "outer.zip", Limited(new ReaderResourceLimits {
+        Assert.Throws<ReaderResourceLimitException>(() => reader.Enumerate(outer, "outer.zip", Limited(limits)).ToArray());
+        Assert.Equal(2, reader.Enumerate(outer, "outer.zip", Limited(new ReaderResourceLimits {
             MaxNestedInputBytes = 2 * (inner.Length + 3), MaxNestedDocuments = 4, MaxNestedDepth = 2 })).Count());
     }
 

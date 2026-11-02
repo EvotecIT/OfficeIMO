@@ -22,7 +22,7 @@ public sealed class ReaderRtfCancellationTests {
 
         Assert.ThrowsAny<OperationCanceledException>(() => {
             if (richDocument) reader.ReadDocument(stream, "cancel.rtf", options, cancellation.Token);
-            else reader.Read(stream, "cancel.rtf", options, cancellation.Token).ToArray();
+            else reader.Enumerate(stream, "cancel.rtf", options, cancellation.Token).ToArray();
         });
         Assert.True(stream.BytesRead < input.Length);
         Assert.True(stream.CanRead);

@@ -55,9 +55,9 @@ public sealed class ReaderExcelNativeReadAdmissionTests {
                 else if (route == "zip") reader.ReadDocument(Wrap(bytes), "source.zip", options);
                 else {
                     string path = Path.Combine(directory, "source.xlsx"); File.WriteAllBytes(path, bytes);
-                    if (route == "incremental") reader.EnumerateChunks(path, options).ToArray();
+                    if (route == "incremental") reader.Enumerate(path, options).ToArray();
                     else if (route == "batch") await reader.ReadDocumentsDetailedAsync(new[] { path }, options);
-                    else reader.ReadFolder(directory, options: options).ToArray();
+                    else reader.EnumerateFolder(directory, options: options).ToArray();
                 }
             });
             Assert.Equal("excel." + name, error.LimitName); Assert.Equal(maximum, error.Maximum);

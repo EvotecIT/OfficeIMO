@@ -53,7 +53,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
         })
     .Build();
 
-foreach (var chunk in reader.Read("evidence.zip", new ReaderOptions {
+foreach (var chunk in reader.Enumerate("evidence.zip", new ReaderOptions {
     MaxInputBytes = 200L * 1024L * 1024L
 })) {
     Console.WriteLine($"{chunk.Kind}: {chunk.Location.Path}");
@@ -80,7 +80,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
         })
     .Build();
 
-var chunks = reader.Read("upload.zip").ToList();
+var chunks = reader.Enumerate("upload.zip").ToList();
 foreach (string warning in chunks.SelectMany(chunk => chunk.Warnings ?? Array.Empty<string>())) {
     Console.WriteLine(warning);
 }

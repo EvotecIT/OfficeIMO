@@ -26,9 +26,9 @@ public sealed class ReaderReviewRegressionTests {
         try {
             await Assert.ThrowsAsync<ReaderResourceLimitException>(async () => {
                 var options = Options(limits);
-                if (route == "path") await reader.ReadAsync(path, options);
-                else if (route == "bytes") await reader.ReadAsync(new byte[] { 1 }, "input.native", options);
-                else { using var stream = new MemoryStream(new byte[] { 1 }); await reader.ReadAsync(stream, "input.native", options); }
+                if (route == "path") (await reader.ReadDocumentAsync(path, options)).Chunks;
+                else if (route == "bytes") (await reader.ReadDocumentAsync(new byte[] { 1 }, "input.native", options)).Chunks;
+                else { using var stream = new MemoryStream(new byte[] { 1 }); (await reader.ReadDocumentAsync(stream, "input.native", options)).Chunks; }
             });
         } finally { File.Delete(path); }
     }
@@ -82,7 +82,7 @@ public sealed class ReaderReviewRegressionTests {
         using var forward = new CountingStream(new byte[10_000]);
         using var memory = new MemoryStream(new byte[10_000]);
         Stream input = seekable ? memory : forward;
-        Assert.Throws<IOException>(() => reader.EnumerateChunks(input, "input.policy", new ReaderOptions {
+        Assert.Throws<IOException>(() => reader.Enumerate(input, "input.policy", new ReaderOptions {
             ComputeHashes = false, MaxInputBytes = policy == "ceiling" ? 1024 : null
         }).ToArray());
         if (!seekable) Assert.InRange(forward.BytesRead, 1, policy == "prefix" ? 9 : 129);
@@ -185,7 +185,7 @@ public sealed class ReaderReviewRegressionTests {
             ReadStream = (input, _, _, _) => ReadOne(input)
         }).Build();
         using var input = new CountingStream(bytes);
-        using var iterator = reader.EnumerateChunks(input, "input.prefix", new ReaderOptions { ComputeHashes = false }).GetEnumerator();
+        using var iterator = reader.Enumerate(input, "input.prefix", new ReaderOptions { ComputeHashes = false }).GetEnumerator();
         Assert.True(iterator.MoveNext());
         Assert.Equal("aaaaaaaaaa", iterator.Current.Text);
         Assert.Equal(10, input.BytesRead);
@@ -225,8 +225,8 @@ public sealed class ReaderReviewRegressionTests {
         byte[] bytes = Encoding.UTF8.GetBytes("hash me");
         var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().Build();
         using var input = new CountingStream(bytes);
-        var chunk = Assert.Single(reader.EnumerateChunks(input, "input.txt", new ReaderOptions { ComputeHashes = true }));
-        Assert.Equal(Assert.Single(reader.Read(bytes, "input.txt")).SourceHash, chunk.SourceHash);
+        var chunk = Assert.Single(reader.Enumerate(input, "input.txt", new ReaderOptions { ComputeHashes = true }));
+        Assert.Equal(Assert.Single(reader.Enumerate(bytes, "input.txt")).SourceHash, chunk.SourceHash);
         Assert.NotNull(chunk.SourceHash);
         Assert.True(input.CanRead);
     }

@@ -111,7 +111,7 @@ internal static class ExternalEmailCorpusHarness {
     internal static bool ValidateMalformedMimeArtifact(string path) {
         using MimeMessage oracle = MimeMessage.Load(path);
         using EmailReadResult read = new EmailDocumentReader(
-            new EmailReaderOptions(preserveRawSource: true)).Read(path);
+            new EmailReaderOptions(preserveRawSource: true)).ReadDocument(path);
         Check(read.Document.Format == EmailFileFormat.Eml,
             "OfficeIMO did not classify the malformed artifact as EML.");
         Check(EqualText(NormalizeOracleText(oracle.Subject), read.Document.Subject),
@@ -161,7 +161,7 @@ internal static class ExternalEmailCorpusHarness {
             return false;
         }
         using (oracle) {
-            EmailReadResult read = Reader.Read(path);
+            EmailReadResult read = Reader.ReadDocument(path);
             EnsureReadable(read, path);
             Check(read.Document.Format == EmailFileFormat.Eml, "OfficeIMO did not classify the artifact as EML.");
             Check(EqualText(NormalizeOracleText(oracle.Subject), read.Document.Subject), string.Concat(
@@ -224,7 +224,7 @@ internal static class ExternalEmailCorpusHarness {
     private static bool ValidateOutlookMsg(string path) {
         using var input = File.OpenRead(path);
         using var oracle = new global::MsgReader.Outlook.Storage.Message(input, FileAccess.Read, true);
-        EmailReadResult read = Reader.Read(path);
+        EmailReadResult read = Reader.ReadDocument(path);
         EnsureReadable(read, path);
         Check(read.Document.Format == EmailFileFormat.OutlookMsg,
             "OfficeIMO did not classify the artifact as Outlook MSG.");
@@ -257,7 +257,7 @@ internal static class ExternalEmailCorpusHarness {
             return false;
         }
 
-        EmailReadResult read = Reader.Read(path);
+        EmailReadResult read = Reader.ReadDocument(path);
         EnsureReadable(read, path);
         Check(read.Document.Format == EmailFileFormat.Tnef, "OfficeIMO did not classify the artifact as TNEF.");
         MimePart[] oracleFiles = oracleAttachments.OfType<MimePart>()
@@ -329,17 +329,17 @@ internal static class ExternalEmailCorpusHarness {
             using MimeMessage oracle = MimeMessage.Load(stream);
             Check(EqualText(document.Subject, oracle.Subject), "MimeKit read a different rewritten EML subject.");
         }
-        EnsureReadable(Reader.Read(eml), string.Concat(sourcePath, " -> EML"));
+        EnsureReadable(Reader.ReadDocument(eml), string.Concat(sourcePath, " -> EML"));
 
         byte[] msg = Writer.ToBytes(document, EmailFileFormat.OutlookMsg);
-        EnsureReadable(Reader.Read(msg), string.Concat(sourcePath, " -> MSG"));
+        EnsureReadable(Reader.ReadDocument(msg), string.Concat(sourcePath, " -> MSG"));
         using (var oracle = new global::MsgReader.Outlook.Storage.Message(
                    new MemoryStream(msg), FileAccess.Read, true)) {
             Check(EqualText(document.Subject, oracle.Subject), "MsgReader read a different rewritten MSG subject.");
         }
 
         byte[] tnef = Writer.ToBytes(document, EmailFileFormat.Tnef);
-        EnsureReadable(Reader.Read(tnef), string.Concat(sourcePath, " -> TNEF"));
+        EnsureReadable(Reader.ReadDocument(tnef), string.Concat(sourcePath, " -> TNEF"));
     }
 
     private static int CountMimeKitMbox(string path) {

@@ -14,7 +14,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
             "ATTENDEE;CN=alpha^nbeta:mailto:attendee@example.com\r\n" +
             "END:VEVENT\r\nEND:VCALENDAR\r\n");
 
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
         EmailRecipient recipient = Assert.Single(document.Recipients);
 
         Assert.Equal("alpha^nbeta", recipient.Address.DisplayName);
@@ -31,7 +31,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
         byte[] eml = Encoding.ASCII.GetBytes("Content-Type: " + contentType + "; charset=utf-8\r\n" +
             "Content-Disposition: inline\r\n\r\n" + content);
 
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailAttachment semanticPart = Assert.Single(document.Attachments);
         Assert.Equal(expectedKind, document.OutlookItemKind);
@@ -45,9 +45,9 @@ public sealed class EmailCalendarProjectionEdgeTests {
         byte[] eml = Calendar(
             "BEGIN:VTODO\r\nUID:assigned@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "ATTENDEE;CN=Assignee:mailto:assignee@example.com\r\nEND:VTODO\r\n", "REQUEST");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
-        EmailDocument roundTrip = new EmailDocumentReader().Read(
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
         string regenerated = CalendarText(new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(roundTrip, EmailFileFormat.Eml));
 
@@ -61,7 +61,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
     public void BlocksFloatingCalendarTimesBeforeStoreConversion() {
         byte[] eml = Calendar(
             "BEGIN:VEVENT\r\nUID:floating@example.com\r\nDTSTART:20260715T090000\r\nEND:VEVENT\r\n");
-        EmailReadResult read = new EmailDocumentReader().Read(eml);
+        EmailReadResult read = new EmailDocumentReader().ReadDocument(eml);
         EmailDocument document = read.Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
@@ -80,9 +80,9 @@ public sealed class EmailCalendarProjectionEdgeTests {
             "BEGIN:VEVENT\r\nUID:encoded-address@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "ORGANIZER:mailto:owner%2Bcalendar@example.com\r\n" +
             "ATTENDEE:mailto:alice%2Btag@example.com\r\nEND:VEVENT\r\n", "REQUEST");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
-        EmailDocument roundTrip = new EmailDocumentReader().Read(
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
 
         Assert.Equal("owner+calendar@example.com", document.From!.Address);
@@ -105,7 +105,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
             new EmailAddress("user%2Ctag@example.com")));
 
         byte[] eml = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Eml);
-        EmailDocument roundTrip = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(eml).Document;
 
         Assert.Contains("mailto:user%252Ctag@example.com", CalendarText(eml), StringComparison.Ordinal);
         Assert.Contains(roundTrip.Recipients,
@@ -117,7 +117,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
         byte[] eml = Calendar(
             "BEGIN:VEVENT\r\nUID:priority@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "PRIORITY:1\r\nEND:VEVENT\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -134,7 +134,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
         byte[] eml = Calendar(
             "BEGIN:" + component + "\r\nUID:url@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "URL:https://example.com/item\r\nEND:" + component + "\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -152,7 +152,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
         byte[] eml = Calendar(
             "BEGIN:VTODO\r\nUID:date-only@example.com\r\n" + property +
             ";VALUE=DATE:20260715\r\nEND:VTODO\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -169,7 +169,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
         byte[] eml = Calendar(
             "BEGIN:" + component + "\r\nUID:timestamp@example.com\r\n" +
             "DTSTART:20260801T100000Z\r\nDTSTAMP:20260715T080000Z\r\nEND:" + component + "\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -189,7 +189,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
             "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nMETHOD:" + method + "\r\nBEGIN:VTODO\r\n" +
             "UID:task-method@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "END:VTODO\r\nEND:VCALENDAR\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -205,7 +205,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
             "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:1.0\r\n" +
             "BEGIN:VEVENT\r\nUID:version@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "END:VEVENT\r\nEND:VCALENDAR\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -220,7 +220,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
         byte[] eml = Calendar(
             "BEGIN:VTODO\r\nUID:task-sequence@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "SEQUENCE:3\r\nEND:VTODO\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -237,7 +237,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
         byte[] eml = Calendar(
             "BEGIN:VEVENT\r\nUID:cal-address@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             property + "\r\nEND:VEVENT\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -256,7 +256,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
         byte[] eml = Calendar(
             "BEGIN:VEVENT\r\nUID:organizer-parameter@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "ORGANIZER;" + parameter + ":mailto:owner@example.com\r\nEND:VEVENT\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -279,7 +279,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
         byte[] eml = Calendar(
             "BEGIN:" + component + "\r\nUID:unprojected@example.com\r\n" +
             "DTSTART:20260801T100000Z\r\n" + property + "\r\nEND:" + component + "\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -299,7 +299,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
             "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n" +
             "UID:methodless@example.com\r\nDTSTART:20260801T100000Z\r\n" + calendarRecipients +
             "END:VEVENT\r\nEND:VCALENDAR\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -317,9 +317,9 @@ public sealed class EmailCalendarProjectionEdgeTests {
             "DTSTART:20260801T100000Z\r\n" +
             "ATTENDEE;ROLE=OPT-PARTICIPANT;CN=Optional:mailto:optional@example.com\r\n" +
             "END:VEVENT\r\nEND:VCALENDAR\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
-        EmailDocument roundTrip = new EmailDocumentReader().Read(
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
 
         Assert.Equal(EmailRecipientKind.Cc, Assert.Single(document.Recipients).Kind);
@@ -334,7 +334,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
             "DTSTART:20260801T100000Z\r\nATTENDEE;CN=Hidden:mailto:hidden@example.com\r\n" +
             "END:VEVENT\r\nEND:VCALENDAR\r\n");
 
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailRecipient recipient = Assert.Single(document.Recipients);
         Assert.Equal(EmailRecipientKind.Bcc, recipient.Kind);
@@ -348,9 +348,9 @@ public sealed class EmailCalendarProjectionEdgeTests {
             "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nMETHOD:REQUEST\r\nBEGIN:VEVENT\r\nUID:name@example.com\r\n" +
             "DTSTART:20260801T100000Z\r\nATTENDEE;CN=Alice:mailto:alice@example.com\r\n" +
             "END:VEVENT\r\nEND:VCALENDAR\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
-        EmailDocument roundTrip = new EmailDocumentReader().Read(
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
 
         Assert.Equal("Alice", Assert.Single(document.Recipients).Address.DisplayName);
@@ -364,7 +364,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
             "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:name-conflict@example.com\r\n" +
             "DTSTART:20260801T100000Z\r\nATTENDEE;CN=Alice:mailto:alice@example.com\r\n" +
             "END:VEVENT\r\nEND:VCALENDAR\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -384,9 +384,9 @@ public sealed class EmailCalendarProjectionEdgeTests {
             "Content-Type: text/calendar; method=" + method + "; charset=utf-8\r\n\r\n" +
             "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:method@example.com\r\n" +
             "DTSTART:20260801T100000Z\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
-        EmailDocument roundTrip = new EmailDocumentReader().Read(
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
 
         Assert.Equal(expectedMessageClass, document.MessageClass);
@@ -401,7 +401,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
             "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nMETHOD:PUBLISH\r\nBEGIN:VEVENT\r\n" +
             "UID:publish@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "END:VEVENT\r\nEND:VCALENDAR\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -418,7 +418,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
             "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nMETHOD:CANCEL\r\nBEGIN:VEVENT\r\n" +
             "UID:method-conflict@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "END:VEVENT\r\nEND:VCALENDAR\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -434,9 +434,9 @@ public sealed class EmailCalendarProjectionEdgeTests {
         byte[] eml = Calendar(
             "BEGIN:VTODO\r\nUID:private-task@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "CLASS:CONFIDENTIAL\r\nEND:VTODO\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
-        EmailDocument storeRoundTrip = new EmailDocumentReader().Read(
+        EmailDocument storeRoundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
         string regenerated = CalendarText(new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(storeRoundTrip, EmailFileFormat.Eml));
 
@@ -451,9 +451,9 @@ public sealed class EmailCalendarProjectionEdgeTests {
         byte[] eml = Calendar(
             "BEGIN:VTODO\r\nUID:duration-task@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "DURATION:PT2H\r\nEND:VTODO\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
-        EmailDocument storeRoundTrip = new EmailDocumentReader().Read(
+        EmailDocument storeRoundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
 
         Assert.Equal(start.AddHours(2), document.Task!.Due);
@@ -468,9 +468,9 @@ public sealed class EmailCalendarProjectionEdgeTests {
         byte[] eml = Calendar(
             "BEGIN:" + component + "\r\nUID:categories@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "CATEGORIES:Blue,Project\\, X\r\nEND:" + component + "\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
-        EmailDocument storeRoundTrip = new EmailDocumentReader().Read(
+        EmailDocument storeRoundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
 
         Assert.Equal(new[] { "Blue", "Project, X" }, document.MessageMetadata.Categories);
@@ -484,7 +484,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
         byte[] eml = Calendar(
             "BEGIN:VEVENT\r\nUID:status@example.com\r\nDTSTART:20260801T100000Z\r\nSTATUS:" + status +
             "\r\nEND:VEVENT\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -502,7 +502,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
             "BEGIN:VEVENT\r\nUID:alarm@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "BEGIN:VALARM\r\n" + alarmProperties + "TRIGGER:-PT15M\r\n" +
             "END:VALARM\r\nEND:VEVENT\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -519,7 +519,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
         byte[] eml = Calendar(
             "BEGIN:VEVENT\r\nUID:attendee-state@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "ATTENDEE;" + parameter + ":mailto:alice@example.com\r\nEND:VEVENT\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -535,7 +535,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
             "BEGIN:VEVENT\r\nUID:alarm-description@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "SUMMARY:Meeting\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\n" +
             "DESCRIPTION:Bring the report\r\nTRIGGER:-PT15M\r\nEND:VALARM\r\nEND:VEVENT\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -552,11 +552,11 @@ public sealed class EmailCalendarProjectionEdgeTests {
             "BEGIN:VEVENT\r\nUID:absolute-alarm@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "SUMMARY:Reminder\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:Reminder\r\n" +
             "TRIGGER;VALUE=DATE-TIME:20260801T094500Z\r\nEND:VALARM\r\nEND:VEVENT\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
-        EmailDocument roundTrip = new EmailDocumentReader().Read(
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
 
         Assert.True(report.CanWrite);
@@ -570,7 +570,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
             "Message-ID: <transport@example.com>\r\nContent-Type: text/calendar; charset=utf-8\r\n\r\n" +
             "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:event@example.com\r\n" +
             "DTSTART:20260801T100000Z\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -588,7 +588,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
             "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:event@example.com\r\n" +
             "DTSTART:20260801T100000Z\r\nORGANIZER;CN=Owner:mailto:owner@example.com\r\n" +
             "END:VEVENT\r\nEND:VCALENDAR\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -608,7 +608,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
             "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:event@example.com\r\n" +
             "DTSTART:20260801T100000Z\r\nDESCRIPTION:Event notes\r\n" +
             "END:VEVENT\r\nEND:VCALENDAR\r\n--x--\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -624,9 +624,9 @@ public sealed class EmailCalendarProjectionEdgeTests {
         byte[] eml = Calendar(
             "BEGIN:VEVENT\r\nUID:escape@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "SUMMARY:Literal \\\\n value\r\nEND:VEVENT\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
-        EmailDocument roundTrip = new EmailDocumentReader().Read(
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
 
         Assert.Equal("Literal \\n value", document.Subject);
@@ -640,9 +640,9 @@ public sealed class EmailCalendarProjectionEdgeTests {
             "BEGIN:VEVENT\r\nUID:parameter@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "ATTENDEE;CN=\"" + parameterName + "\":mailto:alice@example.com\r\n" +
             "END:VEVENT\r\n", "REQUEST");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
-        EmailDocument roundTrip = new EmailDocumentReader().Read(
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
 
         Assert.Equal("Alice \"A\" \\\\ Team", Assert.Single(document.Recipients).Address.DisplayName);
@@ -659,7 +659,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
             "--x\r\nContent-Type: text/calendar; charset=utf-8\r\n\r\n" +
             "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:second@example.com\r\n" +
             "DTSTART:20260802T100000Z\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n--x--\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);

@@ -86,5 +86,5 @@ public class RtfAdapterBenchmarks {
 
     [Benchmark]
     [BenchmarkCategory("Reader")]
-    public ReaderChunk[] Reader() => _reader.Read(_readerInput, "benchmark.rtf").ToArray();
+    public ReaderChunk[] Reader() => _reader.Enumerate(_readerInput, "benchmark.rtf").ToArray();
 }

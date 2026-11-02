@@ -39,7 +39,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddRtfHandler()
     .Build();
 
-foreach (var chunk in reader.Read("policy.rtf")) {
+foreach (var chunk in reader.Enumerate("policy.rtf")) {
     Console.WriteLine($"{chunk.Id}: {chunk.Location.SourceBlockKind}");
     Console.WriteLine(chunk.Markdown ?? chunk.Text);
 }

@@ -121,7 +121,7 @@ public sealed class ReaderAllSeverityBatch12SecurityTests {
             }
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadFolder(
+                () => OfficeIMO.Reader.Tests.ReaderTestReaders.All.EnumerateFolder(
                     folder,
                     new ReaderFolderOptions {
                         Recurse = false,

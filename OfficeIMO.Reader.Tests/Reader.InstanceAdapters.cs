@@ -73,7 +73,7 @@ public sealed class ReaderInstanceAdapterTests {
             .Build();
         using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"name\":\"OfficeIMO\"}"));
 
-        ReaderChunk[] chunks = reader.Read(stream, "sample.json").ToArray();
+        ReaderChunk[] chunks = reader.Enumerate(stream, "sample.json").ToArray();
 
         Assert.NotEmpty(chunks);
         Assert.Contains(chunks, chunk => chunk.Text?.Contains("OfficeIMO", StringComparison.Ordinal) == true);
@@ -109,9 +109,9 @@ public sealed class ReaderInstanceAdapterTests {
         using var visualStream = new MemoryStream(new byte[] { 1 });
         using var assetStream = new MemoryStream(new byte[] { 1 });
 
-        Assert.Equal("OfficeIMO", Assert.Single(reader.ReadTables(tableStream, "sample" + extension)).Rows[0][0]);
-        Assert.Equal("graph TD", Assert.Single(reader.ReadVisuals(visualStream, "sample" + extension)).Content);
-        Assert.Same(asset, Assert.Single(reader.ReadAssets(assetStream, "sample" + extension)));
+        Assert.Equal("OfficeIMO", Assert.Single(reader.ReadDocument(tableStream, "sample" + extension).ExtractTables()).Rows[0][0]);
+        Assert.Equal("graph TD", Assert.Single(reader.ReadDocument(visualStream, "sample" + extension).ExtractVisuals()).Content);
+        Assert.Same(asset, Assert.Single(reader.ReadDocument(assetStream, "sample" + extension).ExtractAssets()));
     }
 
     private static void AssertHandler(OfficeDocumentReader reader, string expectedHandlerId) {

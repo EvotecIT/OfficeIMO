@@ -59,7 +59,7 @@ foreach (var fixture in manifest.RootElement.GetProperty("fixtures").EnumerateAr
         Require(Hash(read[i].Data) == entries[i].GetProperty("sha256").GetString(), "Memory read payload mismatch");
     }
     var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddZipHandler(new() { ZipLegacyCodePage = codePage }).Build();
-    var chunks = reader.Read(path, new() { ComputeHashes = false }).ToArray();
+    var chunks = reader.Enumerate(path, new() { ComputeHashes = false }).ToArray();
     Require(chunks.Any(c => c.Text.Contains("Zażółć")) && chunks.All(c => !(c.Warnings?.Any() ?? false)), "Reader payload mismatch");
     using var oracleInput = File.OpenRead(path);
     using var timestampOracle = new ZipArchive(oracleInput, ZipArchiveMode.Read);

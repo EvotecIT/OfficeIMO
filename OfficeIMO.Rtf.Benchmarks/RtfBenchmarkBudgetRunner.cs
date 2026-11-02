@@ -130,7 +130,7 @@ internal static class RtfBenchmarkBudgetRunner {
             using MemoryStream stream = new MemoryStream(word.ToBytes());
             outputBytes = stream.Length;
         } else {
-            ReaderChunk[] chunks = preparedReader!.Read(preparedReaderInput!, "benchmark.rtf").ToArray();
+            ReaderChunk[] chunks = preparedReader!.Enumerate(preparedReaderInput!, "benchmark.rtf").ToArray();
             outputBytes = chunks.Sum(chunk => Encoding.UTF8.GetByteCount(chunk.Markdown ?? chunk.Text ?? string.Empty));
         }
 

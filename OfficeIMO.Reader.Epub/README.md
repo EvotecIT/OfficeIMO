@@ -46,7 +46,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddEpubHandler()
     .Build();
 
-foreach (var chunk in reader.Read("book.epub", new ReaderOptions {
+foreach (var chunk in reader.Enumerate("book.epub", new ReaderOptions {
     MaxChars = 6_000,
     ComputeHashes = true
 })) {
@@ -70,7 +70,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .Build();
 
 await using var stream = File.OpenRead("upload.epub");
-var chunks = reader.Read(stream, "upload.epub").ToList();
+var chunks = reader.Enumerate(stream, "upload.epub").ToList();
 
 foreach (string warning in chunks.SelectMany(chunk => chunk.Warnings ?? Array.Empty<string>())) {
     Console.WriteLine(warning);
