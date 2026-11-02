@@ -21,9 +21,10 @@ namespace OfficeIMO.Excel {
         private IReadOnlyDictionary<uint, SharedFormulaDefinition> BuildSharedFormulaDefinitions(
             IReadOnlyDictionary<Cell, (int Row, int Column)>? effectiveCoordinates = null,
             IEnumerable<Cell>? cells = null) {
+            var definitions = new Dictionary<uint, SharedFormulaDefinition>();
+            if (cells == null && !HasSharedFormulas()) return definitions;
             effectiveCoordinates ??= BuildEffectiveCellCoordinates();
             cells ??= ExcelWorksheetScan.Cells(WorksheetRoot);
-            var definitions = new Dictionary<uint, SharedFormulaDefinition>();
             foreach (Cell cell in cells) {
                 CellFormula? cellFormula = ExcelWorksheetScan.FindFormula(cell);
                 if (cellFormula?.FormulaType?.Value != CellFormulaValues.Shared
@@ -46,6 +47,13 @@ namespace OfficeIMO.Excel {
             }
 
             return definitions;
+        }
+
+        private bool HasSharedFormulas() {
+            foreach (CellFormula formula in ExcelWorksheetScan.CellFormulas(WorksheetRoot)) {
+                if (formula.FormulaType?.Value == CellFormulaValues.Shared) return true;
+            }
+            return false;
         }
 
         private string ResolveCellFormulaText(

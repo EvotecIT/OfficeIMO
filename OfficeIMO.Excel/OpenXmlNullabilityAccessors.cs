@@ -47,10 +47,18 @@ namespace OfficeIMO.Excel {
 
         private Worksheet WorksheetRoot {
             get {
-                CaptureOriginalDynamicSpillFingerprintIfSafe();
+                if (!_worksheetPart.IsRootElementLoaded) LoadWorksheetRoot();
                 return _worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is null.");
             }
             set => _worksheetPart.Worksheet = value;
+        }
+
+        private void LoadWorksheetRoot() {
+            CaptureOriginalDynamicSpillFingerprintIfSafe();
+            if (_worksheetPart.IsRootElementLoaded || !_excelDocument.AllowsWorksheetGridLoader) return;
+            lock (_worksheetPart) {
+                if (!_worksheetPart.IsRootElementLoaded) ExcelWorksheetGridLoader.TryLoad(_worksheetPart);
+            }
         }
 
         private WorksheetCommentsPart? WorksheetCommentsPartRoot => _worksheetPart.WorksheetCommentsPart;

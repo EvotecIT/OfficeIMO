@@ -290,8 +290,10 @@ namespace OfficeIMO.Excel {
                 bool occupied = context.Cells.TryGetValue(key, out Cell? existing)
                     && (ExcelWorksheetScan.FindValue(existing) != null || existing.InlineString != null
                         || ExcelWorksheetScan.FindFormula(existing) != null || existing.CellMetaIndex != null || existing.ValueMetaIndex != null);
-                bool oldSpillChild = context.DynamicOwners.Any(owner => row >= owner.Top && row <= owner.Bottom
-                    && column >= owner.Left && column <= owner.Right);
+                bool oldSpillChild = false;
+                foreach (FixedArrayOwner owner in context.DynamicOwners) {
+                    if (row >= owner.Top && row <= owner.Bottom && column >= owner.Left && column <= owner.Right) { oldSpillChild = true; break; }
+                }
                 if (!occupied || oldSpillChild) {
                     for (int i = context.DynamicOwners.Count - 1; i >= 0; i--) {
                         FixedArrayOwner owner = context.DynamicOwners[i];

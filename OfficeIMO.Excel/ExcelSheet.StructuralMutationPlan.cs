@@ -690,6 +690,8 @@ namespace OfficeIMO.Excel {
             // package baseline before those roots are loaded through raw part access.
             foreach (ExcelSheet sheet in EnumerateDynamicSpillMutationSheets())
                 sheet.CaptureOriginalDynamicSpillFingerprintIfSafe();
+            // The edited sheet is read whatever the plan's budget; other sheets load only when their scan reaches them.
+            LoadWorksheetRoot();
         }
 
         private bool FormulaChangesForPlan(

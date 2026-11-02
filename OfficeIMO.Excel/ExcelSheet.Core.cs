@@ -377,17 +377,12 @@ namespace OfficeIMO.Excel {
             }
 
             if (rowElement == null) {
-                foreach (Row r in sheetData.Elements<Row>()) {
-                    if (r.RowIndex == null) {
-                        continue;
-                    }
-
-                    uint rowIndex = r.RowIndex.Value;
-                    if (rowIndex == (uint)row) {
+                // Sibling links, unlike a typed element enumeration, allocate nothing; lookups land here on every backward step.
+                for (OpenXmlElement? child = sheetData.FirstChild; child != null; child = child.NextSibling()) {
+                    if (child is Row r && r.RowIndex != null && r.RowIndex.Value == (uint)row) {
                         rowElement = r;
                         break;
                     }
-
                 }
             }
 
@@ -421,8 +416,8 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            foreach (Cell cell in rowElement.Elements<Cell>()) {
-                if (cell.CellReference?.Value is not string existingRefValue || existingRefValue.Length == 0) {
+            for (OpenXmlElement? child = rowElement.FirstChild; child != null; child = child.NextSibling()) {
+                if (child is not Cell cell || cell.CellReference?.Value is not string existingRefValue || existingRefValue.Length == 0) {
                     continue;
                 }
 
