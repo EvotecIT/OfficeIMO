@@ -112,6 +112,20 @@ public sealed class HtmlPdfFontCoverageTests {
         Assert.Contains(flag, PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText(), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void HtmlPdf_MarginBoxTextDoesNotTurnInstalledBoldIntoRegular() {
+        if (!PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Arial", out PdfCore.PdfEmbeddedFontFamily? arial) || arial?.Bold == null) return;
+        const string html = "<style>@page{@bottom-center{content:'Page ' counter(page)}}body{font:12px Helvetica,sans-serif}</style><h1>Heading</h1><p>Body</p>";
+
+        HtmlPdfRenderRequestResult result = HtmlConversionDocument.Parse(html).RenderToPdfResult(
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, new HtmlToPdfOptions()));
+
+        result.ToBytes();
+        string[] sources = result.Output.Report.Warnings.Where(item => item.Code == "font-embedding-cost")
+            .Select(item => item.Message.Substring(item.Message.LastIndexOf(';'))).Distinct().ToArray();
+        Assert.True(sources.Length >= 2, "Bold text must embed a different font program from regular text.");
+    }
+
     private static HtmlPdfRenderRequestResult RenderWithWebFont(byte[] font, string text) {
         string html = "<style>@font-face{font-family:Scoped;src:url(data:font/ttf;base64," + Convert.ToBase64String(font)
             + ")}</style><p style='font-family:Scoped;font-size:40px'>" + text + "</p>";

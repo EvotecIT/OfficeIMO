@@ -480,16 +480,24 @@ internal static partial class HtmlPdfRenderedConverter {
         OfficeFontFace italic = FindFace(faces, OfficeFontStyle.Italic) ?? regular;
         OfficeFontFace boldItalic = FindFace(faces, OfficeFontStyle.Bold | OfficeFontStyle.Italic) ?? bold;
         cancellationToken.ThrowIfCancellationRequested();
-        var embedded = new PdfCore.PdfEmbeddedFontFamily(
-            family,
-            regular.Data,
-            bold.Data,
-            italic.Data,
-            boldItalic.Data);
+        // Margin boxes can retain only the installed regular face. Registering that as the
+        // whole family would paint all bold text regular, so take the family's real faces.
+        var embedded = (ReferenceEquals(bold, regular) || ReferenceEquals(italic, regular)
+                ? TryCompleteInstalledFamily(family, regular.Data) : null)
+            ?? new PdfCore.PdfEmbeddedFontFamily(
+                family,
+                regular.Data,
+                bold.Data,
+                italic.Data,
+                boldItalic.Data);
         if (!string.Equals(family, regular.FamilyName, StringComparison.OrdinalIgnoreCase))
             embedded = embedded.WithProgramFontNames();
         return pdf.Options.TryRegisterNamedFontFamily(embedded);
     }
+
+    private static PdfCore.PdfEmbeddedFontFamily? TryCompleteInstalledFamily(string family, byte[] regular) =>
+        PdfCore.PdfEmbeddedFontFamily.TryFromSystem(family, out PdfCore.PdfEmbeddedFontFamily? installed)
+            && installed != null && installed.Regular.AsSpan().SequenceEqual(regular) ? installed : null;
 
     private static OfficeFontFace? FindFace(IReadOnlyList<OfficeFontFace> faces, OfficeFontStyle style) {
         OfficeFontStyle normalized = style & (OfficeFontStyle.Bold | OfficeFontStyle.Italic);
