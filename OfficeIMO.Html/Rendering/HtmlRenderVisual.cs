@@ -39,7 +39,7 @@ public abstract partial class HtmlRenderVisual {
     public double Height { get; }
 
     /// <summary>Stable paint order within the rendered page.</summary>
-    public int PaintOrder { get; }
+    public int PaintOrder { get; private set; }
 
     /// <summary>Optional safe hyperlink associated with the visual.</summary>
     public string? LinkUri { get; }
@@ -115,6 +115,28 @@ public abstract partial class HtmlRenderVisual {
 
     internal HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
         CopyStackingContextTo(TranslateCore(offsetX, offsetY, paintOrder));
+
+    /// <summary>
+    /// Equivalent to <c>Translate(0, 0, paintOrder)</c> without copying the subtree. A visual
+    /// the caller has just built and owns takes the order in place; any other visual is reused
+    /// only when its order and every descendant's order already match what the copy would give.
+    /// </summary>
+    internal HtmlRenderVisual WithPaintOrder(int paintOrder, bool owned) {
+        if (owned) {
+            PaintOrder = paintOrder;
+            return this;
+        }
+        return PaintOrder == paintOrder && HasIndexedPaintOrder(this) ? this : Translate(0D, 0D, paintOrder);
+    }
+
+    // Translation numbers every child by its position, so a copy changes no order here.
+    private static bool HasIndexedPaintOrder(HtmlRenderVisual visual) {
+        if (visual.PaintChildren is not { } children) return true;
+        for (int index = 0; index < children.Count; index++) {
+            if (children[index].PaintOrder != index || !HasIndexedPaintOrder(children[index])) return false;
+        }
+        return true;
+    }
 
     internal HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
         CopyStackingContextTo(TranslatePaintCore(offsetX, offsetY, paintOrder));

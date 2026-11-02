@@ -384,6 +384,13 @@ internal static partial class HtmlPdfRenderedConverter {
             reservedFontSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(slot));
         }
         if (activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None) {
+            // Selecting an installed run fallback reads the whole font. When every run's own
+            // faces hold a glyph for each of its characters, the writer never consults a run
+            // fallback, so only document-font selection remains.
+            if (CollectRenderedTextForFontFallbackSelection(rendered, webFonts).Length == 0) {
+                activeTextFallbacks &= ~(PdfCore.PdfTextFallbackFeatures.MultilingualFonts
+                    | PdfCore.PdfTextFallbackFeatures.SymbolAndEmojiFonts);
+            }
             pdf.Options.UseTextFallbacks(
                 activeTextFallbacks,
                 reservedFontSlots,

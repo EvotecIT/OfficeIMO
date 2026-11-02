@@ -25,6 +25,10 @@ internal static class HtmlHeadToHeadRunner {
         int coldRuns = int.Parse(Option(args, "--cold") ?? "3", CultureInfo.InvariantCulture);
         int warmIterations = int.Parse(Option(args, "--warm") ?? "15", CultureInfo.InvariantCulture);
         int warmSeconds = int.Parse(Option(args, "--warm-seconds") ?? "10", CultureInfo.InvariantCulture);
+        // Tiered JIT promotes a method after about 30 calls, so a slow engine measured after three
+        // warm-ups would still run partly unoptimised code while a fast one is fully optimised.
+        int warmupIterations = int.Parse(Option(args, "--warmup") ?? "30", CultureInfo.InvariantCulture);
+        int warmupSeconds = int.Parse(Option(args, "--warmup-seconds") ?? "20", CultureInfo.InvariantCulture);
         int degree = int.Parse(Option(args, "--parallel") ?? "4", CultureInfo.InvariantCulture);
         int timeoutSeconds = int.Parse(Option(args, "--timeout") ?? "120", CultureInfo.InvariantCulture);
         HashSet<string> parallelDocuments = new((Option(args, "--parallel-docs") ?? "invoice,tour,report-30p").Split(','));
@@ -44,16 +48,16 @@ internal static class HtmlHeadToHeadRunner {
                 string pdf = Path.Combine(engineDirectory, name + ".pdf");
                 bool failedCold = false;
                 for (int run = 1; run <= coldRuns && !failedCold; run++) {
-                    WorkerRecord record = await RunWorkerAsync(engine, document, pdf, "cold", 1, warmSeconds, degree, timeoutSeconds);
+                    WorkerRecord record = await RunWorkerAsync(engine, document, pdf, "cold", 1, warmSeconds, degree, timeoutSeconds, warmupIterations, warmupSeconds);
                     failedCold = record.Status != "Passed";
                     await Append(results, name, engine, record);
                 }
                 if (failedCold) continue;
                 await Append(results, name, engine,
-                    await RunWorkerAsync(engine, document, pdf, "warm", warmIterations, warmSeconds, degree, timeoutSeconds));
+                    await RunWorkerAsync(engine, document, pdf, "warm", warmIterations, warmSeconds, degree, timeoutSeconds, warmupIterations, warmupSeconds));
                 if (parallelDocuments.Contains(name)) {
                     await Append(results, name, engine,
-                        await RunWorkerAsync(engine, document, pdf, "parallel", warmIterations, warmSeconds, degree, timeoutSeconds));
+                        await RunWorkerAsync(engine, document, pdf, "parallel", warmIterations, warmSeconds, degree, timeoutSeconds, warmupIterations, warmupSeconds));
                 }
             }
         }
@@ -69,7 +73,7 @@ internal static class HtmlHeadToHeadRunner {
     }
 
     private static async Task<WorkerRecord> RunWorkerAsync(string engine, string html, string pdf, string mode,
-        int iterations, int warmSeconds, int degree, int timeoutSeconds) {
+        int iterations, int warmSeconds, int degree, int timeoutSeconds, int warmupIterations, int warmupSeconds) {
         string resultPath = Path.GetTempFileName();
         string entry = System.Reflection.Assembly.GetEntryAssembly()!.Location;
         string host = Environment.ProcessPath ?? "dotnet";
@@ -79,7 +83,9 @@ internal static class HtmlHeadToHeadRunner {
         if (Path.GetFileNameWithoutExtension(host) == "dotnet") start.ArgumentList.Add(entry);
         foreach (string argument in new[] { "html-head-to-head-worker", "--engine", engine, "--html", html, "--pdf", pdf, "--mode", mode,
                      "--iterations", iterations.ToString(CultureInfo.InvariantCulture), "--seconds", warmSeconds.ToString(CultureInfo.InvariantCulture),
-                     "--degree", degree.ToString(CultureInfo.InvariantCulture), "--result", resultPath }) {
+                     "--degree", degree.ToString(CultureInfo.InvariantCulture), "--result", resultPath,
+                     "--warmup", warmupIterations.ToString(CultureInfo.InvariantCulture),
+                     "--warmup-seconds", warmupSeconds.ToString(CultureInfo.InvariantCulture) }) {
             start.ArgumentList.Add(argument);
         }
         var wall = Stopwatch.StartNew();
@@ -127,6 +133,8 @@ internal static class HtmlHeadToHeadRunner {
         int iterations = int.Parse(Required(args, "--iterations"), CultureInfo.InvariantCulture);
         int seconds = int.Parse(Required(args, "--seconds"), CultureInfo.InvariantCulture);
         int degree = int.Parse(Required(args, "--degree"), CultureInfo.InvariantCulture);
+        int warmupIterations = int.Parse(Option(args, "--warmup") ?? "30", CultureInfo.InvariantCulture);
+        int warmupSeconds = int.Parse(Option(args, "--warmup-seconds") ?? "20", CultureInfo.InvariantCulture);
         var record = new WorkerRecord { Mode = mode };
 
         using Process self = Process.GetCurrentProcess();
@@ -139,10 +147,21 @@ internal static class HtmlHeadToHeadRunner {
         byte[] bytes = await renderer.RenderAsync(html);
         first.Stop();
         record = record with { FirstMilliseconds = first.Elapsed.TotalMilliseconds, FirstCpuMilliseconds = Cpu() - cpuBefore, FirstAllocatedBytes = GC.GetTotalAllocatedBytes(precise: true) - allocatedBefore, OutputBytes = bytes.Length };
+        RequirePdf(bytes, engine, "first");
         await File.WriteAllBytesAsync(pdfPath, bytes);
 
+        async Task<int> WarmUpAsync() {
+            var warming = Stopwatch.StartNew();
+            int warmups = 0;
+            while (warmups < 3 || (warmups < warmupIterations && warming.Elapsed.TotalSeconds < warmupSeconds)) {
+                RequirePdf(await renderer.RenderAsync(html), engine, "warm-up");
+                warmups++;
+            }
+            return warmups;
+        }
+
         if (mode == "warm") {
-            for (int warmup = 0; warmup < 3; warmup++) await renderer.RenderAsync(html);
+            record = record with { WarmupIterations = await WarmUpAsync() };
             var times = new List<double>();
             var allocations = new List<long>();
             var cpu = new List<double>();
@@ -152,8 +171,9 @@ internal static class HtmlHeadToHeadRunner {
                 long before = GC.GetTotalAllocatedBytes(precise: true);
                 double cpuStart = Cpu();
                 var one = Stopwatch.StartNew();
-                await renderer.RenderAsync(html);
+                byte[] warm = await renderer.RenderAsync(html);
                 one.Stop();
+                RequirePdf(warm, engine, "warm");
                 cpu.Add(Cpu() - cpuStart);
                 allocations.Add(GC.GetTotalAllocatedBytes(precise: true) - before);
                 times.Add(one.Elapsed.TotalMilliseconds);
@@ -164,7 +184,7 @@ internal static class HtmlHeadToHeadRunner {
             record = record with { WarmCpuMedianMilliseconds = cpu[cpu.Count / 2], WarmMedianMilliseconds = times[times.Count / 2], WarmMinimumMilliseconds = times[0], WarmIterations = times.Count,
                 WarmAllocatedBytes = allocations[allocations.Count / 2], Gen2Collections = GC.CollectionCount(2) - gen2Before };
         } else if (mode == "parallel") {
-            await renderer.RenderAsync(html);
+            record = record with { WarmupIterations = await WarmUpAsync() };
             var fleet = await RendererFleet.CreateAsync(engine, renderer, degree);
             var clock = Stopwatch.StartNew();
             int completed = 0;
@@ -188,7 +208,15 @@ internal static class HtmlHeadToHeadRunner {
         return 0;
     }
 
-    /// <summary>Splits OfficeIMO's warm cost into parse, layout, PDF model and serialisation.</summary>
+    // Every timed render must still produce a complete PDF; a failed or truncated result cannot count as a fast one.
+    private static void RequirePdf(byte[] bytes, string engine, string phase) {
+        static bool StartsWithPdf(byte[] value) => value.Length > 8 && value[0] == (byte)'%' && value[1] == (byte)'P'
+            && value[2] == (byte)'D' && value[3] == (byte)'F' && value[4] == (byte)'-';
+        bool endsWithEof = bytes.Length > 8 && System.Text.Encoding.ASCII.GetString(bytes, bytes.Length - Math.Min(bytes.Length, 32), Math.Min(bytes.Length, 32)).Contains("%%EOF", StringComparison.Ordinal);
+        if (!StartsWithPdf(bytes) || !endsWithEof) throw new InvalidDataException(engine + " " + phase + " render did not return a complete PDF.");
+    }
+
+    /// <summary>Splits OfficeIMO's warm cost into parse, layout alone and the full conversion with writing.</summary>
     internal static int WriteOfficeImoStages(string[] args) {
         string corpus = Path.GetFullPath(Required(args, "--corpus"));
         foreach (string name in Required(args, "--docs").Split(',')) {
@@ -203,13 +231,17 @@ internal static class HtmlHeadToHeadRunner {
                 list.Add((clock.Elapsed.TotalMilliseconds, GC.GetTotalAllocatedBytes(precise: true) - before));
                 return value;
             }
-            for (int iteration = 0; iteration < 7; iteration++) {
+            int iterations = int.Parse(Option(args, "--iterations") ?? "15", CultureInfo.InvariantCulture);
+            int warmups = int.Parse(Option(args, "--warmup") ?? "30", CultureInfo.InvariantCulture);
+            for (int iteration = 0; iteration < warmups + iterations; iteration++) {
                 HtmlConversionDocument source = Measure("parse", () => HtmlConversionDocument.Parse(html));
                 Measure("layout-only", () => HtmlRenderEngine.Render(source, new HtmlToPdfOptions()));
                 source = HtmlConversionDocument.Parse(html);
-                using OfficeIMO.Pdf.PdfDocument document = Measure("layout+pdf-model", () => source.ToPdf());
-                Measure("serialise", () => document.ToBytes());
-                if (iteration < 2) samples.Clear();
+                // ToPdf serialises once to report its pages, so this stage includes writing and
+                // ToBytes afterwards only copies the retained output.
+                using OfficeIMO.Pdf.PdfDocument document = Measure("convert-and-write", () => source.ToPdf());
+                Measure("retained-bytes", () => document.ToBytes());
+                if (iteration < warmups) samples.Clear();
             }
             foreach ((string stage, var list) in samples) {
                 double milliseconds = list.Select(sample => sample.Milliseconds).Order().ElementAt(list.Count / 2);
@@ -352,6 +384,7 @@ internal static class HtmlHeadToHeadRunner {
         public double WarmCpuMedianMilliseconds { get; init; }
         public double WarmMinimumMilliseconds { get; init; }
         public int WarmIterations { get; init; }
+        public int WarmupIterations { get; init; }
         public long WarmAllocatedBytes { get; init; }
         public int Gen2Collections { get; init; }
         public int ParallelDegree { get; init; }

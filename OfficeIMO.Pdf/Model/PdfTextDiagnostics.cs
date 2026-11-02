@@ -12,8 +12,8 @@ internal static partial class PdfTextDiagnostics {
     private const string ControlCharacterEncodingDescription = "PDF text output";
     private const string ControlCharacterRemediation = "Use paragraphs, line breaks, tables, or spacing primitives for layout instead of literal control characters.";
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PdfEmbeddedFontFallbackCandidate, EmbeddedFontFallbackProgramBox> FallbackProgramCache = new();
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PdfTrueTypeFontProgram, OpenTypeFontInfoBox> TrueTypeLayoutInfoCache = new();
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PdfOpenTypeCffFontProgram, OpenTypeFontInfoBox> CffLayoutInfoCache = new();
+    // Keyed by the program shared across document forks: inspection reads the whole cmap.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, OpenTypeFontInfoBox> LayoutInfoCache = new();
 
     /// <summary>
     /// Removes automatic embedded-font fallback groups when every generated text
@@ -569,18 +569,14 @@ internal static partial class PdfTextDiagnostics {
     internal static IReadOnlyList<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayout(string text, PdfTrueTypeFontProgram font, string source = "", int indexOffset = 0, OfficeTextFeatureSettings? featureSettings = null) {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
-        PdfOpenTypeFontInfo? info = TrueTypeLayoutInfoCache.GetValue(
-            font,
-            static value => new OpenTypeFontInfoBox(value.FontDataForInspection, value.FontName)).Info;
+        PdfOpenTypeFontInfo? info = GetLayoutInfo(font.SharedIdentity, font.FontDataForInspection, font.FontName);
         return AnalyzeAdvancedTextLayout(text, info, source, indexOffset, featureSettings);
     }
 
     internal static IReadOnlyList<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayout(string text, PdfOpenTypeCffFontProgram font, string source = "", int indexOffset = 0, OfficeTextFeatureSettings? featureSettings = null) {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
-        PdfOpenTypeFontInfo? info = CffLayoutInfoCache.GetValue(
-            font,
-            static value => new OpenTypeFontInfoBox(value.FontDataForInspection, value.FontName)).Info;
+        PdfOpenTypeFontInfo? info = GetLayoutInfo(font.SharedIdentity, font.FontDataForInspection, font.FontName);
         return AnalyzeAdvancedTextLayout(text, info, source, indexOffset, featureSettings);
     }
 
@@ -1388,6 +1384,18 @@ internal static partial class PdfTextDiagnostics {
         fontData[1] == 0x54 &&
         fontData[2] == 0x54 &&
         fontData[3] == 0x4F;
+
+    private static PdfOpenTypeFontInfo? GetLayoutInfo(object identity, byte[] fontData, string fontName) {
+        if (LayoutInfoCache.TryGetValue(identity, out OpenTypeFontInfoBox? cached)) return cached.Info;
+        var created = new OpenTypeFontInfoBox(fontData, fontName);
+        try {
+            LayoutInfoCache.Add(identity, created);
+        } catch (ArgumentException) {
+            // Another thread inspected the same program first.
+            if (LayoutInfoCache.TryGetValue(identity, out cached)) return cached.Info;
+        }
+        return created.Info;
+    }
 
     private sealed class OpenTypeFontInfoBox {
         public OpenTypeFontInfoBox(byte[] fontData, string fontName) {

@@ -6,14 +6,15 @@ internal static partial class PdfConversionEvidence {
         System.Diagnostics.Stopwatch timer, System.Threading.CancellationToken token, out OfficeConversionReport report) {
         try {
             byte[] bytes;
+            int? writtenPages;
             PdfConversionReport outputDiagnostics;
             using (var scope = new PdfOutputDiagnosticScope()) {
-                bytes = conversion.ToBytes(token);
+                bytes = conversion.ToBytes(token, out writtenPages);
                 outputDiagnostics = scope.Report;
             }
-            PdfLoadOptions reading = PdfLoadOptions.WithMinimumInputBytes(conversion.Value.ReadOptions, bytes.LongLength);
-            using PdfDocument model = PdfDocument.LoadOwned(bytes, reading, token);
-            int pageCount = model.Pages.Count;
+            // The writer counts the pages it emits, as the stream save path already reports;
+            // only passthrough bytes without that evidence are read back to count them.
+            int pageCount = writtenPages ?? CountPages(conversion, bytes, token);
             report = CreateReport(source, conversion.ConversionReports, elapsed: timer.Elapsed, itemsWritten: pageCount);
             if (failOnLoss) report.ThrowIfLoss();
             conversion.Value.RetainCompletedOutput(bytes, outputDiagnostics);
@@ -25,6 +26,12 @@ internal static partial class PdfConversionEvidence {
             conversion.Value.Dispose();
             throw;
         }
+    }
+
+    private static int CountPages(PdfDocumentConversionResult conversion, byte[] bytes, System.Threading.CancellationToken token) {
+        PdfLoadOptions reading = PdfLoadOptions.WithMinimumInputBytes(conversion.Value.ReadOptions, bytes.LongLength);
+        using PdfDocument model = PdfDocument.LoadOwned(bytes, reading, token);
+        return model.Pages.Count;
     }
 
     internal static OfficeConversionReport CreateReport(string source, IEnumerable<PdfConversionWarning> warnings,

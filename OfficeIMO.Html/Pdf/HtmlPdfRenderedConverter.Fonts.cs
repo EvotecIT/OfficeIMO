@@ -143,12 +143,39 @@ internal static partial class HtmlPdfRenderedConverter {
         }
         if (options.TryGetNamedFontProgram(face, out PdfCore.PdfTrueTypeFontProgram? trueType)
             && trueType != null
-            && PdfCore.PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, trueType).Count == 0) {
+            && CoverageMemo.Covers(trueType, text, static (program, value) =>
+                PdfCore.PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, (PdfCore.PdfTrueTypeFontProgram)program).Count == 0)) {
             return true;
         }
         return options.TryGetNamedOpenTypeCffFontProgram(face, out PdfCore.PdfOpenTypeCffFontProgram? cff)
             && cff != null
-            && PdfCore.PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, cff).Count == 0;
+            && CoverageMemo.Covers(cff, text, static (program, value) =>
+                PdfCore.PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, (PdfCore.PdfOpenTypeCffFontProgram)program).Count == 0);
+    }
+
+    /// <summary>
+    /// Family resolution, style planning and painting ask whether the same program covers the
+    /// same run several times. The answer depends only on the immutable program and the text,
+    /// and diagnostic analysis records no glyph usage, so it is remembered per program.
+    /// </summary>
+    private sealed class CoverageMemo {
+        private const int MaximumEntries = 8192;
+        private const int MaximumTextLength = 1024;
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, CoverageMemo> Memos = new();
+        private readonly Dictionary<string, bool> _answers = new(StringComparer.Ordinal);
+
+        internal static bool Covers(object program, string text, Func<object, string, bool> analyze) {
+            if (text.Length > MaximumTextLength) return analyze(program, text);
+            CoverageMemo memo = Memos.GetValue(program, static _ => new CoverageMemo());
+            lock (memo._answers) {
+                if (memo._answers.TryGetValue(text, out bool known)) return known;
+            }
+            bool covered = analyze(program, text);
+            lock (memo._answers) {
+                if (memo._answers.Count < MaximumEntries) memo._answers[text] = covered;
+            }
+            return covered;
+        }
     }
 
     private static PdfCore.PdfStandardFont MapFont(
@@ -449,14 +476,75 @@ internal static partial class HtmlPdfRenderedConverter {
     private static bool RequiresUnicodeFont(string text) =>
         PdfCore.PdfTextDiagnostics.RequiresEmbeddedUnicodeFont(text);
 
-    internal static string CollectRenderedTextForFontFallbackSelection(HtmlRenderDocument rendered) {
+    internal static string CollectRenderedTextForFontFallbackSelection(HtmlRenderDocument rendered) =>
+        CollectRenderedTextForFontFallbackSelection(rendered, webFonts: null);
+
+    /// <summary>
+    /// Collects the text that may reach a run fallback. A run that its own family stack already
+    /// covers is painted with that family, so it can neither select nor use a fallback face.
+    /// </summary>
+    private static string CollectRenderedTextForFontFallbackSelection(HtmlRenderDocument rendered, RegisteredWebFonts? webFonts) {
         var text = new System.Text.StringBuilder();
         foreach (HtmlRenderVisual visual in EnumerateVisuals(rendered.Pages.SelectMany(page => page.Visuals))) {
-            if (visual is HtmlRenderText renderedText) text.Append(renderedText.Text);
+            if (visual is HtmlRenderText renderedText
+                && (webFonts == null || !IsCoveredByOwnFamily(renderedText, webFonts))) {
+                text.Append(renderedText.Text);
+            }
             if (visual is HtmlRenderDrawing drawing) AppendDrawingText(drawing.Drawing.Elements, text);
         }
         return text.ToString();
     }
+
+    // Mirrors the family resolution in AddText: web-font planning first, then the first named
+    // family that covers each planned run.
+    private static bool IsCoveredByOwnFamily(HtmlRenderText run, RegisteredWebFonts webFonts) {
+        // Emoji sequences, private-use glyphs and colour glyphs take replacement and omission
+        // routes that paint substitutes through run fallbacks; keep their selection.
+        foreach (char character in run.Text) {
+            if (char.IsSurrogate(character) || character is '‍' or '︎' or '️'
+                || System.Globalization.CharUnicodeInfo.GetUnicodeCategory(character) == System.Globalization.UnicodeCategory.PrivateUse) return false;
+        }
+        OfficeFontStyle style = (run.Font.IsBold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
+            | (run.Font.IsItalic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
+        foreach (OfficeFontFallbackRun planned in webFonts.Faces.PlanFallbackRuns(run.Text, run.Font.FamilyName, style)) {
+            if (webFonts.AllowInstalledFontFaces && !webFonts.Slots.ContainsKey(planned.FamilyName)
+                && NeedsNumericSystemFace(run.FontDescriptor)) return false;
+            if (webFonts.Faces.TryResolveFaceForText(planned.Text, planned.FamilyRequest, style, out OfficeFontFace? face)
+                && face?.Program is OfficeTrueTypeFont program && program.ContainsUnpaintableColorGlyph(planned.Text)) return false;
+            bool covered = false;
+            foreach (string familyName in EnumerateBoundedSystemFamilies(planned.FamilyRequest)) {
+                string request = OfficeFontFamilyParser.Quote(familyName);
+                if (!NamedFontCoversTextWithStyleFallback(webFonts.Options, request,
+                        planned.Text, run.Font.IsBold, run.Font.IsItalic)) continue;
+                // Coverage analysis accepts spaces a face can synthesize; the writer still
+                // encodes them through a fallback face, so require a real glyph for each.
+                covered = PlanNamedFaceStyleRuns(planned.Text, request, run.Font.IsBold, run.Font.IsItalic, webFonts.Options)
+                    .All(styleRun => FaceHasEveryGlyph(webFonts.Options, request, styleRun.Text, styleRun.Bold, styleRun.Italic));
+                break;
+            }
+            if (!covered) return false;
+        }
+        return true;
+    }
+
+    private static bool FaceHasEveryGlyph(PdfCore.PdfCreateOptions options, string family, string text, bool bold, bool italic) {
+        if (!options.TryResolveNamedFontFace(family, bold, italic, out PdfCore.PdfNamedFontFace face)) return false;
+        PdfCore.PdfTrueTypeFontProgram? trueType = null;
+        PdfCore.PdfOpenTypeCffFontProgram? cff = null;
+        if (!options.TryGetNamedFontProgram(face, out trueType) || trueType == null) {
+            if (!options.TryGetNamedOpenTypeCffFontProgram(face, out cff) || cff == null) return false;
+        }
+        for (int index = 0; index < text.Length; index++) {
+            char character = text[index];
+            if (character is '\n' or '\r' or '\t' or '​') continue;
+            int scalar = character;
+            if (char.IsHighSurrogate(character) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1]))
+                scalar = char.ConvertToUtf32(character, text[++index]);
+            if (!(trueType?.TryGetGlyphId(scalar, out _) ?? cff!.TryGetGlyphId(scalar, out _))) return false;
+        }
+        return true;
+    }
+
 
     private static void AppendDrawingText(IEnumerable<OfficeDrawingElement> elements, System.Text.StringBuilder text) {
         foreach (OfficeDrawingElement element in elements) {

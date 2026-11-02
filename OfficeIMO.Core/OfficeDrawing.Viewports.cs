@@ -65,7 +65,7 @@ public sealed partial class OfficeDrawing {
                     group.ActualText, group.ActualTextAnchorX, group.ActualTextAnchorY));
             }
         }
-        expanded = new OfficeDrawing(width, height) { Fonts = Fonts.Clone() };
+        expanded = new OfficeDrawing(width, height) { _fonts = CloneFonts() };
         expanded.AddDrawingForClippedRendering(content, -left, -top, null);
         return true;
     }

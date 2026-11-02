@@ -48,7 +48,7 @@ public sealed partial class OfficeTrueTypeFont {
     }
 
     private static IEnumerable<string> CandidateStyledFamilyPaths(string key, OfficeFontStyle requested,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default, bool includeDirectories = true) {
         cancellationToken.ThrowIfCancellationRequested();
         string windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
         if (!string.IsNullOrEmpty(windows) && WindowsStyledFontFiles.TryGetValue(key, out string?[]? files)) {
@@ -64,6 +64,7 @@ public sealed partial class OfficeTrueTypeFont {
         // Other platforms name faces after the family ("Arial Bold.ttf", "LiberationSans-Bold.ttf") or
         // keep them in one collection ("Helvetica.ttc").
         foreach (string path in CandidateKnownFamilyPaths(key)) yield return path;
+        if (!includeDirectories) yield break;
         foreach (string path in CandidateFontDirectoryPaths(key, cancellationToken)) {
             yield return path;
         }
