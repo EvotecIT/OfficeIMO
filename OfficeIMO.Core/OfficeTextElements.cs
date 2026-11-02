@@ -18,11 +18,37 @@ internal static class OfficeTextElements {
             yield break;
         }
 
+        // .NET Framework splits emoji ZWJ sequences, skin-tone modifiers and flags that newer
+        // runtimes keep as one grapheme, so join them here. On newer runtimes nothing is joined.
         TextElementEnumerator enumerator = StringInfo.GetTextElementEnumerator(value);
+        string? pending = null;
         while (enumerator.MoveNext()) {
-            yield return enumerator.GetTextElement();
+            string element = enumerator.GetTextElement();
+            if (pending != null && ContinuesEmojiCluster(pending, element)) {
+                pending += element;
+                continue;
+            }
+
+            if (pending != null) yield return pending;
+            pending = element;
         }
+
+        if (pending != null) yield return pending;
     }
+
+    private static bool ContinuesEmojiCluster(string previous, string next) {
+        int first = FirstScalar(next);
+        if (first == 0x200D || first >= 0x1F3FB && first <= 0x1F3FF || first >= 0xE0020 && first <= 0xE007F) return true;
+        if (previous[previous.Length - 1] == '‍') return IsPictographic(first);
+        return IsRegionalIndicator(first) && previous.Length == 2 && IsRegionalIndicator(FirstScalar(previous));
+    }
+
+    private static int FirstScalar(string text) =>
+        text.Length > 1 && char.IsSurrogatePair(text[0], text[1]) ? char.ConvertToUtf32(text[0], text[1]) : text[0];
+
+    private static bool IsPictographic(int scalar) => scalar >= 0x1F000 || scalar >= 0x2600 && scalar <= 0x27BF;
+
+    private static bool IsRegionalIndicator(int scalar) => scalar >= 0x1F1E6 && scalar <= 0x1F1FF;
 
     // Nothing below the combining marks joins its neighbour except CR LF.
     private const char FirstCombiningMark = '\u0300';
