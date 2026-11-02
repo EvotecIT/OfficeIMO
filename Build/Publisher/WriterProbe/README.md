@@ -304,7 +304,7 @@ Page, picture and image-asset counts depend on the selected case.
 | --- | --- |
 | `blank` | Empty page. |
 | `blank-pages` | Requested count of empty physical pages, with one shared empty master; count argument required. |
-| `text-pages` | Builds a source-free publication through `PublisherDocument.Create`, `AddPage` and `AddTextFrame`, then projects the first/final frames and stories into the native codecs. Intermediate pages are empty. Arial 12/18 body text, explicit zero column gap; count argument required. |
+| `text-pages` | Builds a source-free publication through `PublisherDocument.Create`, explicitly adds and applies its empty master, then projects the final model through the shared ordinary-content adapter. Independent Arial 12/18 stories occupy the first and final pages, with explicit zero column gap; intermediate pages are empty. Count argument required. |
 | `object-pages` | Projects the final public model of three pages with an empty applied master. A red rectangle without outline is on the first page, the middle page is empty, and an uncropped unnamed picture is on the last page. The rectangle has no stored story. Image path required. |
 | `image-pages` | Projects the final public model of three pages with an empty applied master. Two distinct uncropped PNG assets are on the first and last pages; the middle page is empty. Pictures retain the unnamed native profile. Two image paths required. |
 | `named-image-pages` | Uses the same public model as `image-pages`, with owned native filename resources and complete OfficeArt basename properties for subsequent image replacement. Two image paths required. |
@@ -346,7 +346,7 @@ header provide the native recognition metadata. The Internal header contains
 version `0x00010000`, a reserved zero WORD, zero context flags at unaligned offset
 6 and a zero following-byte count at offset 10.
 
-`CandidateModelProjection` derives the master-content, mixed-page, object/image-page,
+`CandidateModelProjection` derives the text-page, master-content, mixed-page, object/image-page,
 linked-story, frame-layout, table and multiple/paired-master codec inputs from the final `PublisherDocument`;
 none maintains a second editable object list. Current picture bounds, source
 crops, referenced image bytes and model asset identities supply the codec. Named

@@ -30572,5 +30572,50 @@
       "Public native creation and the remaining PUB00-PUB06 lifecycle criteria remain open."
     ],
     "canClosePUB00": false
+  },
+  "canonicalTextPagesModelProjection": {
+    "scope": "Opt-in text-pages specimen projects its final public model through the existing ordinary-content adapter, with an explicitly authored empty applied master.",
+    "sourceFiles": [
+      "CandidateTextPages.cs",
+      "CandidateModelProjection.cs"
+    ],
+    "baselineNativeFiles": [
+      {
+        "pageCount": 2,
+        "sha256": "d902f138754e26af2473b421a683926c86c77a370a0f03f210b9daa1955688f6",
+        "length": 8192
+      },
+      {
+        "pageCount": 3,
+        "sha256": "116ec7888cfe9357c4f3d882e9c6da1f8e06a2f59a70fa0e66c8eec08c29974f",
+        "length": 8192
+      },
+      {
+        "pageCount": 16,
+        "sha256": "03f6db369235acabf34bd9618e7fc0932193bca2fa39b11427cdc2d90e6a3b64",
+        "length": 9216
+      }
+    ],
+    "baselineNativeBytesUnchanged": true,
+    "publisherSha256": "a883acfec98073ad7ea38caacfb1e6bd2a80c5e2d0cb89ade4eb78937492d98f",
+    "proof": [
+      "PreservesTwoThreeAndSixteenTextPageNativeBaselines",
+      "ProjectsLateTextPageStoriesDrawingOrderBoundsAndExplicitMaster"
+    ],
+    "observations": [
+      "Two, three and sixteen physical-page outputs remain byte-for-byte identical.",
+      "Later text/style/hyphenation edits, page additions, frame bounds and per-page drawing order reach the generated native file.",
+      "Every physical page references the empty master explicitly authored in the model; PublisherDocument.Create still has no implicit master."
+    ],
+    "validation": {
+      "artifactChecksPassed": 32,
+      "artifactChecksFailed": 0,
+      "harnessBuildWarnings": 0
+    },
+    "limits": [
+      "The existing source-free Letter/single-master ordinary-content and formatting admission limits apply.",
+      "Generated variants have encoded-artifact reload evidence only; native opening, editing, saving and appearance require separate qualification.",
+      "Public native creation remains unavailable."
+    ]
   }
 }
