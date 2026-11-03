@@ -1,5 +1,5 @@
 {
-  "baseline": "f15d165d18430d34e9eac85fdc7c593fbf4d58b8 (same pre-cache PowerPoint source; master only changes its project metadata)",
+  "baseline": "f15d165d18430d34e9eac85fdc7c593fbf4d58b8; creation/scaffolding source matches pre-cache54bedbb15d. Candidate also includes table-mutation changes outside the measured operation.",
   "candidateHead": "1f5ffdbe7b89e883afa0a0ff3fbaa87768246b33",
   "candidateSourceHashes": {
     "OfficeIMO.PowerPoint/PowerPointDocument.Lifecycle.cs": "52e6eb42c2af21e3179b8f8aad43df1d0751d9bf8ba7deb3d279f366e9327c1f",

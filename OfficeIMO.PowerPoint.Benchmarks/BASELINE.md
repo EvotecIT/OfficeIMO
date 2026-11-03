@@ -157,3 +157,20 @@ The warm allocation reduction is about 57%; warm elapsed time falls by 81–84%.
 Initializing the cache costs about 1.1 MB of additional allocation on the first
 creation. First-call timing varies without a consistent improvement. These
 figures cover default create/dispose, not authoring or saving a complete deck.
+
+## Empty table scaffolding — 2026-11-03
+
+A blank cell now creates its independent empty DrawingML run and language
+properties directly. Nonempty text still uses the shared inline-text path for
+line breaks and XML character handling.
+
+Two interleaved comparisons of twenty 10×10 tables per pass reduced managed
+allocation from 365,044–365,055 to 195,612 bytes per table, about 46%. Median
+creation time moved from 0.53–0.70 to 0.16–0.27 ms on this shared Apple M4 host.
+These are table-scaffolding measurements; save and populated text are outside
+the timed operation. Every output was saved, reopened and checked for dimensions,
+empty cells and Open XML validity. The existing language-default regression also
+checks that changing another cell does not affect an empty cell.
+
+[Raw samples, source hashes and the executable probe](../Docs/performance/powerpoint-table-creation-2026-11-03.json)
+record the frozen baseline and candidate assemblies and the comparison method.

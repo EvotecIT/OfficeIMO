@@ -993,7 +993,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
-                    PowerPointTable table = presentation.AddSlide().AddTable(1,1);
+                    PowerPointTable table = presentation.AddSlide().AddTable(1,2);
                     table.GetCell(0, 0).Text = "Header";
                     presentation.Save();
                 }
@@ -1006,6 +1006,15 @@ namespace OfficeIMO.Tests {
 
                     Assert.Equal("en-US", runProperties.Language?.Value);
                     Assert.Equal("en-US", endProperties.Language?.Value);
+
+                    A.TableCell emptyCell = document.PresentationPart.SlideParts.First().Slide.Descendants<A.TableCell>().Last();
+                    A.Paragraph emptyParagraph = Assert.Single(emptyCell.TextBody!.Elements<A.Paragraph>());
+                    A.Run emptyRun = Assert.Single(emptyParagraph.Elements<A.Run>());
+                    Assert.Equal(string.Empty, emptyRun.Text!.Text);
+                    Assert.Equal("en-US", emptyRun.RunProperties!.Language?.Value);
+                    Assert.Equal("en-US", emptyParagraph.GetFirstChild<A.EndParagraphRunProperties>()!.Language?.Value);
+                    runProperties.Language = "pl-PL";
+                    Assert.Equal("en-US", emptyRun.RunProperties.Language?.Value);
                 }
             } finally {
                 if (File.Exists(filePath)) {
