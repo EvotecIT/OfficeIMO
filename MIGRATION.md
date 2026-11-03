@@ -356,7 +356,7 @@ Format packages depend only on `OfficeIMO.Core` and their own third-party librar
 | `OfficeIMO.Pdf` | `OfficeIMO.Pdf.Word` (new) | Reconstruction to Word now in OfficeIMO.Word.Pdf (PdfWordConverterExtensions, PdfToWordOptions, PdfWord\*) | Reconstruction from PDF lives in the matching OfficeIMO.Pdf.{Target} adapter. |
 | `OfficeIMO.Reader.All` | `OfficeIMO` | OfficeDocumentPdfConverter (Email/EPUB/Visio to PDF facades) | OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the \*ToPdfBytes helpers. |
 | `OfficeIMO.Workflows` | `OfficeIMO` | Conversion and batch core: OfficeWorkflow.Convert/ConvertDirectory/ConvertFiles, OfficeConversionBatchBuilder, Batches/ (OfficeConversionBatchExecutor\*, report, serializers), ConversionJobs/, OfficeWorkflowRunner.Conversions/ConversionBatch/ConversionSerialization | OfficeConverter is the single file-to-file and batch entry point; it absorbs OfficeWorkflow.Convert, the OfficeDocumentPdfConverter facades and the \*ToPdfBytes helpers. |
-| `OfficeIMO.Html.Pdf` | `OfficeIMO.Pdf.Html` | whole package (PDF to HTML conversion) | Adapter packages are named {Source}.{Target}; this package converts PDF to HTML, while HTML to PDF lives in OfficeIMO.Html. Newcomers install the wrong package for HTML to PDF. |
+| `OfficeIMO.Html` | `OfficeIMO.Html.Pdf` | Pdf/ (HTML to PDF) and PDF-backed image export | HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. |
 
 #### Removed dependencies
 
@@ -1350,7 +1350,7 @@ Every PSWriteOffice 3.5 command and alias appears once, sorted by name. **Use in
 | `Get-OfficeProtectionCapability` | `Get-OfficeDocumentCapability` (`Protection` set) | Merged |   | `Get-OfficeDocumentCapability -Protection -Format docx` |
 | `Get-OfficeProvenance` | `Get-OfficeDocumentProvenance` (`Path` set) | Renamed |   | `Get-OfficeDocumentProvenance -Path .\Image.jpg` |
 | `Invoke-OfficeConversionJob` | `Convert-OfficeDocument` (`Job` set) | Now a parameter | `-Path` &rarr; `-JobPath`<br>Removed: `-ItemResults` | `Convert-OfficeDocument -JobPath .\delivery.officejob.json` |
-| `New-OfficeConversionOptions` | `Convert-OfficeDocument` (`Path` set) | Merged | `-WordOptions`, `-ExcelOptions`, `-PowerPointOptions`, `-HtmlOptions`, `-MarkdownOptions`, `-RtfOptions`, `-TextOptions`, `-DrawOptions`, `-VisioOptions`, `-XpsOptions`, `-ChmOptions`, `-DjVuOptions`, `-PublisherReadOptions`, `-PublisherPdfOptions`, `-WorksheetLayout`, `-PdfHtmlProfile`, `-PdfWordMode`, `-PdfPowerPointMode` &rarr; `-Options`<br>`-CompressPdfOutput` &rarr; `-CompressPdf`<br>`-RequireNoLoss` &rarr; `-FailOnLoss`<br>`-PageRange` &rarr; `-Page`<br>`-RasterDpi` &rarr; `-Dpi`<br>`-AllowLegacyImportLoss` (same name, changed) | `Convert-OfficeDocument -Path .\In -To Pdf -Options (New-OfficeWordPdfOptions ...), (New-OfficeExcelPdfOptions ...) -FailOnLoss` |
+| `New-OfficeConversionOptions` | `Convert-OfficeDocument` (`Path` set) | Merged | `-WordOptions`, `-ExcelOptions`, `-PowerPointOptions`, `-HtmlOptions`, `-MarkdownOptions`, `-RtfOptions`, `-TextOptions`, `-DrawOptions`, `-VisioOptions`, `-XpsOptions`, `-ChmOptions`, `-DjVuOptions`, `-PublisherLoadOptions`, `-PublisherPdfOptions`, `-WorksheetLayout`, `-PdfHtmlProfile`, `-PdfWordMode`, `-PdfPowerPointMode` &rarr; `-Options`<br>`-CompressPdfOutput` &rarr; `-CompressPdf`<br>`-RequireNoLoss` &rarr; `-FailOnLoss`<br>`-PageRange` &rarr; `-Page`<br>`-RasterDpi` &rarr; `-Dpi`<br>`-AllowLegacyImportLoss` (same name, changed) | `Convert-OfficeDocument -Path .\In -To Pdf -Options (New-OfficeWordPdfOptions ...), (New-OfficeExcelPdfOptions ...) -FailOnLoss` |
 | `New-OfficeDocumentReader` | `New-OfficeDocumentReader` (`Default` set) | Kept | `-ReaderAllOptions` &rarr; `-Options`<br>`-UseTesseract` &rarr; `-Ocr`<br>`-OcrEngine`, `-TesseractOptions`, `-ProcessOcrOptions`, `-TesseractExecutablePath`, `-OcrLanguage`, `-TesseractLanguage`, `-TesseractDataPath`, `-TesseractDpi`, `-TesseractTimeoutSeconds` &rarr; `-OcrOptions`<br>`-MaxStoreItems`, `-AllStoreItems` &rarr; `-MaximumStoreItems`<br>`-MaxConcurrentReads` &rarr; `-MaximumConcurrentReads`<br>`-OcrOptions` (same name, changed) |   |
 | `New-OfficeReaderHierarchyOptions` | `New-OfficeDocumentHierarchyOptions` (`Default` set) | Renamed | `-MaxTokens` &rarr; `-MaximumTokens`<br>`-MaxInputChunks` &rarr; `-MaximumInputChunks`<br>`-MaxOutputChunks` &rarr; `-MaximumOutputChunks`<br>`-MaxHierarchyDepth` &rarr; `-MaximumHierarchyDepth`<br>`-MaxContextCharacters` &rarr; `-MaximumContextCharacters` | `New-OfficeDocumentHierarchyOptions -MaximumTokens 800` |
 | `Search-OfficeDocument` | `Search-OfficeDocument` (`Path` set) | Kept | `-Query` &rarr; `-Pattern`<br>`-MatchCase` &rarr; `-CaseSensitive`<br>`-AllResults` &rarr; `-MaximumResults`<br>`-MaxDocuments`, `-NoDocumentLimit` &rarr; `-MaximumFiles`<br>`-MaxStoreItems`, `-AllStoreItems` &rarr; `-MaximumStoreItems`<br>`-MaxDegreeOfParallelism` &rarr; `-ThrottleLimit`<br>Removed: `-StopOnError` |   |
@@ -1906,19 +1906,19 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Package | `OfficeIMO.Word.Pdf.PdfWordImportMode` | Moved | `OfficeIMO.Pdf.Word.PdfWordImportMode` | Moves with the reconstruction adapter. |
 | Conversion | `OfficeIMO.Word.Pdf.PdfWordConversionReport` | Merged | `OfficeIMO.OfficeConversionReport` | OfficeConversionReport with OfficeDiagnostic is the single conversion report type. |
 | Conversion | `OfficeIMO.Word.Pdf.PdfWordConversionResult` | Merged | `OfficeIMO.OfficeConversionReport` | OfficeConversionReport with OfficeDiagnostic is the single conversion report type. |
-| Conversion | `OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(PdfDocument document, Stream stream, PdfToWordOptions options = null, CancellationToken cancellationToken = null)` | Changed | `PdfDocument.SaveAsWord(Stream stream, WordPdfImportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
-| Conversion | `OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(PdfDocument document, string path, PdfToWordOptions options = null, CancellationToken cancellationToken = null)` | Changed | `PdfDocument.SaveAsWord(string path, WordPdfImportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(PdfDocument document, Stream stream, PdfToWordOptions options = null, CancellationToken cancellationToken = null)` | Changed | `PdfDocument.SaveAsWord(Stream stream, PdfWordExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(PdfDocument document, string path, PdfToWordOptions options = null, CancellationToken cancellationToken = null)` | Changed | `PdfDocument.SaveAsWord(string path, PdfWordExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
 | Conversion | `OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(PdfDocumentReadResult document, Stream stream, PdfToWordOptions options = null, CancellationToken cancellationToken = null)` | Removed | &mdash; | Pass the PdfDocument. |
 | Conversion | `OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(PdfDocumentReadResult document, string path, PdfToWordOptions options = null, CancellationToken cancellationToken = null)` | Removed | &mdash; | Pass the PdfDocument. |
-| Conversion | `OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(PdfDocument document, Stream stream, PdfToWordOptions options = null, CancellationToken cancellationToken = null)` | Changed | `PdfDocument.SaveAsWordAsync(Stream stream, WordPdfImportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
-| Conversion | `OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(PdfDocument document, string path, PdfToWordOptions options = null, CancellationToken cancellationToken = null)` | Changed | `PdfDocument.SaveAsWordAsync(string path, WordPdfImportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(PdfDocument document, Stream stream, PdfToWordOptions options = null, CancellationToken cancellationToken = null)` | Changed | `PdfDocument.SaveAsWordAsync(Stream stream, PdfWordExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(PdfDocument document, string path, PdfToWordOptions options = null, CancellationToken cancellationToken = null)` | Changed | `PdfDocument.SaveAsWordAsync(string path, PdfWordExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
 | Conversion | `OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(PdfDocumentReadResult document, Stream stream, PdfToWordOptions options = null, CancellationToken cancellationToken = null)` | Removed | &mdash; | Pass the PdfDocument. |
 | Conversion | `OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(PdfDocumentReadResult document, string path, PdfToWordOptions options = null, CancellationToken cancellationToken = null)` | Removed | &mdash; | Pass the PdfDocument. |
-| Conversion | `OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocument(PdfDocument document, PdfToWordOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `PdfDocument.ToWord(WordPdfImportOptions options = null, CancellationToken cancellationToken = default)` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocument(PdfDocument document, PdfToWordOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `PdfDocument.ToWord(PdfWordExportOptions options = null, CancellationToken cancellationToken = default)` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
 | Conversion | `OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocument(PdfDocumentReadResult document, PdfToWordOptions options = null, CancellationToken cancellationToken = null)` | Removed | &mdash; | Pass the PdfDocument. |
-| Conversion | `OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocumentResult(PdfDocument document, PdfToWordOptions options = null, CancellationToken cancellationToken = null)` | Merged | `PdfDocument.ToWord(WordPdfImportOptions options, out OfficeConversionReport report)` | One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. |
+| Conversion | `OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocumentResult(PdfDocument document, PdfToWordOptions options = null, CancellationToken cancellationToken = null)` | Merged | `PdfDocument.ToWord(PdfWordExportOptions options, out OfficeConversionReport report)` | One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. |
 | Conversion | `OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocumentResult(PdfDocumentReadResult document, PdfToWordOptions options = null, CancellationToken cancellationToken = null)` | Removed | &mdash; | Pass the PdfDocument. |
-| Options | `OfficeIMO.Word.Pdf.PdfToWordOptions` | Moved | `OfficeIMO.Pdf.Word.WordPdfImportOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
+| Options | `OfficeIMO.Word.Pdf.PdfToWordOptions` | Moved | `OfficeIMO.Pdf.Word.PdfWordExportOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
 | Options | `WordImageExportOptions batch image selection` | Changed | `WordImageExportOptions.PageSelection (PdfPageSelection)` | Batch images and visual snapshots can select noncontiguous one-based pages in caller order, including repeats, through the canonical PDF page selector and aggregate output limits. PageSelection overrides PageIndex/PageCount only for batches; single-page operations retain PageIndex. |
 
 </details>
@@ -1926,7 +1926,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Word.Html
 
 <details>
-<summary>35 changes</summary>
+<summary>40 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -1939,18 +1939,18 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Conversion | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.SaveAsHtmlAsync(WordDocument document, string path, WordToHtmlOptions options = null, CancellationToken cancellationToken = null)` | Changed | `WordDocument.SaveAsHtmlAsync(string path, WordHtmlExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
 | Conversion | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToHtml(WordDocument document, WordToHtmlOptions options = null)` | Changed | `WordDocument.ToHtml(WordHtmlExportOptions options = null) : string` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
 | Conversion | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToHtmlResult(WordDocument document, WordToHtmlOptions options = null)` | Merged | `WordDocument.ToHtml(WordHtmlExportOptions options, out OfficeConversionReport report)` | One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. |
-| Conversion | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToWordDocument(HtmlConversionDocument document, HtmlToWordOptions options = null)` | Renamed | `HtmlConversionDocument.ToWord(WordHtmlImportOptions options = null) with an out OfficeConversionReport overload` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
-| Conversion | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToWordDocumentAsync(HtmlConversionDocument document, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `HtmlConversionDocument.ToWordAsync(WordHtmlImportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionResult<WordDocument>>` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
-| Conversion | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToWordDocumentResult(HtmlConversionDocument document, HtmlToWordOptions options = null)` | Merged | `HtmlConversionDocument.ToWord(WordHtmlImportOptions options = null) with an out OfficeConversionReport overload` | One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. |
-| Conversion | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToWordDocumentResultAsync(HtmlConversionDocument document, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)` | Merged | `HtmlConversionDocument.ToWord(WordHtmlImportOptions options = null) with an out OfficeConversionReport overload` | One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. |
-| Authoring | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtml(WordTableCell cell, HtmlConversionDocument htmlDocument, HtmlToWordOptions options = null)` | Changed | `WordTableCell.AddHtml(string html \| HtmlConversionDocument html, WordHtmlImportOptions options = null) : IReadOnlyList<WordElement>` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
-| Authoring | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlAsync(WordTableCell cell, HtmlConversionDocument htmlDocument, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)` | Changed | `WordTableCell.AddHtmlAsync(string html \| HtmlConversionDocument html, WordHtmlImportOptions options = null, CancellationToken cancellationToken = default) : Task<IReadOnlyList<WordElement>>` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
-| Authoring | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToBody(WordDocument doc, HtmlConversionDocument htmlDocument, HtmlToWordOptions options = null)` | Renamed | `WordDocument.AddHtml(string html \| HtmlConversionDocument html, WordHtmlImportOptions options = null) : IReadOnlyList<WordElement>` | One verb per concept; the Add\* verb names the inserted content. |
-| Authoring | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToBodyAsync(WordDocument doc, HtmlConversionDocument htmlDocument, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `WordDocument.AddHtmlAsync(string html \| HtmlConversionDocument html, WordHtmlImportOptions options = null, CancellationToken cancellationToken = default) : Task<IReadOnlyList<WordElement>>` | One verb per concept; the Add\* verb names the inserted content. |
-| Authoring | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToFooter(WordDocument doc, HtmlConversionDocument htmlDocument, WordHeaderFooterType? type = null, HtmlToWordOptions options = null)` | Changed | `WordFooter.AddHtml(HtmlConversionDocument htmlDocument, WordHtmlImportOptions options = null, WordSection section = null) : IReadOnlyList<WordElement>` | Select the running story on its receiver and optionally supply a sharing section for image and table geometry. |
-| Authoring | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToFooterAsync(WordDocument doc, HtmlConversionDocument htmlDocument, WordHeaderFooterType? type = null, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)` | Changed | `WordFooter.AddHtmlAsync(HtmlConversionDocument htmlDocument, WordHtmlImportOptions options = null, WordSection section = null, CancellationToken cancellationToken = default) : Task<IReadOnlyList<WordElement>>` | Select the running story on its receiver and optionally supply a sharing section for image and table geometry. |
-| Authoring | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToHeader(WordDocument doc, HtmlConversionDocument htmlDocument, WordHeaderFooterType? type = null, HtmlToWordOptions options = null)` | Changed | `WordHeader.AddHtml(HtmlConversionDocument htmlDocument, WordHtmlImportOptions options = null, WordSection section = null) : IReadOnlyList<WordElement>` | Select the running story on its receiver and optionally supply a sharing section for image and table geometry. |
-| Authoring | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToHeaderAsync(WordDocument doc, HtmlConversionDocument htmlDocument, WordHeaderFooterType? type = null, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)` | Changed | `WordHeader.AddHtmlAsync(HtmlConversionDocument htmlDocument, WordHtmlImportOptions options = null, WordSection section = null, CancellationToken cancellationToken = default) : Task<IReadOnlyList<WordElement>>` | Select the running story on its receiver and optionally supply a sharing section for image and table geometry. |
+| Conversion | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToWordDocument(HtmlConversionDocument document, HtmlToWordOptions options = null)` | Renamed | `HtmlConversionDocument.ToWord(HtmlWordExportOptions options = null) with an out OfficeConversionReport overload` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToWordDocumentAsync(HtmlConversionDocument document, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `HtmlConversionDocument.ToWordAsync(HtmlWordExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionResult<WordDocument>>` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToWordDocumentResult(HtmlConversionDocument document, HtmlToWordOptions options = null)` | Merged | `HtmlConversionDocument.ToWord(HtmlWordExportOptions options = null) with an out OfficeConversionReport overload` | One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. |
+| Conversion | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToWordDocumentResultAsync(HtmlConversionDocument document, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)` | Merged | `HtmlConversionDocument.ToWord(HtmlWordExportOptions options = null) with an out OfficeConversionReport overload` | One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. |
+| Authoring | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtml(WordTableCell cell, HtmlConversionDocument htmlDocument, HtmlToWordOptions options = null)` | Changed | `WordTableCell.AddHtml(string html \| HtmlConversionDocument html, HtmlWordExportOptions options = null) : IReadOnlyList<WordElement>` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
+| Authoring | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlAsync(WordTableCell cell, HtmlConversionDocument htmlDocument, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)` | Changed | `WordTableCell.AddHtmlAsync(string html \| HtmlConversionDocument html, HtmlWordExportOptions options = null, CancellationToken cancellationToken = default) : Task<IReadOnlyList<WordElement>>` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
+| Authoring | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToBody(WordDocument doc, HtmlConversionDocument htmlDocument, HtmlToWordOptions options = null)` | Renamed | `WordDocument.AddHtml(string html \| HtmlConversionDocument html, HtmlWordExportOptions options = null) : IReadOnlyList<WordElement>` | One verb per concept; the Add\* verb names the inserted content. |
+| Authoring | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToBodyAsync(WordDocument doc, HtmlConversionDocument htmlDocument, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `WordDocument.AddHtmlAsync(string html \| HtmlConversionDocument html, HtmlWordExportOptions options = null, CancellationToken cancellationToken = default) : Task<IReadOnlyList<WordElement>>` | One verb per concept; the Add\* verb names the inserted content. |
+| Authoring | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToFooter(WordDocument doc, HtmlConversionDocument htmlDocument, WordHeaderFooterType? type = null, HtmlToWordOptions options = null)` | Changed | `WordFooter.AddHtml(HtmlConversionDocument htmlDocument, HtmlWordExportOptions options = null, WordSection section = null) : IReadOnlyList<WordElement>` | Select the running story on its receiver and optionally supply a sharing section for image and table geometry. |
+| Authoring | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToFooterAsync(WordDocument doc, HtmlConversionDocument htmlDocument, WordHeaderFooterType? type = null, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)` | Changed | `WordFooter.AddHtmlAsync(HtmlConversionDocument htmlDocument, HtmlWordExportOptions options = null, WordSection section = null, CancellationToken cancellationToken = default) : Task<IReadOnlyList<WordElement>>` | Select the running story on its receiver and optionally supply a sharing section for image and table geometry. |
+| Authoring | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToHeader(WordDocument doc, HtmlConversionDocument htmlDocument, WordHeaderFooterType? type = null, HtmlToWordOptions options = null)` | Changed | `WordHeader.AddHtml(HtmlConversionDocument htmlDocument, HtmlWordExportOptions options = null, WordSection section = null) : IReadOnlyList<WordElement>` | Select the running story on its receiver and optionally supply a sharing section for image and table geometry. |
+| Authoring | `OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToHeaderAsync(WordDocument doc, HtmlConversionDocument htmlDocument, WordHeaderFooterType? type = null, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)` | Changed | `WordHeader.AddHtmlAsync(HtmlConversionDocument htmlDocument, HtmlWordExportOptions options = null, WordSection section = null, CancellationToken cancellationToken = default) : Task<IReadOnlyList<WordElement>>` | Select the running story on its receiver and optionally supply a sharing section for image and table geometry. |
 | Naming | `OfficeIMO.Word.Html.HtmlTextBackgroundMode` | Renamed | `OfficeIMO.Word.Html.WordHtmlTextBackgroundMode` | Format types start with the format name. Adapter types use the {Format}{Target} prefix of their options. |
 | Naming | `OfficeIMO.Word.Html.HtmlUnsupportedCssHandling` | Renamed | `OfficeIMO.Word.Html.WordHtmlUnsupportedCssHandling` | Format types start with the format name. Adapter types use the {Format}{Target} prefix of their options. |
 | Naming | `OfficeIMO.Word.Html.ImageProcessingMode` | Renamed | `OfficeIMO.Word.Html.WordHtmlImageProcessingMode` | Format types start with the format name. Adapter types use the {Format}{Target} prefix of their options. |
@@ -1958,20 +1958,25 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Naming | `OfficeIMO.Word.Html.SectionTagHandling` | Renamed | `OfficeIMO.Word.Html.WordHtmlSectionTagHandling` | Format types start with the format name. Adapter types use the {Format}{Target} prefix of their options. |
 | Naming | `OfficeIMO.Word.Html.StyleMissingEventArgs` | Renamed | `OfficeIMO.Word.Html.WordHtmlStyleMissingEventArgs` | Format types start with the format name. Adapter types use the {Format}{Target} prefix of their options. |
 | Naming | `OfficeIMO.Word.Html.TableCaptionPosition` | Renamed | `OfficeIMO.Word.Html.WordHtmlTableCaptionPosition` | Format types start with the format name. Adapter types use the {Format}{Target} prefix of their options. |
-| Options | `OfficeIMO.Word.Html.HtmlToWordOptions` | Renamed | `OfficeIMO.Word.Html.WordHtmlImportOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
+| Options | `OfficeIMO.Word.Html.HtmlToWordOptions` | Renamed | `OfficeIMO.Word.Html.HtmlWordExportOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
+| Options | `OfficeIMO.Word.Html.WordHtmlImportOptions` | Renamed | `OfficeIMO.Word.Html.HtmlWordExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
 | Options | `OfficeIMO.Word.Html.WordToHtmlOptions` | Renamed | `OfficeIMO.Word.Html.WordHtmlExportOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
 | Options | `OfficeIMO.Word.Html.WordToHtmlOptions.CreateDocumentRoundTripProfile(OfficeVisualThemeKind theme = Report)` | Changed | `OfficeIMO.Word.Html.WordHtmlExportOptions.CreateDocumentRoundTripProfile(OfficeTheme theme = ...)` | The HTML-only OfficeVisualThemeKind is replaced by OfficeTheme. |
 | Options | `OfficeIMO.Word.Html.WordToHtmlOptions.CreatePrintReviewProfile(OfficeVisualThemeKind theme = WordLike)` | Changed | `OfficeIMO.Word.Html.WordHtmlExportOptions.CreatePrintReviewProfile(OfficeTheme theme = ...)` | The HTML-only OfficeVisualThemeKind is replaced by OfficeTheme. |
 | Options | `OfficeIMO.Word.Html.WordToHtmlOptions.CreateSemanticDocumentProfile(OfficeVisualThemeKind theme = WordLike)` | Changed | `OfficeIMO.Word.Html.WordHtmlExportOptions.CreateSemanticDocumentProfile(OfficeTheme theme = ...)` | The HTML-only OfficeVisualThemeKind is replaced by OfficeTheme. |
 | Visibility | `OfficeIMO.Word.Html.WordHtmlCapabilityGalleryExtensions` | Internal | &mdash; | Developer evidence tooling, not user API. |
 | Visibility | `OfficeIMO.Word.Html.WordHtmlCapabilityGalleryOptions` | Internal | &mdash; | Options of the evidence tooling above. |
+| cancellation | `HtmlConversionDocument.SaveAsWord(string path \| Stream stream, HtmlWordExportOptions options = null)` | Changed | `HtmlConversionDocument.SaveAsWord(string path \| Stream stream, HtmlWordExportOptions options = null, CancellationToken cancellationToken = default)` | Cancellable operations take a final CancellationToken cancellationToken = default, in synchronous and asynchronous forms alike. |
+| cancellation | `HtmlConversionDocument.ToWord(HtmlWordExportOptions options = null) / ToWord(options, out OfficeConversionReport report)` | Changed | `HtmlConversionDocument.ToWord(HtmlWordExportOptions options = null, CancellationToken cancellationToken = default) / ToWord(options, out OfficeConversionReport report, CancellationToken cancellationToken = default)` | Cancellable operations take a final CancellationToken cancellationToken = default, in synchronous and asynchronous forms alike. |
+| cancellation | `WordDocument.SaveAsHtml(string path \| Stream stream, WordHtmlExportOptions options = null)` | Changed | `WordDocument.SaveAsHtml(string path \| Stream stream, WordHtmlExportOptions options = null, CancellationToken cancellationToken = default)` | Cancellable operations take a final CancellationToken cancellationToken = default, in synchronous and asynchronous forms alike. |
+| cancellation | `WordDocument.ToHtml(WordHtmlExportOptions options = null) / ToHtml(options, out OfficeConversionReport report)` | Changed | `WordDocument.ToHtml(WordHtmlExportOptions options = null, CancellationToken cancellationToken = default) / ToHtml(options, out OfficeConversionReport report, CancellationToken cancellationToken = default)` | Cancellable operations take a final CancellationToken cancellationToken = default, in synchronous and asynchronous forms alike. |
 
 </details>
 
 #### OfficeIMO.Word.Markdown
 
 <details>
-<summary>32 changes</summary>
+<summary>33 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -1987,9 +1992,9 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Conversion | `OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToMarkdown(WordDocument document, WordToMarkdownOptions options = null, CancellationToken cancellationToken = null)` | Changed | `WordDocument.ToMarkdown(WordMarkdownExportOptions options = null, CancellationToken cancellationToken = default) : MarkdownDocument` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
 | Conversion | `OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToMarkdownDocument(WordDocument document, WordToMarkdownOptions options = null, CancellationToken cancellationToken = null)` | Merged | `WordDocument.ToMarkdown(WordMarkdownExportOptions options = null, CancellationToken cancellationToken = default) : MarkdownDocument` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
 | Conversion | `OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToMarkdownDocumentResult(WordDocument document, WordToMarkdownOptions options = null, CancellationToken cancellationToken = null)` | Merged | `WordDocument.ToMarkdown(WordMarkdownExportOptions options, out OfficeConversionReport report) : MarkdownDocument` | One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. |
-| Conversion | `OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToWordDocument(MarkdownDoc markdown, MarkdownToWordOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `MarkdownDocument.ToWord(WordMarkdownImportOptions options = null) / MarkdownDocument.ToWord(options, out OfficeConversionReport report)` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
-| Conversion | `OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToWordDocument(MarkdownDoc markdown, WordDocument templateDocument, MarkdownToWordTemplateOptions options = null)` | Merged | `MarkdownDocument.ToWord(WordMarkdownImportOptions options = null) / MarkdownDocument.ToWord(options, out OfficeConversionReport report)` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
-| Conversion | `OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToWordDocumentResult(MarkdownDoc markdown, MarkdownToWordOptions options = null, CancellationToken cancellationToken = null)` | Merged | `MarkdownDocument.ToWord(WordMarkdownImportOptions options = null) / MarkdownDocument.ToWord(options, out OfficeConversionReport report)` | One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. |
+| Conversion | `OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToWordDocument(MarkdownDoc markdown, MarkdownToWordOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `MarkdownDocument.ToWord(MarkdownWordExportOptions options = null) / MarkdownDocument.ToWord(options, out OfficeConversionReport report)` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToWordDocument(MarkdownDoc markdown, WordDocument templateDocument, MarkdownToWordTemplateOptions options = null)` | Merged | `MarkdownDocument.ToWord(MarkdownWordExportOptions options = null) / MarkdownDocument.ToWord(options, out OfficeConversionReport report)` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToWordDocumentResult(MarkdownDoc markdown, MarkdownToWordOptions options = null, CancellationToken cancellationToken = null)` | Merged | `MarkdownDocument.ToWord(MarkdownWordExportOptions options = null) / MarkdownDocument.ToWord(options, out OfficeConversionReport report)` | One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. |
 | Conversion | `OfficeIMO.Word.Markdown.WordToMarkdownResult` | Merged | `OfficeIMO.OfficeConversionReport` | OfficeConversionReport with OfficeDiagnostic is the single conversion report type. |
 | Naming | `OfficeIMO.Word.Markdown.ImageExportMode` | Renamed | `OfficeIMO.Word.Markdown.WordMarkdownImageExportMode` | Format types start with the format name. |
 | Naming | `OfficeIMO.Word.Markdown.MarkdownImageFitMode` | Renamed | `OfficeIMO.Word.Markdown.WordMarkdownImageFitMode` | Format types start with the format name. Markdown\* names in this adapter collide with OfficeIMO.Markdown types. |
@@ -1999,12 +2004,13 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Naming | `OfficeIMO.Word.Markdown.MarkdownPageBreakMode` | Renamed | `OfficeIMO.Word.Markdown.WordMarkdownPageBreakMode` | Format types start with the format name. Markdown\* names in this adapter collide with OfficeIMO.Markdown types. |
 | Naming | `OfficeIMO.Word.Markdown.MarkdownUnsupportedContentMode` | Renamed | `OfficeIMO.Word.Markdown.WordMarkdownUnsupportedContentMode` | Format types start with the format name. Markdown\* names in this adapter collide with OfficeIMO.Markdown types. |
 | Naming | `OfficeIMO.Word.Markdown.MarkdownVisualFallbackMode` | Renamed | `OfficeIMO.Word.Markdown.WordMarkdownVisualFallbackMode` | Format types start with the format name. Markdown\* names in this adapter collide with OfficeIMO.Markdown types. |
-| Options | `OfficeIMO.Word.Markdown.MarkdownToWordOptions` | Renamed | `OfficeIMO.Word.Markdown.WordMarkdownImportOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
-| Options | `OfficeIMO.Word.Markdown.MarkdownToWordTemplateOptions` | Merged | `OfficeIMO.Word.Markdown.WordMarkdownImportOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
+| Options | `OfficeIMO.Word.Markdown.MarkdownToWordOptions` | Renamed | `OfficeIMO.Word.Markdown.MarkdownWordExportOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
+| Options | `OfficeIMO.Word.Markdown.MarkdownToWordTemplateOptions` | Merged | `OfficeIMO.Word.Markdown.MarkdownWordExportOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
+| Options | `OfficeIMO.Word.Markdown.WordMarkdownImportOptions` | Renamed | `OfficeIMO.Word.Markdown.MarkdownWordExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
 | Options | `OfficeIMO.Word.Markdown.WordToMarkdownOptions` | Renamed | `OfficeIMO.Word.Markdown.WordMarkdownExportOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
 | Visibility | `OfficeIMO.Word.Markdown.MarkdownToWordOptions.ApplyDefaults(WordDocument document)` | Internal | &mdash; | Converter plumbing on an options type (ApplyDefaults mutates a WordDocument; CreateReaderOptions builds parser options). |
-| Visibility | `OfficeIMO.Word.Markdown.MarkdownToWordOptions.CreateReaderOptions()` | Kept | `WordMarkdownImportOptions.CreateReaderOptions() : MarkdownLoadOptions` | Public source parsing must apply Word semantic fences and import reader settings before image preparation and template conversion. PSWriteOffice uses this existing library factory through public APIs, as required by the design. |
-| Visibility | `OfficeIMO.Word.Markdown.MarkdownToWordPresets` | Merged | `OfficeIMO.Word.Markdown.WordMarkdownImportOptions.CreateIntelligenceXTranscript(IReadOnlyList<string> allowedImageDirectories = null, OfficeLength? visualMaxWidth = null) : WordMarkdownImportOptions` | Options are created on the options type, as WordHtmlExportOptions.Create…Profile does. The preset is documented in the package README, so it stays public (design: Visibility) in the adapter that owns Markdown to Word (design: Packages). |
+| Visibility | `OfficeIMO.Word.Markdown.MarkdownToWordOptions.CreateReaderOptions()` | Kept | `MarkdownWordExportOptions.CreateReaderOptions() : MarkdownLoadOptions` | Public source parsing must apply Word semantic fences and import reader settings before image preparation and template conversion. PSWriteOffice uses this existing library factory through public APIs, as required by the design. |
+| Visibility | `OfficeIMO.Word.Markdown.MarkdownToWordPresets` | Merged | `OfficeIMO.Word.Markdown.MarkdownWordExportOptions.CreateIntelligenceXTranscript(IReadOnlyList<string> allowedImageDirectories = null, OfficeLength? visualMaxWidth = null) : MarkdownWordExportOptions` | Options are created on the options type, as WordHtmlExportOptions.Create…Profile does. The preset is documented in the package README, so it stays public (design: Visibility) in the adapter that owns Markdown to Word (design: Packages). |
 | Visibility | `OfficeIMO.Word.Markdown.WordMarkdownSemanticBlocks` | Internal | &mdash; | Parser-configuration plumbing (CreateReaderOptions/ConfigureReaderOptions). |
 | Visibility | `OfficeIMO.Word.Markdown.WordToMarkdownOptions.CreateReaderOptions(MarkdownDialectProfile profile = OfficeIMO)` | Internal | &mdash; | Converter plumbing on an options type. |
 
@@ -2413,16 +2419,16 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Conversion | `OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.ToPdfDocument(ExcelDocument document, ExcelToPdfOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `ExcelDocument.ToPdf(ExcelPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
 | Conversion | `OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.ToPdfDocumentResult(ExcelDocument document, ExcelToPdfOptions options = null, CancellationToken cancellationToken = null)` | Merged | `ExcelDocument.ToPdf(ExcelPdfExportOptions options, out OfficeConversionReport report) : PdfDocument` | One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. |
 | Conversion | `OfficeIMO.Excel.Pdf.ExcelPdfExportWarning` | Merged | `OfficeIMO.OfficeDiagnostic` | OfficeConversionReport with OfficeDiagnostic is the single conversion report type. |
-| Conversion | `OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.ImportTablesToExcelDocument(PdfDocument document, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `PdfDocument.ToExcel(ExcelPdfImportOptions options = null, CancellationToken cancellationToken = default) : ExcelDocument` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.ImportTablesToExcelDocument(PdfDocument document, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `PdfDocument.ToExcel(PdfExcelExportOptions options = null, CancellationToken cancellationToken = default) : ExcelDocument` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
 | Conversion | `OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.ImportTablesToExcelDocument(PdfDocumentReadResult document, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)` | Removed | &mdash; | Pass the PdfDocument. |
-| Conversion | `OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.ImportTablesToExcelDocumentResult(PdfDocument document, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)` | Merged | `PdfDocument.ToExcel(ExcelPdfImportOptions options, out OfficeConversionReport report) : ExcelDocument` | One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. |
+| Conversion | `OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.ImportTablesToExcelDocumentResult(PdfDocument document, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)` | Merged | `PdfDocument.ToExcel(PdfExcelExportOptions options, out OfficeConversionReport report) : ExcelDocument` | One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. |
 | Conversion | `OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.ImportTablesToExcelDocumentResult(PdfDocumentReadResult document, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)` | Removed | &mdash; | Pass the PdfDocument. |
-| Conversion | `OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.SaveTablesAsExcel(PdfDocument document, Stream workbookStream, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `PdfDocument.SaveAsExcel(Stream stream, ExcelPdfImportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
-| Conversion | `OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.SaveTablesAsExcel(PdfDocument document, string workbookPath, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `PdfDocument.SaveAsExcel(string path, ExcelPdfImportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.SaveTablesAsExcel(PdfDocument document, Stream workbookStream, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `PdfDocument.SaveAsExcel(Stream stream, PdfExcelExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.SaveTablesAsExcel(PdfDocument document, string workbookPath, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `PdfDocument.SaveAsExcel(string path, PdfExcelExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
 | Conversion | `OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.SaveTablesAsExcel(PdfDocumentReadResult document, Stream workbookStream, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)` | Removed | &mdash; | Pass the PdfDocument. |
 | Conversion | `OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.SaveTablesAsExcel(PdfDocumentReadResult document, string workbookPath, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)` | Removed | &mdash; | Pass the PdfDocument. |
-| Conversion | `OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.SaveTablesAsExcelAsync(PdfDocument document, Stream workbookStream, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `PdfDocument.SaveAsExcelAsync(Stream stream, ExcelPdfImportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
-| Conversion | `OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.SaveTablesAsExcelAsync(PdfDocument document, string workbookPath, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `PdfDocument.SaveAsExcelAsync(string path, ExcelPdfImportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.SaveTablesAsExcelAsync(PdfDocument document, Stream workbookStream, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `PdfDocument.SaveAsExcelAsync(Stream stream, PdfExcelExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.SaveTablesAsExcelAsync(PdfDocument document, string workbookPath, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `PdfDocument.SaveAsExcelAsync(string path, PdfExcelExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
 | Conversion | `OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.SaveTablesAsExcelAsync(PdfDocumentReadResult document, Stream workbookStream, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)` | Removed | &mdash; | Pass the PdfDocument. |
 | Conversion | `OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.SaveTablesAsExcelAsync(PdfDocumentReadResult document, string workbookPath, PdfTablesToExcelOptions options = null, CancellationToken cancellationToken = null)` | Removed | &mdash; | Pass the PdfDocument. |
 | Conversion | `OfficeIMO.Excel.Pdf.PdfExcelTableImportEntry` | Moved | `OfficeIMO.Pdf.Excel.PdfExcelTableImportEntry` | Retain this documented advanced model or its incoming public options/result contract under the approved visibility rule. |
@@ -2431,7 +2437,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Options | `OfficeIMO.Excel.Pdf.ExcelToPdfOptions` | Renamed | `OfficeIMO.Excel.Pdf.ExcelPdfExportOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
 | Options | `OfficeIMO.Excel.Pdf.ExcelToPdfOptions.UseProfile(PdfExportProfile profile)` | Changed | `OfficeIMO.Excel.Pdf.ExcelPdfExportOptions.UseProfile(...)` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
 | Options | `OfficeIMO.Excel.Pdf.ExcelToPdfOptions.UseRenderingProfile(OfficeRenderingProfile profile, OfficeRenderingProfileApplyMode mode = Replace)` | Changed | `OfficeIMO.Excel.Pdf.ExcelPdfExportOptions.UseRenderingProfile(...)` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
-| Options | `OfficeIMO.Excel.Pdf.PdfTablesToExcelOptions` | Moved | `OfficeIMO.Pdf.Excel.ExcelPdfImportOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
+| Options | `OfficeIMO.Excel.Pdf.PdfTablesToExcelOptions` | Moved | `OfficeIMO.Pdf.Excel.PdfExcelExportOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
 
 </details>
 
@@ -3034,26 +3040,26 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Package | `OfficeIMO.PowerPoint.Pdf.PdfPowerPointVisualPageEntry` | Moved | `OfficeIMO.Pdf.PowerPoint.PdfPowerPointVisualPageEntry` | Moves with the reconstruction adapter. |
 | Conversion | `OfficeIMO.PowerPoint.Pdf.PdfPowerPointConversionReport` | Merged | `OfficeIMO.OfficeConversionReport` | OfficeConversionReport with OfficeDiagnostic is the single conversion report type. |
 | Conversion | `OfficeIMO.PowerPoint.Pdf.PdfPowerPointConversionResult` | Merged | `OfficeIMO.OfficeConversionReport` | OfficeConversionReport with OfficeDiagnostic is the single conversion report type. |
-| Conversion | `OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.SaveAsPowerPoint(PdfDocument document, Stream presentationStream, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)` | Changed | `PdfDocument.SaveAsPowerPoint(Stream stream, PowerPointPdfImportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
-| Conversion | `OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.SaveAsPowerPoint(PdfDocument document, string presentationPath, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)` | Changed | `PdfDocument.SaveAsPowerPoint(string path, PowerPointPdfImportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.SaveAsPowerPoint(PdfDocument document, Stream presentationStream, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)` | Changed | `PdfDocument.SaveAsPowerPoint(Stream stream, PdfPowerPointExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.SaveAsPowerPoint(PdfDocument document, string presentationPath, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)` | Changed | `PdfDocument.SaveAsPowerPoint(string path, PdfPowerPointExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
 | Conversion | `OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.SaveAsPowerPoint(PdfDocumentReadResult document, Stream presentationStream, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)` | Removed | &mdash; | Pass the PdfDocument. |
 | Conversion | `OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.SaveAsPowerPoint(PdfDocumentReadResult document, string presentationPath, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)` | Removed | &mdash; | Pass the PdfDocument. |
-| Conversion | `OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.SaveAsPowerPointAsync(PdfDocument document, Stream presentationStream, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)` | Changed | `PdfDocument.SaveAsPowerPointAsync(Stream stream, PowerPointPdfImportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
-| Conversion | `OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.SaveAsPowerPointAsync(PdfDocument document, string presentationPath, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)` | Changed | `PdfDocument.SaveAsPowerPointAsync(string path, PowerPointPdfImportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.SaveAsPowerPointAsync(PdfDocument document, Stream presentationStream, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)` | Changed | `PdfDocument.SaveAsPowerPointAsync(Stream stream, PdfPowerPointExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.SaveAsPowerPointAsync(PdfDocument document, string presentationPath, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)` | Changed | `PdfDocument.SaveAsPowerPointAsync(string path, PdfPowerPointExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
 | Conversion | `OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.SaveAsPowerPointAsync(PdfDocumentReadResult document, Stream presentationStream, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)` | Removed | &mdash; | Pass the PdfDocument. |
 | Conversion | `OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.SaveAsPowerPointAsync(PdfDocumentReadResult document, string presentationPath, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)` | Removed | &mdash; | Pass the PdfDocument. |
-| Conversion | `OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.ToPowerPointPresentation(PdfDocument document, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `PdfDocument.ToPowerPoint(PowerPointPdfImportOptions options = null, CancellationToken cancellationToken = default)` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.ToPowerPointPresentation(PdfDocument document, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `PdfDocument.ToPowerPoint(PdfPowerPointExportOptions options = null, CancellationToken cancellationToken = default)` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
 | Conversion | `OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.ToPowerPointPresentation(PdfDocumentReadResult document, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)` | Removed | &mdash; | Pass the PdfDocument. |
-| Conversion | `OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.ToPowerPointPresentationResult(PdfDocument document, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)` | Merged | `PdfDocument.ToPowerPoint(PowerPointPdfImportOptions options, out OfficeConversionReport report)` | One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. |
+| Conversion | `OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.ToPowerPointPresentationResult(PdfDocument document, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)` | Merged | `PdfDocument.ToPowerPoint(PdfPowerPointExportOptions options, out OfficeConversionReport report)` | One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. |
 | Conversion | `OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.ToPowerPointPresentationResult(PdfDocumentReadResult document, PdfToPowerPointOptions options = null, CancellationToken cancellationToken = null)` | Removed | &mdash; | Pass the PdfDocument. |
-| Options | `OfficeIMO.PowerPoint.Pdf.PdfToPowerPointOptions` | Moved | `OfficeIMO.Pdf.PowerPoint.PowerPointPdfImportOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
+| Options | `OfficeIMO.PowerPoint.Pdf.PdfToPowerPointOptions` | Moved | `OfficeIMO.Pdf.PowerPoint.PdfPowerPointExportOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
 
 </details>
 
 #### OfficeIMO.Pdf
 
 <details>
-<summary>176 changes</summary>
+<summary>205 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -3229,6 +3235,35 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | behavior | `OfficeIMO.Pdf.PdfDocumentRedactions.Search(PdfRedactionSearchOptions)` | Changed | `OfficeIMO.Pdf.PdfDocumentRedactions.Search(PdfRedactionSearchOptions)` | Whole-block search refuses edits that would remove an unselected glyph. A matching form field name also refuses the plan with redaction-search-field-name-unsupported. Inspect IsReviewable and Findings before applying; a successful search does not guarantee an applicable plan. |
 | behavior | `OfficeIMO.Pdf.PdfRedactionMatch.Text` | Changed | `OfficeIMO.Pdf.PdfRedactionMatch.Text` | Search-driven TextBlock matches now return null instead of retaining text containing the searched value. Use the plan geometry, search criteria and verification report; FormField matches expose the field name, never its value. |
 | behavior | `OfficeIMO.Pdf.PdfRedactionMatchKind` | Changed | `OfficeIMO.Pdf.PdfRedactionMatchKind` | FormField = 4 identifies form-value redaction. Update exhaustive match-kind switches; filling values, alternate field labels, widget contents, metadata and historical revisions must not retain the searched text in a verified output. |
+| cancellation | `OfficeIMO.Pdf.PdfAnnotationCreateOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfAnnotationFlattenOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfAnnotationRemovalOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfAnnotationReplyOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfAnnotationReviewCatalogOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfAnnotationUpdateOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfBatesNumberingOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfCanvasStampOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfDestructiveCropOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfExternalSignatureOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfFormFillerOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfImageStampOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfIncrementalFormFieldUpdateOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfInterleaveOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfOptimizationOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfPageImportOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfPageOverlayOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfPageResizeOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfProductionSplitOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfRedactionAnnotationOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfRedactionApplyOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfRedactionSearchOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfRedactionVerificationOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfRepairArtifactOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfSanitizationOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfStampAnnotationOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfTextStampOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfWatermarkOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `PDF operations taking the options above` | Changed | `Each public operation that takes these options gains a final CancellationToken cancellationToken = default parameter (async forms too).` | One cancellation shape across packages (F15). |
 | geometry | `OfficeIMO.Pdf.PdfContentBuilder.TextField(... double geometry ...)` | Changed | `OfficeIMO.Pdf.PdfContentBuilder.TextField(... OfficeLength geometry ...)` | Require explicit physical units for width, height, fontSize, spacingBefore, spacingAfter. Omitted defaults preserve native point dimensions. |
 | geometry | `OfficeIMO.Pdf.PdfPageCanvas.TextField(... double geometry ...)` | Changed | `OfficeIMO.Pdf.PdfPageCanvas.TextField(... OfficeLength geometry ...)` | Require explicit physical units for x, y, width, height, fontSize. Omitted defaults preserve native point dimensions. |
 | geometry | `OfficeIMO.Pdf.PdfTableCellFormField.TextField(... double geometry ...)` | Changed | `OfficeIMO.Pdf.PdfTableCellFormField.TextField(... OfficeLength geometry ...)` | Require explicit physical units for width, height, fontSize. Omitted defaults preserve native point dimensions. |
@@ -3334,20 +3369,20 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Markdown.Html
 
 <details>
-<summary>23 changes</summary>
+<summary>24 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
-| Conversion | `OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.SaveAsMarkdown(HtmlConversionDocument document, Stream stream, HtmlToMarkdownOptions options = null, Encoding encoding = null)` | Changed | `HtmlConversionDocument.SaveAsMarkdown(Stream stream, MarkdownHtmlImportOptions options = null) : OfficeConversionReport` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
-| Conversion | `OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.SaveAsMarkdown(HtmlConversionDocument document, string path, HtmlToMarkdownOptions options = null, Encoding encoding = null)` | Changed | `HtmlConversionDocument.SaveAsMarkdown(string path, MarkdownHtmlImportOptions options = null) : OfficeConversionReport` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
-| Conversion | `OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.SaveAsMarkdownAsync(HtmlConversionDocument document, Stream stream, HtmlToMarkdownOptions options = null, Encoding encoding = null, CancellationToken cancellationToken = null)` | Changed | `HtmlConversionDocument.SaveAsMarkdownAsync(Stream stream, MarkdownHtmlImportOptions options = null) : Task<OfficeConversionReport>` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
-| Conversion | `OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.SaveAsMarkdownAsync(HtmlConversionDocument document, string path, HtmlToMarkdownOptions options = null, Encoding encoding = null, CancellationToken cancellationToken = null)` | Changed | `HtmlConversionDocument.SaveAsMarkdownAsync(string path, MarkdownHtmlImportOptions options = null) : Task<OfficeConversionReport>` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
-| Conversion | `OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdown(HtmlConversionDocument document, HtmlToMarkdownOptions options = null)` | Merged | `HtmlConversionDocument.ToMarkdown(MarkdownHtmlImportOptions options = null) with an out OfficeConversionReport overload` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
-| Conversion | `OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdown(HtmlConversionDocument document, HtmlToMarkdownOptions options, CancellationToken cancellationToken)` | Merged | `HtmlConversionDocument.ToMarkdown(MarkdownHtmlImportOptions options = null) with an out OfficeConversionReport overload` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
-| Conversion | `OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdownDocument(HtmlConversionDocument document, HtmlToMarkdownOptions options = null)` | Renamed | `HtmlConversionDocument.ToMarkdown(MarkdownHtmlImportOptions options = null) with an out OfficeConversionReport overload` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
-| Conversion | `OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdownDocument(HtmlConversionDocument document, HtmlToMarkdownOptions options, CancellationToken cancellationToken)` | Renamed | `HtmlConversionDocument.ToMarkdown(MarkdownHtmlImportOptions options = null) with an out OfficeConversionReport overload` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
-| Conversion | `OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdownDocumentResult(HtmlConversionDocument document, HtmlToMarkdownOptions options = null)` | Merged | `HtmlConversionDocument.ToMarkdown(MarkdownHtmlImportOptions options = null) with an out OfficeConversionReport overload` | One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. |
-| Conversion | `OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdownDocumentResult(HtmlConversionDocument document, HtmlToMarkdownOptions options, CancellationToken cancellationToken)` | Merged | `HtmlConversionDocument.ToMarkdown(MarkdownHtmlImportOptions options = null) with an out OfficeConversionReport overload` | One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. |
+| Conversion | `OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.SaveAsMarkdown(HtmlConversionDocument document, Stream stream, HtmlToMarkdownOptions options = null, Encoding encoding = null)` | Changed | `HtmlConversionDocument.SaveAsMarkdown(Stream stream, HtmlMarkdownExportOptions options = null) : OfficeConversionReport` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.SaveAsMarkdown(HtmlConversionDocument document, string path, HtmlToMarkdownOptions options = null, Encoding encoding = null)` | Changed | `HtmlConversionDocument.SaveAsMarkdown(string path, HtmlMarkdownExportOptions options = null) : OfficeConversionReport` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.SaveAsMarkdownAsync(HtmlConversionDocument document, Stream stream, HtmlToMarkdownOptions options = null, Encoding encoding = null, CancellationToken cancellationToken = null)` | Changed | `HtmlConversionDocument.SaveAsMarkdownAsync(Stream stream, HtmlMarkdownExportOptions options = null) : Task<OfficeConversionReport>` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.SaveAsMarkdownAsync(HtmlConversionDocument document, string path, HtmlToMarkdownOptions options = null, Encoding encoding = null, CancellationToken cancellationToken = null)` | Changed | `HtmlConversionDocument.SaveAsMarkdownAsync(string path, HtmlMarkdownExportOptions options = null) : Task<OfficeConversionReport>` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdown(HtmlConversionDocument document, HtmlToMarkdownOptions options = null)` | Merged | `HtmlConversionDocument.ToMarkdown(HtmlMarkdownExportOptions options = null) with an out OfficeConversionReport overload` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdown(HtmlConversionDocument document, HtmlToMarkdownOptions options, CancellationToken cancellationToken)` | Merged | `HtmlConversionDocument.ToMarkdown(HtmlMarkdownExportOptions options = null) with an out OfficeConversionReport overload` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdownDocument(HtmlConversionDocument document, HtmlToMarkdownOptions options = null)` | Renamed | `HtmlConversionDocument.ToMarkdown(HtmlMarkdownExportOptions options = null) with an out OfficeConversionReport overload` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdownDocument(HtmlConversionDocument document, HtmlToMarkdownOptions options, CancellationToken cancellationToken)` | Renamed | `HtmlConversionDocument.ToMarkdown(HtmlMarkdownExportOptions options = null) with an out OfficeConversionReport overload` | Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion). |
+| Conversion | `OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdownDocumentResult(HtmlConversionDocument document, HtmlToMarkdownOptions options = null)` | Merged | `HtmlConversionDocument.ToMarkdown(HtmlMarkdownExportOptions options = null) with an out OfficeConversionReport overload` | One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. |
+| Conversion | `OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdownDocumentResult(HtmlConversionDocument document, HtmlToMarkdownOptions options, CancellationToken cancellationToken)` | Merged | `HtmlConversionDocument.ToMarkdown(HtmlMarkdownExportOptions options = null) with an out OfficeConversionReport overload` | One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. |
 | Conversion | `OfficeIMO.Markdown.Html.HtmlToMarkdownResult` | Merged | `OfficeIMO.OfficeConversionReport` | OfficeConversionReport with OfficeDiagnostic is the single conversion report type. |
 | Naming | `OfficeIMO.Markdown.Html.HtmlBase64ImageHandling` | Renamed | `OfficeIMO.Markdown.Html.MarkdownHtmlBase64ImageHandling` | Format types start with the format name. Html\* names in a Markdown adapter read as OfficeIMO.Html types. |
 | Naming | `OfficeIMO.Markdown.Html.HtmlElementBlockConversionContext` | Renamed | `OfficeIMO.Markdown.Html.MarkdownHtmlBlockConversionContext` | Format types start with the format name. Html\* names in a Markdown adapter read as OfficeIMO.Html types. |
@@ -3356,7 +3391,8 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Naming | `OfficeIMO.Markdown.Html.HtmlInlineElementConverter` | Renamed | `OfficeIMO.Markdown.Html.MarkdownHtmlInlineConverter` | Format types start with the format name. Html\* names in a Markdown adapter read as OfficeIMO.Html types. |
 | Naming | `OfficeIMO.Markdown.Html.HtmlListingCardMetadataMode` | Renamed | `OfficeIMO.Markdown.Html.MarkdownHtmlListingCardMetadataMode` | Format types start with the format name. Html\* names in a Markdown adapter read as OfficeIMO.Html types. |
 | Naming | `OfficeIMO.Markdown.Html.HtmlUnknownTagHandling` | Renamed | `OfficeIMO.Markdown.Html.MarkdownHtmlUnknownTagHandling` | Format types start with the format name. Html\* names in a Markdown adapter read as OfficeIMO.Html types. |
-| Options | `OfficeIMO.Markdown.Html.HtmlToMarkdownOptions` | Renamed | `OfficeIMO.Markdown.Html.MarkdownHtmlImportOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
+| Options | `OfficeIMO.Markdown.Html.HtmlToMarkdownOptions` | Renamed | `OfficeIMO.Markdown.Html.HtmlMarkdownExportOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
+| Options | `OfficeIMO.Markdown.Html.MarkdownHtmlImportOptions` | Renamed | `OfficeIMO.Markdown.Html.HtmlMarkdownExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
 | Visibility | `OfficeIMO.Markdown.Html.HtmlToMarkdownOptions.HasFeaturePackId(string featurePackId)` | Internal | &mdash; | Plugin bookkeeping on an options type. |
 | Visibility | `OfficeIMO.Markdown.Html.HtmlToMarkdownOptions.HasPluginId(string pluginId)` | Internal | &mdash; | Plugin bookkeeping on an options type. |
 | Visibility | `OfficeIMO.Markdown.Html.HtmlToMarkdownOptions.TryMarkFeaturePackApplied(string featurePackId)` | Internal | &mdash; | Plugin bookkeeping on an options type. |
@@ -3452,6 +3488,29 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 
 </details>
 
+#### OfficeIMO.AsciiDoc.Markdown
+
+<details>
+<summary>2 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Options | `OfficeIMO.AsciiDoc.Markdown.AsciiDocToMarkdownOptions` | Renamed | `OfficeIMO.AsciiDoc.Markdown.AsciiDocMarkdownExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+| Options | `OfficeIMO.AsciiDoc.Markdown.MarkdownToAsciiDocOptions` | Renamed | `OfficeIMO.AsciiDoc.Markdown.MarkdownAsciiDocExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+
+</details>
+
+#### OfficeIMO.AsciiDoc.Pdf
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Options | `OfficeIMO.AsciiDoc.Pdf.AsciiDocToPdfOptions` | Renamed | `OfficeIMO.AsciiDoc.Pdf.AsciiDocPdfExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+
+</details>
+
 #### OfficeIMO.Bibliography
 
 <details>
@@ -3461,6 +3520,17 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | --- | --- | --- | --- | --- |
 | Naming | `OfficeIMO.Bibliography.BibliographyWriteOptions.RequireNoLoss` | Renamed | `OfficeIMO.Bibliography.BibliographyWriteOptions.FailOnLoss` | One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception. |
 | limits | `OfficeIMO.Bibliography read, write, reference and CSL options Maximum* properties` | Renamed | `Max* (for example MaxInputBytes, MaxItemCount, MaxNestingDepth)` | Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object. |
+
+</details>
+
+#### OfficeIMO.Chm
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Options | `OfficeIMO.Chm.ChmReadOptions` | Renamed | `OfficeIMO.Chm.ChmLoadOptions` | Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers. |
 
 </details>
 
@@ -3569,14 +3639,38 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 
 </details>
 
-#### OfficeIMO.DocBook
+#### OfficeIMO.DjVu
 
 <details>
 <summary>1 change</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
+| Options | `OfficeIMO.DjVu.DjVuReadOptions` | Renamed | `OfficeIMO.DjVu.DjVuLoadOptions` | Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers. |
+
+</details>
+
+#### OfficeIMO.DjVu.Pdf
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Options | `OfficeIMO.DjVu.Pdf.DjVuToPdfOptions` | Renamed | `OfficeIMO.DjVu.Pdf.DjVuPdfExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+
+</details>
+
+#### OfficeIMO.DocBook
+
+<details>
+<summary>3 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
 | Lifecycle | `DocBookDocument.Write / WriteAsync(Stream)` | Changed | `DocBookDocument.Save / SaveAsync(Stream)` | Save writes native output and binds a path only after success; Save(stream) leaves association and stream ownership intact. ToBytes returns native bytes. SaveCopy remains the non-rebinding operation. |
+| Options | `OfficeIMO.DocBook.DocBookReadOptions` | Renamed | `OfficeIMO.DocBook.DocBookLoadOptions` | Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers. |
+| Options | `OfficeIMO.DocBook.DocBookWriteOptions` | Renamed | `OfficeIMO.DocBook.DocBookSaveOptions` | Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers. |
 
 </details>
 
@@ -3598,11 +3692,13 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Epub
 
 <details>
-<summary>1 change</summary>
+<summary>3 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
 | Naming | `EpubDocument.ValidatePackageSignatures(path, provider, options)` | Renamed | `EpubDocument.ValidateSignatures(path, provider, options)` | SignPackage and TrySignPackage retain their existing provider and format-specific evidence contracts. |
+| Options | `OfficeIMO.Epub.EpubReadOptions` | Renamed | `OfficeIMO.Epub.EpubLoadOptions` | Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers. |
+| Options | `OfficeIMO.Epub.EpubWriteOptions` | Renamed | `OfficeIMO.Epub.EpubSaveOptions` | Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers. |
 
 </details>
 
@@ -3621,12 +3717,14 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Excel.Html
 
 <details>
-<summary>2 changes</summary>
+<summary>4 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
 | Options | `OfficeIMO.Excel.Html.ExcelHtmlCapabilityGalleryOptions.VisualOptions : ExcelWorkbookImageExportOptions` | Merged | `OfficeIMO.Excel.Html.ExcelHtmlCapabilityGalleryOptions.VisualOptions : ExcelImageExportOptions` | The rendering package now exposes one image options type. The adapter preserves source conversion, selection, diagnostic attachment and cancellation behavior. |
-| Options | `OfficeIMO.Excel.Html.ExcelHtmlSaveOptions.VisualOptions : ExcelWorkbookImageExportOptions` | Merged | `OfficeIMO.Excel.Html.ExcelHtmlSaveOptions.VisualOptions : ExcelImageExportOptions` | The rendering package now exposes one image options type. The adapter preserves source conversion, selection, diagnostic attachment and cancellation behavior. |
+| Options | `OfficeIMO.Excel.Html.ExcelHtmlSaveOptions` | Renamed | `OfficeIMO.Excel.Html.ExcelHtmlExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+| Options | `OfficeIMO.Excel.Html.ExcelHtmlSaveOptions.VisualOptions : ExcelWorkbookImageExportOptions` | Merged | `OfficeIMO.Excel.Html.ExcelHtmlExportOptions.VisualOptions : ExcelImageExportOptions` | The rendering package now exposes one image options type. The adapter preserves source conversion, selection, diagnostic attachment and cancellation behavior. |
+| Options | `OfficeIMO.Excel.Html.HtmlToExcelOptions` | Renamed | `OfficeIMO.Excel.Html.HtmlExcelExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
 
 </details>
 
@@ -3645,7 +3743,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Html
 
 <details>
-<summary>11 changes</summary>
+<summary>30 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -3653,6 +3751,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Conversion | `OfficeHtmlDocumentOptions.Theme selects only OfficeVisualThemeKind presets` | Changed | `OfficeHtmlDocumentOptions.DocumentTheme accepts an OfficeTheme; when set, it overrides the preset palette and font choices` | Use the same immutable document theme for semantic HTML and Office files. The shared HTML shell projects its palette, font stack, table-header text and light or dark color scheme. Existing enum presets remain available when DocumentTheme is omitted. `New-OfficePowerPointHtmlOptions` defaults its shared document theme to Modern. |
 | Naming | `OfficeIMO.Html.HtmlRenderFidelityPolicy.RequireNoLoss` | Renamed | `OfficeIMO.Html.HtmlRenderFidelityPolicy.FailOnLoss` | One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception. |
 | Options | `HtmlRenderOptions batch image selection` | Changed | `HtmlRenderOptions.PageSelection (PdfPageSelection)` | Batch image export can select noncontiguous one-based retained surfaces in caller order, including repeats, through the canonical PDF page selector and selected-count limits. The request page set, HTML layout, PDF output, archives and single-image operations retain their existing selection contracts. |
+| cancellation | `HtmlConversionDocument.ToPng / ToJpeg / ToTiff / ToWebp / ToSvg(HtmlRenderOptions options = null, int pageIndex = 0)` | Changed | `HtmlConversionDocument.ToPng / ToJpeg / ToTiff / ToWebp / ToSvg(HtmlRenderOptions options = null, int pageIndex = 0, CancellationToken cancellationToken = default) (package OfficeIMO.Html.Pdf)` | Cancellable operations take a final CancellationToken cancellationToken = default, in synchronous and asynchronous forms alike. |
 | contract | `OfficeIMO.Html.HtmlConversionException : InvalidOperationException` | Changed | `OfficeIMO.Html.HtmlConversionException : OfficeConversionException` | Report carries the HTML diagnostics. |
 | contract | `OfficeIMO.Html.HtmlConversionReport.Diagnostics / HtmlRenderDocument.Diagnostics` | Renamed | `NativeDiagnostics` | Diagnostics is now the common OfficeDiagnostic list. |
 | contract | `OfficeIMO.Html.HtmlRenderResult.RequireNoLoss() / HtmlRenderDocument.RequireNoLoss() (returned this)` | Renamed | `ThrowIfLoss()` | ThrowIfLoss() returns void. |
@@ -3660,17 +3759,49 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | limits | `OfficeIMO.Html.HtmlConversionLimits.CreateTrustedProfile()` | Removed | &mdash; | new HtmlConversionLimits() |
 | limits | `OfficeIMO.Html.HtmlConversionLimits.CreateUntrustedProfile()` | Renamed | `OfficeIMO.Html.HtmlConversionLimits.UntrustedDefaults` | Profiles for untrusted input use one discoverable name across formats. |
 | limits | `OfficeIMO.Html.HtmlImportLimits.CreateDefault()` | Removed | &mdash; | new HtmlImportLimits() |
+| packages | `HtmlRenderEngine.Execute/ExecuteAsync with a Png, Jpeg, Tiff, Webp or Svg encoder and plain HtmlRenderOptions` | Changed | `Pass HtmlPdfExportOptions in the request; HtmlPdfExportOptions.ForImageExport(options) keeps the shared options resource policy. document.RenderImages(request) in OfficeIMO.Html.Pdf encodes a request directly.` | Image encoders measure and paint text through the PDF engine, which OfficeIMO.Html no longer carries. Plain options now throw ArgumentException for these encoders; RenderImages keeps the shared options resource policy. |
+| packages | `OfficeIMO.Html.HtmlImageExportExtensions` | Moved | `OfficeIMO.Html.Pdf.HtmlImageExportExtensions (package OfficeIMO.Html.Pdf)` | HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. HTML images are painted from the generated PDF page scenes, so ToPng/ToJpeg/ToTiff/ToWebp/ToSvg, ToImage, ExportImage(s), RenderImages, SaveAsImage(s) and ExportArchive move with it. Add using OfficeIMO.Html.Pdf. |
+| packages | `OfficeIMO.Html.HtmlRenderOptions.PageSelection : OfficeIMO.Pdf.PdfPageSelection` | Changed | `OfficeIMO.Html.HtmlRenderOptions.PageSelection : IReadOnlyList<int>` | HtmlRenderOptions stays in OfficeIMO.Html, which no longer references OfficeIMO.Pdf. Pass the one-based page numbers, for example new\[\] { 3, 1, 3 }. |
+| packages | `OfficeIMO.Html.HtmlRenderResultArchiveExtensions` | Moved | `OfficeIMO.Html.Pdf.HtmlRenderResultArchiveExtensions (package OfficeIMO.Html.Pdf)` | HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. HTML images are painted from the generated PDF page scenes, so ToPng/ToJpeg/ToTiff/ToWebp/ToSvg, ToImage, ExportImage(s), RenderImages, SaveAsImage(s) and ExportArchive move with it. Add using OfficeIMO.Html.Pdf. |
+| packages | `OfficeIMO.Html.HtmlRenderResultImageExtensions` | Moved | `OfficeIMO.Html.Pdf.HtmlRenderResultImageExtensions (package OfficeIMO.Html.Pdf)` | HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. HTML images are painted from the generated PDF page scenes, so ToPng/ToJpeg/ToTiff/ToWebp/ToSvg, ToImage, ExportImage(s), RenderImages, SaveAsImage(s) and ExportArchive move with it. Add using OfficeIMO.Html.Pdf. |
+| packages | `OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue (assembly OfficeIMO.Html)` | Moved | `OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue (package OfficeIMO.Html.Pdf)` | HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. |
+| packages | `OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity (assembly OfficeIMO.Html)` | Moved | `OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity (package OfficeIMO.Html.Pdf)` | HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. |
+| packages | `OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult (assembly OfficeIMO.Html)` | Moved | `OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult (package OfficeIMO.Html.Pdf)` | HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. |
+| packages | `OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator (assembly OfficeIMO.Html)` | Moved | `OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator (package OfficeIMO.Html.Pdf)` | HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. |
+| packages | `OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions (assembly OfficeIMO.Html)` | Moved | `OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions (package OfficeIMO.Html.Pdf)` | HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. |
+| packages | `OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes (assembly OfficeIMO.Html)` | Moved | `OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes (package OfficeIMO.Html.Pdf)` | HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. |
+| packages | `OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult (assembly OfficeIMO.Html)` | Moved | `OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult (package OfficeIMO.Html.Pdf)` | HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. |
+| packages | `OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary (assembly OfficeIMO.Html)` | Moved | `OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary (package OfficeIMO.Html.Pdf)` | HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. |
+| packages | `OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile (assembly OfficeIMO.Html)` | Moved | `OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile (package OfficeIMO.Html.Pdf)` | HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. |
+| packages | `OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryExtensions (assembly OfficeIMO.Html)` | Moved | `OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryExtensions (package OfficeIMO.Html.Pdf)` | HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. |
+| packages | `OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions (assembly OfficeIMO.Html)` | Moved | `OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions (package OfficeIMO.Html.Pdf)` | HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. |
+| packages | `OfficeIMO.Html.Pdf.HtmlSiteBundlePdfExtensions (assembly OfficeIMO.Html)` | Moved | `OfficeIMO.Html.Pdf.HtmlSiteBundlePdfExtensions (package OfficeIMO.Html.Pdf)` | HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. |
+| packages | `OfficeIMO.Html.Pdf.HtmlToPdfOptions (assembly OfficeIMO.Html)` | Moved | `OfficeIMO.Html.Pdf.HtmlPdfExportOptions (package OfficeIMO.Html.Pdf)` | HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. Converter options are named {Source}{Target}ExportOptions. |
+
+</details>
+
+#### OfficeIMO.Html.Pdf
+
+<details>
+<summary>2 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Options | `OfficeIMO.Html.Pdf.HtmlToPdfOptions` | Renamed | `OfficeIMO.Html.Pdf.HtmlPdfExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+| Options | `OfficeIMO.Html.Pdf.PdfToHtmlOptions` | Renamed | `OfficeIMO.Html.Pdf.PdfHtmlExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
 
 </details>
 
 #### OfficeIMO.Html.Rtf
 
 <details>
-<summary>1 change</summary>
+<summary>3 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
-| limits | `OfficeIMO.Html.Rtf.HtmlToRtfOptions.CreateUntrustedHtmlProfile()` | Renamed | `OfficeIMO.Html.Rtf.HtmlToRtfOptions.UntrustedDefaults` | Profiles for untrusted input use one discoverable name across formats. |
+| Options | `OfficeIMO.Html.HtmlToRtfOptions` | Renamed | `OfficeIMO.Html.HtmlRtfExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+| Options | `OfficeIMO.Html.RtfToHtmlOptions` | Renamed | `OfficeIMO.Html.RtfHtmlExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+| limits | `OfficeIMO.Html.Rtf.HtmlToRtfOptions.CreateUntrustedHtmlProfile()` | Renamed | `OfficeIMO.Html.Rtf.HtmlRtfExportOptions.UntrustedDefaults` | Profiles for untrusted input use one discoverable name across formats. |
 
 </details>
 
@@ -3696,6 +3827,84 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 
 </details>
 
+#### OfficeIMO.Latex.Markdown
+
+<details>
+<summary>2 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Options | `OfficeIMO.Latex.Markdown.LatexToMarkdownOptions` | Renamed | `OfficeIMO.Latex.Markdown.LatexMarkdownExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+| Options | `OfficeIMO.Latex.Markdown.MarkdownToLatexOptions` | Renamed | `OfficeIMO.Latex.Markdown.MarkdownLatexExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+
+</details>
+
+#### OfficeIMO.Latex.Pdf
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Options | `OfficeIMO.Latex.Pdf.LatexToPdfOptions` | Renamed | `OfficeIMO.Latex.Pdf.LatexPdfExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+
+</details>
+
+#### OfficeIMO.Markup.Excel
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Options | `OfficeIMO.Markup.Excel.MarkupToExcelOptions` | Renamed | `OfficeIMO.Markup.Excel.MarkupExcelExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+
+</details>
+
+#### OfficeIMO.Markup.PowerPoint
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Options | `OfficeIMO.Markup.PowerPoint.MarkupToPowerPointOptions` | Renamed | `OfficeIMO.Markup.PowerPoint.MarkupPowerPointExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+
+</details>
+
+#### OfficeIMO.Markup.Word
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Options | `OfficeIMO.Markup.Word.MarkupToWordOptions` | Renamed | `OfficeIMO.Markup.Word.MarkupWordExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+
+</details>
+
+#### OfficeIMO.OneNote.Html
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Options | `OfficeIMO.OneNote.Html.HtmlToOneNoteOptions` | Renamed | `OfficeIMO.OneNote.Html.HtmlOneNoteExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+
+</details>
+
+#### OfficeIMO.OneNote.Pdf
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Options | `OfficeIMO.OneNote.Pdf.OneNoteToPdfOptions` | Renamed | `OfficeIMO.OneNote.Pdf.OneNotePdfExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+
+</details>
+
 #### OfficeIMO.OpenDocument
 
 <details>
@@ -3709,47 +3918,81 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 
 </details>
 
-#### OfficeIMO.Opml
+#### OfficeIMO.OpenDocument.Odg.Pdf
 
 <details>
 <summary>1 change</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
+| Options | `OfficeIMO.OpenDocument.Odg.Pdf.OdgToPdfOptions` | Renamed | `OfficeIMO.OpenDocument.Odg.Pdf.OdgPdfExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+
+</details>
+
+#### OfficeIMO.Opml
+
+<details>
+<summary>3 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
 | Lifecycle | `OpmlDocument.Write / WriteAsync(Stream)` | Changed | `OpmlDocument.Save / SaveAsync(Stream)` | Save writes native output and binds a path only after success; Save(stream) leaves association and stream ownership intact. ToBytes returns native bytes. SaveCopy remains the non-rebinding operation. |
+| Options | `OfficeIMO.Opml.OpmlReadOptions` | Renamed | `OfficeIMO.Opml.OpmlLoadOptions` | Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers. |
+| Options | `OfficeIMO.Opml.OpmlWriteOptions` | Renamed | `OfficeIMO.Opml.OpmlSaveOptions` | Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers. |
 
 </details>
 
 #### OfficeIMO.Pdf.Excel
 
 <details>
-<summary>1 change</summary>
+<summary>2 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
 | Package | `OfficeIMO.Excel.Pdf reverse reconstruction` | Moved | `OfficeIMO.Pdf.Excel` | The approved design gives each conversion direction its own adapter. Source PdfDocument.ToTarget, out-report and async OfficeConversionResult&lt;T&gt; forms replace the old result pairs. |
+| Options | `OfficeIMO.Pdf.Excel.ExcelPdfImportOptions` | Renamed | `OfficeIMO.Pdf.Excel.PdfExcelExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
 
 </details>
 
 #### OfficeIMO.Pdf.PowerPoint
 
 <details>
-<summary>1 change</summary>
+<summary>2 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
 | Package | `OfficeIMO.PowerPoint.Pdf reverse reconstruction` | Moved | `OfficeIMO.Pdf.PowerPoint` | The approved design gives each conversion direction its own adapter. Source PdfDocument.ToTarget, out-report and async OfficeConversionResult&lt;T&gt; forms replace the old result pairs. |
+| Options | `OfficeIMO.Pdf.PowerPoint.PowerPointPdfImportOptions` | Renamed | `OfficeIMO.Pdf.PowerPoint.PdfPowerPointExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
 
 </details>
 
 #### OfficeIMO.Pdf.Word
 
 <details>
-<summary>1 change</summary>
+<summary>2 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
 | Package | `OfficeIMO.Word.Pdf reverse reconstruction` | Moved | `OfficeIMO.Pdf.Word` | The approved design gives each conversion direction its own adapter. Source PdfDocument.ToTarget, out-report and async OfficeConversionResult&lt;T&gt; forms replace the old result pairs. |
+| Options | `OfficeIMO.Pdf.Word.WordPdfImportOptions` | Renamed | `OfficeIMO.Pdf.Word.PdfWordExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+
+</details>
+
+#### OfficeIMO.PowerPoint.Html
+
+<details>
+<summary>8 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Conversion | `OfficeIMO.PowerPoint.Html.PowerPointHtmlConverterExtensions.SaveAsHtml(PowerPointDocument, string \| Stream, PowerPointHtmlSaveOptions) : void` | Changed | `PowerPointDocument.SaveAsHtml(string path \| Stream stream, PowerPointHtmlExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | PowerPoint to HTML matches Word to HTML: ToHtml returns text with an optional report, SaveAsHtml returns OfficeConversionReport, and ToHtmlAsync returns OfficeConversionResult&lt;string&gt;. |
+| Conversion | `OfficeIMO.PowerPoint.Html.PowerPointHtmlConverterExtensions.SaveAsHtmlAsync(PowerPointDocument, string \| Stream, PowerPointHtmlSaveOptions, CancellationToken) : Task` | Changed | `PowerPointDocument.SaveAsHtmlAsync(string path \| Stream stream, PowerPointHtmlExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>` | PowerPoint to HTML matches Word to HTML: ToHtml returns text with an optional report, SaveAsHtml returns OfficeConversionReport, and ToHtmlAsync returns OfficeConversionResult&lt;string&gt;. Conversion runs on the thread pool instead of blocking before the asynchronous write. |
+| Conversion | `OfficeIMO.PowerPoint.Html.PowerPointHtmlConverterExtensions.ToHtml(PowerPointDocument, PowerPointHtmlSaveOptions)` | Changed | `PowerPointDocument.ToHtml(PowerPointHtmlExportOptions options = null, CancellationToken cancellationToken = default) : string; ToHtmlAsync(...) : Task<OfficeConversionResult<string>>` | PowerPoint to HTML matches Word to HTML: ToHtml returns text with an optional report, SaveAsHtml returns OfficeConversionReport, and ToHtmlAsync returns OfficeConversionResult&lt;string&gt;. |
+| Conversion | `OfficeIMO.PowerPoint.Html.PowerPointHtmlConverterExtensions.ToHtmlResult(PowerPointDocument, PowerPointHtmlSaveOptions) : PowerPointToHtmlResult` | Merged | `PowerPointDocument.ToHtml(PowerPointHtmlExportOptions options, out OfficeConversionReport report, CancellationToken cancellationToken = default) : string` | PowerPoint to HTML matches Word to HTML: ToHtml returns text with an optional report, SaveAsHtml returns OfficeConversionReport, and ToHtmlAsync returns OfficeConversionResult&lt;string&gt;. Snapshot image diagnostics are part of the report. |
+| Conversion | `OfficeIMO.PowerPoint.Html.PowerPointToHtmlResult` | Internal | &mdash; | Use the OfficeConversionReport from ToHtml(options, out report); ImageDiagnostics are report diagnostics with the same codes. |
+| Conversion | `PowerPointHtmlSaveOptions without a loss policy` | Changed | `PowerPointHtmlExportOptions.FailOnLoss` | Conversions use FailOnLoss to make reported loss an error. |
+| Options | `OfficeIMO.PowerPoint.Html.HtmlToPowerPointOptions` | Renamed | `OfficeIMO.PowerPoint.Html.HtmlPowerPointExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+| Options | `OfficeIMO.PowerPoint.Html.PowerPointHtmlSaveOptions` | Renamed | `OfficeIMO.PowerPoint.Html.PowerPointHtmlExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
 
 </details>
 
@@ -3768,22 +4011,40 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Project
 
 <details>
-<summary>1 change</summary>
+<summary>2 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
 | Naming | `OfficeIMO.Project.ProjectSaveOptions.LossPolicy` | Changed | `OfficeIMO.Project.ProjectSaveOptions.AllowLoss` | AllowLoss = true replaces LossPolicy = OfficeConversionLossPolicy.Allow. |
+| Options | `OfficeIMO.Project.ProjectDocument.Create(string path \| Stream stream, DocumentCreateOptions options = null)` | Changed | `OfficeIMO.Project.ProjectDocument.Create(string path \| Stream stream, ProjectCreateOptions options = null)` | Lifecycle options are named {Format}CreateOptions; ProjectCreateOptions derives from DocumentCreateOptions like the other formats. |
 
 </details>
 
 #### OfficeIMO.Publisher
 
 <details>
-<summary>1 change</summary>
+<summary>2 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
+| Options | `OfficeIMO.Publisher.PublisherReadOptions` | Renamed | `OfficeIMO.Publisher.PublisherLoadOptions` | Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers. |
 | limits | `OfficeIMO.Publisher.PublisherReadOptions.MaximumPages / MaximumNestingDepth / MaximumImageBytes / MaximumTotalImageBytes / MaximumRasterPixels / MaximumImageProcessingPixels` | Renamed | `MaxPages / MaxNestingDepth / MaxImageBytes / MaxTotalImageBytes / MaxRasterPixels / MaxImageProcessingPixels` | Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object. |
+
+</details>
+
+#### OfficeIMO.Publisher.Pdf
+
+<details>
+<summary>6 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Conversion | `OfficeIMO.Publisher.Pdf.PublisherPdfConversionExtensions.SaveAsPdf(PublisherDocument, string \| Stream, PdfCreateOptions, CancellationToken) : PdfSaveResult` | Changed | `PublisherDocument.SaveAsPdf(string path \| Stream stream, PublisherPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | Publisher PDF conversion uses the shared converter shape and its own options with FailOnLoss. |
+| Conversion | `OfficeIMO.Publisher.Pdf.PublisherPdfConversionExtensions.ToPdfBytes(PublisherDocument, PdfCreateOptions, CancellationToken)` | Removed | &mdash; | Use document.ToPdf(options).ToBytes(), or SaveAsPdf(stream, options). |
+| Conversion | `OfficeIMO.Publisher.Pdf.PublisherPdfConversionExtensions.ToPdfDocument(PublisherDocument, PdfCreateOptions, CancellationToken)` | Renamed | `PublisherDocument.ToPdf(PublisherPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument` | Publisher PDF conversion uses the shared converter shape and its own options with FailOnLoss. |
+| Conversion | `OfficeIMO.Publisher.Pdf.PublisherPdfConversionExtensions.ToPdfDocumentResult(PublisherDocument, PdfCreateOptions, CancellationToken)` | Merged | `PublisherDocument.ToPdf(PublisherPdfExportOptions options, out OfficeConversionReport report, CancellationToken cancellationToken = default) : PdfDocument` | Publisher PDF conversion uses the shared converter shape and its own options with FailOnLoss. The report carries the PublisherReadReport diagnostics with the PDF findings. |
+| Conversion | `PublisherDocument PDF conversion without asynchronous forms` | Changed | `PublisherDocument.ToPdfAsync(...) : Task<OfficeConversionResult<PdfDocument>>; SaveAsPdfAsync(string path \| Stream stream, ...) : Task<OfficeConversionReport>` | Publisher PDF conversion uses the shared converter shape and its own options with FailOnLoss. |
+| Options | `PdfCreateOptions (Publisher PDF options parameter)` | Changed | `OfficeIMO.Publisher.Pdf.PublisherPdfExportOptions { PdfOptions, FailOnLoss }` | Publisher PDF conversion uses the shared converter shape and its own options with FailOnLoss. |
 
 </details>
 
@@ -3816,18 +4077,44 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Rtf
 
 <details>
-<summary>8 changes</summary>
+<summary>10 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
-| Lifecycle | `RtfDocument.Read(string, RtfReadOptions?, CancellationToken)` | Merged | `RtfDocument.ParseResult(string, RtfReadOptions?, CancellationToken)` | Use Parse for the model or ParseResult for the model, lossless syntax and diagnostics. |
+| Lifecycle | `RtfDocument.Read(string, RtfReadOptions?, CancellationToken)` | Merged | `RtfDocument.ParseResult(string, RtfLoadOptions?, CancellationToken)` | Use Parse for the model or ParseResult for the model, lossless syntax and diagnostics. |
 | Naming | `OfficeIMO.Rtf.RtfDocument.Info` | Renamed | `OfficeIMO.Rtf.RtfDocument.Properties` | Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate. |
+| Options | `OfficeIMO.Rtf.RtfReadOptions` | Renamed | `OfficeIMO.Rtf.RtfLoadOptions` | Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers. |
+| Options | `OfficeIMO.Rtf.RtfWriteOptions` | Renamed | `OfficeIMO.Rtf.RtfSaveOptions` | Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers. |
 | contract | `OfficeIMO.Rtf.RtfConversionReport.Diagnostics` | Renamed | `OfficeIMO.Rtf.RtfConversionReport.NativeDiagnostics` | Diagnostics is now the common OfficeDiagnostic list. |
-| limits | `OfficeIMO.Rtf.RtfReadOptions.CreateOfficeIMOProfile()` | Removed | &mdash; | new RtfReadOptions() |
-| limits | `OfficeIMO.Rtf.RtfReadOptions.CreateUntrustedProfile()` | Renamed | `OfficeIMO.Rtf.RtfReadOptions.UntrustedDefaults` | Profiles for untrusted input use one discoverable name across formats. |
+| limits | `OfficeIMO.Rtf.RtfReadOptions.CreateOfficeIMOProfile()` | Removed | &mdash; | new RtfLoadOptions() |
+| limits | `OfficeIMO.Rtf.RtfReadOptions.CreateUntrustedProfile()` | Renamed | `OfficeIMO.Rtf.RtfLoadOptions.UntrustedDefaults` | Profiles for untrusted input use one discoverable name across formats. |
 | limits | `OfficeIMO.Rtf.RtfReadOptions.MaxBinaryBytesPerPayload / MaxImageBytesPerImage / MaxObjectBytesPerObject` | Renamed | `OfficeIMO.Rtf.RtfReadLimits.MaxBinaryPayloadBytes / MaxImageBytes / MaxObjectBytes` | Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object. |
-| limits | `OfficeIMO.Rtf.RtfReadOptions.MaxDepth / MaxInputBytes / MaxInputCharacters / MaxTextCharacters / MaxTotalBinaryBytes / MaxTotalImageBytes / MaxTotalObjectBytes / DefaultMaxDepth / CompatibilityMaxDepth` | Moved | `OfficeIMO.Rtf.RtfReadOptions.Limits (RtfReadLimits)` | new RtfReadOptions { Limits = { MaxDepth = 64 } } |
+| limits | `OfficeIMO.Rtf.RtfReadOptions.MaxDepth / MaxInputBytes / MaxInputCharacters / MaxTextCharacters / MaxTotalBinaryBytes / MaxTotalImageBytes / MaxTotalObjectBytes / DefaultMaxDepth / CompatibilityMaxDepth` | Moved | `OfficeIMO.Rtf.RtfLoadOptions.Limits (RtfReadLimits)` | new RtfLoadOptions { Limits = { MaxDepth = 64 } } |
 | limits | `OfficeIMO.Rtf.RtfReadOptions.MaxTokenCount / MaxGroupCount / MaxImageCount / MaxObjectCount / MaxSemanticBlockCount` | Renamed | `OfficeIMO.Rtf.RtfReadLimits.MaxTokens / MaxGroups / MaxImages / MaxObjects / MaxSemanticBlocks` | Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object. |
+
+</details>
+
+#### OfficeIMO.Rtf.Markdown
+
+<details>
+<summary>2 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Options | `OfficeIMO.Rtf.Markdown.MarkdownToRtfOptions` | Renamed | `OfficeIMO.Rtf.Markdown.MarkdownRtfExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+| Options | `OfficeIMO.Rtf.Markdown.RtfToMarkdownOptions` | Renamed | `OfficeIMO.Rtf.Markdown.RtfMarkdownExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+
+</details>
+
+#### OfficeIMO.Rtf.Pdf
+
+<details>
+<summary>2 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Options | `OfficeIMO.Rtf.Pdf.PdfToRtfOptions` | Renamed | `OfficeIMO.Rtf.Pdf.PdfRtfExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+| Options | `OfficeIMO.Rtf.Pdf.RtfToPdfOptions` | Renamed | `OfficeIMO.Rtf.Pdf.RtfPdfExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
 
 </details>
 
@@ -3852,15 +4139,47 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 
 </details>
 
+#### OfficeIMO.Visio.Pdf
+
+<details>
+<summary>10 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Conversion | `OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.SaveAsPdf(VisioDocument, string \| Stream, VisioToPdfOptions, CancellationToken) : PdfSaveResult` | Changed | `VisioDocument.SaveAsPdf(string path \| Stream stream, VisioPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | Visio and Publisher PDF conversion use the shared converter shape: To{Target} returns the model, SaveAs{Target} returns OfficeConversionReport, and async forms return OfficeConversionResult&lt;T&gt; or the report. |
+| Conversion | `OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.SaveAsPdfAsync(VisioDocument, string \| Stream, VisioToPdfOptions, CancellationToken) : Task<PdfSaveResult>` | Changed | `VisioDocument.SaveAsPdfAsync(string path \| Stream stream, VisioPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>` | Visio and Publisher PDF conversion use the shared converter shape: To{Target} returns the model, SaveAs{Target} returns OfficeConversionReport, and async forms return OfficeConversionResult&lt;T&gt; or the report. Conversion now runs on the thread pool instead of blocking the caller before the asynchronous write. |
+| Conversion | `OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.SaveAsPdfResult(VisioDocument, string \| Stream, VisioToPdfOptions, CancellationToken)` | Merged | `VisioDocument.SaveAsPdf(string path \| Stream stream, VisioPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | Failure evidence travels on OfficeConversionException.Report; a strict failure leaves the destination unchanged. |
+| Conversion | `OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.SaveAsPdfResultAsync(VisioDocument, string \| Stream, VisioToPdfOptions, CancellationToken)` | Merged | `VisioDocument.SaveAsPdfAsync(string path \| Stream stream, VisioPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>` | Failure evidence travels on OfficeConversionException.Report; a strict failure leaves the destination unchanged. |
+| Conversion | `OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.ToPdfBytes(VisioDocument, VisioToPdfOptions, CancellationToken)` | Removed | &mdash; | Use document.ToPdf(options).ToBytes(), or SaveAsPdf(stream, options). |
+| Conversion | `OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.ToPdfDocument(VisioDocument, VisioToPdfOptions, CancellationToken)` | Renamed | `VisioDocument.ToPdf(VisioPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument` | Visio and Publisher PDF conversion use the shared converter shape: To{Target} returns the model, SaveAs{Target} returns OfficeConversionReport, and async forms return OfficeConversionResult&lt;T&gt; or the report. |
+| Conversion | `OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.ToPdfDocumentResult(VisioDocument, VisioToPdfOptions, CancellationToken)` | Merged | `VisioDocument.ToPdf(VisioPdfExportOptions options, out OfficeConversionReport report, CancellationToken cancellationToken = default) : PdfDocument` | Visio and Publisher PDF conversion use the shared converter shape: To{Target} returns the model, SaveAs{Target} returns OfficeConversionReport, and async forms return OfficeConversionResult&lt;T&gt; or the report. The report carries the source and PDF diagnostics. |
+| Conversion | `VisioDocument PDF conversion without an asynchronous model form` | Changed | `VisioDocument.ToPdfAsync(VisioPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionResult<PdfDocument>>` | Visio and Publisher PDF conversion use the shared converter shape: To{Target} returns the model, SaveAs{Target} returns OfficeConversionReport, and async forms return OfficeConversionResult&lt;T&gt; or the report. |
+| Conversion | `VisioToPdfOptions without a loss policy` | Changed | `VisioPdfExportOptions.FailOnLoss` | Conversions use FailOnLoss to make reported loss an error. |
+| Options | `OfficeIMO.Visio.Pdf.VisioToPdfOptions` | Renamed | `OfficeIMO.Visio.Pdf.VisioPdfExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+
+</details>
+
 #### OfficeIMO.Xps
 
 <details>
-<summary>2 changes</summary>
+<summary>3 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
 | Lifecycle | `XpsDocument.Save(CancellationToken)` | Changed | `XpsDocument.ToBytes(CancellationToken)` | Save writes native output and binds a path only after success; Save(stream) leaves association and stream ownership intact. ToBytes returns native bytes. SaveCopy remains the non-rebinding operation. |
-| limits | `OfficeIMO.Xps.XpsReadOptions.MaximumInputBytes / MaximumExpandedBytes / MaximumPartBytes / MaximumParts / MaximumPages / MaximumXmlDepth` | Moved | `OfficeIMO.Xps.XpsReadOptions.Limits (XpsReadLimits: MaxInputBytes, MaxExpandedBytes, MaxPartBytes, MaxParts, MaxPages, MaxDepth)` | new XpsReadOptions { Limits = { MaxPages = 100 } } |
+| Options | `OfficeIMO.Xps.XpsReadOptions` | Renamed | `OfficeIMO.Xps.XpsLoadOptions` | Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers. |
+| limits | `OfficeIMO.Xps.XpsReadOptions.MaximumInputBytes / MaximumExpandedBytes / MaximumPartBytes / MaximumParts / MaximumPages / MaximumXmlDepth` | Moved | `OfficeIMO.Xps.XpsLoadOptions.Limits (XpsReadLimits: MaxInputBytes, MaxExpandedBytes, MaxPartBytes, MaxParts, MaxPages, MaxDepth)` | new XpsLoadOptions { Limits = { MaxPages = 100 } } |
+
+</details>
+
+#### OfficeIMO.Xps.Pdf
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Options | `OfficeIMO.Xps.XpsToPdfOptions` | Renamed | `OfficeIMO.Xps.XpsPdfExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
 
 </details>
 <!-- officeimo-api-map:end -->
@@ -3926,7 +4245,7 @@ Use `p { margin-top: 0 }` to keep the previous top spacing.
 
 ## HTML-to-PDF body margin
 
-`new HtmlToPdfOptions()`, and the conversions that start from it, keep the browser's eight CSS-pixel `body` margin, so pages wrap as they do in a browser. Add `body{margin:0}` to keep the previous edge-to-edge layout. Image export, the render scene and editable projections still use an uninset body in `Document` user-agent mode.
+`new HtmlPdfExportOptions()`, and the conversions that start from it, keep the browser's eight CSS-pixel `body` margin, so pages wrap as they do in a browser. Add `body{margin:0}` to keep the previous edge-to-edge layout. Image export, the render scene and editable projections still use an uninset body in `Document` user-agent mode.
 
 ## Word new-document defaults
 
@@ -4381,7 +4700,7 @@ Markdown PDF export preserves code-block indentation, including consecutive tabs
 
 `PdfTextFallbackFeatures.Default` includes `MultilingualFonts`. Converters using this shared default can embed installed fallback fonts for Japanese, Chinese, Arabic, and Hebrew under their resource policy. Rebuild consumers that compiled the enum constant into their own options. Select `None`, or individual flags without `MultilingualFonts`, when exact font selection is required. Font coverage still depends on the permitted fonts available to the host.
 
-RTF PDF export exposes `RtfToPdfOptions.TextFallbacks` with the same default. Installed fallback faces cover characters missing from the authored font; system-font access remains controlled by `ResourcePolicy.AllowSystemFontEmbedding`.
+RTF PDF export exposes `RtfPdfExportOptions.TextFallbacks` with the same default. Installed fallback faces cover characters missing from the authored font; system-font access remains controlled by `ResourcePolicy.AllowSystemFontEmbedding`.
 
 `PdfParagraphStyle.TextWhitespaceMode` overrides whitespace handling for one paragraph without changing the document's prose. A null value inherits `PdfCreateOptions.TextWhitespaceMode`.
 
@@ -5436,7 +5755,7 @@ RTF-to-Word conversion adds tab clears where required to preserve a replacement 
 
 An explicitly selected RTF document font also becomes the Word document default. Remove font overrides added only to compensate for the destination theme font replacing that source selection; explicit source style and run fonts remain in effect.
 
-Direct RTF PDF conversion preserves source spaces by default. To retain collapsed-space output, supply `new PdfCreateOptions { TextWhitespaceMode = PdfTextWhitespaceMode.Collapse }` through `RtfToPdfOptions.PdfCreateOptions`. Explicit `Preserve` and `Preformatted` selections remain effective. Recheck line-wrap snapshots that depended on collapsed spaces or an earlier hyphen break.
+Direct RTF PDF conversion preserves source spaces by default. To retain collapsed-space output, supply `new PdfCreateOptions { TextWhitespaceMode = PdfTextWhitespaceMode.Collapse }` through `RtfPdfExportOptions.PdfCreateOptions`. Explicit `Preserve` and `Preformatted` selections remain effective. Recheck line-wrap snapshots that depended on collapsed spaces or an earlier hyphen break.
 
 Direct RTF PDF conversion disables pair kerning unless the source run supplies a positive `KerningHalfPoints` threshold. The threshold uses the effective font size, including inherited RTF formatting or the PDF default. `PdfCreateOptions.TextKerning` no longer enables kerning for source runs without that threshold. Recheck width and line-wrap snapshots that relied on unconditional pair kerning.
 
@@ -5454,9 +5773,9 @@ Strict conversions also reject unsupported paragraph frames and Word tab-stop cl
 
 ## RTF HTML round-trip output
 
-Semantic RTF writing defaults to `RtfWriteOptions.MaterializeStyleFormatting = true`. Supported effective style values are written as body controls for native Word appearance. Reopening the output treats those values as direct formatting. Set this option to `false` when retaining editable style inheritance is the priority. `ToRtfResult()` reports `RtfNormalizationFormattingInheritanceMaterialized` when it materializes values; strict callers must explicitly accept that loss or select inheritance-preserving output.
+Semantic RTF writing defaults to `RtfSaveOptions.MaterializeStyleFormatting = true`. Supported effective style values are written as body controls for native Word appearance. Reopening the output treats those values as direct formatting. Set this option to `false` when retaining editable style inheritance is the priority. `ToRtfResult()` reports `RtfNormalizationFormattingInheritanceMaterialized` when it materializes values; strict callers must explicitly accept that loss or select inheritance-preserving output.
 
-`RtfToHtmlOptions.CreateRoundTripProfile()` emits a complete HTML document so font and color tables, styles, numbering, and document-level settings survive an editable round trip. Consumers that require HTML fragments should set `FragmentOnly = true` explicitly. Fragment output retains inline metadata but omits metadata stored in the document head.
+`RtfHtmlExportOptions.CreateRoundTripProfile()` emits a complete HTML document so font and color tables, styles, numbering, and document-level settings survive an editable round trip. Consumers that require HTML fragments should set `FragmentOnly = true` explicitly. Fragment output retains inline metadata but omits metadata stored in the document head.
 
 `AppendDocument` retains imported style and list bindings. Applications that also need source page setup and header/footer stories can use `RtfDocumentMergeOptions.PreserveSections`. Page setup exposes nullable `DirectLandscape`, `DirectDifferentFirstPageHeaderFooter`, and `DirectRtlGutter` values: use `null` to inherit the document setting and `false` to select an explicit reset.
 
@@ -6029,7 +6348,7 @@ Editable PDF-to-Word conversion now preserves each source page's physical size, 
 To retain the earlier flowing layout, disable the three behaviors explicitly:
 
 ```csharp
-var options = new WordPdfImportOptions {
+var options = new PdfWordExportOptions {
     PreserveSourcePageSize = false,
     PreserveCompactSourceSpacing = false,
     PreserveImagePlacementPosition = false
@@ -6040,7 +6359,7 @@ var options = new WordPdfImportOptions {
 
 ### Conversion and invoice resource limits
 
-PDF-to-Word now stops image/text overlap analysis after one million comparisons per conversion by default. Set `WordPdfImportOptions.MaxImageTextOverlapComparisons` higher for a trusted document that needs it. PDF-to-HTML annotation matching has a separate `PdfToHtmlOptions.MaximumAnnotationMatchWork` limit. PDF-to-HTML output is capped at 32 million characters by default; set `MaximumOutputCharacters` higher for trusted large exports, or `null` to disable that guard. Positioned page-appearance HTML emits visible text only; set `IncludeInvisibleTextInAppearanceOverlay` only when a caller intentionally needs hidden OCR text in the output.
+PDF-to-Word now stops image/text overlap analysis after one million comparisons per conversion by default. Set `PdfWordExportOptions.MaxImageTextOverlapComparisons` higher for a trusted document that needs it. PDF-to-HTML annotation matching has a separate `PdfHtmlExportOptions.MaximumAnnotationMatchWork` limit. PDF-to-HTML output is capped at 32 million characters by default; set `MaximumOutputCharacters` higher for trusted large exports, or `null` to disable that guard. Positioned page-appearance HTML emits visible text only; set `IncludeInvisibleTextInAppearanceOverlay` only when a caller intentionally needs hidden OCR text in the output.
 
 Word-to-PDF export accepts at most 1,000 images in one paragraph by default. `WordPdfExportOptions.MaxImagesPerParagraph` can be raised for trusted documents. Generated PDFs can use `PdfCreateOptions.MaxGeneratedPages` and `MaxGeneratedOutputBytes` to stop layout and serialization before excessive output is retained.
 
@@ -7039,7 +7358,7 @@ Applications that construct assets, table exports, or visual exports must assign
 
 ## OfficeIMO 3.2: editable HTML layout projection defaults
 
-HTML imports to Word and RTF now project bounded positioned, floating, flex, or grid regions into destination-native editable geometry by default when that destination supports the region. Excel and PowerPoint apply the same projection on their ordinary-HTML `Auto` and `Generic` import paths; their default `Semantic` modes remain strict round-trip paths and do not project ordinary HTML. Older ordinary-HTML imports kept the same content only in semantic flow. Applications that require the previous flow-only output can set `ImportEditableLayoutRegions = false` on the applicable `WordHtmlImportOptions`, `HtmlToRtfOptions`, `HtmlToExcelOptions`, or `HtmlToPowerPointOptions`. Regions that cannot be represented safely or natively continue in semantic flow or produce stable simplification and omission diagnostics.
+HTML imports to Word and RTF now project bounded positioned, floating, flex, or grid regions into destination-native editable geometry by default when that destination supports the region. Excel and PowerPoint apply the same projection on their ordinary-HTML `Auto` and `Generic` import paths; their default `Semantic` modes remain strict round-trip paths and do not project ordinary HTML. Older ordinary-HTML imports kept the same content only in semantic flow. Applications that require the previous flow-only output can set `ImportEditableLayoutRegions = false` on the applicable `HtmlWordExportOptions`, `HtmlRtfExportOptions`, `HtmlExcelExportOptions`, or `HtmlPowerPointExportOptions`. Regions that cannot be represented safely or natively continue in semantic flow or produce stable simplification and omission diagnostics.
 
 ## OfficeIMO 3.2: bounded object-table and MHTML ingestion defaults
 
@@ -7152,14 +7471,14 @@ methods with calls to those engines.
 
 ## OfficeIMO 3.2: bounded RTF reads by default
 
-`RtfReadOptions` now defaults to the bounded OfficeIMO profile. Embedded objects and file-table references are not materialized, hyperlink fields are restricted to web and mail schemes, and byte, character, token, group, payload, image, object, and semantic-block limits apply.
+`RtfLoadOptions` now defaults to the bounded OfficeIMO profile. Embedded objects and file-table references are not materialized, hyperlink fields are restricted to web and mail schemes, and byte, character, token, group, payload, image, object, and semantic-block limits apply.
 
 Applications that intentionally rely on the former permissive behavior for trusted files must opt in:
 
 ```csharp
 RtfReadResult result = RtfDocument.LoadResult(
     "trusted-legacy.rtf",
-    RtfReadOptions.CreateCompatibilityProfile());
+    RtfLoadOptions.CreateCompatibilityProfile());
 ```
 
 Do not use the compatibility profile for uploads or other untrusted inputs. Lossless byte output from character-only reads now fails when the source cannot be represented exactly; use byte, stream, or file input when exact original bytes are required.
@@ -7821,7 +8140,7 @@ The common conversion grammar is:
 | --- | --- | --- |
 | Return a destination model | `To{TargetModel}` | `pdf.ToWordDocument()` |
 | Return a model plus diagnostics | `To{TargetModel}Result` | `pdf.ToWordDocumentResult()` |
-| Return serialized content | `To{Format}` | `word.ToPdfBytes()` |
+| Return the converted model | `To{Format}` | `word.ToPdf()` |
 | Write a converted artifact | `SaveAs{Format}` | `pdf.SaveAsPowerPoint(...)` |
 | Write asynchronously when the operation performs asynchronous I/O | `SaveAs{Format}Async` | `pdf.SaveAsRtfAsync(...)` |
 | Persist a document in its native format | `Save` / `SaveAsync` | `word.Save(...)` |
@@ -8086,7 +8405,7 @@ stream overload.
 | `PdfImageExportOptions.MaxPages` | `MaximumOutputCount` on `PdfImageExportOptions` |
 | `EmailDocument.WriteToBytes()` | `EmailDocument.ToBytes()` |
 
-Format-spelling aliases such as `SaveToPdf`, `SaveAsBytesToPdf`, and generic `WriteToBytes` were removed. Use `SaveAsPdf(...)` for a destination and `ToPdfBytes()` or `ToBytes()` for an in-memory result. Ambiguous `SaveImage` / `SaveAsImage` names were replaced by explicit encodings such as `SaveAsPng(...)`, or by `SaveAsImages(...)` for multi-page and multi-sheet output.
+Format-spelling aliases such as `SaveToPdf`, `SaveAsBytesToPdf`, and generic `WriteToBytes` were removed. Use `SaveAsPdf(...)` for a destination and `ToPdf()` followed by the model's `ToBytes()` for an in-memory result. Ambiguous `SaveImage` / `SaveAsImage` names were replaced by explicit encodings such as `SaveAsPng(...)`, or by `SaveAsImages(...)` for multi-page and multi-sheet output.
 
 Image export uses `OfficeImageExportResult` and `OfficeImageExportFormat` from the `OfficeIMO.Drawing` namespace supplied by `OfficeIMO.Core`. Replace the removed scale presets as follows:
 
@@ -8139,7 +8458,7 @@ PDF adapters use `PdfResourcePolicy` instead of package-specific trust switches.
 
 Profiles configure output behavior but do not grant local-file, remote-resource, or host-font access.
 
-Word `IncludePageNumbers` and Excel `IncludeSheetHeadings` now default to `false`; set the corresponding option to `true` when synthetic visible page numbers or worksheet headings are required. PowerPoint no longer exposes `UseSharedVisualSnapshot`: full-slide PDF uses the native PDF renderer, while PNG, SVG, HTML review, and thumbnails use the shared visual snapshot. OneNote PDF conversion accepts one `OneNoteToPdfOptions` object and returns semantic-projection diagnostics through `ToPdfDocumentResult()`.
+Word `IncludePageNumbers` and Excel `IncludeSheetHeadings` now default to `false`; set the corresponding option to `true` when synthetic visible page numbers or worksheet headings are required. PowerPoint no longer exposes `UseSharedVisualSnapshot`: full-slide PDF uses the native PDF renderer, while PNG, SVG, HTML review, and thumbnails use the shared visual snapshot. OneNote PDF conversion accepts one `OneNotePdfExportOptions` object and returns semantic-projection diagnostics through `ToPdfDocumentResult()`.
 
 ### Native DOC paragraph spacing and alignment inheritance
 

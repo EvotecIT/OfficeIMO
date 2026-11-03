@@ -48,8 +48,9 @@
       "applied": true
     },
     {
+      "old": "PowerPointHtmlSaveOptions without a loss policy",
       "kind": "property",
-      "action": "add",
+      "action": "change",
       "new": "PowerPointHtmlExportOptions.FailOnLoss",
       "reason": "Conversions use FailOnLoss to make reported loss an error.",
       "category": "conversion",

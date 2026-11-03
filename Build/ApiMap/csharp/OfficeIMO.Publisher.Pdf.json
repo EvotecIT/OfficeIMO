@@ -39,8 +39,9 @@
       "applied": true
     },
     {
+      "old": "PublisherDocument PDF conversion without asynchronous forms",
       "kind": "method",
-      "action": "add",
+      "action": "change",
       "new": "PublisherDocument.ToPdfAsync(...) : Task<OfficeConversionResult<PdfDocument>>; SaveAsPdfAsync(string path | Stream stream, ...) : Task<OfficeConversionReport>",
       "reason": "Publisher PDF conversion uses the shared converter shape and its own options with FailOnLoss.",
       "category": "conversion",

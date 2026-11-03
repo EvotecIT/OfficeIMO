@@ -66,16 +66,18 @@
       "applied": true
     },
     {
+      "old": "VisioDocument PDF conversion without an asynchronous model form",
       "kind": "method",
-      "action": "add",
+      "action": "change",
       "new": "VisioDocument.ToPdfAsync(VisioPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionResult<PdfDocument>>",
       "reason": "Visio and Publisher PDF conversion use the shared converter shape: To{Target} returns the model, SaveAs{Target} returns OfficeConversionReport, and async forms return OfficeConversionResult<T> or the report.",
       "category": "conversion",
       "applied": true
     },
     {
+      "old": "VisioToPdfOptions without a loss policy",
       "kind": "property",
-      "action": "add",
+      "action": "change",
       "new": "VisioPdfExportOptions.FailOnLoss",
       "reason": "Conversions use FailOnLoss to make reported loss an error.",
       "category": "conversion",
