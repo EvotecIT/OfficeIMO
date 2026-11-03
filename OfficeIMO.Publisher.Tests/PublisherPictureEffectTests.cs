@@ -20,9 +20,9 @@ public sealed class PublisherPictureEffectTests {
         Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_PICTURE_EFFECT_APPROXIMATED" && item.Location == "Contents/object/362");
         Assert.Contains(document.ToSvgResult(PicturePageIndex(document, 362)).Report.Diagnostics,
             item => item.Code == "PUB_PICTURE_EFFECT_APPROXIMATED");
-        var pdf = document.ToPdfDocumentResult();
-        Assert.Contains(document.ReadReport, pdf.SourceConversionReports);
-        Assert.True(pdf.HasLoss);
+        var pdf = document.ToPdf(null, out OfficeConversionReport pdfReport);
+        Assert.All(document.ReadReport.Diagnostics, source => Assert.Contains(pdfReport.Diagnostics, item => item.Code == source.Code));
+        Assert.True(pdfReport.HasLoss);
         Assert.Equal(document.Pages.Count, PdfDocument.Load(new System.IO.MemoryStream(pdf.ToBytes())).Pages.Count);
         Assert.True(codec.Calls > 0);
     }

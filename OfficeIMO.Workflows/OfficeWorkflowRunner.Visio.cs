@@ -33,7 +33,7 @@ public sealed partial class OfficeWorkflowRunner {
         };
         PdfDocumentConversionResult? conversion = null;
         try {
-            conversion = source.ToPdfDocumentResult(options, token);
+            conversion = source.ConvertToPdfWithEvidence(options, token);
             if (imported != null) conversion = conversion.WithSourceConversionReport(imported.Report);
             var (bytes, evidence) = SerializePdfConversion(conversion, request.Limits.MaximumOutputBytes, token, facts);
             if (settings.FailOnLoss) evidence.ThrowIfLoss();

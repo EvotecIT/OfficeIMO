@@ -437,7 +437,7 @@ public partial class Html {
                 diagnostic.Code == HtmlConversionDiagnosticCodes.ExcelPivotReviewApproximated &&
                 diagnostic.LossKind == OfficeConversionLossKind.Approximation);
             Assert.True(result.HasLoss);
-            Assert.Throws<HtmlConversionException>(() => result.Report.ThrowIfLoss());
+            Assert.Throws<OfficeConversionException>(() => report.ThrowIfLoss());
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
@@ -453,8 +453,7 @@ public partial class Html {
             PowerPointMedia media = slide.AddLinkedVideo(new Uri("https://example.test/review-video.mp4"));
             media.LuminanceBrightness = 15;
 
-            PowerPointToHtmlResult result = presentation.ToHtmlResult(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
-            string html = result.Value;
+            string html = presentation.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile(), out OfficeConversionReport report);
 
             Assert.Contains("data-officeimo-feature=\"slide-master\"", html, StringComparison.Ordinal);
             Assert.Contains("data-officeimo-feature=\"smartart\"", html, StringComparison.Ordinal);
@@ -463,16 +462,16 @@ public partial class Html {
             Assert.Contains("data-officeimo-poster-frame=\"true\"", html, StringComparison.Ordinal);
             Assert.Contains("Audio and video are never executed", html, StringComparison.Ordinal);
             Assert.DoesNotContain("<script", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            Assert.Contains(report.Diagnostics, diagnostic =>
                 diagnostic.Code == HtmlConversionDiagnosticCodes.PowerPointMasterReviewApproximated);
-            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            Assert.Contains(report.Diagnostics, diagnostic =>
                 diagnostic.Code == HtmlConversionDiagnosticCodes.PowerPointSmartArtReviewApproximated);
-            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            Assert.Contains(report.Diagnostics, diagnostic =>
                 diagnostic.Code == HtmlConversionDiagnosticCodes.PowerPointMediaReviewApproximated);
-            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            Assert.Contains(report.Diagnostics, diagnostic =>
                 diagnostic.Code == HtmlConversionDiagnosticCodes.PowerPointEffectReviewApproximated);
-            Assert.True(result.HasLoss);
-            Assert.Throws<HtmlConversionException>(() => result.Report.ThrowIfLoss());
+            Assert.True(report.HasLoss);
+            Assert.Throws<OfficeConversionException>(() => report.ThrowIfLoss());
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }

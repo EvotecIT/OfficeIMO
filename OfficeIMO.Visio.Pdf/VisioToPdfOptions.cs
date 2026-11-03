@@ -30,6 +30,20 @@ public sealed class VisioToPdfOptions {
     /// <summary>PDF generation settings for diagram pages. Source page sizes and zero margins take precedence.</summary>
     public PdfCreateOptions? PdfOptions { get; set; }
 
+    /// <summary>Throws <see cref="OfficeConversionException"/> when the conversion reports loss.</summary>
+    public bool FailOnLoss { get; set; }
+
+    /// <summary>Creates a copy of these settings. Semantic projection settings are shared, diagram and PDF settings are copied.</summary>
+    public VisioToPdfOptions Clone() => new VisioToPdfOptions {
+        Mode = Mode,
+        SourceName = SourceName,
+        VisioOptions = VisioOptions,
+        ProjectionOptions = ProjectionOptions,
+        DrawingOptions = DrawingOptions?.Clone(),
+        PdfOptions = PdfOptions?.Clone(),
+        FailOnLoss = FailOnLoss
+    };
+
     internal void Validate() {
         if (!Enum.IsDefined(typeof(VisioPdfProjectionMode), Mode)) throw new ArgumentOutOfRangeException(nameof(Mode));
         if (SourceName != null && string.IsNullOrWhiteSpace(SourceName)) {

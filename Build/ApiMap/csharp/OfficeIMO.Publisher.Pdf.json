@@ -1,0 +1,59 @@
+{
+  "package": "OfficeIMO.Publisher.Pdf",
+  "changes": [
+    {
+      "old": "OfficeIMO.Publisher.Pdf.PublisherPdfConversionExtensions.ToPdfDocument(PublisherDocument, PdfCreateOptions, CancellationToken)",
+      "kind": "method",
+      "action": "rename",
+      "new": "PublisherDocument.ToPdf(PublisherPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument",
+      "reason": "Publisher PDF conversion uses the shared converter shape and its own options with FailOnLoss.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Publisher.Pdf.PublisherPdfConversionExtensions.ToPdfDocumentResult(PublisherDocument, PdfCreateOptions, CancellationToken)",
+      "kind": "method",
+      "action": "merge",
+      "new": "PublisherDocument.ToPdf(PublisherPdfExportOptions options, out OfficeConversionReport report, CancellationToken cancellationToken = default) : PdfDocument",
+      "reason": "Publisher PDF conversion uses the shared converter shape and its own options with FailOnLoss. The report carries the PublisherReadReport diagnostics with the PDF findings.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Publisher.Pdf.PublisherPdfConversionExtensions.ToPdfBytes(PublisherDocument, PdfCreateOptions, CancellationToken)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use document.ToPdf(options).ToBytes(), or SaveAsPdf(stream, options).",
+      "reason": "Bytes come from the PDF model; the converter has one in-memory form.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Publisher.Pdf.PublisherPdfConversionExtensions.SaveAsPdf(PublisherDocument, string | Stream, PdfCreateOptions, CancellationToken) : PdfSaveResult",
+      "kind": "method",
+      "action": "change",
+      "new": "PublisherDocument.SaveAsPdf(string path | Stream stream, PublisherPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+      "reason": "Publisher PDF conversion uses the shared converter shape and its own options with FailOnLoss.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "kind": "method",
+      "action": "add",
+      "new": "PublisherDocument.ToPdfAsync(...) : Task<OfficeConversionResult<PdfDocument>>; SaveAsPdfAsync(string path | Stream stream, ...) : Task<OfficeConversionReport>",
+      "reason": "Publisher PDF conversion uses the shared converter shape and its own options with FailOnLoss.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "PdfCreateOptions (Publisher PDF options parameter)",
+      "kind": "type",
+      "action": "change",
+      "new": "OfficeIMO.Publisher.Pdf.PublisherPdfExportOptions { PdfOptions, FailOnLoss }",
+      "reason": "Publisher PDF conversion uses the shared converter shape and its own options with FailOnLoss.",
+      "category": "options",
+      "applied": true
+    }
+  ]
+}

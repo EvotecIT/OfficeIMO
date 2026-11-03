@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests {
             var drawing = imported.Value.Pages[0].ToDrawing();
             Assert.DoesNotContain(drawing.Report.Diagnostics, diagnostic => diagnostic.Code == "VISIO_DRAWING_GEOMETRY_FALLBACK");
             Assert.Contains(drawing.Report.Diagnostics, diagnostic => diagnostic.Code == "VISIO_DRAWING_FILL_PATTERN");
-            var conversion = imported.Value.ToPdfDocumentResult(new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages });
+            var conversion = imported.Value.ToPdf(new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages }, out OfficeConversionReport conversionReport);
             byte[] pdf = conversion.ToBytes();
             Assert.True(pdf.Length > 100);
             Assert.Equal("%PDF-", Encoding.ASCII.GetString(pdf, 0, 5));

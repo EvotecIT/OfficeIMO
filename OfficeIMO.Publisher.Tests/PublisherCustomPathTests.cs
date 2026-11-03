@@ -125,8 +125,8 @@ public sealed class PublisherCustomPathTests {
         Assert.Contains(svg.Report.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_RENDERING_UNQUALIFIED"
             && item.Location == "Contents/object/293");
         Assert.Contains("linearGradient", svg.Value);
-        var pdf = publication.ToPdfDocumentResult();
-        Assert.Contains(publication.ReadReport, pdf.SourceConversionReports);
+        var pdf = publication.ToPdf(null, out OfficeConversionReport pdfReport);
+        Assert.All(publication.ReadReport.Diagnostics, source => Assert.Contains(pdfReport.Diagnostics, item => item.Code == source.Code));
         Assert.Equal(publication.Pages.Count, PdfDocument.Load(new System.IO.MemoryStream(pdf.ToBytes())).Pages.Count);
         Assert.Throws<OfficeConversionException>(() => svg.ThrowIfLoss());
     }

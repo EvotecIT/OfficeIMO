@@ -62,7 +62,7 @@ public static class HtmlTargetCapabilityContracts {
             "HtmlConversionDocument.ToPowerPointDocument",
             "HtmlToPowerPointResult",
             "PowerPointDocument.ToHtml",
-            "PowerPointToHtmlResult",
+            "HTML text + OfficeConversionReport",
             "Load or LoadAsync the shared document, then import it synchronously into the presentation model.",
             "Return HTML in memory or save it synchronously or asynchronously to a path or caller-owned stream.",
             new[] { "Semantic", "Auto", "Generic" },

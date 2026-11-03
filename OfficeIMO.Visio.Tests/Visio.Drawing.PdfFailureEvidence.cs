@@ -29,22 +29,18 @@ public sealed class VisioDrawingPdfFailureEvidenceTests {
         long position = stream.Position;
         try {
             File.WriteAllBytes(path, sentinel);
-            PdfSaveResult result = streamDestination
+            OfficeConversionException exception = streamDestination
                 ? asynchronous
-                    ? await document.SaveAsPdfResultAsync(stream, options)
-                    : document.SaveAsPdfResult(stream, options)
+                    ? await Assert.ThrowsAsync<OfficeConversionException>(() => document.SaveAsPdfAsync(stream, options))
+                    : Assert.Throws<OfficeConversionException>(() => document.SaveAsPdf(stream, options))
                 : asynchronous
-                    ? await document.SaveAsPdfResultAsync(path, options)
-                    : document.SaveAsPdfResult(path, options);
+                    ? await Assert.ThrowsAsync<OfficeConversionException>(() => document.SaveAsPdfAsync(path, options))
+                    : Assert.Throws<OfficeConversionException>(() => document.SaveAsPdf(path, options));
 
-            Assert.False(result.Succeeded);
-            Assert.True(result.HasLoss);
-            Assert.Equal(0, result.BytesWritten);
-            var exception = Assert.IsType<OfficeConversionException>(result.Exception);
-            var report = Assert.IsType<VisioDrawingConversionReport>(result.ConversionReports[0]);
-            Assert.Same(exception.Report, report);
+            var report = Assert.IsType<VisioDrawingConversionReport>(exception.Report);
             Assert.Equal("source.vdx", report.SourceName);
-            Assert.Contains(result.ConversionDiagnostics, diagnostic =>
+            Assert.True(report.HasLoss);
+            Assert.Contains(report.Diagnostics, diagnostic =>
                 diagnostic.Code == "VISIO_DRAWING_METADATA" &&
                 diagnostic.LossKind == OfficeConversionLossKind.Omission &&
                 diagnostic.Location!.StartsWith("page:1:Page:shape:"));

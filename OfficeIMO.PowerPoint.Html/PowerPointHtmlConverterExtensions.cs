@@ -1,3 +1,5 @@
+using System.Threading;
+using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using PptCore = OfficeIMO.PowerPoint;
@@ -8,36 +10,48 @@ namespace OfficeIMO.PowerPoint.Html;
 /// Extension methods enabling HTML conversions for OfficeIMO PowerPoint presentations.
 /// </summary>
 public static partial class PowerPointHtmlConverterExtensions {
-    /// <summary>
-    /// Converts a presentation to HTML.
-    /// </summary>
-    public static string ToHtml(this PptCore.PowerPointDocument presentation, PowerPointHtmlSaveOptions? options = null) {
-        return presentation.ToHtmlResult(options).Value;
+    /// <summary>Converts a presentation to HTML text.</summary>
+    public static string ToHtml(this PptCore.PowerPointDocument presentation, PowerPointHtmlSaveOptions? options = null,
+        CancellationToken cancellationToken = default) =>
+        presentation.ToHtml(options, out _, cancellationToken);
+
+    /// <summary>Converts a presentation to HTML text and returns completed-stage findings, including visual snapshot diagnostics.</summary>
+    public static string ToHtml(this PptCore.PowerPointDocument presentation, PowerPointHtmlSaveOptions? options,
+        out OfficeConversionReport report, CancellationToken cancellationToken = default) {
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        PowerPointToHtmlResult result = presentation.ConvertToHtmlWithEvidence(options, cancellationToken);
+        report = HtmlConversionEvidence.CreateReport("PowerPoint", "Html", result.Report.NativeDiagnostics, timer.Elapsed);
+        if (options?.FailOnLoss == true) report.ThrowIfLoss();
+        return result.RequireValue();
     }
 
-    /// <summary>Converts a presentation to HTML with operation-scoped visual diagnostics.</summary>
-    public static PowerPointToHtmlResult ToHtmlResult(this PptCore.PowerPointDocument presentation, PowerPointHtmlSaveOptions? options = null) {
+    /// <summary>Converts a presentation to HTML text with its completed-stage report.</summary>
+    /// <remarks>Conversion is CPU-bound and runs on the thread pool so the caller is not blocked.</remarks>
+    public static async Task<OfficeConversionResult<string>> ToHtmlAsync(this PptCore.PowerPointDocument presentation,
+        PowerPointHtmlSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        options = (options ?? new PowerPointHtmlSaveOptions()).Clone();
+        return await Task.Run(() => {
+            string value = presentation.ToHtml(options, out OfficeConversionReport report, cancellationToken);
+            return new OfficeConversionResult<string>(value, report);
+        }, cancellationToken).ConfigureAwait(false);
+    }
+
+    internal static PowerPointToHtmlResult ConvertToHtmlWithEvidence(this PptCore.PowerPointDocument presentation,
+        PowerPointHtmlSaveOptions? options, CancellationToken cancellationToken) {
         if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+        cancellationToken.ThrowIfCancellationRequested();
         PowerPointHtmlSaveOptions operation = (options ?? new PowerPointHtmlSaveOptions()).Clone();
         operation.Validate();
         var imageDiagnostics = new List<OfficeImageExportDiagnostic>();
         var conversionDiagnostics = new List<HtmlDiagnostic>();
         string html = operation.ExportProfile == PowerPointHtmlExportProfile.VisualReview
-            ? ConvertVisual(presentation, operation, imageDiagnostics, conversionDiagnostics)
-            : ConvertSemantic(presentation, operation, conversionDiagnostics);
+            ? ConvertVisual(presentation, operation, imageDiagnostics, conversionDiagnostics, cancellationToken)
+            : ConvertSemantic(presentation, operation, conversionDiagnostics, cancellationToken);
         return new PowerPointToHtmlResult(html, imageDiagnostics, conversionDiagnostics);
     }
 
-    /// <summary>
-    /// Saves a presentation as HTML.
-    /// </summary>
-    public static void SaveAsHtml(this PptCore.PowerPointDocument presentation, string path, PowerPointHtmlSaveOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("HTML path cannot be empty.", nameof(path));
-        HtmlTextIO.Write(path, presentation.ToHtml(options));
-    }
-
     private static string ConvertSemantic(PptCore.PowerPointDocument presentation, PowerPointHtmlSaveOptions options,
-        IList<HtmlDiagnostic> diagnostics) {
+        IList<HtmlDiagnostic> diagnostics, CancellationToken cancellationToken) {
         IReadOnlyList<string> extractionProof = GetExtractionProof(presentation, options);
         var body = new StringBuilder();
         body.Append("<main class=\"officeimo-document\"");
@@ -48,6 +62,7 @@ public static partial class PowerPointHtmlConverterExtensions {
 
         int visibleIndex = 0;
         for (int i = 0; i < presentation.Slides.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PptCore.PowerPointSlide slide = presentation.Slides[i];
             if (!options.IncludeHiddenSlides && slide.Hidden) {
                 continue;
@@ -62,7 +77,7 @@ public static partial class PowerPointHtmlConverterExtensions {
     }
 
     private static string ConvertVisual(PptCore.PowerPointDocument presentation, PowerPointHtmlSaveOptions options,
-        IList<OfficeImageExportDiagnostic> imageDiagnostics, IList<HtmlDiagnostic> diagnostics) {
+        IList<OfficeImageExportDiagnostic> imageDiagnostics, IList<HtmlDiagnostic> diagnostics, CancellationToken cancellationToken) {
         IReadOnlyList<string> extractionProof = GetExtractionProof(presentation, options);
         var body = new StringBuilder();
         body.Append("<main class=\"officeimo-document\"");
@@ -72,6 +87,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         if (options.IncludeMasterInventory) AppendMasterInventory(body, presentation, diagnostics);
 
         for (int i = 0; i < presentation.Slides.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PptCore.PowerPointSlide slide = presentation.Slides[i];
             if (!options.IncludeHiddenSlides && slide.Hidden) {
                 continue;

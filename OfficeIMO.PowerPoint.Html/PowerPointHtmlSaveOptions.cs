@@ -92,8 +92,7 @@ public sealed class PowerPointHtmlSaveOptions {
 
     /// <summary>
     /// When true, visual-review output lists each slide's render diagnostics as visible text below the slide.
-    /// Set to false to leave them out of the HTML; they are still reported through
-    /// <see cref="PowerPointToHtmlResult.ImageDiagnostics"/>.
+    /// Set to false to leave them out of the HTML; they are still reported in the conversion report.
     /// </summary>
     public bool IncludeRenderDiagnostics { get; set; } = true;
 
@@ -130,6 +129,9 @@ public sealed class PowerPointHtmlSaveOptions {
     /// </summary>
     public OfficeFontFaceCollection? Fonts { get; set; }
 
+    /// <summary>Throws <see cref="OfficeConversionException"/> when the conversion reports loss.</summary>
+    public bool FailOnLoss { get; set; }
+
     /// <summary>Creates a reusable copy of these conversion settings.</summary>
     public PowerPointHtmlSaveOptions Clone() => new PowerPointHtmlSaveOptions {
         ExportProfile = ExportProfile,
@@ -146,7 +148,8 @@ public sealed class PowerPointHtmlSaveOptions {
         IncludeSmartArt = IncludeSmartArt,
         IncludeMedia = IncludeMedia,
         IncludeAdvancedEffects = IncludeAdvancedEffects,
-        Fonts = Fonts?.Clone()
+        Fonts = Fonts?.Clone(),
+        FailOnLoss = FailOnLoss
     };
 
     internal void Validate() {

@@ -65,9 +65,13 @@ internal sealed record PdfExtendedFormatConversionScenario(
             PdfExtendedFormatConversionKind.Odt => OdtDocument.Load(stream).ToPdfBytes(),
             PdfExtendedFormatConversionKind.Ods => OdsDocument.Load(stream).ToPdfBytes(),
             PdfExtendedFormatConversionKind.Odp => OdpPresentation.Load(stream).ToPdfBytes(),
-            PdfExtendedFormatConversionKind.Visio => VisioDocument.Load(stream).ToPdfBytes(),
+            PdfExtendedFormatConversionKind.Visio => Serialize(VisioDocument.Load(stream).ToPdf()),
             _ => throw new ArgumentOutOfRangeException(nameof(kind))
         };
+    }
+
+    private static byte[] Serialize(OfficeIMO.Pdf.PdfDocument pdf) {
+        using (pdf) return pdf.ToBytes();
     }
 
     private static byte[] CreateAsciiDoc() {

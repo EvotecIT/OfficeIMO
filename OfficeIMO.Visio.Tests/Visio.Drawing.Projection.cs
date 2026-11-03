@@ -27,14 +27,13 @@ public sealed class VisioDrawingProjectionTests {
             Assert.Equal(OfficeLength.Inches(0.001).ToPoints(), projected.Value[1].Width, 9);
             Assert.Equal(OfficeLength.Inches(0.002).ToPoints(), projected.Value[1].Height, 9);
             Assert.Empty(projected.Value[1].Elements);
-            PdfDocumentConversionResult conversion = candidate.ToPdfDocumentResult(DiagramOptions());
+            PdfDocument conversion = candidate.ToPdf(DiagramOptions(), out OfficeConversionReport conversionReport);
             PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(conversion.ToBytes()));
             Assert.Equal(3, pdf.Pages.Count);
             Assert.Equal((216D, 144D), pdf.Pages[0].GetPageSize());
             Assert.Equal((144D, 216D), pdf.Pages[2].GetPageSize());
             Assert.Contains("Searchable label", NormalizeText(pdf.ExtractText()));
-            Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "pdf-projection-visio-semantic-fallback");
-            Assert.IsType<VisioDrawingConversionReport>(Assert.Single(conversion.SourceConversionReports));
+            Assert.DoesNotContain(conversionReport.Diagnostics, warning => warning.Code == "pdf-projection-visio-semantic-fallback");
             Assert.Equal(before, candidate.ToLegacyXmlResult().Value);
         }
     }
@@ -52,9 +51,9 @@ public sealed class VisioDrawingProjectionTests {
         VisioShape printOnly = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Print only"); printOnly.LayerNames.Add(print.Name);
         VisioConnector connector = page.AddConnector("route", child, printOnly, ConnectorKind.Straight);
         connector.Label = "Independent route";
-        string PrintText(VisioLayerRenderMode mode) => PdfDocument.Load(new System.IO.MemoryStream(document.ToPdfBytes(new VisioToPdfOptions {
+        string PrintText(VisioLayerRenderMode mode) => PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf(new VisioToPdfOptions {
             Mode = VisioPdfProjectionMode.DiagramPages, DrawingOptions = new VisioDrawingOptions { LayerMode = mode }
-        }))).ExtractText();
+        }).ToBytes())).ExtractText();
         Assert.Contains("Visible child", PrintText(VisioLayerRenderMode.Visible));
         Assert.DoesNotContain("Print only", PrintText(VisioLayerRenderMode.Visible));
         Assert.Contains("Independent route", PrintText(VisioLayerRenderMode.Visible));
@@ -80,27 +79,29 @@ public sealed class VisioDrawingProjectionTests {
         VisioDocument stencil = VisioDocument.Create(VisioPackageType.Stencil);
         stencil.RegisterMaster("Box", new VisioShape("master", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Reusable"));
         Assert.Throws<InvalidOperationException>(() => stencil.ToDrawings());
-        Assert.Throws<InvalidOperationException>(() => stencil.ToPdfBytes(DiagramOptions()));
+        Assert.Throws<InvalidOperationException>(() => stencil.ToPdf(DiagramOptions()).ToBytes());
         VisioDocument drawing = VisioDocument.Create(); drawing.AddPage("Page");
-        Assert.Throws<ArgumentException>(() => drawing.ToPdfDocumentResult(new VisioToPdfOptions { DrawingOptions = new VisioDrawingOptions() }));
-        Assert.Throws<ArgumentException>(() => drawing.ToPdfDocumentResult(new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages, ProjectionOptions = new PdfProjectionOptions() }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => drawing.ToPdfDocumentResult(new VisioToPdfOptions { Mode = (VisioPdfProjectionMode)100 }));
+        Assert.Throws<ArgumentException>(() => drawing.ToPdf(new VisioToPdfOptions { DrawingOptions = new VisioDrawingOptions() }, out _));
+        Assert.Throws<ArgumentException>(() => drawing.ToPdf(new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages, ProjectionOptions = new PdfProjectionOptions() }, out _));
+        Assert.Throws<ArgumentOutOfRangeException>(() => drawing.ToPdf(new VisioToPdfOptions { Mode = (VisioPdfProjectionMode)100 }, out _));
     }
 
     [Fact]
     public void LocatedSourceLossSurvivesPdfResultsAndStrictSavingLeavesDestinationsUntouched() {
         VisioDocument document = VisioDocument.Create();
         document.AddPage("Page").AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), "Label").AddHyperlink("https://example.com");
-        var result = document.ToPdfDocumentResult(new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages, SourceName = "source.vdx" });
-        VisioDrawingConversionReport report = Assert.IsType<VisioDrawingConversionReport>(Assert.Single(result.SourceConversionReports));
-        Assert.Equal("source.vdx", report.SourceName);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "VISIO_DRAWING_METADATA" && diagnostic.LossKind == OfficeConversionLossKind.Omission && diagnostic.Location!.StartsWith("page:1:Page:shape:"));
+        var options = new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages, SourceName = "source.vdx" };
+        using (document.ToPdf(options, out OfficeConversionReport resultReport)) {
+            Assert.Contains(resultReport.Diagnostics, diagnostic => diagnostic.Code == "VISIO_DRAWING_METADATA" && diagnostic.LossKind == OfficeConversionLossKind.Omission && diagnostic.Location!.StartsWith("page:1:Page:shape:"));
+        }
         byte[] sentinel = { 1, 2, 3 }; using var destination = new MemoryStream(); destination.Write(sentinel, 0, sentinel.Length);
-        Assert.Throws<OfficeConversionException>(() => result.Save(destination, failOnLoss: true));
+        options.FailOnLoss = true;
+        var failure = Assert.Throws<OfficeConversionException>(() => document.SaveAsPdf(destination, options));
+        Assert.Contains(failure.Report.Diagnostics, diagnostic => diagnostic.Code == "VISIO_DRAWING_METADATA");
         Assert.Equal(sentinel, destination.ToArray());
-        Assert.Throws<OfficeConversionException>(() => document.ToPdfDocumentResult(new VisioToPdfOptions {
+        Assert.Throws<OfficeConversionException>(() => document.ToPdf(new VisioToPdfOptions {
             Mode = VisioPdfProjectionMode.DiagramPages, DrawingOptions = new VisioDrawingOptions { FailOnLoss = true }
-        }));
+        }, out _));
     }
 
     [Theory]
@@ -114,11 +115,11 @@ public sealed class VisioDrawingProjectionTests {
             options.DrawingOptions = new VisioDrawingOptions();
             byte[] font = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "SourceSansPro-Regular.otf"));
             foreach (string family in new[] { "Yandex Sans Text", "Monaco", "Arial" }) options.DrawingOptions.Fonts.Add(family, font);
-            PdfDocumentConversionResult conversion = candidate.ToPdfDocumentResult(options);
+            PdfDocument conversion = candidate.ToPdf(options, out OfficeConversionReport conversionReport);
             PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(conversion.ToBytes()));
             Assert.Equal(candidate.Pages.Count, pdf.Pages.Count);
             Assert.Contains(text, NormalizeText(pdf.ExtractText()), StringComparison.OrdinalIgnoreCase);
-            Assert.Contains(conversion.Diagnostics, diagnostic => diagnostic.Code == "VISIO_DRAWING_TEXT_LAYOUT");
+            Assert.Contains(conversionReport.Diagnostics, diagnostic => diagnostic.Code == "VISIO_DRAWING_TEXT_LAYOUT");
             Assert.Equal(before, candidate.ToLegacyXmlResult().Value);
         }
     }
@@ -127,11 +128,11 @@ public sealed class VisioDrawingProjectionTests {
     public void AngularBitmapStaysAnImageInDiagramPdfAndRetainsDecodeDiagnostics() {
         var document = VisioDocument.LoadLegacyXml(Path.Combine(AppContext.BaseDirectory, "Fixtures", "LegacyXml", "angularjs-simple-scope.vdx")).Value;
         byte[] before = document.ToLegacyXmlResult().Value;
-        var conversion = document.ToPdfDocumentResult(DiagramOptions());
+        var conversion = document.ToPdf(DiagramOptions(), out OfficeConversionReport conversionReport);
         PdfExtractedImage image = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(conversion.ToBytes())).Pages.SelectMany(page => page.GetImages()));
         Assert.True(OfficeRasterImageDecoder.TryDecode(image.Bytes, out OfficeRasterImage? raster));
         Assert.Equal((113, 155), (raster!.Width, raster.Height));
-        Assert.Contains(conversion.Diagnostics, diagnostic => diagnostic.Code == "VISIO_BITMAP_SIZE_NORMALIZED" && diagnostic.LossKind == OfficeConversionLossKind.None);
+        Assert.Contains(conversionReport.Diagnostics, diagnostic => diagnostic.Code == "VISIO_BITMAP_SIZE_NORMALIZED" && diagnostic.LossKind == OfficeConversionLossKind.None);
         Assert.Throws<InvalidDataException>(() => document.ToDrawings(new VisioDrawingOptions { MaximumTotalImageBytes = 1 }));
         Assert.Equal(before, document.ToLegacyXmlResult().Value);
         VisioDocument repeated = VisioDocument.LoadLegacyXml(new MemoryStream(before)).Value;
@@ -160,9 +161,9 @@ public sealed class VisioDrawingProjectionTests {
         };
         foreach (VisioDocument document in Reopened(source)) {
             byte[] before = document.ToLegacyXmlResult().Value;
-            var result = document.ToPdfDocumentResult(DiagramOptions());
+            var result = document.ToPdf(DiagramOptions(), out OfficeConversionReport resultReport);
             Assert.Contains("Fit me fully", NormalizeText(PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).ExtractText()));
-            Assert.Contains(result.Diagnostics, item => item.Code == "VISIO_DRAWING_TEXT_CLIPPED" &&
+            Assert.Contains(resultReport.Diagnostics, item => item.Code == "VISIO_DRAWING_TEXT_CLIPPED" &&
                 item.LossKind == OfficeConversionLossKind.Omission && item.Location!.StartsWith("page:1:Fitting:shape:"));
             Assert.Equal(before, document.ToLegacyXmlResult().Value);
         }

@@ -33,7 +33,7 @@ public sealed class VisioBackgroundCompositionTests {
             Assert.Contains("data-officeimo-visio-background=\"Overlay\"", svg);
             Assert.True(svg.IndexOf("Base", StringComparison.Ordinal) < svg.IndexOf("Overlay", StringComparison.Ordinal));
             Assert.Equal(3, document.ToDrawings().Value.Count);
-            var pdf = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdfBytes(new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages })));
+            var pdf = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf(new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages }).ToBytes()));
             Assert.Equal(3, pdf.Pages.Count);
             Assert.Equal((288D, 216D), pdf.Pages[2].GetPageSize());
             Assert.Contains("Base label", pdf.Pages[2].ExtractText());
@@ -57,9 +57,9 @@ public sealed class VisioBackgroundCompositionTests {
         foreground.AddLayer("Print").Print = false;
         string svg = foreground.ToSvg(new VisioSvgSaveOptions { LayerMode = mode });
         Assert.Contains(included, svg); Assert.DoesNotContain(excluded, svg);
-        var result = document.ToPdfDocumentResult(new VisioToPdfOptions {
+        var result = document.ToPdf(new VisioToPdfOptions {
             Mode = VisioPdfProjectionMode.DiagramPages, DrawingOptions = new VisioDrawingOptions { LayerMode = mode }
-        });
+        }, out OfficeConversionReport resultReport);
         string text = PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).Pages[1].ExtractText();
         Assert.Contains(included, text); Assert.DoesNotContain(excluded, text);
     }
@@ -87,7 +87,7 @@ public sealed class VisioBackgroundCompositionTests {
         string fixture = Path.Combine(RepositoryTestPaths.Find(), "Assets", "VisioTemplates", "DrawingWithLotsOfShapresAndArrows.vsdx");
         VisioDocument document = VisioDocument.Load(fixture);
         byte[] before = document.ToLegacyXmlResult().Value;
-        var pdf = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdfBytes(new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages })));
+        var pdf = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf(new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages }).ToBytes()));
         for (int index = 0; index < document.Pages.Count; index++) {
             VisioPage page = document.Pages[index];
             if (page.BackgroundPage == null) continue;

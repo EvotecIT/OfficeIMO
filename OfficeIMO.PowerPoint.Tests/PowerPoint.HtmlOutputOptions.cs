@@ -55,16 +55,16 @@ public sealed class PowerPointHtmlOutputOptionsTests {
         using var presentation = CreateWithOffSlideShape();
         PowerPointHtmlSaveOptions options = PowerPointHtmlSaveOptions.CreateVisualReviewProfile();
 
-        PowerPointToHtmlResult visible = presentation.ToHtmlResult(options);
+        string visible = presentation.ToHtml(options, out OfficeConversionReport visibleReport);
         options.IncludeRenderDiagnostics = false;
-        PowerPointToHtmlResult omitted = presentation.ToHtmlResult(options);
+        string omitted = presentation.ToHtml(options, out OfficeConversionReport omittedReport);
 
-        Assert.Contains("<ul class=\"officeimo-snapshot-diagnostics\">", visible.Value, StringComparison.Ordinal);
-        Assert.Contains("data-officeimo-diagnostic-code=\"invalid-shape-bounds\"", visible.Value, StringComparison.Ordinal);
-        Assert.DoesNotContain("officeimo-snapshot-diagnostics\"", omitted.Value, StringComparison.Ordinal);
-        Assert.DoesNotContain("invalid-shape-bounds", omitted.Value, StringComparison.Ordinal);
-        Assert.Contains(omitted.ImageDiagnostics, _ => _.Code == "invalid-shape-bounds");
-        Assert.Equal(visible.ImageDiagnostics.Select(_ => _.Code), omitted.ImageDiagnostics.Select(_ => _.Code));
+        Assert.Contains("<ul class=\"officeimo-snapshot-diagnostics\">", visible, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-diagnostic-code=\"invalid-shape-bounds\"", visible, StringComparison.Ordinal);
+        Assert.DoesNotContain("officeimo-snapshot-diagnostics\"", omitted, StringComparison.Ordinal);
+        Assert.DoesNotContain("invalid-shape-bounds", omitted, StringComparison.Ordinal);
+        Assert.Contains(omittedReport.Diagnostics, _ => _.Code == "invalid-shape-bounds");
+        Assert.Equal(visibleReport.Diagnostics.Select(_ => _.Code), omittedReport.Diagnostics.Select(_ => _.Code));
     }
 
     [Fact]

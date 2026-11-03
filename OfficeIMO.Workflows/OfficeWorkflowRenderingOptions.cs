@@ -81,12 +81,7 @@ internal sealed partial class OfficeWorkflowRenderingOptions {
         copy.Markdown = Markdown?.Clone();
         copy.Rtf = Rtf?.Clone();
         copy.Draw = Draw?.Clone();
-        if (Visio != null) copy.Visio = new VisioToPdfOptions {
-            Mode = Visio.Mode, SourceName = Visio.SourceName,
-            DrawingOptions = Visio.DrawingOptions?.Clone(), PdfOptions = Visio.PdfOptions?.Clone(),
-            // Semantic settings are rejected by workflow validation; preserve them for that check.
-            VisioOptions = Visio.VisioOptions, ProjectionOptions = Visio.ProjectionOptions
-        };
+        copy.Visio = Visio?.Clone();
         copy.Xps = Xps?.Clone();
         copy.Chm = Chm?.Clone();
         copy.DjVu = DjVu?.Clone();

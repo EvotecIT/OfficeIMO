@@ -237,11 +237,15 @@ public class PdfAdapterSecurityComplianceTests {
             PdfOptions = pdfOptions,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
         }),
-        "visio" => CreateVisio(route).ToPdfBytes(new VisioToPdfOptions {
+        "visio" => Serialize(CreateVisio(route).ToPdf(new VisioToPdfOptions {
             ProjectionOptions = new PdfCore.PdfProjectionOptions { PdfOptions = pdfOptions }
-        }),
+        })),
         _ => throw new ArgumentOutOfRangeException(nameof(route))
     };
+
+    private static byte[] Serialize(PdfCore.PdfDocument pdf) {
+        using (pdf) return pdf.ToBytes();
+    }
 
     private static HtmlToPdfOptions CreateHtmlOptions(PdfCore.PdfCreateOptions pdfOptions) => new HtmlToPdfOptions {
         PdfOptions = pdfOptions,

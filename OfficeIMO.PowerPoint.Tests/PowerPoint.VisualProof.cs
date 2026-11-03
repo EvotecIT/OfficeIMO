@@ -23,8 +23,8 @@ namespace OfficeIMO.Tests {
             PowerPointSlide firstSlide = firstPresentation.AddSlide();
             firstSlide.AddRectangle(OfficeIMO.OfficeLength.Points(500), OfficeIMO.OfficeLength.Points(500), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), "Outside slide bounds");
 
-            PowerPointToHtmlResult first = firstPresentation.ToHtmlResult(options);
-            Assert.Contains(first.ImageDiagnostics, diagnostic => diagnostic.Code == "invalid-shape-bounds"
+            string first = firstPresentation.ToHtml(options, out OfficeConversionReport firstReport);
+            Assert.Contains(firstReport.Diagnostics, diagnostic => diagnostic.Code == "invalid-shape-bounds"
                 && diagnostic.LossKind == OfficeConversionLossKind.Omission);
 
             using var secondStream = new MemoryStream();
@@ -33,10 +33,10 @@ namespace OfficeIMO.Tests {
                 .AddTextBox("Clean snapshot",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(40));
             cleanText.FontName = "Helvetica";
             cleanText.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-            PowerPointToHtmlResult second = secondPresentation.ToHtmlResult(options);
+            string second = secondPresentation.ToHtml(options, out OfficeConversionReport secondReport);
 
-            Assert.DoesNotContain(second.ImageDiagnostics, diagnostic => diagnostic.Code == "invalid-shape-bounds");
-            Assert.Contains(first.ImageDiagnostics, diagnostic => diagnostic.Code == "invalid-shape-bounds"
+            Assert.DoesNotContain(secondReport.Diagnostics, diagnostic => diagnostic.Code == "invalid-shape-bounds");
+            Assert.Contains(firstReport.Diagnostics, diagnostic => diagnostic.Code == "invalid-shape-bounds"
                 && diagnostic.LossKind == OfficeConversionLossKind.Omission);
         }
 
@@ -70,13 +70,13 @@ namespace OfficeIMO.Tests {
                     var htmlOptions = new PowerPointHtmlSaveOptions {
                         Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
                     };
-                    PowerPointToHtmlResult htmlResult = presentation.ToHtmlResult(htmlOptions);
-                    string html = htmlResult.Value;
+                    string htmlResult = presentation.ToHtml(htmlOptions, out OfficeConversionReport htmlResultReport);
+                    string html = htmlResult;
                     Assert.Contains("officeimo-shared-slide-snapshot", html, StringComparison.Ordinal);
                     Assert.Contains("data-officeimo-visual-owner=\"OfficeIMO.Core\"", html, StringComparison.Ordinal);
                     Assert.Contains("<svg", html, StringComparison.OrdinalIgnoreCase);
                     report.RecordArtifact("proof.html", "text/html", Encoding.UTF8.GetBytes(html),
-                        htmlResult.ImageDiagnostics.Count);
+                        htmlResultReport.Diagnostics.Count);
 
                     var pdfOptions = new PowerPointPdfExportOptions().UseProfile(PdfExportProfile.Faithful);
                     PdfDocumentConversionResult pdfResult = presentation.ConvertToPdfWithEvidence(pdfOptions);
