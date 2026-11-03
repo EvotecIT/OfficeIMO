@@ -12,13 +12,14 @@ internal static partial class PdfRedactionVerification {
     public static PdfRedactionVerificationReport Verify(
         byte[] redactedPdf,
         PdfRedactionVerificationOptions options,
-        PdfLoadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
         Guard.NotNull(redactedPdf, nameof(redactedPdf));
         Guard.NotNull(options, nameof(options));
         options.CancellationToken.ThrowIfCancellationRequested();
 
         PdfLoadOptions effectiveReadOptions = PdfLoadOptions.WithArtifactText(readOptions);
-        string extractedText = PdfReadDocument.Open(redactedPdf, effectiveReadOptions, options.CancellationToken).ExtractText();
+        string extractedText = PdfReadDocument.Open(redactedPdf, effectiveReadOptions, options.CancellationToken).ExtractText(cancellationToken: cancellationToken);
         options.CancellationToken.ThrowIfCancellationRequested();
         string rawPdf = options.CheckRawPdfBytes ? PdfEncoding.Latin1GetString(redactedPdf) : string.Empty;
         var issues = new List<PdfRedactionVerificationIssue>();
@@ -109,13 +110,15 @@ internal static partial class PdfRedactionVerification {
         byte[] redactedPdf,
         PdfRedactionPlan reviewedPlan,
         PdfRedactionVerificationOptions options,
-        PdfLoadOptions? readOptions = null) =>
-        VerifyAppliedPlan(
+        PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
+        return VerifyAppliedPlan(
             redactedPdf,
             reviewedPlan,
             options,
             readOptions,
             Array.Empty<PdfRedactionMatch>());
+    }
 
     internal static PdfRedactionVerificationReport VerifyAppliedPlan(
         byte[] redactedPdf,
@@ -330,8 +333,9 @@ internal static partial class PdfRedactionVerification {
     public static PdfRedactionVerificationReport AssertVerified(
         byte[] redactedPdf,
         PdfRedactionVerificationOptions options,
-        PdfLoadOptions? readOptions = null) {
-        PdfRedactionVerificationReport report = Verify(redactedPdf, options, readOptions);
+        PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
+        PdfRedactionVerificationReport report = Verify(redactedPdf, options, readOptions, cancellationToken: cancellationToken);
         report.ThrowIfFailed();
         return report;
     }
@@ -341,8 +345,9 @@ internal static partial class PdfRedactionVerification {
         byte[] redactedPdf,
         PdfRedactionPlan reviewedPlan,
         PdfRedactionVerificationOptions options,
-        PdfLoadOptions? readOptions = null) {
-        PdfRedactionVerificationReport report = VerifyAppliedPlan(redactedPdf, reviewedPlan, options, readOptions);
+        PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
+        PdfRedactionVerificationReport report = VerifyAppliedPlan(redactedPdf, reviewedPlan, options, readOptions, cancellationToken: cancellationToken);
         report.ThrowIfFailed();
         return report;
     }

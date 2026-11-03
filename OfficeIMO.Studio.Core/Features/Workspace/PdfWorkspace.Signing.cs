@@ -8,8 +8,7 @@ internal sealed partial class PdfWorkspace {
         ThrowIfDisposed();
         var document = CreateDocumentSnapshot();
         return RunCancellableCpuWorkAsync<byte[]?>(() => {
-            options.CancellationToken = token;
-            byte[] prepared = document.Security.PrepareExternalSignature(options).PreparedPdf;
+            byte[] prepared = document.Security.PrepareExternalSignature(options, cancellationToken: token).PreparedPdf;
             token.ThrowIfCancellationRequested();
             if (options.VisibleAppearance is not { } appearance) return null;
             var candidate = PdfDocument.Load(prepared, _readOptions);

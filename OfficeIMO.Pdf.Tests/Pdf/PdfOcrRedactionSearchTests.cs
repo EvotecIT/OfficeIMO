@@ -47,9 +47,9 @@ public sealed class PdfOcrRedactionSearchTests {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        var search = new PdfRedactionSearchOptions { CancellationToken = cancellation.Token }.AddLiteral("secret");
+        var search = new PdfRedactionSearchOptions().AddLiteral("secret");
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => PdfDocument.Load(source)
-            .SearchRedactionCandidatesWithOcrAsync(engine, search));
+            .SearchRedactionCandidatesWithOcrAsync(engine, search, cancellationToken: cancellation.Token));
 
         Assert.False(invoked);
     }

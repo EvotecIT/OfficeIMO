@@ -115,7 +115,6 @@ public sealed class PdfOptimizerExternalProofTests {
 
     private static Dictionary<string, object?> Snapshot(PdfOptimizationOptions options) =>
         typeof(PdfOptimizationOptions).GetProperties()
-            .Where(property => property.Name != nameof(PdfOptimizationOptions.CancellationToken))
             .ToDictionary(property => JsonNamingPolicy.CamelCase.ConvertName(property.Name), property => property.GetValue(options));
 
     private static byte[] CreateSource(string source, out byte[]? xml) {

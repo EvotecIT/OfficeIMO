@@ -16,9 +16,13 @@ public enum PdfProductionSplitReason {
 }
 
 /// <summary>Controls page-count, content-boundary, and target-size PDF splitting.</summary>
-public sealed class PdfProductionSplitOptions {
-    /// <summary>Observes cancellation during boundary reading, artifact probes, and verification.</summary>
-    public CancellationToken CancellationToken { get; set; }
+public sealed class PdfProductionSplitOptions : IPdfOperationCancellation {
+    // Operation cancellation; public methods take it as a parameter and bind it to a per-call copy.
+    System.Threading.CancellationToken IPdfOperationCancellation.CancellationToken { get => CancellationToken; set => CancellationToken = value; }
+
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
+
+    object IPdfOperationCancellation.CloneForOperation() => MemberwiseClone();
 
     /// <summary>Optional maximum number of source pages in one part.</summary>
     public int? MaximumPagesPerPart { get; set; }
@@ -106,7 +110,8 @@ public sealed class PdfProductionSplitResult : IOfficeResult<IReadOnlyList<PdfPr
 /// <summary>Creates bounded, report-driven PDF production splits.</summary>
 internal static class PdfProductionSplitter {
     /// <summary>Splits a PDF using page-count, text-boundary, and target-size policies.</summary>
-    public static PdfProductionSplitResult Split(byte[] pdf, PdfProductionSplitOptions options, PdfLoadOptions? readOptions = null) {
+    public static PdfProductionSplitResult Split(byte[] pdf, PdfProductionSplitOptions options, PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(options, nameof(options));
         options.CancellationToken.ThrowIfCancellationRequested();

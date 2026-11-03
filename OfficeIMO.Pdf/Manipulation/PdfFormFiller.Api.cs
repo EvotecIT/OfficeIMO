@@ -13,8 +13,9 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated by fully qualified field name.
     /// </summary>
-    public static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
-        return FillFields(pdf, ToFormFieldValues(fieldValues, GetCancellationToken(options)), options, readOptions: null);
+    public static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return FillFields(pdf, ToFormFieldValues(fieldValues, GetCancellationToken(options, cancellationToken: cancellationToken)), options, readOptions: null, cancellationToken: cancellationToken);
     }
 
     internal static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) =>
@@ -30,8 +31,9 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated by fully qualified field name.
     /// </summary>
-    public static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
-        return FillFields(pdf, fieldValues, options, readOptions: null);
+    public static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return FillFields(pdf, fieldValues, options, readOptions: null, cancellationToken: cancellationToken);
     }
 
     internal static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options,
@@ -123,7 +125,8 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated from the current position of a readable stream.
     /// </summary>
-    public static byte[] FillFields(Stream stream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
+    public static byte[] FillFields(Stream stream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         return FillFields(stream, fieldValues, options, readOptions: null);
     }
 
@@ -137,7 +140,8 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated from the current position of a readable stream.
     /// </summary>
-    public static byte[] FillFields(Stream stream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
+    public static byte[] FillFields(Stream stream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         return FillFields(stream, fieldValues, options, readOptions: null);
     }
 
@@ -151,8 +155,9 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Writes a new PDF with simple AcroForm field values updated.
     /// </summary>
-    public static void FillFields(byte[] pdf, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
-        WriteOutput(outputStream, FillFields(pdf, fieldValues, options), options);
+    public static void FillFields(byte[] pdf, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        WriteOutput(outputStream, FillFields(pdf, fieldValues, options, cancellationToken: cancellationToken), options);
     }
 
     /// <summary>
@@ -165,8 +170,9 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Writes a new PDF with simple AcroForm field values updated.
     /// </summary>
-    public static void FillFields(byte[] pdf, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
-        WriteOutput(outputStream, FillFields(pdf, fieldValues, options), options);
+    public static void FillFields(byte[] pdf, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        WriteOutput(outputStream, FillFields(pdf, fieldValues, options, cancellationToken: cancellationToken), options);
     }
 
     /// <summary>
@@ -179,8 +185,9 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Writes a new PDF with simple AcroForm field values updated from the current position of a readable stream.
     /// </summary>
-    public static void FillFields(Stream inputStream, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
-        WriteOutput(outputStream, FillFields(inputStream, fieldValues, options), options);
+    public static void FillFields(Stream inputStream, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        WriteOutput(outputStream, FillFields(inputStream, fieldValues, options, cancellationToken: cancellationToken), options);
     }
 
     /// <summary>
@@ -193,8 +200,9 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Writes a new PDF with simple AcroForm field values updated from the current position of a readable stream.
     /// </summary>
-    public static void FillFields(Stream inputStream, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
-        WriteOutput(outputStream, FillFields(inputStream, fieldValues, options), options);
+    public static void FillFields(Stream inputStream, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        WriteOutput(outputStream, FillFields(inputStream, fieldValues, options, cancellationToken: cancellationToken), options);
     }
 
     /// <summary>
@@ -207,13 +215,14 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Writes a new PDF file with simple AcroForm field values updated.
     /// </summary>
-    public static void FillFields(string inputPath, string outputPath, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
+    public static void FillFields(string inputPath, string outputPath, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        byte[] bytes = FillFields(ReadPath(inputPath, options), fieldValues, options);
+        byte[] bytes = FillFields(ReadPath(inputPath, options), fieldValues, options, cancellationToken: cancellationToken);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        OfficeFileCommit.Write(fullOutputPath, output => WriteOutput(output, bytes, options), GetCancellationToken(options));
+        OfficeFileCommit.Write(fullOutputPath, output => WriteOutput(output, bytes, options), GetCancellationToken(options, cancellationToken: cancellationToken));
     }
 
     /// <summary>
@@ -226,13 +235,14 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Writes a new PDF file with simple AcroForm field values updated.
     /// </summary>
-    public static void FillFields(string inputPath, string outputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
+    public static void FillFields(string inputPath, string outputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        byte[] bytes = FillFields(ReadPath(inputPath, options), fieldValues, options);
+        byte[] bytes = FillFields(ReadPath(inputPath, options), fieldValues, options, cancellationToken: cancellationToken);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        OfficeFileCommit.Write(fullOutputPath, output => WriteOutput(output, bytes, options), GetCancellationToken(options));
+        OfficeFileCommit.Write(fullOutputPath, output => WriteOutput(output, bytes, options), GetCancellationToken(options, cancellationToken: cancellationToken));
     }
 
     /// <summary>
@@ -245,11 +255,12 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Reads a PDF file and writes a new PDF with simple AcroForm field values updated.
     /// </summary>
-    public static void FillFields(string inputPath, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
+    public static void FillFields(string inputPath, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        byte[] bytes = FillFields(ReadPath(inputPath, options), fieldValues, options);
+        byte[] bytes = FillFields(ReadPath(inputPath, options), fieldValues, options, cancellationToken: cancellationToken);
         WriteOutput(outputStream, bytes, options);
     }
 
@@ -263,11 +274,12 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Reads a PDF file and writes a new PDF with simple AcroForm field values updated.
     /// </summary>
-    public static void FillFields(string inputPath, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
+    public static void FillFields(string inputPath, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        byte[] bytes = FillFields(ReadPath(inputPath, options), fieldValues, options);
+        byte[] bytes = FillFields(ReadPath(inputPath, options), fieldValues, options, cancellationToken: cancellationToken);
         WriteOutput(outputStream, bytes, options);
     }
 
@@ -281,7 +293,8 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Reads a PDF file and returns new PDF bytes with simple AcroForm field values updated.
     /// </summary>
-    public static byte[] FillFieldsToBytes(string inputPath, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
+    public static byte[] FillFieldsToBytes(string inputPath, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         return FillFieldsToBytes(inputPath, fieldValues, options, readOptions: null);
     }
@@ -296,9 +309,10 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Reads a PDF file and returns new PDF bytes with simple AcroForm field values updated.
     /// </summary>
-    public static byte[] FillFieldsToBytes(string inputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
+    public static byte[] FillFieldsToBytes(string inputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return FillFields(ReadPath(inputPath, options), fieldValues, options);
+        return FillFields(ReadPath(inputPath, options), fieldValues, options, cancellationToken: cancellationToken);
     }
 
     /// <summary>
@@ -311,7 +325,8 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Returns a new PDF with simple text, choice, and button AcroForm widgets flattened from the current position of a readable stream.
     /// </summary>
-    public static byte[] FlattenFields(Stream stream, PdfFormFillerOptions? options) {
+    public static byte[] FlattenFields(Stream stream, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         return FlattenFields(stream, options, readOptions: null);
     }
 
@@ -325,8 +340,9 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Writes a new PDF with simple text, choice, and button AcroForm widgets flattened.
     /// </summary>
-    public static void FlattenFields(byte[] pdf, Stream outputStream, PdfFormFillerOptions? options) {
-        WriteOutput(outputStream, FlattenFields(pdf, options), options);
+    public static void FlattenFields(byte[] pdf, Stream outputStream, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        WriteOutput(outputStream, FlattenFields(pdf, options, cancellationToken: cancellationToken), options);
     }
 
     /// <summary>
@@ -339,8 +355,9 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Writes a new PDF with simple text, choice, and button AcroForm widgets flattened from the current position of a readable stream.
     /// </summary>
-    public static void FlattenFields(Stream inputStream, Stream outputStream, PdfFormFillerOptions? options) {
-        WriteOutput(outputStream, FlattenFields(inputStream, options), options);
+    public static void FlattenFields(Stream inputStream, Stream outputStream, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        WriteOutput(outputStream, FlattenFields(inputStream, options, cancellationToken: cancellationToken), options);
     }
 
     /// <summary>
@@ -353,13 +370,14 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Writes a new PDF file with simple text, choice, and button AcroForm widgets flattened.
     /// </summary>
-    public static void FlattenFields(string inputPath, string outputPath, PdfFormFillerOptions? options) {
+    public static void FlattenFields(string inputPath, string outputPath, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        byte[] bytes = FlattenFields(ReadPath(inputPath, options), options);
+        byte[] bytes = FlattenFields(ReadPath(inputPath, options), options, cancellationToken: cancellationToken);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        OfficeFileCommit.Write(fullOutputPath, output => WriteOutput(output, bytes, options), GetCancellationToken(options));
+        OfficeFileCommit.Write(fullOutputPath, output => WriteOutput(output, bytes, options), GetCancellationToken(options, cancellationToken: cancellationToken));
     }
 
     /// <summary>
@@ -372,11 +390,12 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Reads a PDF file and writes a new PDF with simple text, choice, and button AcroForm widgets flattened.
     /// </summary>
-    public static void FlattenFields(string inputPath, Stream outputStream, PdfFormFillerOptions? options) {
+    public static void FlattenFields(string inputPath, Stream outputStream, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        byte[] bytes = FlattenFields(ReadPath(inputPath, options), options);
+        byte[] bytes = FlattenFields(ReadPath(inputPath, options), options, cancellationToken: cancellationToken);
         WriteOutput(outputStream, bytes, options);
     }
 
@@ -390,7 +409,8 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Reads a PDF file and returns new PDF bytes with simple text, choice, and button AcroForm widgets flattened.
     /// </summary>
-    public static byte[] FlattenFieldsToBytes(string inputPath, PdfFormFillerOptions? options) {
+    public static byte[] FlattenFieldsToBytes(string inputPath, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         return FlattenFieldsToBytes(inputPath, options, readOptions: null);
     }
@@ -405,7 +425,8 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated and then flattened into page content.
     /// </summary>
-    public static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
+    public static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         return FillAndFlattenFields(pdf, fieldValues, options, readOptions: null);
     }
 
@@ -428,7 +449,8 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated and then flattened into page content.
     /// </summary>
-    public static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
+    public static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         return FillAndFlattenFields(pdf, fieldValues, options, readOptions: null);
     }
 
@@ -451,7 +473,8 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated and flattened from the current position of a readable stream.
     /// </summary>
-    public static byte[] FillAndFlattenFields(Stream stream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
+    public static byte[] FillAndFlattenFields(Stream stream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         return FillAndFlattenFields(stream, fieldValues, options, readOptions: null);
     }
 
@@ -465,7 +488,8 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated and flattened from the current position of a readable stream.
     /// </summary>
-    public static byte[] FillAndFlattenFields(Stream stream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
+    public static byte[] FillAndFlattenFields(Stream stream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         return FillAndFlattenFields(stream, fieldValues, options, readOptions: null);
     }
 
@@ -479,8 +503,9 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Writes a new PDF with simple AcroForm field values updated and flattened.
     /// </summary>
-    public static void FillAndFlattenFields(byte[] pdf, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
-        WriteOutput(outputStream, FillAndFlattenFields(pdf, fieldValues, options), options);
+    public static void FillAndFlattenFields(byte[] pdf, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        WriteOutput(outputStream, FillAndFlattenFields(pdf, fieldValues, options, cancellationToken: cancellationToken), options);
     }
 
     /// <summary>
@@ -493,8 +518,9 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Writes a new PDF with simple AcroForm field values updated and flattened.
     /// </summary>
-    public static void FillAndFlattenFields(byte[] pdf, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
-        WriteOutput(outputStream, FillAndFlattenFields(pdf, fieldValues, options), options);
+    public static void FillAndFlattenFields(byte[] pdf, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        WriteOutput(outputStream, FillAndFlattenFields(pdf, fieldValues, options, cancellationToken: cancellationToken), options);
     }
 
     /// <summary>
@@ -507,8 +533,9 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Writes a new PDF with simple AcroForm field values updated and flattened from the current position of a readable stream.
     /// </summary>
-    public static void FillAndFlattenFields(Stream inputStream, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
-        WriteOutput(outputStream, FillAndFlattenFields(inputStream, fieldValues, options), options);
+    public static void FillAndFlattenFields(Stream inputStream, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        WriteOutput(outputStream, FillAndFlattenFields(inputStream, fieldValues, options, cancellationToken: cancellationToken), options);
     }
 
     /// <summary>
@@ -521,8 +548,9 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Writes a new PDF with simple AcroForm field values updated and flattened from the current position of a readable stream.
     /// </summary>
-    public static void FillAndFlattenFields(Stream inputStream, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
-        WriteOutput(outputStream, FillAndFlattenFields(inputStream, fieldValues, options), options);
+    public static void FillAndFlattenFields(Stream inputStream, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        WriteOutput(outputStream, FillAndFlattenFields(inputStream, fieldValues, options, cancellationToken: cancellationToken), options);
     }
 
     /// <summary>
@@ -535,13 +563,14 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Writes a new PDF file with simple AcroForm field values updated and flattened.
     /// </summary>
-    public static void FillAndFlattenFields(string inputPath, string outputPath, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
+    public static void FillAndFlattenFields(string inputPath, string outputPath, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        byte[] bytes = FillAndFlattenFields(ReadPath(inputPath, options), fieldValues, options);
+        byte[] bytes = FillAndFlattenFields(ReadPath(inputPath, options), fieldValues, options, cancellationToken: cancellationToken);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        OfficeFileCommit.Write(fullOutputPath, output => WriteOutput(output, bytes, options), GetCancellationToken(options));
+        OfficeFileCommit.Write(fullOutputPath, output => WriteOutput(output, bytes, options), GetCancellationToken(options, cancellationToken: cancellationToken));
     }
 
     /// <summary>
@@ -554,13 +583,14 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Writes a new PDF file with simple AcroForm field values updated and flattened.
     /// </summary>
-    public static void FillAndFlattenFields(string inputPath, string outputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
+    public static void FillAndFlattenFields(string inputPath, string outputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        byte[] bytes = FillAndFlattenFields(ReadPath(inputPath, options), fieldValues, options);
+        byte[] bytes = FillAndFlattenFields(ReadPath(inputPath, options), fieldValues, options, cancellationToken: cancellationToken);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        OfficeFileCommit.Write(fullOutputPath, output => WriteOutput(output, bytes, options), GetCancellationToken(options));
+        OfficeFileCommit.Write(fullOutputPath, output => WriteOutput(output, bytes, options), GetCancellationToken(options, cancellationToken: cancellationToken));
     }
 
     /// <summary>
@@ -573,11 +603,12 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Reads a PDF file and writes a new PDF with simple AcroForm field values updated and flattened.
     /// </summary>
-    public static void FillAndFlattenFields(string inputPath, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
+    public static void FillAndFlattenFields(string inputPath, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        byte[] bytes = FillAndFlattenFields(ReadPath(inputPath, options), fieldValues, options);
+        byte[] bytes = FillAndFlattenFields(ReadPath(inputPath, options), fieldValues, options, cancellationToken: cancellationToken);
         WriteOutput(outputStream, bytes, options);
     }
 
@@ -591,11 +622,12 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Reads a PDF file and writes a new PDF with simple AcroForm field values updated and flattened.
     /// </summary>
-    public static void FillAndFlattenFields(string inputPath, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
+    public static void FillAndFlattenFields(string inputPath, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        byte[] bytes = FillAndFlattenFields(ReadPath(inputPath, options), fieldValues, options);
+        byte[] bytes = FillAndFlattenFields(ReadPath(inputPath, options), fieldValues, options, cancellationToken: cancellationToken);
         WriteOutput(outputStream, bytes, options);
     }
 
@@ -609,7 +641,8 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Reads a PDF file and returns new PDF bytes with simple AcroForm field values updated and flattened.
     /// </summary>
-    public static byte[] FillAndFlattenFieldsToBytes(string inputPath, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
+    public static byte[] FillAndFlattenFieldsToBytes(string inputPath, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         return FillAndFlattenFieldsToBytes(inputPath, fieldValues, options, readOptions: null);
     }
@@ -624,8 +657,9 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Reads a PDF file and returns new PDF bytes with simple AcroForm field values updated and flattened.
     /// </summary>
-    public static byte[] FillAndFlattenFieldsToBytes(string inputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
+    public static byte[] FillAndFlattenFieldsToBytes(string inputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return FillAndFlattenFields(ReadPath(inputPath, options), fieldValues, options);
+        return FillAndFlattenFields(ReadPath(inputPath, options), fieldValues, options, cancellationToken: cancellationToken);
     }
 }

@@ -188,7 +188,8 @@ internal static partial class PdfPageEditor {
     }
 
     /// <summary>Creates a new PDF with the inclusive one-based page range scaled into the target page size described by <paramref name="options"/>.</summary>
-    public static byte[] ResizePageRange(byte[] pdf, PdfPageResizeOptions options, int firstPage, int lastPage) {
+    public static byte[] ResizePageRange(byte[] pdf, PdfPageResizeOptions options, int firstPage, int lastPage, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, cancellationToken)!;
         return ResizePages(pdf, options, BuildInclusivePageRange(firstPage, lastPage, nameof(lastPage)));
     }
 

@@ -580,7 +580,7 @@ public partial class PdfSanitizerTests {
 
         Assert.Throws<OperationCanceledException>(() => PdfSanitizer.Analyze(
             source,
-            new PdfSanitizationOptions { CancellationToken = cancellation.Token }));
+            new PdfSanitizationOptions(), cancellationToken: cancellation.Token));
     }
 
     [Fact]

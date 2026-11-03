@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Configures post-redaction checks for removed and retained PDF text markers.
 /// </summary>
-public sealed class PdfRedactionVerificationOptions {
+public sealed class PdfRedactionVerificationOptions : IPdfOperationCancellation {
     private readonly List<string> _removedTextMarkers = new List<string>();
     private readonly List<string> _retainedTextMarkers = new List<string>();
     private readonly List<IPdfRedactionExternalValidator> _externalValidators = new List<IPdfRedactionExternalValidator>();
@@ -41,8 +41,12 @@ public sealed class PdfRedactionVerificationOptions {
     /// <summary>Render every page through the managed renderer and fail when a page cannot produce output.</summary>
     public bool CheckManagedRendering { get; set; }
 
-    /// <summary>Cooperatively cancels parsing, marker inspection, managed rendering, and external validation boundaries.</summary>
-    public CancellationToken CancellationToken { get; set; }
+    // Operation cancellation; public methods take it as a parameter and bind it to a per-call copy.
+    System.Threading.CancellationToken IPdfOperationCancellation.CancellationToken { get => CancellationToken; set => CancellationToken = value; }
+
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
+
+    object IPdfOperationCancellation.CloneForOperation() => MemberwiseClone();
 
     /// <summary>
     /// Optional independent validators. Implement <see cref="IPdfRedactionCancellationAwareExternalValidator"/>

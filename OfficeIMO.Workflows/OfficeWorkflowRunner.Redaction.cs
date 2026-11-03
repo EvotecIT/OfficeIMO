@@ -254,7 +254,6 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
             } else {
                 PdfRedactionPlan approvedPlan = document.Redactions.Plan(approvedAreas, cancellationToken);
                 var applyOptions = new PdfRedactionApplyOptions {
-                    CancellationToken = cancellationToken,
                     CleanupScope = request.Recipe.CleanupScope,
                     RemoveIntersectingPaths = request.Recipe.RemoveIntersectingPaths,
                     UnsupportedImagePolicy = request.Recipe.UnsupportedImagePolicy
@@ -262,7 +261,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
                 PdfRedactionApplyResult applied = document.Redactions.ApplyWithEvidence(
                     approvedPlan,
                     applyOptions,
-                    new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true, CheckManagedRendering = true, CancellationToken = cancellationToken });
+                    new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true, CheckManagedRendering = true }, cancellationToken: cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 output = applied.Pdf;
                 if (request.Recipe.EncryptedDocumentPolicy == PdfRedactionEncryptedDocumentPolicy.DecryptAndReencrypt) {
@@ -272,7 +271,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
                 ValidateFinalArtifactEncryptionPolicy(output, request, finalOutputOptions, cancellationToken);
                 PdfRedactionVerificationReport finalVerification = PdfDocument.Load(output, finalOutputOptions).Redactions.VerifyAppliedPlan(
                     approvedPlan,
-                    new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true, CheckManagedRendering = true, CancellationToken = cancellationToken });
+                    new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true, CheckManagedRendering = true }, cancellationToken: cancellationToken);
                 if (!finalVerification.IsVerified) throw new RedactionWorkflowException("The final protected-document artifact failed redaction verification; no artifact will be published.");
                 (output, RedactionSignatureEvidence signature) = ApplyDerivativeSignature(output, request, finalOutputOptions, sourceSignatureCount, cancellationToken);
                 ValidateFinalArtifactEncryptionPolicy(output, request, finalOutputOptions, cancellationToken);
@@ -309,7 +308,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
                 PdfRedactionPlan approvedPlan = document.Redactions.Plan(approvedAreas, cancellationToken);
                 PdfRedactionVerificationReport verification = PdfDocument.Load(verificationOutput, verificationOptions).Redactions.VerifyAppliedPlan(
                     approvedPlan,
-                    new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true, CheckManagedRendering = true, CancellationToken = cancellationToken });
+                    new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true, CheckManagedRendering = true }, cancellationToken: cancellationToken);
                 int ocrResidualCount = candidatePlan.OcrUsed
                     ? await CountOcrResidualsAsync(PdfDocument.Load(verificationOutput, verificationOptions), request, approvedAreas, cancellationToken).ConfigureAwait(false)
                     : 0;
@@ -349,10 +348,10 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
                 continue;
             }
 
-            PdfRedactionSearchOptions search = BuildSearchOptions(request.Recipe, rule, RemainingSearchBudget(), cancellationToken);
+            PdfRedactionSearchOptions search = BuildSearchOptions(request.Recipe, rule, RemainingSearchBudget());
             int nativeCount = 0;
             if (request.Recipe.DetectionMode != PdfRedactionDetectionMode.OcrOnly) {
-                PdfRedactionPlan nativePlan = document.Redactions.Search(search);
+                PdfRedactionPlan nativePlan = document.Redactions.Search(search, cancellationToken: cancellationToken);
                 if (!nativePlan.IsReviewable) throw new RedactionWorkflowException($"Native search for rule '{rule.Name}' is blocked: " +
                     string.Join(", ", nativePlan.Findings.Where(static finding => finding.Severity == PdfDiagnosticSeverity.Error).Select(static finding => finding.Code)));
                 foreach (PdfRedactionArea area in nativePlan.Areas) {
@@ -367,7 +366,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
                  request.Recipe.DetectionMode == PdfRedactionDetectionMode.NativeThenOcr && nativeCount == 0);
             if (!runOcr) continue;
             if (request.OcrEngine is null) throw new RedactionWorkflowException("The recipe requires OCR but no runtime OCR engine was supplied.");
-            search = BuildSearchOptions(request.Recipe, rule, RemainingSearchBudget(), cancellationToken);
+            search = BuildSearchOptions(request.Recipe, rule, RemainingSearchBudget());
             PdfOcrRedactionSearchResult ocr = await document.SearchRedactionCandidatesWithOcrAsync(request.OcrEngine, search, request.OcrOptions, cancellationToken).ConfigureAwait(false);
             string safeProvider = FingerprintEvidenceIdentifier(request.OcrEngine.Id) ?? "ocr-provider";
             foreach (PdfOcrRedactionCandidate candidate in ocr.Candidates) {
@@ -400,8 +399,8 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         return new CandidatePlan(candidateAreas, candidates, diagnostics, ocrUsed);
     }
 
-    private static PdfRedactionSearchOptions BuildSearchOptions(PdfRedactionRecipe recipe, PdfRedactionRule rule, int maximumCandidates, CancellationToken cancellationToken) {
-        PdfRedactionSearchOptions search = new PdfRedactionSearchOptions { MatchCase = recipe.MatchCase, TextSelection = rule.TextSelection, ContentScope = rule.ContentScope, RegexTimeout = TimeSpan.FromMilliseconds(recipe.RegexTimeoutMilliseconds), MaximumCandidates = maximumCandidates, CancellationToken = cancellationToken };
+    private static PdfRedactionSearchOptions BuildSearchOptions(PdfRedactionRecipe recipe, PdfRedactionRule rule, int maximumCandidates) {
+        PdfRedactionSearchOptions search = new PdfRedactionSearchOptions { MatchCase = recipe.MatchCase, TextSelection = rule.TextSelection, ContentScope = rule.ContentScope, RegexTimeout = TimeSpan.FromMilliseconds(recipe.RegexTimeoutMilliseconds), MaximumCandidates = maximumCandidates };
         switch (rule.Kind) {
             case PdfRedactionRuleKind.Literal:
                 search.AddLiteral(rule.Value!);
@@ -577,7 +576,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         int discoveredCount = 0;
         foreach (PdfRedactionRule rule in request.Recipe.Rules.Where(static rule => rule.Kind is PdfRedactionRuleKind.Literal or PdfRedactionRuleKind.Regex)) {
             int remaining = request.Limits.MaximumCandidates - discoveredCount;
-            PdfRedactionSearchOptions search = BuildSearchOptions(request.Recipe, rule, Math.Max(1, remaining), cancellationToken);
+            PdfRedactionSearchOptions search = BuildSearchOptions(request.Recipe, rule, Math.Max(1, remaining));
             PdfOcrRedactionSearchResult post = await output.SearchRedactionCandidatesWithOcrAsync(request.OcrEngine!, search, request.OcrOptions, cancellationToken).ConfigureAwait(false);
             if (post.Candidates.Count > remaining) throw new RedactionWorkflowException($"Post-rewrite OCR discovery exceeded the configured {request.Limits.MaximumCandidates}-candidate limit.");
             discoveredCount += post.Candidates.Count;

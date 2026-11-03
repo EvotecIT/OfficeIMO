@@ -12,7 +12,10 @@ public sealed partial class PdfDocumentRedactions {
         PdfRedactionPlan plan,
         PdfSanitizationOptions sanitizationOptions,
         PdfRedactionApplyOptions? applyOptions = null,
-        PdfRedactionVerificationOptions? verificationOptions = null) {
+        PdfRedactionVerificationOptions? verificationOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        sanitizationOptions = PdfOperationCancellation.Bind(sanitizationOptions, createWhenNull: false, cancellationToken)!;
+        applyOptions = PdfOperationCancellation.Bind(applyOptions, createWhenNull: true, cancellationToken);
+        verificationOptions = PdfOperationCancellation.Bind(verificationOptions, createWhenNull: true, cancellationToken);
         Guard.NotNull(sanitizationOptions, nameof(sanitizationOptions));
         sanitizationOptions.CancellationToken.ThrowIfCancellationRequested();
         var verification = verificationOptions ?? new PdfRedactionVerificationOptions {
@@ -24,10 +27,10 @@ public sealed partial class PdfDocumentRedactions {
         // Prove the reviewed page-content rewrite first; apply whole-artifact requirements only
         // to the final output so validators never receive the intermediate unsanitized artifact.
         PdfRedactionApplyResult redaction = ApplyWithEvidence(plan, applyOptions,
-            CreateIntermediateVerification(verification)).ThrowIfUnverified();
+            CreateIntermediateVerification(verification), cancellationToken: cancellationToken).ThrowIfUnverified();
         sanitizationOptions.CancellationToken.ThrowIfCancellationRequested();
         PdfDocument redactedDocument = redaction.ToDocument();
-        PdfSanitizationResult sanitization = redactedDocument.Sanitize(sanitizationOptions);
+        PdfSanitizationResult sanitization = redactedDocument.Sanitize(sanitizationOptions, cancellationToken: cancellationToken);
         if (!sanitization.IsSanitized || !sanitization.PreservationReport.IsPreserved) {
             throw new InvalidOperationException("The redacted artifact did not pass sanitization and preservation checks.");
         }

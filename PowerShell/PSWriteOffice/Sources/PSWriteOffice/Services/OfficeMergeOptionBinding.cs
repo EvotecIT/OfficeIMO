@@ -81,7 +81,7 @@ internal static class OfficeMergeOptionBinding {
             if (pdf.Policy != null) pdf.Policy = (PdfMergePolicy)CopyProperties(pdf.Policy);
             if (pdf.ResizePages is PdfPageResizeOptions resize)
                 pdf.ResizePages = new PdfPageResizeOptions(resize.PageSize) {
-                    Margin = resize.Margin, Mode = resize.Mode, CancellationToken = resize.CancellationToken
+                    Margin = resize.Margin, Mode = resize.Mode
                 };
         }
         return copy;

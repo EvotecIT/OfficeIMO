@@ -322,10 +322,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         PdfHealthSnapshot before = CreateHealthSnapshot(input, request.PdfLoadOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PdfOptimizationOptions options = PdfOptimizationOptions.Create(ToOptimizationProfile(request.OutputProfile));
-        options.CancellationToken = cancellationToken;
         options.MaximumOutputBytes = request.Limits.MaximumOutputBytes;
         PdfOptimizationActionResult optimization = PdfDocument.Load(input, request.PdfLoadOptions)
-            .Optimization.Apply(options);
+            .Optimization.Apply(options, cancellationToken: cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         if (!optimization.PreservationReport.IsPreserved) {
             throw new InvalidOperationException("Lossless optimization preservation verification failed; no artifact will be published.");
@@ -367,10 +366,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         PdfRepairArtifactResult repair = PdfRepairArtifact.Create(
             input,
             new PdfRepairArtifactOptions {
-                MaximumOutputBytes = request.Limits.MaximumOutputBytes,
-                CancellationToken = cancellationToken
+                MaximumOutputBytes = request.Limits.MaximumOutputBytes
             },
-            request.PdfLoadOptions);
+            request.PdfLoadOptions, cancellationToken: cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         if (!repair.IsVerified) {
             throw new InvalidOperationException("Repair artifact verification failed; no artifact will be published.");
@@ -424,10 +422,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 PdfRepairArtifactResult feasibility = PdfRepairArtifact.Create(
                     input,
                     new PdfRepairArtifactOptions {
-                        MaximumOutputBytes = request.Limits.MaximumOutputBytes,
-                        CancellationToken = cancellationToken
+                        MaximumOutputBytes = request.Limits.MaximumOutputBytes
                     },
-                    request.PdfLoadOptions);
+                    request.PdfLoadOptions, cancellationToken: cancellationToken);
                 plannedOutputBytes = feasibility.OutputSizeBytes;
             } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
                 throw;
@@ -471,9 +468,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         cancellationToken.ThrowIfCancellationRequested();
         PdfSanitizationResult sanitization = PdfDocument.Load(input, request.PdfLoadOptions).Sanitize(
             new PdfSanitizationOptions {
-                CancellationToken = cancellationToken,
                 MaximumOutputBytes = request.Limits.MaximumOutputBytes
-            });
+            }, cancellationToken: cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         if (!sanitization.IsSanitized || !sanitization.PreservationReport.IsPreserved) {
             throw new InvalidOperationException("Sanitization verification failed; no artifact will be published.");

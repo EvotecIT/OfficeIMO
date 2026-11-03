@@ -36,15 +36,19 @@ public sealed class PdfInterleaveSource {
 }
 
 /// <summary>Controls interleaved page composition and document-level merge policy.</summary>
-public sealed class PdfInterleaveOptions {
+public sealed class PdfInterleaveOptions : IPdfOperationCancellation {
     /// <summary>Zero-based source whose metadata and keep-primary structures own the output catalog.</summary>
     public int PrimarySourceIndex { get; set; }
     /// <summary>Behavior when selected source page counts differ.</summary>
     public PdfInterleaveRemainderMode RemainderMode { get; set; } = PdfInterleaveRemainderMode.Append;
     /// <summary>Document-level merge, annotation-flattening, and page-resize policy.</summary>
     public PdfMergeOptions MergeOptions { get; set; } = new PdfMergeOptions();
-    /// <summary>Cancellation observed while collecting, reading, preparing and composing sources.</summary>
-    public CancellationToken CancellationToken { get; set; }
+    // Operation cancellation; public methods take it as a parameter and bind it to a per-call copy.
+    System.Threading.CancellationToken IPdfOperationCancellation.CancellationToken { get => CancellationToken; set => CancellationToken = value; }
+
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
+
+    object IPdfOperationCancellation.CloneForOperation() => MemberwiseClone();
 }
 
 /// <summary>Maps one output page to its source document and page.</summary>
@@ -99,7 +103,8 @@ public static class PdfPageInterleaver {
     }
 
     /// <summary>Interleaves selected source pages and returns page provenance and merge-policy evidence.</summary>
-    public static PdfInterleaveResult Interleave(IEnumerable<PdfInterleaveSource> sources, PdfInterleaveOptions? options = null) {
+    public static PdfInterleaveResult Interleave(IEnumerable<PdfInterleaveSource> sources, PdfInterleaveOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(sources, nameof(sources));
         options ??= new PdfInterleaveOptions();
         CancellationToken token = options.CancellationToken;

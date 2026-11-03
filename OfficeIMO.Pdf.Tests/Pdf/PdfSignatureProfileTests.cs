@@ -166,9 +166,8 @@ public class PdfSignatureProfileTests {
                         ImageBytes = PdfPngTestImages.CreateRgbPng(4, 2),
                         ShowText = false
                     },
-                    ReservedSignatureContentsBytes = 512,
-                    CancellationToken = cancellation.Token
-                }));
+                    ReservedSignatureContentsBytes = 512
+                }, cancellationToken: cancellation.Token));
     }
 
     [Fact]

@@ -13,8 +13,9 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Returns a new PDF with simple text, choice, and button AcroForm widgets painted into page content and removed from the form tree.
     /// </summary>
-    public static byte[] FlattenFields(byte[] pdf, PdfFormFillerOptions? options) {
-        return FlattenFields(pdf, options, readOptions: null);
+    public static byte[] FlattenFields(byte[] pdf, PdfFormFillerOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return FlattenFields(pdf, options, readOptions: null, cancellationToken: cancellationToken);
     }
 
     internal static byte[] FlattenFields(byte[] pdf, PdfFormFillerOptions? options, PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) =>
@@ -84,8 +85,9 @@ internal static partial class PdfFormFiller {
     /// <summary>
     /// Returns a new PDF with only the named simple text, choice, and button AcroForm fields painted into page content and removed from the form tree.
     /// </summary>
-    public static byte[] FlattenFields(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options = null) {
-        return FlattenFieldsCore(pdf, fieldNames, options, readOptions: null, requireMutationPlan: true, out _);
+    public static byte[] FlattenFields(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return FlattenFieldsCore(pdf, fieldNames, options, readOptions: null, requireMutationPlan: true, out _, cancellationToken: cancellationToken);
     }
 
     internal static byte[] FlattenFields(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) =>

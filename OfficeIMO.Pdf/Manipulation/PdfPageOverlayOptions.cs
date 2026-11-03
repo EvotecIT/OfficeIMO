@@ -4,9 +4,13 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Controls placement of a source PDF page imported as a Form XObject onto target pages.</summary>
 /// <remarks>The overlay rectangle uses physical points (1/72 inch) in the target page's rotated, crop-normalized frame, with a bottom-left origin after /UserUnit scaling.</remarks>
-public sealed class PdfPageOverlayOptions {
-    /// <summary>Cancels input reading, PDF processing, and output publication for this operation.</summary>
-    public System.Threading.CancellationToken CancellationToken { get; set; }
+public sealed class PdfPageOverlayOptions : IPdfOperationCancellation {
+    // Operation cancellation; public methods take it as a parameter and bind it to a per-call copy.
+    System.Threading.CancellationToken IPdfOperationCancellation.CancellationToken { get => CancellationToken; set => CancellationToken = value; }
+
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
+
+    object IPdfOperationCancellation.CloneForOperation() => MemberwiseClone();
 
     internal string? ContentIdentifier { get; set; }
     internal PdfWatermarkOptions? WatermarkSettings { get; set; }
