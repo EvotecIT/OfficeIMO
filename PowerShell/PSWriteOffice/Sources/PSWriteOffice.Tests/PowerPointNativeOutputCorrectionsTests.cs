@@ -260,7 +260,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
                         foreach ($index in 1..9) {
                             $item = PowerPointListItem -PassThru {
                                 $run = PowerPointText "Large item $index" -Size $size -Font Verdana -Bold -PassThru
-                                if ($nativeEdits) { $run.FontSize = [OfficeIMO.OfficeLength]::Points(72); $run.FontName = 'Verdana' }
+                                if ($nativeEdits) { $run.FontSize = [OfficeIMO.OfficeLength]::Points(72); $run.FontFamily = 'Verdana' }
                             }
                             $item.SpaceBefore = [OfficeIMO.OfficeLength]::Points(14)
                             $item.SpaceAfter = [OfficeIMO.OfficeLength]::Points(18)
@@ -271,7 +271,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
                     $script:paragraph = PowerPointParagraph -PassThru {
                         $script:large = PowerPointText ('Large styled sentence. ' * 9).TrimEnd() -Size $size -Font Verdana -Bold -PassThru
                     }
-                    if ($nativeEdits) { $large.FontSize = [OfficeIMO.OfficeLength]::Points(72); $large.FontName = 'Verdana' }
+                    if ($nativeEdits) { $large.FontSize = [OfficeIMO.OfficeLength]::Points(72); $large.FontFamily = 'Verdana' }
                     $paragraph.SpaceBefore = [OfficeIMO.OfficeLength]::Points(14)
                     $paragraph.SpaceAfter = [OfficeIMO.OfficeLength]::Points(18)
                     $paragraph.LineSpacingMultiplier = 1.3
