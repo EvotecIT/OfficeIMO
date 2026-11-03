@@ -1045,7 +1045,7 @@
     },
     {
       "From": "/api/html/officeimo-html-htmltortfoptions/",
-      "To": "/api/html-rtf/officeimo-html-htmltortfoptions/",
+      "To": "/api/html-rtf/officeimo-html-htmlrtfexportoptions/",
       "Status": 301,
       "MatchType": "Exact",
       "PreserveQuery": true
@@ -1066,7 +1066,7 @@
     },
     {
       "From": "/api/html/officeimo-html-rtftohtmloptions/",
-      "To": "/api/html-rtf/officeimo-html-rtftohtmloptions/",
+      "To": "/api/html-rtf/officeimo-html-rtfhtmlexportoptions/",
       "Status": 301,
       "MatchType": "Exact",
       "PreserveQuery": true
