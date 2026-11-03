@@ -1,6 +1,3 @@
-#if !NET8_0_OR_GREATER
-using DateOnly = System.DateTime;
-#endif
 namespace OfficeIMO.Workflows;
 
 /// <summary>Supported ONIX list 153 collateral-text roles.</summary>
@@ -111,12 +108,12 @@ public sealed record BookOnixCollateralText {
     public IReadOnlyList<BookOnixUsageConstraint> UsageConstraints { get; init; } = [];
     /// <summary>Up to 16 explicit collateral licenses. Names and expression links share the aggregate text budget.</summary>
     public IReadOnlyList<BookOnixLicense> Licenses { get; init; } = [];
-    /// <summary>Publication date of the collateral, independent of the book's publication date.</summary>
-    public DateOnly? PublishedOn { get; init; }
-    /// <summary>First permitted use date (embargo). Serialized, not enforced as an access-control rule.</summary>
-    public DateOnly? UsableFrom { get; init; }
-    /// <summary>Last permitted use date.</summary>
-    public DateOnly? UsableUntil { get; init; }
-    /// <summary>Date the collateral was last updated.</summary>
-    public DateOnly? UpdatedOn { get; init; }
+    /// <summary>Publication date of the collateral, independent of the book's publication date. Time of day is ignored during export.</summary>
+    public DateTime? PublishedOn { get; init; }
+    /// <summary>First permitted use date (embargo). Serialized, not enforced as an access-control rule. Time of day is ignored during export.</summary>
+    public DateTime? UsableFrom { get; init; }
+    /// <summary>Last permitted use date. Time of day is ignored during export.</summary>
+    public DateTime? UsableUntil { get; init; }
+    /// <summary>Date the collateral was last updated. Time of day is ignored during export.</summary>
+    public DateTime? UpdatedOn { get; init; }
 }

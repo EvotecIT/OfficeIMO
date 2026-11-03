@@ -1,6 +1,3 @@
-#if !NET8_0_OR_GREATER
-using DateOnly = System.DateTime;
-#endif
 using System.Globalization;
 using System.Xml.Linq;
 
@@ -20,7 +17,7 @@ public sealed partial class BookProject {
             if (license.Expressions == null) throw new ArgumentNullException("license.Expressions");
             if (license.Names.Count is < 1 or > 16 || license.Expressions.Count > 16)
                 throw new ArgumentException("Supply one to 16 license names and at most 16 expressions.", nameof(licenses));
-            if (license.ValidFrom > license.ValidUntil)
+            if (license.ValidFrom?.Date > license.ValidUntil?.Date)
                 throw new ArgumentException("License validity dates are reversed.", nameof(licenses));
             var element = new XElement(ns + "EpubLicense");
             var languages = new HashSet<string>(StringComparer.Ordinal);
@@ -55,7 +52,7 @@ public sealed partial class BookProject {
                 element.Add(new XElement(ns + "EpubLicenseExpression", new XElement(ns + "EpubLicenseExpressionType", type),
                     new XElement(ns + "EpubLicenseExpressionLink", expression.Link)));
             }
-            void AddDate(string role, DateOnly? date) {
+            void AddDate(string role, DateTime? date) {
                 if (date == null) return;
                 element.Add(new XElement(ns + "EpubLicenseDate", new XElement(ns + "EpubLicenseDateRole", role),
                     new XElement(ns + "Date", new XAttribute("dateformat", "00"), FormatOnixDate(date.Value))));

@@ -64,24 +64,55 @@ public sealed record OfficeInvoiceFileWorkflowResult(
 
 /// <summary>Thin local-file adapter over the memory workflow and shared atomic file commit owner.</summary>
 public static class OfficeInvoiceFileWorkflow {
-    /// <summary>Reads bounded XML and atomically creates a new output file after successful execution.</summary>
-    public static async Task<OfficeInvoiceFileWorkflowResult> RunAsync(OfficeInvoiceFileWorkflowRequest request,
+    /// <summary>Reads and executes one bounded invoice without a standards provider.</summary>
+    public static Task<OfficeInvoiceFileWorkflowResult> RunAsync(OfficeInvoiceFileWorkflowRequest request,
+        CancellationToken cancellationToken = default) => RunCoreAsync(request,
+#if NET8_0_OR_GREATER
+            null,
+#endif
+            cancellationToken);
 
 #if NET8_0_OR_GREATER
-        InvoiceValidator? validator = null,
+    /// <summary>Reads and executes one bounded invoice with an explicit standards provider.</summary>
+    public static Task<OfficeInvoiceFileWorkflowResult> RunAsync(OfficeInvoiceFileWorkflowRequest request,
+        InvoiceValidator? validator, CancellationToken cancellationToken = default) =>
+        RunCoreAsync(request, validator, cancellationToken);
+#endif
+
+    /// <summary>Reads bounded XML and atomically creates a new output file after successful execution.</summary>
+    private static async Task<OfficeInvoiceFileWorkflowResult> RunCoreAsync(OfficeInvoiceFileWorkflowRequest request,
+
+#if NET8_0_OR_GREATER
+        InvoiceValidator? validator,
 #endif
         CancellationToken cancellationToken = default) =>
-        (await RunBatchAsync([request],
+        (await RunBatchCoreAsync([request], null,
 #if NET8_0_OR_GREATER
             validator: validator,
 #endif
             cancellationToken: cancellationToken).ConfigureAwait(false))[0];
 
-    /// <summary>Preflights and captures all bounded inputs before sequential execution. Outputs cannot overwrite existing files, sources or another planned output. Publication is per item, not a batch transaction.</summary>
-    public static async Task<IReadOnlyList<OfficeInvoiceFileWorkflowResult>> RunBatchAsync(IEnumerable<OfficeInvoiceFileWorkflowRequest> requests,
-        OfficeInvoiceWorkflowBatchOptions? options = null,
+    /// <summary>Executes a bounded invoice batch without a standards provider.</summary>
+    public static Task<IReadOnlyList<OfficeInvoiceFileWorkflowResult>> RunBatchAsync(IEnumerable<OfficeInvoiceFileWorkflowRequest> requests,
+        OfficeInvoiceWorkflowBatchOptions? options = null, CancellationToken cancellationToken = default) =>
+        RunBatchCoreAsync(requests, options,
 #if NET8_0_OR_GREATER
-        InvoiceValidator? validator = null,
+            null,
+#endif
+            cancellationToken);
+
+#if NET8_0_OR_GREATER
+    /// <summary>Executes a bounded invoice batch with an explicit standards provider.</summary>
+    public static Task<IReadOnlyList<OfficeInvoiceFileWorkflowResult>> RunBatchAsync(IEnumerable<OfficeInvoiceFileWorkflowRequest> requests,
+        OfficeInvoiceWorkflowBatchOptions? options, InvoiceValidator? validator, CancellationToken cancellationToken = default) =>
+        RunBatchCoreAsync(requests, options, validator, cancellationToken);
+#endif
+
+    /// <summary>Preflights and captures all bounded inputs before sequential execution. Outputs cannot overwrite existing files, sources or another planned output. Publication is per item, not a batch transaction.</summary>
+    private static async Task<IReadOnlyList<OfficeInvoiceFileWorkflowResult>> RunBatchCoreAsync(IEnumerable<OfficeInvoiceFileWorkflowRequest> requests,
+        OfficeInvoiceWorkflowBatchOptions? options,
+#if NET8_0_OR_GREATER
+        InvoiceValidator? validator,
 #endif
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(requests);

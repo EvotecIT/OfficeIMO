@@ -8,11 +8,26 @@ using OfficeIMO.Invoicing.Validation;
 namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner : IOfficeInvoiceWorkflowRunner {
-    /// <summary>Executes shared invoice operations through bounded source snapshots and the existing local/provider publication owner.</summary>
-    public async Task<OfficeInvoiceStorageWorkflowResult> RunInvoiceAsync(OfficeInvoiceStorageWorkflowRequest request,
+    /// <summary>Executes a captured invoice request through the portable runner contract.</summary>
+    public Task<OfficeInvoiceStorageWorkflowResult> RunInvoiceAsync(OfficeInvoiceStorageWorkflowRequest request,
+        CancellationToken cancellationToken = default) => RunInvoiceCoreAsync(request,
+#if NET8_0_OR_GREATER
+            request?.StandardsValidator,
+#endif
+            cancellationToken);
 
 #if NET8_0_OR_GREATER
-        InvoiceValidator? validator = null,
+    /// <summary>Executes a captured invoice request with an explicit standards provider.</summary>
+    public Task<OfficeInvoiceStorageWorkflowResult> RunInvoiceAsync(OfficeInvoiceStorageWorkflowRequest request,
+        InvoiceValidator? validator, CancellationToken cancellationToken = default) =>
+        RunInvoiceCoreAsync(request, validator, cancellationToken);
+#endif
+
+    /// <summary>Executes shared invoice operations through bounded source snapshots and the existing local/provider publication owner.</summary>
+    private async Task<OfficeInvoiceStorageWorkflowResult> RunInvoiceCoreAsync(OfficeInvoiceStorageWorkflowRequest request,
+
+#if NET8_0_OR_GREATER
+        InvoiceValidator? validator,
 #endif
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);

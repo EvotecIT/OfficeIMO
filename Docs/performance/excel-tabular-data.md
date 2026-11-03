@@ -533,6 +533,60 @@ its reader-boundary regression remain intact. Read validation/indexing and
 inflation, owned strings, selector boxing and binary write staging remain the
 larger unresolved costs.
 
+## XLSX validation and cached-row indexing (3 November)
+
+I reuse a complete, qualified implicit row layout through a smaller scan. Every
+cached cell tag must match exactly; every payload and row closure is checked,
+including each shared-string index. The first row and changed layouts use the
+existing parser. A failed shortcut restores the byte position and permanently
+returns to ordinary discovery. Used bounds commit only after a complete row;
+partial metadata is replaced by the existing retry and initialization paths.
+The complete UTF-8/XML proof still runs before delivery. No validation check,
+public API, runtime dependency, writer, selector timing or grid-loader behaviour
+changes.
+
+The baseline sampled read profile puts 25.9% in indexing, 24.7% in inflation,
+5.5% in canonical XML proof and 5.2% in dimensionless range discovery. With the
+shortcut, indexing's sampled time falls from 9,933 to 8,055 ms across the same
+profile workload, about 18.9%; its share falls to 22.2%. The common-row Tier1
+routine uses 3,352 code bytes and a 112-byte stack frame, against 3,796 and 176
+for the former common path. The original core remains as fallback, so this is
+not a whole-assembly size reduction. Managed sampling does not isolate native
+inflater throughput; profiling timings are not comparison results.
+
+The stable comparison uses the identical harness and fixed 50,000-row,
+four-column XLSX input, eight warmups, twelve samples, thirty-two invocations
+and all outliers. One baseline is bracketed by two candidates. All implementations
+validate every value in preflight and consume complete rows/checksums in timing.
+The [normalized evidence](excel-xlsx-indexing-2026-11-03.json) retains source and
+assembly hashes, inputs, all samples, profiles, review and validation receipts.
+
+| Lane | Library | Before ms | Candidate 1 / 2 ms | Before → candidate 1 / 2 MiB |
+|---|---|---:|---:|---:|
+| Typed parse | OfficeIMO | 10.693 | 10.460 / 10.396 | 4.562 → 4.562 / 4.562 |
+| Typed parse | ExcelReader.NET | 8.141 | 8.354 / 8.163 | 4.506 → 4.506 / 4.506 |
+| Cell-by-cell read | OfficeIMO | 9.944 | 9.719 / 9.805 | 2.274 → 2.273 / 2.274 |
+| Cell-by-cell read | Sylvan | 28.760 | 29.377 / 28.768 | 2.546 → 2.546 / 2.546 |
+| Cell-by-cell read | ExcelDataReader | 60.777 | 61.904 / 62.977 | 33.880 → 33.880 / 33.880 |
+| Cell-by-cell read | ExcelReader.NET | 6.341 | 6.324 / 6.315 | 2.217 → 2.217 / 2.217 |
+
+Direct reading improves by 1.4–2.3% and typed parsing by 2.2–2.8% in the final
+cohort; allocation is effectively unchanged. The earlier narrow layout trial
+has mixed typed-parse results and is retained. Other trials are discarded:
+a provisional local cursor, exact-word tag matching, moved metadata writes and
+a cold-parser JIT boundary do not give a consistent read gain. Their losses and
+controls remain in the evidence. These host-dependent results do not establish
+parity or a portable ranking.
+
+The existing validation/rollback proof passes 479 focused cases, including all
+twelve hand-authored omitted-reference cases. No test changes remain. Independent
+read-only review finds no actionable issues. Final net10.0 correctness suites
+with `Category!=Performance` pass 7,754 Excel tests with five skips and all 938
+CSV tests. All four framework builds have zero warnings/errors; osx-arm64
+NativeAOT publish and smoke pass. net472 remains a cross-build without Windows
+runtime validation. Inflation, range discovery, owned strings and the retained
+validation/indexing pass still account for the remaining XLSX read gap.
+
 ## Remaining costs and limits
 
 Parity is incomplete; the earlier cohorts still show gaps against ExcelReader.NET

@@ -282,140 +282,6 @@
     {
       "member": "static PdfDocument Merge(IEnumerable<PdfDocument> documents, CancellationToken cancellationToken)",
       "verdict": "change"
-    },
-    {
-      "old": "OfficeIMO.Pdf.PdfAlign",
-      "kind": "type",
-      "action": "merge",
-      "new": "OfficeIMO.OfficeAlignment",
-      "replacement": "Start and End resolve to Left and Right because PDF authoring lays lines out left to right.",
-      "category": "naming",
-      "reason": "Shared left, center, right, justify, start and end intent uses one Core enum; format enums remain only for values with no shared meaning.",
-      "applied": true
-    },
-    {
-      "old": "OfficeIMO.Pdf.PdfColumnAlign",
-      "kind": "type",
-      "action": "merge",
-      "new": "OfficeIMO.OfficeAlignment",
-      "replacement": "Table columns accept Left, Center, Right, Start and End; Justify is rejected.",
-      "category": "naming",
-      "reason": "Shared left, center, right, justify, start and end intent uses one Core enum; format enums remain only for values with no shared meaning.",
-      "applied": true
-    },
-    {
-      "old": "OfficeIMO.Pdf.PdfReadLimits.Default",
-      "kind": "property",
-      "action": "remove",
-      "new": null,
-      "replacement": "new PdfReadLimits()",
-      "category": "naming",
-      "reason": "The factory only returned a default instance; construct the type directly.",
-      "applied": true
-    },
-    {
-      "old": "OfficeIMO.Pdf.PdfDocument.Metadata",
-      "kind": "property",
-      "action": "rename",
-      "new": "OfficeIMO.Pdf.PdfDocument.Properties",
-      "category": "naming",
-      "reason": "Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate.",
-      "applied": true
-    },
-    {
-      "old": "OfficeIMO.Pdf.PdfMetadata",
-      "kind": "type",
-      "action": "rename",
-      "new": "OfficeIMO.Pdf.PdfDocumentProperties",
-      "category": "naming",
-      "reason": "Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate.",
-      "applied": true
-    },
-    {
-      "old": "OfficeIMO.Pdf.PdfDocument.UpdateMetadata(...)",
-      "kind": "method",
-      "action": "rename",
-      "new": "OfficeIMO.Pdf.PdfDocument.UpdateProperties(...)",
-      "category": "naming",
-      "reason": "Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate.",
-      "applied": true
-    },
-    {
-      "old": "OfficeIMO.Pdf.PdfDocument.ReplaceMetadata(PdfMetadata, ...)",
-      "kind": "method",
-      "action": "rename",
-      "new": "OfficeIMO.Pdf.PdfDocument.ReplaceProperties(PdfDocumentProperties, ...)",
-      "replacement": "SynchronizeMetadata and AppendMetadataRevision keep their names because they also write XMP or an incremental revision.",
-      "category": "naming",
-      "reason": "Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate.",
-      "applied": true
-    },
-    {
-      "old": "OfficeIMO.Pdf.PdfDocumentConversionResult.SaveLossless(path | Stream, CancellationToken) / SaveLosslessAsync(...)",
-      "kind": "method",
-      "action": "merge",
-      "new": "OfficeIMO.Pdf.PdfDocumentConversionResult.Save(path | Stream, bool failOnLoss, CancellationToken) / SaveAsync(...)",
-      "replacement": "result.Save(path, failOnLoss: true)",
-      "category": "contract",
-      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
-      "applied": true
-    },
-    {
-      "old": "OfficeIMO.Pdf.PdfDocumentConversionResult.ToBytesLossless(CancellationToken)",
-      "kind": "method",
-      "action": "merge",
-      "new": "OfficeIMO.Pdf.PdfDocumentConversionResult.ToBytes(bool failOnLoss, CancellationToken)",
-      "replacement": "result.ToBytes(failOnLoss: true)",
-      "category": "contract",
-      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
-      "applied": true
-    },
-    {
-      "old": "OfficeIMO.Pdf.PdfDocumentConversionResult.RequireNoLoss() (returned Value)",
-      "kind": "method",
-      "action": "change",
-      "new": "OfficeIMO.Pdf.PdfDocumentConversionResult.ThrowIfLoss() then Value",
-      "category": "contract",
-      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
-      "applied": true
-    },
-    {
-      "old": "OfficeIMO.Pdf.PdfDocumentConversionResult.FidelityDiagnostics / PdfSaveResult.FidelityDiagnostics",
-      "kind": "property",
-      "action": "rename",
-      "new": "Diagnostics",
-      "category": "contract",
-      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
-      "applied": true
-    },
-    {
-      "old": "OfficeIMO.Pdf.PdfConversionReport.RequireNoLoss() (returned the report)",
-      "kind": "method",
-      "action": "rename",
-      "new": "OfficeIMO.OfficeConversionReport.ThrowIfLoss()",
-      "replacement": "ThrowIfLoss() returns void.",
-      "category": "contract",
-      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
-      "applied": true
-    },
-    {
-      "old": "OfficeIMO.Pdf.PdfSaveResult.RequireNoLoss() (returned the result)",
-      "kind": "method",
-      "action": "rename",
-      "new": "OfficeIMO.Pdf.PdfSaveResult.ThrowIfLoss()",
-      "replacement": "ThrowIfLoss() returns void.",
-      "category": "contract",
-      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
-      "applied": true
-    },
-    {
-      "old": "OfficeIMO.Pdf.PdfConversionProofOptions.RequireNoLoss()",
-      "kind": "method",
-      "action": "rename",
-      "new": "OfficeIMO.Pdf.PdfConversionProofOptions.RequireLosslessConversion()",
-      "category": "naming",
-      "reason": "The builder sets RequireLosslessConversion and now uses that name.",
-      "applied": true
     }
   ],
   "internalizeCandidates": [
@@ -2111,7 +1977,7 @@
       "old": "OfficeIMO.Pdf.PdfDocument.UpdateMetadataResult(CancellationToken cancellationToken, string title = null, string author = null, string subject = null, string keywords = null, PdfLoadOptions options = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Pdf.PdfDocument.UpdateMetadata(...) : PdfDocument",
+      "new": "OfficeIMO.Pdf.PdfDocument.UpdateProperties(...) : PdfDocument",
       "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. The same pairing rule applies to PDF operations.",
       "file": "OfficeIMO.Pdf/Core/PdfDocument.MetadataCancellation.cs",
       "category": "lifecycle",
@@ -2123,7 +1989,7 @@
       "old": "OfficeIMO.Pdf.PdfDocument.ReplaceMetadataResult(PdfMetadata metadata, CancellationToken cancellationToken, PdfLoadOptions options = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Pdf.PdfDocument.ReplaceMetadata(...) : PdfDocument",
+      "new": "OfficeIMO.Pdf.PdfDocument.ReplaceProperties(...) : PdfDocument",
       "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. The same pairing rule applies to PDF operations.",
       "file": "OfficeIMO.Pdf/Core/PdfDocument.MetadataCancellation.cs, OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
       "category": "lifecycle",
@@ -2255,7 +2121,7 @@
       "old": "OfficeIMO.Pdf.PdfDocument.UpdateMetadataResult(string title = null, string author = null, string subject = null, string keywords = null, PdfLoadOptions options = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Pdf.PdfDocument.UpdateMetadata(...) : PdfDocument",
+      "new": "OfficeIMO.Pdf.PdfDocument.UpdateProperties(...) : PdfDocument",
       "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. The same pairing rule applies to PDF operations.",
       "file": "OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
       "category": "lifecycle",
@@ -2267,7 +2133,7 @@
       "old": "OfficeIMO.Pdf.PdfDocument.ReplaceMetadataResult(PdfMetadata metadata, PdfLoadOptions options = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Pdf.PdfDocument.ReplaceMetadata(...) : PdfDocument",
+      "new": "OfficeIMO.Pdf.PdfDocument.ReplaceProperties(...) : PdfDocument",
       "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport. The same pairing rule applies to PDF operations.",
       "file": "OfficeIMO.Pdf/Core/PdfDocument.MetadataCancellation.cs, OfficeIMO.Pdf/Core/PdfDocument.Operations.cs",
       "category": "lifecycle",
@@ -4265,6 +4131,152 @@
       "replacement": "No source change: PdfTextSearchOptions derives from OfficeTextSearchOptions, so options.MatchCase and options.WholeWords still compile with the same defaults. Recompile against the new package.",
       "reason": "PDF keeps its own search options for pages and invisible text while sharing the comparison settings with Word and PowerPoint.",
       "category": "search"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfAlign",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeAlignment",
+      "replacement": "Start and End resolve to Left and Right because PDF authoring lays lines out left to right.",
+      "category": "naming",
+      "reason": "Shared left, center, right, justify, start and end intent uses one Core enum; format enums remain only for values with no shared meaning.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfColumnAlign",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeAlignment",
+      "replacement": "Table columns accept Left, Center, Right, Start and End; Justify is rejected.",
+      "category": "naming",
+      "reason": "Shared left, center, right, justify, start and end intent uses one Core enum; format enums remain only for values with no shared meaning.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfReadLimits.Default",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "new PdfReadLimits()",
+      "category": "naming",
+      "reason": "The factory only returned a default instance; construct the type directly.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.Metadata",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfDocument.Properties",
+      "category": "naming",
+      "reason": "Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfMetadata",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfDocumentProperties",
+      "category": "naming",
+      "reason": "Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.UpdateMetadata(...)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfDocument.UpdateProperties(...)",
+      "category": "naming",
+      "reason": "Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument.ReplaceMetadata(PdfMetadata, ...)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfDocument.ReplaceProperties(PdfDocumentProperties, ...)",
+      "replacement": "SynchronizeMetadata and AppendMetadataRevision keep their names because they also write XMP or an incremental revision.",
+      "category": "naming",
+      "reason": "Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocumentConversionResult.SaveLossless(path | Stream, CancellationToken) / SaveLosslessAsync(...)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocumentConversionResult.Save(path | Stream, bool failOnLoss, CancellationToken) / SaveAsync(...)",
+      "replacement": "result.Save(path, failOnLoss: true)",
+      "category": "contract",
+      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocumentConversionResult.ToBytesLossless(CancellationToken)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfDocumentConversionResult.ToBytes(bool failOnLoss, CancellationToken)",
+      "replacement": "result.ToBytes(failOnLoss: true)",
+      "category": "contract",
+      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocumentConversionResult.RequireNoLoss() (returned Value)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocumentConversionResult.ThrowIfLoss() then Value",
+      "category": "contract",
+      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocumentConversionResult.FidelityDiagnostics",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfDocumentConversionResult.Diagnostics",
+      "replacement": "Use result.Diagnostics for IReadOnlyList<OfficeDiagnostic> entries from all source and PDF conversion reports, preserving their loss categories.",
+      "category": "contract",
+      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfSaveResult.FidelityDiagnostics",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfSaveResult.ConversionDiagnostics",
+      "replacement": "Use result.ConversionDiagnostics for IReadOnlyList<OfficeDiagnostic> entries from all source and PDF conversion reports, preserving their loss categories. PdfSaveResult.Diagnostics remains IReadOnlyList<string> with human-readable save-failure messages.",
+      "category": "contract",
+      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfConversionReport.RequireNoLoss() (returned the report)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.OfficeConversionReport.ThrowIfLoss()",
+      "replacement": "ThrowIfLoss() returns void.",
+      "category": "contract",
+      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfSaveResult.RequireNoLoss() (returned the result)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfSaveResult.ThrowIfLoss()",
+      "replacement": "ThrowIfLoss() returns void.",
+      "category": "contract",
+      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfConversionProofOptions.RequireNoLoss()",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfConversionProofOptions.RequireLosslessConversion",
+      "replacement": "options.RequireLosslessConversion = true;",
+      "category": "naming",
+      "reason": "The existing Boolean property enables the same lossless-conversion proof without a separate fluent helper.",
+      "applied": true
     }
   ],
   "packageMoves": [

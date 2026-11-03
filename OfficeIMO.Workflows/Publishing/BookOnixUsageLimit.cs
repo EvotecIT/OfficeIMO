@@ -1,6 +1,3 @@
-#if !NET8_0_OR_GREATER
-using DateOnly = System.DateTime;
-#endif
 using OfficeIMO.Internal;
 using System.Globalization;
 
@@ -43,18 +40,11 @@ public sealed record BookOnixUsageLimit {
         return new(unit, text, (decimal)value.Ticks / TimeSpan.TicksPerSecond);
     }
 
-    /// <summary>Create a calendar boundary in YYYYMMDD format.</summary>
-    public static BookOnixUsageLimit Date(BookOnixUsageUnit unit, DateOnly value) {
+    /// <summary>Create a calendar boundary in YYYYMMDD format. Time of day is ignored.</summary>
+    public static BookOnixUsageLimit Date(BookOnixUsageUnit unit, DateTime value) {
         if (unit is not (BookOnixUsageUnit.ValidFrom or BookOnixUsageUnit.ValidUntil))
             throw new ArgumentOutOfRangeException(nameof(unit));
-        return new(unit, value.ToString("yyyyMMdd", CultureInfo.InvariantCulture), GetDayNumber(value));
-    }
-    private static int GetDayNumber(DateOnly value) {
-#if NET8_0_OR_GREATER
-        return value.DayNumber;
-#else
-        if (value.TimeOfDay != TimeSpan.Zero) throw new ArgumentException("Supply a date without a time component.", nameof(value));
-        return (value - DateTime.MinValue).Days;
-#endif
+        DateTime date = value.Date;
+        return new(unit, date.ToString("yyyyMMdd", CultureInfo.InvariantCulture), date.Ticks / TimeSpan.TicksPerDay);
     }
 }

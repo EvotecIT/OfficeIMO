@@ -192,7 +192,7 @@ public sealed class InvoiceWorkbenchTests {
         internal CancellationToken Token;
         internal TaskCompletionSource Entered = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public async Task<OfficeInvoiceStorageWorkflowResult> RunInvoiceAsync(OfficeInvoiceStorageWorkflowRequest request,
-            InvoiceValidator? validator = null, CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default) {
             Request = request; Token = cancellationToken; Entered.TrySetResult();
             await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
             throw new InvalidOperationException("The cancellation boundary should end execution.");

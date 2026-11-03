@@ -52,7 +52,7 @@ public sealed partial class BookProject {
             throw new ArgumentException("Image dimensions must be positive and byte length nonnegative.", nameof(version));
         if ((version.ImageWidth != null || version.ImageHeight != null) && mode != BookOnixResourceMode.Image)
             throw new ArgumentException("Image dimensions require image mode.", nameof(version));
-        if (version.UsableFrom > version.UsableUntil) throw new ArgumentException("Resource usage dates are reversed.", nameof(version));
+        if (version.UsableFrom?.Date > version.UsableUntil?.Date) throw new ArgumentException("Resource usage dates are reversed.", nameof(version));
         XNamespace ns = OnixNamespace;
         var result = new XElement(ns + "ResourceVersion", new XElement(ns + "ResourceForm", ((int)version.Form).ToString("00", CultureInfo.InvariantCulture)));
         void Feature(string code, string? value) {

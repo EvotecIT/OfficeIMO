@@ -6,11 +6,27 @@ using OfficeIMO.Invoicing.Validation;
 namespace OfficeIMO.Workflows;
 
 public static partial class OfficeInvoiceBufferWorkflow {
-    /// <summary>Preflights bounded immutable requests, then processes in input order. No item is executed when preflight exceeds a batch limit.</summary>
-    public static async Task<IReadOnlyList<OfficeInvoiceWorkflowResult>> RunBatchAsync(IEnumerable<OfficeInvoiceWorkflowRequest> requests,
-        OfficeInvoiceWorkflowBatchOptions? options = null,
+    /// <summary>Executes a bounded invoice batch without a standards provider.</summary>
+    public static Task<IReadOnlyList<OfficeInvoiceWorkflowResult>> RunBatchAsync(IEnumerable<OfficeInvoiceWorkflowRequest> requests,
+        OfficeInvoiceWorkflowBatchOptions? options = null, CancellationToken cancellationToken = default) =>
+        RunBatchCoreAsync(requests, options,
 #if NET8_0_OR_GREATER
-        InvoiceValidator? validator = null,
+            null,
+#endif
+            cancellationToken);
+
+#if NET8_0_OR_GREATER
+    /// <summary>Executes a bounded invoice batch with an explicit standards provider.</summary>
+    public static Task<IReadOnlyList<OfficeInvoiceWorkflowResult>> RunBatchAsync(IEnumerable<OfficeInvoiceWorkflowRequest> requests,
+        OfficeInvoiceWorkflowBatchOptions? options, InvoiceValidator? validator, CancellationToken cancellationToken = default) =>
+        RunBatchCoreAsync(requests, options, validator, cancellationToken);
+#endif
+
+    /// <summary>Preflights bounded immutable requests, then processes in input order. No item is executed when preflight exceeds a batch limit.</summary>
+    private static async Task<IReadOnlyList<OfficeInvoiceWorkflowResult>> RunBatchCoreAsync(IEnumerable<OfficeInvoiceWorkflowRequest> requests,
+        OfficeInvoiceWorkflowBatchOptions? options,
+#if NET8_0_OR_GREATER
+        InvoiceValidator? validator,
 #endif
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(requests);

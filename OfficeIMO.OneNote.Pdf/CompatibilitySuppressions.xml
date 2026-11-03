@@ -1,9 +1,37 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<!-- Exact baseline-only API-map changes apply across compatible frameworks, including a net472 baseline against netstandard2.0 on Unix. -->
-<Suppressions>
+<!-- https://learn.microsoft.com/dotnet/fundamentals/package-validation/diagnostic-ids -->
+<Suppressions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:OfficeIMO.OneNote.Pdf.OneNotePdfSaveOptions</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.OneNote.Pdf.OneNoteVisualPdfOptions</Target>
+    <Left>lib/net10.0/OfficeIMO.OneNote.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.OneNote.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.OneNote.Pdf.OneNoteVisualPdfOptions</Target>
+    <Left>lib/net472/OfficeIMO.OneNote.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.OneNote.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.OneNote.Pdf.OneNoteVisualPdfOptions</Target>
+    <Left>lib/net8.0/OfficeIMO.OneNote.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.OneNote.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.OneNote.Pdf.OneNoteVisualPdfOptions</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.OneNote.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.OneNote.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
@@ -168,7 +196,114 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.OneNote.Pdf.OneNoteVisualPdfOptions.get_PdfOptions</Target>
+    <Target>M:OfficeIMO.OneNote.Pdf.OneNoteVisualPdfExtensions.SaveAsVisualPdfAsync(OfficeIMO.OneNote.OneNoteNotebook,System.IO.Stream,OfficeIMO.OneNote.Pdf.OneNoteVisualPdfOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/OfficeIMO.OneNote.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.OneNote.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OneNote.Pdf.OneNoteVisualPdfExtensions.SaveAsVisualPdfAsync(OfficeIMO.OneNote.OneNoteNotebook,System.String,OfficeIMO.OneNote.Pdf.OneNoteVisualPdfOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/OfficeIMO.OneNote.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.OneNote.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OneNote.Pdf.OneNoteVisualPdfExtensions.SaveAsVisualPdfAsync(OfficeIMO.OneNote.OneNoteSection,System.IO.Stream,OfficeIMO.OneNote.Pdf.OneNoteVisualPdfOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/OfficeIMO.OneNote.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.OneNote.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OneNote.Pdf.OneNoteVisualPdfExtensions.SaveAsVisualPdfAsync(OfficeIMO.OneNote.OneNoteSection,System.String,OfficeIMO.OneNote.Pdf.OneNoteVisualPdfOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net10.0/OfficeIMO.OneNote.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.OneNote.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OneNote.Pdf.OneNoteVisualPdfExtensions.SaveAsVisualPdfAsync(OfficeIMO.OneNote.OneNoteNotebook,System.IO.Stream,OfficeIMO.OneNote.Pdf.OneNoteVisualPdfOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net472/OfficeIMO.OneNote.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.OneNote.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OneNote.Pdf.OneNoteVisualPdfExtensions.SaveAsVisualPdfAsync(OfficeIMO.OneNote.OneNoteNotebook,System.String,OfficeIMO.OneNote.Pdf.OneNoteVisualPdfOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net472/OfficeIMO.OneNote.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.OneNote.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OneNote.Pdf.OneNoteVisualPdfExtensions.SaveAsVisualPdfAsync(OfficeIMO.OneNote.OneNoteSection,System.IO.Stream,OfficeIMO.OneNote.Pdf.OneNoteVisualPdfOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net472/OfficeIMO.OneNote.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.OneNote.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OneNote.Pdf.OneNoteVisualPdfExtensions.SaveAsVisualPdfAsync(OfficeIMO.OneNote.OneNoteSection,System.String,OfficeIMO.OneNote.Pdf.OneNoteVisualPdfOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net472/OfficeIMO.OneNote.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.OneNote.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OneNote.Pdf.OneNoteVisualPdfExtensions.SaveAsVisualPdfAsync(OfficeIMO.OneNote.OneNoteNotebook,System.IO.Stream,OfficeIMO.OneNote.Pdf.OneNoteVisualPdfOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/OfficeIMO.OneNote.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.OneNote.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OneNote.Pdf.OneNoteVisualPdfExtensions.SaveAsVisualPdfAsync(OfficeIMO.OneNote.OneNoteNotebook,System.String,OfficeIMO.OneNote.Pdf.OneNoteVisualPdfOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/OfficeIMO.OneNote.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.OneNote.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OneNote.Pdf.OneNoteVisualPdfExtensions.SaveAsVisualPdfAsync(OfficeIMO.OneNote.OneNoteSection,System.IO.Stream,OfficeIMO.OneNote.Pdf.OneNoteVisualPdfOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/OfficeIMO.OneNote.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.OneNote.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OneNote.Pdf.OneNoteVisualPdfExtensions.SaveAsVisualPdfAsync(OfficeIMO.OneNote.OneNoteSection,System.String,OfficeIMO.OneNote.Pdf.OneNoteVisualPdfOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/OfficeIMO.OneNote.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.OneNote.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OneNote.Pdf.OneNoteVisualPdfExtensions.SaveAsVisualPdfAsync(OfficeIMO.OneNote.OneNoteNotebook,System.IO.Stream,OfficeIMO.OneNote.Pdf.OneNoteVisualPdfOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.OneNote.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.OneNote.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OneNote.Pdf.OneNoteVisualPdfExtensions.SaveAsVisualPdfAsync(OfficeIMO.OneNote.OneNoteNotebook,System.String,OfficeIMO.OneNote.Pdf.OneNoteVisualPdfOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.OneNote.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.OneNote.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OneNote.Pdf.OneNoteVisualPdfExtensions.SaveAsVisualPdfAsync(OfficeIMO.OneNote.OneNoteSection,System.IO.Stream,OfficeIMO.OneNote.Pdf.OneNoteVisualPdfOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.OneNote.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.OneNote.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OneNote.Pdf.OneNoteVisualPdfExtensions.SaveAsVisualPdfAsync(OfficeIMO.OneNote.OneNoteSection,System.String,OfficeIMO.OneNote.Pdf.OneNoteVisualPdfOptions,System.Threading.CancellationToken)</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.OneNote.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.OneNote.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
 </Suppressions>
