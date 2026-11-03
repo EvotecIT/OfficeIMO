@@ -9,9 +9,46 @@ internal static partial class PdfWriter {
         private IEnumerable<(List<List<OfficePoint>> Contours, bool NominalBounds)> DiagnosticGlyphContours(RichSeg segment, string text, double x, double baseline) {
             if (string.IsNullOrWhiteSpace(text)) yield break;
             foreach (var glyph in EnumerateGlyphPaintContours(segment, text, x, baseline, currentOpts,
-                _diagnosticFonts, DiagnosticTextOptions, cancellationToken: cancellationToken,
+                _diagnosticFonts, DiagnosticTextOptions, DiagnosticTextCommand(segment, text), cancellationToken: cancellationToken,
                 glyphOutline: DiagnosticGlyphOutline, fontCacheCleared: ClearDiagnosticGlyphCache)) yield return glyph;
         }
+
+        private const int DiagnosticTextCommandLimit = 4096;
+        private readonly Dictionary<(string Text, PdfStandardFont Font, PdfNamedFontFace? NamedFont, OfficeTextFeatureSettings Features,
+            OfficeTextDirection Direction, double MetricScale, bool PreservesPaintedGlyphs), PdfTextShowCommand> _diagnosticTextCommands = new();
+        private PdfCreateOptions? _diagnosticTextCommandOptions;
+
+        /// <summary>
+        /// Encodes inspected text with a measurement snapshot once per distinct run. Encoding with a
+        /// snapshot has no effect on the output document, so equal inputs give an equal command.
+        /// </summary>
+        private PdfTextShowCommand DiagnosticTextCommand(RichSeg segment, string text) {
+            if (text == segment.Text && segment.KerningCommand != null) return segment.KerningCommand;
+            PdfCreateOptions options = DiagnosticTextOptions;
+            if (_diagnosticTextCommandOptions == null || !EncodesTextAlike(_diagnosticTextCommandOptions, options)
+                || _diagnosticTextCommands.Count >= DiagnosticTextCommandLimit) {
+                _diagnosticTextCommands.Clear();
+                _diagnosticTextCommandOptions = options;
+            }
+            var key = (text, segment.Font, segment.NamedFont, segment.FeatureSettings, segment.TextDirection,
+                segment.FontMetricScale, segment.PreservesPaintedGlyphs);
+            if (!_diagnosticTextCommands.TryGetValue(key, out PdfTextShowCommand? command)) {
+                command = EncodeTextShowCommand(text, segment.Font, segment.NamedFont, options, segment.FeatureSettings,
+                    segment.TextDirection, segment.FontMetricScale, preservesPaintedGlyphs: segment.PreservesPaintedGlyphs);
+                _diagnosticTextCommands.Add(key, command);
+            }
+            return command;
+        }
+
+        // Pages and frames get their own options; a snapshot with the same fonts and shaping settings encodes text the same way.
+        private static bool EncodesTextAlike(PdfCreateOptions cached, PdfCreateOptions current) =>
+            ReferenceEquals(cached, current)
+            || cached.HasSameMeasurementFonts(current)
+            && cached.TextShapingModeSnapshot == current.TextShapingModeSnapshot
+            && ReferenceEquals(cached.TextShapingProviderSnapshot, current.TextShapingProviderSnapshot)
+            && string.Equals(cached.EffectiveTextShapingLanguage, current.EffectiveTextShapingLanguage, StringComparison.Ordinal)
+            && cached.UseFontUnitTextLayout == current.UseFontUnitTextLayout
+            && ReferenceEquals(cached.DefaultTextFeatureSettings, current.DefaultTextFeatureSettings);
 
         private IEnumerable<List<List<OfficePoint>>> DiagnosticDecorationContours(double left, double right, double y, OfficeTextDecorationStyle style) {
             const double thickness = .5D;
