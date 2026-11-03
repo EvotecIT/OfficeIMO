@@ -89,6 +89,55 @@ All output-size differences are below 0.2%. The packages carry the same
 validated semantic and Office-compatible structural contract; smaller output
 is not achieved by omitting required content.
 
+## Interleaved 10,000-paragraph read check — 2026-11-03
+
+This check compares two frozen OfficeIMO builds, independently of the Windows
+SDK comparison above. Only `WordReadComparisonBenchmarks.OfficeIMO` with
+`ItemCount=10000` was timed. Each operation loads the deterministic styled DOCX,
+reads every body paragraph's text, computes the paragraph count, character count
+and checksum, and disposes the document. Fixture construction and correctness
+validation run outside the measurement; no output document is produced. The
+[workload](../../OfficeIMO.Word.Benchmarks/WordReadComparisonBenchmarks.cs) and
+[corpus](../../OfficeIMO.Word.Benchmarks/WordBenchmarkCorpus.cs) define the contract.
+
+The run order was baseline, current, current, baseline on Apple M4, macOS 27.0.1,
+.NET SDK 10.0.403 and .NET 10.0.14 Arm64. Each process used BenchmarkDotNet 0.15.8
+`ShortRun`, `InProcessEmitToolchain`, three warmup iterations and three measured
+iterations. All four runs completed successfully.
+
+| Run order | Build | Mean ms/op | Standard deviation ms | Allocation MiB/op |
+| --- | --- | ---: | ---: | ---: |
+| 1 | Baseline | 17.708 | 0.027 | 12.36 |
+| 2 | Current | 20.206 | 2.887 | 12.36 |
+| 3 | Current | 20.758 | 0.059 | 12.36 |
+| 4 | Baseline | 17.542 | 0.021 | 12.36 |
+
+The mean of the two run means rose from 17.625 to 20.482 ms, about 16.2%, with
+unchanged allocation at report precision. The first current run's measurements
+ranged from 17.637 to 23.330 ms. This is a local slowdown signal; the short runs
+and timing variation do not establish a portable performance ratio or identify
+the responsible change. These measurements demonstrate no read speedup or
+allocation reduction.
+
+The runner recorded the following SHA-256 hashes. They identify the measured
+binaries; they do not attest a clean source checkout or fully identify its inputs.
+
+| Build | OfficeIMO.Word.dll SHA-256 | Benchmark assembly SHA-256 |
+| --- | --- | --- |
+| Baseline | `1d02a02eab5e8fd0a86bb3d085dd1a154329e8f5bbdf1b43e2274c18c064ae3d` | `d0cf7c5691a851c0797c82eaa2814fa8da7945f82463526de1ce145b80a6d4ba` |
+| Current | `51faf5d2cace69a0afb8a681eaae2f496093f44abc3b6efa717ae97046491f27` | `ac7dff89e92ef9852e878351dac570d76762609129d8d16176a79ff00abef9d6` |
+
+To run the same workload, build and retain each version's benchmark executable,
+then alternate those executables in the order above with distinct artifact
+directories. The current-source invocation is:
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordReadComparisonBenchmarks.OfficeIMO*10000*' --job short --inProcess --warmupCount 3 --iterationCount 3 --artifacts .benchmark-artifacts\word\read-10000
+```
+
+The `evidence` subcommand accepts only 100 and 1,000 items and does not reproduce
+this 10,000-paragraph check.
+
 ## Reproduce
 
 ```powershell
