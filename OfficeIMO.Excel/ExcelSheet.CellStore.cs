@@ -84,6 +84,8 @@ namespace OfficeIMO.Excel {
             EnsureDynamicArrayCellWritable(row, column);
             SheetData sheetData = GetOrCreateSheetData();
             Row rowElement = GetOrCreateRowForCell(sheetData, row, out _);
+            // Row-by-row writes resume the row search here, as GetCell's cell cache lets them do.
+            CacheLastAccessedRow(rowElement, row);
             if (rowElement is not ExcelStoredRow stored || !stored.AcceptsStoredCells) return false;
 
             int found = stored.Find(column);
