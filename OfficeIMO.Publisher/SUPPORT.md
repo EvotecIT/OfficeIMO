@@ -69,8 +69,15 @@ can select `1` without entering the decoded dialog dispatcher. Numeric results
 alone therefore do not establish button selection or accepted recovery.
 The `nativeResourceRegistryBinding` record resolves Publisher's resource key
 through the current registry to its Unicode-reading method. The key is not
-assumed to be an object pointer. Backing satellite, language, payload and the
-decoded consent message remain unqualified.
+assumed to be an object pointer. The `currentResourceSafetyPrompt` record binds
+the observed payload base to type 234 / ID 1 / language 1033 in the exact mapped
+`PUB6INTL.DLL`. Reconstruction of key `0x67c40022` from that file and the observed
+object configuration yields a file-problem/source-trust safety prompt. It advises
+cancellation when the source or contents are uncertain and makes no repair or
+recovery assertion. This is a file reconstruction, not a directly observed
+runtime string or a native full-key call. Button meanings, actual internal
+recovery and repair-free acceptance remain unqualified; the safety prompt is
+not a repair-positive control.
 
 The internal codec in `OfficeIMO.Publisher/Internal/NativeCreation` is qualified
 through the opt-in [native writer probe](../Build/Publisher/WriterProbe/README.md)

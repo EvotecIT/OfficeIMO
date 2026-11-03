@@ -39875,5 +39875,94 @@
     "cancelledControlUntouched": true,
     "canClosePUB00": false,
     "canPromotePublicNativeCreation": false
+  },
+  "currentResourceSafetyPrompt": {
+    "sourceBaseCommit": "37b5d6e0ea06e76821c6acff47ca6efe086fa558",
+    "scope": "On-disk reconstruction of one current key using the attributed resource file, observed resource-object configuration and qualified current instructions. No runtime string or native full-key call was observed.",
+    "key": "0x67c40022",
+    "payloadAttribution": {
+      "file": "PUB6INTL.DLL",
+      "version": "16.0.19328.20010",
+      "bytes": 450792,
+      "sha256": "dac5ff42a44d8e06d50f86a2c1a882a8d792e91a2228747e8a1c930ccd64e073",
+      "mapping": "Committed readable MEM_IMAGE; actual mapped physical file identity qualified.",
+      "resourceType": 234,
+      "resourceId": 1,
+      "languageId": 1033,
+      "codePageMetadata": 1252,
+      "rva": "0x368c8",
+      "fileOffset": "0x34ec8",
+      "bytesInResource": 212484,
+      "payloadSha256": "08de1558b661cbbf3cb2f38f89dad4a8b5f1d603b47a19eb29dafcaae0184c03",
+      "baseRelation": "Observed object+8 equals image allocation base plus the exact resource data RVA.",
+      "ramPayloadBytesRead": 0
+    },
+    "passiveConfiguration": {
+      "v5PointerReads": 54,
+      "v5Bytes": 432,
+      "v5WholeSnapshotMatches": [
+        false,
+        true,
+        true
+      ],
+      "v6PointerReads": 81,
+      "v6Bytes": 648,
+      "v6WholeSnapshotMatches": [
+        true,
+        true,
+        false
+      ],
+      "closedObserverHandles": 6,
+      "headerWordOffsets": [
+        "0x18",
+        "0x20",
+        "0x28",
+        "0x30",
+        "0x38"
+      ],
+      "resolvedObjectMethodAndPayloadStableInV5AndV6": true,
+      "fiveHeaderWordsStableAcrossV6Snapshots": true,
+      "limitation": "Cache entries and lookup paths can change between non-atomic snapshots; stable selected fields do not imply uninterrupted state."
+    },
+    "route": {
+      "groupIndex": 83,
+      "groupSelector": "0x67c4",
+      "lowOrdinal": 34,
+      "denseEntryOffset": 19649,
+      "denseEntryBytes": "01f36e",
+      "poolRelativeOffset": 93939,
+      "selectedRecordOffset": 138386,
+      "selectedFileOffset": 355162,
+      "prefixRecordOffsets": [
+        138540,
+        138588
+      ],
+      "effectiveDescriptors": [
+        "0x27",
+        "0x25",
+        "0x05"
+      ],
+      "encoding": "Reached zero-page packed five-bit branches only; middle record inherits the captured descriptor.",
+      "unreadInlineContextNeeded": false
+    },
+    "message": {
+      "category": "Detected-file-problem and source-trust/content-safety consent prompt.",
+      "paraphrase": "The message warns about a problem with the file and asks the user to rely on trust in its source; it advises cancellation when the source or contents are uncertain.",
+      "utf16Units": 297,
+      "wordCount": 54,
+      "utf16leSha256": "cc9d79c07572a3858254bd521fd041fb4092969b72bfad0f88b78d3c20db03e5",
+      "repairOrRecoveryAssertionInText": false
+    },
+    "verification": "A separate read-only derivation and implementation comparison confirmed the actual three-record route; it did not independently execute or hash the reconstructed text.",
+    "proofSha256": "20036a5504558f883b46af7273bbb270036d5f5758a95882ce720b6e42c2b3a8",
+    "limits": [
+      "File bytes were reconstructed; no directly observed runtime string, RAM payload hash or full-key call trace.",
+      "No independent known-key/native-text control or numeric button/flag/retry ABI qualification.",
+      "No conclusion that the loader did or did not repair internally; this safety text is not a repair-positive control.",
+      "Key-specific scratch reconstruction is not a product resource codec or runtime dependency."
+    ],
+    "cancelledControlUntouched": true,
+    "canClosePUB00": false,
+    "canPromotePublicNativeCreation": false
   }
 }
