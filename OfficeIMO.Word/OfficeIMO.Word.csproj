@@ -2,8 +2,6 @@
 
     <PropertyGroup>
         <Description>Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.</Description>
-        <AssemblyName>OfficeIMO.Word</AssemblyName>
-        <AssemblyTitle>OfficeIMO.Word</AssemblyTitle>
 
         <VersionPrefix>3.5.3</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>

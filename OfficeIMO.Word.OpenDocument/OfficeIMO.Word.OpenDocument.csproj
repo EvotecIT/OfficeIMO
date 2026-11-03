@@ -2,8 +2,6 @@
   <PropertyGroup>
     <Description>Explicit ODT and Word conversion adapter with feature-mapping reports.</Description>
     <PackageId>OfficeIMO.Word.OpenDocument</PackageId>
-    <AssemblyName>OfficeIMO.Word.OpenDocument</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Word.OpenDocument</AssemblyTitle>
     <VersionPrefix>3.5.3</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>

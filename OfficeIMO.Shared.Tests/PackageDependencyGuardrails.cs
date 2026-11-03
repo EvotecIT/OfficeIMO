@@ -332,7 +332,7 @@ public sealed class PackageDependencyGuardrailTests {
         var ns = document.Root?.Name.Namespace ?? XNamespace.None;
 
         Assert.Equal("OfficeIMO.Html.Rtf", (string?)document.Descendants(ns + "PackageId").Single());
-        Assert.Equal("OfficeIMO.Html.Rtf", (string?)document.Descendants(ns + "AssemblyName").Single());
+        Assert.Equal("OfficeIMO.Html.Rtf", typeof(OfficeIMO.Html.HtmlToRtfOptions).Assembly.GetName().Name);
 
         var exportedTypeNames = typeof(OfficeIMO.Html.HtmlToRtfOptions)
             .Assembly

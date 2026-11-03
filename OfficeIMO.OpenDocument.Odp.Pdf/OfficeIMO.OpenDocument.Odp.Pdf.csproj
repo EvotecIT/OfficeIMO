@@ -2,8 +2,6 @@
   <PropertyGroup>
     <Description>Bidirectional, loss-aware ODP and PDF conversion through the PowerPoint semantic engine.</Description>
     <PackageId>OfficeIMO.OpenDocument.Odp.Pdf</PackageId>
-    <AssemblyName>OfficeIMO.OpenDocument.Odp.Pdf</AssemblyName>
-    <AssemblyTitle>OfficeIMO.OpenDocument.Odp.Pdf</AssemblyTitle>
     <VersionPrefix>3.5.3</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>

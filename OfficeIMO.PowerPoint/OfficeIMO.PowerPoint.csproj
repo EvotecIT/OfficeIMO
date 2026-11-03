@@ -2,8 +2,6 @@
 
     <PropertyGroup>
         <Description>Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft PowerPoint PPT, PPTX, PPTM, POT, PPS, and related presentations without Microsoft Office.</Description>
-        <AssemblyName>OfficeIMO.PowerPoint</AssemblyName>
-        <AssemblyTitle>OfficeIMO.PowerPoint</AssemblyTitle>
 
         <VersionPrefix>3.5.3</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
