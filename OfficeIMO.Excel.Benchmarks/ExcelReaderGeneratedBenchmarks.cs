@@ -2,6 +2,7 @@
 using System.Data;
 using System.Data.Common;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
@@ -62,13 +63,13 @@ public partial class ExcelReaderGeneratedBenchmarks {
     [Benchmark(Baseline = true), BenchmarkCategory("Read")]
     public long OfficeIMO_Read() {
         using var reader = ExcelDocument.OpenReader(_path);
-        return Read(reader);
+        return ReadLane<OfficeIMOReadLane>(reader);
     }
 
     [Benchmark, BenchmarkCategory("Read")]
     public long Sylvan_Read() {
         using var reader = global::Sylvan.Data.Excel.ExcelDataReader.Create(_path);
-        return Read(reader);
+        return ReadLane<SylvanReadLane>(reader);
     }
 
     [Benchmark, BenchmarkCategory("Read")]
@@ -77,10 +78,21 @@ public partial class ExcelReaderGeneratedBenchmarks {
         using var reader = global::ExcelDataReader.ExcelReaderFactory.CreateReader(stream);
         if (!reader.Read()) throw new InvalidDataException("Missing header.");
         ValidateHeaders(reader);
-        return Read(reader);
+        return ReadLane<ExcelDataReaderReadLane>(reader);
     }
 
-    internal long Read(IDataReader reader) {
+    internal long Read(IDataReader reader) => ReadLane<OfficeIMOReadLane>(reader);
+
+    // Value-type tags keep one JIT profile per participant. One library's
+    // preflight and timed calls must not specialize another library's loop.
+    private readonly struct OfficeIMOReadLane { }
+    private readonly struct SylvanReadLane { }
+    private readonly struct ExcelDataReaderReadLane { }
+    private readonly struct OfficeIMOParseLane { }
+    private readonly struct ExcelReaderParseLane { }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private long ReadLane<TLane>(IDataReader reader) where TLane : struct {
         ValidateHeaders(reader, reader is DbDataReader);
         long checksum = 0;
         int count = 0;
@@ -99,23 +111,24 @@ public partial class ExcelReaderGeneratedBenchmarks {
     [Benchmark(Baseline = true), BenchmarkCategory("Parse")]
     public long OfficeIMO_Parse() {
         using var reader = ExcelDocument.OpenReader(_path);
-        return Observe(reader.RowsAs<GeneratedRecord>());
+        return ObserveLane<OfficeIMOParseLane>(reader.RowsAs<GeneratedRecord>());
     }
 
     [Benchmark, BenchmarkCategory("Parse")]
     public long ExcelReaderNet_Parse() {
         switch (Format) {
             case ExcelFileFormat.Xlsx:
-                using (var reader = ExcelReaderApi.FromXlsxFile(_path)) return Observe(Parser.Parse(reader.FirstSheet));
+                using (var reader = ExcelReaderApi.FromXlsxFile(_path)) return ObserveLane<ExcelReaderParseLane>(Parser.Parse(reader.FirstSheet));
             case ExcelFileFormat.Xlsb:
-                using (var reader = ExcelReaderApi.FromXlsbFile(_path)) return Observe(Parser.Parse(reader.FirstSheet));
+                using (var reader = ExcelReaderApi.FromXlsbFile(_path)) return ObserveLane<ExcelReaderParseLane>(Parser.Parse(reader.FirstSheet));
             case ExcelFileFormat.Xls:
-                using (var reader = ExcelReaderApi.FromXlsFile(_path)) return Observe(Parser.Parse(reader.FirstSheet));
+                using (var reader = ExcelReaderApi.FromXlsFile(_path)) return ObserveLane<ExcelReaderParseLane>(Parser.Parse(reader.FirstSheet));
             default: throw new ArgumentOutOfRangeException();
         }
     }
 
-    private long Observe(IEnumerable<GeneratedRecord> rows) {
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private long ObserveLane<TLane>(IEnumerable<GeneratedRecord> rows) where TLane : struct {
         long checksum = 0;
         int count = 0;
         foreach (var row in rows) {
