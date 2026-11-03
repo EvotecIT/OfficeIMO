@@ -35,7 +35,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     // Semantic, clip and effect envelopes can contain only positioned paint.
     // Wrapping that paint does not make it a normal-flow content carrier.
     private static bool ContainsInFlowPaint(HtmlRenderVisual visual) =>
-        !visual.IsOutOfFlowPaint && (visual.PaintChildren is not { Count: > 0 } children
+        !visual.IsOutOfFlowPaint && (visual.InvariantPaintChildren is not { Count: > 0 } children
             || children.Any(ContainsInFlowPaint));
 
     // Local positioned layers already belong to their host's ordered bands.
@@ -44,16 +44,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static bool ContainsPositionedFlowPaint(HtmlRenderVisual visual) =>
         visual.IsOutOfFlowPaint
         || visual.PaintPhase == HtmlRenderPaintPhase.Content
-            && GetFlowPaintChildren(visual)?.Any(ContainsPositionedFlowPaint) == true;
+            && GetFlowPaintChildren(visual, invariantOnly: true)?.Any(ContainsPositionedFlowPaint) == true;
 
     private static bool ContainsDeferredFlowPaint(HtmlRenderVisual visual) =>
         visual.PaintPhase is HtmlRenderPaintPhase.BlockBackground or HtmlRenderPaintPhase.Float or HtmlRenderPaintPhase.Outline
         || visual is HtmlRenderShape { IsCollapsedTableBorder: true }
         || visual.PaintPhase == HtmlRenderPaintPhase.Content && visual.StackingContext == null
-            && GetFlowPaintChildren(visual)?.Any(ContainsDeferredFlowPaint) == true;
+            && GetFlowPaintChildren(visual, invariantOnly: true)?.Any(ContainsDeferredFlowPaint) == true;
 
-    private static IReadOnlyList<HtmlRenderVisual>? GetFlowPaintChildren(HtmlRenderVisual visual) {
-        IReadOnlyList<HtmlRenderVisual>? children = visual is HtmlRenderEffectGroup ? null : GetGroupChildren(visual);
+    private static IReadOnlyList<HtmlRenderVisual>? GetFlowPaintChildren(HtmlRenderVisual visual, bool invariantOnly = false) {
+        IReadOnlyList<HtmlRenderVisual>? children = visual is HtmlRenderEffectGroup ? null
+            : invariantOnly && visual is HtmlRenderSemanticGroup semantic ? semantic.InvariantVisuals
+            : GetGroupChildren(visual);
         // Empty groups can own logical text or paint-neutral pagination anchors.
         // Keep them as one content leaf rather than filtering away every phase.
         return children is { Count: > 0 } ? children : null;

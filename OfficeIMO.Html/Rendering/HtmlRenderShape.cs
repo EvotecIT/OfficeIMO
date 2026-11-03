@@ -63,4 +63,17 @@ public sealed class HtmlRenderShape : HtmlRenderVisual {
 
     internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderShape(this, X + offsetX, Y + offsetY, paintOrder, LayoutY, CollapsedBorderBoundaryY);
+
+    internal override HtmlRenderVisual TranslateThrough(HtmlRenderOffset[] offsets, int paintOrder) {
+        double x = X, y = Y, layoutY = LayoutY;
+        double? boundaryY = CollapsedBorderBoundaryY;
+        foreach (HtmlRenderOffset offset in offsets) {
+            x += offset.X;
+            y += offset.Y;
+            if (offset.PaintOnly) continue;
+            layoutY += offset.Y;
+            boundaryY += offset.Y;
+        }
+        return CopyStackingContextTo(new HtmlRenderShape(this, x, y, paintOrder, layoutY, boundaryY));
+    }
 }

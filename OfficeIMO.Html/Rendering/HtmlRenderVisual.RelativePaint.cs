@@ -48,6 +48,13 @@ public abstract partial class HtmlRenderVisual {
         _ => null
     };
 
+    /// <summary>
+    /// <see cref="PaintChildren"/> for queries about translation-invariant state only; a pending
+    /// semantic-group translation is not copied, so child positions and paint order may be stale.
+    /// </summary>
+    internal IReadOnlyList<HtmlRenderVisual>? InvariantPaintChildren =>
+        this is HtmlRenderSemanticGroup semantic ? semantic.InvariantVisuals : PaintChildren;
+
     internal HtmlRenderVisual ProjectPaintChildren(IEnumerable<HtmlRenderVisual> children,
         double offsetX, double offsetY, int paintOrder, bool ownsLogicalText = true) =>
         CopyStackingContextTo(this switch {

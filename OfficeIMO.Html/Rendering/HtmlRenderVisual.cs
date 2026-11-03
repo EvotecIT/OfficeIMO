@@ -131,6 +131,8 @@ public abstract partial class HtmlRenderVisual {
 
     // Translation numbers every child by its position, so a copy changes no order here.
     private static bool HasIndexedPaintOrder(HtmlRenderVisual visual) {
+        // A pending translation numbers its subtree the same way when it is materialized.
+        if (visual is HtmlRenderSemanticGroup { HasPendingTranslation: true }) return true;
         if (visual.PaintChildren is not { } children) return true;
         for (int index = 0; index < children.Count; index++) {
             if (children[index].PaintOrder != index || !HasIndexedPaintOrder(children[index])) return false;
@@ -142,6 +144,17 @@ public abstract partial class HtmlRenderVisual {
         CopyStackingContextTo(TranslatePaintCore(offsetX, offsetY, paintOrder));
 
     internal abstract HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder);
+
+    /// <summary>
+    /// Applies successive translations, oldest first, with the same result as calling
+    /// <see cref="Translate"/> or <see cref="TranslatePaint"/> for each one in turn.
+    /// Visuals that are translated often override this to build one copy instead of one per step.
+    /// </summary>
+    internal virtual HtmlRenderVisual TranslateThrough(HtmlRenderOffset[] offsets, int paintOrder) {
+        HtmlRenderVisual result = this;
+        foreach (HtmlRenderOffset offset in offsets) result = offset.Apply(result, paintOrder);
+        return result;
+    }
 
     internal abstract HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder);
 
@@ -155,6 +168,32 @@ public abstract partial class HtmlRenderVisual {
         if (value <= 0D || double.IsNaN(value) || double.IsInfinity(value)) {
             throw new ArgumentOutOfRangeException(parameterName, "Render dimensions must be finite positive numbers.");
         }
+    }
+}
+
+/// <summary>One deferred <see cref="HtmlRenderVisual.Translate"/> or <see cref="HtmlRenderVisual.TranslatePaint"/> step.</summary>
+internal readonly struct HtmlRenderOffset {
+    internal HtmlRenderOffset(double x, double y, bool paintOnly) {
+        X = x;
+        Y = y;
+        PaintOnly = paintOnly;
+    }
+
+    internal double X { get; }
+    internal double Y { get; }
+    // Paint-only steps leave the normal-flow coordinate used for fragmentation in place.
+    internal bool PaintOnly { get; }
+    internal bool IsZero => X == 0D && Y == 0D;
+
+    internal HtmlRenderVisual Apply(HtmlRenderVisual visual, int paintOrder) => PaintOnly
+        ? visual.TranslatePaint(X, Y, paintOrder)
+        : visual.Translate(X, Y, paintOrder);
+
+    internal static HtmlRenderOffset[] Append(HtmlRenderOffset[] first, HtmlRenderOffset[] second) {
+        var result = new HtmlRenderOffset[first.Length + second.Length];
+        Array.Copy(first, result, first.Length);
+        Array.Copy(second, 0, result, first.Length, second.Length);
+        return result;
     }
 }
 
