@@ -27,7 +27,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             ExcelDocument document,
             ExcelDirectTabularSource source,
             CancellationToken cancellationToken,
-            out byte[] workbookBytes) {
+            out byte[] workbookBytes,
+            Stream? destination = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (source == null) throw new ArgumentNullException(nameof(source));
 
@@ -47,7 +48,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 using (DirectTabularWorkbookStream workbookStream =
                        BuildDirectTabularWorkbookStream(document, sheet, source.UseCellValueNumberFormats, directPlan)) {
                     ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.BuildWorkbookStream");
-                    workbookBytes = BuildCompoundFile(document, workbookStream);
+                    if (destination == null) {
+                        workbookBytes = BuildCompoundFile(document, workbookStream);
+                    } else {
+                        WriteDirectCompoundFile(document, workbookStream, destination);
+                        workbookBytes = Array.Empty<byte>();
+                    }
                     ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.BuildCompoundFile");
                     return true;
                 }

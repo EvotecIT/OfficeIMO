@@ -12,11 +12,13 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
-        [Fact]
-        public void LegacyXls_DirectTabularSave_WritesSupportedScalarValuesThroughPublicApi() {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void LegacyXls_DirectTabularSave_WritesSupportedScalarValuesThroughPublicApi(bool captureTimings) {
             var timings = new List<string>();
             using ExcelDocument document = ExcelDocument.Create();
-            document.Execution.OnTiming = (operation, _) => timings.Add(operation);
+            if (captureTimings) document.Execution.OnTiming = (operation, _) => timings.Add(operation);
             ExcelSheet sheet = document.AddSheet("Data");
             sheet.Cell(1, 1).SetValue("Text");
             sheet.Cell(1, 2).SetValue("Integer");
@@ -33,9 +35,15 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(row, 4).SetValue((row & 1) == 0);
             }
 
-            byte[] workbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
+            using var destination = new MemoryStream();
+            destination.SetLength(100_000);
+            destination.Position = 100;
+            document.Save(destination, new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
+            byte[] workbook = destination.ToArray();
 
-            Assert.Contains("Save.Xls.Direct.ExtractCells", timings);
+            Assert.Equal(0, destination.Position);
+            Assert.True(destination.Length < 100_000);
+            if (captureTimings) Assert.Contains("Save.Xls.Direct.ExtractCells", timings);
             Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
             var readOptions = new ExcelReaderOptions();
             using (LegacyXlsTabularWorkbook indexedWorkbook = LegacyXlsTabularWorkbook.Open(workbook, readOptions))

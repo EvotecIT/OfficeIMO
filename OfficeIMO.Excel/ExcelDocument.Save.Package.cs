@@ -201,7 +201,8 @@ namespace OfficeIMO.Excel {
             destination.Flush();
         }
 
-        private static void PrepareDestinationStreamForWrite(Stream destination) {
+        /// <summary>Resets a seekable save destination after candidate preparation has succeeded.</summary>
+        internal static void PrepareDestinationStreamForWrite(Stream destination) {
             if (!destination.CanSeek) {
                 return;
             }

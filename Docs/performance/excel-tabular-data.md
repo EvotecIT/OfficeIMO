@@ -145,22 +145,52 @@ these retained changes, so it cannot establish their independent throughput gain
 The direct mapper keeps per-cell compatibility checks and the outer-reader conversion
 fallback. RK encoding is used only when decoding reproduces the original double bits.
 
+## Compatible writer follow-up: 3 November 2026
+
+Fresh synchronous direct-tabular XLS saves prepare the BIFF buffer and compound
+layout before touching the destination, then use the existing compound serializer
+to emit directly. Ordinary memory destinations reserve the exact serialized size,
+as the previous single staged write did. Imported workbooks, asynchronous or
+cancellable saves, and timing callbacks retain their existing staging boundary.
+Source enumeration and selectors still run during `WriteData`; their values remain
+buffered until saving.
+
+The first 50,000-row measurement reduces XLS write allocation from 36.194 MiB at
+`5d33057990` to 30.072 MiB. The initial direct-write attempt without the exact
+reservation used 35.674 MiB: repeated destination growth consumed much of the saved
+copy. That version is superseded by the exact reservation. Complete output is
+validated by the strict reader and independently by ExcelDataReader.
+
+Two read experiments are not retained:
+
+- Inflating the same validated XLSB and XLSX parts into an existing buffer with
+  81,920-byte, 256 KiB, 1 MiB and whole-part reads keeps allocation unchanged.
+  Medians range from 2.127 to 2.142 ms for XLSB and 2.585 to 2.619 ms for XLSX.
+  The chunk-size change does not earn a production change.
+- A dedicated validated XLSB inline-text delivery branch avoids a general cell
+  dispatch but shows no material read improvement or allocation reduction. The
+  binary readers therefore remain byte-for-byte identical to the baseline source.
+
+The existing RK boundary test checks decoded double bits across both binary formats
+and resaves. An additional negative-zero control through `Cell.SetValue` returns
+positive zero on the original baseline and the candidate, including XLSX. That
+existing normalization is preserved rather than changing the cell-write contract.
+
 ## Remaining costs and limits
 
-Parity is incomplete. XLSX reads remain about 56% slower than ExcelReader.NET, XLSX
-typed parsing 40%, XLSB reads 28% and XLSB typed parsing 28%. The remaining read
-cost is structural rather than one hidden hot spot. OfficeIMO proves the whole
+Parity is incomplete; the earlier cohorts still show gaps against ExcelReader.NET
+in XLSX/XLSB reads and typed parsing. The remaining read cost is structural rather
+than one hidden hot spot. OfficeIMO proves the whole
 part before delivering the first row and gives the data reader a fixed field
 count. It therefore makes a validation and indexing pass and then a delivery
-pass; ExcelReader.NET reads each row once. Inflation takes about a fifth of the
+pass; ExcelReader.NET reads each row once. Inflation remains a substantial part of the
 XLSX and XLSB reads. Typed parsing qualifies every mapped cell on the worksheet reader before the compiled mapper reads it.
 
 The XLS and XLSB writers are the `WriteData` plus `Save` route. Before it saves,
 that route retains every source row and boxed selector value, so the generated
 rows survive into older GC generations. On its own, the measured registration
 takes about 7 ms of each write against 0.7 ms to generate the same rows. XLSB
-deflate takes about another 5 ms; exact RK encoding reduces the numeric payload where possible. XLS also
-builds its compound file as one more complete copy. Removing the buffering would
+deflate takes about another 5 ms; exact RK encoding reduces the numeric payload where possible. Imported and asynchronous XLS saves retain compound-file staging. Removing the buffering would
 change when selectors and source enumeration run, so I leave that contract
 unchanged here.
 

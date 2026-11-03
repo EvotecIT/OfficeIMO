@@ -372,11 +372,17 @@ namespace OfficeIMO.Excel {
                 preserveLinkedVbaProject: true,
                 preserveNativeRecords: true);
             cancellationToken.ThrowIfCancellationRequested();
-            byte[] xlsBytes = BuildNativeLegacyXls(options, cancellationToken, out bool directWrite, out bool preservedWrite);
+            // Imported workbooks must validate their candidate for adoption; cancellation and
+            // timing callbacks also retain their original completion-before-publication boundary.
+            Stream? directDestination = SourceFormat != ExcelFileFormat.Xls
+                && !cancellationToken.CanBeCanceled && Execution.OnTiming == null ? destination : null;
+            byte[] xlsBytes = BuildNativeLegacyXls(options, cancellationToken, out bool directWrite, out bool preservedWrite, directDestination);
             var adoptedWorkbook = PrepareNativeLegacyXlsAdoption(xlsBytes, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            PrepareDestinationStreamForWrite(destination);
-            destination.Write(xlsBytes, 0, xlsBytes.Length);
+            if (!directWrite || directDestination == null) {
+                PrepareDestinationStreamForWrite(destination);
+                destination.Write(xlsBytes, 0, xlsBytes.Length);
+            }
             try { destination.Flush(); } catch (NotSupportedException) { }
             MarkPackageClean(null);
             DisablePackageCopyBackAfterNativeLegacyXlsSave(destination);
@@ -414,13 +420,14 @@ namespace OfficeIMO.Excel {
         private bool TryBuildDirectTabularLegacyXls(
             ExcelSaveOptions? options,
             CancellationToken cancellationToken,
-            out byte[] xlsBytes) {
+            out byte[] xlsBytes,
+            Stream? destination = null) {
             xlsBytes = Array.Empty<byte>();
             if (!TryGetDirectTabularSaveSource(options, cancellationToken, "Xls", out ExcelDirectTabularSource source)) {
                 return false;
             }
 
-            if (!OfficeIMO.Excel.LegacyXls.Write.LegacyXlsWriter.TryWriteDirectTabularWorkbook(this, source, cancellationToken, out xlsBytes)) {
+            if (!OfficeIMO.Excel.LegacyXls.Write.LegacyXlsWriter.TryWriteDirectTabularWorkbook(this, source, cancellationToken, out xlsBytes, destination)) {
                 Execution.ReportInfo("Save.Xls.Direct skipped: the tabular values require the general BIFF8 value encoder.");
                 return false;
             }
