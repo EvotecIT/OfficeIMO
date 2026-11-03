@@ -115,7 +115,10 @@ internal static partial class NativeAdapters {
     private static NativeExport Capture(PdfDocument pdf, OfficeConversionReport report,
         Func<OfficeImageExportFormat, IReadOnlyList<OfficeImageExportResult>> images, CancellationToken token) {
         byte[] bytes = pdf.ToBytes(new PdfSaveOptions { AllowLoss = true }, token);
-        return Capture(bytes, images, report.Diagnostics.Select(item => item.Code).ToList(), token) with {
+        // Shared ODF codes describe the loss category; keep the feature in the
+        // acceptance key so allowing known worksheet approximations stays narrow.
+        return Capture(bytes, images, report.Diagnostics.Select(item =>
+            item.Code == "ODF_APPROXIMATED" ? item.Code + ":" + item.Location : item.Code).ToList(), token) with {
             DiagnosticDetails = report.Diagnostics.Select(item => item.Code + ": " + item.Message + " [" + item.Location + "]").ToList()
         };
     }
