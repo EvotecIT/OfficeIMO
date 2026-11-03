@@ -147,7 +147,7 @@ fallback. RK encoding is used only when decoding reproduces the original double 
 
 ## Compatible writer follow-up: 3 November 2026
 
-Fresh synchronous direct-tabular XLS saves prepare the BIFF buffer and compound
+Fresh synchronous direct-tabular XLS stream saves prepare the BIFF buffer and compound
 layout before touching the destination, then use the existing compound serializer
 to emit directly. Ordinary memory destinations reserve the exact serialized size,
 as the previous single staged write did. Imported workbooks, asynchronous or

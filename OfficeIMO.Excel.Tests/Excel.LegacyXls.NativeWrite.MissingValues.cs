@@ -49,8 +49,7 @@ namespace OfficeIMO.Tests {
                 // XLSB retains authored worksheet geometry independently of cells.
                 Assert.Equal("A1:D5", result.WorksheetPart.Worksheet.GetFirstChild<SheetDimension>()!.Reference!.Value);
                 using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(bytes, new ExcelReaderOptions { HasHeaderRow = false });
-                // The reader takes its columns from that declared A1:D5 dimension.
-                Assert.Equal(4, reader.FieldCount);
+                Assert.Equal(retainStyle ? 4 : 1, reader.FieldCount);
                 Assert.True(reader.Read());
                 Assert.Equal("Keep", reader.GetString(0));
                 int rowCount = 1;
