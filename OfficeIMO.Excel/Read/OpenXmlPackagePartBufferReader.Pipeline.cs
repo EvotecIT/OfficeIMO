@@ -40,7 +40,10 @@ namespace OfficeIMO.Excel {
                 output = OpenXmlPartBufferPool.Rent(total);
                 Buffer.BlockCopy(prefix, 0, output, 0, 256);
                 byte[] bytes = output;
-                consumer = Task.Run(() => consume(bytes, total, progress), CancellationToken.None);
+                consumer = Task.Factory.StartNew(() => consume(bytes, total, progress),
+                    CancellationToken.None,
+                    TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach,
+                    TaskScheduler.Default);
                 ReadPartContents(input, output, total, normalized, ct, 256,
                     written => progress.PublishRows(bytes, written));
                 progress.Complete(total);

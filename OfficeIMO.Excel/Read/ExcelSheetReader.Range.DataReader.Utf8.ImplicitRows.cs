@@ -17,10 +17,6 @@ namespace OfficeIMO.Excel {
                 int rowOffset,
                 CancellationToken ct) {
                 int originalPosition = position;
-                int minimumCellRow = _minimumCellRow;
-                int maximumCellRow = _maximumCellRow;
-                int minimumCellColumn = _minimumCellColumn;
-                int maximumCellColumn = _maximumCellColumn;
                 if (_cachedImplicitRowReady) {
                     if (TryIndexCachedImplicitRow(ref position, rowIndex, rowOffset, ct)) return true;
                     // A changing layout keeps the adaptive per-cell parser. Do not
@@ -29,6 +25,12 @@ namespace OfficeIMO.Excel {
                     position = originalPosition;
                 }
                 _cachedImplicitRowReady = false;
+                // Cached misses leave bounds untouched. Only the adaptive parser
+                // below needs a rollback snapshot; the usual cached row does not.
+                int minimumCellRow = _minimumCellRow;
+                int maximumCellRow = _maximumCellRow;
+                int minimumCellColumn = _minimumCellColumn;
+                int maximumCellColumn = _maximumCellColumn;
                 if (TryIndexCanonicalImplicitDenseRowCore(ref position, rowIndex, rowOffset, ct)) {
                     return true;
                 }
