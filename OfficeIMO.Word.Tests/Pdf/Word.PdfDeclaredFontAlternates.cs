@@ -389,7 +389,7 @@ public sealed class WordPdfDeclaredFontAlternateTests {
         IncludePageNumbers = false, PdfOptions = fonts, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
     };
     private static string CallerFontState(PdfCreateOptions options) =>
-        options.DefaultFont + "|" + options.HeaderFont + "|" + options.FooterFont + "|" +
+        options.DefaultFont + "|" + options.PageSetup.Header.StandardFont + "|" + options.PageSetup.Footer.StandardFont + "|" +
         string.Join(";", options.EmbeddedFonts.OrderBy(pair => pair.Key).Select(pair =>
             pair.Key + ":" + pair.Value.FontName + ":" + Convert.ToBase64String(pair.Value.Data))) + "|" +
         string.Join(";", options.NamedFontFamilies.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair =>

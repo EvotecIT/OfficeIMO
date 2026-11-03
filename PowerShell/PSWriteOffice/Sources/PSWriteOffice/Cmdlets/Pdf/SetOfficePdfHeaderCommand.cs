@@ -112,13 +112,13 @@ public sealed class SetOfficePdfHeaderCommand : PSCmdlet
         switch (Align)
         {
             case OfficeAlignment.Right:
-                header.AlignRight();
+                header.Alignment(OfficeAlignment.Right);
                 break;
             case OfficeAlignment.Left:
-                header.AlignLeft();
+                header.Alignment(OfficeAlignment.Left);
                 break;
             default:
-                header.AlignCenter();
+                header.Alignment(OfficeAlignment.Center);
                 break;
         }
     }

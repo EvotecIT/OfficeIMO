@@ -6,11 +6,10 @@ namespace OfficeIMO.Examples.Pdf {
         public static void Example_Pdf_StyledRuns(string folderPath, bool open = false) {
             string path = Path.Combine(folderPath, "Pdf.StyledRuns.pdf");
             var options = new PdfCreateOptions {
-                HeaderFormat = "OfficeIMO.Pdf styled runs",
-                HeaderAlign = OfficeAlignment.Left,
-                ShowHeader = true,
-                FooterAlign = OfficeAlignment.Right,
-                ShowPageNumbers = true
+                PageSetup = {
+                    Header = { Format = "OfficeIMO.Pdf styled runs", Alignment = OfficeAlignment.Left, Show = true },
+                    Footer = { Alignment = OfficeAlignment.Right, Show = true }
+                }
             };
 
             var doc = PdfDocument.Create(pdf => pdf.Content(content => content

@@ -132,12 +132,12 @@ public partial class Word {
         WordPdfExportOptions options = EmptyRunningOptions();
         options.IncludePageNumbers = true;
         options.PageNumberFormat = "NUMBER {page}/{pages}";
-        options.PdfOptions = new PdfCreateOptions { FooterOffsetY = global::OfficeIMO.OfficeLength.Points(typography ? 18D : 24D) };
+        options.PdfOptions = new PdfCreateOptions { PageSetup = { Footer = { Offset = global::OfficeIMO.OfficeLength.Points(typography ? 18D : 24D) } } };
         if (typography) {
-            options.PdfOptions.FooterFont = PdfStandardFont.Courier;
-            options.PdfOptions.FooterFontSize = global::OfficeIMO.OfficeLength.Points(24D);
-            options.PdfOptions.FooterAlign = OfficeAlignment.Left;
-            options.PdfOptions.FooterTextColor = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0);
+            options.PdfOptions.PageSetup.Footer.StandardFont = PdfStandardFont.Courier;
+            options.PdfOptions.PageSetup.Footer.FontSize = global::OfficeIMO.OfficeLength.Points(24D);
+            options.PdfOptions.PageSetup.Footer.Alignment = OfficeAlignment.Left;
+            options.PdfOptions.PageSetup.Footer.Color = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0);
         }
         using var withImplicit = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         W.HeaderFooterValues kind = emptyVariant == 0 ? W.HeaderFooterValues.First

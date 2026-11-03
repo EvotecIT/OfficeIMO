@@ -10,8 +10,7 @@ public class PdfDrawingInteropTests {
         OfficeColor precise = OfficeColor.FromNormalizedRgb(0.12345, 0.23456, 0.34567, alpha: 77);
         var options = new PdfCreateOptions {
             DefaultTextColor = precise,
-            HeaderTextColor = OfficeColor.Accent1,
-            FooterTextColor = OfficeColor.Transparent,
+            PageSetup = { Header = { Color = OfficeColor.Accent1 }, Footer = { Color = OfficeColor.Transparent } },
             BackgroundColor = null,
             DefaultTableStyle = new PdfTableStyle { HeaderFill = precise }
         };
@@ -24,8 +23,8 @@ public class PdfDrawingInteropTests {
         Assert.Equal(precise, clone.DefaultTextColor);
         Assert.Equal((0.12345, 0.23456, 0.34567), clone.DefaultTextColor!.Value.ToNormalizedRgb());
         Assert.Equal((byte)77, clone.DefaultTextColor.Value.A);
-        Assert.Equal(OfficeColor.Accent1, clone.HeaderTextColor);
-        Assert.Equal(OfficeColor.Transparent, clone.FooterTextColor);
+        Assert.Equal(OfficeColor.Accent1, clone.PageSetup.Header.Color);
+        Assert.Equal(OfficeColor.Transparent, clone.PageSetup.Footer.Color);
         Assert.Null(clone.BackgroundColor);
         Assert.Equal(precise, clone.DefaultTableStyle!.HeaderFill);
     }
@@ -66,12 +65,10 @@ public class PdfDrawingInteropTests {
         shape.StrokeWidth = 1.5;
 
         var doc = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Shape(shape);
 
@@ -166,12 +163,10 @@ public class PdfDrawingInteropTests {
         shape.FillColor = OfficeColor.WhiteSmoke;
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             })
             .DefaultDrawingStyle(style)
             .Shape(shape)
@@ -219,12 +214,10 @@ public class PdfDrawingInteropTests {
             .AddShape(background, 0, 0);
 
         var doc = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             });
         if (scaledCanvas) doc.Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(90D)));
         else doc.Drawing(drawing, align: OfficeAlignment.Center, spacingBefore: 4, spacingAfter: 6);

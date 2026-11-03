@@ -133,10 +133,10 @@ public static partial class WordPdfConverterExtensions {
     /// </summary>
     private static bool HasNativeRunningStoryOverrides(PdfCore.PdfCreateOptions? options, bool isFooter) => options != null &&
         (isFooter
-            ? options.FooterOffsetY.ToPoints() != 18D || options.HasExplicitFooterFont || options.FooterFontFamily != null ||
-                options.FooterFontSize.ToPoints() != 9D || options.FooterTextColor.HasValue || options.FooterAlign != global::OfficeIMO.OfficeAlignment.Center
-            : options.HeaderOffsetY.ToPoints() != 18D || options.HasExplicitHeaderFont || options.HeaderFontFamily != null ||
-                options.HeaderFontSize.ToPoints() != 9D || options.HeaderTextColor.HasValue || options.HeaderAlign != global::OfficeIMO.OfficeAlignment.Center);
+            ? options.PageSetup.Footer.Offset.ToPoints() != 18D || options.PageSetup.Footer.HasExplicitStandardFont || options.PageSetup.Footer.FontFamily != null ||
+                options.PageSetup.Footer.FontSize.ToPoints() != 9D || options.PageSetup.Footer.Color.HasValue || options.PageSetup.Footer.Alignment != global::OfficeIMO.OfficeAlignment.Center
+            : options.PageSetup.Header.Offset.ToPoints() != 18D || options.PageSetup.Header.HasExplicitStandardFont || options.PageSetup.Header.FontFamily != null ||
+                options.PageSetup.Header.FontSize.ToPoints() != 9D || options.PageSetup.Header.Color.HasValue || options.PageSetup.Header.Alignment != global::OfficeIMO.OfficeAlignment.Center);
 
     private static void ConfigureNativeRunningHeaderFooter(PdfCore.PdfPageBuilder page, WordSection section,
         WordPdfExportOptions? options, NativeFontMap fontMap,

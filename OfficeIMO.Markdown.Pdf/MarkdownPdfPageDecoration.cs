@@ -138,8 +138,8 @@ public sealed class MarkdownPdfPageDecoration {
         // The band frames the title area of the first page. Continuation pages start with body content at the
         // top margin, where a repeated band would cut through code blocks, figures and tables.
         PdfCore.PdfPageBackgroundShape band = PdfCore.PdfPageBackgroundShape.TopBand(
-            options.PageWidth,
-            options.PageHeight,
+            options.PageSetup.Size.Width,
+            options.PageSetup.Size.Height,
             global::OfficeIMO.OfficeLength.Points(110),
             fill: global::OfficeIMO.OfficeColor.FromRgb(239, 246, 255),
             insetX: global::OfficeIMO.OfficeLength.Points(34),
@@ -159,8 +159,8 @@ public sealed class MarkdownPdfPageDecoration {
 
     private static IEnumerable<PdfCore.PdfPageBackgroundShape> CreateTechnicalDocumentBackgroundShapes(PdfCore.PdfCreateOptions options) {
         PdfCore.PdfPageBackgroundShape band = PdfCore.PdfPageBackgroundShape.TopBand(
-            options.PageWidth,
-            options.PageHeight,
+            options.PageSetup.Size.Width,
+            options.PageSetup.Size.Height,
             global::OfficeIMO.OfficeLength.Points(78),
             fill: global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
             insetX: global::OfficeIMO.OfficeLength.Points(36),
@@ -175,8 +175,8 @@ public sealed class MarkdownPdfPageDecoration {
         yield return band;
 
         yield return PdfCore.PdfPageBackgroundShape.LeftBand(
-            options.PageWidth,
-            options.PageHeight,
+            options.PageSetup.Size.Width,
+            options.PageSetup.Size.Height,
             global::OfficeIMO.OfficeLength.Points(8),
             fill: global::OfficeIMO.OfficeColor.FromRgb(9, 105, 218),
             insetY: global::OfficeIMO.OfficeLength.Points(54),
@@ -185,8 +185,8 @@ public sealed class MarkdownPdfPageDecoration {
             fillOpacity: 0.18);
 
         yield return PdfCore.PdfPageBackgroundShape.Rectangle(
-            global::OfficeIMO.OfficeLength.Points(options.PageWidth.ToPoints() - 120),
-            global::OfficeIMO.OfficeLength.Points(options.PageHeight.ToPoints() - 88),
+            global::OfficeIMO.OfficeLength.Points(options.PageSetup.Size.Width.ToPoints() - 120),
+            global::OfficeIMO.OfficeLength.Points(options.PageSetup.Size.Height.ToPoints() - 88),
             global::OfficeIMO.OfficeLength.Points(48),
             global::OfficeIMO.OfficeLength.Points(6),
             fill: global::OfficeIMO.OfficeColor.FromRgb(9, 105, 218),

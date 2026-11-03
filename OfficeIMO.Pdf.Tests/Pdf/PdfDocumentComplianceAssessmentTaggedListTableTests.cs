@@ -71,12 +71,10 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = global::OfficeIMO.OfficeLength.Points(170),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(150),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(24),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(150)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(24), Right = global::OfficeIMO.OfficeLength.Points(24), Top = global::OfficeIMO.OfficeLength.Points(24), Bottom = global::OfficeIMO.OfficeLength.Points(24) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .TaggedPdfCatalogMarkers()
@@ -161,12 +159,10 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = global::OfficeIMO.OfficeLength.Points(170),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(150),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(24),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(150)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(24), Right = global::OfficeIMO.OfficeLength.Points(24), Top = global::OfficeIMO.OfficeLength.Points(24), Bottom = global::OfficeIMO.OfficeLength.Points(24) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .TaggedPdfCatalogMarkers()

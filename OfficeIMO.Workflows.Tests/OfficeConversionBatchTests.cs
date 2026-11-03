@@ -78,12 +78,10 @@ public sealed class OfficeConversionBatchTests {
         File.WriteAllText(source, "literal geometry");
         var text = new PdfTextImportOptions {
             PdfOptions = new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(12),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(12),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(12),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(12),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(12), Right = global::OfficeIMO.OfficeLength.Points(12), Top = global::OfficeIMO.OfficeLength.Points(12), Bottom = global::OfficeIMO.OfficeLength.Points(12) }
+                },
                 DefaultFont = PdfStandardFont.Courier,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(14)
             }

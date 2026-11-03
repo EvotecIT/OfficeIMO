@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests.Pdf {
         public void WriterFontSelection_UsesRequestedFontFamilyForGeneratedPdfResources() {
             var pdf = PdfDocument.Create(new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.TimesItalic,
-                    FooterFont = PdfStandardFont.TimesRoman
+                    PageSetup = { Footer = { StandardFont = PdfStandardFont.TimesRoman } }
                 })
                 .Paragraph(p => p.AddText("Times family should stay Times."))
                 .ToBytes();

@@ -52,8 +52,10 @@ public sealed class PdfRichInlineLineHeightTests {
     }
 
     internal static byte[] Render(string frame, bool boxFirst, PdfLineSpacing? spacing = null) {
-        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(300), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(8),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+        var options = new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)),
+            Margins = { Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30), Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30) }
+        }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(8),
             CompressContentStreams = false };
         var text = new PdfTextRun("A", fontSize: global::OfficeIMO.OfficeLength.Points(24), standardFont: PdfStandardFont.Helvetica);
         var box = PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(32), background: global::OfficeIMO.OfficeColor.FromNormalizedRgb(.2, .5, .8), baselineOffset: global::OfficeIMO.OfficeLength.Points(-20)));

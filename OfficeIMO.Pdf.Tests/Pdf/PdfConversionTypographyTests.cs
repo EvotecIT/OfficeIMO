@@ -204,12 +204,10 @@ public sealed class PdfConversionTypographyTests {
         new PdfCore.PdfCreateOptions {
                 CompressContentStreams = false,
                 CompressEmbeddedFonts = false,
-                PageWidth = global::OfficeIMO.OfficeLength.Points(520),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(420),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(520), global::OfficeIMO.OfficeLength.Points(420)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             }
             .UseFontFamily(FamilyName, fontPath);

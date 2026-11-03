@@ -13,17 +13,17 @@ internal static partial class RtfPdfConverter {
             ApplyHeaderFooters(document, setup, requested, options, document.GetEffectiveHeaderFooters(section));
         }
         var differences = new List<string>();
-        if (requested.PageWidth != current.PageWidth || requested.PageHeight != current.PageHeight) differences.Add("PaperSize");
-        if (requested.MarginLeft != current.MarginLeft || requested.MarginRight != current.MarginRight ||
-            requested.MarginTop != current.MarginTop || requested.MarginBottom != current.MarginBottom) differences.Add("Margins");
-        if (requested.HeaderFormat != current.HeaderFormat || requested.FirstPageHeaderFormat != current.FirstPageHeaderFormat ||
-            requested.EvenPageHeaderFormat != current.EvenPageHeaderFormat || requested.ShowHeader != current.ShowHeader ||
+        if (requested.PageSetup.Size.Width != current.PageSetup.Size.Width || requested.PageSetup.Size.Height != current.PageSetup.Size.Height) differences.Add("PaperSize");
+        if (requested.PageSetup.Margins.Left != current.PageSetup.Margins.Left || requested.PageSetup.Margins.Right != current.PageSetup.Margins.Right ||
+            requested.PageSetup.Margins.Top != current.PageSetup.Margins.Top || requested.PageSetup.Margins.Bottom != current.PageSetup.Margins.Bottom) differences.Add("Margins");
+        if (requested.PageSetup.Header.Format != current.PageSetup.Header.Format || requested.PageSetup.FirstPageHeader.Format != current.PageSetup.FirstPageHeader.Format ||
+            requested.PageSetup.EvenPageHeader.Format != current.PageSetup.EvenPageHeader.Format || requested.PageSetup.Header.Show != current.PageSetup.Header.Show ||
             RunningStoriesDiffer(document, currentPageSection, section, options, isFooter: false)) differences.Add("Headers");
-        if (requested.FooterFormat != current.FooterFormat || requested.FirstPageFooterFormat != current.FirstPageFooterFormat ||
-            requested.EvenPageFooterFormat != current.EvenPageFooterFormat || requested.ShowPageNumbers != current.ShowPageNumbers ||
+        if (requested.PageSetup.Footer.Format != current.PageSetup.Footer.Format || requested.PageSetup.FirstPageFooter.Format != current.PageSetup.FirstPageFooter.Format ||
+            requested.PageSetup.EvenPageFooter.Format != current.PageSetup.EvenPageFooter.Format || requested.PageSetup.Footer.Show != current.PageSetup.Footer.Show ||
             RunningStoriesDiffer(document, currentPageSection, section, options, isFooter: true)) differences.Add("Footers");
-        if (requested.DifferentFirstPageHeaderFooter != current.DifferentFirstPageHeaderFooter ||
-            requested.DifferentOddAndEvenPagesHeaderFooter != current.DifferentOddAndEvenPagesHeaderFooter) differences.Add("StorySelection");
+        if (requested.PageSetup.DifferentFirstPage != current.PageSetup.DifferentFirstPage ||
+            requested.PageSetup.DifferentOddAndEvenPages != current.PageSetup.DifferentOddAndEvenPages) differences.Add("StorySelection");
         if (requested.PageNumberStyle != current.PageNumberStyle || section.PageSetup.PageNumberRestart == true ||
             (section.PageSetup.PageNumberStart.HasValue && section.PageSetup.PageNumberRestart != false)) differences.Add("PageNumbering");
         PdfCore.PdfPageBorder? requestedBorder = requested.PageBorder;

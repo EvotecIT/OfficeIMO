@@ -318,9 +318,10 @@ public class PdfXGroundworkTests {
             PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(6D))));
 
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(100D),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(100D),
-            Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0D)),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D)),
+                Margins = { Left = OfficeIMO.OfficeLength.Points(0D), Top = OfficeIMO.OfficeLength.Points(0D), Right = OfficeIMO.OfficeLength.Points(0D), Bottom = OfficeIMO.OfficeLength.Points(0D) }
+            },
             PrintProductionPageBoxes = new PdfPrintProductionPageBoxes(
                 new PdfPageMargins(OfficeIMO.OfficeLength.Points(60D),OfficeIMO.OfficeLength.Points(0D),OfficeIMO.OfficeLength.Points(40D),OfficeIMO.OfficeLength.Points(0D)),
                 PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0D)))
@@ -334,8 +335,7 @@ public class PdfXGroundworkTests {
     [Fact]
     public void PrintProductionPageBoxesUseTheMediaBoxPrecision() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(595.276D),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(841.89D)
+            PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(595.276D), global::OfficeIMO.OfficeLength.Points(841.89D)) }
         }.ConfigurePdfXGroundwork(
             PdfComplianceProfile.PdfX4,
             IccMabTestProfiles.CreateCmykLab8Bidirectional(),

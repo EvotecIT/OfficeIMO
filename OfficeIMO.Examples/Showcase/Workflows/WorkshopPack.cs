@@ -8,10 +8,10 @@ internal static class WorkshopPack {
     internal static void Create(string folder) {
         OfficeColor rule = OfficeTheme.Default.TableStyle.BorderColor;
         var options = new PdfCreateOptions {
-            ShowHeader = true, HeaderFormat = "Northwind · Service design",
-            HeaderFontSize = OfficeLength.Points(8.5), HeaderAlign = OfficeAlignment.Left,
-            HeaderTextColor = OfficeTheme.Default.Palette.TextMuted,
-            ShowPageNumbers = true, FooterFontSize = OfficeLength.Points(8.5), FooterAlign = OfficeAlignment.Right
+            PageSetup = {
+                Header = { Show = true, Format = "Northwind · Service design", FontSize = OfficeLength.Points(8.5), Alignment = OfficeAlignment.Left, Color = OfficeTheme.Default.Palette.TextMuted },
+                Footer = { Show = true, FontSize = OfficeLength.Points(8.5), Alignment = OfficeAlignment.Right }
+            }
         };
         PdfDocument.Create(pdf => pdf.Content(content => content
             .Title("Service design workshop")

@@ -23,7 +23,9 @@ public class PdfOcrTests {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 // The provider's Native box is authored over this eleven-point, 72-point-origin line.
                 DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(72), MarginRight = global::OfficeIMO.OfficeLength.Points(72), MarginTop = global::OfficeIMO.OfficeLength.Points(72), MarginBottom = global::OfficeIMO.OfficeLength.Points(72),
+                PageSetup = {
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(72), Right = global::OfficeIMO.OfficeLength.Points(72), Top = global::OfficeIMO.OfficeLength.Points(72), Bottom = global::OfficeIMO.OfficeLength.Points(72) }
+                },
                 DefaultParagraphStyle = new PdfParagraphStyle { LineHeight = 1.4, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }
             })
             .Paragraph(paragraph => paragraph.AddText("Native text"))
@@ -194,7 +196,7 @@ public class PdfOcrTests {
     [Fact]
     public async Task RecognizeAndMergeAsync_AppliesDocumentEvidenceOnceAfterOcrFusion() {
         byte[] pdf = PdfDocument.Create()
-            .Header(header => header.AlignLeft().Text("Shared running header"))
+            .Header(header => header.Alignment(OfficeAlignment.Left).Text("Shared running header"))
             .Paragraph(paragraph => paragraph.AddText("First page body."))
             .PageBreak()
             .Paragraph(paragraph => paragraph.AddText("Second page body."))

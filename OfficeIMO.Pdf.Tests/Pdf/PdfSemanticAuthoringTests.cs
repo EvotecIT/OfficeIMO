@@ -139,9 +139,8 @@ public sealed class PdfSemanticAuthoringTests {
     public void DecoratedElementContinuesRowsAndDecorationAcrossPages() {
         byte[] bytes = PdfDocument.Create(document => document
             .Settings(options => {
-                options.PageWidth = global::OfficeIMO.OfficeLength.Points(300);
-                options.PageHeight = global::OfficeIMO.OfficeLength.Points(220);
-                options.Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24));
+                options.PageSetup.Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(220));
+                options.PageSetup.Margins.Set(PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24)));
                 options.CompressContentStreams = false;
             })
             .Content(content => content.Element(element => element
@@ -175,9 +174,8 @@ public sealed class PdfSemanticAuthoringTests {
     public void KeepTogetherMeasuresContentInsideSemanticGroups() {
         ArgumentException exception = Assert.Throws<ArgumentException>(() => PdfDocument.Create(document => document
             .Settings(options => {
-                options.PageWidth = global::OfficeIMO.OfficeLength.Points(300);
-                options.PageHeight = global::OfficeIMO.OfficeLength.Points(180);
-                options.Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24));
+                options.PageSetup.Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(180));
+                options.PageSetup.Margins.Set(PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24)));
             })
             .Content(content => content.Element(element => element
                 .Padding(global::OfficeIMO.OfficeLength.Points(6))
@@ -196,9 +194,8 @@ public sealed class PdfSemanticAuthoringTests {
     public void FlowKeepTogetherMeasuresCompleteSemanticGroups() {
         ArgumentException exception = Assert.Throws<ArgumentException>(() => PdfDocument.Create(document => document
             .Settings(options => {
-                options.PageWidth = global::OfficeIMO.OfficeLength.Points(300);
-                options.PageHeight = global::OfficeIMO.OfficeLength.Points(180);
-                options.Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24));
+                options.PageSetup.Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(180));
+                options.PageSetup.Margins.Set(PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24)));
             })
             .Content(content => content.Flow(flow => flow.Semantic(PdfSemanticRole.Article, article => {
                 for (int index = 0; index < 20; index++) {
@@ -214,9 +211,8 @@ public sealed class PdfSemanticAuthoringTests {
     public void KeepTogetherMeasuresNestedSpacingWithTheRenderedCursorRules() {
         ArgumentException exception = Assert.Throws<ArgumentException>(() => PdfDocument.Create(document => document
             .Settings(options => {
-                options.PageWidth = global::OfficeIMO.OfficeLength.Points(300);
-                options.PageHeight = global::OfficeIMO.OfficeLength.Points(180);
-                options.Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30));
+                options.PageSetup.Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(180));
+                options.PageSetup.Margins.Set(PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)));
             })
             .Content(content => content.Element(element => element
                 .KeepTogether()
@@ -232,9 +228,8 @@ public sealed class PdfSemanticAuthoringTests {
     public void KeepTogetherDoesNotApplyTopSpacingThatRenderingSuppresses() {
         byte[] bytes = PdfDocument.Create(document => document
             .Settings(options => {
-                options.PageWidth = global::OfficeIMO.OfficeLength.Points(300);
-                options.PageHeight = global::OfficeIMO.OfficeLength.Points(180);
-                options.Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30));
+                options.PageSetup.Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(180));
+                options.PageSetup.Margins.Set(PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)));
             })
             .Content(content => content.Element(outer => outer
                 .KeepTogether()
@@ -251,9 +246,8 @@ public sealed class PdfSemanticAuthoringTests {
     public void ElementKeepWithNextParticipatesInTheCompleteKeepChain() {
         byte[] bytes = PdfDocument.Create(document => document
             .Settings(options => {
-                options.PageWidth = global::OfficeIMO.OfficeLength.Points(260);
-                options.PageHeight = global::OfficeIMO.OfficeLength.Points(170);
-                options.Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30));
+                options.PageSetup.Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(170));
+                options.PageSetup.Margins.Set(PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)));
                 options.DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10);
             })
             .Content(content => content
@@ -293,9 +287,8 @@ public sealed class PdfSemanticAuthoringTests {
         byte[] bytes = PdfDocument.Create(document => document
             .Settings(options => {
                 options.TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers;
-                options.PageWidth = global::OfficeIMO.OfficeLength.Points(300);
-                options.PageHeight = global::OfficeIMO.OfficeLength.Points(180);
-                options.Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24));
+                options.PageSetup.Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(180));
+                options.PageSetup.Margins.Set(PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24)));
             })
             .Content(content => content.Semantic(PdfSemanticRole.Article, article => {
                 for (int index = 0; index < 24; index++) {
@@ -319,9 +312,8 @@ public sealed class PdfSemanticAuthoringTests {
         byte[] bytes = PdfDocument.Create(document => document
             .Settings(options => {
                 options.TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers;
-                options.PageWidth = global::OfficeIMO.OfficeLength.Points(300);
-                options.PageHeight = global::OfficeIMO.OfficeLength.Points(180);
-                options.Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24));
+                options.PageSetup.Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(180));
+                options.PageSetup.Margins.Set(PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24)));
             })
             .Content(content => content.Semantic(PdfSemanticRole.Article, article => article.H1(heading))))
             .ToBytes();
@@ -342,9 +334,8 @@ public sealed class PdfSemanticAuthoringTests {
         byte[] bytes = PdfDocument.Create(document => document
             .Settings(options => {
                 options.TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers;
-                options.PageWidth = global::OfficeIMO.OfficeLength.Points(300);
-                options.PageHeight = global::OfficeIMO.OfficeLength.Points(180);
-                options.Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24));
+                options.PageSetup.Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(180));
+                options.PageSetup.Margins.Set(PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24)));
             })
             .Content(content => content.Semantic(PdfSemanticRole.Figure, figure => {
                 for (int index = 0; index < 24; index++) {

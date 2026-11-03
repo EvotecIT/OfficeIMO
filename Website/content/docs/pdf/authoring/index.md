@@ -11,11 +11,12 @@ layout: docs
 Prefer document blocks—paragraphs, lists, tables, images, and sections—when content should flow. Use canvas and drawing primitives when coordinates are part of the contract. A report can combine both: flowing business content for most pages and positioned elements for labels, stamps, or custom diagrams.
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Pdf;
 
 PdfDocument.Create(pdf => pdf.Page(page => page
-        .Header(h => h.Text("Quarterly service review").AlignLeft())
-        .Footer(f => f.Text("Confidential").AlignCenter())
+        .Header(h => h.Text("Quarterly service review").Alignment(OfficeAlignment.Left))
+        .Footer(f => f.Text("Confidential").Alignment(OfficeAlignment.Center))
         .Content(layout => layout.Item(content => content
             .H1("Service report")
             .AddParagraph(p => p.AddText("Generated from validated operational data."))

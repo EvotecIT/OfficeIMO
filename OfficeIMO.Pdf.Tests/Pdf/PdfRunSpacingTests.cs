@@ -43,8 +43,8 @@ public sealed class PdfRunSpacingTests {
     [Fact]
     public void ParagraphContinuation_PreservesSpacingOnEveryPage() {
         PdfCreateOptions options = Options();
-        options.PageWidth = global::OfficeIMO.OfficeLength.Points(180D); options.PageHeight = global::OfficeIMO.OfficeLength.Points(120D);
-        options.MarginLeft = options.MarginRight = options.MarginTop = options.MarginBottom = global::OfficeIMO.OfficeLength.Points(20D);
+        options.PageSetup.Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(120D));
+        options.PageSetup.Margins.Left = options.PageSetup.Margins.Right = options.PageSetup.Margins.Top = options.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(20D);
         PdfTextRun run = new PdfTextRun(string.Join("\n", Enumerable.Repeat("ABCD", 20)), fontSize: global::OfficeIMO.OfficeLength.Points(12D))
             .WithHorizontalTextScaling(50D).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1D));
         byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddRuns(new[] { run })).ToBytes();
@@ -143,8 +143,7 @@ public sealed class PdfRunSpacingTests {
     private static PdfCreateOptions Options() => new PdfCreateOptions {
         DefaultFont = PdfStandardFont.Helvetica,
         DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D),
-        HeaderFont = PdfStandardFont.Helvetica,
-        HeaderFontSize = global::OfficeIMO.OfficeLength.Points(12D)
+        PageSetup = { Header = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(12D) } }
     };
 
     private static byte[] Create(string surface, PdfTextRun run) {

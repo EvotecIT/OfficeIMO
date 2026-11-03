@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Pdf {
                 document.Page(page => {
                     page.Size(PdfPageSizes.A5);
                     page.Margin(OfficeLength.Points(36), OfficeLength.Points(42), OfficeLength.Points(36), OfficeLength.Points(42));
-                    page.Header(h => h.AlignLeft().Text("OfficeIMO.Pdf composition"));
+                    page.Header(h => h.Alignment(OfficeAlignment.Left).Text("OfficeIMO.Pdf composition"));
 
                     page.Content(c => c
                         .Column(column => {
@@ -53,7 +53,7 @@ namespace OfficeIMO.Examples.Pdf {
                             column.Item().AddParagraph(p => p.AddText("End of compose DSL sample."), OfficeAlignment.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80));
                         }));
 
-                    page.Footer(f => f.AlignCenter().Text(t => t
+                    page.Footer(f => f.Alignment(OfficeAlignment.Center).Text(t => t
                         .Text("Page ")
                         .CurrentPage()
                         .Text(" of ")

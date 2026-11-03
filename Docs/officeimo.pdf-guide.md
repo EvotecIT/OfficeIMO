@@ -351,7 +351,7 @@ read `Page N of M`. Explicit default styles and block styles take precedence.
 the generated outline:
 
 ```csharp
-var document = PdfDocument.Create(new PdfCreateOptions { Theme = OfficeTheme.Modern, ShowPageNumbers = true });
+var document = PdfDocument.Create(new PdfCreateOptions { Theme = OfficeTheme.Modern, PageSetup = { Footer = { Show = true } } });
 document.Content
     .Title("Community workshop handbook")
     .Subtitle("A practical reference for hosts and facilitators.")
@@ -392,8 +392,8 @@ image and PDF output limits remain separate.
 ```csharp
 PdfDocument.Create(document => document
     .Settings(options => {
-        options.PageSize = PdfPageSizes.A4;
-        options.Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36));
+        options.PageSetup.Size = PdfPageSizes.A4;
+        options.PageSetup.Margins.Set(PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)));
     })
     .Content(content => content
         .H1("Work items")
@@ -1014,11 +1014,12 @@ retain their settings through glyph placement, alignment and decoration widths.
 ### Write a generated PDF
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Pdf;
 
 PdfDocument.Create(pdf => pdf.Page(page => page
-        .Header(h => h.AlignCenter().Text("Service report"))
-        .Footer(f => f.AlignRight().Text("Page {page} of {pages}"))
+        .Header(h => h.Alignment(OfficeAlignment.Center).Text("Service report"))
+        .Footer(f => f.Alignment(OfficeAlignment.Right).Text("Page {page} of {pages}"))
         .Content(layout => layout.Item(content => content
             .H1("Service report")
             .AddParagraph(p => {
@@ -1031,8 +1032,10 @@ PdfDocument.Create(pdf => pdf.Page(page => page
                 new[] { "Identity", "Green", "Operations" },
                 new[] { "Messaging", "Yellow", "Exchange" }
             })))), new PdfCreateOptions {
-            PageSize = PdfPageSizes.A4,
-            Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Centimeters(1.6)),
+            PageSetup = {
+                Size = PdfPageSizes.A4,
+                Margins = { Left = OfficeIMO.OfficeLength.Centimeters(1.6), Top = OfficeIMO.OfficeLength.Centimeters(1.6), Right = OfficeIMO.OfficeLength.Centimeters(1.6), Bottom = OfficeIMO.OfficeLength.Centimeters(1.6) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 10
         })
@@ -3109,8 +3112,11 @@ PdfDocument.Create(pdf => pdf.Content(content => content
         .H1("Draft report")
         .AddParagraph(paragraph => paragraph.AddText("This document uses page-level options instead of post-processing."))),
     new PdfCreateOptions {
-            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Centimeters(21), OfficeIMO.OfficeLength.Centimeters(29.7)).Portrait(),
-            Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Centimeters(1.5)),
+            PageSetup = {
+                Size = new PdfPageSize(OfficeIMO.OfficeLength.Centimeters(21), OfficeIMO.OfficeLength.Centimeters(29.7)),
+                Orientation = OfficePageOrientation.Portrait,
+                Margins = { Left = OfficeIMO.OfficeLength.Centimeters(1.5), Top = OfficeIMO.OfficeLength.Centimeters(1.5), Right = OfficeIMO.OfficeLength.Centimeters(1.5), Bottom = OfficeIMO.OfficeLength.Centimeters(1.5) }
+            },
             TextWatermark = new PdfTextWatermark("DRAFT") {
                 Opacity = 0.12,
                 RotationAngle = -35
@@ -3120,7 +3126,7 @@ PdfDocument.Create(pdf => pdf.Content(content => content
     .Save("draft.pdf");
 ```
 
-For facing-page layouts, set `PdfCreateOptions.MirrorMargins = true` or use
+For facing-page layouts, set `PdfCreateOptions.PageSetup.MirrorMargins = true` or use
 `page.MirrorMargins()` in a section. The authored left and right margins apply to
 odd visible page numbers and swap on even numbers. `PageNumberStart` restarts
 that parity. Flow content follows the current page frame, including automatic

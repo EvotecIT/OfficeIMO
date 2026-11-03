@@ -10,7 +10,7 @@ internal static class WeeklyBrief {
         OfficeColor muted = theme.Palette.TextMuted;
         OfficeColor warning = theme.Palette.Warning;
         string fonts = Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts");
-        var options = new PdfCreateOptions { ShowPageNumbers = true }
+        var options = new PdfCreateOptions { PageSetup = { Footer = { Show = true } } }
             .UseFontFamily(new PdfEmbeddedFontFamily("Carlito",
                 File.ReadAllBytes(Path.Combine(fonts, "Carlito-Regular.ttf")),
                 File.ReadAllBytes(Path.Combine(fonts, "Carlito-Bold.ttf"))))

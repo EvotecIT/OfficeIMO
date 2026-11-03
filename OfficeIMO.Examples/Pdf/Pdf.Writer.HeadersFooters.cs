@@ -6,12 +6,10 @@ namespace OfficeIMO.Examples.Pdf {
         public static void Example_Pdf_PageNumbers(string folderPath, bool open = false) {
             string path = Path.Combine(folderPath, "Pdf.WithPageNumbers.pdf");
             var options = new PdfCreateOptions {
-                HeaderFormat = "OfficeIMO.Pdf headers and footers",
-                HeaderAlign = OfficeAlignment.Left,
-                HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(18),
-                ShowHeader = true,
-                FooterAlign = OfficeAlignment.Center,
-                ShowPageNumbers = true
+                PageSetup = {
+                    Header = { Format = "OfficeIMO.Pdf headers and footers", Alignment = OfficeAlignment.Left, Offset = global::OfficeIMO.OfficeLength.Points(18), Show = true },
+                    Footer = { Alignment = OfficeAlignment.Center, Show = true }
+                }
             };
 
             PdfDocument.Create(pdf => pdf.Content(content => content

@@ -8,12 +8,10 @@ namespace OfficeIMO.Examples.Pdf {
             string path = Path.Combine(folderPath, "Pdf.Showcase.Statement.pdf");
 
             var options = new PdfCreateOptions {
-                HeaderFormat = "OfficeIMO.Pdf showcase - business statement",
-                HeaderAlign = OfficeAlignment.Left,
-                HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(18),
-                ShowHeader = true,
-                FooterAlign = OfficeAlignment.Right,
-                ShowPageNumbers = true,
+                PageSetup = {
+                    Header = { Format = "OfficeIMO.Pdf showcase - business statement", Alignment = OfficeAlignment.Left, Offset = global::OfficeIMO.OfficeLength.Points(18), Show = true },
+                    Footer = { Alignment = OfficeAlignment.Right, Show = true }
+                },
                 CreateOutlineFromHeadings = true
             };
 

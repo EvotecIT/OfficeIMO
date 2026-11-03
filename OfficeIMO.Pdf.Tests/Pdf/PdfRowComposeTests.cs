@@ -228,12 +228,10 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void RowColumnSeparator_RendersBetweenColumns() {
             byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                    MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                    MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(180)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                    },
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
                 })
                 .Compose(compose =>
@@ -256,12 +254,10 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void RowGap_RejectsWhenGapsExceedContentWidthDuringRender() {
             var doc = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(120),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             }).Compose(compose =>
                 compose.Page(page =>
                     page.Content(content =>
@@ -303,12 +299,10 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void MixedColumnSizing_RendersFixedAutoAndRelativeColumns() {
             byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(400),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-                    MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                    MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(180)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                    },
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
                 })
                 .Compose(document => document.Content(content => content.Row(row => row
@@ -380,12 +374,10 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void CommittedColumnWidths_RejectOverflowDuringLayout() {
             PdfDocument doc = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(200),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             }).Compose(document => document.Content(content => content.Row(row => row
                 .Gap(global::OfficeIMO.OfficeLength.Points(10))
                 .FixedColumn(global::OfficeIMO.OfficeLength.Points(100), column => column.AddParagraph("Left"))
@@ -398,12 +390,10 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void RelativeColumnRejectsAZeroWidthRemainder() {
             PdfDocument doc = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(200),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             }).Compose(document => document.Content(content => content.Row(row => row
                 .Gap(global::OfficeIMO.OfficeLength.Points(0))
                 .FixedColumn(global::OfficeIMO.OfficeLength.Points(160), column => column.AddParagraph("Fixed"))
@@ -416,12 +406,10 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void AutomaticColumnMeasuresPanelContentAndPadding() {
             byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(400),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-                    MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                    MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(180)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                    },
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
                 })
                 .Compose(document => document.Content(content => content.Row(row => row

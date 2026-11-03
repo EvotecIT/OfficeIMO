@@ -49,8 +49,8 @@ public class PdfContainerAndColumnTests {
         Assert.Single(blocks, block => block.Text.Contains("Left one", StringComparison.Ordinal));
         Assert.Single(blocks, block => block.Text.Contains("Right one", StringComparison.Ordinal));
         string raw = PdfTestContentText.ReadDecoded(bytes);
-        double secondColumnX = options.MarginLeft.ToPoints() + (options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints() + 24D) / 2D;
-        Assert.Contains("1 0 0 1 " + options.MarginLeft.ToPoints().ToString(CultureInfo.InvariantCulture) + " ", raw, StringComparison.Ordinal);
+        double secondColumnX = options.PageSetup.Margins.Left.ToPoints() + (options.PageSetup.Size.Width.ToPoints() - options.PageSetup.Margins.Left.ToPoints() - options.PageSetup.Margins.Right.ToPoints() + 24D) / 2D;
+        Assert.Contains("1 0 0 1 " + options.PageSetup.Margins.Left.ToPoints().ToString(CultureInfo.InvariantCulture) + " ", raw, StringComparison.Ordinal);
         Assert.Contains("1 0 0 1 " + secondColumnX.ToString(CultureInfo.InvariantCulture) + " ", raw, StringComparison.Ordinal);
         Assert.Single(PdfReadDocument.Open(bytes).Pages);
     }
@@ -83,12 +83,10 @@ public class PdfContainerAndColumnTests {
     [Fact]
     public void Container_PaginatesAndDecoratesEveryPageFragment() {
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(180)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+            },
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
             CompressContentStreams = false
         });
@@ -142,12 +140,10 @@ public class PdfContainerAndColumnTests {
     [Fact]
     public void Columns_BalancesOneLongParagraphAtWrappedLineBoundaries() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(300),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(40),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(40),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(40),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(40),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(300)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(40), Right = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Bottom = global::OfficeIMO.OfficeLength.Points(40) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 CompressContentStreams = false
             })
@@ -187,12 +183,10 @@ public class PdfContainerAndColumnTests {
     [Fact]
     public void Columns_DefaultKeepTogetherParagraphIsNotSplitByLineBalancing() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(300),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(40),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(40),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(40),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(40),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(300)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(40), Right = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Bottom = global::OfficeIMO.OfficeLength.Points(40) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 DefaultParagraphStyle = new PdfParagraphStyle {
                     KeepTogether = true
@@ -236,12 +230,10 @@ public class PdfContainerAndColumnTests {
     [Fact]
     public void Columns_BalancedRichLinesPreserveSpaceBeforeInlineElements() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(300),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(40),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(40),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(40),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(40),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(300)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(40), Right = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Bottom = global::OfficeIMO.OfficeLength.Points(40) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 CompressContentStreams = false
             })
@@ -297,12 +289,10 @@ public class PdfContainerAndColumnTests {
     [Fact]
     public void Columns_BalancedJustifiedParagraphPreservesSoftWrapJustification() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(300),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(40),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(40),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(40),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(40),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(300)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(40), Right = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Bottom = global::OfficeIMO.OfficeLength.Points(40) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 CompressContentStreams = false
             })

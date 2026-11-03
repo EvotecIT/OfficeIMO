@@ -44,12 +44,10 @@ public sealed class PdfTextWrappingWorkBoundaryTests {
         var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.TimesRoman,
             DefaultFontSize = OfficeLength.Points(10D),
-            PageWidth = OfficeLength.Points(612D),
-            PageHeight = OfficeLength.Points(792D),
-            MarginLeft = OfficeLength.Points(36D),
-            MarginRight = OfficeLength.Points(36D),
-            MarginTop = OfficeLength.Points(36D),
-            MarginBottom = OfficeLength.Points(36D)
+            PageSetup = {
+                Size = new PdfPageSize(OfficeLength.Points(612D), OfficeLength.Points(792D)),
+                Margins = { Left = OfficeLength.Points(36D), Right = OfficeLength.Points(36D), Top = OfficeLength.Points(36D), Bottom = OfficeLength.Points(36D) }
+            }
         };
         var run = new PdfTextRun(new string('0', 4000) + new string('W', 200), fontSize: OfficeLength.Points(10D))
             .WithCharacterSpacing(OfficeLength.Points(-5D));

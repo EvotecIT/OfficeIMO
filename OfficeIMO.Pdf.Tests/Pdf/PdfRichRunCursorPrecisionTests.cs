@@ -27,8 +27,10 @@ namespace OfficeIMO.Tests.Pdf {
         internal static byte[] CreateFixture(bool useFontUnits) {
             byte[] font = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(2048, 1229, 'A', 'B');
             var options = new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(4000D), PageHeight = global::OfficeIMO.OfficeLength.Points(200D), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(4000D), global::OfficeIMO.OfficeLength.Points(200D)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+                }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(20D),
                 UseFontUnitTextLayout = useFontUnits
             };
             options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName, font));

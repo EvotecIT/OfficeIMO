@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfCreateOptions {
     /// <summary>Uses visible page-number parity for odd/even headers, footers and watermarks. First-page variants still refer to the first physical page of each section. The default uses section-relative page parity.</summary>
-    public bool UsePageNumberParityForHeaderFooter { get; set; }
+    internal bool UsePageNumberParityForHeaderFooter { get; set; }
 
     internal int GetHeaderFooterVariantPageNumber(int sectionPageNumber, int visiblePageNumber) {
         if (!UsePageNumberParityForHeaderFooter || (sectionPageNumber == 1 && DifferentFirstPageHeaderFooter)) {
@@ -12,19 +12,19 @@ public sealed partial class PdfCreateOptions {
     }
 
     /// <summary>When true, renders header text using <see cref="HeaderFormat"/>.</summary>
-    public bool ShowHeader { get; set; }
+    internal bool ShowHeader { get; set; }
     /// <summary>Header text format, supports {page} and {pages}. Default: empty.</summary>
-    public string HeaderFormat { get; set; } = string.Empty;
+    internal string HeaderFormat { get; set; } = string.Empty;
     /// <summary>When true, page 1 uses first-page header/footer content instead of the running header/footer.</summary>
-    public bool DifferentFirstPageHeaderFooter { get; set; }
+    internal bool DifferentFirstPageHeaderFooter { get; set; }
     /// <summary>Header text format used on page 1 when <see cref="DifferentFirstPageHeaderFooter"/> is true. Supports {page} and {pages}.</summary>
-    public string FirstPageHeaderFormat { get; set; } = string.Empty;
+    internal string FirstPageHeaderFormat { get; set; } = string.Empty;
     /// <summary>When true, even-numbered pages use even-page header/footer content instead of the running odd-page content.</summary>
-    public bool DifferentOddAndEvenPagesHeaderFooter { get; set; }
+    internal bool DifferentOddAndEvenPagesHeaderFooter { get; set; }
     /// <summary>Header text format used on even-numbered pages when <see cref="DifferentOddAndEvenPagesHeaderFooter"/> is true. Supports {page} and {pages}.</summary>
-    public string EvenPageHeaderFormat { get; set; } = string.Empty;
+    internal string EvenPageHeaderFormat { get; set; } = string.Empty;
     /// <summary>Header font.</summary>
-    public PdfStandardFont HeaderFont {
+    internal PdfStandardFont HeaderFont {
         get => _headerFont;
         set {
             Guard.StandardFont(value, nameof(HeaderFont), "PDF header font must be one of the supported standard PDF fonts.");
@@ -34,9 +34,9 @@ public sealed partial class PdfCreateOptions {
         }
     }
     /// <summary>Gets whether the header font slot was explicitly supplied by the caller or a theme.</summary>
-    public bool HasExplicitHeaderFont => _hasExplicitHeaderFont;
+    internal bool HasExplicitHeaderFont => _hasExplicitHeaderFont;
     /// <summary>Optional registered named font family used for header text. When null, <see cref="HeaderFont"/> is used.</summary>
-    public string? HeaderFontFamily {
+    internal string? HeaderFontFamily {
         get => _headerFontFamily;
         set {
             if (value != null) {
@@ -48,7 +48,7 @@ public sealed partial class PdfCreateOptions {
         }
     }
     /// <summary>Header font size.</summary>
-    public OfficeLength HeaderFontSize {
+    internal OfficeLength HeaderFontSize {
         get => _headerFontSize;
         set {
             _headerFontSize = value;
@@ -56,9 +56,9 @@ public sealed partial class PdfCreateOptions {
         }
     }
     /// <summary>Header text color. When null, the current PDF fill color is preserved.</summary>
-    public global::OfficeIMO.OfficeColor? HeaderTextColor { get; set; }
+    internal global::OfficeIMO.OfficeColor? HeaderTextColor { get; set; }
     /// <summary>Header alignment.</summary>
-    public OfficeAlignment HeaderAlign {
+    internal OfficeAlignment HeaderAlign {
         get => _headerAlign;
         set {
             value = Guard.LeftCenterRightAlign(value, nameof(HeaderAlign), "PDF header");
@@ -66,18 +66,18 @@ public sealed partial class PdfCreateOptions {
         }
     }
     /// <summary>Header baseline Y offset above the top margin. Default 18 points.</summary>
-    public OfficeLength HeaderOffsetY { get; set; } = OfficeLength.Points(18);
+    internal OfficeLength HeaderOffsetY { get; set; } = OfficeLength.Points(18);
 
     /// <summary>When true, renders page numbers in the footer using <see cref="FooterFormat"/>.</summary>
-    public bool ShowPageNumbers { get; set; } // default false
+    internal bool ShowPageNumbers { get; set; } // default false
     /// <summary>Footer text format, supports {page} and {pages}. Default: "Page {page} of {pages}".</summary>
-    public string FooterFormat { get; set; } = "Page {page} of {pages}";
+    internal string FooterFormat { get; set; } = "Page {page} of {pages}";
     /// <summary>Footer text format used on page 1 when <see cref="DifferentFirstPageHeaderFooter"/> is true. Supports {page} and {pages}.</summary>
-    public string FirstPageFooterFormat { get; set; } = string.Empty;
+    internal string FirstPageFooterFormat { get; set; } = string.Empty;
     /// <summary>Footer text format used on even-numbered pages when <see cref="DifferentOddAndEvenPagesHeaderFooter"/> is true. Supports {page} and {pages}.</summary>
-    public string EvenPageFooterFormat { get; set; } = string.Empty;
+    internal string EvenPageFooterFormat { get; set; } = string.Empty;
     /// <summary>Footer font.</summary>
-    public PdfStandardFont FooterFont {
+    internal PdfStandardFont FooterFont {
         get => _footerFont;
         set {
             Guard.StandardFont(value, nameof(FooterFont), "PDF footer font must be one of the supported standard PDF fonts.");
@@ -87,9 +87,9 @@ public sealed partial class PdfCreateOptions {
         }
     }
     /// <summary>Gets whether the footer font slot was explicitly supplied by the caller or a theme.</summary>
-    public bool HasExplicitFooterFont => _hasExplicitFooterFont;
+    internal bool HasExplicitFooterFont => _hasExplicitFooterFont;
     /// <summary>Optional registered named font family used for footer text. When null, <see cref="FooterFont"/> is used.</summary>
-    public string? FooterFontFamily {
+    internal string? FooterFontFamily {
         get => _footerFontFamily;
         set {
             if (value != null) {
@@ -101,7 +101,7 @@ public sealed partial class PdfCreateOptions {
         }
     }
     /// <summary>Footer font size.</summary>
-    public OfficeLength FooterFontSize {
+    internal OfficeLength FooterFontSize {
         get => !_hasExplicitFooterFontSize && _useOfficeThemeDefaults ? EffectiveTheme.Footer.FontSize : _footerFontSize;
         set {
             _footerFontSize = value;
@@ -110,9 +110,9 @@ public sealed partial class PdfCreateOptions {
         }
     }
     /// <summary>Footer text color. When null, the current PDF fill color is preserved.</summary>
-    public global::OfficeIMO.OfficeColor? FooterTextColor { get; set; }
+    internal global::OfficeIMO.OfficeColor? FooterTextColor { get; set; }
     /// <summary>Footer alignment.</summary>
-    public OfficeAlignment FooterAlign {
+    internal OfficeAlignment FooterAlign {
         get => _footerAlign;
         set {
             value = Guard.LeftCenterRightAlign(value, nameof(FooterAlign), "PDF footer");
@@ -120,7 +120,7 @@ public sealed partial class PdfCreateOptions {
         }
     }
     /// <summary>Footer baseline Y position from bottom margin. Default 18 points.</summary>
-    public OfficeLength FooterOffsetY { get; set; } = OfficeLength.Points(18);
+    internal OfficeLength FooterOffsetY { get; set; } = OfficeLength.Points(18);
 
     /// <summary>First visible page number for this document or section flow. Default 1.</summary>
     public int PageNumberStart {
@@ -146,19 +146,19 @@ public sealed partial class PdfCreateOptions {
     }
 
     /// <summary>Advanced footer template segments. When set, overrides FooterFormat.</summary>
-    public System.Collections.Generic.List<PdfFooterSegment>? FooterSegments {
+    internal System.Collections.Generic.List<PdfFooterSegment>? FooterSegments {
         get => _footerSegments is null ? null : new System.Collections.Generic.List<PdfFooterSegment>(_footerSegments);
         set => _footerSegments = value is null ? null : new System.Collections.Generic.List<PdfFooterSegment>(value);
     }
 
     /// <summary>Advanced page-1 footer template segments used when <see cref="DifferentFirstPageHeaderFooter"/> is true.</summary>
-    public System.Collections.Generic.List<PdfFooterSegment>? FirstPageFooterSegments {
+    internal System.Collections.Generic.List<PdfFooterSegment>? FirstPageFooterSegments {
         get => _firstPageFooterSegments is null ? null : new System.Collections.Generic.List<PdfFooterSegment>(_firstPageFooterSegments);
         set => _firstPageFooterSegments = value is null ? null : new System.Collections.Generic.List<PdfFooterSegment>(value);
     }
 
     /// <summary>Advanced even-page footer template segments used when <see cref="DifferentOddAndEvenPagesHeaderFooter"/> is true.</summary>
-    public System.Collections.Generic.List<PdfFooterSegment>? EvenPageFooterSegments {
+    internal System.Collections.Generic.List<PdfFooterSegment>? EvenPageFooterSegments {
         get => _evenPageFooterSegments is null ? null : new System.Collections.Generic.List<PdfFooterSegment>(_evenPageFooterSegments);
         set => _evenPageFooterSegments = value is null ? null : new System.Collections.Generic.List<PdfFooterSegment>(value);
     }
@@ -209,14 +209,14 @@ public sealed partial class PdfCreateOptions {
     internal bool HasHeaderContentForPage(int pageNumber) {
         if (GetRunningContentForPage(pageNumber, isHeader: true) != null) return false;
         if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
-            return (FirstPageHeaderFormat != null && FirstPageHeaderFormat.Length > 0) ||
+            return (_showFirstPageHeader && FirstPageHeaderFormat != null && FirstPageHeaderFormat.Length > 0) ||
                 (_firstPageHeaderSegments != null && _firstPageHeaderSegments.Count > 0) ||
                 HasFirstPageHeaderZoneContent ||
                 HasFirstPageHeaderImageContent;
         }
 
         if (IsEvenPageVariant(pageNumber)) {
-            return (EvenPageHeaderFormat != null && EvenPageHeaderFormat.Length > 0) ||
+            return (_showEvenPageHeader && EvenPageHeaderFormat != null && EvenPageHeaderFormat.Length > 0) ||
                 (_evenPageHeaderSegments != null && _evenPageHeaderSegments.Count > 0) ||
                 HasEvenPageHeaderZoneContent ||
                 HasEvenPageHeaderImageContent;
@@ -228,13 +228,13 @@ public sealed partial class PdfCreateOptions {
     internal bool HasHeaderTextContentForPage(int pageNumber) {
         if (GetRunningContentForPage(pageNumber, isHeader: true) is { RetainTextProjection: false }) return false;
         if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
-            return (FirstPageHeaderFormat != null && FirstPageHeaderFormat.Length > 0) ||
+            return (_showFirstPageHeader && FirstPageHeaderFormat != null && FirstPageHeaderFormat.Length > 0) ||
                 (_firstPageHeaderSegments != null && _firstPageHeaderSegments.Count > 0) ||
                 HasFirstPageHeaderZoneContent;
         }
 
         if (IsEvenPageVariant(pageNumber)) {
-            return (EvenPageHeaderFormat != null && EvenPageHeaderFormat.Length > 0) ||
+            return (_showEvenPageHeader && EvenPageHeaderFormat != null && EvenPageHeaderFormat.Length > 0) ||
                 (_evenPageHeaderSegments != null && _evenPageHeaderSegments.Count > 0) ||
                 HasEvenPageHeaderZoneContent;
         }
@@ -247,14 +247,14 @@ public sealed partial class PdfCreateOptions {
     internal bool HasFooterContentForPage(int pageNumber) {
         if (GetRunningContentForPage(pageNumber, isHeader: false) != null) return false;
         if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
-            return (FirstPageFooterFormat != null && FirstPageFooterFormat.Length > 0) ||
+            return (_showFirstPageFooter && FirstPageFooterFormat != null && FirstPageFooterFormat.Length > 0) ||
                 (_firstPageFooterSegments != null && _firstPageFooterSegments.Count > 0) ||
                 HasFirstPageFooterZoneContent ||
                 HasFirstPageFooterImageContent;
         }
 
         if (IsEvenPageVariant(pageNumber)) {
-            return (EvenPageFooterFormat != null && EvenPageFooterFormat.Length > 0) ||
+            return (_showEvenPageFooter && EvenPageFooterFormat != null && EvenPageFooterFormat.Length > 0) ||
                 (_evenPageFooterSegments != null && _evenPageFooterSegments.Count > 0) ||
                 HasEvenPageFooterZoneContent ||
                 HasEvenPageFooterImageContent;
@@ -266,13 +266,13 @@ public sealed partial class PdfCreateOptions {
     internal bool HasFooterTextContentForPage(int pageNumber) {
         if (GetRunningContentForPage(pageNumber, isHeader: false) is { RetainTextProjection: false }) return false;
         if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
-            return (FirstPageFooterFormat != null && FirstPageFooterFormat.Length > 0) ||
+            return (_showFirstPageFooter && FirstPageFooterFormat != null && FirstPageFooterFormat.Length > 0) ||
                 (_firstPageFooterSegments != null && _firstPageFooterSegments.Count > 0) ||
                 HasFirstPageFooterZoneContent;
         }
 
         if (IsEvenPageVariant(pageNumber)) {
-            return (EvenPageFooterFormat != null && EvenPageFooterFormat.Length > 0) ||
+            return (_showEvenPageFooter && EvenPageFooterFormat != null && EvenPageFooterFormat.Length > 0) ||
                 (_evenPageFooterSegments != null && _evenPageFooterSegments.Count > 0) ||
                 HasEvenPageFooterZoneContent;
         }

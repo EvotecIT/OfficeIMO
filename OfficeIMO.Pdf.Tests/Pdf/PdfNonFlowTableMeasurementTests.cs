@@ -182,8 +182,10 @@ public sealed class PdfNonFlowTableMeasurementTests {
     }
 
     private static PdfCreateOptions Options() => new() {
-        PageWidth = global::OfficeIMO.OfficeLength.Points(300D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D),
-        MarginLeft = global::OfficeIMO.OfficeLength.Points(32D), MarginRight = global::OfficeIMO.OfficeLength.Points(32D), MarginTop = global::OfficeIMO.OfficeLength.Points(32D), MarginBottom = global::OfficeIMO.OfficeLength.Points(32D),
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300D), global::OfficeIMO.OfficeLength.Points(300D)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(32D), Right = global::OfficeIMO.OfficeLength.Points(32D), Top = global::OfficeIMO.OfficeLength.Points(32D), Bottom = global::OfficeIMO.OfficeLength.Points(32D) }
+        },
         DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D)
     };
 

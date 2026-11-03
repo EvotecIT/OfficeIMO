@@ -12,17 +12,17 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void DifferentFirstPageHeaderFooter_UsesFirstPageContentThenRunningContent() {
             var options = new PdfCreateOptions {
-                ShowHeader = true,
-                HeaderFormat = "Running header {page}/{pages}",
-                ShowPageNumbers = true,
-                FooterFormat = "Running footer {page}/{pages}",
-                DifferentFirstPageHeaderFooter = true,
-                FirstPageHeaderFormat = "Cover header {page}/{pages}",
-                FirstPageFooterSegments = new System.Collections.Generic.List<PdfFooterSegment> {
+                PageSetup = {
+                    DifferentFirstPage = true,
+                    Header = { Show = true, Format = "Running header {page}/{pages}" },
+                    FirstPageHeader = { Format = "Cover header {page}/{pages}" },
+                    Footer = { Show = true, Format = "Running footer {page}/{pages}" },
+                    FirstPageFooter = { Segments = new System.Collections.Generic.List<PdfFooterSegment> {
                     new PdfFooterSegment(PdfFooterSegmentKind.Text, "Cover footer "),
                     new PdfFooterSegment(PdfFooterSegmentKind.PageNumber),
                     new PdfFooterSegment(PdfFooterSegmentKind.Text, "/"),
                     new PdfFooterSegment(PdfFooterSegmentKind.TotalPages)
+                } }
                 }
             };
 
@@ -52,11 +52,7 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void DifferentFirstPageHeaderFooter_BlankFirstPageSuppressesRunningContent() {
             var options = new PdfCreateOptions {
-                ShowHeader = true,
-                HeaderFormat = "Running header",
-                ShowPageNumbers = true,
-                FooterFormat = "Running footer",
-                DifferentFirstPageHeaderFooter = true
+                PageSetup = { DifferentFirstPage = true, Header = { Show = true, Format = "Running header" }, Footer = { Show = true, Format = "Running footer" } }
             };
 
             byte[] bytes = PdfDocument.Create(options)
@@ -78,8 +74,7 @@ namespace OfficeIMO.Tests.Pdf {
     [Fact]
     public void ClearingFirstPageWatermarkDoesNotEnableBlankHeaderFooterVariant() {
         var options = new PdfCreateOptions {
-            ShowHeader = true,
-            HeaderFormat = "Running header"
+            PageSetup = { Header = { Show = true, Format = "Running header" } }
         };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -98,20 +93,20 @@ namespace OfficeIMO.Tests.Pdf {
     [Fact]
     public void DifferentOddAndEvenPagesHeaderFooter_UsesEvenContentAndKeepsFirstPagePrecedence() {
         var options = new PdfCreateOptions {
-                ShowHeader = true,
-                HeaderFormat = "Odd header {page}/{pages}",
-                ShowPageNumbers = true,
-                FooterFormat = "Odd footer {page}/{pages}",
-                DifferentFirstPageHeaderFooter = true,
-                FirstPageHeaderFormat = "First header {page}/{pages}",
-                FirstPageFooterFormat = "First footer {page}/{pages}",
-                DifferentOddAndEvenPagesHeaderFooter = true,
-                EvenPageHeaderFormat = "Even header {page}/{pages}",
-                EvenPageFooterSegments = new System.Collections.Generic.List<PdfFooterSegment> {
+                PageSetup = {
+                    DifferentFirstPage = true,
+                    DifferentOddAndEvenPages = true,
+                    Header = { Show = true, Format = "Odd header {page}/{pages}" },
+                    FirstPageHeader = { Format = "First header {page}/{pages}" },
+                    EvenPageHeader = { Format = "Even header {page}/{pages}" },
+                    Footer = { Show = true, Format = "Odd footer {page}/{pages}" },
+                    FirstPageFooter = { Format = "First footer {page}/{pages}" },
+                    EvenPageFooter = { Segments = new System.Collections.Generic.List<PdfFooterSegment> {
                     new PdfFooterSegment(PdfFooterSegmentKind.Text, "Even footer "),
                     new PdfFooterSegment(PdfFooterSegmentKind.PageNumber),
                     new PdfFooterSegment(PdfFooterSegmentKind.Text, "/"),
                     new PdfFooterSegment(PdfFooterSegmentKind.TotalPages)
+                } }
                 }
             };
 
@@ -149,8 +144,7 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void DifferentFirstAndEvenPageWatermarks_UseMatchingPageVariant() {
             var options = new PdfCreateOptions {
-                DifferentFirstPageHeaderFooter = true,
-                DifferentOddAndEvenPagesHeaderFooter = true,
+                PageSetup = { DifferentFirstPage = true, DifferentOddAndEvenPages = true },
                 TextWatermark = new PdfTextWatermark("Odd watermark") { Opacity = 0.18 },
                 FirstPageTextWatermark = new PdfTextWatermark("First watermark") { Opacity = 0.18 },
                 EvenPageTextWatermark = new PdfTextWatermark("Even watermark") { Opacity = 0.18 }
@@ -187,11 +181,7 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void DifferentOddAndEvenPagesHeaderFooter_BlankEvenPagesSuppressRunningContent() {
             var options = new PdfCreateOptions {
-                ShowHeader = true,
-                HeaderFormat = "Odd header",
-                ShowPageNumbers = true,
-                FooterFormat = "Odd footer",
-                DifferentOddAndEvenPagesHeaderFooter = true
+                PageSetup = { DifferentOddAndEvenPages = true, Header = { Show = true, Format = "Odd header" }, Footer = { Show = true, Format = "Odd footer" } }
             };
 
             byte[] bytes = PdfDocument.Create(options)

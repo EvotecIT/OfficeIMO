@@ -304,7 +304,7 @@ public sealed class PdfAnchoredPictureWrappingTests {
     [InlineData(true, true)]
     public void NonConvergingRunningContentReportsOnlyUnstablePicturePlacement(bool withPicture, bool movingPicture) {
         const double headerDistance = 18D;
-        double tallHeader = Options().PageHeight.ToPoints() - Options().MarginBottom.ToPoints() - headerDistance - 2D * 15D;
+        double tallHeader = Options().PageSetup.Size.Height.ToPoints() - Options().PageSetup.Margins.Bottom.ToPoints() - headerDistance - 2D * 15D;
         PdfDocument Document(Func<PdfRunningContentContext, double> headerHeight) => PdfDocument.Create(pdf => {
             pdf.Section(page => page.Content(content => content.AddParagraph(p => p.AddText("ANCHOR"),
                 style: withPicture && !movingPicture
@@ -348,9 +348,13 @@ public sealed class PdfAnchoredPictureWrappingTests {
     }
 
     private static PdfCreateOptions Options(double height = 400D) => new PdfCreateOptions {
-        PageWidth = global::OfficeIMO.OfficeLength.Points(360D), PageHeight = global::OfficeIMO.OfficeLength.Points(height), MarginLeft = global::OfficeIMO.OfficeLength.Points(30D), MarginRight = global::OfficeIMO.OfficeLength.Points(30D),
-        MarginTop = global::OfficeIMO.OfficeLength.Points(30D), MarginBottom = global::OfficeIMO.OfficeLength.Points(30D), DefaultFont = PdfStandardFont.Helvetica,
-        DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D), ShowHeader = false, ShowPageNumbers = false
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360D), global::OfficeIMO.OfficeLength.Points(height)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(30D), Right = global::OfficeIMO.OfficeLength.Points(30D), Top = global::OfficeIMO.OfficeLength.Points(30D), Bottom = global::OfficeIMO.OfficeLength.Points(30D) },
+            Header = { Show = false },
+            Footer = { Show = false }
+        }, DefaultFont = PdfStandardFont.Helvetica,
+        DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D)
     };
 
     private static PdfParagraphStyle TextStyle() => new PdfParagraphStyle {

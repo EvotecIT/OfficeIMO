@@ -22,8 +22,10 @@ public class PdfInlineElementTests {
             FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(30) }, BorderColor = null, ShrinkTextToFit = true
         };
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            DefaultFont = PdfStandardFont.Courier, PageWidth = global::OfficeIMO.OfficeLength.Points(200), PageHeight = global::OfficeIMO.OfficeLength.Points(150),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20), MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+            DefaultFont = PdfStandardFont.Courier, PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(150)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+            },
             CompressContentStreams = false
         });
         PdfTableCell[][] rows = new[] { new[] { cell } };
@@ -75,12 +77,10 @@ public class PdfInlineElementTests {
     [Fact]
     public void RichParagraph_InlineHeightAdvancesFollowingFlow() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Paragraph(paragraph => paragraph.AddText("Prior flow marker"))
@@ -104,9 +104,10 @@ public class PdfInlineElementTests {
     [Fact]
     public void RichParagraph_RejectsInlineElementWiderThanItsFrame() {
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(160),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(30)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(160), global::OfficeIMO.OfficeLength.Points(792)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Paragraph(paragraph => paragraph.AddInlineBox(global::OfficeIMO.OfficeLength.Points(101), global::OfficeIMO.OfficeLength.Points(12)));
 
@@ -140,9 +141,10 @@ public class PdfInlineElementTests {
     public void RichParagraph_CentersInlineElementUsingItsWidth() {
         var fill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.13D, 0.57D, 0.91D);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(792)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20) }
+                },
                 CompressContentStreams = false
             })
             .Paragraph(paragraph => paragraph.AddInlineBox(global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(12), background: fill), OfficeAlignment.Center)
@@ -157,9 +159,10 @@ public class PdfInlineElementTests {
     public void RichParagraph_LeadingTabAdvancesInlineElementToNextTabStop() {
         var fill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.17D, 0.61D, 0.83D);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(792)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20) }
+                },
                 CompressContentStreams = false
             })
             .Paragraph(paragraph => {
@@ -180,7 +183,10 @@ public class PdfInlineElementTests {
         var style = new PdfParagraphStyle { TextWhitespaceMode = PdfTextWhitespaceMode.Collapse, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) };
         style.AddTabStop(global::OfficeIMO.OfficeLength.Points(stop), leader: PdfTabLeaderStyle.Dots);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(240D), MarginLeft = global::OfficeIMO.OfficeLength.Points(margin), MarginRight = global::OfficeIMO.OfficeLength.Points(margin),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240D), global::OfficeIMO.OfficeLength.Points(792)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(margin), Right = global::OfficeIMO.OfficeLength.Points(margin) }
+            },
             DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D), CompressContentStreams = false
         }).Paragraph(p => { p.AddText("A"); p.AddTab(); p.AddText(" "); p.AddInlineBox(global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(12), background: fill); }, style: style)
             .ToBytes();

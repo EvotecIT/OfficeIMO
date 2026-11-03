@@ -13,8 +13,10 @@ public sealed class PdfDecimalTabTests {
     public void ExplicitDecimalSeparatorSurvivesStyleCopyAndIgnoresGrouping(PdfTextWhitespaceMode mode, char separator, string grouped, string control) {
         var style = new PdfParagraphStyle();
         style.AddTabStop(global::OfficeIMO.OfficeLength.Points(200), PdfTabAlignment.DecimalSeparator).DecimalSeparator = separator;
-        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(300), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), TextWhitespaceMode = mode, DefaultParagraphStyle = style };
+        var options = new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(500), global::OfficeIMO.OfficeLength.Points(300)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+        }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), TextWhitespaceMode = mode, DefaultParagraphStyle = style };
         PdfDocument document = PdfDocument.Create(options).Paragraph(p => p.AddText("Grouped\t" + grouped))
             .Paragraph(p => p.AddText("Control\t" + control));
         using var pdf = PdfPigDocument.Open(document.ToBytes());

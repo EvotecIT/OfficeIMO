@@ -415,8 +415,8 @@ public sealed class PdfImportedLineFrameFitTests {
     };
 
     private static PdfCreateOptions Options(double bodyHeight) => new() {
-        PageWidth = Pt(200D), PageHeight = Pt(bodyHeight + 40D), DefaultFont = PdfStandardFont.Helvetica,
-        DefaultFontSize = Pt(10D), MarginTop = Pt(20D), MarginBottom = Pt(20D), MarginLeft = Pt(20D), MarginRight = Pt(20D)
+        PageSetup = { Size = new PdfPageSize(Pt(200D), Pt(bodyHeight + 40D)), Margins = { Top = Pt(20D), Bottom = Pt(20D), Left = Pt(20D), Right = Pt(20D) } }, DefaultFont = PdfStandardFont.Helvetica,
+        DefaultFontSize = Pt(10D)
     };
 
     private static global::OfficeIMO.OfficeLength Pt(double points) => global::OfficeIMO.OfficeLength.Points(points);

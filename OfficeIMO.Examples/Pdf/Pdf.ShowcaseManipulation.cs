@@ -67,7 +67,7 @@ namespace OfficeIMO.Examples.Pdf {
                     "OfficeIMO.Pdf examples \u00B7 Page " + page + " of " + pageCount,
                     new PdfTextStampOptions {
                         PageNumbers = new[] { page },
-                        X = pageGeometry.PageWidth - pageGeometry.MarginRight,
+                        X = pageGeometry.PageSetup.Size.Width - pageGeometry.PageSetup.Margins.Right,
                         Y = OfficeLength.Points(36),
                         Align = OfficeAlignment.Right,
                         Font = PdfStandardFont.Helvetica,
@@ -85,9 +85,7 @@ namespace OfficeIMO.Examples.Pdf {
 
         private static PdfCreateOptions StandardOptions(string header) {
             return new PdfCreateOptions {
-                HeaderFormat = header,
-                HeaderAlign = OfficeAlignment.Left,
-                ShowHeader = true,
+                PageSetup = { Header = { Format = header, Alignment = OfficeAlignment.Left, Show = true } },
                 CreateOutlineFromHeadings = true
             };
         }

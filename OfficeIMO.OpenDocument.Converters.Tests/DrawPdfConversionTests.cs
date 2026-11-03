@@ -81,7 +81,7 @@ public sealed class DrawPdfConversionTests {
     public async Task SaveLifecyclePreservesSourceAndRefreshesPdfStageWarnings() {
         OdgDocument source = CreateDrawing();
         string xml = source.GetXml("content.xml").ToString(SaveOptions.DisableFormatting);
-        var settings = new OdgToPdfOptions { PdfOptions = new PdfCreateOptions { PageSize = PdfPageSizes.Letter } };
+        var settings = new OdgToPdfOptions { PdfOptions = new PdfCreateOptions { PageSetup = { Size = PdfPageSizes.Letter } } };
         var conversion = source.ToPdfDocumentResult(settings);
         // A caller may add PDF-native content before saving; its save-time diagnostics must stay linked.
         var vertical = new OfficeDrawing(100, 100).AddVerticalText("Vertical", 0, 0, 100, 100);
@@ -94,7 +94,7 @@ public sealed class DrawPdfConversionTests {
         Assert.Contains(conversion.Diagnostics, d => d.Format.StartsWith("OfficeIMO.OpenDocument:"));
         Assert.Contains(conversion.Warnings, w => w.Code == "vertical-text-stacked-fallback");
         Assert.Equal(xml, source.GetXml("content.xml").ToString(SaveOptions.DisableFormatting));
-        Assert.Equal(PdfPageSizes.Letter, settings.PdfOptions.PageSize);
+        Assert.Equal(PdfPageSizes.Letter, settings.PdfOptions.PageSetup.Size);
         Assert.True(output.CanWrite);
     }
 

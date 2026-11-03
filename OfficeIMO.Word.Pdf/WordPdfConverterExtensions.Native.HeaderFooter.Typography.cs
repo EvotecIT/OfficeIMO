@@ -98,7 +98,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static PdfCore.PdfStandardFont ResolveNativeHeaderFooterBaseFont(WordDocument document, WordPdfExportOptions? options, bool isHeader) {
             if (options?.PdfOptions != null) {
-                return PdfCore.PdfStandardFontMapper.GetFontFamily(isHeader ? options.PdfOptions.HeaderFont : options.PdfOptions.FooterFont);
+                return PdfCore.PdfStandardFontMapper.GetFontFamily(isHeader ? options.PdfOptions.PageSetup.Header.StandardFont : options.PdfOptions.PageSetup.Footer.StandardFont);
             }
 
             NativeDocumentDefaults defaults = GetNativeDocumentDefaults(document);

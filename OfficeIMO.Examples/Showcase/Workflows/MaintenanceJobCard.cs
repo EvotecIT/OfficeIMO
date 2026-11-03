@@ -19,7 +19,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                 EquipmentInspection.Field(content, "Outcome", c => c.ChoiceField("outcome", new[] { "Awaiting work", "Completed", "Follow-up needed" }, value: "Awaiting work", width: OfficeLength.Points(260), fontSize: OfficeLength.Points(11), style: EquipmentInspection.Named("Outcome")));
                 EquipmentInspection.Check(content, "handover-acknowledged", "Handover acknowledged");
                 EquipmentInspection.Field(content, "Follow-up owner and date", c => c.TextField("follow-up", width: OfficeLength.Points(450), fontSize: OfficeLength.Points(11), style: EquipmentInspection.Named("Follow-up owner and date")));
-            }), new PdfCreateOptions { ShowPageNumbers = true })
+            }), new PdfCreateOptions { PageSetup = { Footer = { Show = true } } })
                 .Meta(title: "Maintenance job card", author: "OfficeIMO").Save(Path.Combine(folder, "example.pdf"));
         }
     }

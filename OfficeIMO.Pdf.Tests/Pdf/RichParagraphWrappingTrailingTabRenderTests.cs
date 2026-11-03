@@ -292,8 +292,8 @@ public partial class RichParagraphWrappingTests {
     public void ParagraphTabs_WidowCarriedLeaderRefreshesItsFontBox(bool exact, double stop) {
         byte[] Render(int count, bool floating) {
             PdfCreateOptions options = TrailingTabInkOptions();
-            options.PageWidth = global::OfficeIMO.OfficeLength.Points(400D); options.PageHeight = global::OfficeIMO.OfficeLength.Points(240D);
-            options.MarginLeft = options.MarginRight = options.MarginTop = options.MarginBottom = global::OfficeIMO.OfficeLength.Points(40D);
+            options.PageSetup.Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(400D), global::OfficeIMO.OfficeLength.Points(240D));
+            options.PageSetup.Margins.Left = options.PageSetup.Margins.Right = options.PageSetup.Margins.Top = options.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(40D);
             var document = PdfDocument.Create(options);
             if (floating) document.Table(new[] { new[] { "T" } }, style: new PdfTableStyle {
                 HeaderRowCount = 0, FontSize = global::OfficeIMO.OfficeLength.Points(2D), CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D),
@@ -386,8 +386,10 @@ public partial class RichParagraphWrappingTests {
     }
     private static PdfCreateOptions TrailingTabOptions() => new PdfCreateOptions {
         BackgroundColor = null,
-        PageWidth = global::OfficeIMO.OfficeLength.Points(360D), PageHeight = global::OfficeIMO.OfficeLength.Points(220D),
-        MarginLeft = global::OfficeIMO.OfficeLength.Points(36D), MarginRight = global::OfficeIMO.OfficeLength.Points(36D), MarginTop = global::OfficeIMO.OfficeLength.Points(36D), MarginBottom = global::OfficeIMO.OfficeLength.Points(36D),
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360D), global::OfficeIMO.OfficeLength.Points(220D)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(36D), Right = global::OfficeIMO.OfficeLength.Points(36D), Top = global::OfficeIMO.OfficeLength.Points(36D), Bottom = global::OfficeIMO.OfficeLength.Points(36D) }
+        },
         DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D)
     };
 }

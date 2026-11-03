@@ -24,7 +24,7 @@ public partial class PdfDocumentVisualQualityTests {
         document.Section(page => page.Content(content => content.AddParagraph("S1")));
         document.Section(page => {
             page.PageNumberStart(start);
-            page.Options.UsePageNumberParityForHeaderFooter = true;
+            page.Options.PageSetup.UseVisiblePageNumberParity = true;
             if (image) {
                 page.EvenPagesImageWatermark(new PdfImageWatermark(png, width: global::OfficeIMO.OfficeLength.Points(22), height: global::OfficeIMO.OfficeLength.Points(22)));
                 if (first == 1) page.FirstPageImageWatermark(new PdfImageWatermark(png, width: global::OfficeIMO.OfficeLength.Points(31), height: global::OfficeIMO.OfficeLength.Points(31)));

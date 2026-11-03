@@ -16,12 +16,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void PdfDocument_DefaultTextStyleAppliesToFollowingContent() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(300),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .DefaultTextStyle(style => style
                 .Font(PdfStandardFont.Helvetica)
@@ -51,12 +49,10 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(300),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .DefaultTextStyle(style)
             .Paragraph(p => p.AddText("ObjectTextStyle"))
@@ -87,12 +83,10 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(300),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                },
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
@@ -125,12 +119,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void HeadingStyle_BoldFalse_UsesNormalFontResource() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(300),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                },
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
@@ -151,12 +143,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Heading_UsesConfiguredSpacingBeforeAndAfter() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(320),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(260),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(260)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
@@ -201,12 +191,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Heading_SuppressesSpacingBeforeAtPageTop() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(320),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
@@ -242,12 +230,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Heading_CanApplySpacingBeforeAtPageTop() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(320),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
@@ -284,12 +270,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Heading_CanApplySpacingBeforeAfterAutomaticPageBreak() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(320),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(160),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(160)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
@@ -333,12 +317,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RowColumnHeading_SuppressesSpacingBeforeAtColumnTop() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(320),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
@@ -429,12 +411,10 @@ public partial class PdfDocumentVisualQualityTests {
             SpacingAfter = global::OfficeIMO.OfficeLength.Points(16)
         };
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(240),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
@@ -475,12 +455,10 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                },
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(fontSize)
             })
@@ -516,12 +494,10 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                },
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
@@ -561,12 +537,10 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         var doc = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(260),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(260)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Theme(theme)
             .Paragraph(p => {
@@ -683,12 +657,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void PdfDocument_WordLikeThemeRendersReadableMixedFlowRhythm() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(520),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(42),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(42),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(42),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(42)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(520)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(42), Right = global::OfficeIMO.OfficeLength.Points(42), Top = global::OfficeIMO.OfficeLength.Points(42), Bottom = global::OfficeIMO.OfficeLength.Points(42) }
+                }
             })
             .Theme(PdfTheme.WordLike())
             .H1("WordLikeHeading")
@@ -728,12 +700,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void PdfDocument_ReportThemeRendersStrongerTableAndPanelHierarchy() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(520),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(42),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(42),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(42),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(42)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(520)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(42), Right = global::OfficeIMO.OfficeLength.Points(42), Top = global::OfficeIMO.OfficeLength.Points(42), Bottom = global::OfficeIMO.OfficeLength.Points(42) }
+                }
             })
             .Theme(PdfTheme.Report())
             .H1("ReportThemeHeading")
@@ -768,12 +738,10 @@ public partial class PdfDocumentVisualQualityTests {
         var tableStyle = PdfTableStyles.Minimal();
         tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(22);
         var options = new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(260),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(260)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             }
             .ApplyTheme(new PdfTheme {
                 TextStyle = new PdfTextStyle {

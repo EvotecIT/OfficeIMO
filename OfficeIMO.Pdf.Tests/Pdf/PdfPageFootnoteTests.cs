@@ -10,8 +10,10 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfPageFootnoteTests {
     private static PdfCreateOptions Options() => new() {
         BackgroundColor = null,
-        PageWidth = global::OfficeIMO.OfficeLength.Points(260), PageHeight = global::OfficeIMO.OfficeLength.Points(140), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-        MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(8), DefaultFont = PdfStandardFont.Helvetica
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(140)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+        }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(8), DefaultFont = PdfStandardFont.Helvetica
     };
 
     private static PdfParagraphStyle Style() => new() {

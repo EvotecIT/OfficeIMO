@@ -121,8 +121,10 @@ public class PdfColumnContentBalancingTests {
         read.GetPage(page).GetWords().Single(word => word.Text == text || word.Text.EndsWith("." + text)).BoundingBox.Bottom;
 
     private static PdfCreateOptions Options() => new() {
-        PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(400), MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40),
-        MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), CompressContentStreams = false
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(500), global::OfficeIMO.OfficeLength.Points(400)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(40), Right = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Bottom = global::OfficeIMO.OfficeLength.Points(40) }
+        }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), CompressContentStreams = false
     };
 
     private static PdfParagraphStyle ParagraphStyle() => new() {

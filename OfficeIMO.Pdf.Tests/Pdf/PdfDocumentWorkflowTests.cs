@@ -282,8 +282,7 @@ public class PdfDocumentWorkflowTests {
     public void TableStyle_CanShrinkTextToFitInsideRowColumnLayout() {
         const string longValue = "ThisIdentifierShouldShrinkToFit";
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180)
+                PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)) }
             })
             .Compose(document =>
                 document.Page(page =>
@@ -321,8 +320,7 @@ public class PdfDocumentWorkflowTests {
     public void TableStyle_CanShrinkTextToFitInsideCanvasTable() {
         const string longValue = "ThisIdentifierShouldShrinkToFit";
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180)
+                PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)) }
             })
             .Canvas(canvas => canvas.Table(new[] {
                 new[] { "Name", "Value" },
@@ -1507,10 +1505,7 @@ public class PdfDocumentWorkflowTests {
     [Fact]
     public void AnalyzeTextEncoding_ReturnsAllGeneratedTextDiagnosticsBeforeRender() {
         var options = new PdfCreateOptions {
-            ShowHeader = true,
-            HeaderFormat = "Header \u2603",
-            ShowPageNumbers = true,
-            FooterFormat = "Footer \u2602"
+            PageSetup = { Header = { Show = true, Format = "Header \u2603" }, Footer = { Show = true, Format = "Footer \u2602" } }
         };
 
         PdfDocument document = PdfDocument.Create(options)

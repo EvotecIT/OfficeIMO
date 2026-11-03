@@ -65,9 +65,13 @@ public sealed class PdfLayoutDiagnosticOwnershipTests {
     }
 
     private static PdfCreateOptions Options() => new() {
-        PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(320D), MarginLeft = global::OfficeIMO.OfficeLength.Points(24D), MarginRight = global::OfficeIMO.OfficeLength.Points(24D),
-        MarginTop = global::OfficeIMO.OfficeLength.Points(32D), MarginBottom = global::OfficeIMO.OfficeLength.Points(32D), DefaultFont = PdfStandardFont.Helvetica,
-        DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11D), ShowHeader = false, ShowPageNumbers = false
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240D), global::OfficeIMO.OfficeLength.Points(320D)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(24D), Right = global::OfficeIMO.OfficeLength.Points(24D), Top = global::OfficeIMO.OfficeLength.Points(32D), Bottom = global::OfficeIMO.OfficeLength.Points(32D) },
+            Header = { Show = false },
+            Footer = { Show = false }
+        }, DefaultFont = PdfStandardFont.Helvetica,
+        DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11D)
     };
 
     private static void SaveEvidence(string name, byte[] bytes) {

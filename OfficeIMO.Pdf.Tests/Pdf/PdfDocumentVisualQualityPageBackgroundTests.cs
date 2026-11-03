@@ -111,12 +111,10 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] legacyJpegLikeImage = { 0xFF, 0xD8, 0xFF, 0xD9 };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             })
             .BackgroundImage(legacyJpegLikeImage, OfficeImageFit.Cover, opacity: 0.3)
             .Paragraph(p => p.AddText("Background image proof"))
@@ -239,12 +237,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void BackgroundBands_ComputePageAnchoredGeometry() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(300),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(400),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(40),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(40)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(40), Bottom = global::OfficeIMO.OfficeLength.Points(40) }
+                }
             })
             .BackgroundTopBand(50, global::OfficeIMO.OfficeColor.FromRgb(238, 242, 255), insetX: 12, offsetY: 8, stroke: global::OfficeIMO.OfficeColor.FromRgb(96, 165, 250), strokeWidth: 0.8, fillOpacity: 0.42, strokeOpacity: 0.7, fillGradient: OfficeLinearGradient.Horizontal(OfficeColor.LightBlue, OfficeColor.WhiteSmoke))
             .BackgroundBottomBand(30, global::OfficeIMO.OfficeColor.FromRgb(240, 253, 244), insetX: 20, offsetY: 10)

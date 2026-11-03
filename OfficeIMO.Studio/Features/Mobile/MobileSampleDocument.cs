@@ -11,7 +11,9 @@ internal static class MobileSampleDocument {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(14),
             DefaultTextColor = ink,
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(64), MarginRight = global::OfficeIMO.OfficeLength.Points(64), MarginTop = global::OfficeIMO.OfficeLength.Points(64), MarginBottom = global::OfficeIMO.OfficeLength.Points(64),
+            PageSetup = {
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(64), Right = global::OfficeIMO.OfficeLength.Points(64), Top = global::OfficeIMO.OfficeLength.Points(64), Bottom = global::OfficeIMO.OfficeLength.Points(64) }
+            },
             DefaultParagraphStyle = new PdfParagraphStyle { LineHeight = 1.5, SpacingAfter = global::OfficeIMO.OfficeLength.Points(16) }
         };
         options.SetDefaultHeadingStyle(1, new PdfHeadingStyle { FontSize = global::OfficeIMO.OfficeLength.Points(40), LineHeight = 1.1, Color = ink, SpacingAfter = global::OfficeIMO.OfficeLength.Points(24) });

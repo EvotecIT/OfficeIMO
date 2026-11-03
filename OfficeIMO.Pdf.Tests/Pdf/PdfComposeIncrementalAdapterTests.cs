@@ -12,8 +12,8 @@ public class PdfDocumentBuilderIncrementalAdapterTests {
         PdfDocument document = PdfDocument.Create(_ => { });
 
         document.Compose(compose => compose.Settings(settings => {
-            settings.PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(400));
-            settings.Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24));
+            settings.PageSetup.Size = new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(400));
+            settings.PageSetup.Margins.Set(PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24)));
             settings.BackgroundColor = global::OfficeIMO.OfficeColor.FromRgb(240, 248, 255);
         }));
         document.Compose(compose => compose.Content(content => content

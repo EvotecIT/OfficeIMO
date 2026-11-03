@@ -114,11 +114,11 @@ public class RtfPdfConverterTests {
         Assert.False(callerPdfOptions.HasExplicitDefaultFont);
         Assert.Empty(callerPdfOptions.EmbeddedFonts);
         Assert.True(result.Value.Options.EmbeddedFontFamilySlotMatches(result.Value.Options.DefaultFont, installedFamily));
-        Assert.Equal(result.Value.Options.DefaultFont, result.Value.Options.HeaderFont);
-        Assert.Equal(result.Value.Options.DefaultFont, result.Value.Options.FooterFont);
+        Assert.Equal(result.Value.Options.DefaultFont, result.Value.Options.PageSetup.Header.StandardFont);
+        Assert.Equal(result.Value.Options.DefaultFont, result.Value.Options.PageSetup.Footer.StandardFont);
         Assert.False(result.Value.Options.HasExplicitDefaultFont);
-        Assert.False(result.Value.Options.HasExplicitHeaderFont);
-        Assert.False(result.Value.Options.HasExplicitFooterFont);
+        Assert.False(result.Value.Options.PageSetup.Header.HasExplicitStandardFont);
+        Assert.False(result.Value.Options.PageSetup.Footer.HasExplicitStandardFont);
     }
 
     [Fact]
@@ -128,7 +128,7 @@ public class RtfPdfConverterTests {
         document.AddParagraph("RTF explicit PDF default marker");
         var callerPdfOptions = new PdfCore.PdfCreateOptions {
             DefaultFont = PdfCore.PdfStandardFont.Courier,
-            HeaderFont = PdfCore.PdfStandardFont.TimesRoman
+            PageSetup = { Header = { StandardFont = PdfCore.PdfStandardFont.TimesRoman } }
         };
 
         PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new RtfToPdfOptions {
@@ -138,10 +138,10 @@ public class RtfPdfConverterTests {
 
         Assert.True(callerPdfOptions.HasExplicitDefaultFont);
         Assert.Equal(PdfCore.PdfStandardFont.Courier, result.Value.Options.DefaultFont);
-        Assert.Equal(PdfCore.PdfStandardFont.TimesRoman, result.Value.Options.HeaderFont);
-        Assert.Equal(PdfCore.PdfStandardFont.Courier, result.Value.Options.FooterFont);
-        Assert.True(result.Value.Options.HasExplicitHeaderFont);
-        Assert.False(result.Value.Options.HasExplicitFooterFont);
+        Assert.Equal(PdfCore.PdfStandardFont.TimesRoman, result.Value.Options.PageSetup.Header.StandardFont);
+        Assert.Equal(PdfCore.PdfStandardFont.Courier, result.Value.Options.PageSetup.Footer.StandardFont);
+        Assert.True(result.Value.Options.PageSetup.Header.HasExplicitStandardFont);
+        Assert.False(result.Value.Options.PageSetup.Footer.HasExplicitStandardFont);
     }
 
     [Fact]

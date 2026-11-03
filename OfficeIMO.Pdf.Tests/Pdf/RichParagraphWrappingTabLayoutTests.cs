@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests.Pdf {
         public void ParagraphOffsetsExplicitTabStopsForFirstLineIndent() {
             var style = new PdfParagraphStyle { FirstLineIndent = global::OfficeIMO.OfficeLength.Points(24D) };
             style.AddTabStop(global::OfficeIMO.OfficeLength.Points(90D));
-            byte[] bytes = PdfDocument.Create(new PdfCreateOptions { MarginLeft = global::OfficeIMO.OfficeLength.Points(20D) })
+            byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageSetup = { Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D) } } })
                 .Paragraph(paragraph => paragraph.AddText("A\tB"), style: style).ToBytes();
             using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
             var letters = pdf.GetPage(1).Letters;

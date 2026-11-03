@@ -143,9 +143,8 @@ public sealed class PdfGeneratedAccessibilityTests {
     [Fact]
     public void FloatingFlowBookmarkKeepsTheFollowingParagraphAsItsLogicalTarget() {
         PdfCreateOptions options = StrictOptions();
-        options.PageWidth = global::OfficeIMO.OfficeLength.Points(400);
-        options.PageHeight = global::OfficeIMO.OfficeLength.Points(240);
-        options.MarginLeft = options.MarginRight = options.MarginTop = options.MarginBottom = global::OfficeIMO.OfficeLength.Points(40);
+        options.PageSetup.Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(240));
+        options.PageSetup.Margins.Left = options.PageSetup.Margins.Right = options.PageSetup.Margins.Top = options.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(40);
         var style = new PdfTableStyle {
             HeaderRowCount = 0, ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(320) }, MinRowHeight = global::OfficeIMO.OfficeLength.Points(150),
             Position = new PdfTablePosition()

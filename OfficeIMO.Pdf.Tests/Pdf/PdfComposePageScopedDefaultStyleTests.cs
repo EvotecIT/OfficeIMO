@@ -204,8 +204,7 @@ namespace OfficeIMO.Tests.Pdf {
                 Background = global::OfficeIMO.OfficeColor.FromRgb(240, 248, 255)
             };
             var doc = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(240),
+                PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240)) },
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 // Page two measures the document's six-point panel inset.
@@ -255,8 +254,7 @@ namespace OfficeIMO.Tests.Pdf {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(16)
             };
             var doc = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)) },
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             });
@@ -307,8 +305,7 @@ namespace OfficeIMO.Tests.Pdf {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(12)
             };
             var doc = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)) },
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             });
@@ -358,8 +355,7 @@ namespace OfficeIMO.Tests.Pdf {
             var shape = OfficeShape.Rectangle(40, 20);
             shape.FillColor = OfficeColor.WhiteSmoke;
             var doc = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)) },
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             });

@@ -21,7 +21,7 @@ internal static class EquipmentInspection {
             Field(content, "Disposition", c => c.ChoiceField("disposition", new[] { "Awaiting inspection", "Return to pool", "Repair required", "Retire from use" },
                 value: "Awaiting inspection", width: OfficeLength.Points(280), style: Named("Disposition")));
             Field(content, "Follow-up note", c => c.TextField("follow-up", width: OfficeLength.Points(450), height: OfficeLength.Points(48), style: Named("Follow-up note", multiline: true)));
-        }), new PdfCreateOptions { DefaultFontSize = OfficeLength.Points(10), ShowPageNumbers = true })
+        }), new PdfCreateOptions { DefaultFontSize = OfficeLength.Points(10), PageSetup = { Footer = { Show = true } } })
             .Meta(title: "Equipment inspection", author: "OfficeIMO");
         template.Save(Path.Combine(folder, "example.pdf"));
 

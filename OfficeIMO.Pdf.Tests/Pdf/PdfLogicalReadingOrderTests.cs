@@ -162,8 +162,8 @@ public sealed class PdfLogicalReadingOrderTests {
     [Fact]
     public void ArtifactConverters_UsePageContentOrderForClassifiedHeadersAndFooters() {
         byte[] pdf = PdfDocument.Create()
-            .Header(header => header.AlignLeft().Text("Artifact header {page}/{pages}"))
-            .Footer(footer => footer.AlignLeft().Text("Artifact footer {page}/{pages}"))
+            .Header(header => header.Alignment(OfficeAlignment.Left).Text("Artifact header {page}/{pages}"))
+            .Footer(footer => footer.Alignment(OfficeAlignment.Left).Text("Artifact footer {page}/{pages}"))
             .Paragraph(paragraph => paragraph.AddText("First page body marker."))
             .PageBreak()
             .Paragraph(paragraph => paragraph.AddText("Second page body marker."))

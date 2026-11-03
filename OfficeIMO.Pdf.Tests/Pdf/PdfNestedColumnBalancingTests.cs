@@ -171,8 +171,10 @@ public sealed class PdfNestedColumnBalancingTests {
     private static double Y(PdfPigDocument pdf, int page, string marker) => Word(pdf, page, marker).BoundingBox.Bottom;
     private static UglyToad.PdfPig.Content.Word Word(PdfPigDocument pdf, int page, string marker) =>
         pdf.GetPage(page).GetWords().Single(word => word.Text == marker || word.Text.EndsWith("." + marker, StringComparison.Ordinal));
-    private static PdfCreateOptions Options() => new() { PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(400), MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40),
-        MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), CompressContentStreams = false };
+    private static PdfCreateOptions Options() => new() { PageSetup = {
+        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(500), global::OfficeIMO.OfficeLength.Points(400)),
+        Margins = { Left = global::OfficeIMO.OfficeLength.Points(40), Right = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Bottom = global::OfficeIMO.OfficeLength.Points(40) }
+    }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), CompressContentStreams = false };
     private static PdfParagraphStyle ParagraphStyle() => new() { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)),
         SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false };
     private static PdfPanelStyle PanelStyle() => new() { PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(10), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) };

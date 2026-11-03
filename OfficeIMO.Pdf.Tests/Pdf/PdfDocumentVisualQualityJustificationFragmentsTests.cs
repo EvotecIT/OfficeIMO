@@ -35,7 +35,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.True(expected.Count > 10, "The paragraph must exceed one physical page or column frame.");
 
         PdfCreateOptions options = FragmentJustificationOptions(140);
-        if (owner == "BodyColumns") options.PageWidth = global::OfficeIMO.OfficeLength.Points(500);
+        if (owner == "BodyColumns") options.PageSetup.Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(500), options.PageSetup.Size.Height);
         var document = PdfDocument.Create(options);
         if (owner == "Footnote") {
             PdfFootnoteDefinition note = document.Content.DefineFootnote(addParagraph);
@@ -100,8 +100,10 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     private static PdfCreateOptions FragmentJustificationOptions(double height) => new() {
-        PageWidth = global::OfficeIMO.OfficeLength.Points(260), PageHeight = global::OfficeIMO.OfficeLength.Points(height), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-        MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(8), DefaultFont = PdfStandardFont.Helvetica,
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(height)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+        }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(8), DefaultFont = PdfStandardFont.Helvetica,
         // The paint comparison extracts black underline segments from both documents.
         DefaultTextColor = global::OfficeIMO.OfficeColor.Black,
         CompressContentStreams = false

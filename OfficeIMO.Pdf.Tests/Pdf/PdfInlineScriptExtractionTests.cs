@@ -384,7 +384,7 @@ public sealed class PdfInlineScriptExtractionTests {
         OfficeTransform transform = OfficeTransform.Scale(scaleX, scaleY)
             .Then(OfficeTransform.RotateDegrees(angle, 100D * scaleX, 100D * scaleY));
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(600D), PageHeight = global::OfficeIMO.OfficeLength.Points(800D), DefaultFont = PdfStandardFont.Courier,
+            PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)) }, DefaultFont = PdfStandardFont.Courier,
             CompressContentStreams = false
         }).Compose(document => document.Content(content => content.Canvas(canvas =>
             canvas.Effect(transform, 1D, build)))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });

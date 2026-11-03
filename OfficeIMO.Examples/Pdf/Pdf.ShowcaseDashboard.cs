@@ -9,12 +9,10 @@ namespace OfficeIMO.Examples.Pdf {
             string path = Path.Combine(folderPath, "Pdf.Showcase.Dashboard.pdf");
 
             var options = new PdfCreateOptions {
-                HeaderFormat = "Northwind Support \u2013 Q3 operations review (sample data)",
-                HeaderAlign = OfficeAlignment.Left,
-                ShowHeader = true,
-                FooterFormat = "Page {page} of {pages}",
-                FooterAlign = OfficeAlignment.Right,
-                ShowPageNumbers = true,
+                PageSetup = {
+                    Header = { Format = "Northwind Support \u2013 Q3 operations review (sample data)", Alignment = OfficeAlignment.Left, Show = true },
+                    Footer = { Format = "Page {page} of {pages}", Alignment = OfficeAlignment.Right, Show = true }
+                },
                 CreateOutlineFromHeadings = true
             };
 

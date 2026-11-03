@@ -86,7 +86,7 @@ public sealed class PdfRepeatedPageEdgeEnvelopeTests {
     }
 
     private static PdfReadDocument CreateDocument(int pageCount) {
-        PdfDocument document = PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(1_000D),OfficeIMO.OfficeLength.Points(1_000D)) });
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions { PageSetup = { Size = new PdfPageSize(OfficeIMO.OfficeLength.Points(1_000D),OfficeIMO.OfficeLength.Points(1_000D)) } });
         for (int page = 0; page < pageCount; page++) {
             document.Paragraph(paragraph => paragraph.AddText("Page placeholder"));
             if (page + 1 < pageCount) document.PageBreak();

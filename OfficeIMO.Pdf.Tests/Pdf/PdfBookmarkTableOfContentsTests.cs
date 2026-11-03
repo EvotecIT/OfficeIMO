@@ -13,7 +13,10 @@ public sealed class PdfBookmarkTableOfContentsTests {
         var entries = Enumerable.Range(0, 6)
             .Select(index => new PdfTableOfContentsEntry("Item " + (char)('A' + index), "details")).ToArray();
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(460), PageHeight = global::OfficeIMO.OfficeLength.Points(200), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20), MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(460), global::OfficeIMO.OfficeLength.Points(200)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+            }
         }).Columns(column => {
             column.Spacer(global::OfficeIMO.OfficeLength.Points(moveBeforeFirstEntry ? 145 : 60));
             column.TableOfContents(new PdfTableOfContentsOptions { Entries = entries });
@@ -39,7 +42,10 @@ public sealed class PdfBookmarkTableOfContentsTests {
     public void TableOfContents_SequentialColumnsKeepFinalPageLinksAndBalancedEntries(bool balance) {
         var entries = Enumerable.Range(0, 16)
             .Select(index => new PdfTableOfContentsEntry("Column entry " + index, "details")).ToArray();
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageHeight = global::OfficeIMO.OfficeLength.Points(400), MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30) })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(612), global::OfficeIMO.OfficeLength.Points(400)),
+            Margins = { Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+        } })
             .Columns(column => column.TableOfContents(new PdfTableOfContentsOptions {
                 Entries = entries, PageNumberFormatter = page => "page-" + page
             }), new PdfMultiColumnOptions { BalanceLastPage = balance })

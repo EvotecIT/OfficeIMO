@@ -84,7 +84,7 @@ public sealed class PdfExplicitLineSpacingTests {
 
     [Fact]
     public void Exact_spacing_measurement_keeps_a_fitting_paragraph_together() {
-        var options = Options(); options.PageHeight = global::OfficeIMO.OfficeLength.Points(130); options.MarginTop = global::OfficeIMO.OfficeLength.Points(20); options.MarginBottom = global::OfficeIMO.OfficeLength.Points(20);
+        var options = Options(); options.PageSetup.Size = new PdfPageSize(options.PageSetup.Size.Width, global::OfficeIMO.OfficeLength.Points(130)); options.PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Points(20); options.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(20);
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options).Paragraph(p => p.AddText("A\nB\nC\nD\nE\nF"),
             style: new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(8), KeepTogether = true, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(14)) }).ToBytes());
         Assert.Equal(1, pdf.NumberOfPages);
@@ -102,8 +102,10 @@ public sealed class PdfExplicitLineSpacingTests {
             letters.First(letter => letter.Value == "B").StartBaseLine.Y, 13.99, 14.01);
     }
 
-    private static PdfCreateOptions Options() => new() { PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(300),
-        MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) };
+    private static PdfCreateOptions Options() => new() { PageSetup = {
+        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)),
+        Margins = { Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30), Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30) }
+    }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) };
 
     private static byte[] Render(string frame, PdfParagraphStyle style, bool mixed) {
         Action<PdfParagraph> text = p => { p.AddText("A\n"); p.AddText("B\n").SetFontSize(global::OfficeIMO.OfficeLength.Inches((mixed ? 32D : 8D) / 72D)); p.AddText("C").SetFontSize(global::OfficeIMO.OfficeLength.Pixels(32D / 3D)); };

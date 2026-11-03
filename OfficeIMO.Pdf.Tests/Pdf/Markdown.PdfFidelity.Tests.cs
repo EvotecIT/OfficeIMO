@@ -112,7 +112,10 @@ public sealed class MarkdownPdfFidelityTests {
     [InlineData(OfficeImageExportFormat.Svg)]
     public void MarkdownPageImagesUseSerializedPdfPaginationAndGeometry(OfficeImageExportFormat format) {
         var conversion = MarkdownDocument.Parse("# First\n\n```text\n    Indented\n```\n\n" + string.Join("\n\n", Enumerable.Repeat("A paragraph with `code` and a note[^1].", 30)) + "\n\n[^1]: Data source: dashboard.")
-            .ConvertToPdfWithEvidence(new MarkdownPdfExportOptions { PdfOptions = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(300), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20), MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20) } });
+            .ConvertToPdfWithEvidence(new MarkdownPdfExportOptions { PdfOptions = new PdfCreateOptions { PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+            } } });
         var options = new PdfImageExportOptions { TargetDpi = 72, Format = format };
         var direct = conversion.CreateImageExportOperation(options).Export();
         var reopened = PdfReadDocument.Open(conversion.ToBytes());

@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                 .AddParagraph(p => p.AddText("Use the named event coordinator for venue changes. Keep booking references and personal contact details in the traveller's private copy."))
                 .H2("Bring")
                 .AddList(new[] { "Travel documents and confirmed bookings", "Workshop notes and laptop charger", "The agreed accessibility and dietary arrangements" })),
-                new PdfCreateOptions { ShowPageNumbers = true })
+                new PdfCreateOptions { PageSetup = { Footer = { Show = true } } })
                 .Meta(title: "Workshop travel itinerary", author: "OfficeIMO").Save(Path.Combine(folder, "example.pdf"));
         }
     }

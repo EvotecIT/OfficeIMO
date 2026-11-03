@@ -34,8 +34,10 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                         .AddPanelParagraph(p => p.AddText("14 October 2026 · Copenhagen"));
                 }
             }), new PdfCreateOptions {
-                PageWidth = OfficeLength.Points(sheetWidth), PageHeight = OfficeLength.Points(sheetHeight),
-                MarginLeft = OfficeLength.Points(slug + 24), MarginRight = OfficeLength.Points(slug + 24), MarginTop = OfficeLength.Points(slug + 24), MarginBottom = OfficeLength.Points(slug + 24), DefaultFontSize = OfficeLength.Points(10),
+                PageSetup = {
+                    Size = new PdfPageSize(OfficeLength.Points(sheetWidth), OfficeLength.Points(sheetHeight)),
+                    Margins = { Left = OfficeLength.Points(slug + 24), Right = OfficeLength.Points(slug + 24), Top = OfficeLength.Points(slug + 24), Bottom = OfficeLength.Points(slug + 24) }
+                }, DefaultFontSize = OfficeLength.Points(10),
                 PrintProductionPageBoxes = new PdfPrintProductionPageBoxes(PdfPageMargins.Uniform(OfficeLength.Points(slug)), PdfPageMargins.Uniform(OfficeLength.Points(slug - bleed))),
                 PageBackgroundShapes = cropMarks
             })

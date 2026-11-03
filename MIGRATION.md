@@ -3124,7 +3124,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Pdf
 
 <details>
-<summary>204 changes</summary>
+<summary>252 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -3241,7 +3241,55 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Authoring | `OfficeIMO.Pdf.PdfContentBuilder.Table<T>(IEnumerable<T> rows) / Table<T>(IEnumerable<T> rows, OfficeTableOptions? options)` | Merged | `OfficeIMO.Pdf.PdfContentBuilder.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions? options = null)` | Typed-table projection moved to PdfDocument.AddTable&lt;T&gt;; the wrapper forwards. |
 | Authoring | `OfficeIMO.Pdf.PdfContentBuilder.TableDeferred(...)` | Renamed | `OfficeIMO.Pdf.PdfContentBuilder.AddDeferredTable(...)` | Add vocabulary; same model operation PdfDocument.AddDeferredTable. |
 | Authoring | `OfficeIMO.Pdf.PdfContentBuilder.Text(string text, OfficeAlignment align = Left, OfficeColor? color = null, PdfParagraphStyle? style = null)` | Renamed | `OfficeIMO.Pdf.PdfContentBuilder.AddParagraph(string text, OfficeAlignment align = Left, OfficeColor? color = null, PdfParagraphStyle? style = null)` | The fluent wrapper uses the model operation name; PdfDocument.AddParagraph(string?) returns the PdfParagraph. |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.DifferentFirstPageHeaderFooter` | Moved | `OfficeIMO.Pdf.PdfPageSetup.DifferentFirstPage` | Running header and footer settings live on PageSetup.Header/FirstPageHeader/EvenPageHeader/Footer/FirstPageFooter/EvenPageFooter (PdfHeaderFooter), matching Word PageSetup names. |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.DifferentOddAndEvenPagesHeaderFooter` | Moved | `OfficeIMO.Pdf.PdfPageSetup.DifferentOddAndEvenPages` | Running header and footer settings live on PageSetup.Header/FirstPageHeader/EvenPageHeader/Footer/FirstPageFooter/EvenPageFooter (PdfHeaderFooter), matching Word PageSetup names. |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.EvenPageFooterFormat` | Moved | `OfficeIMO.Pdf.PdfHeaderFooter.Format` | options.PageSetup.EvenPageFooter.Format = "Page {page} of {pages}"; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.EvenPageFooterSegments` | Changed | `OfficeIMO.Pdf.PdfHeaderFooter.Segments` | options.PageSetup.EvenPageFooter.Segments = segments; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.EvenPageHeaderFormat` | Moved | `OfficeIMO.Pdf.PdfHeaderFooter.Format` | options.PageSetup.EvenPageHeader.Format = "Page {page} of {pages}"; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.FirstPageFooterFormat` | Moved | `OfficeIMO.Pdf.PdfHeaderFooter.Format` | options.PageSetup.FirstPageFooter.Format = "Page {page} of {pages}"; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.FirstPageFooterSegments` | Changed | `OfficeIMO.Pdf.PdfHeaderFooter.Segments` | options.PageSetup.FirstPageFooter.Segments = segments; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.FirstPageHeaderFormat` | Moved | `OfficeIMO.Pdf.PdfHeaderFooter.Format` | options.PageSetup.FirstPageHeader.Format = "Page {page} of {pages}"; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.FooterAlign` | Moved | `OfficeIMO.Pdf.PdfHeaderFooter.Alignment` | options.PageSetup.Footer.Alignment = ...; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.FooterFont` | Moved | `OfficeIMO.Pdf.PdfHeaderFooter.StandardFont` | options.PageSetup.Footer.StandardFont = ...; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.FooterFontFamily` | Moved | `OfficeIMO.Pdf.PdfHeaderFooter.FontFamily` | options.PageSetup.Footer.FontFamily = ...; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.FooterFontSize` | Moved | `OfficeIMO.Pdf.PdfHeaderFooter.FontSize` | options.PageSetup.Footer.FontSize = ...; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.FooterFormat` | Moved | `OfficeIMO.Pdf.PdfHeaderFooter.Format` | options.PageSetup.Footer.Format = "Page {page} of {pages}"; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.FooterOffsetY` | Moved | `OfficeIMO.Pdf.PdfHeaderFooter.Offset` | options.PageSetup.Footer.Offset = ...; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.FooterSegments` | Changed | `OfficeIMO.Pdf.PdfHeaderFooter.Segments` | options.PageSetup.Footer.Segments = segments; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.FooterTextColor` | Moved | `OfficeIMO.Pdf.PdfHeaderFooter.Color` | options.PageSetup.Footer.Color = ...; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.HasExplicitFooterFont` | Internal | `OfficeIMO.Pdf.PdfHeaderFooter.HasExplicitStandardFont (internal)` | Only OfficeIMO converters need to know whether the font slot came from the caller or a theme. |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.HasExplicitHeaderFont` | Internal | `OfficeIMO.Pdf.PdfHeaderFooter.HasExplicitStandardFont (internal)` | Only OfficeIMO converters need to know whether the font slot came from the caller or a theme. |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.HeaderAlign` | Moved | `OfficeIMO.Pdf.PdfHeaderFooter.Alignment` | options.PageSetup.Header.Alignment = ...; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.HeaderFont` | Moved | `OfficeIMO.Pdf.PdfHeaderFooter.StandardFont` | options.PageSetup.Header.StandardFont = ...; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.HeaderFontFamily` | Moved | `OfficeIMO.Pdf.PdfHeaderFooter.FontFamily` | options.PageSetup.Header.FontFamily = ...; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.HeaderFontSize` | Moved | `OfficeIMO.Pdf.PdfHeaderFooter.FontSize` | options.PageSetup.Header.FontSize = ...; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.HeaderFormat` | Moved | `OfficeIMO.Pdf.PdfHeaderFooter.Format` | options.PageSetup.Header.Format = "Page {page} of {pages}"; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.HeaderOffsetY` | Moved | `OfficeIMO.Pdf.PdfHeaderFooter.Offset` | options.PageSetup.Header.Offset = ...; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.HeaderTextColor` | Moved | `OfficeIMO.Pdf.PdfHeaderFooter.Color` | options.PageSetup.Header.Color = ...; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.MarginBottom` | Moved | `OfficeIMO.Pdf.PdfPageSetupMargins.Bottom` | options.PageSetup.Margins.Bottom = OfficeLength.Points(36); |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.MarginLeft` | Moved | `OfficeIMO.Pdf.PdfPageSetupMargins.Left` | options.PageSetup.Margins.Left = OfficeLength.Points(36); |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.MarginRight` | Moved | `OfficeIMO.Pdf.PdfPageSetupMargins.Right` | options.PageSetup.Margins.Right = OfficeLength.Points(36); |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.Margins` | Changed | `OfficeIMO.Pdf.PdfPageSetup.Margins` | options.PageSetup.Margins.Set(PdfPageMargins.Narrow); read with options.PageSetup.Margins.ToPdfPageMargins(). |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.MarginTop` | Moved | `OfficeIMO.Pdf.PdfPageSetupMargins.Top` | options.PageSetup.Margins.Top = OfficeLength.Points(36); |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.MirrorMargins` | Moved | `OfficeIMO.Pdf.PdfPageSetup.MirrorMargins` | Page size, margins and orientation live on the options PageSetup, matching Word PageSetup.Size/Margins/Orientation. |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.PageHeight` | Merged | `OfficeIMO.Pdf.PdfPageSetup.Size` | Read options.PageSetup.Size.Height; set options.PageSetup.Size = new PdfPageSize(options.PageSetup.Size.Width, height). |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.PageOrientation` | Changed | `OfficeIMO.Pdf.PdfPageSetup.Orientation` | options.PageSetup.Orientation = OfficePageOrientation.Landscape; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.PageSize` | Moved | `OfficeIMO.Pdf.PdfPageSetup.Size` | options.PageSetup.Size = PdfPageSizes.A4; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.PageWidth` | Merged | `OfficeIMO.Pdf.PdfPageSetup.Size` | Read options.PageSetup.Size.Width; set options.PageSetup.Size = new PdfPageSize(width, options.PageSetup.Size.Height). |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.ShowHeader` | Moved | `OfficeIMO.Pdf.PdfHeaderFooter.Show` | options.PageSetup.Header.Show = true; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.ShowPageNumbers` | Moved | `OfficeIMO.Pdf.PdfHeaderFooter.Show` | options.PageSetup.Footer.Show = true; |
+| Authoring | `OfficeIMO.Pdf.PdfCreateOptions.UsePageNumberParityForHeaderFooter` | Moved | `OfficeIMO.Pdf.PdfPageSetup.UseVisiblePageNumberParity` | The setting also applies to watermarks; the new name says which parity it uses. |
 | Authoring | `OfficeIMO.Pdf.PdfDocument (no public paragraph, table, image, heading or list authoring)` | Changed | `OfficeIMO.Pdf.PdfDocument.AddParagraph(string?) : PdfParagraph, AddParagraph(Action<PdfParagraph>) : PdfParagraph, AddTable(...) : PdfTable, AddTable<T>(...) : PdfTable, AddDeferredTable(...) : PdfTable, AddKeyValueTable(...) : PdfTable, AddImage(...) : PdfImage, AddHeading(string text, int level = 1, ...) : PdfHeading, AddList(...) : PdfList, AddNumberedList(...) : PdfList` | Call the operations on the document; Compose(...).Content(...) remains as the fluent wrapper with the same names. |
+| Authoring | `OfficeIMO.Pdf.PdfFooterBuilder.AlignCenter()` | Merged | `OfficeIMO.Pdf.PdfFooterBuilder.Alignment(OfficeAlignment alignment)` | .Alignment(OfficeAlignment.Center) |
+| Authoring | `OfficeIMO.Pdf.PdfFooterBuilder.AlignLeft()` | Merged | `OfficeIMO.Pdf.PdfFooterBuilder.Alignment(OfficeAlignment alignment)` | .Alignment(OfficeAlignment.Left) |
+| Authoring | `OfficeIMO.Pdf.PdfFooterBuilder.AlignRight()` | Merged | `OfficeIMO.Pdf.PdfFooterBuilder.Alignment(OfficeAlignment alignment)` | .Alignment(OfficeAlignment.Right) |
+| Authoring | `OfficeIMO.Pdf.PdfFooterBuilder.Font(PdfStandardFont font)` | Renamed | `OfficeIMO.Pdf.PdfFooterBuilder.StandardFont(PdfStandardFont font)` | Builder methods use the PdfHeaderFooter property names. |
+| Authoring | `OfficeIMO.Pdf.PdfFooterBuilder.Offset(OfficeLength points)` | Changed | `OfficeIMO.Pdf.PdfFooterBuilder.Offset(OfficeLength offset)` | Use the positional argument or offset: as the named argument. |
+| Authoring | `OfficeIMO.Pdf.PdfHeaderBuilder.AlignCenter()` | Merged | `OfficeIMO.Pdf.PdfHeaderBuilder.Alignment(OfficeAlignment alignment)` | .Alignment(OfficeAlignment.Center) |
+| Authoring | `OfficeIMO.Pdf.PdfHeaderBuilder.AlignLeft()` | Merged | `OfficeIMO.Pdf.PdfHeaderBuilder.Alignment(OfficeAlignment alignment)` | .Alignment(OfficeAlignment.Left) |
+| Authoring | `OfficeIMO.Pdf.PdfHeaderBuilder.AlignRight()` | Merged | `OfficeIMO.Pdf.PdfHeaderBuilder.Alignment(OfficeAlignment alignment)` | .Alignment(OfficeAlignment.Right) |
+| Authoring | `OfficeIMO.Pdf.PdfHeaderBuilder.Font(PdfStandardFont font)` | Renamed | `OfficeIMO.Pdf.PdfHeaderBuilder.StandardFont(PdfStandardFont font)` | Builder methods use the PdfHeaderFooter property names. |
+| Authoring | `OfficeIMO.Pdf.PdfHeaderBuilder.Offset(OfficeLength points)` | Changed | `OfficeIMO.Pdf.PdfHeaderBuilder.Offset(OfficeLength offset)` | Use the positional argument or offset: as the named argument. |
 | Authoring | `OfficeIMO.Pdf.PdfImageExportExtensions.ToImage(PdfReadPage page)` | Removed | &mdash; | Use ExportImages/SaveAsImages with PdfImageExportOptions. |
 | Authoring | `OfficeIMO.Pdf.PdfImageExportExtensions.ToImage(PdfReadPage page, PdfImageExportOptions options)` | Removed | &mdash; | Use ExportImages/SaveAsImages with PdfImageExportOptions. |
 | Authoring | `OfficeIMO.Pdf.PdfImageExportExtensions.ToImages(PdfDocument document)` | Removed | &mdash; | Use ExportImages/SaveAsImages with PdfImageExportOptions. |

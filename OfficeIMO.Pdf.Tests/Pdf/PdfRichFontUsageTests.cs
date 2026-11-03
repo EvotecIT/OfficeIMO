@@ -15,8 +15,7 @@ public class PdfRichFontUsageTests {
     public void TableHeaderBoldCombinesWithRunItalicAcrossRenderingSurfaces(TableSurface surface, bool namedFont) {
         var options = new PdfCreateOptions {
             CompressContentStreams = false,
-            PageWidth = global::OfficeIMO.OfficeLength.Points(300D),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(200D)
+            PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300D), global::OfficeIMO.OfficeLength.Points(200D)) }
         };
         if (namedFont) {
             byte[] font = ManagedTextShapingTestAssets.CreateFont("StyledHeaderMarker".Distinct().Select(ch => (int)ch).ToArray());
@@ -64,7 +63,7 @@ public class PdfRichFontUsageTests {
     [InlineData(TableSurface.RowColumn, PdfStandardFont.TimesItalic, "Times-Italic")]
     [InlineData(TableSurface.Canvas, PdfStandardFont.TimesItalic, "Times-Italic")]
     public void TableHeaderRetainsExplicitRunFontFace(TableSurface surface, PdfStandardFont font, string expectedFont) {
-        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300D), PageHeight = global::OfficeIMO.OfficeLength.Points(200D) };
+        var options = new PdfCreateOptions { PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300D), global::OfficeIMO.OfficeLength.Points(200D)) } };
         var style = new PdfTableStyle {
             HeaderRowCount = 1, HeaderBold = true,
             ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(180D) }

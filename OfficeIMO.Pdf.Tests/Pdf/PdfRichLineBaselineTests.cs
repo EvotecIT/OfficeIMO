@@ -50,8 +50,10 @@ public sealed class PdfRichLineBaselineTests {
 
     private static byte[] Render(string frame, bool namedFont, bool mixed) {
         const string family = "Line Box Test";
-        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(300),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(8) };
+        var options = new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)),
+            Margins = { Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30), Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30) }
+        }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(8) };
         if (namedFont) options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family,
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'B', 'C')));
         var style = new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(8), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),

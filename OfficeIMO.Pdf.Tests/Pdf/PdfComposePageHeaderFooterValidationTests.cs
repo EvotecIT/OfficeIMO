@@ -13,14 +13,14 @@ namespace OfficeIMO.Tests.Pdf {
         public void HeaderFooterCompose_RejectsInvalidTypographyAndPlacementValues() {
             var headerFontException = Assert.Throws<ArgumentOutOfRangeException>(() =>
                 PdfDocument.Create().Compose(c => c.Page(page =>
-                    page.Header(header => header.Font((PdfStandardFont)99)))));
+                    page.Header(header => header.StandardFont((PdfStandardFont)99)))));
 
             Assert.Equal("HeaderFont", headerFontException.ParamName);
             Assert.Contains("PDF header font must be one of the supported standard PDF fonts.", headerFontException.Message, StringComparison.Ordinal);
 
             var footerFontException = Assert.Throws<ArgumentOutOfRangeException>(() =>
                 PdfDocument.Create().Compose(c => c.Page(page =>
-                    page.Footer(footer => footer.Font((PdfStandardFont)99)))));
+                    page.Footer(footer => footer.StandardFont((PdfStandardFont)99)))));
 
             Assert.Equal("FooterFont", footerFontException.ParamName);
             Assert.Contains("PDF footer font must be one of the supported standard PDF fonts.", footerFontException.Message, StringComparison.Ordinal);
@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests.Pdf {
                 PdfDocument.Create().Compose(c => c.Page(page =>
                     page.Footer(footer => footer.Offset(global::OfficeIMO.OfficeLength.Points(-1))))));
 
-            Assert.Equal("points", footerOffsetException.ParamName);
+            Assert.Equal("offset", footerOffsetException.ParamName);
 
             var renderHeaderOffsetException = Assert.Throws<ArgumentException>(() =>
                 PdfDocument.Create().Compose(c => c.Page(page => {

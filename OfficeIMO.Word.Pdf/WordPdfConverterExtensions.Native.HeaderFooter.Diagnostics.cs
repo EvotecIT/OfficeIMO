@@ -63,7 +63,7 @@ namespace OfficeIMO.Word.Pdf {
             if (hasEvenPageStory)
                 RecordNativeHeaderFooterDiagnostics(section.ResolveEvenFooter(), options, "even footer");
             ApplyNativeSectionWatermark(page, section, options);
-            page.Options.UsePageNumberParityForHeaderFooter = true;
+            page.Options.PageSetup.UseVisiblePageNumberParity = true;
 
             // Flat projections still supply field-numbering metadata. Their
             // approximation diagnostics do not describe admitted running flow.
@@ -143,7 +143,7 @@ namespace OfficeIMO.Word.Pdf {
                     }
 
                     if (headerFont.HasValue) {
-                        header.Font(headerFont.Value);
+                        header.StandardFont(headerFont.Value);
                     }
 
                     if (!string.IsNullOrWhiteSpace(headerFontFamily)) {
@@ -202,7 +202,7 @@ namespace OfficeIMO.Word.Pdf {
             page.Footer(footer => {
                 footer.Offset(global::OfficeIMO.OfficeLength.Points(GetNativeFooterOffset(options)));
                 if (footerFont.HasValue) {
-                    footer.Font(footerFont.Value);
+                    footer.StandardFont(footerFont.Value);
                 }
 
                 if (!string.IsNullOrWhiteSpace(footerFontFamily)) {
@@ -254,12 +254,12 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static double GetNativeHeaderOffset(WordPdfExportOptions? options, double headerMarginExpansion) {
-            double configuredOffset = options?.PdfOptions?.HeaderOffsetY.ToPoints() ?? NativeHeaderFooterDefaultOffset;
+            double configuredOffset = options?.PdfOptions?.PageSetup.Header.Offset.ToPoints() ?? NativeHeaderFooterDefaultOffset;
             return configuredOffset + headerMarginExpansion;
         }
 
         private static double GetNativeFooterOffset(WordPdfExportOptions? options) {
-            return options?.PdfOptions?.FooterOffsetY.ToPoints() ?? NativeFooterDefaultOffset;
+            return options?.PdfOptions?.PageSetup.Footer.Offset.ToPoints() ?? NativeFooterDefaultOffset;
         }
 
         private static void AddNativeHeaderImages(PdfCore.PdfHeaderBuilder header, IReadOnlyList<NativeHeaderFooterImage> images, W.HeaderFooterValues variant) {

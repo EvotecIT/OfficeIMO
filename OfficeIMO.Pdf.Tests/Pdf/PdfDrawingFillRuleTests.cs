@@ -78,8 +78,10 @@ public sealed class PdfDrawingFillRuleTests {
     }
 
     private static PdfCreateOptions CreateOptions() => new PdfCreateOptions {
-        PageWidth = global::OfficeIMO.OfficeLength.Points(80D), PageHeight = global::OfficeIMO.OfficeLength.Points(80D),
-        MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D), MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D),
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(80D)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(0D), Right = global::OfficeIMO.OfficeLength.Points(0D), Top = global::OfficeIMO.OfficeLength.Points(0D), Bottom = global::OfficeIMO.OfficeLength.Points(0D) }
+        },
         CompressContentStreams = false
     };
 

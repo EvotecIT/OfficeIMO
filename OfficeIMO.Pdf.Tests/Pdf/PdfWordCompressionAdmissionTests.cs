@@ -139,7 +139,7 @@ public sealed class PdfWordCompressionAdmissionTests {
         double natural = Span(Assert.Single(Lines(Render(runs, 300D, false), "columns-natural")));
         double narrow = natural - 1D, wide = natural - 0.5D;
         var options = Options(narrow + wide + 20D);
-        options.PageHeight = global::OfficeIMO.OfficeLength.Points(100D);
+        options.PageSetup.Size = new PdfPageSize(options.PageSetup.Size.Width, global::OfficeIMO.OfficeLength.Points(100D));
         var document = PdfDocument.Create(options);
         document.Content.Columns(content => content.AddParagraph(p => p.AddText(string.Join("\n", Enumerable.Repeat("Alpha beta gamma", 8))),
                 OfficeAlignment.Justify, style: new PdfParagraphStyle { UseWordJustificationSpacing = true,
@@ -181,8 +181,10 @@ public sealed class PdfWordCompressionAdmissionTests {
         PdfJustificationMode mode = PdfJustificationMode.Words) =>
         PdfDocument.Create(Options(width)).Paragraph(p => p.AddRuns(runs), OfficeAlignment.Justify,
             style: new PdfParagraphStyle { UseWordJustificationSpacing = native, TextWhitespaceMode = whitespace, JustificationMode = mode }).ToBytes();
-    private static PdfCreateOptions Options(double width) => new() { PageWidth = global::OfficeIMO.OfficeLength.Points(width + 40D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D),
-        MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
+    private static PdfCreateOptions Options(double width) => new() { PageSetup = {
+        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(width + 40D), global::OfficeIMO.OfficeLength.Points(300D)),
+        Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+    },
         DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D), CompressContentStreams = false };
     private static double Span(IReadOnlyList<Letter> letters) => letters[letters.Count - 1].EndBaseLine.X - letters[0].StartBaseLine.X;
     private static double Gap(IReadOnlyList<Letter> letters, int left, int right) => letters[right].StartBaseLine.X - letters[left].EndBaseLine.X;

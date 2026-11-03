@@ -86,8 +86,10 @@ public sealed class PdfPeriodicPrintGradientTests {
         Assert.NotEqual(OfficeColor.White, raster!.GetPixel(29, 18));
     }
 
-    private static PdfCreateOptions Options() => new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(60), PageHeight = global::OfficeIMO.OfficeLength.Points(40),
-        MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0), MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0) }.ConfigurePdfXGroundwork(
+    private static PdfCreateOptions Options() => new PdfCreateOptions { PageSetup = {
+        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(40)),
+        Margins = { Top = global::OfficeIMO.OfficeLength.Points(0), Bottom = global::OfficeIMO.OfficeLength.Points(0), Left = global::OfficeIMO.OfficeLength.Points(0), Right = global::OfficeIMO.OfficeLength.Points(0) }
+    } }.ConfigurePdfXGroundwork(
             PdfComplianceProfile.PdfX4, IccMabTestProfiles.CreateCmykLab8Bidirectional(),
             "Managed test CMYK", PdfTrappingStatus.False);
 }

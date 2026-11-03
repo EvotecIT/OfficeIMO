@@ -10,8 +10,8 @@ namespace OfficeIMO.Examples.Pdf {
                 .Typography(OfficeRenderingProfile.Managed)
                 .Settings(options => {
                     options.TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers;
-                    options.PageSize = PdfPageSizes.A4;
-                    options.Margins = PdfPageMargins.Uniform(OfficeLength.Points(64));
+                    options.PageSetup.Size = PdfPageSizes.A4;
+                    options.PageSetup.Margins.Set(PdfPageMargins.Uniform(OfficeLength.Points(64)));
                     options.Language = "en-GB";
                 })
                 .Content(content => content

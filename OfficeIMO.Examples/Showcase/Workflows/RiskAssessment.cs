@@ -32,7 +32,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                 .H2("Review discipline")
                 .AddList(new[] { "Revisit ratings when evidence changes.", "Keep the control, owner and verification date together.", "Close a risk only after the control is observed." })
                 .AddParagraph(p => p.AddText("Fictional project example. This is not a workplace safety assessment or compliance certification.").SetFontSize(OfficeLength.Points(9)), color: muted)),
-                new PdfCreateOptions { ShowPageNumbers = true })
+                new PdfCreateOptions { PageSetup = { Footer = { Show = true } } })
                 .Meta(title: "Pilot delivery risk review", author: "OfficeIMO").Save(Path.Combine(folder, "example.pdf"));
         }
     }

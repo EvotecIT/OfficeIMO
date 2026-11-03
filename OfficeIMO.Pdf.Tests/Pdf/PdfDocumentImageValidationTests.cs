@@ -135,12 +135,10 @@ public class PdfDocumentImageValidationTests {
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             })
             .Table(new[] {
                 new[] {
@@ -168,12 +166,10 @@ public class PdfDocumentImageValidationTests {
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             })
             .Compose(compose =>
                 compose.Page(page =>
@@ -621,12 +617,10 @@ public class PdfDocumentImageValidationTests {
     public void Image_WithHeightExceedingContentArea_ThrowsArgumentException() {
         byte[] jpeg = CreateMinimalJpeg(32, 16);
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(220),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(140),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(140)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+            }
         };
 
         var exception = Assert.Throws<ArgumentException>(() =>
@@ -641,12 +635,10 @@ public class PdfDocumentImageValidationTests {
     public void Image_WithWidthExceedingContentArea_ThrowsArgumentException() {
         byte[] jpeg = CreateMinimalJpeg(32, 16);
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(220),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(180)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+            }
         };
 
         var exception = Assert.Throws<ArgumentException>(() =>
@@ -661,12 +653,10 @@ public class PdfDocumentImageValidationTests {
     public void Image_WithScaleDownToFit_ReducesOversizedImageIntoContentFrame() {
         byte[] jpeg = CreateMinimalJpeg(400, 200);
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(220),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(180)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+            }
         };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -865,7 +855,9 @@ public class PdfDocumentImageValidationTests {
     public void Image_WithContainFit_PreservesAspectRatioInsideTargetBox() {
         byte[] jpeg = CreateMinimalJpeg(200, 100);
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72)) })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+            Margins = { Left = OfficeIMO.OfficeLength.Points(72), Top = OfficeIMO.OfficeLength.Points(72), Right = OfficeIMO.OfficeLength.Points(72), Bottom = OfficeIMO.OfficeLength.Points(72) }
+        } })
             .Image(jpeg, 100, 100, fit: OfficeImageFit.Contain)
             .ToBytes();
 
@@ -879,7 +871,9 @@ public class PdfDocumentImageValidationTests {
     public void Image_WithCoverFit_PreservesAspectRatioAndClipsToTargetBox() {
         byte[] jpeg = CreateMinimalJpeg(200, 100);
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72)) })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+            Margins = { Left = OfficeIMO.OfficeLength.Points(72), Top = OfficeIMO.OfficeLength.Points(72), Right = OfficeIMO.OfficeLength.Points(72), Bottom = OfficeIMO.OfficeLength.Points(72) }
+        } })
             .Image(jpeg, 100, 100, fit: OfficeImageFit.Cover)
             .ToBytes();
 
@@ -903,7 +897,9 @@ public class PdfDocumentImageValidationTests {
     public void Image_WithClipPath_WritesClippingPathAroundImageXObject() {
         byte[] png = CreateMinimalRgbPng();
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72)) })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+            Margins = { Left = OfficeIMO.OfficeLength.Points(72), Top = OfficeIMO.OfficeLength.Points(72), Right = OfficeIMO.OfficeLength.Points(72), Bottom = OfficeIMO.OfficeLength.Points(72) }
+        } })
             .Image(png, 24, 24, clipPath: OfficeClipPath.Rectangle(12, 12))
             .ToBytes();
 
@@ -935,12 +931,10 @@ public class PdfDocumentImageValidationTests {
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                },
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
@@ -973,12 +967,10 @@ public class PdfDocumentImageValidationTests {
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             })
             .DefaultImageStyle(style)
             .Compose(compose =>
@@ -999,12 +991,10 @@ public class PdfDocumentImageValidationTests {
         byte[] jpeg = CreateMinimalJpeg(400, 200);
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             })
             .Compose(compose =>
                 compose.Page(page =>
@@ -1023,7 +1013,9 @@ public class PdfDocumentImageValidationTests {
     public void RowColumnImage_WithClipPath_WritesClippingPathAroundImageXObject() {
         byte[] png = CreateMinimalRgbPng();
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72)) })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+            Margins = { Left = OfficeIMO.OfficeLength.Points(72), Top = OfficeIMO.OfficeLength.Points(72), Right = OfficeIMO.OfficeLength.Points(72), Bottom = OfficeIMO.OfficeLength.Points(72) }
+        } })
             .Compose(compose =>
                 compose.Page(page =>
                     page.Content(content =>

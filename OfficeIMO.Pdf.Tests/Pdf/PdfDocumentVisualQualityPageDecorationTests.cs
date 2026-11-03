@@ -117,8 +117,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void ImageWatermark_FirstAndEvenVariantsUseMatchingPageVariant() {
         byte[] image = CreateMinimalRgbPng();
         var options = new PdfCreateOptions {
-            DifferentFirstPageHeaderFooter = true,
-            DifferentOddAndEvenPagesHeaderFooter = true,
+            PageSetup = { DifferentFirstPage = true, DifferentOddAndEvenPages = true },
             ImageWatermark = new PdfImageWatermark(image, width: global::OfficeIMO.OfficeLength.Points(20), height: global::OfficeIMO.OfficeLength.Points(20)) {
                 Opacity = 0.18
             },
@@ -150,15 +149,14 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void WatermarkVariants_DoNotEnableHeaderFooterVariantsByThemselves() {
         var options = new PdfCreateOptions {
-            ShowHeader = true,
-            HeaderFormat = "DEFAULT HEADER",
+            PageSetup = { Header = { Show = true, Format = "DEFAULT HEADER" } },
             FirstPageTextWatermark = new PdfTextWatermark("FIRST") {
                 Opacity = 0.18,
                 FontSize = global::OfficeIMO.OfficeLength.Points(30)
             }
         };
 
-        Assert.False(options.DifferentFirstPageHeaderFooter);
+        Assert.False(options.PageSetup.DifferentFirstPage);
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => p.AddText("First page body."))
@@ -176,8 +174,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void WatermarkVariants_FallBackToGlobalWatermarksWhenUnset() {
         byte[] image = CreateMinimalRgbPng();
         var options = new PdfCreateOptions {
-            DifferentFirstPageHeaderFooter = true,
-            DifferentOddAndEvenPagesHeaderFooter = true,
+            PageSetup = { DifferentFirstPage = true, DifferentOddAndEvenPages = true },
             TextWatermark = new PdfTextWatermark("GLOBAL") {
                 Opacity = 0.18,
                 FontSize = global::OfficeIMO.OfficeLength.Points(30)
@@ -237,8 +234,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void WatermarkSuppression_DoesNotEnableHeaderFooterVariantsByItself() {
         var options = new PdfCreateOptions {
-            ShowHeader = true,
-            HeaderFormat = "DEFAULT HEADER",
+            PageSetup = { Header = { Show = true, Format = "DEFAULT HEADER" } },
             TextWatermark = new PdfTextWatermark("GLOBAL") {
                 Opacity = 0.18,
                 FontSize = global::OfficeIMO.OfficeLength.Points(30)
@@ -260,7 +256,7 @@ public partial class PdfDocumentVisualQualityTests {
         string text = readDocument.ExtractText();
         string firstPageText = readDocument.Pages[0].ExtractText();
 
-        Assert.False(options.DifferentFirstPageHeaderFooter);
+        Assert.False(options.PageSetup.DifferentFirstPage);
         Assert.Equal(2, Regex.Matches(text, "DEFAULT HEADER").Count);
         Assert.DoesNotContain("GLOBAL", firstPageText, StringComparison.OrdinalIgnoreCase);
     }

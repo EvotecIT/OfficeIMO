@@ -20,9 +20,7 @@ public partial class PdfFontFamilyTests {
         var options = new PdfCreateOptions {
             FileVersion = PdfFileVersion.Pdf17,
             ObjectSerializationMode = mode,
-            ShowHeader = regularHeader,
-            HeaderFormat = "BA",
-            HeaderFont = PdfStandardFont.Helvetica
+            PageSetup = { Header = { Show = regularHeader, Format = "BA", StandardFont = PdfStandardFont.Helvetica } }
         }.UseFontFamily(new PdfEmbeddedFontFamily("Resource Test", font, bold: font));
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(paragraph => paragraph.AddText("AB").SetBold(bodyFont == PdfStandardFont.HelveticaBold).SetStandardFont(bodyFont))

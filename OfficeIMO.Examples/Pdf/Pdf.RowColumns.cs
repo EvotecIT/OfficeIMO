@@ -7,11 +7,10 @@ namespace OfficeIMO.Examples.Pdf {
             string path = Path.Combine(folderPath, "Pdf.RowColumns.pdf");
 
             var options = new PdfCreateOptions {
-                HeaderFormat = "OfficeIMO.Pdf row columns",
-                HeaderAlign = OfficeAlignment.Left,
-                ShowHeader = true,
-                FooterAlign = OfficeAlignment.Right,
-                ShowPageNumbers = true
+                PageSetup = {
+                    Header = { Format = "OfficeIMO.Pdf row columns", Alignment = OfficeAlignment.Left, Show = true },
+                    Footer = { Alignment = OfficeAlignment.Right, Show = true }
+                }
             };
 
             PdfDocument.Create(document => {

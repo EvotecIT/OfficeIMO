@@ -27,7 +27,7 @@ public static partial class MarkdownPdfConverterExtensions {
 
         // Caller-supplied PDF options own the page furniture, including fonts that may not cover the footer text.
         if (options.ShowPageNumbers && options.PdfOptions == null) {
-            pdfOptions.ShowPageNumbers = true;
+            pdfOptions.PageSetup.Footer.Show = true;
         }
 
         if (options.CreateOutlineFromHeadings) {

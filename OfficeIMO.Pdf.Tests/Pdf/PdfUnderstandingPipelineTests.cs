@@ -119,12 +119,10 @@ public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void StructuredPipeline_PromotesTableBeforeGeneralSegmentation() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(320),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(320)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
@@ -1334,8 +1332,8 @@ public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void SelectedSinglePageReads_DoNotInventHeadersAndFootersWithoutTaggedEvidence() {
         byte[] pdf = PdfDocument.Create()
-            .Header(header => header.AlignLeft().Text("Local page header {page}/{pages}"))
-            .Footer(footer => footer.AlignLeft().Text("Local page footer {page}/{pages}"))
+            .Header(header => header.Alignment(OfficeAlignment.Left).Text("Local page header {page}/{pages}"))
+            .Footer(footer => footer.Alignment(OfficeAlignment.Left).Text("Local page footer {page}/{pages}"))
             .Paragraph(paragraph => paragraph.AddText("First page body."))
             .PageBreak()
             .Paragraph(paragraph => paragraph.AddText("Second page body."))
@@ -2313,8 +2311,8 @@ public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void StructuredRead_ProjectsRepeatedPageEdgesIntoTheLogicalModel() {
         byte[] pdf = PdfDocument.Create()
-            .Header(header => header.AlignLeft().Text("Quarterly operations {page}/{pages}"))
-            .Footer(footer => footer.AlignCenter().Text("Confidential page {page}"))
+            .Header(header => header.Alignment(OfficeAlignment.Left).Text("Quarterly operations {page}/{pages}"))
+            .Footer(footer => footer.Alignment(OfficeAlignment.Center).Text("Confidential page {page}"))
             .Paragraph(paragraph => paragraph.AddText("First page body."))
             .PageBreak()
             .Paragraph(paragraph => paragraph.AddText("Second page body."))

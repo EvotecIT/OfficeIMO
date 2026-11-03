@@ -105,12 +105,10 @@ public class PdfFlowGroupTests {
 
     private static PdfDocument CreateShortPageDocument() {
         return PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(200),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(200),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(200)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+            },
             CompressContentStreams = false
         });
     }

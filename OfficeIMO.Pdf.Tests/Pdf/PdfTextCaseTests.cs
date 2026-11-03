@@ -131,8 +131,7 @@ public class PdfTextCaseTests {
     [Fact]
     public void HeaderNewlinesStopAtTheLayoutLineLimit() {
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-                ShowHeader = true,
-                HeaderFormat = new string('\n', 100_001)
+                PageSetup = { Header = { Show = true, Format = new string('\n', 100_001) } }
             })
             .Paragraph(paragraph => paragraph.AddText("Body"));
 

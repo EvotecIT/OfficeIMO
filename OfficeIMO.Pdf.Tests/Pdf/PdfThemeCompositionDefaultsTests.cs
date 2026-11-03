@@ -10,12 +10,10 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfThemeCompositionDefaultsTests {
     private static PdfCreateOptions SmallPage() => new PdfCreateOptions {
-        PageWidth = OfficeLength.Points(420),
-        PageHeight = OfficeLength.Points(600),
-        MarginLeft = OfficeLength.Points(40),
-        MarginRight = OfficeLength.Points(40),
-        MarginTop = OfficeLength.Points(40),
-        MarginBottom = OfficeLength.Points(40)
+        PageSetup = {
+            Size = new PdfPageSize(OfficeLength.Points(420), OfficeLength.Points(600)),
+            Margins = { Left = OfficeLength.Points(40), Right = OfficeLength.Points(40), Top = OfficeLength.Points(40), Bottom = OfficeLength.Points(40) }
+        }
     };
 
     private static Letter[] Letters(byte[] bytes, int page = 1) {
@@ -76,7 +74,7 @@ public class PdfThemeCompositionDefaultsTests {
 
     [Fact]
     public void PageNumbers_DefaultToPageNOfM() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { ShowPageNumbers = true })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageSetup = { Footer = { Show = true } } })
             .Paragraph(p => p.AddText("Body"))
             .PageBreak()
             .Paragraph(p => p.AddText("Second"))
@@ -102,7 +100,10 @@ public class PdfThemeCompositionDefaultsTests {
     [Fact]
     public void HyphenatedIdentifier_MovesToTheNextLineWhole() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = OfficeLength.Points(300), PageHeight = OfficeLength.Points(300), MarginLeft = OfficeLength.Points(20), MarginRight = OfficeLength.Points(20), MarginTop = OfficeLength.Points(20), MarginBottom = OfficeLength.Points(20)
+                PageSetup = {
+                    Size = new PdfPageSize(OfficeLength.Points(300), OfficeLength.Points(300)),
+                    Margins = { Left = OfficeLength.Points(20), Right = OfficeLength.Points(20), Top = OfficeLength.Points(20), Bottom = OfficeLength.Points(20) }
+                }
             })
             .Paragraph(p => p.AddText("Invoice EVO-DEMO-2026-0917").SetBold().SetFontSize(OfficeLength.Points(18)))
             .ToBytes();

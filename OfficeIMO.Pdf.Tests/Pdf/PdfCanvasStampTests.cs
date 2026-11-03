@@ -158,10 +158,7 @@ public class PdfCanvasStampTests {
     [Fact]
     public void ContentIgnoresDocumentChromeFromRenderingOptions() {
         var renderingOptions = new PdfCreateOptions {
-            ShowHeader = true,
-            HeaderFormat = "Rendering-options header",
-            ShowPageNumbers = true,
-            FooterFormat = "Rendering-options footer",
+            PageSetup = { Header = { Show = true, Format = "Rendering-options header" }, Footer = { Show = true, Format = "Rendering-options footer" } },
             BackgroundColor = global::OfficeIMO.OfficeColor.FromRgb(240, 240, 240)
         };
         var stampOptions = new PdfCanvasStampOptions().UseRenderingOptions(renderingOptions);

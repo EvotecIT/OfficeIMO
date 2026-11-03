@@ -172,8 +172,10 @@ public sealed class PdfColumnRowBalancingTests {
         Assert.Equal(Enumerable.Range(1, count), System.Text.RegularExpressions.Regex.Matches(
             string.Concat(Enumerable.Range(1, pdf.NumberOfPages).Select(page => pdf.GetPage(page).Text)), prefix + @"(\d{3})")
             .Cast<System.Text.RegularExpressions.Match>().Select(match => int.Parse(match.Groups[1].Value)));
-    private static PdfCreateOptions Options() => new() { PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(400),
-        MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40), MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) };
+    private static PdfCreateOptions Options() => new() { PageSetup = {
+        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(500), global::OfficeIMO.OfficeLength.Points(400)),
+        Margins = { Left = global::OfficeIMO.OfficeLength.Points(40), Right = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Bottom = global::OfficeIMO.OfficeLength.Points(40) }
+    }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) };
     private static PdfParagraphStyle ParagraphStyle() => new() { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)),
         SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false };
     private static PdfTableStyle TableStyle() => new() { HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0),

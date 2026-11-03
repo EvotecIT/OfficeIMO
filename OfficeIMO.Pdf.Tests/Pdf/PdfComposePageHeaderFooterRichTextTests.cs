@@ -12,8 +12,7 @@ namespace OfficeIMO.Tests.Pdf {
         public void HeaderFooterRichText_RendersStylesAndStyledPageTokens() {
             var options = new PdfCreateOptions {
                 CompressContentStreams = false,
-                HeaderFont = PdfStandardFont.Helvetica,
-                FooterFont = PdfStandardFont.Helvetica
+                PageSetup = { Header = { StandardFont = PdfStandardFont.Helvetica }, Footer = { StandardFont = PdfStandardFont.Helvetica } }
             };
             var doc = PdfDocument.Create(options)
                 .Header(header => header.Text(text => text

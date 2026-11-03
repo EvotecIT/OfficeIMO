@@ -14,8 +14,10 @@ public sealed class PdfDecimalRichFieldTests {
         var style = new PdfParagraphStyle { TextWhitespaceMode = whitespace, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) };
         style.AddTabStop(global::OfficeIMO.OfficeLength.Points(200D), PdfTabAlignment.DecimalSeparator).DecimalSeparator = separator;
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(420D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D), MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420D), global::OfficeIMO.OfficeLength.Points(180D)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+            }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D)
         };
         byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddRuns(new[] {
             PdfTextRun.Normal("LABEL\t"),
@@ -45,8 +47,10 @@ public sealed class PdfDecimalRichFieldTests {
         style.AddTabStop(global::OfficeIMO.OfficeLength.Points(90D), alignment).DecimalSeparator = '.';
         style.AddTabStop(global::OfficeIMO.OfficeLength.Points(170D), PdfTabAlignment.Left);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(220D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D), MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D), DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(180D)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+            }, DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D)
         }).Paragraph(paragraph => paragraph.AddText("PREFIXPREFIXPREFIX\tUSD 12.50 net"), style: style).ToBytes();
 
         using var pdf = PdfPigDocument.Open(bytes);

@@ -22,11 +22,9 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         return CreateVisualBaselineDocument(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11),
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                FooterFormat = "OfficeIMO.Pdf hello-world - page {page}/{pages}",
-                FooterAlign = OfficeAlignment.Center,
-                ShowPageNumbers = true
+                PageSetup = {
+                    Footer = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf hello-world - page {page}/{pages}", Alignment = OfficeAlignment.Center, Show = true }
+                }
             })
             .Meta(title: "OfficeIMO.Pdf Hello World", author: "OfficeIMO")
             .H1("OfficeIMO.Pdf Hello World", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
@@ -39,11 +37,9 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         return CreateVisualBaselineDocument(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                FooterFormat = "OfficeIMO.Pdf core layout - page {page}/{pages}",
-                FooterAlign = OfficeAlignment.Right,
-                ShowPageNumbers = true
+                PageSetup = {
+                    Footer = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf core layout - page {page}/{pages}", Alignment = OfficeAlignment.Right, Show = true }
+                }
             })
             .Meta(title: "OfficeIMO.Pdf Core Layout", author: "OfficeIMO")
             .H1("Core Layout Baseline", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
@@ -96,16 +92,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
-                HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                HeaderFormat = "OfficeIMO.Pdf lists and tables",
-                HeaderAlign = OfficeAlignment.Left,
-                ShowHeader = true,
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
-                FooterAlign = OfficeAlignment.Right,
-                ShowPageNumbers = true
+                PageSetup = {
+                    Header = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf lists and tables", Alignment = OfficeAlignment.Left, Show = true },
+                    Footer = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf examples - page {page}/{pages}", Alignment = OfficeAlignment.Right, Show = true }
+                }
             })
             .Meta(title: "OfficeIMO.Pdf Lists and Tables", author: "OfficeIMO")
             .H1("Lists and Tables", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
@@ -137,16 +127,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
-                HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                HeaderFormat = "OfficeIMO.Pdf default styles",
-                HeaderAlign = OfficeAlignment.Left,
-                ShowHeader = true,
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
-                FooterAlign = OfficeAlignment.Right,
-                ShowPageNumbers = true,
+                PageSetup = {
+                    Header = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf default styles", Alignment = OfficeAlignment.Left, Show = true },
+                    Footer = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf examples - page {page}/{pages}", Alignment = OfficeAlignment.Right, Show = true }
+                },
                 DefaultTableStyle = PdfTableStyles.Light()
             })
             .Meta(title: "OfficeIMO.Pdf Default Styles", author: "OfficeIMO")
@@ -169,16 +153,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
-                HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                HeaderFormat = "OfficeIMO.Pdf styled runs",
-                HeaderAlign = OfficeAlignment.Left,
-                ShowHeader = true,
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
-                FooterAlign = OfficeAlignment.Right,
-                ShowPageNumbers = true
+                PageSetup = {
+                    Header = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf styled runs", Alignment = OfficeAlignment.Left, Show = true },
+                    Footer = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf examples - page {page}/{pages}", Alignment = OfficeAlignment.Right, Show = true }
+                }
             })
             .Meta(title: "OfficeIMO.Pdf Styled Runs", author: "OfficeIMO")
             .H1("Styled Runs", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
@@ -230,16 +208,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
-                HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                HeaderFormat = "OfficeIMO.Pdf tabs and leaders",
-                HeaderAlign = OfficeAlignment.Left,
-                ShowHeader = true,
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
-                FooterAlign = OfficeAlignment.Right,
-                ShowPageNumbers = true,
+                PageSetup = {
+                    Header = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf tabs and leaders", Alignment = OfficeAlignment.Left, Show = true },
+                    Footer = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf examples - page {page}/{pages}", Alignment = OfficeAlignment.Right, Show = true }
+                },
                 DefaultParagraphStyle = new PdfParagraphStyle {
                     DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(252),
                     LineHeight = 1.18,

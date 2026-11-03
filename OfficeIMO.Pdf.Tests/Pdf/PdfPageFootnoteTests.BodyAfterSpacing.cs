@@ -127,7 +127,7 @@ public partial class PdfPageFootnoteTests {
     [InlineData("list")]
     public void ImportedAutoLineAdvanceDoesNotEnterAContinuedNoteRegion(string owner) {
         PdfCreateOptions options = Options();
-        options.PageHeight = global::OfficeIMO.OfficeLength.Points(150);
+        options.PageSetup.Size = new PdfPageSize(options.PageSetup.Size.Width, global::OfficeIMO.OfficeLength.Points(150));
         var document = PdfDocument.Create(options);
         var note = document.Content.DefineFootnote(body => {
             for (int index = 0; index < 18; index++)
@@ -182,7 +182,7 @@ public partial class PdfPageFootnoteTests {
     [InlineData(true)]
     public void ImportedAutoLineAdvanceRetainsALegalPrefixOrMovesTheKeptParagraph(bool keepTogether) {
         PdfCreateOptions options = Options();
-        options.PageHeight = global::OfficeIMO.OfficeLength.Points(175);
+        options.PageSetup.Size = new PdfPageSize(options.PageSetup.Size.Width, global::OfficeIMO.OfficeLength.Points(175));
         var document = PdfDocument.Create(options);
         var note = document.Content.DefineFootnote(body => {
             for (int index = 0; index < 20; index++)

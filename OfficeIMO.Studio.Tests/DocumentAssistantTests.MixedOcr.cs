@@ -23,7 +23,10 @@ public sealed partial class DocumentAssistantTests {
             using var raster = new RenderTargetBitmap(new PixelSize(20, 20));
             using (var drawing = raster.CreateDrawingContext()) drawing.DrawRectangle(Brushes.Gray, null, new Rect(0, 0, 20, 20));
             using var png = new MemoryStream(); raster.Save(png, PngBitmapEncoderOptions.Default);
-            var pdf = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(220), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24), MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24) });
+            var pdf = PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(220)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(24), Right = global::OfficeIMO.OfficeLength.Points(24), Top = global::OfficeIMO.OfficeLength.Points(24), Bottom = global::OfficeIMO.OfficeLength.Points(24) }
+            } });
             pdf.Content.AddImage(png.ToArray(), global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(120));
             pdf.Content.AddParagraph(paragraph => paragraph.AddText("Footer 1"));
             bool current = true, opened = false;

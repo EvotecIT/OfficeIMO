@@ -29,16 +29,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
-                HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                HeaderFormat = "OfficeIMO.Pdf links and rules",
-                HeaderAlign = OfficeAlignment.Left,
-                ShowHeader = true,
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
-                FooterAlign = OfficeAlignment.Right,
-                ShowPageNumbers = true
+                PageSetup = {
+                    Header = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf links and rules", Alignment = OfficeAlignment.Left, Show = true },
+                    Footer = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf examples - page {page}/{pages}", Alignment = OfficeAlignment.Right, Show = true }
+                }
             })
             .Meta(title: "OfficeIMO.Pdf Links and Rules", author: "OfficeIMO")
             .H1("Links & Rules Demo", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85), linkUri: "https://github.com/EvotecIT/OfficeIMO")
@@ -75,17 +69,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         return CreateVisualBaselineDocument(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
-                HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                HeaderFormat = "OfficeIMO.Pdf professional report",
-                HeaderAlign = OfficeAlignment.Left,
-                HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(18),
-                ShowHeader = true,
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                FooterFormat = "OfficeIMO.Pdf professional report - page {page}/{pages}",
-                FooterAlign = OfficeAlignment.Center,
-                ShowPageNumbers = true,
+                PageSetup = {
+                    Header = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf professional report", Alignment = OfficeAlignment.Left, Offset = global::OfficeIMO.OfficeLength.Points(18), Show = true },
+                    Footer = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf professional report - page {page}/{pages}", Alignment = OfficeAlignment.Center, Show = true }
+                },
                 CreateOutlineFromHeadings = true
             })
             .Meta(title: "OfficeIMO.Pdf Professional Report", author: "OfficeIMO")
@@ -134,22 +121,15 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         };
 
         return CreateVisualBaselineDocument(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(595),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(842),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(50),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(50),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(54),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(58),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(595), global::OfficeIMO.OfficeLength.Points(842)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(50), Right = global::OfficeIMO.OfficeLength.Points(50), Top = global::OfficeIMO.OfficeLength.Points(54), Bottom = global::OfficeIMO.OfficeLength.Points(58) },
+                    Footer = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(11), Format = "{page} / {pages}", Alignment = OfficeAlignment.Center, Offset = global::OfficeIMO.OfficeLength.Points(28), Show = true }
+                },
                 BackgroundColor = null,
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11),
-                DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(25, 25, 25),
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = global::OfficeIMO.OfficeLength.Points(11),
-                FooterFormat = "{page} / {pages}",
-                FooterAlign = OfficeAlignment.Center,
-                FooterOffsetY = global::OfficeIMO.OfficeLength.Points(28),
-                ShowPageNumbers = true
+                DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(25, 25, 25)
             })
             .Meta(title: "OfficeIMO.Pdf Line-Item Visual Gate", author: "OfficeIMO")
             .Compose(document => {

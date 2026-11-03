@@ -30,8 +30,8 @@ public sealed class PdfRunSpacingRegressionTests {
         double advance = units * 12D / 1000D * scale / 100D + tracking;
         Assert.InRange(Math.Abs(dots[1].StartBaseLine.X - dots[0].StartBaseLine.X - advance), 0D, 0.02D);
         Assert.InRange(Math.Abs(pdf.GetPage(1).Letters.Single(letter => letter.Value == "Z").StartBaseLine.X
-            - (options.MarginLeft.ToPoints() + 150D)), 0D, 0.02D);
-        Assert.True(dots[dots.Length - 1].EndBaseLine.X <= options.MarginLeft.ToPoints() + 150D + 0.02D);
+            - (options.PageSetup.Margins.Left.ToPoints() + 150D)), 0D, 0.02D);
+        Assert.True(dots[dots.Length - 1].EndBaseLine.X <= options.PageSetup.Margins.Left.ToPoints() + 150D + 0.02D);
     }
 
     [Theory]
@@ -100,7 +100,7 @@ public sealed class PdfRunSpacingRegressionTests {
         var periods = pdf.GetPage(1).Letters.Where(letter => letter.Value == ".").ToArray();
         Assert.Equal(2, periods.Length);
         Assert.InRange(Math.Abs(periods[0].StartBaseLine.X - periods[1].StartBaseLine.X), 0D, 0.02D);
-        Assert.InRange(Math.Abs(periods[0].StartBaseLine.X - (options.MarginLeft.ToPoints() + 150D)), 0D, 0.02D);
+        Assert.InRange(Math.Abs(periods[0].StartBaseLine.X - (options.PageSetup.Margins.Left.ToPoints() + 150D)), 0D, 0.02D);
     }
 
     [Theory]
@@ -133,7 +133,7 @@ public sealed class PdfRunSpacingRegressionTests {
     [InlineData(true, true)]
     public void WordAcrossFormattingRuns_MovesTogetherWhenItFitsANewLine(bool scaled, bool table) {
         PdfCreateOptions options = Options();
-        options.PageWidth = global::OfficeIMO.OfficeLength.Points(100D); options.MarginLeft = options.MarginRight = global::OfficeIMO.OfficeLength.Points(20D);
+        options.PageSetup.Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(100D), options.PageSetup.Size.Height); options.PageSetup.Margins.Left = options.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(20D);
         var first = new PdfTextRun(scaled ? "XXXXXXXXXXX ALP" : "XXX ALP", fontSize: global::OfficeIMO.OfficeLength.Points(12D));
         var last = new PdfTextRun("HA", fontSize: global::OfficeIMO.OfficeLength.Points(12D), color: global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255));
         if (scaled) {
@@ -153,6 +153,8 @@ public sealed class PdfRunSpacingRegressionTests {
 
     private static PdfCreateOptions Options() => new PdfCreateOptions {
         DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D),
-        MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
+        PageSetup = {
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+        }
     };
 }

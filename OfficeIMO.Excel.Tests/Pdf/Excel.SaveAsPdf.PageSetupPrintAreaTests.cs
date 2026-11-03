@@ -272,7 +272,7 @@ public partial class Excel {
             bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 PdfOptions = new PdfCore.PdfCreateOptions {
-                    PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220))
+                    PageSetup = { Size = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220)) }
                 }
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
@@ -300,7 +300,7 @@ public partial class Excel {
             var options = new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false
             }.UseRenderingProfile(OfficeRenderingProfile.Managed);
-            options.PdfOptions!.PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792));
+            options.PdfOptions!.PageSetup.Size = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792));
 
             bytes = document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }

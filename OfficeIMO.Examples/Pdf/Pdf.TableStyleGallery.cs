@@ -15,11 +15,10 @@ namespace OfficeIMO.Examples.Pdf {
             PdfDocument doc = PdfDocument.Create(pdf => pdf.Content(content => content
                 .H1("Table Style Gallery", OfficeAlignment.Left)
                 .AddParagraph(p => p.AddText("Generic Word-style table names rendered by OfficeIMO.Pdf without invoice or report-specific behavior."))), new PdfCreateOptions {
-                    HeaderFormat = "OfficeIMO.Pdf Word-like table styles",
-                    HeaderAlign = OfficeAlignment.Left,
-                    ShowHeader = true,
-                    FooterAlign = OfficeAlignment.Right,
-                    ShowPageNumbers = true
+                    PageSetup = {
+                        Header = { Format = "OfficeIMO.Pdf Word-like table styles", Alignment = OfficeAlignment.Left, Show = true },
+                        Footer = { Alignment = OfficeAlignment.Right, Show = true }
+                    }
                 })
                 .Meta(title: "OfficeIMO.Pdf Table Style Gallery", author: "OfficeIMO");
 

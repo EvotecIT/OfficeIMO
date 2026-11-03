@@ -48,8 +48,10 @@ public sealed class PdfCrossRunKerningTests {
         }
         var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(20D),
-            PageWidth = global::OfficeIMO.OfficeLength.Points(100D), PageHeight = global::OfficeIMO.OfficeLength.Points(250D),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(250D)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+            }
         };
         if (hyphenate) options.SetTextHyphenation(Points); else options.SetTextLineBreaks(Points);
         byte[] bytes = PdfDocument.Create(options).Paragraph(p => p.AddRuns(new[] {
@@ -212,9 +214,11 @@ public sealed class PdfCrossRunKerningTests {
 
     private static byte[] Create(double width, OfficeAlignment align, PdfTextRun[] runs, byte[] font) {
         var options = new PdfCreateOptions {
-            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(20D), PageWidth = global::OfficeIMO.OfficeLength.Points(width + 40D), PageHeight = global::OfficeIMO.OfficeLength.Points(250D),
-            TextShapingMode = PdfTextShapingMode.OpenTypeLigatures,
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(20D), PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(width + 40D), global::OfficeIMO.OfficeLength.Points(250D)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+            },
+            TextShapingMode = PdfTextShapingMode.OpenTypeLigatures
         };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName, font));
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("OtherFace", font));

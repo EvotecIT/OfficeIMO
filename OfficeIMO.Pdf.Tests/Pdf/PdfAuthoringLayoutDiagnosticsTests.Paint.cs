@@ -142,7 +142,10 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         var report = new PdfConversionReport();
         byte[] Render(bool diagnose) {
             var options = new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(260), PageHeight = global::OfficeIMO.OfficeLength.Points(180), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24), MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(24), Right = global::OfficeIMO.OfficeLength.Points(24), Top = global::OfficeIMO.OfficeLength.Points(24), Bottom = global::OfficeIMO.OfficeLength.Points(24) }
+                },
                 DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9),
                 CompressEmbeddedFonts = false, CompressContentStreams = false
             }.EmbedStandardFont(PdfStandardFont.Helvetica, font, "Diagnostic subset probe");

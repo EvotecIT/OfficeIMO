@@ -178,9 +178,10 @@ public partial class PdfDocumentComplianceAssessmentTests {
     public void TaggedWrappedLinkedHeadingPreservesAllAnnotationStructureReferences() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = global::OfficeIMO.OfficeLength.Points(170),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(24)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(792)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(24), Right = global::OfficeIMO.OfficeLength.Points(24) }
+                }
             })
             .TaggedPdfCatalogMarkers()
             .H1("Embedded PDF fonts and compliance evidence", linkUri: "https://officeimo.net/", linkContents: "OfficeIMO PDF")

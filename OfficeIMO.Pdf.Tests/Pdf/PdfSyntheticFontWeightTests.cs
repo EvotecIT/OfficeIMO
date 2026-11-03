@@ -61,8 +61,10 @@ public sealed class PdfSyntheticFontWeightTests {
     [InlineData((byte)128, false)]
     [InlineData((byte)128, true)]
     public void SyntheticDrawingWeightUsesTheForegroundAlpha(byte alpha, bool tagged) {
-        var options = new PdfCreateOptions { EmbedDefaultFonts = false, PageWidth = OfficeLength.Points(300), PageHeight = OfficeLength.Points(120),
-            MarginLeft = OfficeLength.Points(0), MarginTop = OfficeLength.Points(0), MarginRight = OfficeLength.Points(0), MarginBottom = OfficeLength.Points(0) }.RegisterNamedFontFamily(
+        var options = new PdfCreateOptions { EmbedDefaultFonts = false, PageSetup = {
+            Size = new PdfPageSize(OfficeLength.Points(300), OfficeLength.Points(120)),
+            Margins = { Left = OfficeLength.Points(0), Top = OfficeLength.Points(0), Right = OfficeLength.Points(0), Bottom = OfficeLength.Points(0) }
+        } }.RegisterNamedFontFamily(
             new PdfEmbeddedFontFamily("Weight proof", Font("Regular")));
         if (tagged) options.TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers;
         var drawing = new OfficeDrawing(240, 100).AddRichText(new[] {
@@ -116,8 +118,10 @@ public sealed class PdfSyntheticFontWeightTests {
     [InlineData(0.5D, true)]
     public void SyntheticWatermarkAppliesOpacityOnce(double opacity, bool tagged) {
         var options = new PdfCreateOptions {
-            EmbedDefaultFonts = false, PageWidth = OfficeLength.Points(300), PageHeight = OfficeLength.Points(120),
-            MarginLeft = OfficeLength.Points(0), MarginTop = OfficeLength.Points(0), MarginRight = OfficeLength.Points(0), MarginBottom = OfficeLength.Points(0),
+            EmbedDefaultFonts = false, PageSetup = {
+                Size = new PdfPageSize(OfficeLength.Points(300), OfficeLength.Points(120)),
+                Margins = { Left = OfficeLength.Points(0), Top = OfficeLength.Points(0), Right = OfficeLength.Points(0), Bottom = OfficeLength.Points(0) }
+            },
             TextWatermark = new PdfTextWatermark("WAVE") {
                 FontSize = OfficeLength.Points(54D), RotationAngle = 0D, Color = OfficeColor.FromRgb(25, 140, 77), Opacity = opacity
             }

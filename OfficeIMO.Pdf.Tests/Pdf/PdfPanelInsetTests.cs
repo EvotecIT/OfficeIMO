@@ -11,7 +11,10 @@ public class PdfPanelInsetTests {
     [InlineData(false, 18D, OfficeAlignment.Right, 164D)]
     public void InsetsPlaceTheWholeFrameAndSurvivePageContinuation(bool row, double left, OfficeAlignment align, double expectedX) {
         using PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = OfficeLength.Points(300), PageHeight = OfficeLength.Points(160), MarginLeft = OfficeLength.Points(20), MarginRight = OfficeLength.Points(20), MarginTop = OfficeLength.Points(20), MarginBottom = OfficeLength.Points(20)
+            PageSetup = {
+                Size = new PdfPageSize(OfficeLength.Points(300), OfficeLength.Points(160)),
+                Margins = { Left = OfficeLength.Points(20), Right = OfficeLength.Points(20), Top = OfficeLength.Points(20), Bottom = OfficeLength.Points(20) }
+            }
         });
         var style = new PdfPanelStyle {
             LeftInset = OfficeLength.Points(left), RightInset = OfficeLength.Points(16),

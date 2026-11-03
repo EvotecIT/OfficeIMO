@@ -324,12 +324,10 @@ public class PdfTableStreamExportContracts {
     [Fact]
     public void ExcelCurrencyFormatsPreserveAffixPlacementAndSpacing() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420D),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(420D),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420D), global::OfficeIMO.OfficeLength.Points(420D)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+                },
                 // Supply a ruled source table; this test measures spreadsheet value/format semantics.
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11),
@@ -458,12 +456,10 @@ public class PdfTableStreamExportContracts {
     [Fact]
     public void ExcelKeepsCurrencyAffixedPercentValuesAsText() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(300D),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(240D),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300D), global::OfficeIMO.OfficeLength.Points(240D)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+                },
                 // Supply a ruled source table; this test measures spreadsheet value/format semantics.
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11),
@@ -629,12 +625,10 @@ public class PdfTableStreamExportContracts {
     [Fact]
     public void TableScopeAnalysisReportsIncompleteClassificationWhenBudgetIsExhausted() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .KeyValueTable(new[] {

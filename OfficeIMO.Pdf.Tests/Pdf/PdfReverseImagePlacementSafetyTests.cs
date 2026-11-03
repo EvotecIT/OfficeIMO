@@ -1395,12 +1395,10 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     }
 
     private static PdfDocument CreateDocument() => PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
-        PageWidth = global::OfficeIMO.OfficeLength.Points(160D),
-        PageHeight = global::OfficeIMO.OfficeLength.Points(160D),
-        MarginLeft = global::OfficeIMO.OfficeLength.Points(0D),
-        MarginRight = global::OfficeIMO.OfficeLength.Points(0D),
-        MarginTop = global::OfficeIMO.OfficeLength.Points(0D),
-        MarginBottom = global::OfficeIMO.OfficeLength.Points(0D)
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(160D), global::OfficeIMO.OfficeLength.Points(160D)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(0D), Right = global::OfficeIMO.OfficeLength.Points(0D), Top = global::OfficeIMO.OfficeLength.Points(0D), Bottom = global::OfficeIMO.OfficeLength.Points(0D) }
+        }
     });
 
     private static void AssertRawImageOmittedAcrossEditableAdapters(

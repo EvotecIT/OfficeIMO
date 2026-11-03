@@ -161,7 +161,10 @@ public class PdfTextQualityTests {
 
     [Fact]
     public void WordsWrapAtLineBreakOpportunitiesWithinTheRemainingWidth() {
-        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(130), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20) })
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(130), global::OfficeIMO.OfficeLength.Points(792)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20) }
+        } })
             .Paragraph(p => p.AddText("Use a state-of-the-art approach today"))
             .ToBytes();
         string[] lines = PdfReadDocument.Open(pdf).ExtractText().Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
@@ -171,7 +174,10 @@ public class PdfTextQualityTests {
 
     [Fact]
     public void AutomaticHyphenationSplitsWordsAtLineEnds() {
-        PdfCreateOptions options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(160), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20) }.UseAutomaticHyphenation("en-US");
+        PdfCreateOptions options = new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(160), global::OfficeIMO.OfficeLength.Points(792)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20) }
+        } }.UseAutomaticHyphenation("en-US");
         byte[] pdf = PdfDocument.Create(options)
             .Paragraph(p => p.AddText("The representation of international communication"))
             .ToBytes();

@@ -35,8 +35,8 @@ public sealed class PdfRunningContentTests {
                 Assert.Equal(14D, pdf.GetPage(page).Letters.Single(letter => letter.Value == "F").StartBaseLine.Y, 3);
             }
         }
-        Assert.Equal(32D, document.Options.MarginBottom.ToPoints());
-        Assert.Equal(18D, document.Options.FooterOffsetY.ToPoints());
+        Assert.Equal(32D, document.Options.PageSetup.Margins.Bottom.ToPoints());
+        Assert.Equal(18D, document.Options.PageSetup.Footer.Offset.ToPoints());
     }
 
     [Theory]
@@ -44,7 +44,7 @@ public sealed class PdfRunningContentTests {
     [InlineData(true, 2)]
     public void ImportedFooterFirstLineOverlapRetainsHeaderWithoutChangingOrdinaryFlow(bool allowOverlap, int pages) {
         var options = Options();
-        options.PageHeight = global::OfficeIMO.OfficeLength.Points(300); options.MarginTop = options.MarginBottom = global::OfficeIMO.OfficeLength.Points(72);
+        options.PageSetup.Size = new PdfPageSize(options.PageSetup.Size.Width, global::OfficeIMO.OfficeLength.Points(300)); options.PageSetup.Margins.Top = options.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(72);
         var document = PdfDocument.Create(options);
         document.Header(header => header.Text("FALLBACK").Content(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(96)), global::OfficeIMO.OfficeLength.Points(36)));
         document.Footer(footer => footer.Content(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(96)), global::OfficeIMO.OfficeLength.Points(36)));
@@ -211,8 +211,10 @@ public sealed class PdfRunningContentTests {
     }
 
     private static PdfCreateOptions Options(long memoryLimit = 1024 * 1024) => new() {
-        PageWidth = global::OfficeIMO.OfficeLength.Points(240), PageHeight = global::OfficeIMO.OfficeLength.Points(320), MarginTop = global::OfficeIMO.OfficeLength.Points(32), MarginBottom = global::OfficeIMO.OfficeLength.Points(32),
-        MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24), DefaultFont = PdfStandardFont.Helvetica,
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(320)),
+            Margins = { Top = global::OfficeIMO.OfficeLength.Points(32), Bottom = global::OfficeIMO.OfficeLength.Points(32), Left = global::OfficeIMO.OfficeLength.Points(24), Right = global::OfficeIMO.OfficeLength.Points(24) }
+        }, DefaultFont = PdfStandardFont.Helvetica,
         DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11), PageContentMemoryLimitBytes = memoryLimit
     };
 

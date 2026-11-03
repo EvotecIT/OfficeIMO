@@ -166,8 +166,10 @@ public sealed class PdfInlineFormTests {
     }
 
     private static PdfCreateOptions Options(double width, double height) => new() {
-        PageWidth = global::OfficeIMO.OfficeLength.Points(width), PageHeight = global::OfficeIMO.OfficeLength.Points(height), MarginLeft = global::OfficeIMO.OfficeLength.Points(18), MarginRight = global::OfficeIMO.OfficeLength.Points(18),
-        MarginTop = global::OfficeIMO.OfficeLength.Points(18), MarginBottom = global::OfficeIMO.OfficeLength.Points(18), DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(18), Right = global::OfficeIMO.OfficeLength.Points(18), Top = global::OfficeIMO.OfficeLength.Points(18), Bottom = global::OfficeIMO.OfficeLength.Points(18) }
+        }, DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
     };
 
     private static (int? Page, double X1, double Y1, double X2, double Y2)[] WidgetGeometry(PdfFormField field) =>

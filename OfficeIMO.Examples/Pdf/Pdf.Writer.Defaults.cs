@@ -6,7 +6,7 @@ namespace OfficeIMO.Examples.Pdf {
         public static void Example_Pdf_DefaultStyles(string folderPath, bool open = false) {
             string path = Path.Combine(folderPath, "Pdf.DefaultStyles.pdf");
             var options = new PdfCreateOptions {
-                ShowPageNumbers = true
+                PageSetup = { Footer = { Show = true } }
             };
 
             var rows = new[] {

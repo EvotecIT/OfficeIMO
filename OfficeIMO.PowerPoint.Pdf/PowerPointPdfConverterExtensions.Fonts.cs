@@ -13,16 +13,13 @@ public static partial class PowerPointPdfConverterExtensions {
         pdfOptions.ReportDiagnosticsTo(options.Report, "OfficeIMO.PowerPoint.Pdf");
 
         if (options.PageLayout == PowerPointPdfPageLayout.NotesPages) {
-            pdfOptions.PageWidth = global::OfficeIMO.OfficeLength.Points(612D);
-            pdfOptions.PageHeight = global::OfficeIMO.OfficeLength.Points(792D);
+            pdfOptions.PageSetup.Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(612D), global::OfficeIMO.OfficeLength.Points(792D));
         } else if (options.PageLayout == PowerPointPdfPageLayout.Handouts) {
-            pdfOptions.PageWidth = global::OfficeIMO.OfficeLength.Points(792D);
-            pdfOptions.PageHeight = global::OfficeIMO.OfficeLength.Points(612D);
+            pdfOptions.PageSetup.Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(792D), global::OfficeIMO.OfficeLength.Points(612D));
         } else {
-            pdfOptions.PageWidth = presentation.SlideSize.Width;
-            pdfOptions.PageHeight = presentation.SlideSize.Height;
+            pdfOptions.PageSetup.Size = new global::OfficeIMO.Pdf.PdfPageSize(presentation.SlideSize.Width, presentation.SlideSize.Height);
         }
-        pdfOptions.Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0));
+        pdfOptions.PageSetup.Margins.Set(PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0)));
         bool preserveConfiguredFontSlots = options.HasExplicitPdfFontConfiguration;
         if (!string.IsNullOrWhiteSpace(options.FontFamily) &&
             TryApplyPdfFontFamily(options.FontFamily, pdfOptions, options.ResourcePolicy.AllowSystemFontEmbedding)) {

@@ -12,8 +12,10 @@ public sealed class PdfPaginationResourceBoundaryTests {
     [InlineData(true, 320.0005D)]
     public void ALineAtThePageHeightBoundaryMakesProgressOrIsRejected(bool list, double height) {
         var document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = OfficeLength.Points(400), PageHeight = OfficeLength.Points(400), MarginTop = OfficeLength.Points(40), MarginBottom = OfficeLength.Points(40),
-            MarginLeft = OfficeLength.Points(40), MarginRight = OfficeLength.Points(40), MaxGeneratedPages = 3
+            PageSetup = {
+                Size = new PdfPageSize(OfficeLength.Points(400), OfficeLength.Points(400)),
+                Margins = { Top = OfficeLength.Points(40), Bottom = OfficeLength.Points(40), Left = OfficeLength.Points(40), Right = OfficeLength.Points(40) }
+            }, MaxGeneratedPages = 3
         });
         if (list) {
             document.RichNumbered(new[] { new PdfListItem("x") }, style: new PdfListStyle {

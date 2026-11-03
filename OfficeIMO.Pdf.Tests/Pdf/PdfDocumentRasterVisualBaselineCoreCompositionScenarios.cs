@@ -23,10 +23,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
             DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
-            HeaderFont = PdfStandardFont.Helvetica,
-            HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
-            FooterFont = PdfStandardFont.Helvetica,
-            FooterFontSize = global::OfficeIMO.OfficeLength.Points(8)
+            PageSetup = {
+                Header = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8) },
+                Footer = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8) }
+            }
         };
         return PdfDocument.Create(options)
             .Compose(document => {
@@ -37,7 +37,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                         .Font(PdfStandardFont.Helvetica)
                         .FontSize(global::OfficeIMO.OfficeLength.Points(10))
                         .Color(global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55)));
-                    page.Header(h => h.AlignLeft().Text("OfficeIMO.Pdf compose DSL gate"));
+                    page.Header(h => h.Alignment(OfficeAlignment.Left).Text("OfficeIMO.Pdf compose DSL gate"));
 
                     page.Content(c => c
                         .Column(column => {
@@ -78,7 +78,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                             column.Item().AddParagraph(p => p.AddText("End of compose DSL sample."), OfficeAlignment.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80));
                         }));
 
-                    page.Footer(f => f.AlignCenter().Text(t => t
+                    page.Footer(f => f.Alignment(OfficeAlignment.Center).Text(t => t
                         .Text("OfficeIMO.Pdf compose - page ")
                         .CurrentPage()
                         .Text("/")
@@ -93,16 +93,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9.5),
                 DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(30, 41, 59),
-                HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                HeaderFormat = "OfficeIMO.Pdf showcase - landscape dashboard",
-                HeaderAlign = OfficeAlignment.Left,
-                ShowHeader = true,
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
-                FooterAlign = OfficeAlignment.Right,
-                ShowPageNumbers = true,
+                PageSetup = {
+                    Header = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf showcase - landscape dashboard", Alignment = OfficeAlignment.Left, Show = true },
+                    Footer = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf examples - page {page}/{pages}", Alignment = OfficeAlignment.Right, Show = true }
+                },
                 CreateOutlineFromHeadings = true
             })
             .Meta(
@@ -237,16 +231,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
-                HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                HeaderFormat = "OfficeIMO.Drawing shared vector gate",
-                HeaderAlign = OfficeAlignment.Left,
-                ShowHeader = true,
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
-                FooterAlign = OfficeAlignment.Right,
-                ShowPageNumbers = true
+                PageSetup = {
+                    Header = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Drawing shared vector gate", Alignment = OfficeAlignment.Left, Show = true },
+                    Footer = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf examples - page {page}/{pages}", Alignment = OfficeAlignment.Right, Show = true }
+                }
             })
             .Meta(title: "OfficeIMO.Pdf Drawing Gallery", author: "OfficeIMO")
             .H1("Drawing Gallery", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
@@ -329,16 +317,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
-                HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                HeaderFormat = "OfficeIMO.Pdf watermark gate",
-                HeaderAlign = OfficeAlignment.Left,
-                ShowHeader = true,
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
-                FooterAlign = OfficeAlignment.Right,
-                ShowPageNumbers = true
+                PageSetup = {
+                    Header = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf watermark gate", Alignment = OfficeAlignment.Left, Show = true },
+                    Footer = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf examples - page {page}/{pages}", Alignment = OfficeAlignment.Right, Show = true }
+                }
             })
             .Meta(title: "OfficeIMO.Pdf Watermark", author: "OfficeIMO")
             .Watermark("DRAFT", fontSize: 74, color: global::OfficeIMO.OfficeColor.FromRgb(90, 106, 130), opacity: 0.14, rotationAngle: -38)
@@ -386,16 +368,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
-                HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                HeaderFormat = "OfficeIMO.Pdf image watermark gate",
-                HeaderAlign = OfficeAlignment.Left,
-                ShowHeader = true,
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
-                FooterAlign = OfficeAlignment.Right,
-                ShowPageNumbers = true
+                PageSetup = {
+                    Header = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf image watermark gate", Alignment = OfficeAlignment.Left, Show = true },
+                    Footer = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf examples - page {page}/{pages}", Alignment = OfficeAlignment.Right, Show = true }
+                }
             })
             .Meta(title: "OfficeIMO.Pdf Image Watermark", author: "OfficeIMO")
             .ImageWatermark(logo, width: 220, height: 92, opacity: 0.16, rotationAngle: -22)
@@ -440,16 +416,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
-                HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                HeaderFormat = "OfficeIMO.Pdf page border gate",
-                HeaderAlign = OfficeAlignment.Left,
-                ShowHeader = true,
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
-                FooterAlign = OfficeAlignment.Right,
-                ShowPageNumbers = true
+                PageSetup = {
+                    Header = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf page border gate", Alignment = OfficeAlignment.Left, Show = true },
+                    Footer = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf examples - page {page}/{pages}", Alignment = OfficeAlignment.Right, Show = true }
+                }
             })
             .Meta(title: "OfficeIMO.Pdf Page Border", author: "OfficeIMO")
             .Background(global::OfficeIMO.OfficeColor.FromRgb(250, 252, 255))
@@ -498,16 +468,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
-                HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                HeaderFormat = "OfficeIMO.Pdf background image gate",
-                HeaderAlign = OfficeAlignment.Left,
-                ShowHeader = true,
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
-                FooterAlign = OfficeAlignment.Right,
-                ShowPageNumbers = true
+                PageSetup = {
+                    Header = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf background image gate", Alignment = OfficeAlignment.Left, Show = true },
+                    Footer = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf examples - page {page}/{pages}", Alignment = OfficeAlignment.Right, Show = true }
+                }
             })
             .Meta(title: "OfficeIMO.Pdf Background Image", author: "OfficeIMO")
             .Background(global::OfficeIMO.OfficeColor.FromRgb(250, 252, 255))
@@ -554,16 +518,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
-                HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                HeaderFormat = "OfficeIMO.Pdf background shapes gate",
-                HeaderAlign = OfficeAlignment.Left,
-                ShowHeader = true,
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
-                FooterAlign = OfficeAlignment.Right,
-                ShowPageNumbers = true
+                PageSetup = {
+                    Header = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf background shapes gate", Alignment = OfficeAlignment.Left, Show = true },
+                    Footer = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf examples - page {page}/{pages}", Alignment = OfficeAlignment.Right, Show = true }
+                }
             })
             .Meta(title: "OfficeIMO.Pdf Background Shapes", author: "OfficeIMO")
             .Background(global::OfficeIMO.OfficeColor.FromRgb(250, 252, 255))
@@ -612,16 +570,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
-                HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                HeaderFormat = "OfficeIMO.Pdf row columns",
-                HeaderAlign = OfficeAlignment.Left,
-                ShowHeader = true,
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
-                FooterAlign = OfficeAlignment.Right,
-                ShowPageNumbers = true
+                PageSetup = {
+                    Header = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf row columns", Alignment = OfficeAlignment.Left, Show = true },
+                    Footer = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf examples - page {page}/{pages}", Alignment = OfficeAlignment.Right, Show = true }
+                }
             })
             .Meta(title: "OfficeIMO.Pdf Row Columns", author: "OfficeIMO")
             .Compose(document => {
@@ -701,17 +653,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
-                HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                HeaderFormat = "OfficeIMO.Pdf header/footer gate",
-                HeaderAlign = OfficeAlignment.Left,
-                HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(18),
-                ShowHeader = true,
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
-                FooterAlign = OfficeAlignment.Center,
-                ShowPageNumbers = true
+                PageSetup = {
+                    Header = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf header/footer gate", Alignment = OfficeAlignment.Left, Offset = global::OfficeIMO.OfficeLength.Points(18), Show = true },
+                    Footer = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf examples - page {page}/{pages}", Alignment = OfficeAlignment.Center, Show = true }
+                }
             })
             .Meta(title: "OfficeIMO.Pdf Headers and Footers", author: "OfficeIMO")
             .H1("Header and Footer Baseline", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
@@ -736,16 +681,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
-                HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                HeaderFormat = "OfficeIMO.Pdf style cheatsheet",
-                HeaderAlign = OfficeAlignment.Left,
-                ShowHeader = true,
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
-                FooterAlign = OfficeAlignment.Right,
-                ShowPageNumbers = true
+                PageSetup = {
+                    Header = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf style cheatsheet", Alignment = OfficeAlignment.Left, Show = true },
+                    Footer = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf examples - page {page}/{pages}", Alignment = OfficeAlignment.Right, Show = true }
+                }
             })
             .Meta(title: "OfficeIMO.Pdf Style Cheatsheet", author: "OfficeIMO")
             .H1("Style Cheatsheet", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
@@ -805,16 +744,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9.5),
                 DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
-                HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                HeaderFormat = "OfficeIMO.Pdf Word-like table styles",
-                HeaderAlign = OfficeAlignment.Left,
-                ShowHeader = true,
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
-                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
-                FooterAlign = OfficeAlignment.Right,
-                ShowPageNumbers = true
+                PageSetup = {
+                    Header = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf Word-like table styles", Alignment = OfficeAlignment.Left, Show = true },
+                    Footer = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf examples - page {page}/{pages}", Alignment = OfficeAlignment.Right, Show = true }
+                }
             })
             .Meta(title: "OfficeIMO.Pdf Table Style Gallery", author: "OfficeIMO")
             .H1("Table Style Gallery", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))

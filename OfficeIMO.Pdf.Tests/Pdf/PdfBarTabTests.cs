@@ -142,8 +142,8 @@ public sealed class PdfBarTabTests {
     [Fact]
     public void PageFragmentsPaintOnlyTheirOwnedLinesAndTerminalAfterSpacing() {
         PdfCreateOptions options = Options();
-        options.PageHeight = global::OfficeIMO.OfficeLength.Points(120);
-        options.MarginTop = options.MarginBottom = global::OfficeIMO.OfficeLength.Points(20);
+        options.PageSetup.Size = new PdfPageSize(options.PageSetup.Size.Width, global::OfficeIMO.OfficeLength.Points(120));
+        options.PageSetup.Margins.Top = options.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(20);
         byte[] Render(bool bar) {
             PdfParagraphStyle style = ParagraphStyle();
             style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(6);
@@ -196,9 +196,8 @@ public sealed class PdfBarTabTests {
     public void WidowCarriedFloatSideRulesReturnToTheDestinationParagraphAnchor() {
         byte[] Render(bool bar) {
             PdfCreateOptions options = Options();
-            options.PageWidth = global::OfficeIMO.OfficeLength.Points(400);
-            options.PageHeight = global::OfficeIMO.OfficeLength.Points(240);
-            options.MarginLeft = options.MarginRight = options.MarginTop = options.MarginBottom = global::OfficeIMO.OfficeLength.Points(40);
+            options.PageSetup.Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(240));
+            options.PageSetup.Margins.Left = options.PageSetup.Margins.Right = options.PageSetup.Margins.Top = options.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(40);
             PdfParagraphStyle style = ParagraphStyle();
             style.LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(14.4D));
             style.WidowControl = true;
@@ -258,8 +257,8 @@ public sealed class PdfBarTabTests {
     [Fact]
     public void NoteContinuationRetainsBarAnchorsAndOnlyTheLastAfterExtent() {
         PdfCreateOptions options = Options();
-        options.PageHeight = global::OfficeIMO.OfficeLength.Points(160);
-        options.MarginTop = options.MarginBottom = global::OfficeIMO.OfficeLength.Points(20);
+        options.PageSetup.Size = new PdfPageSize(options.PageSetup.Size.Width, global::OfficeIMO.OfficeLength.Points(160));
+        options.PageSetup.Margins.Top = options.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(20);
         byte[] Render(bool bar) {
             PdfParagraphStyle style = ParagraphStyle();
             style.LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(14));
@@ -391,8 +390,10 @@ public sealed class PdfBarTabTests {
     };
 
     private static PdfCreateOptions Options() => new() {
-        PageWidth = global::OfficeIMO.OfficeLength.Points(360), PageHeight = global::OfficeIMO.OfficeLength.Points(240), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-        MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), DefaultFont = PdfStandardFont.Helvetica,
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+        }, DefaultFont = PdfStandardFont.Helvetica,
         DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), CompressContentStreams = false
     };
 

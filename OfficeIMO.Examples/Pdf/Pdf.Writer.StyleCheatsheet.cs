@@ -51,11 +51,10 @@ namespace OfficeIMO.Examples.Pdf {
                 .HR(global::OfficeIMO.OfficeLength.Points(0.8), global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207), global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8))
                 .AddParagraph(p => p.AddText("Center aligned line"), OfficeAlignment.Center)
                 .AddParagraph(p => p.AddText("Right aligned line"), OfficeAlignment.Right)), new PdfCreateOptions {
-                    HeaderFormat = "OfficeIMO.Pdf style cheatsheet",
-                    HeaderAlign = OfficeAlignment.Left,
-                    ShowHeader = true,
-                    FooterAlign = OfficeAlignment.Right,
-                    ShowPageNumbers = true
+                    PageSetup = {
+                        Header = { Format = "OfficeIMO.Pdf style cheatsheet", Alignment = OfficeAlignment.Left, Show = true },
+                        Footer = { Alignment = OfficeAlignment.Right, Show = true }
+                    }
                 }).Meta(title: "OfficeIMO.Pdf Style Cheatsheet", author: "OfficeIMO");
 
             doc.Save(path);

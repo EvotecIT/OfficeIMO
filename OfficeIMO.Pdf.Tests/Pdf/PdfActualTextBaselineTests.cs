@@ -15,8 +15,10 @@ public sealed class PdfActualTextBaselineTests {
             "Website", "Apps", "OfficeIMO.Web.Converter", "Assets", "Fonts", "NotoSansArabic-Regular.ttf"));
         var report = new PdfConversionReport();
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(360D), PageHeight = global::OfficeIMO.OfficeLength.Points(160D), MarginLeft = global::OfficeIMO.OfficeLength.Points(24D), MarginRight = global::OfficeIMO.OfficeLength.Points(24D),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(24D), MarginBottom = global::OfficeIMO.OfficeLength.Points(24D), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(20D), Language = "ar"
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360D), global::OfficeIMO.OfficeLength.Points(160D)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(24D), Right = global::OfficeIMO.OfficeLength.Points(24D), Top = global::OfficeIMO.OfficeLength.Points(24D), Bottom = global::OfficeIMO.OfficeLength.Points(24D) }
+            }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(20D), Language = "ar"
         };
         options.EmbedStandardFont(PdfStandardFont.Helvetica, font, "Arabic baseline").ReportDiagnosticsTo(report);
         byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText(source)).ToBytes();

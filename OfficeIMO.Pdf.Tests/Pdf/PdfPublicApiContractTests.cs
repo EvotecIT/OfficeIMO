@@ -65,8 +65,8 @@ public sealed class PdfPublicApiContractTests {
     [Fact]
     public void CanonicalPageDslBuildsHeadersFootersAndFlowContent() {
         PdfDocument document = PdfDocument.Create(pdf => pdf.Page(page => page
-            .Header(header => header.Text("Quarterly review").AlignLeft())
-            .Footer(footer => footer.Text("Confidential").AlignCenter())
+            .Header(header => header.Text("Quarterly review").Alignment(OfficeAlignment.Left))
+            .Footer(footer => footer.Text("Confidential").Alignment(OfficeAlignment.Center))
             .Content(layout => layout.Item(content => content
                 .H1("Service report")
                 .AddParagraph(paragraph => paragraph.AddText("Validated operational data."))))));

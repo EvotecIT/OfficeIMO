@@ -13,8 +13,10 @@ public sealed class PdfSignedParagraphTabTests {
         };
         style.AddTabStop(global::OfficeIMO.OfficeLength.Points(position));
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(300D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D), MarginLeft = global::OfficeIMO.OfficeLength.Points(30D), MarginRight = global::OfficeIMO.OfficeLength.Points(30D),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30D), MarginBottom = global::OfficeIMO.OfficeLength.Points(30D), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300D), global::OfficeIMO.OfficeLength.Points(180D)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30D), Right = global::OfficeIMO.OfficeLength.Points(30D), Top = global::OfficeIMO.OfficeLength.Points(30D), Bottom = global::OfficeIMO.OfficeLength.Points(30D) }
+            }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D)
         }).Paragraph(paragraph => paragraph.AddText("1.\tFIELD\nX\tLATER"), style: style).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var page = Assert.Single(pdf.GetPages());

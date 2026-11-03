@@ -2091,7 +2091,7 @@ public sealed class PdfRenderingProfileTests {
             Assert.InRange((double)page.Height, 1190D, 1192D);
         }
 
-        options.PdfOptions!.PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(400));
+        options.PdfOptions!.PageSetup.Size = new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(400));
         byte[] explicitlySized = (OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.ToPdf(
             workbook,
             options)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -2184,7 +2184,7 @@ public sealed class PdfRenderingProfileTests {
         var options = new OfficeIMO.Excel.Pdf.ExcelPdfExportOptions()
             .UseRenderingProfile(OfficeRenderingProfile.Managed);
 
-        options.PdfOptions!.PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792));
+        options.PdfOptions!.PageSetup.Size = new PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792));
         byte[] explicitlySized = (OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.ToPdf(
             workbook,
             options)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });

@@ -28,7 +28,7 @@ internal static class NavigableHandbook {
                 .H2("Review the workshop")
                 .AddParagraph(p => p.AddText("Compare the planned outcome with what participants completed. Separate problems with the exercise from problems with the room or equipment."))
                 .AddParagraph(p => p.AddText("Use the PDF table of contents or bookmarks to return to a section.")))),
-            new PdfCreateOptions { ShowPageNumbers = true, CreateOutlineFromHeadings = true, TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers, Language = "en-GB" })
+            new PdfCreateOptions { PageSetup = { Footer = { Show = true } }, CreateOutlineFromHeadings = true, TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers, Language = "en-GB" })
             .Meta(title: "Community workshop handbook", author: "OfficeIMO")
             .Save(Path.Combine(folder, "example.pdf"));
     }

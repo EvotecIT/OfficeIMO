@@ -454,8 +454,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Null(fitVerticalOpenAction.DestinationTop);
 
         byte[] wideFitVerticalBytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(200D),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(200D)
+                PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(200D), global::OfficeIMO.OfficeLength.Points(200D)) }
             })
             .OpenAction(1, destinationMode: PdfOpenActionDestinationMode.FitVertical, destinationLeft: 300D)
             .Paragraph(p => p.AddText("Fit vertical can use one coordinate."))

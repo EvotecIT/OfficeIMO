@@ -30,8 +30,8 @@ public static partial class WordPdfConverterExtensions {
         WordSection previous, WordSection current, WordPdfExportOptions? options) {
         if (HasNativeRunningStoryOverrides(options?.PdfOptions, isFooter: false) ||
             HasNativeRunningStoryOverrides(options?.PdfOptions, isFooter: true) ||
-            options?.PdfOptions?.DifferentFirstPageHeaderFooter == true ||
-            options?.PdfOptions?.DifferentOddAndEvenPagesHeaderFooter == true ||
+            options?.PdfOptions?.PageSetup.DifferentFirstPage == true ||
+            options?.PdfOptions?.PageSetup.DifferentOddAndEvenPages == true ||
             ShouldMirrorNativeMargins(previous, options) != ShouldMirrorNativeMargins(current, options)) return false;
 
         WordHeaderFooter? previousHeader = previous.ResolveDefaultHeader();

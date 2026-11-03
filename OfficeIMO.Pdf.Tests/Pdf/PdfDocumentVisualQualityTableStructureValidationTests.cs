@@ -48,7 +48,7 @@ public partial class PdfDocumentVisualQualityTests {
         double firstColumnX = FindWordStartX(page, "A");
         double secondColumnX = FindWordStartX(page, "B");
 
-        Assert.Equal((options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints()) / 2D,
+        Assert.Equal((options.PageSetup.Size.Width.ToPoints() - options.PageSetup.Margins.Left.ToPoints() - options.PageSetup.Margins.Right.ToPoints()) / 2D,
             secondColumnX - firstColumnX, 2);
     }
 

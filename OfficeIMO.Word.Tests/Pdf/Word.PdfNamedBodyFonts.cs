@@ -69,9 +69,9 @@ public partial class Word {
         var options = new WordPdfExportOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() }.UseRenderingProfile(profile);
         if (overlay) options.UseRenderingProfile(new OfficeRenderingProfile("fontless-overlay"), OfficeRenderingProfileApplyMode.Overlay);
         if (explicitBody) options.PdfOptions!.DefaultFont = PdfStandardFont.Courier;
-        options.PdfOptions!.HeaderFontFamily = "Arial";
-        options.PdfOptions.ShowHeader = true;
-        options.PdfOptions.HeaderFormat = "HEADER";
+        options.PdfOptions!.PageSetup.Header.FontFamily = "Arial";
+        options.PdfOptions.PageSetup.Header.Show = true;
+        options.PdfOptions.PageSetup.Header.Format = "HEADER";
         using var original = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         using var cloned = PdfPigDocument.Open(document.ToPdf(options.Clone()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         string expected = explicitBody ? "Courier" : matchedBody ? "Arial-Regular" : "Times";

@@ -105,7 +105,7 @@ public partial class PdfDocumentVisualQualityTests {
         // real PDF show: two unchanged CIDs and one adjustment at their sole boundary.
         double adjustment = Assert.Single(JustificationTextAdjustments(actualBytes));
         double natural = shaped.TotalAdvanceWidth1000 * options.DefaultFontSize.ToPoints() / 1000D;
-        double spare = options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints() - natural;
+        double spare = options.PageSetup.Size.Width.ToPoints() - options.PageSetup.Margins.Left.ToPoints() - options.PageSetup.Margins.Right.ToPoints() - natural;
         Assert.Equal(spare, -adjustment * options.DefaultFontSize.ToPoints() / 1000D, 3);
         AssertJustificationPolicyWidth(actual.ToList(), expanded: true);
     }
@@ -181,8 +181,10 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     private static PdfCreateOptions JustificationPolicyOptions() => new() {
-        PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(220), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-        MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), CompressContentStreams = false
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(220)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+        }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), CompressContentStreams = false
     };
     private static PdfParagraphStyle CharacterJustificationPolicy() => new() {
         JustificationMode = PdfJustificationMode.Characters, JustifyExplicitLineBreaks = true, JustifyLastLine = true

@@ -166,8 +166,10 @@ public class PdfFormCreationTests {
     public void TableCellCheckBox_RendersInlineWithSingleLineText(double spacingBefore) {
         var runs = new[] { new PdfTextRun("Table approval") };
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(180)),
-                Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+                PageSetup = {
+                    Size = new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = OfficeIMO.OfficeLength.Points(24), Top = OfficeIMO.OfficeLength.Points(24), Right = OfficeIMO.OfficeLength.Points(24), Bottom = OfficeIMO.OfficeLength.Points(24) }
+                }
             })
             .Table(new[] {
                 new[] {
@@ -918,12 +920,10 @@ public class PdfFormCreationTests {
     [Fact]
     public void ComposeRowsAndItems_CanPlaceGeneratedFormFields() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(320),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(320)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                }
             })
             .Compose(document => document.Page(page => page.Content(content => {
                 content.Item(item => item

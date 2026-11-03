@@ -67,12 +67,10 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void ParagraphTabs_RenderDotLeadersAndStructuredLeaderReadback() {
             byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(180)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                    },
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
                     DefaultParagraphStyle = new PdfParagraphStyle {
                         DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(216),
@@ -99,12 +97,10 @@ namespace OfficeIMO.Tests.Pdf {
         [InlineData(PdfTabLeaderStyle.Underscores, "_")]
         public void ParagraphTabs_RenderNonDotLeaders(PdfTabLeaderStyle leaderStyle, string expectedGlyph) {
             byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(180)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                    },
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
                     DefaultParagraphStyle = new PdfParagraphStyle {
                         DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(216),
@@ -123,12 +119,10 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void ParagraphTabs_RightAlignedDotLeadersAlignValueEnds() {
             byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(200),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(200)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                    },
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
                     DefaultParagraphStyle = new PdfParagraphStyle {
                         DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(216),
@@ -155,12 +149,10 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void ParagraphTabs_DecimalAlignedDotLeadersAlignDecimalSeparators() {
             byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(200),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(200)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                    },
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
                     DefaultParagraphStyle = new PdfParagraphStyle {
                         DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(216),
@@ -197,12 +189,10 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void ParagraphTabs_DotLeaderReadbackPreservesDecimalValues() {
             byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(220)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                    },
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
                     DefaultParagraphStyle = new PdfParagraphStyle {
                         DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(216),
@@ -226,12 +216,10 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void ParagraphTabs_NonDotLeaderReadbackPreservesNumericValues() {
             byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(220)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                    },
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
                     DefaultParagraphStyle = new PdfParagraphStyle {
                         DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(216),

@@ -80,7 +80,7 @@ public class PdfContinuedFlowCapacityTests {
     [Fact]
     public void AcceptedPageFootnotesKeepTheirReservationAboveTheContinuationSeparatorMargin() {
         PdfCreateOptions options = Options();
-        options.PageHeight = global::OfficeIMO.OfficeLength.Points(140);
+        options.PageSetup.Size = new PdfPageSize(options.PageSetup.Size.Width, global::OfficeIMO.OfficeLength.Points(140));
         PdfDocument document = PdfDocument.Create(options);
         var tableStyle = new PdfTableStyle {
             HeaderRowCount = 0, RepeatHeaderRowCount = 0, MinimumBodyRowsOnFirstPage = 0, MinimumBodyRowsOnLastPage = 0,
@@ -140,7 +140,10 @@ public class PdfContinuedFlowCapacityTests {
         Assert.Equal(Enumerable.Range(0, count).Select(index => "Story" + index.ToString("00")), pdf.GetPages().SelectMany(StoryTokens));
 
     private static PdfCreateOptions Options() => new() {
-        PageWidth = global::OfficeIMO.OfficeLength.Points(260), PageHeight = global::OfficeIMO.OfficeLength.Points(160), MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(160)),
+            Margins = { Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20), Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20) }
+        },
         DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(6)
     };
 

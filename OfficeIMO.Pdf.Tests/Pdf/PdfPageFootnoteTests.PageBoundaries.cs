@@ -13,7 +13,7 @@ public partial class PdfPageFootnoteTests {
     [InlineData("PageExit")]
     public void ExplicitSectionAndPageBoundariesFinishNotesBeforeChangingTheBodyFrame(string boundary) {
         PdfCreateOptions options = Options();
-        if (boundary == "PageExit") options.PageHeight = global::OfficeIMO.OfficeLength.Points(180);
+        if (boundary == "PageExit") options.PageSetup.Size = new PdfPageSize(options.PageSetup.Size.Width, global::OfficeIMO.OfficeLength.Points(180));
         PdfDocument document = PdfDocument.Create(options);
         PdfFootnoteDefinition note = document.Content.DefineFootnote(body => {
             for (int index = 0; index < 25; index++) body.AddParagraph("ScopedNote" + index.ToString("00"), style: Style());

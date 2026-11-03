@@ -30,7 +30,7 @@ internal static class LinkedResourceGuide {
                 "Describe the expected result and attach a safe sample of the actual output."
             })
             .AddParagraph(p => p.AddText("The resource names are clickable annotations. A static image shows their labels; open the PDF to follow them."))),
-            new PdfCreateOptions { ShowPageNumbers = true })
+            new PdfCreateOptions { PageSetup = { Footer = { Show = true } } })
             .Meta(title: "Document automation reading list", author: "OfficeIMO")
             .Save(Path.Combine(folder, "example.pdf"));
     }

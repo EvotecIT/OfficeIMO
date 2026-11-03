@@ -22,11 +22,9 @@ public class PdfDocumentVisualBaselineTests {
                 LineHeight = 1.4D,
                 SpacingAfter = OfficeLength.Points(10.5D * 1.4D * 0.3D)
             },
-            FooterFont = PdfStandardFont.Helvetica,
-            FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
-            FooterFormat = "OfficeIMO.Pdf visual gate - page {page}/{pages}",
-            FooterAlign = OfficeAlignment.Right,
-            ShowPageNumbers = true
+            PageSetup = {
+                Footer = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf visual gate - page {page}/{pages}", Alignment = OfficeAlignment.Right, Show = true }
+            }
         };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -60,7 +58,7 @@ public class PdfDocumentVisualBaselineTests {
             .ToBytes();
 
         PdfDocumentRasterVisualBaselineTests.WriteReviewPdfArtifact("representative-report-snapshot", bytes);
-        string snapshot = BuildVisualSnapshot(bytes, options.MarginRight.ToPoints());
+        string snapshot = BuildVisualSnapshot(bytes, options.PageSetup.Margins.Right.ToPoints());
         PdfDocumentRasterVisualBaselineTests.WriteReviewPdfArtifact("representative-geometry", bytes);
         AssertVisualBaseline("officeimo-pdf-representative-report", snapshot);
     }
@@ -76,17 +74,10 @@ public class PdfDocumentVisualBaselineTests {
                 LineHeight = 1.4D,
                 SpacingAfter = OfficeLength.Points(10D * 1.4D * 0.3D)
             },
-            HeaderFont = PdfStandardFont.Helvetica,
-            HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
-            HeaderFormat = "OfficeIMO.Pdf professional report",
-            HeaderAlign = OfficeAlignment.Left,
-            HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(18),
-            ShowHeader = true,
-            FooterFont = PdfStandardFont.Helvetica,
-            FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
-            FooterFormat = "OfficeIMO.Pdf professional report - page {page}/{pages}",
-            FooterAlign = OfficeAlignment.Center,
-            ShowPageNumbers = true,
+            PageSetup = {
+                Header = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf professional report", Alignment = OfficeAlignment.Left, Offset = global::OfficeIMO.OfficeLength.Points(18), Show = true },
+                Footer = { StandardFont = PdfStandardFont.Helvetica, FontSize = global::OfficeIMO.OfficeLength.Points(8), Format = "OfficeIMO.Pdf professional report - page {page}/{pages}", Alignment = OfficeAlignment.Center, Show = true }
+            },
             CreateOutlineFromHeadings = true
         };
 
@@ -128,7 +119,7 @@ public class PdfDocumentVisualBaselineTests {
             .ToBytes();
 
         PdfDocumentRasterVisualBaselineTests.WriteReviewPdfArtifact("professional-report-snapshot", bytes);
-        string snapshot = BuildVisualSnapshot(bytes, options.MarginRight.ToPoints());
+        string snapshot = BuildVisualSnapshot(bytes, options.PageSetup.Margins.Right.ToPoints());
         PdfDocumentRasterVisualBaselineTests.WriteReviewPdfArtifact("professional-content", bytes);
         AssertVisualBaseline("officeimo-pdf-professional-report", snapshot);
     }

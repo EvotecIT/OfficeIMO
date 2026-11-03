@@ -35,7 +35,7 @@ public sealed class PdfLineSpacingContinuationTests {
     [InlineData(true, true, 32D)]
     public void BalancedColumnsRetainStyledBlankLines(bool multiple, bool atBoundary, double expected) {
         var options = Options();
-        if (atBoundary) options.PageHeight = global::OfficeIMO.OfficeLength.Points(60D + 5D * (multiple ? 8D : 20D));
+        if (atBoundary) options.PageSetup.Size = new PdfPageSize(options.PageSetup.Size.Width, global::OfficeIMO.OfficeLength.Points(60D + 5D * (multiple ? 8D : 20D)));
         var document = PdfDocument.Create(options);
         document.Content.Columns(columns => columns.AddParagraph(p => {
             p.AddText(atBoundary ? "A\nB\nC\nD\n" : "A\n").SetFontSize(global::OfficeIMO.OfficeLength.Points(8));
@@ -62,7 +62,9 @@ public sealed class PdfLineSpacingContinuationTests {
     }
 
     private static PdfCreateOptions Options() => new() {
-        PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(400), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
-        MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30)
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(400)),
+            Margins = { Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30), Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30) }
+        }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
     };
 }

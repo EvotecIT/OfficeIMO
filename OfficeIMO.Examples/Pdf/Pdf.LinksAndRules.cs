@@ -48,11 +48,10 @@ namespace OfficeIMO.Examples.Pdf {
                         PaddingX = global::OfficeIMO.OfficeLength.Points(9),
                         PaddingY = global::OfficeIMO.OfficeLength.Points(7)
                     })), new PdfCreateOptions {
-                    HeaderFormat = "OfficeIMO.Pdf links and rules",
-                    HeaderAlign = OfficeAlignment.Left,
-                    ShowHeader = true,
-                    FooterAlign = OfficeAlignment.Right,
-                    ShowPageNumbers = true
+                    PageSetup = {
+                        Header = { Format = "OfficeIMO.Pdf links and rules", Alignment = OfficeAlignment.Left, Show = true },
+                        Footer = { Alignment = OfficeAlignment.Right, Show = true }
+                    }
                 })
                 .Meta(title: "OfficeIMO.Pdf Links and Rules", author: "OfficeIMO")
                 .Save(path);

@@ -1507,8 +1507,7 @@ namespace OfficeIMO.Tests {
                 BindingFlags.NonPublic | BindingFlags.Static)!;
             var configured = new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.TimesRoman,
-                HeaderFont = PdfStandardFont.Courier,
-                FooterFont = PdfStandardFont.Courier
+                PageSetup = { Header = { StandardFont = PdfStandardFont.Courier }, Footer = { StandardFont = PdfStandardFont.Courier } }
             };
             var saveOptions = new WordPdfExportOptions {
                 IncludePageNumbers = false,
@@ -1523,8 +1522,8 @@ namespace OfficeIMO.Tests {
             }));
 
             Assert.Equal(PdfStandardFont.TimesRoman, effective.DefaultFont);
-            Assert.Equal(PdfStandardFont.Courier, effective.HeaderFont);
-            Assert.Equal(PdfStandardFont.Courier, effective.FooterFont);
+            Assert.Equal(PdfStandardFont.Courier, effective.PageSetup.Header.StandardFont);
+            Assert.Equal(PdfStandardFont.Courier, effective.PageSetup.Footer.StandardFont);
             Assert.True((bool)nativeFontMapType
                 .GetProperty("UsePdfDefaultForDocumentDefaultFont", BindingFlags.Public | BindingFlags.Instance)!
                 .GetValue(nativeFontMap)!);

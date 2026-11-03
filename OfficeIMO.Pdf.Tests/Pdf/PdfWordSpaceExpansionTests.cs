@@ -73,8 +73,10 @@ public sealed class PdfWordSpaceExpansionTests {
             };
             if (anchored) style.AddTabStop(global::OfficeIMO.OfficeLength.Points(36D), PdfTabAlignment.Left);
             return PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(612D), PageHeight = global::OfficeIMO.OfficeLength.Points(792D), MarginLeft = global::OfficeIMO.OfficeLength.Points(72D), MarginRight = global::OfficeIMO.OfficeLength.Points(360D),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(72D), MarginBottom = global::OfficeIMO.OfficeLength.Points(72D), DefaultFont = PdfStandardFont.Helvetica,
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(612D), global::OfficeIMO.OfficeLength.Points(792D)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(72D), Right = global::OfficeIMO.OfficeLength.Points(360D), Top = global::OfficeIMO.OfficeLength.Points(72D), Bottom = global::OfficeIMO.OfficeLength.Points(72D) }
+                }, DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D), CompressContentStreams = false
             }).Compose(document => document.Content(content => content.AddParagraph(paragraph => {
                 if (anchored) { paragraph.AddText("TAG"); paragraph.AddTab(); }
@@ -118,8 +120,10 @@ public sealed class PdfWordSpaceExpansionTests {
     }
 
     private static byte[] Render(PdfTextRun[] runs, double width, bool native, bool lastLine, PdfTextWhitespaceMode whitespace) =>
-        PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(width + 40D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
+        PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(width + 40D), global::OfficeIMO.OfficeLength.Points(300D)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+        },
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D), CompressContentStreams = false })
         .Paragraph(p => p.AddRuns(runs), OfficeAlignment.Justify, style: new PdfParagraphStyle {
             UseWordJustificationSpacing = native, JustifyLastLine = lastLine, TextWhitespaceMode = whitespace }).ToBytes();

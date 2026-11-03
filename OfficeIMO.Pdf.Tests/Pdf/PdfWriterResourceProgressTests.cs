@@ -26,7 +26,7 @@ public sealed class PdfWriterResourceProgressTests {
         // Imported Office cells use the same native orientation contract.
         var cell = new PdfTableCell(runs, paragraphs: null, textRotation: rotation);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = OfficeLength.Points(200), PageHeight = OfficeLength.Points(200), TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
+            PageSetup = { Size = new PdfPageSize(OfficeLength.Points(200), OfficeLength.Points(200)) }, TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
         }).Canvas(canvas => {
             void Paint(PdfPageCanvas child) => child.Table(new[] { new[] { cell } }, OfficeLength.Points(20), OfficeLength.Points(20), OfficeLength.Points(100), OfficeLength.Points(60));
             if (group == "actual-text") canvas.ActualText("Logical image", Paint);
@@ -48,8 +48,10 @@ public sealed class PdfWriterResourceProgressTests {
     [InlineData(0.75D)]
     public void RunningHeadersLeavingSubPointBodyFramesStillMakeSpacerProgress(double bodyHeight) {
         var document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = OfficeLength.Points(240), PageHeight = OfficeLength.Points(320), MarginTop = OfficeLength.Points(32), MarginBottom = OfficeLength.Points(32),
-            MarginLeft = OfficeLength.Points(24), MarginRight = OfficeLength.Points(24), MaxGeneratedPages = 8
+            PageSetup = {
+                Size = new PdfPageSize(OfficeLength.Points(240), OfficeLength.Points(320)),
+                Margins = { Top = OfficeLength.Points(32), Bottom = OfficeLength.Points(32), Left = OfficeLength.Points(24), Right = OfficeLength.Points(24) }
+            }, MaxGeneratedPages = 8
         });
         var table = PdfTableStyles.Minimal();
         table.HeaderRowCount = 0;
@@ -76,7 +78,7 @@ public sealed class PdfWriterResourceProgressTests {
     public void CanvasGroupsRetainAnActiveImagePageWithoutRegisteringChildStructure(string group, bool textBox) {
         byte[] image = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Red));
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = OfficeLength.Points(200), PageHeight = OfficeLength.Points(200),
+            PageSetup = { Size = new PdfPageSize(OfficeLength.Points(200), OfficeLength.Points(200)) },
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
         }).Canvas(canvas => {
             void Paint(PdfPageCanvas child) {

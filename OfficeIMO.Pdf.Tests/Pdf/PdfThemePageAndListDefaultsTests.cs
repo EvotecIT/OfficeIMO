@@ -8,20 +8,20 @@ public sealed class PdfThemePageAndListDefaultsTests {
     public void ThemeMarginsFollowTheSelectedThemeThroughCloningAndExplicitSidesKeepTheirValues() {
         var theme = OfficeTheme.Modern.WithPage(new OfficeThemePage(
             OfficeLength.Points(29), OfficeLength.Points(31), OfficeLength.Points(37), OfficeLength.Points(23)));
-        var options = new PdfCreateOptions { Theme = theme, MarginRight = OfficeLength.Points(9) };
-        Assert.Equal(23D, options.MarginLeft.ToPoints());
-        Assert.Equal(29D, options.MarginTop.ToPoints());
-        Assert.Equal(37D, options.MarginBottom.ToPoints());
+        var options = new PdfCreateOptions { Theme = theme, PageSetup = { Margins = { Right = OfficeLength.Points(9) } } };
+        Assert.Equal(23D, options.PageSetup.Margins.Left.ToPoints());
+        Assert.Equal(29D, options.PageSetup.Margins.Top.ToPoints());
+        Assert.Equal(37D, options.PageSetup.Margins.Bottom.ToPoints());
         var clone = options.Clone();
         clone.Theme = OfficeTheme.Minimal;
-        Assert.Equal(OfficeTheme.Minimal.Page.MarginLeft.ToPoints(), clone.MarginLeft.ToPoints());
-        Assert.Equal(OfficeTheme.Minimal.Page.MarginTop.ToPoints(), clone.MarginTop.ToPoints());
-        Assert.Equal(OfficeTheme.Minimal.Page.MarginBottom.ToPoints(), clone.MarginBottom.ToPoints());
-        Assert.Equal(9D, clone.MarginRight.ToPoints());
-        Assert.Equal(23D, options.MarginLeft.ToPoints());
+        Assert.Equal(OfficeTheme.Minimal.Page.MarginLeft.ToPoints(), clone.PageSetup.Margins.Left.ToPoints());
+        Assert.Equal(OfficeTheme.Minimal.Page.MarginTop.ToPoints(), clone.PageSetup.Margins.Top.ToPoints());
+        Assert.Equal(OfficeTheme.Minimal.Page.MarginBottom.ToPoints(), clone.PageSetup.Margins.Bottom.ToPoints());
+        Assert.Equal(9D, clone.PageSetup.Margins.Right.ToPoints());
+        Assert.Equal(23D, options.PageSetup.Margins.Left.ToPoints());
         using var document = PdfDocument.Create(clone).Paragraph(paragraph => paragraph.AddText("Margin anchor"));
         using var independent = UglyToad.PdfPig.PdfDocument.Open(document.ToBytes());
-        Assert.Equal(clone.MarginLeft.ToPoints(), independent.GetPage(1).Letters[0].StartBaseLine.X, 2);
+        Assert.Equal(clone.PageSetup.Margins.Left.ToPoints(), independent.GetPage(1).Letters[0].StartBaseLine.X, 2);
     }
 
     [Fact]

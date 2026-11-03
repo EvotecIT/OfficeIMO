@@ -18,8 +18,8 @@ internal static partial class RtfPdfConverter {
         HashSet<int> referencedFontIds = CollectReferencedFontIds(document, options, pdfOptions, out string requiredText);
         HashSet<PdfCore.PdfStandardFont> registeredFontSlots = pdfOptions.CreateRegisteredFontFamilySlots(includeDocumentFontSlots: false);
         if (pdfOptions.HasExplicitDefaultFont) PdfCore.PdfCreateOptions.AddRegisteredFontFamilySlot(registeredFontSlots, pdfOptions.DefaultFont);
-        if (pdfOptions.HasExplicitHeaderFont) PdfCore.PdfCreateOptions.AddRegisteredFontFamilySlot(registeredFontSlots, pdfOptions.HeaderFont);
-        if (pdfOptions.HasExplicitFooterFont) PdfCore.PdfCreateOptions.AddRegisteredFontFamilySlot(registeredFontSlots, pdfOptions.FooterFont);
+        if (pdfOptions.PageSetup.Header.HasExplicitStandardFont) PdfCore.PdfCreateOptions.AddRegisteredFontFamilySlot(registeredFontSlots, pdfOptions.PageSetup.Header.StandardFont);
+        if (pdfOptions.PageSetup.Footer.HasExplicitStandardFont) PdfCore.PdfCreateOptions.AddRegisteredFontFamilySlot(registeredFontSlots, pdfOptions.PageSetup.Footer.StandardFont);
 
         RtfFont? defaultFont = document.Settings.DefaultFontId.HasValue
             ? document.Fonts.FirstOrDefault(font => font.Id == document.Settings.DefaultFontId.Value)

@@ -52,11 +52,10 @@ namespace OfficeIMO.Examples.Pdf {
                 }, OfficeAlignment.Left, OfficeColor.FromRgb(55, 65, 81))
                 .AddTable(rows, OfficeAlignment.Left, style)
                 .AddParagraph(p => p.AddText("End of lists and tables sample."), OfficeAlignment.Right, OfficeColor.FromRgb(80, 80, 80))), new PdfCreateOptions {
-                    HeaderFormat = "OfficeIMO.Pdf lists and tables",
-                    HeaderAlign = OfficeAlignment.Left,
-                    ShowHeader = true,
-                    FooterAlign = OfficeAlignment.Right,
-                    ShowPageNumbers = true
+                    PageSetup = {
+                        Header = { Format = "OfficeIMO.Pdf lists and tables", Alignment = OfficeAlignment.Left, Show = true },
+                        Footer = { Alignment = OfficeAlignment.Right, Show = true }
+                    }
                 })
                 .Meta(title: "OfficeIMO.Pdf Lists and Tables", author: "OfficeIMO")
                 .Save(path);

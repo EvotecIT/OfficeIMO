@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed class PdfNUpImpositionTests {
     [Fact]
     public void TwoUpCreatesVectorSheetsWithSourceToCellMapping() {
-        PdfDocument source = PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(180)) })
+        PdfDocument source = PdfDocument.Create(new PdfCreateOptions { PageSetup = { Size = new PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(180)) } })
             .Paragraph(paragraph => paragraph.AddText("First page"))
             .PageBreak()
             .Paragraph(paragraph => paragraph.AddText("Second page"))
@@ -423,7 +423,7 @@ public sealed class PdfNUpImpositionTests {
 
     [Fact]
     public void BookletPadsToFourAndMapsBothSidesOfDuplexSheets() {
-        PdfDocument source = PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(180)) });
+        PdfDocument source = PdfDocument.Create(new PdfCreateOptions { PageSetup = { Size = new PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(180)) } });
         for (int page = 1; page <= 5; page++) {
             if (page > 1) source.PageBreak();
             int current = page;
@@ -446,7 +446,7 @@ public sealed class PdfNUpImpositionTests {
 
     [Fact]
     public void RightToLeftBookletReversesBothCellsOnEachSheetSide() {
-        PdfDocument source = PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(180)) });
+        PdfDocument source = PdfDocument.Create(new PdfCreateOptions { PageSetup = { Size = new PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(180)) } });
         for (int page = 1; page <= 8; page++) {
             if (page > 1) source.PageBreak();
             int current = page;

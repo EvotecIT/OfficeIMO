@@ -194,8 +194,8 @@ public static partial class MarkdownPdfConverterExtensions {
 
         if (includeDocumentFontSlots) {
             slots.Add(pdfOptions.DefaultFont);
-            slots.Add(pdfOptions.HeaderFont);
-            slots.Add(pdfOptions.FooterFont);
+            slots.Add(pdfOptions.PageSetup.Header.StandardFont);
+            slots.Add(pdfOptions.PageSetup.Footer.StandardFont);
         }
 
         return slots;

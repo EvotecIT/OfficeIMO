@@ -214,8 +214,10 @@ public partial class PdfDocumentVisualQualityTests {
         PdfTableStyle style = Style();
         style.MinimumBodyRowsOnFirstPage = 0;
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(460), PageHeight = global::OfficeIMO.OfficeLength.Points(140), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(460), global::OfficeIMO.OfficeLength.Points(140)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+            }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
         }).Columns(content => {
             content.AddParagraph(p => p.AddText("Intro1\nIntro2\nIntro3"), style: new PdfParagraphStyle {
                 FontSize = global::OfficeIMO.OfficeLength.Points(12), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(14)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),

@@ -36,19 +36,19 @@ public partial class Word {
             if (configure) {
                 options.PdfOptions = new PdfCreateOptions();
                 if (footer) {
-                    if (setting == "alignment") options.PdfOptions.FooterAlign = OfficeAlignment.Right;
-                    else if (setting == "font") options.PdfOptions.FooterFont = PdfStandardFont.Courier;
-                    else if (setting == "family") options.PdfOptions.FooterFontFamily = "Arial";
-                    else if (setting == "size") options.PdfOptions.FooterFontSize = global::OfficeIMO.OfficeLength.Points(24D);
-                    else if (setting == "offset") options.PdfOptions.FooterOffsetY = global::OfficeIMO.OfficeLength.Points(45D);
-                    else options.PdfOptions.FooterTextColor = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0);
+                    if (setting == "alignment") options.PdfOptions.PageSetup.Footer.Alignment = OfficeAlignment.Right;
+                    else if (setting == "font") options.PdfOptions.PageSetup.Footer.StandardFont = PdfStandardFont.Courier;
+                    else if (setting == "family") options.PdfOptions.PageSetup.Footer.FontFamily = "Arial";
+                    else if (setting == "size") options.PdfOptions.PageSetup.Footer.FontSize = global::OfficeIMO.OfficeLength.Points(24D);
+                    else if (setting == "offset") options.PdfOptions.PageSetup.Footer.Offset = global::OfficeIMO.OfficeLength.Points(45D);
+                    else options.PdfOptions.PageSetup.Footer.Color = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0);
                 } else {
-                    if (setting == "alignment") options.PdfOptions.HeaderAlign = OfficeAlignment.Right;
-                    else if (setting == "font") options.PdfOptions.HeaderFont = PdfStandardFont.Courier;
-                    else if (setting == "family") options.PdfOptions.HeaderFontFamily = "Arial";
-                    else if (setting == "size") options.PdfOptions.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(24D);
-                    else if (setting == "offset") options.PdfOptions.HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(45D);
-                    else options.PdfOptions.HeaderTextColor = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0);
+                    if (setting == "alignment") options.PdfOptions.PageSetup.Header.Alignment = OfficeAlignment.Right;
+                    else if (setting == "font") options.PdfOptions.PageSetup.Header.StandardFont = PdfStandardFont.Courier;
+                    else if (setting == "family") options.PdfOptions.PageSetup.Header.FontFamily = "Arial";
+                    else if (setting == "size") options.PdfOptions.PageSetup.Header.FontSize = global::OfficeIMO.OfficeLength.Points(24D);
+                    else if (setting == "offset") options.PdfOptions.PageSetup.Header.Offset = global::OfficeIMO.OfficeLength.Points(45D);
+                    else options.PdfOptions.PageSetup.Header.Color = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0);
                 }
             }
             using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
@@ -79,8 +79,8 @@ public partial class Word {
         }
         WordPdfExportOptions options = EmptyRunningOptions();
         options.PdfOptions = new PdfCreateOptions();
-        if (footer) options.PdfOptions.FooterOffsetY = global::OfficeIMO.OfficeLength.Points(24D);
-        else options.PdfOptions.HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(24D);
+        if (footer) options.PdfOptions.PageSetup.Footer.Offset = global::OfficeIMO.OfficeLength.Points(24D);
+        else options.PdfOptions.PageSetup.Header.Offset = global::OfficeIMO.OfficeLength.Points(24D);
         using var withImplicit = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, withImplicit.NumberOfPages);
         for (int index = 0; index < 3; index++) {

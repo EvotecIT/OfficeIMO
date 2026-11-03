@@ -85,7 +85,10 @@ public class PdfOpenTypeDefaultLigatureTests {
     [InlineData(true)]
     public void EmbeddedCompositeJustificationPositionsWordsAtMeasuredGap(bool cff) {
         byte[] data = File.ReadAllBytes((cff ? PdfComplianceTestFonts.FindBundledOpenTypeCffFont() : PdfComplianceTestFonts.FindBundledTrueTypeFont())!);
-        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(250), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20) }
+        var options = new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(250), global::OfficeIMO.OfficeLength.Points(792)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20) }
+        } }
             .EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test");
         byte[] pdf = PdfDocument.Create(options).Paragraph(p => p.AddText("office affinity fine flow efficient office affinity fine flow efficient"), OfficeAlignment.Justify).ToBytes();
         using var reader = UglyToad.PdfPig.PdfDocument.Open(pdf);

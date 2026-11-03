@@ -36,8 +36,10 @@ public sealed class PdfTableHorizontalOffsetTests {
             HorizontalOffset = global::OfficeIMO.OfficeLength.Points(30), Position = new PdfTablePosition()
         };
         using var read = PdfPigDocument.Open(PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(300), MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(40), Right = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Bottom = global::OfficeIMO.OfficeLength.Points(40) }
+            }
         }).Table(new[] { new[] { "floating" } }, style: style)
             .Paragraph(p => p.AddText("alongside")).ToBytes());
         var words = read.GetPage(1).GetWords().ToArray();
@@ -56,8 +58,10 @@ public sealed class PdfTableHorizontalOffsetTests {
             BorderWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
         var document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(360), PageHeight = global::OfficeIMO.OfficeLength.Points(240), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         });
         string[][] rows = Enumerable.Range(1, 7).Select(index => new[] { "Left" + index, "Right" + index }).ToArray();
         if (frame == "columns") document.Columns(content => content.AddTable(rows, alignment, style),

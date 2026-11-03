@@ -521,12 +521,10 @@ public sealed class PdfRunningFrameAdmissionTests {
     private static PdfDocument CreateContentDocument(Action<PdfContentBuilder> target,
         Action<PdfHeaderBuilder>? configureHeader = null, int? maximumPages = 4) {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(240D),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(PageHeight),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(PhysicalMargin),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(PhysicalMargin),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(24D),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(24D),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240D), global::OfficeIMO.OfficeLength.Points(PageHeight)),
+                Margins = { Top = global::OfficeIMO.OfficeLength.Points(PhysicalMargin), Bottom = global::OfficeIMO.OfficeLength.Points(PhysicalMargin), Left = global::OfficeIMO.OfficeLength.Points(24D), Right = global::OfficeIMO.OfficeLength.Points(24D) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D),
             MaxGeneratedPages = maximumPages

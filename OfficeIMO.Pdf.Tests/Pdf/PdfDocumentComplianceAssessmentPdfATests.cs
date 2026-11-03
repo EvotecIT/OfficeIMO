@@ -103,12 +103,12 @@ public partial class PdfDocumentComplianceAssessmentTests {
         var options = CreatePdfA3GroundworkOptions()
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "HelveticaAudit")
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Named Surface Compliance", fontData));
-        options.ShowHeader = true;
-        options.HeaderFormat = "Named header";
-        options.HeaderFontFamily = "Named Surface Compliance";
-        options.ShowPageNumbers = true;
-        options.FooterFormat = "Named footer";
-        options.FooterFontFamily = "Named Surface Compliance";
+        options.PageSetup.Header.Show = true;
+        options.PageSetup.Header.Format = "Named header";
+        options.PageSetup.Header.FontFamily = "Named Surface Compliance";
+        options.PageSetup.Footer.Show = true;
+        options.PageSetup.Footer.Format = "Named footer";
+        options.PageSetup.Footer.FontFamily = "Named Surface Compliance";
         var listStyle = new PdfListStyle {
             MarkerFontFamily = "Named Surface Compliance"
         };

@@ -1445,9 +1445,9 @@ _Figure 2. Revenue chart_
     [Fact]
     public void ToPdfDocument_MarkdownChartFence_WarnsWhenPageIsTooNarrowForNativeChartRenderer() {
         var options = CreateVisualOptions();
-        options.PdfOptions!.PageWidth = global::OfficeIMO.OfficeLength.Points(220);
-        options.PdfOptions.MarginLeft = global::OfficeIMO.OfficeLength.Points(36);
-        options.PdfOptions.MarginRight = global::OfficeIMO.OfficeLength.Points(36);
+        options.PdfOptions!.PageSetup.Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), options.PdfOptions!.PageSetup.Size.Height);
+        options.PdfOptions.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(36);
+        options.PdfOptions.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(36);
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
   "type": "bar",
@@ -1470,9 +1470,9 @@ _Figure 2. Revenue chart_
     [Fact]
     public void ToPdfDocument_MarkdownChartFence_WarnsWhenPageIsTooShortForNativeChartRenderer() {
         var options = CreateVisualOptions();
-        options.PdfOptions!.PageHeight = global::OfficeIMO.OfficeLength.Points(180);
-        options.PdfOptions.MarginTop = global::OfficeIMO.OfficeLength.Points(36);
-        options.PdfOptions.MarginBottom = global::OfficeIMO.OfficeLength.Points(36);
+        options.PdfOptions!.PageSetup.Size = new global::OfficeIMO.Pdf.PdfPageSize(options.PdfOptions!.PageSetup.Size.Width, global::OfficeIMO.OfficeLength.Points(180));
+        options.PdfOptions.PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Points(36);
+        options.PdfOptions.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(36);
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
   "type": "bar",
@@ -1495,9 +1495,9 @@ _Figure 2. Revenue chart_
     [Fact]
     public void ToPdfDocument_MarkdownChartFence_WarnsWhenFigureSpacingLeavesPageTooShortForNativeChartRenderer() {
         var options = CreateVisualOptions();
-        options.PdfOptions!.PageHeight = global::OfficeIMO.OfficeLength.Points(226);
-        options.PdfOptions.MarginTop = global::OfficeIMO.OfficeLength.Points(36);
-        options.PdfOptions.MarginBottom = global::OfficeIMO.OfficeLength.Points(36);
+        options.PdfOptions!.PageSetup.Size = new global::OfficeIMO.Pdf.PdfPageSize(options.PdfOptions!.PageSetup.Size.Width, global::OfficeIMO.OfficeLength.Points(226));
+        options.PdfOptions.PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Points(36);
+        options.PdfOptions.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(36);
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
   "type": "bar",
@@ -2494,12 +2494,10 @@ _Figure 3. Flow fallback_
         Style = MarkdownPdfStyle.Report(),
         PdfOptions = new PdfCore.PdfCreateOptions {
             CompressContentStreams = false,
-            PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(420),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
+            PageSetup = {
+                Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(420)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+            }
         }
     };
 

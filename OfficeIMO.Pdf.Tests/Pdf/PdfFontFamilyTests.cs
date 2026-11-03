@@ -135,12 +135,10 @@ public partial class PdfFontFamilyTests {
         byte[] fontData = File.ReadAllBytes(fontPath);
         var options = new PdfCreateOptions {
             CompressContentStreams = false,
-            ShowHeader = true,
-            HeaderFormat = "Header",
-            HeaderFontFamily = familyName,
-            ShowPageNumbers = true,
-            FooterFormat = "Footer",
-            FooterFontFamily = familyName
+            PageSetup = {
+                Header = { Show = true, Format = "Header", FontFamily = familyName },
+                Footer = { Show = true, Format = "Footer", FontFamily = familyName }
+            }
         }.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(familyName, fontData));
         var listStyle = new PdfListStyle {
             MarkerFontFamily = familyName
@@ -222,8 +220,8 @@ public partial class PdfFontFamilyTests {
         Assert.Equal("Snapshot Family-Regular", options.EmbeddedFonts[PdfStandardFont.Helvetica].FontName);
         Assert.Equal("Snapshot Family-Bold", options.EmbeddedFonts[PdfStandardFont.HelveticaBold].FontName);
         Assert.Equal(PdfStandardFont.Helvetica, options.DefaultFont);
-        Assert.Equal(PdfStandardFont.Helvetica, options.HeaderFont);
-        Assert.Equal(PdfStandardFont.Helvetica, options.FooterFont);
+        Assert.Equal(PdfStandardFont.Helvetica, options.PageSetup.Header.StandardFont);
+        Assert.Equal(PdfStandardFont.Helvetica, options.PageSetup.Footer.StandardFont);
         Assert.Throws<ArgumentException>(() => new PdfEmbeddedFontFamily("Broken", Array.Empty<byte>()));
     }
 
@@ -310,8 +308,8 @@ public partial class PdfFontFamilyTests {
             .UseOfficeFontFamily("OfficeIMO Missing Display, Consolas, monospace", embedSystemFont: false);
 
         Assert.Equal(PdfStandardFont.Courier, options.DefaultFont);
-        Assert.Equal(PdfStandardFont.Courier, options.HeaderFont);
-        Assert.Equal(PdfStandardFont.Courier, options.FooterFont);
+        Assert.Equal(PdfStandardFont.Courier, options.PageSetup.Header.StandardFont);
+        Assert.Equal(PdfStandardFont.Courier, options.PageSetup.Footer.StandardFont);
     }
 
     [Fact]
@@ -340,8 +338,7 @@ public partial class PdfFontFamilyTests {
 
         var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.TimesRoman,
-            HeaderFont = PdfStandardFont.TimesRoman,
-            FooterFont = PdfStandardFont.TimesRoman
+            PageSetup = { Header = { StandardFont = PdfStandardFont.TimesRoman }, Footer = { StandardFont = PdfStandardFont.TimesRoman } }
         }.UseTextFallbacks(PdfTextFallbackFeatures.SymbolAndEmojiFonts);
 
         PdfEmbeddedFontFallbackSet? fallbackSet = options.EmbeddedFontFallbacks;
@@ -475,8 +472,7 @@ public partial class PdfFontFamilyTests {
     public void PdfOptions_CreateRegisteredFontFamilySlotsNormalizesConfiguredAndEmbeddedFamilies() {
         var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.HelveticaBold,
-            HeaderFont = PdfStandardFont.TimesItalic,
-            FooterFont = PdfStandardFont.CourierBoldOblique
+            PageSetup = { Header = { StandardFont = PdfStandardFont.TimesItalic }, Footer = { StandardFont = PdfStandardFont.CourierBoldOblique } }
         }.RegisterFontFamily(
             PdfStandardFont.TimesRoman,
             new PdfEmbeddedFontFamily("OfficeIMO Slot Test", CreateMinimalOpenTypeCffFont()));
@@ -536,8 +532,7 @@ public partial class PdfFontFamilyTests {
     public void PdfOptions_GetAvailableEmbeddedFallbackFontSlotsSkipsDocumentReservedAndEmbeddedFamilies() {
         var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.HelveticaBold,
-            HeaderFont = PdfStandardFont.Helvetica,
-            FooterFont = PdfStandardFont.HelveticaOblique
+            PageSetup = { Header = { StandardFont = PdfStandardFont.Helvetica }, Footer = { StandardFont = PdfStandardFont.HelveticaOblique } }
         }.RegisterFontFamily(
             PdfStandardFont.TimesRoman,
             new PdfEmbeddedFontFamily("OfficeIMO Fallback Slot Test", CreateMinimalOpenTypeCffFont()));
@@ -570,8 +565,8 @@ public partial class PdfFontFamilyTests {
         string text = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Equal(PdfStandardFont.Helvetica, options.DefaultFont);
-        Assert.Equal(PdfStandardFont.Helvetica, options.HeaderFont);
-        Assert.Equal(PdfStandardFont.Helvetica, options.FooterFont);
+        Assert.Equal(PdfStandardFont.Helvetica, options.PageSetup.Header.StandardFont);
+        Assert.Equal(PdfStandardFont.Helvetica, options.PageSetup.Footer.StandardFont);
         Assert.Matches(PdfTestContentText.BaseFontPattern("OfficeIMOSemanticSerif-Regular"), raw);
         Assert.Contains("/Encoding /Identity-H", raw, StringComparison.Ordinal);
         Assert.Contains("Semantic serif Łódź", text, StringComparison.Ordinal);
@@ -1260,8 +1255,8 @@ public partial class PdfFontFamilyTests {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
-            .Header(header => header.Font(PdfStandardFont.TimesRoman).Text("Times header"))
-            .Footer(footer => footer.Font(PdfStandardFont.Courier).Text("Courier footer"))
+            .Header(header => header.StandardFont(PdfStandardFont.TimesRoman).Text("Times header"))
+            .Footer(footer => footer.StandardFont(PdfStandardFont.Courier).Text("Courier footer"))
             .DefaultTextStyle(style => style.FontFamily(family).FontSize(global::OfficeIMO.OfficeLength.Points(12)))
             .Paragraph(paragraph => paragraph.AddText("Styled body"))
             .ToBytes();
@@ -2595,8 +2590,8 @@ public partial class PdfFontFamilyTests {
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
-            .Header(header => header.AlignCenter().Text("Nagłówek Łódź"))
-            .Footer(footer => footer.AlignRight().Text("Stopka Zażółć {page}/{pages}"))
+            .Header(header => header.Alignment(OfficeAlignment.Center).Text("Nagłówek Łódź"))
+            .Footer(footer => footer.Alignment(OfficeAlignment.Right).Text("Stopka Zażółć {page}/{pages}"))
             .Paragraph(paragraph => paragraph.AddText("Body"))
             .ToBytes();
 
@@ -2670,8 +2665,7 @@ public partial class PdfFontFamilyTests {
             new[] { PdfStandardFont.TimesRoman });
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(180)) },
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
@@ -2705,8 +2699,7 @@ public partial class PdfFontFamilyTests {
             new[] { PdfStandardFont.TimesRoman });
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180)
+                PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(180)) }
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
             .Canvas(canvas => canvas.Text(marker, global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(16), global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(28), fontSize: global::OfficeIMO.OfficeLength.Points(12)))
@@ -3219,9 +3212,10 @@ public partial class PdfFontFamilyTests {
             try {
                 bytes = PdfDocument.Create(new PdfCreateOptions {
                     CompressContentStreams = false,
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(120),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(24)
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(792)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(24), Right = global::OfficeIMO.OfficeLength.Points(24) }
+                    }
                 })
                 .UseFontFamily("OfficeIMO NonBmp Font", fontPath)
                 .Paragraph(paragraph => paragraph.AddText("AAAAAAAAAAAA😀BBBBBBBBBBBB"))

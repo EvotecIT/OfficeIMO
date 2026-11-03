@@ -103,12 +103,82 @@ OfficeIMO.Pdf.PdfContentBuilder.Title(string! text, OfficeIMO.OfficeAlignment al
 *REMOVED*OfficeIMO.Pdf.PdfConversionReport.RequireNoLoss() -> OfficeIMO.Pdf.PdfConversionReport!
 *REMOVED*OfficeIMO.Pdf.PdfConversionWarning.ToFidelityDiagnostic() -> OfficeIMO.OfficeConversionFidelityDiagnostic!
 OfficeIMO.Pdf.PdfConversionWarning.ToFidelityDiagnostic() -> OfficeIMO.OfficeDiagnostic!
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.DifferentFirstPageHeaderFooter.get -> bool
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.DifferentFirstPageHeaderFooter.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.DifferentOddAndEvenPagesHeaderFooter.get -> bool
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.DifferentOddAndEvenPagesHeaderFooter.set -> void
 OfficeIMO.Pdf.PdfCreateOptions.EmbedDefaultFonts.get -> bool
 OfficeIMO.Pdf.PdfCreateOptions.EmbedDefaultFonts.set -> void
-OfficeIMO.Pdf.PdfCreateOptions.FooterAlign.get -> OfficeIMO.OfficeAlignment
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.EvenPageFooterFormat.get -> string!
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.EvenPageFooterFormat.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.EvenPageFooterSegments.get -> System.Collections.Generic.List<OfficeIMO.Pdf.PdfFooterSegment!>?
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.EvenPageFooterSegments.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.EvenPageHeaderFormat.get -> string!
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.EvenPageHeaderFormat.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.FirstPageFooterFormat.get -> string!
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.FirstPageFooterFormat.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.FirstPageFooterSegments.get -> System.Collections.Generic.List<OfficeIMO.Pdf.PdfFooterSegment!>?
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.FirstPageFooterSegments.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.FirstPageHeaderFormat.get -> string!
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.FirstPageHeaderFormat.set -> void
 *REMOVED*OfficeIMO.Pdf.PdfCreateOptions.FooterAlign.get -> OfficeIMO.Pdf.PdfAlign
-OfficeIMO.Pdf.PdfCreateOptions.HeaderAlign.get -> OfficeIMO.OfficeAlignment
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.FooterAlign.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.FooterFont.get -> OfficeIMO.Pdf.PdfStandardFont
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.FooterFont.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.FooterFontFamily.get -> string?
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.FooterFontFamily.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.FooterFontSize.get -> OfficeIMO.OfficeLength
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.FooterFontSize.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.FooterFormat.get -> string!
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.FooterFormat.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.FooterOffsetY.get -> OfficeIMO.OfficeLength
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.FooterOffsetY.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.FooterSegments.get -> System.Collections.Generic.List<OfficeIMO.Pdf.PdfFooterSegment!>?
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.FooterSegments.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.FooterTextColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.FooterTextColor.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.HasExplicitFooterFont.get -> bool
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.HasExplicitHeaderFont.get -> bool
 *REMOVED*OfficeIMO.Pdf.PdfCreateOptions.HeaderAlign.get -> OfficeIMO.Pdf.PdfAlign
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.HeaderAlign.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.HeaderFont.get -> OfficeIMO.Pdf.PdfStandardFont
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.HeaderFont.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.HeaderFontFamily.get -> string?
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.HeaderFontFamily.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.HeaderFontSize.get -> OfficeIMO.OfficeLength
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.HeaderFontSize.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.HeaderFormat.get -> string!
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.HeaderFormat.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.HeaderOffsetY.get -> OfficeIMO.OfficeLength
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.HeaderOffsetY.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.HeaderTextColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.HeaderTextColor.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.MarginBottom.get -> OfficeIMO.OfficeLength
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.MarginBottom.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.MarginLeft.get -> OfficeIMO.OfficeLength
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.MarginLeft.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.MarginRight.get -> OfficeIMO.OfficeLength
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.MarginRight.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.MarginTop.get -> OfficeIMO.OfficeLength
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.MarginTop.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.Margins.get -> OfficeIMO.Pdf.PdfPageMargins
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.Margins.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.MirrorMargins.get -> bool
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.MirrorMargins.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.PageHeight.get -> OfficeIMO.OfficeLength
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.PageHeight.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.PageOrientation.get -> OfficeIMO.OfficePageOrientation
+OfficeIMO.Pdf.PdfCreateOptions.PageSetup.get -> OfficeIMO.Pdf.PdfPageSetup!
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.PageSize.get -> OfficeIMO.Pdf.PdfPageSize
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.PageSize.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.PageWidth.get -> OfficeIMO.OfficeLength
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.PageWidth.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.ShowHeader.get -> bool
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.ShowHeader.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.ShowPageNumbers.get -> bool
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.ShowPageNumbers.set -> void
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.UsePageNumberParityForHeaderFooter.get -> bool
+*REMOVED*OfficeIMO.Pdf.PdfCreateOptions.UsePageNumberParityForHeaderFooter.set -> void
 OfficeIMO.Pdf.PdfDocument.AddDeferredTable(System.Func<System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTableCell![]!>!>! rowFactory, int batchSize = 256, OfficeIMO.OfficeAlignment align = OfficeIMO.OfficeAlignment.Left, OfficeIMO.Pdf.PdfTableStyle? style = null) -> OfficeIMO.Pdf.PdfTable!
 OfficeIMO.Pdf.PdfDocument.AddDeferredTable(System.Func<System.Collections.Generic.IEnumerable<string![]!>!>! rowFactory, int batchSize = 256, OfficeIMO.OfficeAlignment align = OfficeIMO.OfficeAlignment.Left, OfficeIMO.Pdf.PdfTableStyle? style = null) -> OfficeIMO.Pdf.PdfTable!
 OfficeIMO.Pdf.PdfDocument.AddHeading(string! text, int level = 1, OfficeIMO.OfficeAlignment align = OfficeIMO.OfficeAlignment.Left, OfficeIMO.OfficeColor? color = null, string? linkUri = null, OfficeIMO.Pdf.PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) -> OfficeIMO.Pdf.PdfHeading!
@@ -188,6 +258,10 @@ OfficeIMO.Pdf.PdfDrawingStyle.Align.get -> OfficeIMO.OfficeAlignment
 *REMOVED*OfficeIMO.Pdf.PdfDrawingStyle.Align.get -> OfficeIMO.Pdf.PdfAlign
 OfficeIMO.Pdf.PdfElementBuilder.Align(OfficeIMO.OfficeAlignment align) -> OfficeIMO.Pdf.PdfElementBuilder!
 *REMOVED*OfficeIMO.Pdf.PdfElementBuilder.Align(OfficeIMO.Pdf.PdfAlign align) -> OfficeIMO.Pdf.PdfElementBuilder!
+*REMOVED*OfficeIMO.Pdf.PdfFooterBuilder.AlignCenter() -> OfficeIMO.Pdf.PdfFooterBuilder!
+*REMOVED*OfficeIMO.Pdf.PdfFooterBuilder.AlignLeft() -> OfficeIMO.Pdf.PdfFooterBuilder!
+*REMOVED*OfficeIMO.Pdf.PdfFooterBuilder.AlignRight() -> OfficeIMO.Pdf.PdfFooterBuilder!
+OfficeIMO.Pdf.PdfFooterBuilder.Alignment(OfficeIMO.OfficeAlignment alignment) -> OfficeIMO.Pdf.PdfFooterBuilder!
 OfficeIMO.Pdf.PdfFooterBuilder.EvenPagesImage(byte[]! data, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeAlignment align = OfficeIMO.OfficeAlignment.Left, OfficeIMO.Drawing.OfficeImageFit fit = OfficeIMO.Drawing.OfficeImageFit.Stretch, string? alternativeText = null) -> OfficeIMO.Pdf.PdfFooterBuilder!
 *REMOVED*OfficeIMO.Pdf.PdfFooterBuilder.EvenPagesImage(byte[]! data, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Drawing.OfficeImageFit fit = OfficeIMO.Drawing.OfficeImageFit.Stretch, string? alternativeText = null) -> OfficeIMO.Pdf.PdfFooterBuilder!
 OfficeIMO.Pdf.PdfFooterBuilder.EvenPagesShape(OfficeIMO.Drawing.OfficeShape! shape, OfficeIMO.OfficeAlignment align = OfficeIMO.OfficeAlignment.Left) -> OfficeIMO.Pdf.PdfFooterBuilder!
@@ -196,10 +270,18 @@ OfficeIMO.Pdf.PdfFooterBuilder.FirstPageImage(byte[]! data, OfficeIMO.OfficeLeng
 *REMOVED*OfficeIMO.Pdf.PdfFooterBuilder.FirstPageImage(byte[]! data, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Drawing.OfficeImageFit fit = OfficeIMO.Drawing.OfficeImageFit.Stretch, string? alternativeText = null) -> OfficeIMO.Pdf.PdfFooterBuilder!
 OfficeIMO.Pdf.PdfFooterBuilder.FirstPageShape(OfficeIMO.Drawing.OfficeShape! shape, OfficeIMO.OfficeAlignment align = OfficeIMO.OfficeAlignment.Left) -> OfficeIMO.Pdf.PdfFooterBuilder!
 *REMOVED*OfficeIMO.Pdf.PdfFooterBuilder.FirstPageShape(OfficeIMO.Drawing.OfficeShape! shape, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left) -> OfficeIMO.Pdf.PdfFooterBuilder!
+*REMOVED*OfficeIMO.Pdf.PdfFooterBuilder.Font(OfficeIMO.Pdf.PdfStandardFont font) -> OfficeIMO.Pdf.PdfFooterBuilder!
 OfficeIMO.Pdf.PdfFooterBuilder.Image(byte[]! data, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeAlignment align = OfficeIMO.OfficeAlignment.Left, OfficeIMO.Drawing.OfficeImageFit fit = OfficeIMO.Drawing.OfficeImageFit.Stretch, string? alternativeText = null) -> OfficeIMO.Pdf.PdfFooterBuilder!
 *REMOVED*OfficeIMO.Pdf.PdfFooterBuilder.Image(byte[]! data, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Drawing.OfficeImageFit fit = OfficeIMO.Drawing.OfficeImageFit.Stretch, string? alternativeText = null) -> OfficeIMO.Pdf.PdfFooterBuilder!
+OfficeIMO.Pdf.PdfFooterBuilder.Offset(OfficeIMO.OfficeLength offset) -> OfficeIMO.Pdf.PdfFooterBuilder!
+*REMOVED*OfficeIMO.Pdf.PdfFooterBuilder.Offset(OfficeIMO.OfficeLength points) -> OfficeIMO.Pdf.PdfFooterBuilder!
 OfficeIMO.Pdf.PdfFooterBuilder.Shape(OfficeIMO.Drawing.OfficeShape! shape, OfficeIMO.OfficeAlignment align = OfficeIMO.OfficeAlignment.Left) -> OfficeIMO.Pdf.PdfFooterBuilder!
 *REMOVED*OfficeIMO.Pdf.PdfFooterBuilder.Shape(OfficeIMO.Drawing.OfficeShape! shape, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left) -> OfficeIMO.Pdf.PdfFooterBuilder!
+OfficeIMO.Pdf.PdfFooterBuilder.StandardFont(OfficeIMO.Pdf.PdfStandardFont font) -> OfficeIMO.Pdf.PdfFooterBuilder!
+*REMOVED*OfficeIMO.Pdf.PdfHeaderBuilder.AlignCenter() -> OfficeIMO.Pdf.PdfHeaderBuilder!
+*REMOVED*OfficeIMO.Pdf.PdfHeaderBuilder.AlignLeft() -> OfficeIMO.Pdf.PdfHeaderBuilder!
+*REMOVED*OfficeIMO.Pdf.PdfHeaderBuilder.AlignRight() -> OfficeIMO.Pdf.PdfHeaderBuilder!
+OfficeIMO.Pdf.PdfHeaderBuilder.Alignment(OfficeIMO.OfficeAlignment alignment) -> OfficeIMO.Pdf.PdfHeaderBuilder!
 OfficeIMO.Pdf.PdfHeaderBuilder.EvenPagesImage(byte[]! data, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeAlignment align = OfficeIMO.OfficeAlignment.Left, OfficeIMO.Drawing.OfficeImageFit fit = OfficeIMO.Drawing.OfficeImageFit.Stretch, string? alternativeText = null) -> OfficeIMO.Pdf.PdfHeaderBuilder!
 *REMOVED*OfficeIMO.Pdf.PdfHeaderBuilder.EvenPagesImage(byte[]! data, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Drawing.OfficeImageFit fit = OfficeIMO.Drawing.OfficeImageFit.Stretch, string? alternativeText = null) -> OfficeIMO.Pdf.PdfHeaderBuilder!
 OfficeIMO.Pdf.PdfHeaderBuilder.EvenPagesShape(OfficeIMO.Drawing.OfficeShape! shape, OfficeIMO.OfficeAlignment align = OfficeIMO.OfficeAlignment.Left) -> OfficeIMO.Pdf.PdfHeaderBuilder!
@@ -208,10 +290,39 @@ OfficeIMO.Pdf.PdfHeaderBuilder.FirstPageImage(byte[]! data, OfficeIMO.OfficeLeng
 *REMOVED*OfficeIMO.Pdf.PdfHeaderBuilder.FirstPageImage(byte[]! data, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Drawing.OfficeImageFit fit = OfficeIMO.Drawing.OfficeImageFit.Stretch, string? alternativeText = null) -> OfficeIMO.Pdf.PdfHeaderBuilder!
 OfficeIMO.Pdf.PdfHeaderBuilder.FirstPageShape(OfficeIMO.Drawing.OfficeShape! shape, OfficeIMO.OfficeAlignment align = OfficeIMO.OfficeAlignment.Left) -> OfficeIMO.Pdf.PdfHeaderBuilder!
 *REMOVED*OfficeIMO.Pdf.PdfHeaderBuilder.FirstPageShape(OfficeIMO.Drawing.OfficeShape! shape, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left) -> OfficeIMO.Pdf.PdfHeaderBuilder!
+*REMOVED*OfficeIMO.Pdf.PdfHeaderBuilder.Font(OfficeIMO.Pdf.PdfStandardFont font) -> OfficeIMO.Pdf.PdfHeaderBuilder!
 OfficeIMO.Pdf.PdfHeaderBuilder.Image(byte[]! data, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeAlignment align = OfficeIMO.OfficeAlignment.Left, OfficeIMO.Drawing.OfficeImageFit fit = OfficeIMO.Drawing.OfficeImageFit.Stretch, string? alternativeText = null) -> OfficeIMO.Pdf.PdfHeaderBuilder!
 *REMOVED*OfficeIMO.Pdf.PdfHeaderBuilder.Image(byte[]! data, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Drawing.OfficeImageFit fit = OfficeIMO.Drawing.OfficeImageFit.Stretch, string? alternativeText = null) -> OfficeIMO.Pdf.PdfHeaderBuilder!
+OfficeIMO.Pdf.PdfHeaderBuilder.Offset(OfficeIMO.OfficeLength offset) -> OfficeIMO.Pdf.PdfHeaderBuilder!
+*REMOVED*OfficeIMO.Pdf.PdfHeaderBuilder.Offset(OfficeIMO.OfficeLength points) -> OfficeIMO.Pdf.PdfHeaderBuilder!
 OfficeIMO.Pdf.PdfHeaderBuilder.Shape(OfficeIMO.Drawing.OfficeShape! shape, OfficeIMO.OfficeAlignment align = OfficeIMO.OfficeAlignment.Left) -> OfficeIMO.Pdf.PdfHeaderBuilder!
 *REMOVED*OfficeIMO.Pdf.PdfHeaderBuilder.Shape(OfficeIMO.Drawing.OfficeShape! shape, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left) -> OfficeIMO.Pdf.PdfHeaderBuilder!
+OfficeIMO.Pdf.PdfHeaderBuilder.StandardFont(OfficeIMO.Pdf.PdfStandardFont font) -> OfficeIMO.Pdf.PdfHeaderBuilder!
+OfficeIMO.Pdf.PdfHeaderFooter
+OfficeIMO.Pdf.PdfHeaderFooter.AddImage(OfficeIMO.Pdf.PdfHeaderFooterImage! image) -> void
+OfficeIMO.Pdf.PdfHeaderFooter.AddShape(OfficeIMO.Pdf.PdfHeaderFooterShape! shape) -> void
+OfficeIMO.Pdf.PdfHeaderFooter.Alignment.get -> OfficeIMO.OfficeAlignment
+OfficeIMO.Pdf.PdfHeaderFooter.Alignment.set -> void
+OfficeIMO.Pdf.PdfHeaderFooter.Color.get -> OfficeIMO.OfficeColor?
+OfficeIMO.Pdf.PdfHeaderFooter.Color.set -> void
+OfficeIMO.Pdf.PdfHeaderFooter.FontFamily.get -> string?
+OfficeIMO.Pdf.PdfHeaderFooter.FontFamily.set -> void
+OfficeIMO.Pdf.PdfHeaderFooter.FontSize.get -> OfficeIMO.OfficeLength
+OfficeIMO.Pdf.PdfHeaderFooter.FontSize.set -> void
+OfficeIMO.Pdf.PdfHeaderFooter.Format.get -> string!
+OfficeIMO.Pdf.PdfHeaderFooter.Format.set -> void
+OfficeIMO.Pdf.PdfHeaderFooter.Offset.get -> OfficeIMO.OfficeLength
+OfficeIMO.Pdf.PdfHeaderFooter.Offset.set -> void
+OfficeIMO.Pdf.PdfHeaderFooter.Segments.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfFooterSegment!>?
+OfficeIMO.Pdf.PdfHeaderFooter.Segments.set -> void
+OfficeIMO.Pdf.PdfHeaderFooter.SetStyledZones(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfFooterSegment!>? left, System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfFooterSegment!>? center, System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfFooterSegment!>? right) -> void
+OfficeIMO.Pdf.PdfHeaderFooter.SetText(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfFooterSegment!>! segments) -> void
+OfficeIMO.Pdf.PdfHeaderFooter.SetText(string! format) -> void
+OfficeIMO.Pdf.PdfHeaderFooter.SetZones(string? left, string? center, string? right) -> void
+OfficeIMO.Pdf.PdfHeaderFooter.Show.get -> bool
+OfficeIMO.Pdf.PdfHeaderFooter.Show.set -> void
+OfficeIMO.Pdf.PdfHeaderFooter.StandardFont.get -> OfficeIMO.Pdf.PdfStandardFont
+OfficeIMO.Pdf.PdfHeaderFooter.StandardFont.set -> void
 OfficeIMO.Pdf.PdfHeaderFooterImage.Align.get -> OfficeIMO.OfficeAlignment
 *REMOVED*OfficeIMO.Pdf.PdfHeaderFooterImage.Align.get -> OfficeIMO.Pdf.PdfAlign
 OfficeIMO.Pdf.PdfHeaderFooterImage.PdfHeaderFooterImage(byte[]! data, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeAlignment align = OfficeIMO.OfficeAlignment.Left, OfficeIMO.Drawing.OfficeImageFit fit = OfficeIMO.Drawing.OfficeImageFit.Stretch, string? alternativeText = null) -> void
@@ -270,6 +381,7 @@ OfficeIMO.Pdf.PdfLogicalHeading.Lines.get -> System.Collections.Generic.IReadOnl
 *REMOVED*OfficeIMO.Pdf.PdfMetadata.TrappingStatus.set -> void
 OfficeIMO.Pdf.PdfPageBackgroundShape.FirstPageOnly.get -> bool
 OfficeIMO.Pdf.PdfPageBackgroundShape.FirstPageOnly.set -> void
+OfficeIMO.Pdf.PdfPageBuilder.PageSetup.get -> OfficeIMO.Pdf.PdfPageSetup!
 OfficeIMO.Pdf.PdfPageCanvas.FreeTextAnnotation(string! contents, OfficeIMO.OfficeLength x, OfficeIMO.OfficeLength y, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeLength? fontSize = null, OfficeIMO.OfficeColor? textColor = null, OfficeIMO.OfficeColor? borderColor = null, OfficeIMO.OfficeLength? borderWidth = null, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeAlignment textAlign = OfficeIMO.OfficeAlignment.Left, OfficeIMO.OfficeLength? padding = null, OfficeIMO.OfficeLength? lineHeight = null) -> OfficeIMO.Pdf.PdfPageCanvas!
 *REMOVED*OfficeIMO.Pdf.PdfPageCanvas.FreeTextAnnotation(string! contents, OfficeIMO.OfficeLength x, OfficeIMO.OfficeLength y, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeLength? fontSize = null, OfficeIMO.OfficeColor? textColor = null, OfficeIMO.OfficeColor? borderColor = null, OfficeIMO.OfficeLength? borderWidth = null, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.Pdf.PdfAlign textAlign = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.OfficeLength? padding = null, OfficeIMO.OfficeLength? lineHeight = null) -> OfficeIMO.Pdf.PdfPageCanvas!
 OfficeIMO.Pdf.PdfPageCanvas.Text(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTextRun!>! runs, OfficeIMO.OfficeLength x, OfficeIMO.OfficeLength y, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeColor? defaultColor = null, OfficeIMO.OfficeAlignment align = OfficeIMO.OfficeAlignment.Left, OfficeIMO.OfficeLength? fontSize = null, OfficeIMO.OfficeLength? lineHeight = null) -> OfficeIMO.Pdf.PdfPageCanvas!
@@ -280,6 +392,37 @@ OfficeIMO.Pdf.PdfPageCanvas.Text(string! text, OfficeIMO.OfficeLength x, OfficeI
 *REMOVED*OfficeIMO.Pdf.PdfPageCanvas.Text(string! text, OfficeIMO.OfficeLength x, OfficeIMO.OfficeLength y, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeLength? fontSize = null, OfficeIMO.OfficeColor? color = null, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfStandardFont? font = null) -> OfficeIMO.Pdf.PdfPageCanvas!
 OfficeIMO.Pdf.PdfPageOverlayOptions.HorizontalAlignment.get -> OfficeIMO.OfficeAlignment
 *REMOVED*OfficeIMO.Pdf.PdfPageOverlayOptions.HorizontalAlignment.get -> OfficeIMO.Pdf.PdfAlign
+OfficeIMO.Pdf.PdfPageSetup
+OfficeIMO.Pdf.PdfPageSetup.DifferentFirstPage.get -> bool
+OfficeIMO.Pdf.PdfPageSetup.DifferentFirstPage.set -> void
+OfficeIMO.Pdf.PdfPageSetup.DifferentOddAndEvenPages.get -> bool
+OfficeIMO.Pdf.PdfPageSetup.DifferentOddAndEvenPages.set -> void
+OfficeIMO.Pdf.PdfPageSetup.EvenPageFooter.get -> OfficeIMO.Pdf.PdfHeaderFooter!
+OfficeIMO.Pdf.PdfPageSetup.EvenPageHeader.get -> OfficeIMO.Pdf.PdfHeaderFooter!
+OfficeIMO.Pdf.PdfPageSetup.FirstPageFooter.get -> OfficeIMO.Pdf.PdfHeaderFooter!
+OfficeIMO.Pdf.PdfPageSetup.FirstPageHeader.get -> OfficeIMO.Pdf.PdfHeaderFooter!
+OfficeIMO.Pdf.PdfPageSetup.Footer.get -> OfficeIMO.Pdf.PdfHeaderFooter!
+OfficeIMO.Pdf.PdfPageSetup.Header.get -> OfficeIMO.Pdf.PdfHeaderFooter!
+OfficeIMO.Pdf.PdfPageSetup.Margins.get -> OfficeIMO.Pdf.PdfPageSetupMargins!
+OfficeIMO.Pdf.PdfPageSetup.MirrorMargins.get -> bool
+OfficeIMO.Pdf.PdfPageSetup.MirrorMargins.set -> void
+OfficeIMO.Pdf.PdfPageSetup.Orientation.get -> OfficeIMO.OfficePageOrientation
+OfficeIMO.Pdf.PdfPageSetup.Orientation.set -> void
+OfficeIMO.Pdf.PdfPageSetup.Size.get -> OfficeIMO.Pdf.PdfPageSize
+OfficeIMO.Pdf.PdfPageSetup.Size.set -> void
+OfficeIMO.Pdf.PdfPageSetup.UseVisiblePageNumberParity.get -> bool
+OfficeIMO.Pdf.PdfPageSetup.UseVisiblePageNumberParity.set -> void
+OfficeIMO.Pdf.PdfPageSetupMargins
+OfficeIMO.Pdf.PdfPageSetupMargins.Bottom.get -> OfficeIMO.OfficeLength
+OfficeIMO.Pdf.PdfPageSetupMargins.Bottom.set -> void
+OfficeIMO.Pdf.PdfPageSetupMargins.Left.get -> OfficeIMO.OfficeLength
+OfficeIMO.Pdf.PdfPageSetupMargins.Left.set -> void
+OfficeIMO.Pdf.PdfPageSetupMargins.Right.get -> OfficeIMO.OfficeLength
+OfficeIMO.Pdf.PdfPageSetupMargins.Right.set -> void
+OfficeIMO.Pdf.PdfPageSetupMargins.Set(OfficeIMO.Pdf.PdfPageMargins margins) -> void
+OfficeIMO.Pdf.PdfPageSetupMargins.ToPdfPageMargins() -> OfficeIMO.Pdf.PdfPageMargins
+OfficeIMO.Pdf.PdfPageSetupMargins.Top.get -> OfficeIMO.OfficeLength
+OfficeIMO.Pdf.PdfPageSetupMargins.Top.set -> void
 OfficeIMO.Pdf.PdfPanelStyle.Align.get -> OfficeIMO.OfficeAlignment
 *REMOVED*OfficeIMO.Pdf.PdfPanelStyle.Align.get -> OfficeIMO.Pdf.PdfAlign
 OfficeIMO.Pdf.PdfPanelStyle.LeftInset.get -> OfficeIMO.OfficeLength

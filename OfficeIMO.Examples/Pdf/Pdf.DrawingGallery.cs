@@ -16,11 +16,10 @@ namespace OfficeIMO.Examples.Pdf {
                     p.AddText("gradients").SetBold();
                     p.AddText(", shadows, dashed strokes, line caps and joins, clipping paths, transforms, grouped scenes, and freeform paths.");
                 })), new PdfCreateOptions {
-                    HeaderFormat = "OfficeIMO.Drawing shared vector gate",
-                    HeaderAlign = OfficeAlignment.Left,
-                    ShowHeader = true,
-                    FooterAlign = OfficeAlignment.Right,
-                    ShowPageNumbers = true
+                    PageSetup = {
+                        Header = { Format = "OfficeIMO.Drawing shared vector gate", Alignment = OfficeAlignment.Left, Show = true },
+                        Footer = { Alignment = OfficeAlignment.Right, Show = true }
+                    }
                 })
                 .Meta(title: "OfficeIMO.Pdf Drawing Gallery", author: "OfficeIMO")
                 .Save(path);

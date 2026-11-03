@@ -238,15 +238,13 @@ public partial class Word {
         byte[] lowOffsetBytes = document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false,
             PdfOptions = new PdfCore.PdfCreateOptions {
-                HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(6),
-                FooterOffsetY = global::OfficeIMO.OfficeLength.Points(8)
+                PageSetup = { Header = { Offset = global::OfficeIMO.OfficeLength.Points(6) }, Footer = { Offset = global::OfficeIMO.OfficeLength.Points(8) } }
             }
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         byte[] highOffsetBytes = document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false,
             PdfOptions = new PdfCore.PdfCreateOptions {
-                HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(30),
-                FooterOffsetY = global::OfficeIMO.OfficeLength.Points(28)
+                PageSetup = { Header = { Offset = global::OfficeIMO.OfficeLength.Points(30) }, Footer = { Offset = global::OfficeIMO.OfficeLength.Points(28) } }
             }
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 

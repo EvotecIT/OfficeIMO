@@ -42,7 +42,7 @@ public partial class PdfPageFootnoteTests {
     public void DecoratedNoteFragmentsReserveTheirActualPaddingAndPreserveTheCapturedStyle(
         bool repeat, double inset, int pages, int markerPage) {
         PdfCreateOptions options = Options();
-        options.PageHeight = global::OfficeIMO.OfficeLength.Points(200);
+        options.PageSetup.Size = new PdfPageSize(options.PageSetup.Size.Width, global::OfficeIMO.OfficeLength.Points(200));
         var panelStyle = new PdfPanelStyle {
             Background = global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0), BorderColor = global::OfficeIMO.OfficeColor.Black,
             PaddingX = global::OfficeIMO.OfficeLength.Points(6), PaddingY = global::OfficeIMO.OfficeLength.Points(4), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),

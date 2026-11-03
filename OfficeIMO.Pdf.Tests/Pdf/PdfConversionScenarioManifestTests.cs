@@ -251,12 +251,10 @@ public sealed class PdfConversionScenarioManifestTests {
             var pdfOptions = new PdfCore.PdfCreateOptions {
                     CompressContentStreams = false,
                     CompressEmbeddedFonts = false,
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(520),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(420),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
+                    PageSetup = {
+                        Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(520), global::OfficeIMO.OfficeLength.Points(420)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                    }
                 }
                 .UseRenderingProfile(renderingProfile);
             pdf = PdfCore.PdfDocument.Create(pdfOptions)
@@ -2264,12 +2262,10 @@ public sealed class PdfConversionScenarioManifestTests {
     private static byte[] CreateLogicalProofPdf() {
         return PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 CreateOutlineFromHeadings = true,
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(460),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(460)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Meta(title: "Logical PDF sample", author: "OfficeIMO")
@@ -2518,12 +2514,10 @@ public sealed class PdfConversionScenarioManifestTests {
 
     private static byte[] CreateLogicalDiagnosticsPdf() {
         return PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = OfficeLength.Points(460),
-                PageHeight = OfficeLength.Points(380),
-                MarginLeft = OfficeLength.Points(36),
-                MarginRight = OfficeLength.Points(36),
-                MarginTop = OfficeLength.Points(36),
-                MarginBottom = OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(OfficeLength.Points(460), OfficeLength.Points(380)),
+                    Margins = { Left = OfficeLength.Points(36), Right = OfficeLength.Points(36), Top = OfficeLength.Points(36), Bottom = OfficeLength.Points(36) }
+                },
                 DefaultFontSize = OfficeLength.Points(10),
                 // Built-in heading metrics keep this reading fixture independent of the document theme.
                 DefaultHeadingStyles = new PdfCore.PdfHeadingStyles()
@@ -2549,12 +2543,10 @@ public sealed class PdfConversionScenarioManifestTests {
 
     private static byte[] CreateReaderOcrHandoffCorpusPdf() {
         return PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(300),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(24),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(24)
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(24), Right = global::OfficeIMO.OfficeLength.Points(24), Top = global::OfficeIMO.OfficeLength.Points(24), Bottom = global::OfficeIMO.OfficeLength.Points(24) }
+                }
             })
             .Image(PdfPngTestImages.CreateRgbPng(3, 2), 180, 120, altText: "Scanned statement page")
             .ToBytes();

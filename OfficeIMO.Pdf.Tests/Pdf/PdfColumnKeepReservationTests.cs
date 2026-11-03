@@ -16,8 +16,10 @@ public sealed class PdfColumnKeepReservationTests {
     [InlineData("panel", false, false)]
     public void Columns_BalancedKeepNextLeadersRetainTheirTerminalGroupWithoutEmptyPageRetries(
         string kind, bool interveningBookmark, bool balanceKeptLines) {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(400),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40), MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(500), global::OfficeIMO.OfficeLength.Points(400)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(40), Right = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Bottom = global::OfficeIMO.OfficeLength.Points(40) }
+        }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
             MaxGeneratedPages = 4 }).Columns(content => {
                 if (kind == "heading") content.H1("Heading001", style: new PdfHeadingStyle {
                     FontSize = global::OfficeIMO.OfficeLength.Points(12), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),

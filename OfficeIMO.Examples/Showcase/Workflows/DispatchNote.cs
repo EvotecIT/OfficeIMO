@@ -29,7 +29,7 @@ internal static class DispatchNote {
                 .RelativeColumn(column => column.Spacer(OfficeLength.Points(28)).HR(OfficeLength.Points(0.75), muted, OfficeLength.Points(0), OfficeLength.Points(3)).AddParagraph(p => p.AddText("Received by"), color: muted), 2)
                 .RelativeColumn(column => column.Spacer(OfficeLength.Points(28)).HR(OfficeLength.Points(0.75), muted, OfficeLength.Points(0), OfficeLength.Points(3)).AddParagraph(p => p.AddText("Date"), color: muted), 1))
             .AddParagraph(p => p.AddText("Sample logistics document. Quantities and references are demonstration data.").SetFontSize(OfficeLength.Points(9)), color: muted)),
-            new PdfCreateOptions { ShowPageNumbers = true })
+            new PdfCreateOptions { PageSetup = { Footer = { Show = true } } })
             .Meta(title: "Dispatch note DN-2026-0418", author: "OfficeIMO")
             .Save(Path.Combine(folder, "example.pdf"));
     }

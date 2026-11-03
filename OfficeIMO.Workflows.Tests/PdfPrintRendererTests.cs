@@ -12,7 +12,10 @@ public sealed class PdfPrintRendererTests {
         background.FillColor = OfficeColor.Red; background.StrokeWidth = 0;
         stripe.FillColor = OfficeColor.Blue; stripe.StrokeWidth = 0;
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(100), PageHeight = global::OfficeIMO.OfficeLength.Points(100), MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(0), Right = global::OfficeIMO.OfficeLength.Points(0), Top = global::OfficeIMO.OfficeLength.Points(0), Bottom = global::OfficeIMO.OfficeLength.Points(0) }
+            }
         }).Canvas(canvas => canvas.Shape(background, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0)).Shape(stripe, global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(0)));
         PdfPreparedPrintDocument prepared = PdfPrintRenderer.Prepare(document, new() {
             InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(150),OfficeIMO.OfficeLength.Points(180)), Margin = 10,
@@ -34,7 +37,10 @@ public sealed class PdfPrintRendererTests {
         marker.FillColor = OfficeColor.Red;
         marker.StrokeWidth = 0;
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(100), PageHeight = global::OfficeIMO.OfficeLength.Points(100), MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(0), Right = global::OfficeIMO.OfficeLength.Points(0), Top = global::OfficeIMO.OfficeLength.Points(0), Bottom = global::OfficeIMO.OfficeLength.Points(0) }
+            }
         }).Canvas(canvas => canvas.Shape(marker, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0)));
         byte[] source = document.ToBytes();
         var request = new PdfPrintPlanRequest {
@@ -63,7 +69,10 @@ public sealed class PdfPrintRendererTests {
         marker.FillGradient = OfficeLinearGradient.Horizontal(OfficeColor.Black, OfficeColor.FromRgb(255, 128, 64));
         marker.StrokeWidth = 0;
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(200), PageHeight = global::OfficeIMO.OfficeLength.Points(300), MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(0), Right = global::OfficeIMO.OfficeLength.Points(0), Top = global::OfficeIMO.OfficeLength.Points(0), Bottom = global::OfficeIMO.OfficeLength.Points(0) }
+            }
         }).Canvas(canvas => canvas.Shape(marker, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20)));
         // A multi-channel gradient keeps more than 256 colors after placement, so the
         // encoder cannot replace RGB scanlines with a compact exact palette.
@@ -94,7 +103,10 @@ public sealed class PdfPrintRendererTests {
         stripe.FillColor = OfficeColor.Black;
         stripe.StrokeWidth = 0;
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(72), PageHeight = global::OfficeIMO.OfficeLength.Points(72), MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(72)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(0), Right = global::OfficeIMO.OfficeLength.Points(0), Top = global::OfficeIMO.OfficeLength.Points(0), Bottom = global::OfficeIMO.OfficeLength.Points(0) }
+            }
         })
             .Canvas(canvas => canvas.Shape(stripe, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(0)));
         PdfPreparedPrintDocument prepared = PdfPrintRenderer.Prepare(document,
