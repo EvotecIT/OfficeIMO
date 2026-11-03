@@ -75,23 +75,11 @@ internal static class PublisherNativeCreationProjection {
 
     /// <summary>Projects the existing text-only two-centered-master or centered/left/right-master profiles.</summary>
     internal static PublisherNativeCreationPlan MultipleMasters(PublisherDocument document) {
-        PublisherPage[] masters = document.MasterPages.ToArray();
-        bool paired = masters.Length == 3 && masters[0].MasterSide == PublisherMasterPageSide.Single
-            && masters[1].MasterSide == PublisherMasterPageSide.Left && masters[2].MasterSide == PublisherMasterPageSide.Right
-            && masters[1].Name == masters[2].Name;
-        bool centered = masters.Length == 2 && masters.All(master => master.MasterSide == PublisherMasterPageSide.Single);
-        if (document.HasNativeSource || !paired && !centered || document.Pages.Count is < 1 or > 16
-            || document.Pages.Concat(masters).Any(page => page.Width != 612 || page.Height != 792))
-            throw new NotSupportedException("The master projection requires source-free Letter pages and the qualified master topology.");
-        var indices = masters.Select((master, index) => (master.Id, index)).ToDictionary(item => item.Id, item => item.index);
-        int?[] assignments = document.Pages.Select(page => page.MasterPageId is { } id && indices.TryGetValue(id, out int index)
-            ? (int?)index : throw new NotSupportedException("The master specimen requires a defined master on every physical page.")).ToArray();
+        PublisherPage[] masters = MultipleMasterPages(document);
         var objects = new List<PublisherNativeCreationObject>();
         for (int index = 0; index < masters.Length; index++) AddPage(masters[index], index, true);
         for (int index = 0; index < document.Pages.Count; index++) AddPage(document.Pages[index], index, false);
-        return new PublisherNativeCreationPlan(612 * 12700, 792 * 12700, objects, document.Pages.Count,
-            masters.Select((master, index) => new PublisherNativeCreationMaster(index == 0 ? "A" : paired ? "P" : "B",
-                master.Name, master.MasterSide!.Value)).ToArray(), assignments);
+        return MultipleMasterSpecification(document, masters, objects);
 
         void AddPage(PublisherPage page, int index, bool onMaster) {
             if (page.Tables.Count != 0 || page.Pictures.Count != 0 || page.Shapes.Count != 0)
@@ -111,19 +99,21 @@ internal static class PublisherNativeCreationProjection {
     internal static PublisherNativeCreationPlan SingleMasterContent(PublisherDocument document, bool includePictureNames = true) =>
         Content(document, includePictureNames, composeProfiles: false);
 
-    /// <summary>Combines ordinary master artwork with physical-page linked/layout text and one qualified table.</summary>
+    /// <summary>Combines ordinary artwork on the qualified master topologies with physical-page linked/layout text and one qualified table.</summary>
     internal static PublisherNativeCreationPlan ComposedContent(PublisherDocument document) =>
         Content(document, includePictureNames: true, composeProfiles: true);
 
     private static PublisherNativeCreationPlan Content(PublisherDocument document, bool includePictureNames, bool composeProfiles) {
-        PublisherPage master = SingleMaster(document);
-        if (composeProfiles && (master.Tables.Count != 0 || document.Pages.Sum(page => page.Tables.Count) > 1))
+        PublisherPage[] masters = composeProfiles && document.MasterPages.Count > 1
+            ? MultipleMasterPages(document) : new[] { SingleMaster(document) };
+        if (composeProfiles && (masters.Any(master => master.Tables.Count != 0) || document.Pages.Sum(page => page.Tables.Count) > 1))
             throw new NotSupportedException("The composed specimen supports at most one physical-page table and no master table.");
         var objects = new List<PublisherNativeCreationObject>();
         var stories = new Dictionary<uint, PublisherNativeCreationStory>();
-        AddPage(master, 0, true);
+        for (int index = 0; index < masters.Length; index++) AddPage(masters[index], index, true);
         for (int index = 0; index < document.Pages.Count; index++) AddPage(document.Pages[index], index, false);
-        return SingleMasterSpecification(document, master, objects);
+        return masters.Length == 1 ? SingleMasterSpecification(document, masters[0], objects)
+            : MultipleMasterSpecification(document, masters, objects);
 
         void AddPage(PublisherPage page, int index, bool onMaster) {
             if (!composeProfiles && page.Tables.Count != 0) throw new NotSupportedException("Tables require their separate writer profile.");
@@ -159,7 +149,7 @@ internal static class PublisherNativeCreationProjection {
                 } else if (shapes.TryGetValue(id, out PublisherShape? shape)) {
                     OfficeShape paint = shape.CreateShape();
                     if (paint.Kind != OfficeShapeKind.Rectangle)
-                        throw new NotSupportedException("The single-master artwork specimen requires rectangles.");
+                        throw new NotSupportedException("The master artwork specimen requires rectangles.");
                     objects.Add(new PublisherNativeCreationObject(PublisherNativeCreationObjectKind.Rectangle,
                         new PublisherNativeCreationPlacement(shape.X, shape.Y, shape.Width, shape.Height),
                         PageIndex: index, Paint: paint, OnMaster: onMaster));
@@ -223,6 +213,30 @@ internal static class PublisherNativeCreationProjection {
         if (document.Pages.Any(page => page.MasterPageId != master.Id))
             throw new NotSupportedException("The single-master specimen requires that master on every physical page.");
         return master;
+    }
+
+    /// <summary>Retains the observed two-centered or centered/left/right definitions for both text-only and composed specimens.</summary>
+    private static PublisherPage[] MultipleMasterPages(PublisherDocument document) {
+        PublisherPage[] masters = document.MasterPages.ToArray();
+        bool paired = masters.Length == 3 && masters[0].MasterSide == PublisherMasterPageSide.Single
+            && masters[1].MasterSide == PublisherMasterPageSide.Left && masters[2].MasterSide == PublisherMasterPageSide.Right
+            && masters[1].Name == masters[2].Name;
+        bool centered = masters.Length == 2 && masters.All(master => master.MasterSide == PublisherMasterPageSide.Single);
+        if (document.HasNativeSource || !paired && !centered || document.Pages.Count is < 1 or > 16
+            || document.Pages.Concat(masters).Any(page => page.Width != 612 || page.Height != 792))
+            throw new NotSupportedException("The master projection requires source-free Letter pages and the qualified master topology.");
+        return masters;
+    }
+
+    /// <summary>Registers validated master definitions in model order and requires an explicit assignment on every physical page.</summary>
+    private static PublisherNativeCreationPlan MultipleMasterSpecification(PublisherDocument document, PublisherPage[] masters,
+        IReadOnlyList<PublisherNativeCreationObject> objects) {
+        var indices = masters.Select((master, index) => (master.Id, index)).ToDictionary(item => item.Id, item => item.index);
+        int?[] assignments = document.Pages.Select(page => page.MasterPageId is { } id && indices.TryGetValue(id, out int index)
+            ? (int?)index : throw new NotSupportedException("The master specimen requires a defined master on every physical page.")).ToArray();
+        return new PublisherNativeCreationPlan(612 * 12700, 792 * 12700, objects, document.Pages.Count,
+            masters.Select((master, index) => new PublisherNativeCreationMaster(index == 0 ? "A" : masters.Length == 3 ? "P" : "B",
+                master.Name, master.MasterSide!.Value)).ToArray(), assignments);
     }
 
     private static PublisherNativeCreationPlan SingleMasterSpecification(PublisherDocument document, PublisherPage master,

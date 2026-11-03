@@ -46,7 +46,7 @@ param(
     [switch] $NativeAddClusterTable,
 
     [Parameter(Mandatory)]
-    [ValidateSet('Blank', 'BlankPages', 'TextPages', 'ObjectPages', 'ObjectPagesEdited', 'MixedObjectPages', 'MixedObjectPagesEdited', 'WrapObjectOrderDefaults', 'WrapObjectOrderLayout', 'WrapTextFrameOutside', 'WrapObjectOrderLeft', 'WrapObjectOrderRight', 'WrapObjectOrderLarger', 'WrapObjectOrderLargerLeft', 'WrapObjectOrderLargerTie', 'WrapObjectOrderLargerColumns', 'WrapObjectOrderOutside', 'WrapObjectOrderRectangleOnly', 'WrapObjectOrderPictureOnly', 'WrapObjectOrderSwap', 'WrapObjectOrder', 'WrapObjectOrderReversed', 'WrapObjectOrderNone', 'MixedObjectOrder', 'MixedObjectOrderReversed', 'MasterContent', 'MasterContentEdited', 'LinkedStory', 'LinkedStoryOverflow', 'MultiParagraphCreation', 'MultiParagraphCreationLinked', 'TableCreation', 'TableCreationEdited', 'TableCreationMerged', 'TableCreationMergedEdited', 'TableMergedDecoration', 'TableMergedDecorationEdited', 'TableMergedDecorationText', 'TableMergedDecorationComposed', 'TableMergedFills', 'TableMergedBorders', 'CaptionTypingPreRange', 'CaptionTypingFullRange', 'CaptionTypingExplicit', 'CaptionTypingPreRangeRefilled', 'CaptionTypingFullRangeRefilled', 'CaptionTypingExplicitRefilled', 'TableDecoration', 'TableDecorationEdited', 'TableDecorationText', 'TableBordersOnly', 'TableBordersOnlyText', 'TableFillsOnly', 'TableBordersOnlyCleared', 'TableUtilityPair', 'TableUtilityPairStyled', 'TableUtilityPairBorders', 'TableUtilityPairFills', 'TableUtilityPairComposed', 'TableUtilityPairSingleFill', 'TableUtilityPairTargetComposed', 'TableClusterNear', 'TableClusterNearEdited', 'TableClusterWide', 'TableFillVisibility', 'TableFillVisibilityRestored', 'TableFillVisibilityText', 'TableBorderTopology', 'TableBordersCleared', 'TableBorderTopologyTextFill', 'TableBorderDefaultFill', 'FrameCreation', 'FrameCreationEdited', 'FrameCreationFrench', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped', 'SharedImagePages', 'SharedImagePagesReplacement', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextNonuniformTextReplacements', 'TextMixedRunTextReplacements', 'TextFormattingTopology', 'TextEmptyRefill', 'TextRunSegmentation', 'TextNonuniformEmptyParagraphs', 'TextUniformEmptyParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextVerticalPlacement', 'TextFontMetrics', 'TextFallbackAlignment', 'TextFrameBreaks', 'TextLabelFitting', 'TextHyphenation', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'TableNonuniformParagraphs', 'TableNonuniformTextReplacements', 'TableMixedRunTextReplacements', 'TableFormattingTopology', 'TableEmptyRefill', 'TableRunSegmentation', 'TableNonuniformEmptyParagraphs', 'TableUniformEmptyParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'MultipleMastersEdited', 'TwoPageMasterEdited', 'MultipleMastersReassigned', 'MultipleMastersIgnored', 'TwoPageMasterReassigned', 'TwoPageMasterIgnored', 'PictureOwnership', 'PictureReplacement', 'PictureCropped', 'PictureCropFractions', 'PictureCropFractionsReplacement')]
+    [ValidateSet('Blank', 'BlankPages', 'TextPages', 'ObjectPages', 'ObjectPagesEdited', 'MixedObjectPages', 'MixedObjectPagesEdited', 'WrapObjectOrderDefaults', 'WrapObjectOrderLayout', 'WrapTextFrameOutside', 'WrapObjectOrderLeft', 'WrapObjectOrderRight', 'WrapObjectOrderLarger', 'WrapObjectOrderLargerLeft', 'WrapObjectOrderLargerTie', 'WrapObjectOrderLargerColumns', 'WrapObjectOrderOutside', 'WrapObjectOrderRectangleOnly', 'WrapObjectOrderPictureOnly', 'WrapObjectOrderSwap', 'WrapObjectOrder', 'WrapObjectOrderReversed', 'WrapObjectOrderNone', 'MixedObjectOrder', 'MixedObjectOrderReversed', 'MasterContent', 'MasterContentEdited', 'LinkedStory', 'LinkedStoryOverflow', 'MultiParagraphCreation', 'MultiParagraphCreationLinked', 'TableCreation', 'TableCreationEdited', 'TableCreationMerged', 'TableCreationMergedEdited', 'TableMergedDecoration', 'TableMergedDecorationEdited', 'TableMergedDecorationText', 'TableMergedDecorationComposed', 'TableMergedFills', 'TableMergedBorders', 'CaptionTypingPreRange', 'CaptionTypingFullRange', 'CaptionTypingExplicit', 'CaptionTypingPreRangeRefilled', 'CaptionTypingFullRangeRefilled', 'CaptionTypingExplicitRefilled', 'TableDecoration', 'TableDecorationEdited', 'TableDecorationText', 'TableBordersOnly', 'TableBordersOnlyText', 'TableFillsOnly', 'TableBordersOnlyCleared', 'TableUtilityPair', 'TableUtilityPairStyled', 'TableUtilityPairBorders', 'TableUtilityPairFills', 'TableUtilityPairComposed', 'TableUtilityPairSingleFill', 'TableUtilityPairTargetComposed', 'TableClusterNear', 'TableClusterNearEdited', 'TableClusterWide', 'TableFillVisibility', 'TableFillVisibilityRestored', 'TableFillVisibilityText', 'TableBorderTopology', 'TableBordersCleared', 'TableBorderTopologyTextFill', 'TableBorderDefaultFill', 'FrameCreation', 'FrameCreationEdited', 'FrameCreationFrench', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped', 'SharedImagePages', 'SharedImagePagesReplacement', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextNonuniformTextReplacements', 'TextMixedRunTextReplacements', 'TextFormattingTopology', 'TextEmptyRefill', 'TextRunSegmentation', 'TextNonuniformEmptyParagraphs', 'TextUniformEmptyParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextVerticalPlacement', 'TextFontMetrics', 'TextFallbackAlignment', 'TextFrameBreaks', 'TextLabelFitting', 'TextHyphenation', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'TableNonuniformParagraphs', 'TableNonuniformTextReplacements', 'TableMixedRunTextReplacements', 'TableFormattingTopology', 'TableEmptyRefill', 'TableRunSegmentation', 'TableNonuniformEmptyParagraphs', 'TableUniformEmptyParagraphs', 'Brochure', 'PairedBrochure', 'MultipleMasters', 'TwoPageMaster', 'MultipleMastersEdited', 'TwoPageMasterEdited', 'MultipleMastersReassigned', 'MultipleMastersIgnored', 'TwoPageMasterReassigned', 'TwoPageMasterIgnored', 'PictureOwnership', 'PictureReplacement', 'PictureCropped', 'PictureCropFractions', 'PictureCropFractionsReplacement')]
     [string] $Case,
 
     [Parameter(Mandatory)]
@@ -104,7 +104,7 @@ if ($Operation -eq 'Validate') {
     . (Join-Path $PSScriptRoot 'Get-NativeValidationArtifactNames.ps1')
     $reservedArtifacts = Get-NativeValidationArtifactNames -Stage $Stage |
         ForEach-Object { Join-Path $output $_ }
-} elseif ($Case -in @('WrapObjectOrderDefaults', 'WrapObjectOrderLayout', 'WrapTextFrameOutside', 'WrapObjectOrderLeft', 'WrapObjectOrderRight', 'WrapObjectOrderLarger', 'WrapObjectOrderLargerLeft', 'WrapObjectOrderLargerTie', 'WrapObjectOrderLargerColumns', 'WrapObjectOrderOutside', 'WrapObjectOrderRectangleOnly', 'WrapObjectOrderPictureOnly', 'WrapObjectOrderSwap', 'WrapObjectOrder', 'WrapObjectOrderReversed', 'WrapObjectOrderNone', 'Image', 'ObjectPages', 'ObjectPagesEdited', 'MixedObjectPages', 'MixedObjectPagesEdited', 'MixedObjectOrder', 'MixedObjectOrderReversed', 'MasterContent', 'MasterContentEdited', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped', 'SharedImagePages', 'SharedImagePagesReplacement', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'PictureOwnership', 'PictureReplacement', 'PictureCropped', 'PictureCropFractions', 'PictureCropFractionsReplacement')) {
+} elseif ($Case -in @('WrapObjectOrderDefaults', 'WrapObjectOrderLayout', 'WrapTextFrameOutside', 'WrapObjectOrderLeft', 'WrapObjectOrderRight', 'WrapObjectOrderLarger', 'WrapObjectOrderLargerLeft', 'WrapObjectOrderLargerTie', 'WrapObjectOrderLargerColumns', 'WrapObjectOrderOutside', 'WrapObjectOrderRectangleOnly', 'WrapObjectOrderPictureOnly', 'WrapObjectOrderSwap', 'WrapObjectOrder', 'WrapObjectOrderReversed', 'WrapObjectOrderNone', 'Image', 'ObjectPages', 'ObjectPagesEdited', 'MixedObjectPages', 'MixedObjectPagesEdited', 'MixedObjectOrder', 'MixedObjectOrderReversed', 'MasterContent', 'MasterContentEdited', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped', 'SharedImagePages', 'SharedImagePagesReplacement', 'Newsletter', 'PairedBrochure', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'PictureOwnership', 'PictureReplacement', 'PictureCropped', 'PictureCropFractions', 'PictureCropFractionsReplacement')) {
     $reservedArtifacts += Join-Path $output ($stem + '.png')
     if ($Case -in @('MasterContentEdited', 'PictureReplacement', 'PictureCropFractionsReplacement', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped', 'SharedImagePages', 'SharedImagePagesReplacement')) {
         $reservedArtifacts += Join-Path $output ($stem + '-replacement.png')
@@ -170,6 +170,7 @@ $multiParagraphObservations = $null
 . (Join-Path $PSScriptRoot 'Add-NativeMasterContentControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeLinkedStoryControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeMultiParagraphControl.ps1')
+. (Join-Path $PSScriptRoot 'Add-NativePairedCompositionControl.ps1')
 . (Join-Path $PSScriptRoot 'Get-NativeLinkedStoryEditState.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeTableCreationControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeTableDecorationControl.ps1')
@@ -829,6 +830,17 @@ try {
             $layout = Add-NativeComparisonLayout -Case $Case -Document $document -FirstPage $page
             $pageCount = $layout.pages
         }
+        'PairedBrochure' {
+            $picturePath = Join-Path $output ($stem + '.png')
+            $layout = Add-NativePairedCompositionControl -Document $document -FirstPage $page -PicturePath $picturePath
+            $multiParagraphObservations = $layout.leadStoryObservations
+            $pageCount = $layout.pages
+            Set-NativePhase 'PairedBrochure-AssertMasterOwnershipAfterAuthoring'
+            $layout.controlContract.masterOwnershipObservations.Add([pscustomobject]@{
+                stage = 'AfterAuthoring'
+                observation = Assert-NativePairedCompositionMasterOwnership -Document $document
+            })
+        }
         { $_ -in @('MasterContent', 'MasterContentEdited') } {
             $picturePath = Join-Path $output ($stem + '.png')
             $replacementPath = Join-Path $output ($stem + '-replacement.png')
@@ -909,6 +921,13 @@ try {
     Set-NativePhase 'SaveCorpusCase'
     # 1 is pbFilePublication; exclude task output from recent files.
     $document.SaveAs($publication, 1, $false)
+    if ($Case -eq 'PairedBrochure') {
+        Set-NativePhase 'PairedBrochure-AssertMasterOwnershipAfterSave'
+        $layout.controlContract.masterOwnershipObservations.Add([pscustomobject]@{
+            stage = 'AfterSave'
+            observation = Assert-NativePairedCompositionMasterOwnership -Document $document
+        })
+    }
     if ($null -ne $captionRangeObservations) {
         Set-NativePhase 'ObserveCaptionAfterSave'
         $captionShapes = $page.Shapes
@@ -978,6 +997,9 @@ try {
     if ($null -ne $layout) {
         $contract.expected.masterAssignments = $layout.masterAssignments
         $contract.expected.panelWidthPoints = $layout.panelWidthPoints
+    }
+    if ($Case -eq 'PairedBrochure') {
+        $contract.pairedComposition = $layout.controlContract
     }
     if ($Case -in @('PictureOwnership', 'PictureReplacement', 'PictureCropped', 'PictureCropFractions', 'PictureCropFractionsReplacement')) {
         $contract.nativePictureObservations = $layout.pictureObservations

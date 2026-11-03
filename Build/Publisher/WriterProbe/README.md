@@ -515,11 +515,21 @@ saving, preserving false separately from the omitted default. These edited varia
 have encoded-artifact reload evidence; native editing, saving and appearance
 remain separate qualification requirements.
 
-`ComposedContent` combines the ordinary master/object profile with physical-page
-linked and unlinked layout frames and at most one qualified table. It caches
+`ComposedContent` combines master text, rectangles and pictures with physical-page
+linked and unlinked layout frames and at most one qualified table. It accepts one
+centered master, two centered masters, or a centered master followed by a named
+left/right pair. Every physical page has an explicit assignment to a defined
+master; all pages are Letter size, with one to sixteen physical pages. It caches
 linked stories by model identity and uses the existing graph, Quill and OfficeArt
-encoders for all objects. Master tables, multiple tables, linked columns/insets,
+encoders for all objects, preserving each master/page's mixed object order.
+Master tables, multiple tables, three centered masters, linked columns/insets,
 wrap references and broader table-grid composition remain unqualified.
+
+All creation objects explicitly encode disabled wrapping in Contents field 4
+(type `0x10`, value `0x100`), matching the public authoring model. Omitting that
+field means Square wrapping in the qualified native reader. This applies to text
+frames, rectangles, pictures and tables; imported publications retain their
+existing wrap interpretation and edit safeguards.
 The newsletter and a later edited four-page variant have normal file-association
 opening evidence in Microsoft Publisher before any native resave, without recovery
 consent. All three initial pages and all four edited pages were inspected.
@@ -624,17 +634,15 @@ page retains its order, page number, side and empty master relationship before
 and after resave. All 12 initial/resaved page renders match the independent
 native-written `BlankPages` reference at 144 dpi; the native resaves also reopen
 through OfficeIMO. Counts 1 and 16 have managed/structural checks in this record.
-All six original one-page creation cases remain byte-identical. This evidence
-does not qualify objects on later pages, additional masters or repair-free opening.
+This evidence does not qualify objects on later pages, additional masters or
+repair-free opening.
 
 The `textPageCreation` section separately qualifies the closed first/final-page
 text specimen at two and three pages. All ten initial/resaved page renders match
 the independently authored `TextPages` reference at 144 dpi, including the empty
 middle page. Visible non-whitespace character positions and fonts match; the
 producer's implicit CR typing is separate from the generated CR that follows its
-last body run. Sixteen pages has managed/structural coverage. The six original
-one-page specimens and three qualified multiple-blank-page specimens remain
-byte-identical.
+last body run. Sixteen pages has managed/structural coverage.
 
 The `captionTypingDefaults` record separately qualifies the [existing final-run
 CR policy, source typing preservation and language limits](../../../OfficeIMO.Publisher/SUPPORT.md#authored-caption-cr-typing).
@@ -710,12 +718,40 @@ definitions atomically; the probe derives owner indices and direct assignments
 from the public pages. The native graph generates each master's geometry record
 and uses its side registration for OfficeArt anchors. Master and page text-frame
 edits save from generated, native-resaved and native-authored sources and match
-independent `MultipleMastersEdited` and `TwoPageMasterEdited` controls. All 28
-earlier source-free profiles remain byte-identical. Managed save/reload pixels are
-stable, but native/managed text origins differ by up to 0.07 pt horizontally and
-1.38 pt vertically; this does not establish native/managed pixel parity. Master inheritance, automatic
-parity selection, repair-free opening and generic public native creation remain
+independent `MultipleMastersEdited` and `TwoPageMasterEdited` controls. Managed
+save/reload pixels are stable, but native/managed text origins differ by up to
+0.07 pt horizontally and 1.38 pt vertically; this does not establish native/managed
+pixel parity. Master inheritance, automatic parity selection, repair-free opening
+and generic public native creation remain unqualified.
+
+The `pairedMixedContentCreation` record extends composition to the qualified
+multiple-master topologies. The `paired-brochure` specimen uses three Letter
+pages assigned to a centered master and the left/right members of one pair.
+Each master retains its own text marker, colored rule and shared-asset picture;
+the native control checks actual master shape ownership after authoring and
+after saving. The left-member picture is at x=72 pt, and the centered/right
+pictures are at x=504 pt; arbitrary placement across native pair halves is
 unqualified.
+
+The brochure combines a three-paragraph story flowing through pages 1, 3 and 2,
+an unlinked two-column frame with an 18-point gap and asymmetric insets, a sidebar,
+a closing frame, one borderless 2×2 table and physical-page artwork. Its 21 semantic
+objects comprise twelve text frames, four rectangles, four pictures and one table;
+the four picture references share one image asset. Native initial and resaved
+inventories retain the intended 3/3/3 master ownership. The
+`authoredNoWrapCreation` record separately confirms None wrapping for all 21
+objects at both native stages.
+
+Public `SetPictureBounds` moves the left-master picture from x=72 to x=84 pt in
+the generated file and the independent control. Saving with explicit `Allow`
+retains master ownership, the four picture bindings and the shared image payload;
+default strict saving still refuses the unassessed fixed patch. Both saved files
+convert through PSWriteOffice and complete native opening/export, save-as and
+reopening. Creation and edited output match their controls across twelve native
+initial/resaved page comparisons at 100 dpi, with zero changed pixels. The
+[support contract](../../../OfficeIMO.Publisher/SUPPORT.md#mixed-content-with-multiple-masters)
+retains the default-tab/caption metadata differences, broader placement and layout
+limits, native repair gap and public writer boundary.
 
 The `masterAssignmentEditing` record qualifies existing physical-page direct
 assignment and master-formatting suppression through public native source saves.
@@ -742,14 +778,14 @@ Paragraph overrides use the existing production paragraph codec. Source saves
 preserve opaque layout data on compact and native-normalized files, including a
 normal native profile without an unused palette. Native creation, growth and
 shrink saves retain both complete stories, chain identity and terminal overflow.
-All 19 earlier creation profiles remain byte-identical. Native open/save/reopen
-and stable resave pixels are qualified separately from independent appearance:
+Native open/save/reopen and stable resave pixels are qualified separately from
+independent appearance:
 the generated files do not reproduce the control's hyphenation and frame breaks.
 Language/CR defaults, repair-free opening and generic public native creation
 remain unqualified.
 
 The ordinary multi-paragraph specimens use the same graph, Quill and OfficeArt
-serializers, retaining all 41 earlier creation profiles byte-for-byte. Independent
+serializers. Independent
 native controls confirm complete story text, paragraph formatting and sampled
 run/CR typing through native save/reopen. The one-page specimen and the linked
 specimen with automatic hyphenation enabled match their equivalent native inputs
@@ -780,7 +816,7 @@ complete story and cell paragraphs. Generated `TCD` endpoints partition that
 story; table story metadata stays outside the ordinary frame catalog. The table
 frame, cell records and layout slots contain no copied native cache. The shared
 formatting-page encoder handles repeated styles when the earlier unshared page
-would overflow; all 21 earlier creation outputs remain byte-identical.
+would overflow.
 
 Both creation variants and public source edits on generated, native-normalized
 and independently authored files match native controls across ten stage/page
@@ -894,7 +930,6 @@ The qualified rectangular creations and scalar edits of generated/native-resaved
 input complete Full validation: eight cell/grid inventories and eight native PDF
 pairs match independent controls at 100 dpi. Four workflows cover three distinct
 candidate byte sequences; a direct source scalar edit equals fresh edited creation.
-The earlier blank, borderless-table and merged-table bytes remain unchanged.
 Merge profiles beyond the bounded slice above, broader native visibility definitions and utility layouts
 beyond the qualified source and ordered-cluster profiles below remain open. Native cell mutation
 uses the separate first-cell profile below; repair-free acceptance and public
@@ -1034,7 +1069,7 @@ fresh output, versus an empty font name, mixed-size sentinel `-9999999` and lang
 1033 for the native control's range including its paragraph terminator. Those
 caption font/size/language observations remain different despite identical
 rendering; the [caption typing profile](../../../OfficeIMO.Publisher/SUPPORT.md#authored-caption-cr-typing)
-explains the CR policies. Six earlier complete PUB specimens remain byte-identical.
+explains the CR policies.
 Broader grids, merge layouts beyond the bounded profile above, grouped/transformed tables and additional
 producer/generation profiles remain unqualified. The fresh dense specimen and
 independent wide control also complete native first-unmerged-cell text replacement
@@ -1065,8 +1100,7 @@ the cleared cell as empty.
 Earlier utility-free borderless authoring remains rejected for native style
 stability: its fill observations are unavailable and native validation/edit/save
 can activate white fills. Fresh unmerged tables now emit explicit hidden white
-cell utilities even without visible decoration; decorated and merged specimen
-bytes remain unchanged. The composed newsletter uses the same fix. Native Full
+cell utilities even without visible decoration. The composed newsletter uses the same fix. Native Full
 retains its table geometry/content and hidden fills. Against the immediately
 preceding writer, pages two/three match exactly; the table region on page one
 changes by 959 initial and 1,389 resaved pixels at 100 dpi as automatic white
@@ -1081,8 +1115,7 @@ payloads and picture/page bindings. The edit changes only the second picture's
 anchor values; the first picture, image store and all other streams remain
 byte-identical. Generic object ordering and repair-free opening remain unqualified.
 
-The `namedImageReplacement` record adds complete filename metadata without
-changing the fourteen earlier creation profiles. The named specimen supports a
+The `namedImageReplacement` record adds complete filename metadata. The named specimen supports a
 last-picture PNG replacement, a later PNG-to-JPEG replacement after managed
 save/reload, and JPEG replacement after Publisher itself saves the PNG result.
 Each file matches its independent native final-state control before and after
@@ -1101,8 +1134,7 @@ The `pictureCropEditing` record qualifies public crop set/clear, combined crop
 with PNG replacement and resized bounds, an existing JPEG crop, and the internal
 `cropped-image-pages` creation profile. Five files match independent native
 references across 24 initial/resaved page pairs at 144 dpi; ten public reloads
-retain encoded fractions, assets and other placements. All fifteen preceding
-creation profiles remain byte-identical.
+retain encoded fractions, assets and other placements.
 
 The model uses source-edge fractions rather than automation points. Native
 16.16 rounding is reported separately, and output whose rounded source area

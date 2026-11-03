@@ -1,7 +1,7 @@
 function Get-NativeShapeInventory {
     <#
     .SYNOPSIS
-    Reads native shape geometry, text, picture and table observations without editing them.
+    Reads native shape geometry, wrapping, text, picture and table observations without editing them.
     .PARAMETER Page
     A physical or master page in the already opened native publication.
     .PARAMETER Objects
@@ -26,6 +26,13 @@ function Get-NativeShapeInventory {
         $picture = $null
         $tableGeometry = $null
         $tableCells = $null
+        try {
+            $nativeWrap = $shape.TextWrap
+            $objects.Add($nativeWrap)
+            $wrapping = [pscustomobject]@{ status = 'Observed'; type = [int]$nativeWrap.Type }
+        } catch {
+            $wrapping = [pscustomobject]@{ status = 'Unavailable'; message = $_.Exception.Message; hresult = $_.Exception.HResult }
+        }
         if ($shape.HasTextFrame -eq -1) {
             $frame = $shape.TextFrame
             $range = $frame.TextRange
@@ -75,6 +82,7 @@ function Get-NativeShapeInventory {
             top = [double]$shape.Top
             width = [double]$shape.Width
             height = [double]$shape.Height
+            wrapping = $wrapping
             text = $text
             font = $font
             languageId = $languageId

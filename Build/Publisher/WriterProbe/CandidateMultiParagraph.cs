@@ -28,7 +28,7 @@ internal static class CandidateMultiParagraph {
         return document;
     }
 
-    private static OfficeRichTextParagraph[] Paragraphs() => new[] {
+    internal static OfficeRichTextParagraph[] Paragraphs() => new[] {
         new OfficeRichTextParagraph(new[] {
             Run("Multi-paragraph heading. ", 16, true), Run("Body follows below.", 12, false)
         }, lineHeight: 22),

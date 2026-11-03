@@ -1053,6 +1053,56 @@ source-free native creation remain unqualified. Public native saving retains
 `PUB_NATIVE_SOURCE_REQUIRED` for source-free models; successful native opening and
 resaving do not supply a positive recovery control.
 
+### Mixed content with multiple masters
+
+The internal `ComposedContent` projection accepts one centered master, two
+centered masters, or a centered master followed by one named left/right pair.
+All pages are Letter size, every physical page has an explicit assignment to a
+defined master, and the profile permits one to sixteen physical pages. Master
+text, rectangles and embedded pictures compose with ordinary linked stories,
+unlinked frame layouts and at most one physical-page table. Object order and
+ownership come from the same public page/master model used for rendering.
+
+The `paired-brochure` specimen has three physical pages with centered/left/right
+assignments. Its 21 semantic objects include twelve text frames, four rectangles,
+four pictures sharing one asset, and one borderless 2×2 table. A three-paragraph
+story flows through pages 1, 3 and 2; another frame uses two columns, an 18-point
+gap and asymmetric insets. The independent `PairedBrochure` control checks each
+master's actual three-shape collection after authoring and after saving. Native
+initial and resaved inventories retain all three masters' content on the intended
+definitions. The left-member picture is placed at x=72 pt, and the centered/right
+pictures at x=504 pt; placement across other native pair halves is unqualified.
+
+Public `SetPictureBounds` moves the left-master picture from x=72 to x=84 pt on
+both the generated file and the independent control. Explicit `Allow` saving and
+reload preserve its master binding, all four picture references, the single
+shared image payload and every other picture's bounds. Default strict saving
+still refuses `PUB_NATIVE_FIXED_PATCH_UNQUALIFIED` as `Unassessed`; this profile
+does not weaken that policy. PSWriteOffice converts both saved files to PDF.
+Native opening, export, save-as and reopening complete for the generated original
+and both public edits with unchanged input bytes. Creation and edited output
+match their native controls across twelve initial/resaved page comparisons at
+100 dpi, with zero changed pixels.
+
+Creation explicitly disables wrapping for every text frame, rectangle, picture
+and table. Contents field 4 uses type `0x10` and value `0x100`; omitting the field
+means Square in the qualified native reader. Native `TextWrap.Type` reports None
+for all 21 brochure objects before and after resave. This preserves the public
+authoring model's wrap intent without changing imported-file defaults or
+relaxing guarded source edits.
+
+The `pairedMixedContentCreation` and `authoredNoWrapCreation` qualification records
+separate this composed profile from general native writing. Master tables,
+multiple physical-page tables, three centered masters, unassigned pages, other
+page sizes, linked columns/insets, wrapping and broader effects remain outside
+the profile. Matching pages do not establish metadata equivalence: generated
+default tabs remain 36 pt while the native control uses 28.3 pt, and base-caption
+typing/defaults differ. These tab-free specimens do not qualify that metadata or
+general native/managed rendering parity. Repair-free acceptance and public
+source-free native creation remain unqualified.
+
+### Native table creation
+
 The `tableCreation` record covers source-free creation of a borderless, unmerged
 2×2 table with unequal column/row tracks, bold headers, an empty cell and an
 independent label. One complete table story owns the cell text; native cell
