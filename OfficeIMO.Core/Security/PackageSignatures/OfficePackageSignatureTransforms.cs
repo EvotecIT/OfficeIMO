@@ -8,7 +8,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
-using OfficeIMO.Security;
 
 namespace OfficeIMO.Security {
     /// <summary>Reports that bounded OPC archive inspection stopped at a caller-owned resource limit.</summary>

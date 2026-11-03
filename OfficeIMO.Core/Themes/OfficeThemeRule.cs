@@ -1,6 +1,3 @@
-using System;
-using OfficeIMO.Drawing;
-
 namespace OfficeIMO;
 
 /// <summary>A horizontal rule (colour and stroke width) drawn under a title, a table header or above a footer.</summary>

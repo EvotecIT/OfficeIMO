@@ -2,10 +2,7 @@
 // Copyright (c) 2022 Evotec. MIT license; see Licenses/ImagePlayground-LICENSE.txt.
 // OfficeIMO adaptation provides bounded byte/stream APIs, cancellation and output preflight.
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading;
 
 namespace OfficeIMO.Drawing;
 

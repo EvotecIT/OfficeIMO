@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 namespace OfficeIMO.Spreadsheet {
     internal static partial class SpreadsheetNumberFormatDisplay {

@@ -10,7 +10,6 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Xml;
 using System.Xml.Linq;
-using OfficeIMO.Security;
 
 namespace OfficeIMO.Security {
     /// <summary>Options for signing an Open Packaging Convention package.</summary>

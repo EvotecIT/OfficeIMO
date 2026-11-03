@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using OfficeIMO.Drawing;
-
 namespace OfficeIMO;
 
 /// <summary>Literal colors defining a document theme palette.</summary>
