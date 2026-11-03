@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <code>$options = New-OfficePowerPointHtmlOptions -Profile VisualReview -NoMasterInventory -NoExtractionProof
 /// Convert-OfficeDocument -Path ./Review.pptx -To Html -OutputPath ./Review.visual.html -Options $options</code></example>
 [Cmdlet(VerbsCommon.New, "OfficePowerPointHtmlOptions", DefaultParameterSetName = "Default")]
-[OutputType(typeof(PowerPointHtmlSaveOptions))]
+[OutputType(typeof(PowerPointHtmlExportOptions))]
 public sealed class NewOfficePowerPointHtmlOptionsCommand : OfficeCmdlet {
     /// <summary>Semantic slide content or positioned visual review.</summary>
     [Parameter(ParameterSetName = "Default")]
@@ -69,7 +69,7 @@ public sealed class NewOfficePowerPointHtmlOptionsCommand : OfficeCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var options = new PowerPointHtmlSaveOptions {
+        var options = new PowerPointHtmlExportOptions {
             ExportProfile = Profile,
             IncludeNotes = FeatureEnabled("Notes"),
             IncludeTables = FeatureEnabled("Tables"),

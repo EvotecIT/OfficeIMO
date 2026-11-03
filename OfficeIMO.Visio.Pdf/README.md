@@ -48,7 +48,7 @@ var drawingOptions = new VisioDrawingOptions {
 };
 // Supply licensed font bytes under the source family name when needed.
 drawingOptions.Fonts.Add("Arial", File.ReadAllBytes("fonts/Arial.ttf"));
-OfficeConversionReport report = diagram.SaveAsPdf("architecture.pdf", new VisioToPdfOptions {
+OfficeConversionReport report = diagram.SaveAsPdf("architecture.pdf", new VisioPdfExportOptions {
     Mode = VisioPdfProjectionMode.DiagramPages,
     DrawingOptions = drawingOptions
 });
@@ -96,7 +96,7 @@ raster diagram preview alongside searchable semantic content:
 
 ```csharp
 VisioDocument diagram = VisioDocument.LoadLegacyXml("architecture.vdx").Value;
-OfficeConversionReport report = diagram.SaveAsPdf("architecture.pdf", new VisioToPdfOptions {
+OfficeConversionReport report = diagram.SaveAsPdf("architecture.pdf", new VisioPdfExportOptions {
     SourceName = "architecture.vdx",
     VisioOptions = new VisioDocumentProjectionOptions {
         IncludePngPreviewAssets = true,

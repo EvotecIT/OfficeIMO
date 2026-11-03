@@ -40,7 +40,7 @@ public class RtfCoreBenchmarks {
 [OperationsPerSecond]
 public class RtfAdapterBenchmarks {
     private RtfDocument _document = null!;
-    private RtfToPdfOptions _pdfOptions = null!;
+    private RtfPdfExportOptions _pdfOptions = null!;
     private OfficeDocumentReader _reader = null!;
     private byte[] _readerInput = null!;
 

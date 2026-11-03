@@ -20,7 +20,7 @@ public sealed partial class HtmlRenderingTests {
             + content + "<p style='margin-top:130px'>SiblingMarker</p>";
         HtmlPdfRenderRequestResult result = HtmlConversionDocument.Parse(html).RenderToPdfResult(
             HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf,
-                new HtmlToPdfOptions { ViewportWidth = 400D, ViewportHeight = 400D,
+                new HtmlPdfExportOptions { ViewportWidth = 400D, ViewportHeight = 400D,
                     Margins = HtmlRenderMargins.All(0D), ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() }));
         PdfReadPage page = Assert.Single(PdfReadDocument.Open(result.ToBytes()).Pages);
         PdfTextSpan carrier = Assert.Single(page.GetTextSpans(), span => span.Text.Contains("TransformCarrierMarker", StringComparison.Ordinal));
@@ -55,7 +55,7 @@ public sealed partial class HtmlRenderingTests {
     private static PdfReadDocument RenderTransformedCarrier(string html) => PdfReadDocument.Open(
         HtmlConversionDocument.Parse(html).RenderToPdfResult(
             HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf,
-                new HtmlToPdfOptions { ViewportWidth = 400D, ViewportHeight = 400D,
+                new HtmlPdfExportOptions { ViewportWidth = 400D, ViewportHeight = 400D,
                     Margins = HtmlRenderMargins.All(0D), ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() })).ToBytes());
 
     private static void AssertCarrierWithinPhysicalPage(PdfReadPage page, PdfTextSpan carrier) {

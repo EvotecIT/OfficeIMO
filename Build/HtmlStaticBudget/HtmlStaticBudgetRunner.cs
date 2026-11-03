@@ -118,7 +118,7 @@ internal static class HtmlStaticBudgetRunner {
         using var cancellation = new CancellationTokenSource();
         PdfResourcePolicy resourcePolicy = PdfResourcePolicy.CreateDefault();
         resourcePolicy.AllowRemoteResourceResolution = true;
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             ResourcePolicy = resourcePolicy,
             ResourceResolver = async (_, cancellationToken) => {
                 started.TrySetResult(true);
@@ -250,7 +250,7 @@ internal static class HtmlStaticBudgetRunner {
         Console.WriteLine("Measures the frozen H4/advanced-held-out corpus in fresh cold and warmed worker processes, including all declared static output contracts, allocations, process-tree peak memory, output bytes, determinism, and cancellation.");
     }
 
-    private static async Task<byte[]> ConvertToPdfBytesAsync(string html, HtmlToPdfOptions options, CancellationToken cancellationToken) {
+    private static async Task<byte[]> ConvertToPdfBytesAsync(string html, HtmlPdfExportOptions options, CancellationToken cancellationToken) {
         OfficeConversionResult<PdfDocument> result = await HtmlConversionDocument.Parse(html).ToPdfAsync(options, cancellationToken).ConfigureAwait(false);
         return result.Value.ToBytes(cancellationToken: cancellationToken);
     }

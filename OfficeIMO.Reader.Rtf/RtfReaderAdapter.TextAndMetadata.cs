@@ -1,8 +1,8 @@
 namespace OfficeIMO.Reader.Rtf;
 
 internal static partial class RtfReaderAdapter {
-    private static RtfReadOptions GetEffectiveReadOptions(ReaderOptions options, ReaderRtfOptions formatOptions) {
-        RtfReadOptions result = ReaderRtfOptions.CloneReadOptions(formatOptions.RtfReadOptions)!;
+    private static RtfLoadOptions GetEffectiveReadOptions(ReaderOptions options, ReaderRtfOptions formatOptions) {
+        RtfLoadOptions result = ReaderRtfOptions.CloneReadOptions(formatOptions.RtfLoadOptions)!;
         if (options.Projection == ReaderProjection.TextAndMetadata) result.DeferBinaryPayloads = true;
         return result;
     }

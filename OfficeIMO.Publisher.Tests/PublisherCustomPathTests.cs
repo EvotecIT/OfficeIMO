@@ -170,7 +170,7 @@ public sealed class PublisherCustomPathTests {
     public void Native_path_expansion_obeys_cumulative_item_work_limits() {
         byte[] input = Input(1, Enumerable.Range(0, 80).Select(index => (index + 10, index - 20)).ToArray());
         InvalidDataException error = Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(input,
-            new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = 100 } }));
+            new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = 100 } }));
         Assert.Contains("custom path item work limit", error.Message);
     }
 
@@ -196,7 +196,7 @@ public sealed class PublisherCustomPathTests {
             .Append(OfficePathCommand.Close()).ToArray();
         var inner = new OfficeDrawing(100, 100).AddShape(OfficeShape.Path(100, 100, commands), 0, 0);
         var drawing = new OfficeDrawing(100, 100).AddClippedDrawing(inner, 0, 0, OfficeClipPath.Path(100, 100, commands));
-        var context = new PublisherParseContext(new PublisherReadOptions {
+        var context = new PublisherParseContext(new PublisherLoadOptions {
             Limits = new OfficeLegacyImportLimits { MaxItems = 30 }
         }, default);
         context.AccountProjection(drawing);

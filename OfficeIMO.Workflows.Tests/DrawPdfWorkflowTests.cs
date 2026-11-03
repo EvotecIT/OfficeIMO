@@ -18,7 +18,7 @@ public sealed class DrawPdfWorkflowTests {
                 .AddParagraph(text).FontFamily = family;
             drawing.SaveFlatXml(input);
             byte[] font = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont(text.Select(c => (int)c).Distinct().ToArray());
-            var options = new OdgToPdfOptions {
+            var options = new OdgPdfExportOptions {
                 PdfOptions = new PdfCreateOptions()
                 .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, font))
             };
@@ -94,7 +94,7 @@ public sealed class DrawPdfWorkflowTests {
     [Fact]
     public void DrawSettingsSnapshotAndMixedBatchSelectionStayRouteSpecific() {
         var settings = new OfficeConversionOptions {
-            RegisteredSettings = new OfficeWorkflowRouteSettings { Draw = new OdgToPdfOptions { ForPrint = false, MaximumPages = 3 } }
+            RegisteredSettings = new OfficeWorkflowRouteSettings { Draw = new OdgPdfExportOptions { ForPrint = false, MaximumPages = 3 } }
         };
         OfficeConversionOptions copy = settings.ForRoute("odg-pdf");
         var native = Assert.IsType<OfficeWorkflowRouteSettings>(settings.RegisteredSettings).Draw!;

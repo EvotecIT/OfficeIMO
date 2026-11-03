@@ -32,7 +32,7 @@ public class RtfHtmlFontTableTests {
         monospace.CodePage = 1250;
         document.AddParagraph().AddText("Code").FontId = monospaceFontId;
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true, FragmentOnly = false, NewLine = "\n" });
 
@@ -62,7 +62,7 @@ public class RtfHtmlFontTableTests {
         Assert.Equal(1250, roundTripMonospace.CodePage);
         Assert.Equal(monospaceFontId, Assert.Single(Assert.Single(roundTrip.Paragraphs).Runs).FontId);
 
-        string rtf = roundTrip.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = roundTrip.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"{\fonttbl{\f0\fswiss\fcharset0\fprq2\cpg1252\fbias0{\*\panose 020F0502020204030204}{\*\fname Calibri}{\*\fontemb\fttruetype{\*\fontfile\cpg1252 Calibri.ttf} 010203ff} Calibri{\*\falt Arial};}{\f1\fmodern\fcharset238\fprq1\cpg1250 Consolas;}}", rtf, StringComparison.Ordinal);
     }
 }

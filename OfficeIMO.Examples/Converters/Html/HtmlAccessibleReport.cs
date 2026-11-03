@@ -12,7 +12,7 @@ internal static partial class Html {
     /// <summary>Renders a tagged report using the same embedded fonts for layout and PDF text.</summary>
     public static HtmlPdfRenderRequestResult CreateAccessibleReport(string html, byte[] regularFont,
         byte[] boldFont, PdfComplianceProfile profile = PdfComplianceProfile.PdfUa1) {
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             DefaultFontFamily = "Helvetica",
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
             PdfOptions = new PdfCreateOptions().UsePdfUa(profile, "en")

@@ -5,9 +5,27 @@
       "old": "OfficeIMO.Html.Rtf.HtmlToRtfOptions.CreateUntrustedHtmlProfile()",
       "kind": "method",
       "action": "rename",
-      "new": "OfficeIMO.Html.Rtf.HtmlToRtfOptions.UntrustedDefaults",
+      "new": "OfficeIMO.Html.Rtf.HtmlRtfExportOptions.UntrustedDefaults",
       "category": "limits",
       "reason": "Profiles for untrusted input use one discoverable name across formats.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Html.HtmlToRtfOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Html.HtmlRtfExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Html.RtfToHtmlOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Html.RtfHtmlExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
       "applied": true
     }
   ]

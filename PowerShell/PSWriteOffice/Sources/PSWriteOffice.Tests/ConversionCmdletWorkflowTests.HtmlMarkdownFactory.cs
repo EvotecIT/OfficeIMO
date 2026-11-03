@@ -15,7 +15,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
         try {
             var source = HtmlConversionDocument.Parse("<html><head><title>Document chrome</title></head><body>" +
                 "<h1>Report</h1><ul><li>One</li><li>Two</li></ul><video src='movie.mp4'><p>Video transcript</p></video><p>Final.</p></body></html>");
-            var original = new MarkdownHtmlImportOptions {
+            var original = new HtmlMarkdownExportOptions {
                 UseBodyContentsOnly = false, PreserveUnsupportedInlineHtml = false,
                 MarkdownWriteOptions = new MarkdownSaveOptions { UnorderedListMarker = '*', OutputLineEnding = "\r\n",
                     ImageRenderingMode = MarkdownImageRenderingMode.Html }
@@ -42,7 +42,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
             var output = shell.Invoke();
             Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
             Assert.Equal(dropUnsupported ? 2 : 1, output.Count);
-            var options = Assert.IsType<MarkdownHtmlImportOptions>(output[0].BaseObject);
+            var options = Assert.IsType<HtmlMarkdownExportOptions>(output[0].BaseObject);
             Assert.NotSame(original, options); Assert.NotSame(original.MarkdownWriteOptions, options.MarkdownWriteOptions);
             Assert.True(options.UseBodyContentsOnly); Assert.True(options.PreserveUnsupportedInlineHtml);
             Assert.Equal(!dropUnsupported, options.PreserveUnsupportedBlocks);

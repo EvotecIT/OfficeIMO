@@ -28,7 +28,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(expectedItalic, run.Italic);
 
         using ExcelDocument workbook = source.ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic }).RequireValue();
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic }).RequireValue();
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
         ExcelCell cell = Assert.Single(Enumerable.Range(1, 4).Select(row => sheet.Cell(row, 1)),
             candidate => candidate.GetValue<string>() == "X");

@@ -180,7 +180,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlMargins_PdfKeepsBrowserBodyInsetUnlessAuthorResetsIt() {
         static double FirstWordX(string html) {
-            var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D), HonorCssPageRules = false };
+            var options = new HtmlPdfExportOptions { Margins = HtmlRenderMargins.All(0D), HonorCssPageRules = false };
             PdfCore.PdfLogicalTextBlock block = PdfCore.PdfDocumentReadResult.Load(
                 HtmlConversionDocument.Parse(html).ToPdf(options).ToBytes()).Pages[0].TextBlocks[0];
             return block.XStart;
@@ -211,8 +211,8 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderShape third = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#third");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
-        pdfOptions = new HtmlToPdfOptions {
+        HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
+        pdfOptions = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(55D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(58D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,

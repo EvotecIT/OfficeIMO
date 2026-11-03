@@ -182,7 +182,7 @@ public partial class RtfDocumentReadWriteTests {
         RtfField field = paragraph.AddField("PAGE");
         field.AddText(specialText).SetItalic();
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\endash", rtf, StringComparison.Ordinal);

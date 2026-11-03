@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
     public class PowerPointVisualProofTests {
         [Fact]
         public void PowerPointHtmlResultsKeepSnapshotDiagnosticsScopedToEachConversion() {
-            var options = new PowerPointHtmlSaveOptions {
+            var options = new PowerPointHtmlExportOptions {
                 Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
             };
             using var firstStream = new MemoryStream();
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
 
                     report = presentation.CreateVisualProofReport();
 
-                    var htmlOptions = new PowerPointHtmlSaveOptions {
+                    var htmlOptions = new PowerPointHtmlExportOptions {
                         Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
                     };
                     string htmlResult = presentation.ToHtml(htmlOptions, out OfficeConversionReport htmlResultReport);
@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests {
             PowerPointTable table = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(45));
             table.GetCell(0, 0).Text = "FILTERED REVIEW TABLE";
 
-            string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            string html = presentation.ToHtml(new PowerPointHtmlExportOptions {
                 Profile = OfficeHtmlConversionProfile.PowerPointVisualReview,
                 IncludeTables = false,
                 IncludeExtractionProof = false

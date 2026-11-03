@@ -100,7 +100,7 @@ public sealed partial class HtmlRenderingTests {
             + "@bottom-center{content:'C';font:10px/8px Pinned}"
             + "@bottom-right{content:'R';font:10px/8px Pinned}}"
             + "body,p{margin:0;font:16px/20px Pinned}</style><p>BodyOnly</p>";
-        var options = new HtmlToPdfOptions(PageMarginTypographyOptions()) {
+        var options = new HtmlPdfExportOptions(PageMarginTypographyOptions()) {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         };
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);

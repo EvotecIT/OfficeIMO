@@ -8,7 +8,7 @@ namespace OfficeIMO.Html.Pdf;
 /// <summary>Converts a parsed OfficeIMO HTML source document through the shared HTML render scene.</summary>
 public static partial class HtmlPdfConverterExtensions {
     /// <summary>Converts a parsed HTML document to PDF plus an immutable diagnostics snapshot.</summary>
-    internal static PdfCore.PdfDocumentConversionResult ConvertToPdfWithEvidence(this HtmlConversionDocument document, HtmlToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+    internal static PdfCore.PdfDocumentConversionResult ConvertToPdfWithEvidence(this HtmlConversionDocument document, HtmlPdfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
         HtmlPdfRenderResult rendered = HtmlPdfRenderedConverter.Convert(
@@ -20,7 +20,7 @@ public static partial class HtmlPdfConverterExtensions {
     /// <summary>Asynchronously converts a parsed HTML document to PDF plus an immutable diagnostics snapshot.</summary>
     internal static async Task<PdfCore.PdfDocumentConversionResult> ConvertToPdfWithEvidenceAsync(
         this HtmlConversionDocument document,
-        HtmlToPdfOptions? options = null,
+        HtmlPdfExportOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
@@ -32,7 +32,7 @@ public static partial class HtmlPdfConverterExtensions {
         return CreateResult(rendered);
     }
 
-    private static HtmlToPdfOptions Normalize(HtmlToPdfOptions? options) => options?.ClonePdf() ?? new HtmlToPdfOptions();
+    private static HtmlPdfExportOptions Normalize(HtmlPdfExportOptions? options) => options?.ClonePdf() ?? new HtmlPdfExportOptions();
 
     /// <summary>Serializes a completed conversion while honoring the supplied cancellation token.</summary>
     internal static byte[] SerializeToBytes(PdfCore.PdfDocumentConversionResult result, CancellationToken cancellationToken) {

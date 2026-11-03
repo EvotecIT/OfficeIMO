@@ -2806,7 +2806,7 @@
       "package": "OfficeIMO.PowerPoint.Html",
       "support": "Established",
       "fidelity": "Semantic",
-      "api": "PowerPointDocument.Load(stream).ToHtmlResult(options)",
+      "api": "PowerPointDocument.Load(stream).SaveAsHtml(output, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2929,7 +2929,7 @@
       "package": "OfficeIMO.Publisher.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "PublisherDocument.Load(stream, readOptions).ToPdfDocumentResult(pdfOptions)",
+      "api": "PublisherDocument.Load(stream, readOptions).SaveAsPdf(output, pdfOptions)",
       "surfaces": [
         "dotnet",
         "cli",
@@ -3031,7 +3031,7 @@
       "package": "OfficeIMO.Visio.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "var imported = VisioDocument.LoadLegacyBinary(sourcePath); var importReport = imported.Report; var pdf = imported.Value.ToPdfDocumentResult(new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages })",
+      "api": "var imported = VisioDocument.LoadLegacyBinary(sourcePath); var importReport = imported.Report; var saved = imported.Value.SaveAsPdf(output, new VisioPdfExportOptions { Mode = VisioPdfProjectionMode.DiagramPages })",
       "surfaces": [
         "dotnet"
       ]
@@ -3106,7 +3106,7 @@
       "package": "OfficeIMO.Visio.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "VisioDocument.Load(stream).ToPdfDocumentResult(options)",
+      "api": "VisioDocument.Load(stream).SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet",
         "cli",

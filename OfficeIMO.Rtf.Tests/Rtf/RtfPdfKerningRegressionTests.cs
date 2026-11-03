@@ -100,9 +100,9 @@ public sealed class RtfPdfKerningRegressionTests {
     }
 
     private static IReadOnlyList<(Letter Left, Letter Right)> ReadPairs(RtfDocument source, string artifactName,
-        RtfToPdfOptions? options = null) {
-        string before = source.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfToPdfOptions caller = options ?? PortableOptions(12);
+        RtfPdfExportOptions? options = null) {
+        string before = source.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfPdfExportOptions caller = options ?? PortableOptions(12);
         PdfCore.PdfCreateOptions callerPdfOptions = caller.PdfOptions!;
         Assert.True(callerPdfOptions.TextKerning);
         PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(caller);
@@ -121,7 +121,7 @@ public sealed class RtfPdfKerningRegressionTests {
                 pairs.Add((letters[index], letters[index + 1]));
             }
         }
-        Assert.Equal(before, source.ToRtf(new RtfWriteOptions { IncludeGenerator = false }));
+        Assert.Equal(before, source.ToRtf(new RtfSaveOptions { IncludeGenerator = false }));
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == "RunFormattingFlattened" &&
             warning.Details.TryGetValue("Features", out string? features) &&
             features?.Split(',').Contains("character-metrics") == true);
@@ -137,7 +137,7 @@ public sealed class RtfPdfKerningRegressionTests {
         }
     }
 
-    private static RtfToPdfOptions PortableOptions(double fontSize) => new RtfToPdfOptions {
+    private static RtfPdfExportOptions PortableOptions(double fontSize) => new RtfPdfExportOptions {
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
         PdfOptions = new PdfCore.PdfCreateOptions {
             DefaultFont = PdfCore.PdfStandardFont.Helvetica,

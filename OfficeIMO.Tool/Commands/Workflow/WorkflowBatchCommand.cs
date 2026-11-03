@@ -87,7 +87,7 @@ internal static class WorkflowBatchCommand {
                 case "--maximum-output-bytes": settings.MaximumOutputBytes = Bytes(value, option); break;
                 case "--maximum-xml-characters-in-part": settings.MaximumXmlCharactersInPart = Bytes(value, option); break;
                 case "--diagram-layers":
-                    settings.ConversionOptions.RegisteredSettings = new OfficeWorkflowRouteSettings { Draw = new OfficeIMO.OpenDocument.Odg.Pdf.OdgToPdfOptions { ForPrint = value switch {
+                    settings.ConversionOptions.RegisteredSettings = new OfficeWorkflowRouteSettings { Draw = new OfficeIMO.OpenDocument.Odg.Pdf.OdgPdfExportOptions { ForPrint = value switch {
                         "print" => true, "screen" => false, _ => throw new WorkflowUsageException("Choose diagram layers: screen or print.")
                     } } };
                     break;

@@ -9,7 +9,7 @@ using OfficeIMO.Html.Pdf;
 ChmDocument book = ChmDocument.Load("manual.chm");
 ChmConversionResult<byte[]> result = book.ToPdfBytesResult(
     new ChmConversionOptions { MaxOutputBytes = 32L * 1024 * 1024 },
-    new HtmlToPdfOptions());
+    new HtmlPdfExportOptions());
 File.WriteAllBytes("manual.pdf", result.RequireValue());
 foreach (var diagnostic in result.Report.Diagnostics)
     Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");

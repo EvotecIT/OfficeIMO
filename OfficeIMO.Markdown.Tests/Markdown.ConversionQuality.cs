@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
         public void MarkdownToWord_InternalLinksTargetHeadingBookmarks() {
             var markdown = Omd.MarkdownDocument.Parse("# Lumen\n\nSee [the changelog](#changelog) and [quick start](#quick-start).\n\n## Quick start\n\nText.\n\n## Changelog\n\nText.\n");
 
-            using var document = markdown.ToWord(new WordMarkdownImportOptions(), out var report);
+            using var document = markdown.ToWord(new MarkdownWordExportOptions(), out var report);
             var body = document._wordprocessingDocument.MainDocumentPart!.Document!.Body!;
             string[] bookmarks = body.Descendants<BookmarkStart>().Select(bookmark => bookmark.Name!.Value!).ToArray();
             Hyperlink[] links = body.Descendants<Hyperlink>().ToArray();
@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
 
                 foreach (string? baseUri in new[] { directory, new Uri(directory + Path.DirectorySeparatorChar).AbsoluteUri, null }) {
                     using var document = Omd.MarkdownDocument.Load(markdownPath).ToWord(
-                        new WordMarkdownImportOptions { BaseUri = baseUri, AllowLocalImages = true }, out var report);
+                        new MarkdownWordExportOptions { BaseUri = baseUri, AllowLocalImages = true }, out var report);
                     Assert.Single(document.Images);
                     Assert.False(report.HasLoss);
                 }
@@ -119,14 +119,14 @@ namespace OfficeIMO.Tests {
                 File.Copy(AssetImagePath, Path.Combine(directory, "pipeline.png"));
 
                 using var disabled = Omd.MarkdownDocument.Parse("![Pipeline](pipeline.png)").ToWord(
-                    new WordMarkdownImportOptions { BaseUri = directory }, out var disabledReport);
+                    new MarkdownWordExportOptions { BaseUri = directory }, out var disabledReport);
                 Assert.Empty(disabled.Images);
                 Assert.True(disabledReport.HasLoss);
                 Assert.Contains(disabledReport.Diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ImageSkippedByPolicy
                     && diagnostic.LossKind == OfficeConversionLossKind.Omission);
 
                 using var missing = Omd.MarkdownDocument.Parse("![Missing](missing.png)").ToWord(
-                    new WordMarkdownImportOptions { BaseUri = directory, AllowLocalImages = true }, out var missingReport);
+                    new MarkdownWordExportOptions { BaseUri = directory, AllowLocalImages = true }, out var missingReport);
                 Assert.Empty(missing.Images);
                 Assert.Contains(missingReport.Diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ImageLoadFailed);
             } finally {

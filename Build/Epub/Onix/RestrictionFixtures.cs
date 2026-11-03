@@ -22,7 +22,7 @@ internal static class RestrictionFixtures {
             var result = project.ExportOnix(options with { Commercial = options.Commercial! with {
                 SalesRights = options.Commercial.SalesRights.Select(right => right with { Restrictions = [restriction] }).ToArray(),
                 Supplies = options.Commercial.Supplies.Select((supply, index) => supply with { MarketReference = "restricted-" + index, Restrictions = [restriction] }).ToArray()
-            } }, schemas, new EpubWriteOptions { ModifiedAt = timestamp });
+            } }, schemas, new EpubSaveOptions { ModifiedAt = timestamp });
             publication ??= result.Publication.Bytes;
             if (!publication.SequenceEqual(result.Publication.Bytes)) throw new InvalidDataException("Restriction metadata altered EPUB bytes.");
             string name = "restriction-" + ((int)kind).ToString("D2") + ".onix";
@@ -43,7 +43,7 @@ internal static class RestrictionFixtures {
             Supplies = options.Commercial.Supplies.Select((supply, index) => supply with {
                 MarketReference = "formatted-" + index, Restrictions = [formatted]
             }).ToArray()
-        } }, schemas, new EpubWriteOptions { ModifiedAt = timestamp });
+        } }, schemas, new EpubSaveOptions { ModifiedAt = timestamp });
         if (!publication!.SequenceEqual(formattedResult.Publication.Bytes)) throw new InvalidDataException("Formatted restrictions altered EPUB bytes.");
         if (!BookOnixMessage.Create([formattedResult], schemas).Bytes.SequenceEqual(formattedResult.Bytes))
             throw new InvalidDataException("Formatted restriction composition changed the record.");

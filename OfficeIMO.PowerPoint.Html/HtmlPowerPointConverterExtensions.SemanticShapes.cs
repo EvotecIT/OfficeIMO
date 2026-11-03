@@ -10,7 +10,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         IElement section,
         HtmlSemanticSection? semanticSection,
         PptCore.PowerPointSlide slide,
-        HtmlToPowerPointOptions options,
+        HtmlPowerPointExportOptions options,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget) {
         var items = new List<PowerPointSemanticImportItem>();
@@ -94,7 +94,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         double fallbackTop,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
-        HtmlToPowerPointOptions options) {
+        HtmlPowerPointExportOptions options) {
         string text = PreserveText(ReadTextWithBreaks(paragraph));
         return ImportTextBox(paragraph, text, slide, fallbackTop, result, budget, 48D, options, semanticBlock);
     }
@@ -107,7 +107,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
         double fallbackHeight,
-        HtmlToPowerPointOptions options,
+        HtmlPowerPointExportOptions options,
         HtmlSemanticBlock? semanticBlock = null,
         IReadOnlyList<HtmlSemanticRun>? semanticRuns = null) {
         if (text.Length == 0) {

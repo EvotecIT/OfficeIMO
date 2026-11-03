@@ -64,7 +64,7 @@ public class RtfPdfColumnRegressionTests {
             Assert.Contains(left, page.Text, StringComparison.Ordinal);
             Assert.Contains(right, page.Text, StringComparison.Ordinal);
         }
-        var limitFailure = Assert.Throws<OfficeConversionException>(() => document.ToPdf(new RtfToPdfOptions {
+        var limitFailure = Assert.Throws<OfficeConversionException>(() => document.ToPdf(new RtfPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             PdfOptions = new PdfCore.PdfCreateOptions { MaxGeneratedPages = 1 }
         }));
@@ -141,7 +141,7 @@ public class RtfPdfColumnRegressionTests {
         Assert.DoesNotContain("Deferred header", read.ExtractText(), StringComparison.Ordinal);
     }
 
-    private static RtfToPdfOptions PortableOptions() => new RtfToPdfOptions {
+    private static RtfPdfExportOptions PortableOptions() => new RtfPdfExportOptions {
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
     };
 }

@@ -8,7 +8,7 @@ public static partial class HtmlExcelConverterExtensions {
         IElement table,
         ExcelSheet sheet,
         HtmlToExcelResult result,
-        HtmlToExcelOptions options,
+        HtmlExcelExportOptions options,
         HtmlImportBudget budget,
         int firstRow,
         int firstColumn,

@@ -11,7 +11,7 @@ internal static partial class HtmlPdfRenderedConverter {
     internal static bool TryPrepareLibraryFontMetrics(IEnumerable<HtmlRenderVisual> flow,
         IEnumerable<(string Text, OfficeFontInfo Font)> marginRequirements,
         OfficeFontFaceCollection fonts,
-        HtmlToPdfOptions options, HtmlResourceSession resources, HtmlDiagnosticReport diagnostics,
+        HtmlPdfExportOptions options, HtmlResourceSession resources, HtmlDiagnosticReport diagnostics,
         CancellationToken cancellationToken) {
         if (options.LibrarySelectedDefaultFontFamily != null || options.FontFamily != null
             || !options.AllowSystemFontFallback

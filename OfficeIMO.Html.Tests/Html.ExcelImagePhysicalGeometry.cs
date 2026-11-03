@@ -14,7 +14,7 @@ public partial class HtmlOfficeAdapters {
         var sheet = workbook.AddSheet("Fallback image");
         sheet.Cell(1, 1).SetValue("Seed");
         sheet.AddImage(OfficeLength.Pixels(12), OfficeLength.Pixels(7), OnePixelPng);
-        string html = workbook.ToHtml(new ExcelHtmlSaveOptions { Profile = OfficeHtmlConversionProfile.ExcelSemanticTables });
+        string html = workbook.ToHtml(new ExcelHtmlExportOptions { Profile = OfficeHtmlConversionProfile.ExcelSemanticTables });
         html = html.Replace("data-officeimo-x-emu=\"114300\"", "data-officeimo-x-emu=\"9223372036854775807\"")
             .Replace("data-officeimo-y-emu=\"66675\"", "data-officeimo-y-emu=\"-9223372036854775808\"");
         var result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
@@ -48,7 +48,7 @@ public partial class HtmlOfficeAdapters {
         }
         source.Position = 0;
         using var loaded = ExcelDocument.Load(source);
-        string html = loaded.ToHtml(new ExcelHtmlSaveOptions { Profile = OfficeHtmlConversionProfile.ExcelSemanticTables });
+        string html = loaded.ToHtml(new ExcelHtmlExportOptions { Profile = OfficeHtmlConversionProfile.ExcelSemanticTables });
         var result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using var imported = result.Value;
         var image = Assert.Single(Assert.Single(imported.Sheets).Images);
@@ -82,7 +82,7 @@ public partial class HtmlOfficeAdapters {
         }
         source.Position = 0;
         using var loaded = ExcelDocument.Load(source);
-        string html = loaded.ToHtml(new ExcelHtmlSaveOptions { Profile = OfficeHtmlConversionProfile.ExcelSemanticTables });
+        string html = loaded.ToHtml(new ExcelHtmlExportOptions { Profile = OfficeHtmlConversionProfile.ExcelSemanticTables });
         var result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using var imported = result.Value;
         var image = Assert.Single(Assert.Single(imported.Sheets).Images);

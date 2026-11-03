@@ -168,7 +168,7 @@ features instead of silently dropping them.
 
 `Load` accepts paths, byte arrays, and readable streams, including non-seekable
 streams. It reads from the current stream position and leaves caller streams
-open. `XpsReadOptions` bounds compressed input, expanded bytes, part count, page
+open. `XpsLoadOptions` bounds compressed input, expanded bytes, part count, page
 count, and XML depth. Cancellation is accepted by loading and conversion APIs.
 External resource URIs and XML DTDs are rejected; resources are never fetched.
 Interleaved OPC pieces are assembled into bounded logical parts before parsing,

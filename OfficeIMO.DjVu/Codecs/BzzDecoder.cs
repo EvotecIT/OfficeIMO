@@ -11,7 +11,7 @@ internal static class BzzDecoder {
             budget.Cancellation.ThrowIfCancellationRequested();
             int size = arithmetic.Raw(24);
             if (size == 0) return output.ToArray();
-            if (size > budget.Options.MaxBzzBlockBytes) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxBzzBlockBytes));
+            if (size > budget.Options.MaxBzzBlockBytes) throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxBzzBlockBytes));
             budget.Expanded(size - 1);
             // Both output growth/snapshot and the inverse transform are bounded before allocation.
             budget.WorkingBytes((output.Length + size) * 3 + size * 6L + 4096);

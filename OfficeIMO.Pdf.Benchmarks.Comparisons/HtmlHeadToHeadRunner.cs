@@ -235,7 +235,7 @@ internal static class HtmlHeadToHeadRunner {
             int warmups = int.Parse(Option(args, "--warmup") ?? "30", CultureInfo.InvariantCulture);
             for (int iteration = 0; iteration < warmups + iterations; iteration++) {
                 HtmlConversionDocument source = Measure("parse", () => HtmlConversionDocument.Parse(html));
-                Measure("layout-only", () => HtmlRenderEngine.Render(source, new HtmlToPdfOptions()));
+                Measure("layout-only", () => HtmlRenderEngine.Render(source, new HtmlPdfExportOptions()));
                 source = HtmlConversionDocument.Parse(html);
                 // ToPdf serialises once to report its pages, so this stage includes writing and
                 // ToBytes afterwards only copies the retained output.
@@ -261,7 +261,7 @@ internal static class HtmlHeadToHeadRunner {
             string name = Path.GetFileNameWithoutExtension(file);
             try {
                 HtmlPdfRenderRequestResult result = HtmlConversionDocument.Parse(File.ReadAllText(file)).RenderToPdfResult(
-                    HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, new HtmlToPdfOptions()));
+                    HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, new HtmlPdfExportOptions()));
                 report[name] = result.Output.Report.Warnings
                     .Where(diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None)
                     .GroupBy(diagnostic => diagnostic.Code + ": " + diagnostic.Message)

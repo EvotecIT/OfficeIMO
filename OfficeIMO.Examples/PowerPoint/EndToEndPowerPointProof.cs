@@ -145,7 +145,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 HandoutSlidesPerPage = 3,
                 IncludeSpeakerNotes = true
             });
-            var htmlOptions = new PowerPointHtmlSaveOptions {
+            var htmlOptions = new PowerPointHtmlExportOptions {
                 Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
             };
             string htmlResult = presentation.ToHtml(htmlOptions, out OfficeConversionReport htmlResultReport);

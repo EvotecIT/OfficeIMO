@@ -16,7 +16,7 @@ public sealed partial class HtmlRenderingTests {
             + "<span style='margin-right:8px;" + constraints + "'>Next Page</span>"
             + "<svg id='icon' width='20' height='20' viewBox='0 0 20 20' style='flex-shrink:0'"
             + " xmlns='http://www.w3.org/2000/svg'><circle cx='10' cy='10' r='10' fill='red'/></svg></a>";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             ViewportWidth = 400D,
             Margins = HtmlRenderMargins.All(0D),
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
@@ -43,7 +43,7 @@ public sealed partial class HtmlRenderingTests {
             + $"height:{anchorHeight.ToString(System.Globalization.CultureInfo.InvariantCulture)}px'>"
             + "<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20'>"
             + "<rect width='20' height='20' fill='red'/></svg></a>";
-        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions {
             Margins = HtmlRenderMargins.All(0D)
         })).ToBytes();
         IReadOnlyList<PdfCore.PdfLogicalLinkAnnotation> links = PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri(uri);
@@ -57,7 +57,7 @@ public sealed partial class HtmlRenderingTests {
         const string uri = "https://example.test/text-overflow";
         byte[] pdf = (HtmlConversionDocument.Parse("<style>body{margin:0;font:24px/32px Arial}</style>"
             + "<a href='" + uri + "' style='display:inline-block;width:20px;" + position + "'>NORTHWIND</a>")
-            .ToPdf(new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D) })).ToBytes();
+            .ToPdf(new HtmlPdfExportOptions { Margins = HtmlRenderMargins.All(0D) })).ToBytes();
         using var parsed = UglyToad.PdfPig.PdfDocument.Open(pdf);
         var letters = parsed.GetPage(1).Letters;
         Assert.Equal("NORTHWIND", string.Concat(letters.Select(letter => letter.Value)));
@@ -73,7 +73,7 @@ public sealed partial class HtmlRenderingTests {
         const string uri = "https://example.test/negative-spacing";
         byte[] pdf = (HtmlConversionDocument.Parse("<style>body{margin:0;font:24px/32px Arial}</style>"
             + "<a href='" + uri + "' style='display:inline-block;width:10px;letter-spacing:-12px;" + position + "'>A</a>")
-            .ToPdf(new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D) })).ToBytes();
+            .ToPdf(new HtmlPdfExportOptions { Margins = HtmlRenderMargins.All(0D) })).ToBytes();
         using var parsed = UglyToad.PdfPig.PdfDocument.Open(pdf);
         var letter = Assert.Single(parsed.GetPage(1).Letters);
         IReadOnlyList<PdfCore.PdfLogicalLinkAnnotation> links = PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri(uri);
@@ -117,7 +117,7 @@ public sealed partial class HtmlRenderingTests {
             + "<svg xmlns='http://www.w3.org/2000/svg' width='46' height='46'>"
             + "<rect width='46' height='46' fill='blue'/></svg></a>";
 
-        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions {
             Margins = HtmlRenderMargins.All(0D)
         })).ToBytes();
         PdfCore.PdfLogicalLinkAnnotation link = Assert.Single(
@@ -134,7 +134,7 @@ public sealed partial class HtmlRenderingTests {
             + "<a href='https://example.test/target' style='display:block;width:100px;"
             + "height:20px;padding:11px 0;margin:20px 0 0'>Second</a>";
 
-        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions {
             Margins = HtmlRenderMargins.All(0D)
         })).ToBytes();
         IReadOnlyList<PdfCore.PdfLogicalLinkAnnotation> links = PdfCore.PdfDocumentReadResult
@@ -153,7 +153,7 @@ public sealed partial class HtmlRenderingTests {
             + "<a href='https://example.test/inside' style='display:block;width:60px;height:20px'>Inside</a>"
             + "</div>";
 
-        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions {
             Margins = HtmlRenderMargins.All(0D)
         })).ToBytes();
 
@@ -166,7 +166,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div style='clip-path:polygon(0 0,100% 0,0 100%);width:100px;height:40px'>"
             + "<a href='https://example.test/inside'>Inside</a></div>";
 
-        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions {
             Margins = HtmlRenderMargins.All(0D)
         })).ToBytes();
 
@@ -185,7 +185,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.InRange(fragment.Width, 70D, 100D);
         Assert.InRange(fragment.Height, 35D, 50D);
-        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(options))).ToBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions(options))).ToBytes();
         PdfCore.PdfLogicalLinkAnnotation link = Assert.Single(PdfCore.PdfDocumentReadResult
             .Load(pdf).GetLinksByUri("https://example.test/padded"));
         Assert.InRange(link.Width, 50D, 60D);
@@ -212,7 +212,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(19D, fragment.Height, 3);
         Assert.Equal(expectedTop, fragment.Y, 3);
         Assert.Equal(expectedBaseline, text.Y + text.Font.Size, 3);
-        byte[] pdf = HtmlPdfRenderedConverter.CreatePdf(rendered, new HtmlToPdfOptions(options),
+        byte[] pdf = HtmlPdfRenderedConverter.CreatePdf(rendered, new HtmlPdfExportOptions(options),
             System.Threading.CancellationToken.None).Document.ToBytes();
         Assert.Single(PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri("https://example.test/inline"));
     }

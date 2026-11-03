@@ -62,7 +62,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Single(repeatedHeaderCells.Select(group => group.StructureElementKey).Where(key => key != null).Distinct());
 
         PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(
-            PdfCore.PdfInspector.Inspect((HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
+            PdfCore.PdfInspector.Inspect((HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions {
                 PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(180D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(80D / HtmlRenderOptions.CssPixelsPerInch)),
                 Margins = HtmlRenderMargins.All(0D),
                 HonorCssPageRules = true
@@ -125,7 +125,7 @@ public sealed partial class HtmlRenderingTests {
             }
         }
 
-        string pdfText = PdfCore.PdfReadDocument.Open((HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
+        string pdfText = PdfCore.PdfReadDocument.Open((HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions {
             PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(220D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(65D / HtmlRenderOptions.CssPixelsPerInch)),
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = true
@@ -218,10 +218,10 @@ public sealed partial class HtmlRenderingTests {
             || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
 
         HtmlRenderResult svgResult = HtmlRenderEngine.Execute(document,
-            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg, HtmlToPdfOptions.ForImageExport(options)));
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg, HtmlPdfExportOptions.ForImageExport(options)));
         HtmlRenderArchiveResult svgArchive = svgResult.ExportArchive();
         HtmlRenderResult pngResult = HtmlRenderEngine.Execute(document,
-            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Png, HtmlToPdfOptions.ForImageExport(options)));
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Png, HtmlPdfExportOptions.ForImageExport(options)));
         HtmlRenderArchiveResult pngArchive = pngResult.ExportArchive();
         using var svgZip = new ZipArchive(new MemoryStream(svgArchive.Bytes), ZipArchiveMode.Read);
         using var pngZip = new ZipArchive(new MemoryStream(pngArchive.Bytes), ZipArchiveMode.Read);
@@ -230,7 +230,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(rendered.Pages.Count, pngArchive.Manifest.Pages.Count);
         Assert.Equal(rendered.Pages.Count, svgZip.Entries.Count(entry => entry.FullName.EndsWith(".svg", StringComparison.Ordinal)));
         Assert.Equal(rendered.Pages.Count, pngZip.Entries.Count(entry => entry.FullName.EndsWith(".png", StringComparison.Ordinal)));
-        string pdfText = PdfCore.PdfReadDocument.Open((document.ToPdf(new HtmlToPdfOptions(options))).ToBytes()).ExtractText();
+        string pdfText = PdfCore.PdfReadDocument.Open((document.ToPdf(new HtmlPdfExportOptions(options))).ToBytes()).ExtractText();
         Assert.Contains("A1", pdfText, StringComparison.Ordinal);
         Assert.Contains("A6", pdfText, StringComparison.Ordinal);
         Assert.Contains("B1", pdfText, StringComparison.Ordinal);

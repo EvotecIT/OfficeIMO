@@ -133,7 +133,7 @@ public sealed partial class HtmlRenderingTests {
         + ");background-size:8px 4px;background-position:3px 1px;background-repeat:repeat}</style><div></div>";
 
     private static HtmlRenderResult RenderOverflowPattern(string html, HtmlRenderIntentProfile profile, HtmlRenderEncoder encoder) =>
-        HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html), HtmlRenderRequest.Create(profile, encoder, HtmlToPdfOptions.ForImageExport(new HtmlRenderOptions {
+        HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html), HtmlRenderRequest.Create(profile, encoder, HtmlPdfExportOptions.ForImageExport(new HtmlRenderOptions {
             PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(320D / 96D), global::OfficeIMO.OfficeLength.Inches(230D / 96D)),
             ViewportWidth = 320D,
             ViewportHeight = 230D,

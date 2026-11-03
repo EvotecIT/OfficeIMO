@@ -15,7 +15,7 @@ public sealed partial class DjVuPage {
             Width = DjVuBinary.U16(first.Source, first.Offset + 4);
             Height = DjVuBinary.U16(first.Source, first.Offset + 6);
             if (Width == 0 || Height == 0) throw new InvalidDataException("Empty standalone IW44 image.");
-            if ((long)Width * Height > budget.Options.MaxPagePixels) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxPagePixels));
+            if ((long)Width * Height > budget.Options.MaxPagePixels) throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxPagePixels));
             Dpi = 100; Gamma = 2.2; Rotation = 0;
             _text = new DjVuTextResult(DjVuTextStatus.Absent, string.Empty);
             return;
@@ -27,7 +27,7 @@ public sealed partial class DjVuPage {
         int offset = info[0].Offset, length = info[0].Length;
         Width = DjVuBinary.U16(data, offset); Height = DjVuBinary.U16(data, offset + 2);
         if (Width == 0 || Height == 0) throw new InvalidDataException("DjVu page has empty dimensions.");
-        if ((long)Width * Height > budget.Options.MaxPagePixels) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxPagePixels));
+        if ((long)Width * Height > budget.Options.MaxPagePixels) throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxPagePixels));
         int version = data[offset + 4] | (length > 5 ? data[offset + 5] << 8 : 0);
         if (version > 26) throw new NotSupportedException("Unsupported DjVu page version.");
         int dpi = length >= 8 ? data[offset + 6] | data[offset + 7] << 8 : 300;

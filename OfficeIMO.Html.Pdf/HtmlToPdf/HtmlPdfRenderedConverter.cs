@@ -13,13 +13,13 @@ internal static partial class HtmlPdfRenderedConverter {
     private const int MaximumLoadedSystemFontFamilies = 32;
     private const int MaximumCssFontFamilyCandidates = 32;
 
-    internal static HtmlPdfRenderResult Convert(HtmlConversionDocument document, HtmlToPdfOptions options, CancellationToken cancellationToken = default) {
+    internal static HtmlPdfRenderResult Convert(HtmlConversionDocument document, HtmlPdfExportOptions options, CancellationToken cancellationToken = default) {
         HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
             options, HtmlRenderEncoder.Pdf, HtmlRenderPageSet.All(), forcePrintPaged: true);
         return Convert(document, request, options, cancellationToken);
     }
 
-    internal static async Task<HtmlPdfRenderResult> ConvertAsync(HtmlConversionDocument document, HtmlToPdfOptions options, CancellationToken cancellationToken) {
+    internal static async Task<HtmlPdfRenderResult> ConvertAsync(HtmlConversionDocument document, HtmlPdfExportOptions options, CancellationToken cancellationToken) {
         HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
             options, HtmlRenderEncoder.Pdf, HtmlRenderPageSet.All(), forcePrintPaged: true);
         return await ConvertAsync(document, request, options, cancellationToken).ConfigureAwait(false);
@@ -27,7 +27,7 @@ internal static partial class HtmlPdfRenderedConverter {
 
     internal static byte[] ConvertToBytes(
         HtmlConversionDocument document,
-        HtmlToPdfOptions options,
+        HtmlPdfExportOptions options,
         CancellationToken cancellationToken = default) {
         HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
             options, HtmlRenderEncoder.Pdf, HtmlRenderPageSet.All(), forcePrintPaged: true);
@@ -36,7 +36,7 @@ internal static partial class HtmlPdfRenderedConverter {
 
     internal static async Task<byte[]> ConvertToBytesAsync(
         HtmlConversionDocument document,
-        HtmlToPdfOptions options,
+        HtmlPdfExportOptions options,
         CancellationToken cancellationToken) {
         HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
             options, HtmlRenderEncoder.Pdf, HtmlRenderPageSet.All(), forcePrintPaged: true);
@@ -46,7 +46,7 @@ internal static partial class HtmlPdfRenderedConverter {
     internal static HtmlPdfRenderResult Convert(
         HtmlConversionDocument document,
         HtmlRenderRequest request,
-        HtmlToPdfOptions options,
+        HtmlPdfExportOptions options,
         CancellationToken cancellationToken = default) {
         PreparedPdfRequest prepared = PrepareRequest(request, options);
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, prepared.Request);
@@ -58,7 +58,7 @@ internal static partial class HtmlPdfRenderedConverter {
     internal static async Task<HtmlPdfRenderResult> ConvertAsync(
         HtmlConversionDocument document,
         HtmlRenderRequest request,
-        HtmlToPdfOptions options,
+        HtmlPdfExportOptions options,
         CancellationToken cancellationToken) {
         PreparedPdfRequest prepared = PrepareRequest(request, options);
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, prepared.Request);
@@ -70,7 +70,7 @@ internal static partial class HtmlPdfRenderedConverter {
     internal static byte[] ConvertToBytes(
         HtmlConversionDocument document,
         HtmlRenderRequest request,
-        HtmlToPdfOptions options,
+        HtmlPdfExportOptions options,
         CancellationToken cancellationToken = default) {
         PreparedPdfRequest prepared = PrepareRequest(request, options);
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, prepared.Request);
@@ -82,7 +82,7 @@ internal static partial class HtmlPdfRenderedConverter {
     internal static async Task<byte[]> ConvertToBytesAsync(
         HtmlConversionDocument document,
         HtmlRenderRequest request,
-        HtmlToPdfOptions options,
+        HtmlPdfExportOptions options,
         CancellationToken cancellationToken) {
         PreparedPdfRequest prepared = PrepareRequest(request, options);
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, prepared.Request);
@@ -93,7 +93,7 @@ internal static partial class HtmlPdfRenderedConverter {
         }).ConfigureAwait(false);
     }
 
-    internal static HtmlRenderOptions ResolveRenderOptions(HtmlToPdfOptions options) {
+    internal static HtmlRenderOptions ResolveRenderOptions(HtmlPdfExportOptions options) {
         HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
             options, HtmlRenderEncoder.Pdf, HtmlRenderPageSet.All(), forcePrintPaged: true);
         return PrepareRequest(request, options).Request.ResolveOptions();
@@ -104,8 +104,8 @@ internal static partial class HtmlPdfRenderedConverter {
     /// <summary>Applies PDF font and resource policy to image and display-list requests.</summary>
     internal static HtmlRenderOptions PrepareNonPdfOptions(HtmlRenderRequest request) {
         HtmlRenderOptions source = request.Options;
-        var options = new HtmlToPdfOptions(source);
-        bool preserveHtmlResourcePolicy = source is not HtmlToPdfOptions pdfSource || pdfSource.PreservesHtmlResourcePolicy;
+        var options = new HtmlPdfExportOptions(source);
+        bool preserveHtmlResourcePolicy = source is not HtmlPdfExportOptions pdfSource || pdfSource.PreservesHtmlResourcePolicy;
         if (preserveHtmlResourcePolicy) {
             // Retained EPUB, email and site-bundle resolvers already enforce their
             // container boundary. Preparing PDF fonts must not replace that policy.
@@ -116,14 +116,14 @@ internal static partial class HtmlPdfRenderedConverter {
             preserveHtmlResourcePolicy: preserveHtmlResourcePolicy).Request.ResolveOptions();
     }
 
-    private static PreparedPdfRequest PrepareRequest(HtmlRenderRequest request, HtmlToPdfOptions options,
+    private static PreparedPdfRequest PrepareRequest(HtmlRenderRequest request, HtmlPdfExportOptions options,
         bool allowNonPdfEncoder = false, bool preserveHtmlResourcePolicy = false) {
         if (request == null) throw new ArgumentNullException(nameof(request));
         if (options == null) throw new ArgumentNullException(nameof(options));
         if (request.Encoder != HtmlRenderEncoder.Pdf && !allowNonPdfEncoder) {
             throw new ArgumentException("HTML-to-PDF conversion requires the Pdf render encoder.", nameof(request));
         }
-        HtmlToPdfOptions renderOptions = new HtmlToPdfOptions(request.Options);
+        HtmlPdfExportOptions renderOptions = new HtmlPdfExportOptions(request.Options);
         CopyAdapterOptions(options, renderOptions);
         ApplyPrintLayoutWidth(request, renderOptions);
         renderOptions.AutoFitWidePrintRoot = renderOptions.AutoFitWidePrintContent
@@ -249,7 +249,7 @@ internal static partial class HtmlPdfRenderedConverter {
         CancellationToken cancellationToken) {
         HtmlRenderResult rendered = HtmlRenderEngine.ExecuteCore(
             document, prepared.Request, resolved, cancellationToken);
-        return CreatePdf(rendered.Document, (HtmlToPdfOptions)resolved, cancellationToken).WithRenderResult(rendered);
+        return CreatePdf(rendered.Document, (HtmlPdfExportOptions)resolved, cancellationToken).WithRenderResult(rendered);
     }
 
     private static async Task<HtmlPdfRenderResult> ConvertCoreAsync(
@@ -259,10 +259,10 @@ internal static partial class HtmlPdfRenderedConverter {
         CancellationToken cancellationToken) {
         HtmlRenderResult rendered = await HtmlRenderEngine.ExecuteCoreAsync(
             document, prepared.Request, resolved, cancellationToken).ConfigureAwait(false);
-        return CreatePdf(rendered.Document, (HtmlToPdfOptions)resolved, cancellationToken).WithRenderResult(rendered);
+        return CreatePdf(rendered.Document, (HtmlPdfExportOptions)resolved, cancellationToken).WithRenderResult(rendered);
     }
 
-    private static void CopyAdapterOptions(HtmlToPdfOptions source, HtmlToPdfOptions target) {
+    private static void CopyAdapterOptions(HtmlPdfExportOptions source, HtmlPdfExportOptions target) {
         target.TextFallbacks = source.TextFallbacks;
         target.TextShapingMode = source.TextShapingMode;
         target.FontFamily = source.FontFamily;
@@ -283,12 +283,12 @@ internal static partial class HtmlPdfRenderedConverter {
     }
 
     private readonly struct PreparedPdfRequest {
-        internal PreparedPdfRequest(HtmlRenderRequest request, HtmlToPdfOptions options) {
+        internal PreparedPdfRequest(HtmlRenderRequest request, HtmlPdfExportOptions options) {
             Request = request;
             Options = options;
         }
         internal HtmlRenderRequest Request { get; }
-        internal HtmlToPdfOptions Options { get; }
+        internal HtmlPdfExportOptions Options { get; }
     }
 
     private static void ApplyResourceAccessPolicy(HtmlUrlPolicy policy, bool allowDataUrls, bool allowFileUrls) {
@@ -306,7 +306,7 @@ internal static partial class HtmlPdfRenderedConverter {
         }
     }
 
-    internal static HtmlPdfRenderResult CreatePdf(HtmlRenderDocument rendered, HtmlToPdfOptions options, CancellationToken cancellationToken) {
+    internal static HtmlPdfRenderResult CreatePdf(HtmlRenderDocument rendered, HtmlPdfExportOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         HtmlDiagnosticReport diagnostics = rendered.DiagnosticReport.Clone();
 

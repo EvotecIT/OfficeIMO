@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_RawHtmlComments_CanImportAsNativeWordComments() {
-            var options = new WordHtmlImportOptions {
+            var options = new HtmlWordExportOptions {
                 ImportHtmlComments = true,
                 HtmlCommentAuthor = "HTML Reviewer",
                 HtmlCommentInitials = "HR"

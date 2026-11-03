@@ -96,7 +96,7 @@ public sealed class RtfPdfLineSpacingRegressionTests {
             .ToArray();
     }
 
-    private static RtfToPdfOptions PortableOptions() => new RtfToPdfOptions {
+    private static RtfPdfExportOptions PortableOptions() => new RtfPdfExportOptions {
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
         PdfOptions = new PdfCore.PdfCreateOptions {
             DefaultFont = PdfCore.PdfStandardFont.Helvetica,

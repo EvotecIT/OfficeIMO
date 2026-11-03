@@ -11,7 +11,7 @@ public sealed class PowerPointHtmlOutputOptionsTests {
     [InlineData(PowerPointHtmlExportProfile.VisualReview, "PowerPoint Visual Review")]
     public void HeadingIsWrittenByDefaultAndCanBeOmitted(PowerPointHtmlExportProfile profile, string fallback) {
         using var presentation = CreateWithOffSlideShape();
-        var options = new PowerPointHtmlSaveOptions { ExportProfile = profile };
+        var options = new PowerPointHtmlExportOptions { ExportProfile = profile };
 
         string withHeading = presentation.ToHtml(options);
         options.IncludeHeading = false;
@@ -29,7 +29,7 @@ public sealed class PowerPointHtmlOutputOptionsTests {
     [InlineData(PowerPointHtmlExportProfile.VisualReview)]
     public void SlideHeadingsAreWrittenByDefaultAndCanBeOmitted(PowerPointHtmlExportProfile profile) {
         using var presentation = CreateWithOffSlideShape();
-        var options = new PowerPointHtmlSaveOptions { ExportProfile = profile };
+        var options = new PowerPointHtmlExportOptions { ExportProfile = profile };
 
         string withHeadings = presentation.ToHtml(options);
         options.IncludeSlideHeadings = false;
@@ -42,7 +42,7 @@ public sealed class PowerPointHtmlOutputOptionsTests {
     [Fact]
     public void OmittedHeadingIgnoresTitle() {
         using var presentation = CreateWithOffSlideShape();
-        var options = new PowerPointHtmlSaveOptions { Title = "Quarterly review", IncludeHeading = false };
+        var options = new PowerPointHtmlExportOptions { Title = "Quarterly review", IncludeHeading = false };
 
         string html = presentation.ToHtml(options);
 
@@ -53,7 +53,7 @@ public sealed class PowerPointHtmlOutputOptionsTests {
     [Fact]
     public void RenderDiagnosticsAreVisibleByDefaultAndCanBeLeftOutWhileStillReported() {
         using var presentation = CreateWithOffSlideShape();
-        PowerPointHtmlSaveOptions options = PowerPointHtmlSaveOptions.CreateVisualReviewProfile();
+        PowerPointHtmlExportOptions options = PowerPointHtmlExportOptions.CreateVisualReviewProfile();
 
         string visible = presentation.ToHtml(options, out OfficeConversionReport visibleReport);
         options.IncludeRenderDiagnostics = false;
@@ -69,9 +69,9 @@ public sealed class PowerPointHtmlOutputOptionsTests {
 
     [Fact]
     public void CloneCopiesHeadingAndRenderDiagnosticChoices() {
-        var options = new PowerPointHtmlSaveOptions { IncludeHeading = false, IncludeSlideHeadings = false, IncludeRenderDiagnostics = false };
+        var options = new PowerPointHtmlExportOptions { IncludeHeading = false, IncludeSlideHeadings = false, IncludeRenderDiagnostics = false };
 
-        PowerPointHtmlSaveOptions clone = options.Clone();
+        PowerPointHtmlExportOptions clone = options.Clone();
 
         Assert.False(clone.IncludeHeading);
         Assert.False(clone.IncludeSlideHeadings);
@@ -81,7 +81,7 @@ public sealed class PowerPointHtmlOutputOptionsTests {
     [Fact]
     public void VisualReviewSnapshotEmbedsSuppliedFonts() {
         using var presentation = CreateWithCalibriText();
-        PowerPointHtmlSaveOptions options = PowerPointHtmlSaveOptions.CreateVisualReviewProfile();
+        PowerPointHtmlExportOptions options = PowerPointHtmlExportOptions.CreateVisualReviewProfile();
         string installed = presentation.ToHtml(options);
         var fonts = new OfficeFontFaceCollection().Add("Calibri", ReadBaselineSans());
         options.Fonts = fonts;
@@ -96,7 +96,7 @@ public sealed class PowerPointHtmlOutputOptionsTests {
     [Fact]
     public void VisualReviewSnapshotKeepsPlatformFontsWithoutFonts() {
         using var presentation = CreateWithCalibriText();
-        PowerPointHtmlSaveOptions options = PowerPointHtmlSaveOptions.CreateVisualReviewProfile();
+        PowerPointHtmlExportOptions options = PowerPointHtmlExportOptions.CreateVisualReviewProfile();
 
         string html = presentation.ToHtml(options);
 

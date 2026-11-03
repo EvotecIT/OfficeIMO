@@ -34,7 +34,7 @@ public class RtfMergeResourceRegressionTests {
         Assert.Equal("Destination", Assert.Single(destination.DocumentVariables).Value);
         Assert.Equal(new[] { "DocumentVariables/Shared", "Info/Title" }, result.Report.NativeDiagnostics.Where(item => item.Code == "RtfMergeMetadataConflict").Select(item => item.SourcePath));
         Assert.Throws<RtfConversionLossException>(() => result.Report.ThrowIfLoss());
-        RtfDocument reopened = RtfDocument.ParseResult(destination.ToRtf(), new RtfReadOptions { ReadFileReferences = true }).Document;
+        RtfDocument reopened = RtfDocument.ParseResult(destination.ToRtf(), new RtfLoadOptions { ReadFileReferences = true }).Document;
         Assert.Equal("file:///source.docx", reopened.FileReferences[1].Path);
         Assert.Equal("urn:source", reopened.XmlNamespaces[1].Uri);
         Assert.Equal(0, source.FileReferences[0].Id);

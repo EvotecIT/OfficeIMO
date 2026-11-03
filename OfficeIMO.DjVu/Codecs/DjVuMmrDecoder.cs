@@ -13,7 +13,7 @@ internal static class DjVuMmrDecoder {
         if ((flags & ~3) != 0) throw new NotSupportedException("Unsupported DjVu MMR flags.");
         int width = DjVuBinary.U16(source, position), height = DjVuBinary.U16(source, position + 2); position += 4;
         if (width == 0 || height == 0) throw new InvalidDataException("Empty DjVu MMR image.");
-        if ((long)width * height > budget.Options.MaxPagePixels) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxPagePixels));
+        if ((long)width * height > budget.Options.MaxPagePixels) throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxPagePixels));
         int rowsPerStripe = height;
         if ((flags & 2) != 0) {
             if (end - position < 2) throw new InvalidDataException("Truncated DjVu MMR stripe header.");

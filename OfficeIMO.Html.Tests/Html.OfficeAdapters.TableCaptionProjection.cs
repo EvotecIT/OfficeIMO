@@ -40,7 +40,7 @@ public partial class HtmlOfficeAdapters {
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
 
         HtmlToPowerPointResult powerPointResult = source.ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using (PowerPointDocument presentation = powerPointResult.RequireValue()) {
             using var artifact = new MemoryStream();
             presentation.Save(artifact);
@@ -73,7 +73,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelRetainsFullLinkedCaptionAfterNativeTableCells() {
         HtmlToExcelResult result = HtmlConversionDocument.Parse(RegulatoryTableHtml).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.RequireValue();
         using var artifact = new MemoryStream();
         workbook.Save(artifact);
@@ -121,7 +121,7 @@ public partial class HtmlOfficeAdapters {
             + RegulatoryTableCaption + "</caption>" + rows + "</table></main>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.RequireValue();
         PowerPointSlide captionSlide = Assert.Single(presentation.Slides,
             slide => slide.TextBoxes.Any(box => box.Text == RegulatoryTableCaption));
@@ -141,7 +141,7 @@ public partial class HtmlOfficeAdapters {
             + "<tr><th>Term</th><th>Value</th></tr><tr><td>pH</td><td>7</td></tr></table></main>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using PowerPointDocument presentation = result.RequireValue();
         Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
         Assert.DoesNotContain(presentation.Slides.SelectMany(slide => slide.TextBoxes),
@@ -158,7 +158,7 @@ public partial class HtmlOfficeAdapters {
             + "<tr><th>Term</th><th>Value</th></tr><tr><td>pH</td><td>7</td></tr></table></main>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.RequireValue();
         Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
         Assert.Contains(presentation.Slides.SelectMany(slide => slide.TextBoxes),

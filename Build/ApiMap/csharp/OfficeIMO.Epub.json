@@ -10,6 +10,24 @@
       "category": "naming",
       "reason": "Package signature operations use the same stems; VBA and PDF external-signature workflows remain explicit.",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.Epub.EpubReadOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Epub.EpubLoadOptions",
+      "reason": "Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers.",
+      "category": "options",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Epub.EpubWriteOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Epub.EpubSaveOptions",
+      "reason": "Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers.",
+      "category": "options",
+      "applied": true
     }
   ]
 }

@@ -32,7 +32,7 @@ namespace OfficeIMO.Word.Html {
         private void ProcessImage(
             IHtmlImageElement img,
             WordDocument doc,
-            WordHtmlImportOptions options,
+            HtmlWordExportOptions options,
             WordParagraph? currentParagraph,
             WordHeaderFooter? headerFooter,
             Func<int?>? resolveContainerWidthTwips = null) {
@@ -219,7 +219,7 @@ namespace OfficeIMO.Word.Html {
             string src,
             IHtmlImageElement img,
             WordDocument doc,
-            WordHtmlImportOptions options,
+            HtmlWordExportOptions options,
             WordParagraph? currentParagraph,
             WordHeaderFooter? headerFooter,
             Func<int?>? resolveContainerWidthTwips) {
@@ -407,7 +407,7 @@ namespace OfficeIMO.Word.Html {
             image.Title = string.IsNullOrEmpty(title) ? null : title;
         }
 
-        private long EnsureFileWithinImageLimits(string path, WordHtmlImportOptions options) {
+        private long EnsureFileWithinImageLimits(string path, HtmlWordExportOptions options) {
             var length = new FileInfo(path).Length;
             if (options.MaxImageBytes.HasValue && length > options.MaxImageBytes.Value) {
                 throw new HtmlResourceLimitException($"Resource length {length} bytes exceeds limit {options.MaxImageBytes.Value} bytes.");
@@ -448,7 +448,7 @@ namespace OfficeIMO.Word.Html {
             return false;
         }
 
-        private bool TryHandleDataImage(string src, WordDocument doc, WordHtmlImportOptions options, ref WordParagraph? paragraph, WordHeaderFooter? headerFooter, WordImageTextWrapping wrap, string alt, out WordImage image) {
+        private bool TryHandleDataImage(string src, WordDocument doc, HtmlWordExportOptions options, ref WordParagraph? paragraph, WordHeaderFooter? headerFooter, WordImageTextWrapping wrap, string alt, out WordImage image) {
             image = null!;
             if (!HtmlImageDataUri.TryParse(src, out var dataUri)) {
                 AddDiagnostic(options, "image-data-uri-invalid", "Image data URI could not be parsed and was skipped.", src);
@@ -512,7 +512,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static Uri? ResolveImageBaseUri(IHtmlImageElement img, WordHtmlImportOptions options) {
+        private static Uri? ResolveImageBaseUri(IHtmlImageElement img, HtmlWordExportOptions options) {
             if (!string.IsNullOrEmpty(options.BasePath)) {
                 return null;
             }
@@ -524,7 +524,7 @@ namespace OfficeIMO.Word.Html {
             return null;
         }
 
-        private string ResolveWordImageSource(IHtmlImageElement img, WordHtmlImportOptions options) {
+        private string ResolveWordImageSource(IHtmlImageElement img, HtmlWordExportOptions options) {
             string firstResolved = string.Empty;
             int remoteCandidateProbeCount = 0;
             foreach (string candidate in EnumerateWordImageSourceCandidates(img, options)) {
@@ -580,12 +580,12 @@ namespace OfficeIMO.Word.Html {
             return firstResolved;
         }
 
-        private static bool CanProbeRemoteImageCandidate(WordHtmlImportOptions options, int probeCount) {
+        private static bool CanProbeRemoteImageCandidate(HtmlWordExportOptions options, int probeCount) {
             return !options.MaxRemoteImageCandidateProbes.HasValue
                 || probeCount < options.MaxRemoteImageCandidateProbes.Value;
         }
 
-        private static IEnumerable<string> EnumerateWordImageSourceCandidates(IHtmlImageElement img, WordHtmlImportOptions options) {
+        private static IEnumerable<string> EnumerateWordImageSourceCandidates(IHtmlImageElement img, HtmlWordExportOptions options) {
             Uri? baseUri = ResolveImageBaseUri(img, options);
             var responsiveCandidateState = new ResponsiveImageCandidateState(options);
             if (img.ParentElement != null
@@ -628,7 +628,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static IEnumerable<string> ResolveImageCandidatesFromSourceElement(AngleSharp.Dom.IElement sourceElement, IHtmlImageElement img, Uri? baseUri, WordHtmlImportOptions options, ResponsiveImageCandidateState state) {
+        private static IEnumerable<string> ResolveImageCandidatesFromSourceElement(AngleSharp.Dom.IElement sourceElement, IHtmlImageElement img, Uri? baseUri, HtmlWordExportOptions options, ResponsiveImageCandidateState state) {
             foreach (string attributeName in WordImageSrcSetAttributes) {
                 foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Enumerate(sourceElement.GetAttribute(attributeName))) {
                     string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(candidate.Url, baseUri, options.ResourceUrlPolicy);
@@ -678,7 +678,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static IEnumerable<string> ResolveImageSrcSetCandidates(IHtmlImageElement img, Uri? baseUri, WordHtmlImportOptions options, ResponsiveImageCandidateState state) {
+        private static IEnumerable<string> ResolveImageSrcSetCandidates(IHtmlImageElement img, Uri? baseUri, HtmlWordExportOptions options, ResponsiveImageCandidateState state) {
             foreach (string attributeName in WordImageSrcSetAttributes) {
                 foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Enumerate(img.GetAttribute(attributeName))) {
                     string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(candidate.Url, baseUri, options.ResourceUrlPolicy);
@@ -707,7 +707,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static IEnumerable<string> ResolveImageUrlAttributeCandidates(IHtmlImageElement img, Uri? baseUri, IEnumerable<string> attributeNames, WordHtmlImportOptions options, ResponsiveImageCandidateState state) {
+        private static IEnumerable<string> ResolveImageUrlAttributeCandidates(IHtmlImageElement img, Uri? baseUri, IEnumerable<string> attributeNames, HtmlWordExportOptions options, ResponsiveImageCandidateState state) {
             foreach (string attributeName in attributeNames) {
                 string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(img.GetAttribute(attributeName), baseUri, options.ResourceUrlPolicy);
                 if (state.TryTrackFixedCandidate(resolved, out string tracked)) {
@@ -716,7 +716,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static bool IsResolvedImageCandidateAllowedForEnumeration(string? resolved, IHtmlImageElement img, WordHtmlImportOptions options) {
+        private static bool IsResolvedImageCandidateAllowedForEnumeration(string? resolved, IHtmlImageElement img, HtmlWordExportOptions options) {
             if (string.IsNullOrWhiteSpace(resolved)) {
                 return false;
             }
@@ -742,12 +742,12 @@ namespace OfficeIMO.Word.Html {
         }
 
         private sealed class ResponsiveImageCandidateState {
-            private readonly WordHtmlImportOptions _options;
+            private readonly HtmlWordExportOptions _options;
             private readonly HashSet<string> _seen = new HashSet<string>(StringComparer.Ordinal);
             private int _count;
             private int _scanned;
 
-            internal ResponsiveImageCandidateState(WordHtmlImportOptions options) {
+            internal ResponsiveImageCandidateState(HtmlWordExportOptions options) {
                 _options = options;
             }
 
@@ -826,7 +826,7 @@ namespace OfficeIMO.Word.Html {
             return false;
         }
 
-        private static string ResolveImageSourcePath(string source, IHtmlImageElement img, WordHtmlImportOptions options) {
+        private static string ResolveImageSourcePath(string source, IHtmlImageElement img, HtmlWordExportOptions options) {
             if (string.IsNullOrWhiteSpace(source)
                 || source.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)
                 || Uri.TryCreate(source, UriKind.Absolute, out _)) {
@@ -883,7 +883,7 @@ namespace OfficeIMO.Word.Html {
 
         private async Task PrefetchRemoteImagesAsync(
             IHtmlDocument document,
-            WordHtmlImportOptions options,
+            HtmlWordExportOptions options,
             CancellationToken cancellationToken) =>
             await PrefetchRemoteImagesAsync(
                 document.QuerySelectorAll("img").OfType<IHtmlImageElement>(),
@@ -892,7 +892,7 @@ namespace OfficeIMO.Word.Html {
 
         private async Task PrefetchRemoteImagesAsync(
             IEnumerable<IHtmlImageElement> images,
-            WordHtmlImportOptions options,
+            HtmlWordExportOptions options,
             CancellationToken cancellationToken) {
             var sources = new List<string>();
             var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -950,7 +950,7 @@ namespace OfficeIMO.Word.Html {
 
         private async Task PrefetchRemoteImageCandidateAsync(
             string source,
-            WordHtmlImportOptions options,
+            HtmlWordExportOptions options,
             CancellationToken cancellationToken) {
             if (!Uri.TryCreate(source, UriKind.Absolute, out Uri? uri)
                 || _remoteImageBytesCache.ContainsKey(uri.AbsoluteUri)
@@ -993,7 +993,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private byte[] FetchBytes(Uri uri, WordHtmlImportOptions options) {
+        private byte[] FetchBytes(Uri uri, HtmlWordExportOptions options) {
             string cacheKey = uri.AbsoluteUri;
             if (_remoteImageBytesCache.TryGetValue(cacheKey, out byte[]? cachedBytes)) {
                 using (var imageStream = new MemoryStream(cachedBytes, writable: false)) EnsureDecodedImageWithinLimits(imageStream, options);
@@ -1008,7 +1008,7 @@ namespace OfficeIMO.Word.Html {
             throw new InvalidOperationException("Remote image resources must be prepared by the asynchronous conversion pipeline before document projection.");
         }
 
-        private bool TryFetchRemoteImageCandidate(string source, WordHtmlImportOptions options) {
+        private bool TryFetchRemoteImageCandidate(string source, HtmlWordExportOptions options) {
             if (!Uri.TryCreate(source, UriKind.Absolute, out var uri)) {
                 return false;
             }
@@ -1039,13 +1039,13 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private string FetchString(Uri uri, WordHtmlImportOptions options, out long reservedBytes) {
+        private string FetchString(Uri uri, HtmlWordExportOptions options, out long reservedBytes) {
             var bytes = FetchBytes(uri, options);
             reservedBytes = bytes.LongLength;
             return Encoding.UTF8.GetString(bytes);
         }
 
-        private (long? Limit, bool LimitedByTotalBudget) GetRemoteImagePrefetchReadLimit(WordHtmlImportOptions options) {
+        private (long? Limit, bool LimitedByTotalBudget) GetRemoteImagePrefetchReadLimit(HtmlWordExportOptions options) {
             long? limit = options.MaxImageBytes;
             bool limitedByTotalBudget = false;
             if (options.MaxTotalImageBytes.HasValue) {
@@ -1102,7 +1102,7 @@ namespace OfficeIMO.Word.Html {
             return memory.ToArray();
         }
 
-        private static bool IsImageContentTypeAllowed(string? contentType, WordHtmlImportOptions options) {
+        private static bool IsImageContentTypeAllowed(string? contentType, HtmlWordExportOptions options) {
             if (!options.ValidateImageContentTypes || string.IsNullOrWhiteSpace(contentType)) {
                 return true;
             }
@@ -1126,13 +1126,13 @@ namespace OfficeIMO.Word.Html {
             return normalized;
         }
 
-        private static void EnsureImageContentTypeAllowed(string? contentType, WordHtmlImportOptions options) {
+        private static void EnsureImageContentTypeAllowed(string? contentType, HtmlWordExportOptions options) {
             if (!IsImageContentTypeAllowed(contentType, options)) {
                 throw new HtmlResourceContentTypeException($"Image content type '{contentType}' is not allowed.");
             }
         }
 
-        private bool TryApplyImageSourcePolicy(string src, WordHtmlImportOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter, WordDocument doc, string alt) {
+        private bool TryApplyImageSourcePolicy(string src, HtmlWordExportOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter, WordDocument doc, string alt) {
             if (IsImageSourceAllowed(src, options, out var detail)) {
                 return true;
             }
@@ -1142,7 +1142,7 @@ namespace OfficeIMO.Word.Html {
             return false;
         }
 
-        private static bool IsImageSourceAllowed(string src, WordHtmlImportOptions options, out string detail) {
+        private static bool IsImageSourceAllowed(string src, HtmlWordExportOptions options, out string detail) {
             detail = string.Empty;
 
             if (src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)) {
@@ -1169,7 +1169,7 @@ namespace OfficeIMO.Word.Html {
             return true;
         }
 
-        private bool IsImageSourceAllowedForCurrentMode(string src, IHtmlImageElement img, WordHtmlImportOptions options, out string detail) {
+        private bool IsImageSourceAllowedForCurrentMode(string src, IHtmlImageElement img, HtmlWordExportOptions options, out string detail) {
             if (options.ImageProcessing == WordHtmlImageProcessingMode.EmbedDataUriOnly
                 && !src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)) {
                 detail = "External image was skipped because only data URI images are enabled.";
@@ -1200,7 +1200,7 @@ namespace OfficeIMO.Word.Html {
             return true;
         }
 
-        private bool IsDataImageCandidateAllowed(string src, WordHtmlImportOptions options, out string detail) {
+        private bool IsDataImageCandidateAllowed(string src, HtmlWordExportOptions options, out string detail) {
             detail = string.Empty;
             if (!HtmlImageDataUri.TryParse(src, out var dataUri)) {
                 detail = "Image data URI could not be parsed.";
@@ -1289,7 +1289,7 @@ namespace OfficeIMO.Word.Html {
             return true;
         }
 
-        private static bool IsIdentifiedImageContentTypeAllowed(OfficeImageInfo imageInfo, WordHtmlImportOptions options, out string detail) {
+        private static bool IsIdentifiedImageContentTypeAllowed(OfficeImageInfo imageInfo, HtmlWordExportOptions options, out string detail) {
             detail = string.Empty;
             if (IsImageContentTypeAllowed(imageInfo.MimeType, options)) {
                 return true;
@@ -1319,7 +1319,7 @@ namespace OfficeIMO.Word.Html {
             return true;
         }
 
-        private bool TryProbeLocalImageCandidate(string source, WordHtmlImportOptions options) {
+        private bool TryProbeLocalImageCandidate(string source, HtmlWordExportOptions options) {
             if (!TryGetLocalImagePath(source, out string path)) {
                 return false;
             }
@@ -1342,7 +1342,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static bool IsRemoteEmbeddedImageSource(string source, WordHtmlImportOptions options) {
+        private static bool IsRemoteEmbeddedImageSource(string source, HtmlWordExportOptions options) {
             if (options.ImageProcessing == WordHtmlImageProcessingMode.LinkExternal) {
                 return false;
             }
@@ -1353,7 +1353,7 @@ namespace OfficeIMO.Word.Html {
                        || uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase));
         }
 
-        private static bool IsLocalEmbeddedImageSource(string source, WordHtmlImportOptions options) {
+        private static bool IsLocalEmbeddedImageSource(string source, HtmlWordExportOptions options) {
             if (options.ImageProcessing == WordHtmlImageProcessingMode.LinkExternal) {
                 return false;
             }
@@ -1389,7 +1389,7 @@ namespace OfficeIMO.Word.Html {
                    && TryParsePixelValue(img.GetAttribute("height")).HasValue;
         }
 
-        private static bool IsImageSchemeAllowed(string scheme, WordHtmlImportOptions options, out string detail) {
+        private static bool IsImageSchemeAllowed(string scheme, HtmlWordExportOptions options, out string detail) {
             if (options.AllowedImageUriSchemes.Contains(scheme)) {
                 detail = string.Empty;
                 return true;
@@ -1407,7 +1407,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private bool TryReserveImageBytes(long length, WordHtmlImportOptions options, string source) {
+        private bool TryReserveImageBytes(long length, HtmlWordExportOptions options, string source) {
             try {
                 ReserveImageBytes(length, options);
                 return true;
@@ -1417,7 +1417,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private void ReserveImageBytes(long length, WordHtmlImportOptions options) {
+        private void ReserveImageBytes(long length, HtmlWordExportOptions options) {
             if (!options.MaxTotalImageBytes.HasValue) {
                 return;
             }
@@ -1430,7 +1430,7 @@ namespace OfficeIMO.Word.Html {
             _imageBytesUsed += length;
         }
 
-        private void ReleaseImageBytes(long length, WordHtmlImportOptions options) {
+        private void ReleaseImageBytes(long length, HtmlWordExportOptions options) {
             if (length <= 0 || !options.MaxTotalImageBytes.HasValue) {
                 return;
             }
@@ -1458,7 +1458,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private bool ProcessSvgElement(AngleSharp.Dom.IElement svg, WordDocument doc, WordSection section, WordHtmlImportOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
+        private bool ProcessSvgElement(AngleSharp.Dom.IElement svg, WordDocument doc, WordSection section, HtmlWordExportOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
             double? width = null;
             double? height = null;
             if (double.TryParse(svg.GetAttribute("width")?.Replace("px", string.Empty), NumberStyles.Float, CultureInfo.InvariantCulture, out var w)) width = w;

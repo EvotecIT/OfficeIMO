@@ -183,7 +183,7 @@ public sealed class ImageExportProviderVisualBaselineTests {
         using var package = new MemoryStream(CreateEpub());
         EpubDocument book = EpubDocument.Load(
             package,
-            new EpubReadOptions { IncludeRawHtml = true });
+            new EpubLoadOptions { IncludeRawHtml = true });
         var options = new EpubImageExportOptions {
             MaximumOutputWidth = 360,
             MaximumOutputHeight = 360

@@ -8,8 +8,8 @@ namespace OfficeIMO.Tests.Rtf;
 public class RtfHtmlOptionsTests {
     [Fact]
     public void HtmlToRtfOptions_Profiles_Expose_Bounded_Untrusted_Profile() {
-        HtmlToRtfOptions defaultProfile = HtmlToRtfOptions.CreateOfficeIMOProfile();
-        HtmlToRtfOptions untrustedProfile = HtmlToRtfOptions.UntrustedDefaults;
+        HtmlRtfExportOptions defaultProfile = HtmlRtfExportOptions.CreateOfficeIMOProfile();
+        HtmlRtfExportOptions untrustedProfile = HtmlRtfExportOptions.UntrustedDefaults;
 
         Assert.Null(defaultProfile.MaxHtmlNodes);
         Assert.Null(defaultProfile.MaxHtmlDepth);
@@ -22,7 +22,7 @@ public class RtfHtmlOptionsTests {
 
     [Fact]
     public void HtmlToRtfOptions_Clone_Copies_Configuration_Without_Diagnostics() {
-        var options = new HtmlToRtfOptions {
+        var options = new HtmlRtfExportOptions {
             BaseUri = new Uri("https://example.test/root/"),
             PreserveUnknownTagsAsText = true,
             IgnoreInsignificantWhitespace = false,
@@ -31,7 +31,7 @@ public class RtfHtmlOptionsTests {
             MaxHtmlDepth = 44
         };
 
-        HtmlToRtfOptions clone = options.Clone();
+        HtmlRtfExportOptions clone = options.Clone();
 
         Assert.NotSame(options, clone);
         Assert.Equal(options.BaseUri, clone.BaseUri);
@@ -45,7 +45,7 @@ public class RtfHtmlOptionsTests {
 
     [Fact]
     public void RtfToHtmlOptions_Clone_Copies_Configuration() {
-        var options = new RtfToHtmlOptions {
+        var options = new RtfHtmlExportOptions {
             Profile = OfficeHtmlConversionProfile.RtfPrintReview,
             Theme = OfficeVisualThemeKind.Report,
             IncludeDefaultStyles = true,
@@ -60,7 +60,7 @@ public class RtfHtmlOptionsTests {
             NewLine = "\n"
         };
 
-        RtfToHtmlOptions clone = options.Clone();
+        RtfHtmlExportOptions clone = options.Clone();
 
         Assert.NotSame(options, clone);
         Assert.Equal(options.Profile, clone.Profile);
@@ -83,7 +83,7 @@ public class RtfHtmlOptionsTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("Premium RTF review");
 
-        RtfToHtmlOptions options = RtfToHtmlOptions.CreatePrintReviewProfile(OfficeVisualThemeKind.GitHubLike);
+        RtfHtmlExportOptions options = RtfHtmlExportOptions.CreatePrintReviewProfile(OfficeVisualThemeKind.GitHubLike);
         string html = document.ToHtml(options);
 
         Assert.Equal(OfficeHtmlConversionProfile.RtfPrintReview, options.Profile);
@@ -98,9 +98,9 @@ public class RtfHtmlOptionsTests {
     [Fact]
     public void RtfPrintReviewProfile_RoundTripsStructuredHtmlThroughNativeRtf() {
         const string sourceHtml = "<h1>Review</h1><ul><li>Ready</li><li>Verified</li></ul><table><thead><tr><th>State</th><th>Count</th></tr></thead><tbody><tr><td>Open</td><td>2</td></tr></tbody></table>";
-        HtmlToRtfResult import = HtmlConversionDocument.Parse(sourceHtml).ToRtfDocumentResult(HtmlToRtfOptions.CreateOfficeIMOProfile());
+        HtmlToRtfResult import = HtmlConversionDocument.Parse(sourceHtml).ToRtfDocumentResult(HtmlRtfExportOptions.CreateOfficeIMOProfile());
 
-        RtfToHtmlResult export = import.Value.ToHtmlResult(RtfToHtmlOptions.CreatePrintReviewProfile(OfficeVisualThemeKind.Report));
+        RtfToHtmlResult export = import.Value.ToHtmlResult(RtfHtmlExportOptions.CreatePrintReviewProfile(OfficeVisualThemeKind.Report));
         string html = export.RequireValue();
 
         Assert.Contains("<h1", html, StringComparison.Ordinal);
@@ -119,12 +119,12 @@ public class RtfHtmlOptionsTests {
     [Fact]
     public void RtfToHtmlOptions_RejectsNonRtfProfile() {
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new RtfToHtmlOptions().Profile = OfficeHtmlConversionProfile.WordSemanticDocument);
+            new RtfHtmlExportOptions().Profile = OfficeHtmlConversionProfile.WordSemanticDocument);
     }
 
     [Fact]
     public void Html_ToRtfDocument_MaxHtmlNodes_Stops_With_Diagnostic() {
-        var options = new HtmlToRtfOptions {
+        var options = new HtmlRtfExportOptions {
             MaxHtmlNodes = 1
         };
 
@@ -139,7 +139,7 @@ public class RtfHtmlOptionsTests {
 
     [Fact]
     public void Html_ToRtfDocument_MaxHtmlDepth_Stops_With_Diagnostic() {
-        var options = new HtmlToRtfOptions {
+        var options = new HtmlRtfExportOptions {
             MaxHtmlDepth = 2
         };
 
@@ -154,7 +154,7 @@ public class RtfHtmlOptionsTests {
 
     [Fact]
     public void Options_Can_Be_Reused_Without_Leaking_Diagnostics_Between_Results() {
-        var options = new RtfToHtmlOptions();
+        var options = new RtfHtmlExportOptions();
         RtfDocument lossy = RtfDocument.Create();
         lossy.AddImage(RtfImageFormat.Png, new byte[] { 1, 2, 3 });
         RtfDocument clean = RtfDocument.Create();

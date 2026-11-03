@@ -55,7 +55,7 @@ public class RtfEffectiveFormattingRegressionTests {
         RtfDocument source = RtfDocument.ParseResult(input).Document;
         AssertDefaults(source);
         AssertDefaults(RtfDocument.ParseResult(source.ToRtf()).Document);
-        string html = source.ToHtml(new RtfToHtmlOptions { IncludeRoundTripMetadata = true, FragmentOnly = false });
+        string html = source.ToHtml(new RtfHtmlExportOptions { IncludeRoundTripMetadata = true, FragmentOnly = false });
         AssertDefaults(HtmlConversionDocument.Parse(html).ToRtfDocument());
 
         static void AssertDefaults(RtfDocument document) {
@@ -101,7 +101,7 @@ public class RtfEffectiveFormattingRegressionTests {
     [Fact]
     public void Normalized_Save_Retains_Inheritance_For_Subsequent_Style_Edits() {
         RtfDocument original = RtfDocument.ParseResult(Input).Document;
-        RtfDocument document = RtfDocument.ParseResult(original.ToRtf(new RtfWriteOptions { MaterializeStyleFormatting = false })).Document;
+        RtfDocument document = RtfDocument.ParseResult(original.ToRtf(new RtfSaveOptions { MaterializeStyleFormatting = false })).Document;
         Assert.Null(document.Paragraphs[0].DirectAlignment);
         RtfRun inherited = document.Paragraphs[0].Runs.Single(run => run.Text == "Inherited ");
         Assert.Null(inherited.DirectBold);
@@ -114,7 +114,7 @@ public class RtfEffectiveFormattingRegressionTests {
     [Fact]
     public void Html_And_Markdown_Render_Resolved_Formatting_While_Html_Metadata_Retains_Authored_Overrides() {
         RtfDocument document = RtfDocument.ParseResult(Input).Document;
-        string html = document.ToHtml(new RtfToHtmlOptions { FragmentOnly = false, IncludeRoundTripMetadata = true });
+        string html = document.ToHtml(new RtfHtmlExportOptions { FragmentOnly = false, IncludeRoundTripMetadata = true });
         Assert.Contains("text-align:center", html, StringComparison.Ordinal);
         Assert.Contains("<strong><em>Inherited ", html, StringComparison.Ordinal);
         Assert.Contains("***Inherited", document.ToMarkdown(), StringComparison.Ordinal);

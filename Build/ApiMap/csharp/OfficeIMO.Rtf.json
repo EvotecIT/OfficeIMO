@@ -5,7 +5,7 @@
       "old": "RtfDocument.Read(string, RtfReadOptions?, CancellationToken)",
       "kind": "method",
       "action": "merge",
-      "new": "RtfDocument.ParseResult(string, RtfReadOptions?, CancellationToken)",
+      "new": "RtfDocument.ParseResult(string, RtfLoadOptions?, CancellationToken)",
       "category": "lifecycle",
       "replacement": "Use Parse for the model or ParseResult for the model, lossless syntax and diagnostics.",
       "reason": "One rich text parser preserves the complete evidence payload.",
@@ -15,7 +15,7 @@
       "old": "OfficeIMO.Rtf.RtfReadOptions.CreateUntrustedProfile()",
       "kind": "method",
       "action": "rename",
-      "new": "OfficeIMO.Rtf.RtfReadOptions.UntrustedDefaults",
+      "new": "OfficeIMO.Rtf.RtfLoadOptions.UntrustedDefaults",
       "category": "limits",
       "reason": "Profiles for untrusted input use one discoverable name across formats.",
       "applied": true
@@ -25,7 +25,7 @@
       "kind": "method",
       "action": "remove",
       "new": null,
-      "replacement": "new RtfReadOptions()",
+      "replacement": "new RtfLoadOptions()",
       "category": "limits",
       "reason": "The factory only returned a default instance; construct the type directly.",
       "applied": true
@@ -34,8 +34,8 @@
       "old": "OfficeIMO.Rtf.RtfReadOptions.MaxDepth / MaxInputBytes / MaxInputCharacters / MaxTextCharacters / MaxTotalBinaryBytes / MaxTotalImageBytes / MaxTotalObjectBytes / DefaultMaxDepth / CompatibilityMaxDepth",
       "kind": "property",
       "action": "move",
-      "new": "OfficeIMO.Rtf.RtfReadOptions.Limits (RtfReadLimits)",
-      "replacement": "new RtfReadOptions { Limits = { MaxDepth = 64 } }",
+      "new": "OfficeIMO.Rtf.RtfLoadOptions.Limits (RtfReadLimits)",
+      "replacement": "new RtfLoadOptions { Limits = { MaxDepth = 64 } }",
       "category": "limits",
       "reason": "Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object.",
       "applied": true
@@ -75,6 +75,24 @@
       "replacement": "Diagnostics is now the common OfficeDiagnostic list.",
       "category": "contract",
       "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Rtf.RtfReadOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Rtf.RtfLoadOptions",
+      "reason": "Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers.",
+      "category": "options",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Rtf.RtfWriteOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Rtf.RtfSaveOptions",
+      "reason": "Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers.",
+      "category": "options",
       "applied": true
     }
   ]

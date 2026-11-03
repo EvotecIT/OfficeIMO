@@ -70,7 +70,7 @@ public sealed class ReaderOdfRtfProjectionPrerequisiteTests {
     [Fact]
     public void LoadedRtfProjectionPreservesOriginalDiagnosticsAndSourcePayloadAfterSemanticEdits() {
         RtfReadResult loaded = RtfDocument.ParseResult(@"{\rtf1 visible{\pict\pngblip 414243}{\object\objemb{\*\objdata 444546}}}",
-            new RtfReadOptions { DeferBinaryPayloads = true });
+            new RtfLoadOptions { DeferBinaryPayloads = true });
         Assert.NotEmpty(loaded.Diagnostics);
         loaded.Document.ReplaceText("visible", "edited native text");
         OfficeDocumentReadResult projected = loaded.ReadDocument("logical-only.rtf", new ReaderOptions {

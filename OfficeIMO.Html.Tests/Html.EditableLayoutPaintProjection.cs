@@ -58,7 +58,7 @@ public sealed class HtmlEditableLayoutPaintProjectionTests {
                 break;
             }
             case "excel": {
-                var result = source.ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+                var result = source.ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
                 using ExcelDocument document = result.Value;
                 document.Save(stream);
                 using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(stream.ToArray()),
@@ -70,7 +70,7 @@ public sealed class HtmlEditableLayoutPaintProjectionTests {
                 break;
             }
             case "powerpoint": {
-                var result = source.ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+                var result = source.ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
                 using PowerPointDocument document = result.Value;
                 document.Save(stream);
                 using PowerPointDocument reopened = PowerPointDocument.Load(new MemoryStream(stream.ToArray()),

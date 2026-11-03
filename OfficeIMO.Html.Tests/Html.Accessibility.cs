@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_AccessibilityDiagnostics_AreOptIn() {
-            var options = new WordHtmlImportOptions();
+            var options = new HtmlWordExportOptions();
 
             HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse("<h1>Title</h1><h3>Skipped</h3><p><img src=\"missing.png\"></p>").ConvertToWordWithEvidence(options);
             using var document = conversion.Value;
@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_AccessibilityDiagnostics_ReportMissingImageAltAndWeakLinks() {
-            var options = new WordHtmlImportOptions {
+            var options = new HtmlWordExportOptions {
                 EnableAccessibilityDiagnostics = true,
                 ImageProcessing = WordHtmlImageProcessingMode.EmbedDataUriOnly
             };
@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_AccessibilityDiagnostics_ReportHeadingJumpsAndTablesWithoutHeaders() {
-            var options = new WordHtmlImportOptions {
+            var options = new HtmlWordExportOptions {
                 EnableAccessibilityDiagnostics = true
             };
 
@@ -124,7 +124,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_AccessibilityFixture_SavesAsValidOpenXmlDocument() {
             const string pixelPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
-            var options = new WordHtmlImportOptions {
+            var options = new HtmlWordExportOptions {
                 EnableAccessibilityDiagnostics = true
             };
 

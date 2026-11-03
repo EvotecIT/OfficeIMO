@@ -16,7 +16,7 @@ dotnet add package OfficeIMO.Epub
 ```csharp
 using OfficeIMO.Epub;
 
-EpubDocument book = EpubDocument.Load("handbook.epub", new EpubReadOptions {
+EpubDocument book = EpubDocument.Load("handbook.epub", new EpubLoadOptions {
     PreferSpineOrder = true,
     IncludeRawHtml = false,
     MaxChapters = 100
@@ -33,7 +33,7 @@ foreach (EpubChapter chapter in book.Chapters) {
 ## Inspect resources without unbounded expansion
 
 ```csharp
-EpubDocument book = EpubDocument.Load("book.epub", new EpubReadOptions {
+EpubDocument book = EpubDocument.Load("book.epub", new EpubLoadOptions {
     IncludeResourceData = true,
     MaxResources = 500,
     MaxResourceBytes = 4L * 1024L * 1024L,

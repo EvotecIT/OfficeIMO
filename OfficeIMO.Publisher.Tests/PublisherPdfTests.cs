@@ -47,7 +47,7 @@ public sealed class PublisherPdfTests {
         string file = PublisherNativeTests.Fixture("SampleBrochure.pub");
         PublisherDocument baseline = PublisherDocument.Load(file);
         var codec = new TestCodec();
-        PublisherDocument document = PublisherDocument.Load(file, new PublisherReadOptions { ImageCodec = codec });
+        PublisherDocument document = PublisherDocument.Load(file, new PublisherLoadOptions { ImageCodec = codec });
         Assert.True(codec.Calls > 0);
         Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_METAFILE_RASTERIZED" && item.LossKind == OfficeConversionLossKind.Approximation);
         Assert.DoesNotContain(document.ReadReport.Diagnostics, item => item.Code == global::OfficeIMO.OfficeDiagnosticCodes.ImageSourceDecodeFallback);
@@ -62,10 +62,10 @@ public sealed class PublisherPdfTests {
     [Fact]
     public void Application_codec_output_obeys_pixel_limits_and_cancellation() {
         string file = PublisherNativeTests.Fixture("SampleBrochure.pub");
-        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(file, new PublisherReadOptions { ImageCodec = new TestCodec(), MaxRasterPixels = 3 }));
+        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(file, new PublisherLoadOptions { ImageCodec = new TestCodec(), MaxRasterPixels = 3 }));
         using var source = new CancellationTokenSource();
         Assert.Throws<OperationCanceledException>(() => PublisherDocument.Load(file,
-            new PublisherReadOptions { ImageCodec = new TestCodec(source) }, source.Token));
+            new PublisherLoadOptions { ImageCodec = new TestCodec(source) }, source.Token));
     }
 
     private sealed class TestCodec : IOfficeRasterImageCodec {

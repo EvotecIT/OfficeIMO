@@ -76,14 +76,14 @@ public sealed class PdfImageOcrTests {
                 Assert.Equal(expectedTable.Length, preserved.Report.Entries[0].RowCount);
                 Assert.Equal("Description", preserved.Value.Sheets[0].Cell(2, 1).GetValue<string>());
             }
-            var limited = review.Ocr.Document.ConvertToExcelWithEvidence(new ExcelPdfImportOptions { UseFirstRowAsHeader = true, MaxRows = 1 });
+            var limited = review.Ocr.Document.ConvertToExcelWithEvidence(new PdfExcelExportOptions { UseFirstRowAsHeader = true, MaxRows = 1 });
             using (limited.Value) {
                 var entry = Assert.Single(limited.Report.Entries);
                 Assert.Equal(1, entry.RowCount);
                 Assert.Equal(expectedTable.Length - 1, entry.TotalRowCount);
                 Assert.True(entry.Truncated);
             }
-            var imported = review.Ocr.Document.ConvertToExcelWithEvidence(new ExcelPdfImportOptions { UseFirstRowAsHeader = true });
+            var imported = review.Ocr.Document.ConvertToExcelWithEvidence(new PdfExcelExportOptions { UseFirstRowAsHeader = true });
             Assert.True(Assert.Single(imported.Report.Entries).FirstRowUsedAsHeader);
             using var workbook = imported.Value;
             using var bytes = new MemoryStream();

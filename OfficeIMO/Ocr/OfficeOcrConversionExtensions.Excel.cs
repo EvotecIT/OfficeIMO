@@ -9,11 +9,11 @@ namespace OfficeIMO;
 /// <summary>Converts accepted recognition content through the native reconstruction owners.</summary>
 public static partial class OfficeOcrConversionExtensions {
     /// <summary>Reconstructs Excel content from accepted OCR words and detected tables.</summary>
-    public static ExcelDocument ToExcel(this PdfOcrMergeResult source, ExcelPdfImportOptions? options = null,
+    public static ExcelDocument ToExcel(this PdfOcrMergeResult source, PdfExcelExportOptions? options = null,
         CancellationToken cancellationToken = default) => source.ToExcel(options, out _, cancellationToken);
 
     /// <summary>Reconstructs Excel content with its completed fidelity report.</summary>
-    public static ExcelDocument ToExcel(this PdfOcrMergeResult source, ExcelPdfImportOptions? options,
+    public static ExcelDocument ToExcel(this PdfOcrMergeResult source, PdfExcelExportOptions? options,
         out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         cancellationToken.ThrowIfCancellationRequested();
@@ -31,8 +31,8 @@ public static partial class OfficeOcrConversionExtensions {
 
     /// <summary>Asynchronously reconstructs Excel content and returns the model with its report.</summary>
     public static async Task<OfficeConversionResult<ExcelDocument>> ToExcelAsync(this PdfOcrMergeResult source,
-        ExcelPdfImportOptions? options = null, CancellationToken cancellationToken = default) {
-        options = (options ?? new ExcelPdfImportOptions()).Snapshot();
+        PdfExcelExportOptions? options = null, CancellationToken cancellationToken = default) {
+        options = (options ?? new PdfExcelExportOptions()).Snapshot();
         return await Task.Run(() => {
             ExcelDocument value = source.ToExcel(options, out OfficeConversionReport report, cancellationToken);
             try { cancellationToken.ThrowIfCancellationRequested(); }
@@ -43,8 +43,8 @@ public static partial class OfficeOcrConversionExtensions {
 
     /// <summary>Saves accepted OCR content as Excel, retaining reconstruction findings.</summary>
     public static OfficeConversionReport SaveAsExcel(this PdfOcrMergeResult source, string path,
-        ExcelPdfImportOptions? options = null, CancellationToken cancellationToken = default) {
-        options = (options ?? new ExcelPdfImportOptions()).Snapshot();
+        PdfExcelExportOptions? options = null, CancellationToken cancellationToken = default) {
+        options = (options ?? new PdfExcelExportOptions()).Snapshot();
         var timer = Stopwatch.StartNew();
         using ExcelDocument value = source.ToExcel(options, out OfficeConversionReport report, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -54,7 +54,7 @@ public static partial class OfficeOcrConversionExtensions {
 
     /// <summary>Writes accepted OCR content as Excel to a caller-owned stream.</summary>
     public static OfficeConversionReport SaveAsExcel(this PdfOcrMergeResult source, Stream stream,
-        ExcelPdfImportOptions? options = null, CancellationToken cancellationToken = default) {
+        PdfExcelExportOptions? options = null, CancellationToken cancellationToken = default) {
         var timer = Stopwatch.StartNew();
         using ExcelDocument value = source.ToExcel(options, out OfficeConversionReport report, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -64,8 +64,8 @@ public static partial class OfficeOcrConversionExtensions {
 
     /// <summary>Asynchronously saves accepted OCR content as Excel.</summary>
     public static async Task<OfficeConversionReport> SaveAsExcelAsync(this PdfOcrMergeResult source, string path,
-        ExcelPdfImportOptions? options = null, CancellationToken cancellationToken = default) {
-        options = (options ?? new ExcelPdfImportOptions()).Snapshot();
+        PdfExcelExportOptions? options = null, CancellationToken cancellationToken = default) {
+        options = (options ?? new PdfExcelExportOptions()).Snapshot();
         var timer = Stopwatch.StartNew();
         using ExcelDocument value = source.ToExcel(options, out OfficeConversionReport report, cancellationToken);
         await global::OfficeIMO.Core.Internal.OfficeConversionFailures.RunAsync(report, () => value.SaveAsync(path, cancellationToken: cancellationToken)).ConfigureAwait(false);
@@ -74,8 +74,8 @@ public static partial class OfficeOcrConversionExtensions {
 
     /// <summary>Asynchronously writes accepted OCR content as Excel to a caller-owned stream.</summary>
     public static async Task<OfficeConversionReport> SaveAsExcelAsync(this PdfOcrMergeResult source, Stream stream,
-        ExcelPdfImportOptions? options = null, CancellationToken cancellationToken = default) {
-        options = (options ?? new ExcelPdfImportOptions()).Snapshot();
+        PdfExcelExportOptions? options = null, CancellationToken cancellationToken = default) {
+        options = (options ?? new PdfExcelExportOptions()).Snapshot();
         var timer = Stopwatch.StartNew();
         using ExcelDocument value = source.ToExcel(options, out OfficeConversionReport report, cancellationToken);
         await global::OfficeIMO.Core.Internal.OfficeConversionFailures.RunAsync(report, () => value.SaveAsync(stream, cancellationToken: cancellationToken)).ConfigureAwait(false);

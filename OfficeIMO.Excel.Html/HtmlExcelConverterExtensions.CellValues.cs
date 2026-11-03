@@ -20,7 +20,7 @@ public static partial class HtmlExcelConverterExtensions {
         IElement cell,
         string fallbackText,
         HtmlToExcelResult result,
-        HtmlToExcelOptions options,
+        HtmlExcelExportOptions options,
         HtmlImportBudget budget,
         HashSet<long>? importedFormulaCells,
         bool useSemanticValues,

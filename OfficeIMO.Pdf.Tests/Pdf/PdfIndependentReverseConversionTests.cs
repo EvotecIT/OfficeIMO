@@ -61,7 +61,7 @@ public sealed class PdfIndependentReverseConversionTests {
         for (int row = 0; row < fixture.Table.Length; row++) Assert.Equal(fixture.Table[row], table.Rows[row]);
 
         // The independently authored labels establish the first row as headers.
-        var options = new ExcelPdfImportOptions { UseFirstRowAsHeader = true };
+        var options = new PdfExcelExportOptions { UseFirstRowAsHeader = true };
         if (route == "xlsx") AssertExcelCells(source, fixture.Table, options);
         else AssertOdsCells(source, fixture.Table, options);
     }
@@ -76,7 +76,7 @@ public sealed class PdfIndependentReverseConversionTests {
     }
 
     private static string ReadHtmlText(PdfDocumentReadResult source) {
-        string html = source.ToHtml(new PdfToHtmlOptions {
+        string html = source.ToHtml(new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.Semantic,
             IncludeMetadata = false,
             IncludeOutlines = false
@@ -100,7 +100,7 @@ public sealed class PdfIndependentReverseConversionTests {
         return string.Join(" ", reopened.Paragraphs.Select(paragraph => paragraph.Text));
     }
 
-    private static void AssertExcelCells(PdfDocumentReadResult source, string[][] expected, ExcelPdfImportOptions options) {
+    private static void AssertExcelCells(PdfDocumentReadResult source, string[][] expected, PdfExcelExportOptions options) {
         using var bytes = new MemoryStream();
         var conversion = source.ConvertToExcelWithEvidence(options);
         using var convertedWorkbook = conversion.Value;
@@ -135,7 +135,7 @@ public sealed class PdfIndependentReverseConversionTests {
         }
     }
 
-    private static void AssertOdsCells(PdfDocumentReadResult source, string[][] expected, ExcelPdfImportOptions options) {
+    private static void AssertOdsCells(PdfDocumentReadResult source, string[][] expected, PdfExcelExportOptions options) {
         PdfOdsConversionResult result = source.ToOdsDocumentResult(options);
         Assert.Equal(expected.Length - 1, Assert.Single(result.Report.PdfReport.Entries).RowCount);
         Assert.True(result.Report.PdfReport.HasOmittedPageContent);

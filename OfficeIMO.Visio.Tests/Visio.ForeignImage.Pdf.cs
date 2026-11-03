@@ -21,7 +21,7 @@ public partial class VisioForeignImageRenderingTests {
             };
             OfficeDocumentModel model = candidate.ToOfficeDocumentModel("independent.vdx", options);
             byte[] expected = Assert.Single(model.Assets).PayloadBytes!;
-            PdfDocument result = candidate.ToPdf(new VisioToPdfOptions {
+            PdfDocument result = candidate.ToPdf(new VisioPdfExportOptions {
                 SourceName = "independent.vdx", VisioOptions = options
             }, out OfficeConversionReport resultReport);
             byte[] pdf = result.ToBytes();
@@ -65,7 +65,7 @@ public partial class VisioForeignImageRenderingTests {
             SvgOptions = options.SvgOptions, PngOptions = options.PngOptions
         });
         var readerDiagnostic = Assert.Single(reader.Diagnostics, item => item.Code == diagnostic.Code);
-        PdfDocument conversion = document.ToPdf(new VisioToPdfOptions {
+        PdfDocument conversion = document.ToPdf(new VisioPdfExportOptions {
             SourceName = "opaque.vdx", VisioOptions = options
         }, out OfficeConversionReport conversionReport);
         conversion.ToBytes();
@@ -94,7 +94,7 @@ public partial class VisioForeignImageRenderingTests {
         Assert.True(OfficeImageReader.TryIdentify(Assert.Single(model.Assets).PayloadBytes!, ".png", out OfficeImageInfo info));
         Assert.True((long)info.Width * info.Height <= 4096);
         Assert.Contains(model.Diagnostics, item => item.Code == OfficeImageExportDiagnosticCodes.RasterScaleReduced && item.Attributes["lossKind"] == "Approximation");
-        var result = document.ToPdf(new VisioToPdfOptions { VisioOptions = options }, out OfficeConversionReport resultReport);
+        var result = document.ToPdf(new VisioPdfExportOptions { VisioOptions = options }, out OfficeConversionReport resultReport);
         result.ToBytes();
         Assert.Contains(resultReport.Diagnostics, item => item.Code == OfficeImageExportDiagnosticCodes.RasterScaleReduced && item.LossKind == OfficeConversionLossKind.Approximation);
         Assert.Equal(96, pngOptions.PixelsPerInch);
@@ -160,7 +160,7 @@ public partial class VisioForeignImageRenderingTests {
         Assert.Equal(renderText, fontDiagnostics.Any(item => item.Message.Contains("OfficeIMO Missing Shape Font")));
         Assert.Equal(renderLabels, fontDiagnostics.Any(item => item.Message.Contains("OfficeIMO Missing Label Font")));
         if (!svg && !renderText && !renderLabels) {
-            var result = document.ToPdf(new VisioToPdfOptions { VisioOptions = options }, out OfficeConversionReport resultReport);
+            var result = document.ToPdf(new VisioPdfExportOptions { VisioOptions = options }, out OfficeConversionReport resultReport);
             resultReport.ThrowIfLoss();
             result.ToBytes();
             Assert.False(resultReport.HasLoss);

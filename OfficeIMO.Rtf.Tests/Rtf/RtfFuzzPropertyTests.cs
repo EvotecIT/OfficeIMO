@@ -18,7 +18,7 @@ public class RtfFuzzPropertyTests {
                 " " + text + "}{\\bin" + binary.Length.ToString(CultureInfo.InvariantCulture) + " " + binary +
                 "}\\pard Case " + caseIndex.ToString(CultureInfo.InvariantCulture) + "\\par}\r\n";
 
-            RtfReadResult result = RtfDocument.ParseResult(rtf, RtfReadOptions.UntrustedDefaults);
+            RtfReadResult result = RtfDocument.ParseResult(rtf, RtfLoadOptions.UntrustedDefaults);
 
             Assert.Equal(rtf, result.ToRtfLossless());
             Assert.Equal(rtf, result.EditLossless().ToRtf());
@@ -37,9 +37,9 @@ public class RtfFuzzPropertyTests {
                 .ToArray();
             string malformed = valid.Remove(bracePositions[random.Next(bracePositions.Length)], 1);
 
-            RtfReadResult first = RtfDocument.ParseResult(malformed, RtfReadOptions.UntrustedDefaults);
+            RtfReadResult first = RtfDocument.ParseResult(malformed, RtfLoadOptions.UntrustedDefaults);
             string normalized = first.ToRtfLossless();
-            RtfReadResult second = RtfDocument.ParseResult(normalized, RtfReadOptions.UntrustedDefaults);
+            RtfReadResult second = RtfDocument.ParseResult(normalized, RtfLoadOptions.UntrustedDefaults);
 
             Assert.NotEmpty(first.Diagnostics);
             Assert.Equal(normalized, second.ToRtfLossless());
@@ -55,7 +55,7 @@ public class RtfFuzzPropertyTests {
             for (int index = 0; index < digits; index++) parameter.Append((char)('0' + random.Next(10)));
             string rtf = "{\\rtf1\\ansi\\fs" + parameter + " Body\\par}";
 
-            RtfReadResult result = RtfDocument.ParseResult(rtf, RtfReadOptions.UntrustedDefaults);
+            RtfReadResult result = RtfDocument.ParseResult(rtf, RtfLoadOptions.UntrustedDefaults);
 
             Assert.Equal(rtf, result.ToRtfLossless());
             Assert.NotNull(result.Document);
@@ -75,7 +75,7 @@ public class RtfFuzzPropertyTests {
             string rtf = "{\\rtf1\\ansi\\uc" + fallbackLength.ToString(CultureInfo.InvariantCulture) +
                 "\\pard \\u" + signedValue.ToString(CultureInfo.InvariantCulture) + fallback + "X\\par}";
 
-            RtfReadResult result = RtfDocument.ParseResult(rtf, RtfReadOptions.UntrustedDefaults);
+            RtfReadResult result = RtfDocument.ParseResult(rtf, RtfLoadOptions.UntrustedDefaults);
 
             Assert.Equal(expected, Assert.Single(result.Document.Paragraphs).ToPlainText());
             Assert.Equal(rtf, result.ToRtfLossless());
@@ -89,11 +89,11 @@ public class RtfFuzzPropertyTests {
             string payload = RandomBinaryText(random, random.Next(0, 64));
             string rtf = "{\\rtf1\\ansi{\\*\\payload\\bin" + payload.Length.ToString(CultureInfo.InvariantCulture) +
                 " " + payload + "}\\pard Visible\\par}";
-            RtfReadResult result = RtfDocument.ParseResult(rtf, RtfReadOptions.UntrustedDefaults);
+            RtfReadResult result = RtfDocument.ParseResult(rtf, RtfLoadOptions.UntrustedDefaults);
             Assert.Equal(rtf, result.ToRtfLossless());
         }
 
-        var options = RtfReadOptions.UntrustedDefaults;
+        var options = RtfLoadOptions.UntrustedDefaults;
         options.Limits.MaxBinaryPayloadBytes = 8;
         RtfReadLimitException exception = Assert.Throws<RtfReadLimitException>(() =>
             RtfDocument.ParseResult("{\\rtf1\\ansi\\bin9 123456789}", options));
@@ -121,10 +121,10 @@ public class RtfFuzzPropertyTests {
                 }
             }
 
-            string firstRtf = source.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-            RtfDocument first = RtfDocument.ParseResult(firstRtf, RtfReadOptions.UntrustedDefaults).Document;
-            string secondRtf = first.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-            RtfDocument second = RtfDocument.ParseResult(secondRtf, RtfReadOptions.UntrustedDefaults).Document;
+            string firstRtf = source.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+            RtfDocument first = RtfDocument.ParseResult(firstRtf, RtfLoadOptions.UntrustedDefaults).Document;
+            string secondRtf = first.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+            RtfDocument second = RtfDocument.ParseResult(secondRtf, RtfLoadOptions.UntrustedDefaults).Document;
 
             Assert.Equal(first.Blocks.Select(BlockText), second.Blocks.Select(BlockText));
             Assert.Equal(first.Blocks.Select(block => block.GetType()), second.Blocks.Select(block => block.GetType()));

@@ -22,7 +22,7 @@ public static class PowerPointHtmlCapabilityGalleryExtensions {
         Directory.CreateDirectory(directoryPath);
 
         string filePrefix = ToFilePrefix(options.ScenarioId);
-        string semanticHtml = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+        string semanticHtml = presentation.ToHtml(new PowerPointHtmlExportOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides,
             Theme = options.Theme,
             Title = options.Title,
@@ -30,7 +30,7 @@ public static class PowerPointHtmlCapabilityGalleryExtensions {
             IncludeNotes = options.IncludeNotes,
             IncludeTables = options.IncludeTables
         });
-        string visualHtml = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+        string visualHtml = presentation.ToHtml(new PowerPointHtmlExportOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointVisualReview,
             Theme = options.Theme,
             Title = options.Title + " Visual Review",

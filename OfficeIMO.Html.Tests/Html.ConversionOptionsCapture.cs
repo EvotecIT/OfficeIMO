@@ -17,7 +17,7 @@ public sealed class HtmlConversionOptionsCaptureTests {
         var entered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var release = new TaskCompletionSource<HtmlResolvedResource?>(TaskCreationOptions.RunContinuationsAsynchronously);
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             FailOnLoss = true,
             ResourcePolicy = new OfficeIMO.Pdf.PdfResourcePolicy { AllowRemoteResourceResolution = true },
             ResourceResolver = (_, _) => {

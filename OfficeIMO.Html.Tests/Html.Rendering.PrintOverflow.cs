@@ -16,7 +16,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='" + geometry + ";height:40px'></div>";
         HtmlPdfRenderRequestResult result = HtmlConversionDocument.Parse(html).RenderToPdfResult(
             HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf,
-                new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D), AllowSystemFontFallback = false }));
+                new HtmlPdfExportOptions { Margins = HtmlRenderMargins.All(0D), AllowSystemFontFallback = false }));
 
         Assert.InRange(result.RenderResult.Document.Pages[0].Width, 1199.99D, 1200.01D);
         (double width, _) = PdfCore.PdfReadDocument.Open(result.ToBytes()).Pages[0].GetPageSize();
@@ -36,7 +36,7 @@ public sealed partial class HtmlRenderingTests {
               <tr><td style='padding:0'>FLOWLEFT</td><td style='padding:0'>FLOWRIGHT</td></tr>
             </table>
             """;
-        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions {
             Margins = HtmlRenderMargins.All(0D), AllowSystemFontFallback = false
         })).ToBytes();
         PdfCore.PdfDocumentReadResult read = PdfCore.PdfDocumentReadResult.Load(bytes);
@@ -55,7 +55,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_AutomaticPrintFitExcludesClippedDescendantBoxes(string overflow) {
         string html = "<style>@page{size:A4;margin:0}html,body{margin:0}</style>"
             + "<div style='width:300px;overflow:" + overflow + "'><div style='width:1200px;height:40px;background:blue'></div></div>";
-        var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D), AllowSystemFontFallback = false };
+        var options = new HtmlPdfExportOptions { Margins = HtmlRenderMargins.All(0D), AllowSystemFontFallback = false };
         byte[] fitted = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
         options.AutoFitWidePrintContent = false;
         byte[] unscaled = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
@@ -65,7 +65,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPdf_AutomaticPrintFitExcludesShadowPaint() {
         const string html = "<style>@page{size:A4;margin:0}html,body{margin:0}</style><div style='width:300px;height:40px;box-shadow:1000px 0 0 red'></div>";
-        var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D), AllowSystemFontFallback = false };
+        var options = new HtmlPdfExportOptions { Margins = HtmlRenderMargins.All(0D), AllowSystemFontFallback = false };
         byte[] fitted = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
         options.AutoFitWidePrintContent = false;
         Assert.Equal((HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes(), fitted);
@@ -76,7 +76,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<style>@page{size:A4;margin:0}html,body{margin:0}</style><div style='width:900px;height:40px;transform:translateX(300px)'></div>";
         HtmlPdfRenderRequestResult result = HtmlConversionDocument.Parse(html).RenderToPdfResult(
             HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf,
-                new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D), AllowSystemFontFallback = false }));
+                new HtmlPdfExportOptions { Margins = HtmlRenderMargins.All(0D), AllowSystemFontFallback = false }));
         Assert.InRange(result.RenderResult.Document.Pages[0].Width, 1199.99D, 1200.01D);
     }
     [Fact]
@@ -84,7 +84,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<style>@page{size:A4;margin:0}html,body{margin:0}</style><div style='width:120%;height:40px'></div>";
         HtmlPdfRenderRequestResult result = HtmlConversionDocument.Parse(html).RenderToPdfResult(
             HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf,
-                new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D), AllowSystemFontFallback = false }));
+                new HtmlPdfExportOptions { Margins = HtmlRenderMargins.All(0D), AllowSystemFontFallback = false }));
         Assert.Contains(result.RenderResult.Document.Diagnostics,
             diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PrintFitOverflowUnresolved);
     }
@@ -92,7 +92,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPdf_AutomaticPrintFitExcludesTextShadowPaint() {
         const string html = "<style>@page{size:A4;margin:0}html,body{margin:0}</style><p style='text-shadow:1000px 0 red'>Shadow text</p>";
-        var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D), AllowSystemFontFallback = false };
+        var options = new HtmlPdfExportOptions { Margins = HtmlRenderMargins.All(0D), AllowSystemFontFallback = false };
         byte[] fitted = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
         options.AutoFitWidePrintContent = false;
         Assert.Equal((HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes(), fitted);
@@ -103,7 +103,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<style>@page{size:A4;margin:0}html,body{margin:0}</style><div style='width:100px;height:2000px;transform:skewX(45deg);transform-origin:0 0'></div>";
         HtmlPdfRenderRequestResult result = HtmlConversionDocument.Parse(html).RenderToPdfResult(
             HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf,
-                new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D), AllowSystemFontFallback = false }));
+                new HtmlPdfExportOptions { Margins = HtmlRenderMargins.All(0D), AllowSystemFontFallback = false }));
         Assert.InRange(result.RenderResult.Document.Pages[0].Width, 2099.99D, 2100.01D);
         Assert.DoesNotContain(result.RenderResult.Document.Diagnostics,
             diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PrintFitOverflowUnresolved);

@@ -40,7 +40,7 @@ public sealed class PdfPostprocessingFailureEvidenceTests {
                 if (encrypted) pdf.SetEncryption(new PdfStandardEncryptionOptions("reader") { OwnerPassword = "owner" });
                 return new() {
                     CompressPdfOutput = compressed,                    PlainText = extension == ".txt" ? new PdfTextImportOptions { PdfOptions = pdf } : null,                    Word = extension == ".docx" ? new WordPdfExportOptions { PdfOptions = pdf, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() } : null
-,RegisteredSettings = new OfficeIMO.Workflows.OfficeWorkflowRouteSettings { Draw = extension == ".odg" ? new OdgToPdfOptions { PdfOptions = pdf } : null, Visio = extension == ".vdx" ? new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages, PdfOptions = pdf } : null }                };
+,RegisteredSettings = new OfficeIMO.Workflows.OfficeWorkflowRouteSettings { Draw = extension == ".odg" ? new OdgPdfExportOptions { PdfOptions = pdf } : null, Visio = extension == ".vdx" ? new VisioPdfExportOptions { Mode = VisioPdfProjectionMode.DiagramPages, PdfOptions = pdf } : null }                };
             }
             async Task<OfficeWorkflowResult> Run(bool compressed, bool encrypted, long limit) => await runner.RunAsync(new() {
                 Operation = OfficeWorkflowOperation.Convert, InputPath = input, OutputPath = output, ConversionRouteId = route,

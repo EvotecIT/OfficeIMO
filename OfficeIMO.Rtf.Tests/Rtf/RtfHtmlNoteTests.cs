@@ -17,7 +17,7 @@ public class RtfHtmlNoteTests {
         noteParagraph.AddText("text").SetItalic();
         reference.SetNote(note);
 
-        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
+        string html = document.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile());
 
         Assert.Contains("data-officeimo-rtf-note=\"footnote\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-note-content=\"", html, StringComparison.Ordinal);
@@ -29,7 +29,7 @@ public class RtfHtmlNoteTests {
         Assert.Equal("Footnote text", roundTripReference.Note.ToPlainText());
         Assert.Contains(roundTripReference.Note.Paragraphs[0].Runs, run => run.Text == "text" && run.Italic);
 
-        string rtf = roundTrip.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = roundTrip.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"{\footnote", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\i text\i0", rtf, StringComparison.Ordinal);
     }
@@ -47,7 +47,7 @@ public class RtfHtmlNoteTests {
         Assert.Equal("Endnote text", reference.Note.ToPlainText());
         Assert.Contains(reference.Note.Paragraphs[0].Runs, run => run.Text == "text" && run.Bold);
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"{\footnote\ftnalt", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\b text\b0", rtf, StringComparison.Ordinal);
     }
@@ -67,7 +67,7 @@ public class RtfHtmlNoteTests {
         Assert.Equal(new DateTime(2026, 1, 2, 3, 4, 5), note.Created);
         Assert.Equal("Review note", note.ToPlainText());
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"{\annotation", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\*\atnid c1}", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\*\atnauthor Alice}", rtf, StringComparison.Ordinal);

@@ -54,7 +54,7 @@ public sealed partial class PowerPointOptionWorkflowTests {
             Assert.Equal(include, html.Contains("Table evidence", StringComparison.Ordinal));
             Assert.Contains("<title>Service review</title>", html, StringComparison.Ordinal);
             Assert.Equal(html, Assert.IsType<string>(output[2].BaseObject));
-            var options = Assert.IsType<PowerPointHtmlSaveOptions>(output[3].BaseObject);
+            var options = Assert.IsType<PowerPointHtmlExportOptions>(output[3].BaseObject);
             Assert.Same(OfficeTheme.Dark, options.DocumentOutput.DocumentTheme);
             Assert.Equal(include, options.IncludeTables);
             Assert.Throws<InvalidOperationException>(() => live.Save());

@@ -129,7 +129,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("style='margin-top:140px'", 1D)]
     public void HtmlMathMlSource_PaintTransformsAndPaginationKeepRecoverableSource(string attributes, double pageHeight) {
         string html = "<html lang='en'><body style='margin:0'><div " + attributes + ">BEFORE " + SourceMath + " AFTER</div></body></html>";
-        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions { PageSize = new OfficeIMO.Drawing.OfficePageSize(global::OfficeIMO.OfficeLength.Inches(3D), global::OfficeIMO.OfficeLength.Inches(pageHeight)), HonorCssPageRules = false, Margins = HtmlRenderMargins.All(0D) })).ToBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions { PageSize = new OfficeIMO.Drawing.OfficePageSize(global::OfficeIMO.OfficeLength.Inches(3D), global::OfficeIMO.OfficeLength.Inches(pageHeight)), HonorCssPageRules = false, Margins = HtmlRenderMargins.All(0D) })).ToBytes();
         Assert.Equal(SourceMath, Encoding.UTF8.GetString(Assert.Single(PdfCore.PdfAttachmentExtractor.ExtractAttachments(pdf)).Bytes));
         PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(PdfCore.PdfInspector.Inspect(pdf).TaggedContent);
         Assert.Equal("x squared", Assert.Single(tagged.StructureElements, item => item.StructureType == "Formula").AlternateText);
@@ -137,7 +137,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlMathMlSource_UntaggedOutputDoesNotLeaveOrphanPayload() {
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         options.PdfOptions.TaggedStructureMode = PdfCore.PdfTaggedStructureMode.None;
         byte[] pdf = (HtmlConversionDocument.Parse(SourceMath).ToPdf(options)).ToBytes();
         Assert.Empty(PdfCore.PdfAttachmentExtractor.ExtractAttachments(pdf));
@@ -148,7 +148,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlMathMlSource_ExplicitDateSurvivesAdapterOptionSnapshots() {
         var date = new DateTimeOffset(2026, 9, 30, 12, 0, 0, TimeSpan.Zero);
-        var options = new HtmlToPdfOptions { MathMlSourceModificationDate = date };
+        var options = new HtmlPdfExportOptions { MathMlSourceModificationDate = date };
         Assert.Equal(date, options.ClonePdf().MathMlSourceModificationDate);
         byte[] pdf = (HtmlConversionDocument.Parse(SourceMath).ToPdf(options)).ToBytes();
         Assert.Equal(date, Assert.Single(PdfCore.PdfInspector.Inspect(pdf).Attachments).ModificationDate);

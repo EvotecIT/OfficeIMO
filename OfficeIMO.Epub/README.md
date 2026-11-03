@@ -18,7 +18,7 @@ dotnet add package OfficeIMO.Epub
 ```csharp
 using OfficeIMO.Epub;
 
-EpubDocument book = EpubDocument.Load("book.epub", new EpubReadOptions {
+EpubDocument book = EpubDocument.Load("book.epub", new EpubLoadOptions {
     PreferSpineOrder = true,
     IncludeRawHtml = false,
     MaxChapters = 100
@@ -44,7 +44,7 @@ certify EPUB conformance, rendering fidelity, or retention of every resource.
 Non-linear positions excluded by policy are not counted as requested.
 
 ```csharp
-EpubDocument book = EpubDocument.Load("book.epub", new EpubReadOptions {
+EpubDocument book = EpubDocument.Load("book.epub", new EpubLoadOptions {
     MaxChapters = 500,
     MaxTotalTextCharacters = 32L * 1024L * 1024L
 });
@@ -111,7 +111,7 @@ The signed manifest covers every non-carrier ZIP entry. Validation rejects missi
 ### Inspect bounded manifest resources
 
 ```csharp
-EpubDocument book = EpubDocument.Load("book.epub", new EpubReadOptions {
+EpubDocument book = EpubDocument.Load("book.epub", new EpubLoadOptions {
     IncludeResourceData = true,
     MaxResources = 500,
     MaxResourceBytes = 4L * 1024L * 1024L,
@@ -190,7 +190,7 @@ Use the three-argument overload with `chapter.BaseHref` when resolving URLs foun
 ```csharp
 using OfficeIMO.Epub;
 
-EpubDocument book = EpubDocument.Load("handbook.epub", new EpubReadOptions {
+EpubDocument book = EpubDocument.Load("handbook.epub", new EpubLoadOptions {
     PreferSpineOrder = true,
     IncludeNonLinearSpineItems = false,
     MaxChapters = 50
@@ -210,7 +210,7 @@ foreach (var chapter in book.Chapters) {
 ```csharp
 using OfficeIMO.Epub;
 
-var book = EpubDocument.Load("book.epub", new EpubReadOptions {
+var book = EpubDocument.Load("book.epub", new EpubLoadOptions {
     IncludeRawHtml = true,
     MaxChapterBytes = 2L * 1024L * 1024L
 });
@@ -232,7 +232,7 @@ foreach (var chapter in book.Chapters) {
 using OfficeIMO.Epub;
 
 await using var stream = File.OpenRead("upload.epub");
-EpubDocument book = EpubDocument.Load(stream, new EpubReadOptions {
+EpubDocument book = EpubDocument.Load(stream, new EpubLoadOptions {
     FallbackToHtmlScan = true,
     DeterministicOrder = true
 });
@@ -885,7 +885,7 @@ EPUBCheck 5.4.0 flags uppercase EPUB 3 navigation and cover media types. For the
 imports, assign lowercase `MediaType` values explicitly when validator compatibility is required.
 
 Editing a package with `signatures.xml` or a ZIP central-directory signature fails unless
-`RemoveInvalidatedSignatures = true` is supplied in `EpubWriteOptions`; removal is reported.
+`RemoveInvalidatedSignatures = true` is supplied in `EpubSaveOptions`; removal is reported.
 IDPF/Adobe-obfuscated font bytes remain unchanged when editing
 other content; replacing them or changing their package identity is rejected.
 Unsupported encrypted-resource edits are rejected. Unedited supported imports retain
@@ -1285,7 +1285,7 @@ such as [EPUBCheck](https://github.com/w3c/epubcheck).
 | Authored navigation depth | 64 nested levels |
 
 Use `EpubPublicationLoadOptions` for retained input and creation resource limits;
-use `EpubWriteOptions` for output limits, modification time, and compression.
+use `EpubSaveOptions` for output limits, modification time, and compression.
 Retained entry limits include mandatory package entries and apply when adding resources.
 Unedited writes count every physical ZIP record, including directories, against output
 limits. XHTML/SVG/NCX inspection, editing, and write preflight use the configured

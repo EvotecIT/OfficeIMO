@@ -83,9 +83,9 @@ public sealed partial class BookProject {
         ImportLossAcknowledged = true;
     }
     /// <summary>Exports a complete EPUB after import review and canonical writer validation.</summary>
-    public EpubWriteResult Export(CancellationToken cancellationToken = default) => Export(new EpubWriteOptions(), cancellationToken);
+    public EpubWriteResult Export(CancellationToken cancellationToken = default) => Export(new EpubSaveOptions(), cancellationToken);
     /// <summary>Exports a reviewed publication with explicit EPUB writer limits and signature policy.</summary>
-    public EpubWriteResult Export(EpubWriteOptions options, CancellationToken cancellationToken = default) {
+    public EpubWriteResult Export(EpubSaveOptions options, CancellationToken cancellationToken = default) {
         if (options == null) throw new ArgumentNullException(nameof(options));
         if (!CanExport) throw new InvalidOperationException("Review the import report before exporting this book.");
         return _publication.Write(options, cancellationToken);
@@ -206,7 +206,7 @@ public sealed partial class BookProject {
     public IReadOnlyList<OfficeImageExportResult> PreviewChapter(int index, double width = 816,
         CancellationToken cancellationToken = default) {
         if (index < 0 || index >= _publication.Spine.Count) throw new ArgumentOutOfRangeException(nameof(index));
-        EpubDocument source = _publication.Read(new EpubReadOptions { IncludeRawHtml = true, IncludeResourceData = true, MaxChapters = _publication.Spine.Count }, cancellationToken);
+        EpubDocument source = _publication.Read(new EpubLoadOptions { IncludeRawHtml = true, IncludeResourceData = true, MaxChapters = _publication.Spine.Count }, cancellationToken);
         int extractedIndex = Enumerable.Range(0, source.Chapters.Count).Where(position => source.Chapters[position].SpineIndex == index + 1).DefaultIfEmpty(-1).First();
         if (extractedIndex < 0) throw new InvalidDataException("The selected chapter could not be extracted under the preview reading policy.");
         return source.ExportImages(OfficeImageExportFormat.Png, new EpubImageExportOptions {

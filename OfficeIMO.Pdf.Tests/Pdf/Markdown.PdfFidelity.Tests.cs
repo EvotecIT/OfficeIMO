@@ -46,7 +46,7 @@ public sealed class MarkdownPdfFidelityTests {
 
     [Fact]
     public void RtfDefaultExportUsesSharedMultilingualFallbacks() {
-        var options = new RtfToPdfOptions();
+        var options = new RtfPdfExportOptions();
         Assert.True((options.Clone().TextFallbacks & PdfTextFallbackFeatures.MultilingualFonts) != 0);
         const string text = "日本語のテキスト。 中文文本。";
         var fallback = new PdfCreateOptions().UseTextFallbacks().EmbeddedFontFallbacks;

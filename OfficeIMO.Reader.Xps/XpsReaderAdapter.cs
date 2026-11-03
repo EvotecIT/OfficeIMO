@@ -17,7 +17,7 @@ internal static partial class XpsReaderAdapter {
         foreach (var chunk in result.Chunks) DocumentReaderEngine.ApplyAdapterSource(chunk, input, reader.ComputeHashes);
         return result;
     }
-    private static XpsReadOptions Limits(ReaderOptions reader, ReaderXpsOptions options) {
+    private static XpsLoadOptions Limits(ReaderOptions reader, ReaderXpsOptions options) {
         var limits = options.ReadOptions.Clone();
         if (reader.MaxInputBytes is long maximum) limits.Limits.MaxInputBytes = (int)Math.Min(limits.Limits.MaxInputBytes, maximum);
         return limits;

@@ -9,7 +9,7 @@ public class RtfHtmlEncapsulationTests {
     public void UntrustedFromHtmlWithHugeUnicodeFallbackReadsWithoutExpandingIt() {
         const string input = @"{\rtf1\ansi\fromhtml1\uc2147483647{\uc0\u233}}";
 
-        RtfDocument document = RtfDocument.ParseResult(input, RtfReadOptions.UntrustedDefaults).Document;
+        RtfDocument document = RtfDocument.ParseResult(input, RtfLoadOptions.UntrustedDefaults).Document;
 
         Assert.Equal(int.MaxValue, document.Settings.UnicodeSkipCount);
         Assert.NotNull(document.HtmlEncapsulation);
@@ -87,7 +87,7 @@ public class RtfHtmlEncapsulationTests {
     public void Html_Conversion_Prefers_Encapsulated_Content_Through_Safe_Importer() {
         const string rtf = @"{\rtf1\ansi\fromhtml1{\*\htmltag <p><b>Rich</b> <a href='javascript:alert(1)'>message</a></p>}\htmlrtf1 Plain fallback}";
         RtfDocument document = RtfDocument.ParseResult(rtf).Document;
-        var options = new RtfToHtmlOptions();
+        var options = new RtfHtmlExportOptions();
 
         RtfToHtmlResult result = document.ToHtmlResult(options);
         string html = result.Value;
@@ -105,7 +105,7 @@ public class RtfHtmlEncapsulationTests {
         const string rtf = @"{\rtf1\ansi\fromhtml1{\*\htmltag <p><b>Rich</b> message</p>}\htmlrtf1 Plain fallback}";
         RtfDocument document = RtfDocument.ParseResult(rtf).Document;
 
-        string html = document.ToHtml(new RtfToHtmlOptions { PreferEncapsulatedHtml = false });
+        string html = document.ToHtml(new RtfHtmlExportOptions { PreferEncapsulatedHtml = false });
 
         Assert.Contains("Plain fallback", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<strong>Rich</strong>", html, StringComparison.Ordinal);
@@ -117,8 +117,8 @@ public class RtfHtmlEncapsulationTests {
         document.AddParagraph("Fallback");
         document.HtmlEncapsulation = new RtfHtmlEncapsulation(1, "<p>Rich Ω</p>");
 
-        string normalized = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        string withoutHtml = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false, IncludeHtmlEncapsulation = false });
+        string normalized = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        string withoutHtml = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false, IncludeHtmlEncapsulation = false });
         RtfDocument roundTrip = RtfDocument.ParseResult(normalized).Document;
 
         Assert.Contains(@"\fromhtml1", normalized, StringComparison.Ordinal);

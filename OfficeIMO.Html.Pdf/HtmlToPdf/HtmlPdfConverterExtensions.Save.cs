@@ -9,12 +9,12 @@ namespace OfficeIMO.Html.Pdf;
 
 public static partial class HtmlPdfConverterExtensions {
     /// <summary>Converts the source document to a PDF model.</summary>
-    public static PdfDocument ToPdf(this HtmlConversionDocument document, HtmlToPdfOptions? options = null,
+    public static PdfDocument ToPdf(this HtmlConversionDocument document, HtmlPdfExportOptions? options = null,
         CancellationToken cancellationToken = default) =>
         document.ToPdf(options, out _, cancellationToken);
 
     /// <summary>Converts the source document and returns its completed conversion findings.</summary>
-    public static PdfDocument ToPdf(this HtmlConversionDocument document, HtmlToPdfOptions? options,
+    public static PdfDocument ToPdf(this HtmlConversionDocument document, HtmlPdfExportOptions? options,
         out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         options = Normalize(options);
         var timer = Stopwatch.StartNew();
@@ -30,7 +30,7 @@ public static partial class HtmlPdfConverterExtensions {
 
     /// <summary>Resolves resources asynchronously and returns the PDF model and completed conversion report.</summary>
     public static async Task<OfficeConversionResult<PdfDocument>> ToPdfAsync(this HtmlConversionDocument document,
-        HtmlToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+        HtmlPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         options = Normalize(options);
         var timer = Stopwatch.StartNew();
         return await HtmlPdfRenderedConverter.CompleteAsync(document, options, cancellationToken, (rendered, token) => {
@@ -42,7 +42,7 @@ public static partial class HtmlPdfConverterExtensions {
 
     /// <summary>Writes a PDF file and returns the complete conversion report.</summary>
     public static OfficeConversionReport SaveAsPdf(this HtmlConversionDocument document, string path,
-        HtmlToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+        HtmlPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         PdfConversionEvidence.ValidateDestination(path);
         options = Normalize(options);
         var timer = Stopwatch.StartNew();
@@ -58,7 +58,7 @@ public static partial class HtmlPdfConverterExtensions {
 
     /// <summary>Writes PDF to a caller-owned stream and returns the complete conversion report.</summary>
     public static OfficeConversionReport SaveAsPdf(this HtmlConversionDocument document, Stream stream,
-        HtmlToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+        HtmlPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         PdfConversionEvidence.ValidateDestination(stream);
         options = Normalize(options);
         var timer = Stopwatch.StartNew();
@@ -74,7 +74,7 @@ public static partial class HtmlPdfConverterExtensions {
 
     /// <summary>Asynchronously writes a PDF file and returns the complete conversion report.</summary>
     public static async Task<OfficeConversionReport> SaveAsPdfAsync(this HtmlConversionDocument document, string path,
-        HtmlToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+        HtmlPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         PdfConversionEvidence.ValidateDestination(path);
         options = Normalize(options);
         var timer = Stopwatch.StartNew();
@@ -90,7 +90,7 @@ public static partial class HtmlPdfConverterExtensions {
 
     /// <summary>Asynchronously writes PDF to a caller-owned stream and returns its conversion report.</summary>
     public static async Task<OfficeConversionReport> SaveAsPdfAsync(this HtmlConversionDocument document, Stream stream,
-        HtmlToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+        HtmlPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         PdfConversionEvidence.ValidateDestination(stream);
         options = Normalize(options);
         var timer = Stopwatch.StartNew();

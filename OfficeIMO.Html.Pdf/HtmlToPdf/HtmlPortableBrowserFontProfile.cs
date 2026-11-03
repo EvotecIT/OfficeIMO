@@ -123,8 +123,8 @@ public sealed class HtmlPortableBrowserFontProfile {
     }
 
     /// <summary>Creates HTML rendering options with the same fonts for layout, images, and PDF output.</summary>
-    public HtmlToPdfOptions CreateHtmlOptions(IOfficeTextShapingProvider? textShapingProvider = null) {
-        var options = new HtmlToPdfOptions {
+    public HtmlPdfExportOptions CreateHtmlOptions(IOfficeTextShapingProvider? textShapingProvider = null) {
+        var options = new HtmlPdfExportOptions {
             DefaultFontFamily = DefaultLayoutFontFamilies,
             PdfOptions = CreatePdfOptions(textShapingProvider),
             FontFamily = _defaultPdfFontFamily,

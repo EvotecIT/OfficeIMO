@@ -175,7 +175,7 @@ public sealed class RtfPdfInheritedFontTests {
         return document;
     }
 
-    private static RtfToPdfOptions PortableOptions() => new RtfToPdfOptions {
+    private static RtfPdfExportOptions PortableOptions() => new RtfPdfExportOptions {
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
         TextFallbacks = PdfCore.PdfTextFallbackFeatures.None,
         PdfOptions = new PdfCore.PdfCreateOptions {

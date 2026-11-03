@@ -56,7 +56,7 @@ public sealed class RtfNativeStyleWritingTests {
 
         source.Styles.Single(style => style.Id == 1).Bold = false;
         Assert.False(source.ResolveRunFormatting(original, original.Runs[0]).Bold);
-        Assert.Null(RtfDocument.ParseResult(source.ToRtf(new RtfWriteOptions { MaterializeStyleFormatting = false })).Document.Paragraphs[0].DirectAlignment);
+        Assert.Null(RtfDocument.ParseResult(source.ToRtf(new RtfSaveOptions { MaterializeStyleFormatting = false })).Document.Paragraphs[0].DirectAlignment);
     }
 
     [Fact]
@@ -64,11 +64,11 @@ public sealed class RtfNativeStyleWritingTests {
         RtfDocument source = RtfDocument.Create();
         source.AddStyle(9, "Unused").Bold = true;
         source.AddParagraph("Direct").Runs[0].Bold = true;
-        source.ToRtfResult(new RtfWriteOptions { MaterializeStyleFormatting = true }).ThrowIfLoss();
+        source.ToRtfResult(new RtfSaveOptions { MaterializeStyleFormatting = true }).ThrowIfLoss();
         RtfStyle used = source.AddStyle(1, "Used");
         used.Bold = true;
         source.Paragraphs[0].StyleId = used.Id;
-        source.ToRtfResult(new RtfWriteOptions { MaterializeStyleFormatting = true }).ThrowIfLoss();
+        source.ToRtfResult(new RtfSaveOptions { MaterializeStyleFormatting = true }).ThrowIfLoss();
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public sealed class RtfNativeStyleWritingTests {
         source.AddNote(RtfNoteKind.Footnote).AddParagraph("Note").StyleId = italic.Id;
         source.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("Cell").StyleId = bold.Id;
 
-        var output = source.ToRtfResult(new RtfWriteOptions { MaterializeStyleFormatting = true });
+        var output = source.ToRtfResult(new RtfSaveOptions { MaterializeStyleFormatting = true });
         Assert.Equal("Paragraphs=0;Runs=5", Assert.Single(output.Report.NativeDiagnostics).Detail);
         RtfDocument reopened = RtfDocument.ParseResult(output.Value).Document;
         Assert.True(reopened.Paragraphs[0].Runs[0].DirectBold);

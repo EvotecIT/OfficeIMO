@@ -11,7 +11,7 @@ public partial class HtmlOfficeAdapters {
     [InlineData("{0}")]
     public void PowerPointPictureLinksHonorAdapterPolicy(string wrapper) {
         const string image = "<img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNg+P//HwAF/gL9HjcXBgAAAABJRU5ErkJggg=='>";
-        var options = new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false };
+        var options = new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false };
         options.HyperlinkUrlPolicy.RestrictUrlSchemes = true;
         options.HyperlinkUrlPolicy.AllowedUrlSchemes.Clear();
         options.HyperlinkUrlPolicy.AllowedUrlSchemes.Add("https");
@@ -29,7 +29,7 @@ public partial class HtmlOfficeAdapters {
         const string html = "<p><a href='#slide-2'>Fragment</a> <a href='/docs'>Root</a> <a href='javascript:alert(1)'>Rejected</a></p>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.RequireValue();
         IReadOnlyList<PowerPointTextRun> runs = Assert.Single(presentation.Slides).TextBoxes
             .SelectMany(textBox => textBox.Paragraphs)
@@ -48,7 +48,7 @@ public partial class HtmlOfficeAdapters {
         const string image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNg+P//HwAF/gL9HjcXBgAAAABJRU5ErkJggg==";
         string html = string.Format(System.Globalization.CultureInfo.InvariantCulture, template, image);
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
         using PowerPointDocument presentation = result.RequireValue();
         using var stream = new MemoryStream();
         presentation.Save(stream);
@@ -66,7 +66,7 @@ public partial class HtmlOfficeAdapters {
         const string image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNg+P//HwAF/gL9HjcXBgAAAABJRU5ErkJggg==";
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(
             "<p><a href='#slide-1'><img src='" + image + "' alt='Back to start'></a></p>")
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions {
+            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions {
                 Mode = HtmlImportMode.Generic,
                 ImportEditableLayoutRegions = false
             });
@@ -82,7 +82,7 @@ public partial class HtmlOfficeAdapters {
     public void PowerPointSemanticRunsRespectTheTargetHyperlinkPolicy() {
         const string html = "<p><a href='https://example.com/allowed'>Allowed</a> " +
             "<a href='http://example.com/rejected'>Rejected</a></p>";
-        var options = new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic };
+        var options = new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic };
         options.HyperlinkUrlPolicy.RestrictUrlSchemes = true;
         options.HyperlinkUrlPolicy.AllowedUrlSchemes.Clear();
         options.HyperlinkUrlPolicy.AllowedUrlSchemes.Add("https");
@@ -103,7 +103,7 @@ public partial class HtmlOfficeAdapters {
     public void PowerPointSemanticRunsApplyTargetUrlTransformToOrdinaryLinks() {
         const string html = "<p><a href='https://example.com/rewrite'>Rewrite</a> " +
             "<a href='https://example.com/reject'>Reject</a></p>";
-        var options = new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic };
+        var options = new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic };
         options.HyperlinkUrlPolicy.ResolvedUrlTransform = value =>
             value.EndsWith("/reject", StringComparison.Ordinal) ? null : "https://safe.example/rewritten";
 
@@ -120,7 +120,7 @@ public partial class HtmlOfficeAdapters {
     public void PowerPointOrdinaryLinksApplyDocumentAndAdapterTransformsOnceEach() {
         var documentOptions = new HtmlConversionDocumentOptions();
         documentOptions.UrlPolicy.ResolvedUrlTransform = value => value + "?document=1";
-        var adapterOptions = new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic };
+        var adapterOptions = new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic };
         adapterOptions.HyperlinkUrlPolicy.ResolvedUrlTransform = value => value + "&adapter=1";
 
         using PowerPointDocument presentation = HtmlConversionDocument.Parse(
@@ -137,7 +137,7 @@ public partial class HtmlOfficeAdapters {
     public void PowerPointTableLinksApplyDocumentAndAdapterTransformsOnceEach() {
         var documentOptions = new HtmlConversionDocumentOptions();
         documentOptions.UrlPolicy.ResolvedUrlTransform = value => value + "?document=1";
-        var adapterOptions = new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic };
+        var adapterOptions = new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic };
         adapterOptions.HyperlinkUrlPolicy.ResolvedUrlTransform = value => value + "&adapter=1";
 
         using PowerPointDocument presentation = HtmlConversionDocument.Parse(

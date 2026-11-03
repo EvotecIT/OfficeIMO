@@ -59,7 +59,7 @@ public static partial class PowerPointHtmlConverterExtensions {
     }
 
     private static void AppendAdvancedReviewInventory(StringBuilder body, PptCore.PowerPointSlide slide,
-        PowerPointHtmlSaveOptions options, IList<HtmlDiagnostic> diagnostics) {
+        PowerPointHtmlExportOptions options, IList<HtmlDiagnostic> diagnostics) {
         if (options.IncludeSmartArt) {
             IEnumerable<PptCore.PowerPointSmartArt> smartArts = options.IncludeHiddenShapes
                 ? slide.SmartArts

@@ -20,7 +20,7 @@ public sealed class MhtmlDocumentTests {
                 "text/css", contentLocation: "https://example.test/site.css") },
             "https://example.test/page.html");
         HtmlRenderRequest request = HtmlRenderRequest.Create(profile, HtmlRenderEncoder.Pdf,
-            new HtmlToPdfOptions { ViewportWidth = 816, ViewportHeight = 900 });
+            new HtmlPdfExportOptions { ViewportWidth = 816, ViewportHeight = 900 });
 
         PdfCore.PdfDocumentConversionResult result = await archive.RenderToPdfDocumentResultAsync(request);
         string text = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
@@ -36,7 +36,7 @@ public sealed class MhtmlDocumentTests {
         HtmlRenderRequest request = HtmlRenderRequest.Create(
             HtmlRenderIntentProfile.ScreenSnapshotPaged,
             HtmlRenderEncoder.Pdf,
-            new HtmlToPdfOptions { ViewportWidth = 816, ViewportHeight = 900 });
+            new HtmlPdfExportOptions { ViewportWidth = 816, ViewportHeight = 900 });
         HtmlRenderDocument rendered = HtmlRenderEngine.Execute(archive.HtmlDocument, request).Document;
 
         double headingY = Assert.Single(rendered.Headings).Y;
@@ -83,7 +83,7 @@ public sealed class MhtmlDocumentTests {
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
 
         string ordinary = PdfCore.PdfReadDocument.Open((document.ToPdf()).ToBytes()).ExtractText();
-        string projected = PdfCore.PdfReadDocument.Open((document.ToPdf(new HtmlToPdfOptions {
+        string projected = PdfCore.PdfReadDocument.Open((document.ToPdf(new HtmlPdfExportOptions {
             ProjectSerializedShadowRoots = true
         })).ToBytes()).ExtractText();
 
@@ -97,7 +97,7 @@ public sealed class MhtmlDocumentTests {
     public async Task MhtmlCallerCanDisableSerializedShadowRootProjection() {
         var archive = new MhtmlDocument("<sample-card><template shadowmode='open'><p>HiddenSnapshot</p></template>VisibleLight</sample-card>");
 
-        PdfCore.PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync(new HtmlToPdfOptions {
+        PdfCore.PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync(new HtmlPdfExportOptions {
             ProjectSerializedShadowRoots = false
         });
         string text = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
@@ -707,7 +707,7 @@ public sealed class MhtmlDocumentTests {
             "<img src='https://example.test/allowed.png'><img src='https://example.test/escaped.png'>",
             contentLocation: "https://example.test/page.html");
         int calls = 0;
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
         };
         MhtmlRemoteResourcePolicy remotePolicy = MhtmlRemoteResourcePolicy.CreateSameOriginProfile(maximumRedirects: 1);

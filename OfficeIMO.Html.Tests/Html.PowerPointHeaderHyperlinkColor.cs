@@ -21,7 +21,7 @@ public class HtmlPowerPointHeaderHyperlinkColorTests {
             + (authoredColor ? " style='background-color:#123456;color:#ffdd00'" : "")
             + "><a href='https://example.test/source'>Source</a></th></tr></thead><tbody>" + rows + "</tbody></table>";
         using PowerPointDocument presentation = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions {
+            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions {
                 Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false
             }).RequireValue();
         var tables = presentation.Slides.SelectMany(slide => slide.Tables).ToArray();

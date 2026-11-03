@@ -6,7 +6,7 @@ namespace OfficeIMO.Html.Pdf;
 
 internal static partial class HtmlPdfRenderedConverter {
     // Keep serialization and publication in the same deadline as layout and resource resolution.
-    internal static T Complete<T>(HtmlConversionDocument document, HtmlToPdfOptions options,
+    internal static T Complete<T>(HtmlConversionDocument document, HtmlPdfExportOptions options,
         CancellationToken cancellationToken, Func<HtmlPdfRenderResult, CancellationToken, T> complete) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
@@ -18,7 +18,7 @@ internal static partial class HtmlPdfRenderedConverter {
             complete(ConvertCore(document, prepared, resolved, token), token));
     }
 
-    internal static async Task<T> CompleteAsync<T>(HtmlConversionDocument document, HtmlToPdfOptions options,
+    internal static async Task<T> CompleteAsync<T>(HtmlConversionDocument document, HtmlPdfExportOptions options,
         CancellationToken cancellationToken, Func<HtmlPdfRenderResult, CancellationToken, Task<T>> complete) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         cancellationToken.ThrowIfCancellationRequested();

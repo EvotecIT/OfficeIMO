@@ -9,6 +9,15 @@
       "category": "limits",
       "reason": "Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object.",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.Publisher.PublisherReadOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Publisher.PublisherLoadOptions",
+      "reason": "Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers.",
+      "category": "options",
+      "applied": true
     }
   ]
 }

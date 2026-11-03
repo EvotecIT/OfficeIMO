@@ -1,0 +1,14 @@
+{
+  "package": "OfficeIMO.Xps.Pdf",
+  "changes": [
+    {
+      "old": "OfficeIMO.Xps.XpsToPdfOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Xps.XpsPdfExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
+    }
+  ]
+}

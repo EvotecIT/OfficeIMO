@@ -333,11 +333,11 @@ internal static class Program
         };
         WordToHtmlOptions word = WordToHtmlOptions.CreateDocumentRoundTripProfile();
         word.DocumentOutput = output.Clone();
-        ExcelHtmlSaveOptions excel = ExcelHtmlSaveOptions.CreateVisualReviewProfile();
+        ExcelHtmlExportOptions excel = ExcelHtmlExportOptions.CreateVisualReviewProfile();
         excel.DocumentOutput = output.Clone();
-        PowerPointHtmlSaveOptions powerPoint = PowerPointHtmlSaveOptions.CreateVisualReviewProfile();
+        PowerPointHtmlExportOptions powerPoint = PowerPointHtmlExportOptions.CreateVisualReviewProfile();
         powerPoint.DocumentOutput = output.Clone();
-        RtfToHtmlOptions rtf = RtfToHtmlOptions.CreatePrintReviewProfile();
+        RtfHtmlExportOptions rtf = RtfHtmlExportOptions.CreatePrintReviewProfile();
         rtf.DocumentOutput = output.Clone();
         PdfHtmlSaveOptions pdf = PdfHtmlSaveOptions.CreatePositionedReviewProfile();
         pdf.DocumentOutput = output.Clone();

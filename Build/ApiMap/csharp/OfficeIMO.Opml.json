@@ -10,6 +10,24 @@
       "category": "lifecycle",
       "reason": "Persistence and byte serialization have distinct names; PDF and Visio already implement this contract.",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.Opml.OpmlReadOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Opml.OpmlLoadOptions",
+      "reason": "Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers.",
+      "category": "options",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Opml.OpmlWriteOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Opml.OpmlSaveOptions",
+      "reason": "Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers.",
+      "category": "options",
+      "applied": true
     }
   ]
 }

@@ -19,7 +19,7 @@ public sealed partial class HtmlRenderingTests {
         string css = customProperty
             ? ":root{--body-font:" + stack + "}p{font-family:var(--body-font,Arial,sans-serif)}"
             : "p{font-family:" + stack + "}";
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         options.ResourcePolicy.AllowDocumentFontEmbedding = allowDocumentFonts;
 
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
@@ -48,7 +48,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_UnpaintedNamedTextDoesNotConsumeInstalledFontResources(string hiddenStyle) {
         string? primary = FindNonDefaultInstalledFamily();
         if (primary == null) return;
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(
             "<p style=\"font-family:'" + primary + "';" + hiddenStyle + "\">Hidden</p><p>Visible</p>"), options);
@@ -69,7 +69,7 @@ public sealed partial class HtmlRenderingTests {
         byte[] first = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
             splitCoverage ? new[] { (int)'A', (int)'1', (int)'.', (int)' ' }
                 : new[] { (int)'A', (int)'B', (int)'1', (int)'.', (int)' ' });
-        var options = new HtmlToPdfOptions { MaxResourceBytes = first.Length * 2L };
+        var options = new HtmlPdfExportOptions { MaxResourceBytes = first.Length * 2L };
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
         options.Fonts.Add("SuppliedA", first);
         if (splitCoverage) options.Fonts.Add("SuppliedB", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('B'));
@@ -93,7 +93,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_InstalledFamilyBeforeACoveringSuppliedPrefixKeepsItsCssPriority() {
         string? primary = FindNonDefaultInstalledFamily();
         if (primary == null) return;
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
         options.Fonts.Add("Supplied", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B'));
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(
@@ -109,7 +109,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_GlobalFallbackCountsAsPrefixCoverageOnlyWhenItIsInTheCssPrefix(bool explicitPrefix) {
         string? primary = FindNonDefaultInstalledFamily();
         if (primary == null) return;
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
         options.Fonts.Add("SuppliedA", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A'));
         options.Fonts.Add("FallbackB", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('B'));
@@ -125,7 +125,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPdf_CoveringSuppliedAliasWithALiteralCommaDoesNotDiscoverAnUnusedHostFamily() {
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B');
-        var options = new HtmlToPdfOptions { MaxResourceBytes = data.Length * 2L };
+        var options = new HtmlPdfExportOptions { MaxResourceBytes = data.Length * 2L };
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
         options.Fonts.Add("Backing", data);
         options.Fonts.AddAlias("Supplied, body", "Backing");

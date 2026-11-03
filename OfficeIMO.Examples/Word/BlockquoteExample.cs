@@ -9,7 +9,7 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Blockquote round-trip HTML <-> Word");
 
             string html = "<blockquote>Quoted text</blockquote>";
-            using (WordDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions())) {
+            using (WordDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions())) {
                 string docPath = Path.Combine(folderPath, "Blockquote.docx");
                 document.Save(docPath);
                 Console.WriteLine($"✓ Created: {docPath}");

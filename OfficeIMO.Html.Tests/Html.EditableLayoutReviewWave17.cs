@@ -63,7 +63,7 @@ public sealed class HtmlEditableLayoutReviewWave17Tests {
     [Fact]
     public void ShortConfiguredWordPageKeepsContinuousRegionsInSemanticFlow() {
         const string html = "<div style='position:absolute;top:500px;width:120px;height:30px'>Page owned</div>";
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             DefaultPageSize = WordPageSize.A6,
             DefaultOrientation = OfficePageOrientation.Landscape
         };

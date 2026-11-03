@@ -51,7 +51,7 @@ public sealed class VisioDrawingProjectionTests {
         VisioShape printOnly = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Print only"); printOnly.LayerNames.Add(print.Name);
         VisioConnector connector = page.AddConnector("route", child, printOnly, ConnectorKind.Straight);
         connector.Label = "Independent route";
-        string PrintText(VisioLayerRenderMode mode) => PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf(new VisioToPdfOptions {
+        string PrintText(VisioLayerRenderMode mode) => PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf(new VisioPdfExportOptions {
             Mode = VisioPdfProjectionMode.DiagramPages, DrawingOptions = new VisioDrawingOptions { LayerMode = mode }
         }).ToBytes())).ExtractText();
         Assert.Contains("Visible child", PrintText(VisioLayerRenderMode.Visible));
@@ -81,16 +81,16 @@ public sealed class VisioDrawingProjectionTests {
         Assert.Throws<InvalidOperationException>(() => stencil.ToDrawings());
         Assert.Throws<InvalidOperationException>(() => stencil.ToPdf(DiagramOptions()).ToBytes());
         VisioDocument drawing = VisioDocument.Create(); drawing.AddPage("Page");
-        Assert.Throws<ArgumentException>(() => drawing.ToPdf(new VisioToPdfOptions { DrawingOptions = new VisioDrawingOptions() }, out _));
-        Assert.Throws<ArgumentException>(() => drawing.ToPdf(new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages, ProjectionOptions = new PdfProjectionOptions() }, out _));
-        Assert.Throws<ArgumentOutOfRangeException>(() => drawing.ToPdf(new VisioToPdfOptions { Mode = (VisioPdfProjectionMode)100 }, out _));
+        Assert.Throws<ArgumentException>(() => drawing.ToPdf(new VisioPdfExportOptions { DrawingOptions = new VisioDrawingOptions() }, out _));
+        Assert.Throws<ArgumentException>(() => drawing.ToPdf(new VisioPdfExportOptions { Mode = VisioPdfProjectionMode.DiagramPages, ProjectionOptions = new PdfProjectionOptions() }, out _));
+        Assert.Throws<ArgumentOutOfRangeException>(() => drawing.ToPdf(new VisioPdfExportOptions { Mode = (VisioPdfProjectionMode)100 }, out _));
     }
 
     [Fact]
     public void LocatedSourceLossSurvivesPdfResultsAndStrictSavingLeavesDestinationsUntouched() {
         VisioDocument document = VisioDocument.Create();
         document.AddPage("Page").AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), "Label").AddHyperlink("https://example.com");
-        var options = new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages, SourceName = "source.vdx" };
+        var options = new VisioPdfExportOptions { Mode = VisioPdfProjectionMode.DiagramPages, SourceName = "source.vdx" };
         using (document.ToPdf(options, out OfficeConversionReport resultReport)) {
             Assert.Contains(resultReport.Diagnostics, diagnostic => diagnostic.Code == "VISIO_DRAWING_METADATA" && diagnostic.LossKind == OfficeConversionLossKind.Omission && diagnostic.Location!.StartsWith("page:1:Page:shape:"));
         }
@@ -99,7 +99,7 @@ public sealed class VisioDrawingProjectionTests {
         var failure = Assert.Throws<OfficeConversionException>(() => document.SaveAsPdf(destination, options));
         Assert.Contains(failure.Report.Diagnostics, diagnostic => diagnostic.Code == "VISIO_DRAWING_METADATA");
         Assert.Equal(sentinel, destination.ToArray());
-        Assert.Throws<OfficeConversionException>(() => document.ToPdf(new VisioToPdfOptions {
+        Assert.Throws<OfficeConversionException>(() => document.ToPdf(new VisioPdfExportOptions {
             Mode = VisioPdfProjectionMode.DiagramPages, DrawingOptions = new VisioDrawingOptions { FailOnLoss = true }
         }, out _));
     }
@@ -111,7 +111,7 @@ public sealed class VisioDrawingProjectionTests {
         var document = VisioDocument.LoadLegacyXml(Path.Combine(AppContext.BaseDirectory, "Fixtures", "LegacyXml", name)).Value;
         foreach (VisioDocument candidate in Reopened(document)) {
             byte[] before = candidate.ToLegacyXmlResult().Value;
-            VisioToPdfOptions options = DiagramOptions();
+            VisioPdfExportOptions options = DiagramOptions();
             options.DrawingOptions = new VisioDrawingOptions();
             byte[] font = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "SourceSansPro-Regular.otf"));
             foreach (string family in new[] { "Yandex Sans Text", "Monaco", "Arial" }) options.DrawingOptions.Fonts.Add(family, font);
@@ -169,7 +169,7 @@ public sealed class VisioDrawingProjectionTests {
         }
     }
 
-    private static VisioToPdfOptions DiagramOptions() => new() { Mode = VisioPdfProjectionMode.DiagramPages };
+    private static VisioPdfExportOptions DiagramOptions() => new() { Mode = VisioPdfProjectionMode.DiagramPages };
 
     private static string NormalizeText(string text) => string.Join(" ", text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 

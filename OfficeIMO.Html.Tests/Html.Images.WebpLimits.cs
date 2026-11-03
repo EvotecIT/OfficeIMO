@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + "." + extension);
             using var client = new HttpClient(new FakeHtmlHttpMessageHandler(_ => Task.FromResult(
                 new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(bytes) })));
-            var options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
+            var options = HtmlWordExportOptions.CreateTrustedDocumentProfile();
             options.MaxDecodedImagePixels = pixels - 1;
             options.HttpClient = client;
             File.WriteAllBytes(path, bytes);
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
             // libwebp lossless 2001 x 2000 solid red: small encoded input, more than four million decoded pixels.
             const string source = "UklGRsoAAABXRUJQVlA4TL4AAAAv0MfzAQcQ/Y/+BwQkSf//kxH9z/jPf/7zn//85z//+c9//vOf//znP//5z3/+85///Oc///nPf/7zn//85z//+c9//vOf//znP//5z3/+85///Oc///nPf/7zn//85z//+c9//vOf//znP//5z3/+85///Oc///nPf/7zn//85z//+c9//vOf//znP//5z3/+85///Oc///nPf/7zn//85z//+c9//vOf//znP//5z3/+85///Oc///nP/9EC";
             var result = HtmlConversionDocument.Parse("<img src='data:image/webp;base64," + source + "' alt='Large photo'>")
-                .ConvertToWordWithEvidence(WordHtmlImportOptions.UntrustedDefaults);
+                .ConvertToWordWithEvidence(HtmlWordExportOptions.UntrustedDefaults);
             using var doc = result.Value;
             Assert.Empty(doc.Images);
             Assert.Contains(result.Report.NativeDiagnostics, d => (d.Detail ?? "").Contains("decoded-pixel"));

@@ -42,7 +42,7 @@ public sealed partial class HtmlRenderingTests {
                 new[] { 32, 0x202E, 0x202C });
         string content = cssOverride ? "<bdo dir='rtl'>abc</bdo>" : "\u202Eabc\u202C";
         HtmlConversionDocument document = ResolvedTypographyDocument(content, "ltr", fontDirected);
-        HtmlToPdfOptions options = ResolvedTypographyOptions(data, fontDirected);
+        HtmlPdfExportOptions options = ResolvedTypographyOptions(data, fontDirected);
 
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, options);
         HtmlRenderText[] text = rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
@@ -100,8 +100,8 @@ public sealed partial class HtmlRenderingTests {
             + "p{font:" + (bold ? "700 " : string.Empty) + "20px/24px '" + ManagedTextShapingTestAssets.FamilyName + "';font-feature-settings:'kern' 0}</style>"
             + "<p dir='" + direction + "'>" + content + "</p>");
 
-    private static HtmlToPdfOptions ResolvedTypographyOptions(byte[] data, bool bold = false) {
-        var options = new HtmlToPdfOptions {
+    private static HtmlPdfExportOptions ResolvedTypographyOptions(byte[] data, bool bold = false) {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss,

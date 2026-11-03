@@ -18,7 +18,7 @@ public class RtfHtmlParagraphFrameTests {
         });
         document.AddParagraph("Plain");
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true, NewLine = "\n" });
 
@@ -48,7 +48,7 @@ public class RtfHtmlParagraphFrameTests {
             dropCapKind: RtfDropCapKind.InText);
         Assert.False(roundTrip.Paragraphs[1].Frame.HasAnyValue);
 
-        string rtf = roundTrip.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = roundTrip.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"\absw3600\absh0\phmrg\posnegx-180\pvpara\posy720\abslock\absnoovrlp1\nowrap\dxfrtext120\dfrmtxtx240\dfrmtxty360\overlay\dropcapli2\dropcapt1", rtf, StringComparison.Ordinal);
     }
 
@@ -66,7 +66,7 @@ public class RtfHtmlParagraphFrameTests {
         });
         document.AddParagraph("Styled").SetStyle(style.Id);
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true, FragmentOnly = false, NewLine = "\n" });
 
@@ -95,7 +95,7 @@ public class RtfHtmlParagraphFrameTests {
             dropCapLines: 3,
             dropCapKind: RtfDropCapKind.Margin);
 
-        string rtf = roundTrip.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = roundTrip.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"\absw5040\absh-720\phpg\posxc\pvpg\posyt\abslock\absnoovrlp0\nowrap\dxfrtext173\dfrmtxtx240\dfrmtxty360\overlay\dropcapli3\dropcapt2", rtf, StringComparison.Ordinal);
     }
 

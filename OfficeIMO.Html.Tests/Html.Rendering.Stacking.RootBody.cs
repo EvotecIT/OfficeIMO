@@ -13,7 +13,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlStacking_PdfLogicalOwnerAccountsForAllRenderableLayers(string first, string firstStyle, string second, string expected) {
         string html = "<p style='margin:0'><span style='position:relative;z-index:2;font-family:MissingIcon;" + firstStyle + "'>" + first
             + "</span><span style='position:relative;z-index:1;font-family:MissingIcon'>" + second + "</span></p>";
-        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions {
             AutoFitWidePrintContent = false,
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
         })).ToBytes();
@@ -30,7 +30,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlStacking_PromotedInlineContextsRetainPdfLogicalReadingOrder(string tag) {
         string html = "<" + tag + " style='margin:0;font-size:16px'><span style='position:relative;z-index:2'><a href='https://example.test/alpha'>ALPHA </a></span>"
             + "<span style='position:relative;z-index:1'><a href='https://example.test/beta'>BETA</a></span></" + tag + ">";
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         options.PdfOptions.CompressContentStreams = false;
         var result = HtmlConversionDocument.Parse(html).RenderToPdfResult(HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, options));
         byte[] pdf = result.ToBytes();

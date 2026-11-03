@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void MarkdownToWord_TableCellAlignmentAndFormatting() {
             string md = "| Left | Center | Right |\n| :--- | :---: | ---: |\n| **Bold** | *Italic* | Normal |";
-            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions { FontFamily = "Calibri" });
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new MarkdownWordExportOptions { FontFamily = "Calibri" });
             var table = doc.Tables[0];
 
             var leftParagraph = table.Rows[1].Cells[0].Paragraphs[0];
@@ -53,7 +53,7 @@ Narrative body text.
 | Second | 2 |
 """;
 
-            using var converted = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions { Theme = theme });
+            using var converted = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new MarkdownWordExportOptions { Theme = theme });
             using var saved = new System.IO.MemoryStream(converted.ToBytes());
             using var doc = WordDocument.Load(saved);
 
@@ -80,7 +80,7 @@ Narrative body text.
                 .WithColors(heading: "#064e3b", accent: "#dc2626");
             string md = "# [Documentation](https://example.com/docs)";
 
-            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions { Theme = theme });
+            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new MarkdownWordExportOptions { Theme = theme });
 
             var linkRuns = doc.Paragraphs.SelectMany(p => p.GetRuns())
                 .Where(run => run.IsHyperLink && run.Text == "Documentation")
@@ -97,7 +97,7 @@ Narrative body text.
 Narrative body text.
 """;
 
-            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions());
+            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new MarkdownWordExportOptions());
 
             var heading = doc.Paragraphs.First(p => p.Text == "Heading");
             Assert.Contains(heading.GetRuns(), run => string.Equals(run.ColorHex, "111827", System.StringComparison.OrdinalIgnoreCase));
@@ -113,7 +113,7 @@ Narrative body text.
 Narrative body text.
 """;
 
-            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions { ApplyDefaultTheme = false });
+            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new MarkdownWordExportOptions { ApplyDefaultTheme = false });
 
             var heading = doc.Paragraphs.First(p => p.Text == "Heading");
             Assert.DoesNotContain(heading.GetRuns(), run => !string.IsNullOrWhiteSpace(run.ColorHex));
@@ -131,7 +131,7 @@ Narrative body text.
 | First | 1 |
 """;
 
-            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions { Theme = theme });
+            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new MarkdownWordExportOptions { Theme = theme });
 
             var cell = doc.Tables[0].Rows[0].Cells[0];
             Assert.Equal(WordBorderStyle.None, cell.Borders.TopStyle);
@@ -151,7 +151,7 @@ Narrative body text.
 | First | 1 |
 """;
 
-            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions { Theme = theme });
+            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new MarkdownWordExportOptions { Theme = theme });
 
             var cell = doc.Tables[0].Rows[0].Cells[0];
             Assert.Equal(WordBorderStyle.None, cell.Borders.TopStyle);
@@ -172,7 +172,7 @@ Console.WriteLine("ready");
 ```
 """;
 
-            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions { Theme = theme });
+            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new MarkdownWordExportOptions { Theme = theme });
 
             var codeParagraph = doc.Paragraphs.First(p => p.Text.Contains("Console.WriteLine", System.StringComparison.Ordinal));
             Assert.True(string.IsNullOrEmpty(codeParagraph.ShadingFillColorHex));
@@ -193,7 +193,7 @@ Console.WriteLine("ready");
 | Second | 2 |
 """;
 
-            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions { Theme = theme });
+            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new MarkdownWordExportOptions { Theme = theme });
 
             var table = doc.Tables[0];
             Assert.True(string.IsNullOrEmpty(table.Rows[0].Cells[0].ShadingFillColorHex));
@@ -210,7 +210,7 @@ Console.WriteLine("ready");
 > Body text.
 """;
 
-            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions { Theme = theme });
+            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new MarkdownWordExportOptions { Theme = theme });
 
             var title = doc.Paragraphs.First(p => p.Text == "Heads up");
             Assert.True(string.IsNullOrEmpty(title.ShadingFillColorHex));
@@ -262,7 +262,7 @@ Console.WriteLine("ready");
 
             var markdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
 
-            using var doc = markdown.ToWord(new WordMarkdownImportOptions { FontFamily = "Calibri" });
+            using var doc = markdown.ToWord(new MarkdownWordExportOptions { FontFamily = "Calibri" });
             var cellParagraphs = doc.Tables[0].Rows[1].Cells[0].Paragraphs
                 .Select(p => p.Text)
                 .Where(text => !string.IsNullOrWhiteSpace(text))
@@ -290,7 +290,7 @@ Console.WriteLine("ready");
                 """;
 
             MarkdownDocument markdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
-            using var doc = markdown.ToWord(new WordMarkdownImportOptions { FontFamily = "Calibri" });
+            using var doc = markdown.ToWord(new MarkdownWordExportOptions { FontFamily = "Calibri" });
             var cellParagraphs = doc.Tables[0].Rows[1].Cells[0].Paragraphs
                 .Select(p => p.Text)
                 .Where(text => !string.IsNullOrWhiteSpace(text))
@@ -324,7 +324,7 @@ Console.WriteLine("ready");
 
             Assert.Contains("<custom-card>", rawCellBlock.Html);
 
-            using var doc = markdown.ToWord(new WordMarkdownImportOptions { FontFamily = "Calibri" }, out OfficeConversionReport report);
+            using var doc = markdown.ToWord(new MarkdownWordExportOptions { FontFamily = "Calibri" }, out OfficeConversionReport report);
             var cellParagraphs = doc.Tables[0].Rows[1].Cells[0].Paragraphs
                 .Select(p => p.Text)
                 .Where(text => !string.IsNullOrWhiteSpace(text))

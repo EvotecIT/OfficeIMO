@@ -29,7 +29,7 @@ public partial class WordRtfConverterTests {
 
         RtfDocument converted = opened.ToRtfDocument();
         AssertMixedRunBreakOrder(SelectMixedRunStory(converted, story));
-        string artifact = converted.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string artifact = converted.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfDocument readback = RtfDocument.ParseResult(artifact).Document;
         AssertMixedRunBreakOrder(SelectMixedRunStory(readback, story), allowNoteBodyMarker: story == "footnote");
         AssertMixedRunSourceUnchanged(opened, before);
@@ -75,7 +75,7 @@ public partial class WordRtfConverterTests {
                 Assert.True(run.Bold);
                 Assert.Null(run.Note);
             });
-        string artifact = converted.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string artifact = converted.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         AssertMixedRunArtifactOrder(artifact, "BEFORE", "NOTE-FIRST", "NOTE-SECOND", "AFTER");
         AssertMixedRunSourceUnchanged(opened, before);
     }
@@ -124,7 +124,7 @@ public partial class WordRtfConverterTests {
                     Assert.True(run.Bold);
                 });
         }
-        string artifact = converted.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string artifact = converted.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfDocument readback = RtfDocument.ParseResult(artifact).Document;
         IEnumerable<IRtfInline> readbackInlines = MixedRunBodyBlocks(readback).SelectMany(block => block is RtfParagraph content
             ? content.Inlines.AsEnumerable()

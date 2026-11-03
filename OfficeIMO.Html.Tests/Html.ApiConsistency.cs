@@ -31,7 +31,7 @@ public sealed class HtmlApiConsistencyTests {
     public async Task PdfPngAndSvg_AcceptTheSameHtmlSources() {
         const string html = "<h1>Source parity</h1><p>String, document, and stream.</p>";
         HtmlConversionDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html);
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
 
         Assert.NotEmpty((document.ToPdf(options)).ToBytes());
         Assert.NotEmpty(document.ToPng(options));
@@ -66,14 +66,14 @@ public sealed class HtmlApiConsistencyTests {
     [Fact]
     public void SharedPdfOptions_PreserveImageModeWhilePdfRemainsPaged() {
         const string html = "<div style='height:1800px;background:#336699'></div>";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 240D,
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlToPdfOptions clone = options.ClonePdf();
-        HtmlToPdfOptions copied = new HtmlToPdfOptions(options);
+        HtmlPdfExportOptions clone = options.ClonePdf();
+        HtmlPdfExportOptions copied = new HtmlPdfExportOptions(options);
 
         Assert.Equal(HtmlRenderMode.Continuous, clone.Mode);
         Assert.Equal(HtmlRenderMode.Continuous, copied.Mode);
@@ -87,7 +87,7 @@ public sealed class HtmlApiConsistencyTests {
     public void HtmlPdfOptions_CopyConstructorPreservesPdfSpecificSettings() {
         var fontFamily = new PdfCore.PdfEmbeddedFontFamily("ContractFont", new byte[] { 1 });
         var shapingProvider = new NullShapingProvider();
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None,
             TextShapingMode = PdfCore.PdfTextShapingMode.UnicodeScalar,
             FontFamily = fontFamily,
@@ -98,7 +98,7 @@ public sealed class HtmlApiConsistencyTests {
             }.UsePdfUa(PdfCore.PdfComplianceProfile.PdfUa1, "pl-PL")
         };
 
-        var copied = new HtmlToPdfOptions(options);
+        var copied = new HtmlPdfExportOptions(options);
         options.PdfOptions.Language = "en-US";
 
         Assert.Equal(PdfCore.PdfTextFallbackFeatures.None, copied.TextFallbacks);
@@ -115,7 +115,7 @@ public sealed class HtmlApiConsistencyTests {
 
     [Fact]
     public void HtmlPdfOptions_DefaultHyperlinkPolicyBlocksFileAndDataUrls() {
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
 
         Assert.True(options.UrlPolicy.DisallowFileUrls);
         Assert.False(options.UrlPolicy.AllowDataUrls);
@@ -133,7 +133,7 @@ public sealed class HtmlApiConsistencyTests {
             UrlPolicy = HtmlUrlPolicy.CreateOfficeIMOProfile()
         };
 
-        var copied = new HtmlToPdfOptions(source);
+        var copied = new HtmlPdfExportOptions(source);
 
         Assert.True(copied.UrlPolicy.RestrictUrlSchemes);
         Assert.True(copied.UrlPolicy.DisallowFileUrls);
@@ -166,13 +166,13 @@ public sealed class HtmlApiConsistencyTests {
             .GetReferencedAssemblies()
             .Select(reference => reference.Name ?? string.Empty)
             .ToArray();
-        string[] bridge = typeof(HtmlToPdfOptions).Assembly
+        string[] bridge = typeof(HtmlPdfExportOptions).Assembly
             .GetReferencedAssemblies()
             .Select(reference => reference.Name ?? string.Empty)
             .ToArray();
 
-        Assert.Equal("OfficeIMO.Html.Pdf", typeof(HtmlToPdfOptions).Assembly.GetName().Name);
-        Assert.Equal(typeof(HtmlToPdfOptions).Assembly, typeof(HtmlImageExportExtensions).Assembly);
+        Assert.Equal("OfficeIMO.Html.Pdf", typeof(HtmlPdfExportOptions).Assembly.GetName().Name);
+        Assert.Equal(typeof(HtmlPdfExportOptions).Assembly, typeof(HtmlImageExportExtensions).Assembly);
         Assert.DoesNotContain("OfficeIMO.Pdf", html);
         Assert.Contains("OfficeIMO.Html", bridge);
         Assert.Contains("OfficeIMO.Pdf", bridge);

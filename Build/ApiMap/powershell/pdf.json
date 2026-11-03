@@ -16991,7 +16991,7 @@
       "alias": null,
       "status": "renamed",
       "synopsis": "Creates PDF-to-Excel table reconstruction options for Convert-OfficeDocument -To Excel.",
-      "outputType": "OfficeIMO.Pdf.Excel.ExcelPdfImportOptions",
+      "outputType": "OfficeIMO.Pdf.Excel.PdfExcelExportOptions",
       "parameterSets": [
         {
           "name": "Default",
@@ -17116,7 +17116,7 @@
       "alias": null,
       "status": "renamed",
       "synopsis": "Creates PDF-to-Word reconstruction options for Convert-OfficeDocument -To Word.",
-      "outputType": "OfficeIMO.Pdf.Word.WordPdfImportOptions",
+      "outputType": "OfficeIMO.Pdf.Word.PdfWordExportOptions",
       "parameterSets": [
         {
           "name": "Default",
@@ -17282,7 +17282,7 @@
       "alias": null,
       "status": "renamed",
       "synopsis": "Creates PDF-to-PowerPoint reconstruction options for Convert-OfficeDocument -To PowerPoint.",
-      "outputType": "OfficeIMO.Pdf.PowerPoint.PowerPointPdfImportOptions",
+      "outputType": "OfficeIMO.Pdf.PowerPoint.PdfPowerPointExportOptions",
       "parameterSets": [
         {
           "name": "Default",
@@ -17429,7 +17429,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Creates PDF-to-HTML options for Convert-OfficeDocument -To Html.",
-      "outputType": "PdfToHtmlOptions",
+      "outputType": "PdfHtmlExportOptions",
       "parameterSets": [
         {
           "name": "Default",
@@ -18560,7 +18560,7 @@
         "StylesheetContent": "Options"
       },
       "hint": "Convert-OfficeDocument -Text $html -From Html -To Pdf -OutputPath .\\Page.pdf -Options (New-OfficeHtmlPdfOptions ...)",
-      "reason": "HTML-to-PDF is a conversion; HTML strings use -Text -From Html. Rendering profile, base path and stylesheets travel in the HtmlToPdfOptions passed to -Options (the markup area's New-OfficeHtmlPdfOptions builds it). Convert-OfficeDocument always emits its report, so -PassThru is gone."
+      "reason": "HTML-to-PDF is a conversion; HTML strings use -Text -From Html. Rendering profile, base path and stylesheets travel in the HtmlPdfExportOptions passed to -Options (the markup area's New-OfficeHtmlPdfOptions builds it). Convert-OfficeDocument always emits its report, so -PassThru is gone."
     },
     {
       "old": "ConvertFrom-PdfHtml",

@@ -16,7 +16,7 @@ public sealed class HtmlAllSeverityBatch13SecurityTests {
         Directory.CreateDirectory(basePath);
         File.Copy(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"), outside);
         try {
-            var options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
+            var options = HtmlWordExportOptions.CreateTrustedDocumentProfile();
             options.BasePath = basePath;
             using WordDocument document = OfficeIMO.Html.HtmlConversionDocument
                 .Parse("<img src='../outside.png' alt='blocked'>")
@@ -86,7 +86,7 @@ public sealed class HtmlAllSeverityBatch13SecurityTests {
 
     [Fact]
     public void HtmlStylesheetCacheIsScopedToOneConverterInstance() {
-        Type converter = typeof(WordHtmlImportOptions).Assembly.GetType("OfficeIMO.Word.Html.HtmlToWordConverter", throwOnError: true)!;
+        Type converter = typeof(HtmlWordExportOptions).Assembly.GetType("OfficeIMO.Word.Html.HtmlToWordConverter", throwOnError: true)!;
         FieldInfo cache = converter.GetField("_stylesheetCache", BindingFlags.Instance | BindingFlags.NonPublic)!;
 
         Assert.False(cache.IsStatic);

@@ -7,12 +7,12 @@ using OfficeIMO.Word.Markdown;
 namespace OfficeIMO;
 
 public static partial class OfficeConverter {
-    internal static WordMarkdownImportOptions ConfigureMarkdownHtml(WordMarkdownImportOptions? options, CancellationToken token) {
-        WordMarkdownImportOptions configured = WordMarkdownConverterExtensions.CopyOptions(options ?? new());
+    internal static MarkdownWordExportOptions ConfigureMarkdownHtml(MarkdownWordExportOptions? options, CancellationToken token) {
+        MarkdownWordExportOptions configured = WordMarkdownConverterExtensions.CopyOptions(options ?? new());
         configured.RawHtmlRenderer = (text, destination, sink) => {
             token.ThrowIfCancellationRequested();
             var html = HtmlConversionDocument.Parse(text, null, token);
-            var import = new WordHtmlImportOptions();
+            var import = new HtmlWordExportOptions();
             destination.AddHtml(html, import);
             if (import.ConversionReport is { } report) {
                 foreach (HtmlDiagnostic finding in report.Diagnostics)

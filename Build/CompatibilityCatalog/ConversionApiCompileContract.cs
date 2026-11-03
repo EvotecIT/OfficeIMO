@@ -79,16 +79,16 @@ internal static class ConversionApiCompileContract {
             Language = "en",
             NewLine = "\n"
         };
-        _ = DjVuDocument.Load(stream).SaveAsPdf(stream, new DjVuToPdfOptions());
+        _ = DjVuDocument.Load(stream).SaveAsPdf(stream, new DjVuPdfExportOptions());
         WordHtmlExportOptions wordOptions = WordHtmlExportOptions.CreateDocumentRoundTripProfile();
         wordOptions.DocumentOutput = output.Clone();
-        ExcelHtmlSaveOptions excelOptions = ExcelHtmlSaveOptions.CreateVisualReviewProfile();
+        ExcelHtmlExportOptions excelOptions = ExcelHtmlExportOptions.CreateVisualReviewProfile();
         excelOptions.DocumentOutput = output.Clone();
-        PowerPointHtmlSaveOptions powerPointOptions = PowerPointHtmlSaveOptions.CreateVisualReviewProfile();
+        PowerPointHtmlExportOptions powerPointOptions = PowerPointHtmlExportOptions.CreateVisualReviewProfile();
         powerPointOptions.DocumentOutput = output.Clone();
-        RtfToHtmlOptions rtfOptions = RtfToHtmlOptions.CreatePrintReviewProfile();
+        RtfHtmlExportOptions rtfOptions = RtfHtmlExportOptions.CreatePrintReviewProfile();
         rtfOptions.DocumentOutput = output.Clone();
-        PdfToHtmlOptions pdfOptions = PdfToHtmlOptions.CreatePositionedReviewProfile();
+        PdfHtmlExportOptions pdfOptions = PdfHtmlExportOptions.CreatePositionedReviewProfile();
         pdfOptions.DocumentOutput = output.Clone();
         HtmlConversionProfile wordSharedProfile = wordOptions.SharedProfile;
         HtmlConversionProfile excelSharedProfile = excelOptions.SharedProfile;
@@ -176,7 +176,7 @@ internal static class ConversionApiCompileContract {
         OfficeLegacyImportReport pageSourceImportReport = binaryPageSource.Report;
         string binarySvg = binaryPageSource.Value.Pages[0].ToSvg();
         PdfDocument binaryPdf = OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.ToPdf(binaryPageSource.Value,
-            new OfficeIMO.Visio.Pdf.VisioToPdfOptions { Mode = OfficeIMO.Visio.Pdf.VisioPdfProjectionMode.DiagramPages }, out OfficeConversionReport binaryPdfReport);
+            new OfficeIMO.Visio.Pdf.VisioPdfExportOptions { Mode = OfficeIMO.Visio.Pdf.VisioPdfProjectionMode.DiagramPages }, out OfficeConversionReport binaryPdfReport);
         _ = OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.ToPdf(visio);
         _ = OfficeIMO.Publisher.Pdf.PublisherPdfConversionExtensions.ToPdf(publisher);
         _ = WordGoogleDocsExtensions.ExportToGoogleDocsAsync(word, session);

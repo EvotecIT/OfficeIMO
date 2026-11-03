@@ -87,7 +87,7 @@ public sealed class MermaidMarkupRegressionTests {
         var column = parsed.Document.DescendantsAndSelf().OfType<OfficeMarkupColumnBlock>().First();
         if (!removeInTransform) column.Blocks.Clear();
         Assert.Empty(column.Blocks);
-        using var deck = parsed.Document.ToPowerPointDocument(new MarkupToPowerPointOptions { RenderMermaidDiagrams = false });
+        using var deck = parsed.Document.ToPowerPointDocument(new MarkupPowerPointExportOptions { RenderMermaidDiagrams = false });
         Assert.Empty(deck.Slides.SelectMany(slide => slide.Shapes).OfType<PowerPointPicture>());
         Assert.DoesNotContain(deck.Slides.SelectMany(slide => slide.TextBoxes), box => box.Text.Contains("A --> B"));
         Assert.Contains(deck.Slides.SelectMany(slide => slide.TextBoxes), box => box.Text == "Summary");
@@ -99,7 +99,7 @@ public sealed class MermaidMarkupRegressionTests {
         document.Blocks.Add(new OfficeMarkupColumnsBlock());
         document.Blocks.Add(new OfficeMarkupColumnBlock("left", Fence));
         document.Blocks.Add(new OfficeMarkupColumnBlock("right", "Summary"));
-        using var deck = document.ToPowerPointDocument(new MarkupToPowerPointOptions { RenderMermaidDiagrams = false });
+        using var deck = document.ToPowerPointDocument(new MarkupPowerPointExportOptions { RenderMermaidDiagrams = false });
         Assert.Contains(deck.Slides.SelectMany(slide => slide.TextBoxes), box => box.Text.Contains("A --> B"));
     }
 

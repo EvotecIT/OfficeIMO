@@ -15,7 +15,7 @@ public class RtfHtmlAutomaticNoteReferenceTests {
         noteParagraph.AddText("text").SetItalic();
         paragraph.AddNoteReference(note);
 
-        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
+        string html = document.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile());
 
         Assert.Contains("data-officeimo-rtf-generated-text=\"note-reference\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-note=\"footnote\"", html, StringComparison.Ordinal);
@@ -43,7 +43,7 @@ public class RtfHtmlAutomaticNoteReferenceTests {
         Assert.Equal(RtfNoteKind.Endnote, reference.Note!.Kind);
         Assert.Equal("Endnote text", reference.Note.ToPlainText());
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"\chftn {\footnote\ftnalt", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\b text\b0", rtf, StringComparison.Ordinal);
     }

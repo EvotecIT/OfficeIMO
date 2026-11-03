@@ -6,7 +6,7 @@ internal static partial class RtfPdfConverter {
     private static IReadOnlyDictionary<int, PdfFontBinding> ConfigureDocumentFonts(
         RtfDocument document,
         PdfCore.PdfCreateOptions pdfOptions,
-        RtfToPdfOptions options) {
+        RtfPdfExportOptions options) {
         bool allowSystemFontEmbedding =
             options.ResourcePolicy.AllowSystemFontEmbedding &&
             options.ResourcePolicy.AllowDocumentFontEmbedding;
@@ -120,7 +120,7 @@ internal static partial class RtfPdfConverter {
     private static bool ResolveSystemFontPermission(
         string familyName,
         bool allowSystemFontEmbedding,
-        RtfToPdfOptions options,
+        RtfPdfExportOptions options,
         ISet<string> systemFontFamilies,
         ref bool budgetReported) {
         if (!allowSystemFontEmbedding) return false;
@@ -145,7 +145,7 @@ internal static partial class RtfPdfConverter {
     }
 
     /// <summary>Admits fonts and fallback scalars only from the existing PDF content projection.</summary>
-    private static HashSet<int> CollectReferencedFontIds(RtfDocument document, RtfToPdfOptions options,
+    private static HashSet<int> CollectReferencedFontIds(RtfDocument document, RtfPdfExportOptions options,
         PdfCore.PdfCreateOptions pdfOptions, out string requiredText) {
         options.CancellationToken.ThrowIfCancellationRequested();
         var fontIds = new HashSet<int>();
@@ -228,7 +228,7 @@ internal static partial class RtfPdfConverter {
     }
 
     private static void CollectReferencedFontIds(RtfDocument document, IEnumerable<IRtfBlock> blocks,
-        RtfToPdfOptions options, HashSet<int> fontIds, List<string> text,
+        RtfPdfExportOptions options, HashSet<int> fontIds, List<string> text,
         RtfListNumbering numbering, ISet<RtfNote>? referencedNotes = null, bool inTableCell = false) {
         foreach (IRtfBlock block in blocks) {
             options.CancellationToken.ThrowIfCancellationRequested();
@@ -268,7 +268,7 @@ internal static partial class RtfPdfConverter {
     }
 
     private static void CollectReferencedFontIds(RtfDocument document, RtfParagraph paragraph,
-        RtfToPdfOptions options, HashSet<int> fontIds, List<string> text, RtfListNumbering numbering,
+        RtfPdfExportOptions options, HashSet<int> fontIds, List<string> text, RtfListNumbering numbering,
         ISet<RtfNote>? referencedNotes = null, bool splitBodyParagraph = false,
         bool appendStrut = true, List<PdfCore.PdfTextRun>? parentRuns = null,
         PdfInlineProjectionContext context = PdfInlineProjectionContext.Text) {
@@ -348,7 +348,7 @@ internal static partial class RtfPdfConverter {
         PdfCore.PdfCreateOptions pdfOptions,
         HashSet<PdfCore.PdfStandardFont> registeredFontSlots,
         bool allowSystemFontEmbedding,
-        RtfToPdfOptions options,
+        RtfPdfExportOptions options,
         out PdfFontBinding binding) {
         string literalFamily = OfficeIMO.Drawing.OfficeFontFamilyParser.Quote(familyName);
         if (pdfOptions.TryResolveNamedOfficeFontFamily(literalFamily, out string? namedFamily) && namedFamily != null) {
@@ -373,7 +373,7 @@ internal static partial class RtfPdfConverter {
         PdfCore.PdfCreateOptions pdfOptions,
         HashSet<PdfCore.PdfStandardFont> registeredFontSlots,
         bool allowSystemFontEmbedding,
-        RtfToPdfOptions options,
+        RtfPdfExportOptions options,
         out PdfCore.PdfStandardFont fontSlot) {
         if (pdfOptions.TryResolveEmbeddedFontFamilySlot(familyName, out fontSlot)) {
             registeredFontSlots.Add(fontSlot);
@@ -431,7 +431,7 @@ internal static partial class RtfPdfConverter {
     }
 
     private static void ReportFontSlotExhaustion(
-        RtfToPdfOptions options,
+        RtfPdfExportOptions options,
         string familyName,
         PdfCore.PdfStandardFont? fallbackSlot,
         string? occupyingFontFamily) {

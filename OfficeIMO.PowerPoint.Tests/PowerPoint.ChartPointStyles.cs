@@ -134,7 +134,7 @@ public sealed class PowerPointChartPointStylesTests {
             for (int x = 0; x < raster.Width; x++)
                 if (IsPurpleStroke(raster.GetPixel(x, y))) hatchPixels++;
         Assert.True(hatchPixels > 50, "Hatch strokes should be visible; actual pixels " + hatchPixels);
-        string html = presentation.ToHtml(new PowerPointHtmlSaveOptions { ExportProfile = PowerPointHtmlExportProfile.VisualReview });
+        string html = presentation.ToHtml(new PowerPointHtmlExportOptions { ExportProfile = PowerPointHtmlExportProfile.VisualReview });
         Assert.Contains("clipPath", html, StringComparison.Ordinal);
         Assert.Contains("#7300A3", html, StringComparison.OrdinalIgnoreCase);
         byte[] pdf = presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });

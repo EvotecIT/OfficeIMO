@@ -17,7 +17,7 @@ public sealed class OfficeConverterPowerPointHtmlTests {
         }
         source.Position = 7;
         using var output = new MemoryStream();
-        var htmlOptions = new PowerPointHtmlSaveOptions { Title = "Native HTML review" };
+        var htmlOptions = new PowerPointHtmlExportOptions { Title = "Native HTML review" };
         var options = new OfficeConversionOptions { PowerPointHtml = htmlOptions };
         var report = await OfficeConverter.ConvertAsync(source, OfficeDocumentFormat.PowerPoint, output, OfficeDocumentFormat.Html, options);
         Assert.Equal(7, source.Position);

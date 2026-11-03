@@ -131,7 +131,7 @@ public static class SampleMarkdownRenderer {
     /// <summary>
     /// Registers the sample plugin's shared visual-host HTML round-trip hints on HTML-to-markdown options.
     /// </summary>
-    public static void ApplyHtmlRoundTripHints(MarkdownHtmlImportOptions options) {
+    public static void ApplyHtmlRoundTripHints(HtmlMarkdownExportOptions options) {
         if (options == null) {
             throw new ArgumentNullException(nameof(options));
         }

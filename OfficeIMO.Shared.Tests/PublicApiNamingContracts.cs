@@ -314,7 +314,7 @@ public sealed class PublicApiNamingContracts {
             static type => type.Name == "PdfPageOrientation");
         Assert.DoesNotContain(typeof(HtmlConversionDocument).Assembly.GetExportedTypes(),
             static type => type.Name == "HtmlConversionLossKind");
-        Assert.DoesNotContain(typeof(OfficeIMO.Word.Markdown.WordMarkdownImportOptions).Assembly.GetExportedTypes(),
+        Assert.DoesNotContain(typeof(OfficeIMO.Word.Markdown.MarkdownWordExportOptions).Assembly.GetExportedTypes(),
             static type => type.Name == "WordMarkdownConversionLossKind");
         Assert.DoesNotContain(typeof(OfficeIMO.PowerPoint.PowerPointDocument).Assembly.GetExportedTypes(),
             static type => type.Name == "PowerPointSignatureMutationPolicy");

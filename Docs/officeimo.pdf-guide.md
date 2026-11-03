@@ -2965,7 +2965,7 @@ fonts.RegisterFontFamilySubstitution("Calibri", "Carlito",
     PdfFontFamilySubstitutionImpact.LayoutSensitive);
 ```
 
-Pass `fonts` through `WordToPdfOptions.PdfOptions` or `RtfToPdfOptions.PdfOptions`. Registration makes a family available; a substitution selects it for the named source family. Supply the same files and mappings on each host to make that selection independent of system-font discovery. Other document families still need their own registrations or the normal fallback policy.
+Pass `fonts` through `WordToPdfOptions.PdfOptions` or `RtfPdfExportOptions.PdfOptions`. Registration makes a family available; a substitution selects it for the named source family. Supply the same files and mappings on each host to make that selection independent of system-font discovery. Other document families still need their own registrations or the normal fallback policy.
 
 These files are supplied by the application and are not bundled with the PDF package. Use fonts whose licensing permits the intended embedding and distribution. `LayoutSensitive` records that replacement can affect layout. `Compatible` expresses the caller's compatibility intent; registration does not verify identical glyph advances, line metrics or pagination for the source and replacement font versions. Inspect the conversion report and representative output when choosing a substitute.
 
@@ -3189,7 +3189,7 @@ OfficeIMO.OfficeConversionReport tableReport = statement.SaveAsExcel("bank-state
 Console.WriteLine($"Table reconstruction has loss: {tableReport.HasLoss}");
 
 using var proposal = PdfDocument.Load("proposal.pdf");
-proposal.SaveAsHtml("proposal-review.html", new PdfToHtmlOptions {
+proposal.SaveAsHtml("proposal-review.html", new PdfHtmlExportOptions {
     Profile = PdfHtmlProfile.PositionedReview,
     IncludeLinkAnnotations = true,
     IncludeFormWidgets = true

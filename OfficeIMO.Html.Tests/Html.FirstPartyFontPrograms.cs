@@ -42,7 +42,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         string html = FontHtml("Source Sans CFF", "font/otf", fontData, text, link: false);
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
 
-        PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(new HtmlToPdfOptions());
+        PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(new HtmlPdfExportOptions());
         byte[] pdf = result.ToBytes();
         string raw = System.Text.Encoding.GetEncoding(28591).GetString(pdf);
 
@@ -62,7 +62,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         string text) {
         byte[] fontData = ReadFont(fileName);
         HtmlConversionDocument source = HtmlConversionDocument.Parse(FontHtml(family, mediaType, fontData, text, link: false));
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         if (fileName == "RobotoFlex.ttf") {
             options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 725F, ["wdth"] = 112F };
         }
@@ -91,7 +91,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         byte[] fontData = ReadFont("RobotoFlex.ttf");
         string html = FontHtml("Roboto Flex", "font/ttf", fontData, "Pale", link: false)
             .Replace("<p", "<p style='color:rgba(175,47,47,.2)'");
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 725F };
 
         PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(options);
@@ -119,7 +119,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             FontHtml("Collection Face", "font/ttf", collection, text, link: false));
 
-        PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(new HtmlToPdfOptions());
+        PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(new HtmlPdfExportOptions());
         byte[] pdf = result.ToBytes();
 
         Assert.Contains(text, PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
@@ -141,7 +141,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
             + "')}</style><img style='width:220px;height:36px' src='data:image/svg+xml;base64,"
             + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg))
             + "' alt='variable font drawing'>";
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 725F };
 
         PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(options);
@@ -160,9 +160,9 @@ public sealed class HtmlFirstPartyFontProgramTests {
         byte[] fontData = ReadFont("RobotoFlex.ttf");
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             FontHtml("Roboto Flex", "font/ttf", fontData, "Variable OfficeIMO", link: false));
-        var light = new HtmlToPdfOptions();
+        var light = new HtmlPdfExportOptions();
         light.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 200F, ["wdth"] = 90F };
-        var black = new HtmlToPdfOptions();
+        var black = new HtmlPdfExportOptions();
         black.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 900F, ["wdth"] = 120F };
 
         byte[] lightPdf = source.ConvertToPdfWithEvidence(light).ToBytes();
@@ -176,7 +176,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         byte[] fontData = ReadFont("RobotoFlex.ttf");
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             FontHtml("Roboto Flex", "font/ttf", fontData, "AA", link: false));
-        var unshapedOptions = new HtmlToPdfOptions();
+        var unshapedOptions = new HtmlPdfExportOptions();
         unshapedOptions.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 725F };
         var shapedOptions = unshapedOptions.ClonePdf();
         var shapingProvider = new CollapsingTextShapingProvider();
@@ -207,7 +207,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             FontHtml("Roboto Flex", "font/ttf", fontData, text, link: false));
         var provider = new AcceptOnceThenDeclineTextShapingProvider();
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             TextShapingProvider = provider,
             TextShapingLanguage = "hi"
         };
@@ -316,7 +316,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
             cancellation.Cancel();
             request.CancellationToken.ThrowIfCancellationRequested();
         });
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             TextShapingProvider = shapingProvider,
             TextShapingLanguage = "pl-PL"
         };
@@ -335,7 +335,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         byte[] fontData = ReadFont("RobotoFlex.ttf");
         const string text = "Accessible linked outlines";
         HtmlConversionDocument source = HtmlConversionDocument.Parse(FontHtml("Linked Variable", "font/ttf", fontData, text, link: true));
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 800F };
 
         byte[] pdf = source.ConvertToPdfWithEvidence(options).ToBytes();
@@ -367,7 +367,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
     public void HtmlPdfExactOutlineBudgetStillReportsTheNextApproximatedRun() {
         byte[] fontData = ReadFont("RobotoFlex.ttf");
         string firstHtml = FontHtml("Exact Variable", "font/ttf", fontData, "A", link: false);
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 800F };
         byte[] firstPdf = HtmlConversionDocument.Parse(firstHtml).ConvertToPdfWithEvidence(options).ToBytes();
         int firstCommands = PaintedShapes(firstPdf)
@@ -394,7 +394,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         byte[] fontData = ReadFont("RobotoFlex.ttf");
         string html = FontHtml("Limited Variable", "font/ttf", fontData, "A", link: false)
             .Replace("</html>", "<p>\uF50E Visible</p></html>");
-        var options = new HtmlToPdfOptions { MaxOutlinedTextPathCommands = 1 };
+        var options = new HtmlPdfExportOptions { MaxOutlinedTextPathCommands = 1 };
         options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 800F };
 
         PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(options);
@@ -417,7 +417,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         byte[] fontData = ReadFont("RobotoFlex.ttf");
         string html = FontHtml("Limited Variable", "font/ttf", fontData, "A", link: false)
             .Replace("</html>", "<p style='font-family:CallerIcon'>\uF50E Retained</p></html>");
-        var options = new HtmlToPdfOptions { MaxOutlinedTextPathCommands = 1 };
+        var options = new HtmlPdfExportOptions { MaxOutlinedTextPathCommands = 1 };
         options.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 800F };
         options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("CallerIcon", fontData));
 
@@ -448,7 +448,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
             light.CreateRenderingProfile().Fonts).Fingerprint);
     }
 
-    private static void AssertVariableOutlineLinkFragments(HtmlConversionDocument source, HtmlToPdfOptions options,
+    private static void AssertVariableOutlineLinkFragments(HtmlConversionDocument source, HtmlPdfExportOptions options,
         PdfCore.PdfReadDocument saved, string accessibleText) {
         PdfCore.PdfLinkAnnotation[] links = Assert.Single(saved.Pages).GetLinkAnnotations().ToArray();
         Assert.NotEmpty(links);

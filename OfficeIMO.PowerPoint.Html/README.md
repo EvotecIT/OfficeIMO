@@ -27,12 +27,12 @@ To turn ordinary HTML sections into slides, select the shared generic path:
 
 ```csharp
 HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-    .ToPowerPointDocumentResult(new HtmlToPowerPointOptions {
+    .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions {
         Mode = HtmlImportMode.Auto
     });
 ```
 
-`Semantic` remains the strict round-trip default. `Auto` uses a supported semantic envelope when present and otherwise groups ordinary headings, text, lists, tables, and embedded images into slides; `Generic` always uses that projection. `HtmlToPowerPointOptions.Limits` bounds slides, shapes, tables, cells, images, chart data, metadata, and geometry before native allocations. `MaxTableCells` remains as a forwarding compatibility property.
+`Semantic` remains the strict round-trip default. `Auto` uses a supported semantic envelope when present and otherwise groups ordinary headings, text, lists, tables, and embedded images into slides; `Generic` always uses that projection. `HtmlPowerPointExportOptions.Limits` bounds slides, shapes, tables, cells, images, chart data, metadata, and geometry before native allocations. `MaxTableCells` remains as a forwarding compatibility property.
 
 On the ordinary HTML path, bounded positioned, floating, flex, and grid regions become editable slide text boxes and DrawingML pictures at rendered geometry. Solid fills, supported background/image layers, picture opacity, and the first box-shadow layer use native PowerPoint constructs. Additional shadows and unsupported effects receive stable diagnostics. Set `ImportEditableLayoutRegions = false` to retain semantic flow only.
 
@@ -47,12 +47,12 @@ and resolved CSS custom properties. Heading titles retain their own text and fon
 
 ## Positioned review
 
-Use `PowerPointHtmlSaveOptions.CreateVisualReviewProfile()` or set `ExportProfile = PowerPointHtmlExportProfile.VisualReview` for a positioned visual representation. `SharedProfile` exposes the corresponding generic engine lane. `DocumentOutput` controls full-document versus fragment output, title, language, theme, default styles, and newlines. Visual-review HTML is intended for inspection, while semantic slide HTML is the importable contract.
+Use `PowerPointHtmlExportOptions.CreateVisualReviewProfile()` or set `ExportProfile = PowerPointHtmlExportProfile.VisualReview` for a positioned visual representation. `SharedProfile` exposes the corresponding generic engine lane. `DocumentOutput` controls full-document versus fragment output, title, language, theme, default styles, and newlines. Visual-review HTML is intended for inspection, while semantic slide HTML is the importable contract.
 
 Both profiles start with an `h1` heading showing `Title`, or a profile name when no title is set; set `IncludeHeading = false` to omit it. Each slide starts with an `h2` such as "Slide 1"; set `IncludeSlideHeadings = false` to omit those. Visual review lists each slide's render diagnostics as visible text below the slide; set `IncludeRenderDiagnostics = false` to leave them out of the HTML. They are still reported in the conversion report. The following settings omit the presentation and slide headings, snapshot diagnostic lists, master inventory, and extraction proof; enabled SmartArt or media review sections remain:
 
 ```csharp
-var options = PowerPointHtmlSaveOptions.CreateVisualReviewProfile();
+var options = PowerPointHtmlExportOptions.CreateVisualReviewProfile();
 options.IncludeHeading = false;
 options.IncludeSlideHeadings = false;
 options.IncludeRenderDiagnostics = false;
@@ -66,7 +66,7 @@ Each visual-review slide embeds an SVG snapshot whose text is measured and drawn
 ```csharp
 using OfficeIMO.Drawing;
 
-var options = PowerPointHtmlSaveOptions.CreateVisualReviewProfile();
+var options = PowerPointHtmlExportOptions.CreateVisualReviewProfile();
 options.Fonts = new OfficeFontFaceCollection()
     .Add("Calibri", File.ReadAllBytes("Fonts/Calibri.ttf"))
     .Add("Calibri", File.ReadAllBytes("Fonts/Calibri-Bold.ttf"), OfficeFontStyle.Bold);

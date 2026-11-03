@@ -187,9 +187,9 @@ public sealed class ConvertToOfficeRtfCommand : PSCmdlet
         return HtmlConversionDocument.Parse(html).ToWord(CreateHtmlToWordOptions(htmlDirectory));
     }
 
-    private WordHtmlImportOptions CreateHtmlToWordOptions(string? htmlDirectory)
+    private HtmlWordExportOptions CreateHtmlToWordOptions(string? htmlDirectory)
     {
-        var options = new WordHtmlImportOptions();
+        var options = new HtmlWordExportOptions();
         if (!string.IsNullOrWhiteSpace(FontFamily))
         {
             options.FontFamily = FontFamily;
@@ -288,7 +288,7 @@ public sealed class ConvertToOfficeRtfCommand : PSCmdlet
             throw new PSArgumentException("Markdown content cannot be empty.", nameof(Markdown));
         }
 
-        var options = new MarkdownToRtfOptions
+        var options = new MarkdownRtfExportOptions
         {
             PreserveRawHtmlAsText = PreserveRawHtmlAsText.IsPresent
         };

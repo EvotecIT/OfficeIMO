@@ -72,7 +72,7 @@ public static class HtmlRenderResultImageExtensions {
 
     private static global::OfficeIMO.Pdf.PdfDocumentConversionResult CreatePdf(HtmlRenderResult result,
         CancellationToken cancellationToken) => HtmlPdfConverterExtensions.CreateResult(
-            HtmlPdfRenderedConverter.CreatePdf(result.Document, new HtmlToPdfOptions(result.ResolvedOptions), cancellationToken));
+            HtmlPdfRenderedConverter.CreatePdf(result.Document, new HtmlPdfExportOptions(result.ResolvedOptions), cancellationToken));
 
     private static OfficeImageExportResult WithHtmlSource(OfficeImageExportResult image, int pageNumber) =>
         image.WithIdentity("Page " + pageNumber, "HTML render page " + pageNumber);

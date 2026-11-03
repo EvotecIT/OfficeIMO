@@ -113,7 +113,7 @@ public class RtfMarkdownConverterTests {
 
     [Fact]
     public void MarkdownImagesEmitDiagnosticWhenBinaryPayloadIsNotProvided() {
-        var options = new MarkdownToRtfOptions();
+        var options = new MarkdownRtfExportOptions();
 
         RtfConversionResult<RtfDocument> result = MarkdownDocument.Parse("![Logo](logo.png)").ToRtfDocumentResult(options);
         RtfDocument document = result.Value;
@@ -186,7 +186,7 @@ public class RtfMarkdownConverterTests {
 
     [Fact]
     public void MarkdownToRtfDocumentRejectsUnsupportedHtmlNestedInSupportedWrapper() {
-        var options = new MarkdownToRtfOptions();
+        var options = new MarkdownRtfExportOptions();
 
         RtfConversionResult<RtfDocument> result = MarkdownDocument.Parse("<u><span>x</span></u>").ToRtfDocumentResult(options);
         RtfDocument document = result.Value;
@@ -208,7 +208,7 @@ public class RtfMarkdownConverterTests {
 
     [Fact]
     public void MarkdownToRtfDocumentOmitsHtmlCommentBlocksByDefault() {
-        var options = new MarkdownToRtfOptions();
+        var options = new MarkdownRtfExportOptions();
 
         RtfConversionResult<RtfDocument> result = MarkdownDocument.Parse("""
             <!-- hidden -->
@@ -576,7 +576,7 @@ public class RtfMarkdownConverterTests {
 
     [Fact]
     public void MarkdownToRtfDocumentPreservesRecursiveFootnoteReferenceAsText() {
-        var options = new MarkdownToRtfOptions();
+        var options = new MarkdownRtfExportOptions();
         string markdown = """
             Text[^1]
 
@@ -659,7 +659,7 @@ public class RtfMarkdownConverterTests {
 
     [Fact]
     public void MarkdownToRtfDocumentReadsOneRowTableMarkerWhenHtmlBlocksAreDisabled() {
-        var options = new MarkdownToRtfOptions {
+        var options = new MarkdownRtfExportOptions {
             ReaderOptions = new MarkdownLoadOptions {
                 HtmlBlocks = false
             }
@@ -752,7 +752,7 @@ public class RtfMarkdownConverterTests {
     public void RtfDocumentToMarkdownConvertsRunAttachedNotesToFootnotes() {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph().AddFootnote("1", "Footnote body");
-        var options = new RtfToMarkdownOptions();
+        var options = new RtfMarkdownExportOptions();
 
         RtfConversionResult<string> result = document.ToMarkdownResult(options);
         string markdown = result.Value.Replace("\r\n", "\n");
@@ -775,7 +775,7 @@ public class RtfMarkdownConverterTests {
         RtfParagraph second = note.AddParagraph("Second ");
         second.AddText("paragraph").SetItalic();
         document.AddParagraph("Body").AddNoteReference(note, "1");
-        var options = new RtfToMarkdownOptions();
+        var options = new RtfMarkdownExportOptions();
 
         RtfConversionResult<string> result = document.ToMarkdownResult(options);
         string markdown = result.Value.Replace("\r\n", "\n");
@@ -795,7 +795,7 @@ public class RtfMarkdownConverterTests {
         RtfRun hiddenReference = document.AddParagraph().AddFootnote("1", "Hidden footnote body");
         hiddenReference.Hidden = true;
 
-        string markdown = document.ToMarkdown(new RtfToMarkdownOptions { IncludeHiddenText = false });
+        string markdown = document.ToMarkdown(new RtfMarkdownExportOptions { IncludeHiddenText = false });
 
         Assert.DoesNotContain("fn1", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("Hidden footnote body", markdown, StringComparison.Ordinal);
@@ -805,7 +805,7 @@ public class RtfMarkdownConverterTests {
     public void RtfDocumentToMarkdownReportsGeneratedTextWithoutFallback() {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph().AddPageNumber();
-        var options = new RtfToMarkdownOptions();
+        var options = new RtfMarkdownExportOptions();
 
         RtfConversionResult<string> result = document.ToMarkdownResult(options);
         string markdown = result.Value;
@@ -820,7 +820,7 @@ public class RtfMarkdownConverterTests {
         document.AddHeader().AddParagraph("Header");
         document.AddFooter().AddParagraph("Footer");
         document.AddParagraph("Body");
-        var options = new RtfToMarkdownOptions();
+        var options = new RtfMarkdownExportOptions();
 
         RtfConversionResult<string> result = document.ToMarkdownResult(options);
         string markdown = result.Value;
@@ -858,7 +858,7 @@ public class RtfMarkdownConverterTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph().AddText("Hidden").SetHidden();
 
-        RtfConversionResult<string> result = document.ToMarkdownResult(new RtfToMarkdownOptions {
+        RtfConversionResult<string> result = document.ToMarkdownResult(new RtfMarkdownExportOptions {
             IncludeHiddenText = true
         });
 
@@ -987,7 +987,7 @@ public class RtfMarkdownConverterTests {
     public void RtfDocumentToMarkdownEncodesFactoryImagePaths() {
         RtfDocument document = RtfDocument.Create();
         document.AddImage(RtfImageFormat.Png, new byte[] { 0x89, 0x50 }).Description = "Logo";
-        var options = new RtfToMarkdownOptions {
+        var options = new RtfMarkdownExportOptions {
             ImagePathFactory = (_, _) => "images/My File.png"
         };
 
@@ -1005,7 +1005,7 @@ public class RtfMarkdownConverterTests {
         RtfImage block = document.AddImage(RtfImageFormat.Png, new byte[] { 0x89, 0x50 });
         RtfImage inline = document.AddParagraph().AddImage(RtfImageFormat.Jpeg, new byte[] { 0xFF, 0xD8 });
         var exported = new List<(RtfImage Image, int Index, string Path)>();
-        var options = new RtfToMarkdownOptions {
+        var options = new RtfMarkdownExportOptions {
             ImagePathFactory = (image, index) => "media/image " + index + "." + image.Format.ToString().ToLowerInvariant(),
             ImageExporter = (image, index, path) => exported.Add((image, index, path))
         };
@@ -1021,7 +1021,7 @@ public class RtfMarkdownConverterTests {
 
     [Fact]
     public void ReusingOptionsDoesNotLeakDiagnosticsAcrossConversions() {
-        var options = new MarkdownToRtfOptions();
+        var options = new MarkdownRtfExportOptions();
 
         RtfConversionResult<RtfDocument> lossy = MarkdownDocument.Parse("![Logo](logo.png)").ToRtfDocumentResult(options);
         RtfConversionResult<RtfDocument> clean = MarkdownDocument.Parse("Plain text").ToRtfDocumentResult(options);

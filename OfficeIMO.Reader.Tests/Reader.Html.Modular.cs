@@ -114,7 +114,7 @@ public sealed class ReaderHtmlModularTests {
         string directory = Path.Combine(Path.GetTempPath(), "officeimo-reader-html-images-" + Guid.NewGuid().ToString("N"));
         try {
             var options = new ReaderHtmlOptions {
-                HtmlToMarkdownOptions = new MarkdownHtmlImportOptions {
+                HtmlToMarkdownOptions = new HtmlMarkdownExportOptions {
                     Base64Images = handling,
                     Base64ImageOutputDirectory = directory
                 }
@@ -255,7 +255,7 @@ public sealed class ReaderHtmlModularTests {
     public void DocumentReaderHtml_RichProjection_AppliesConfiguredElementFilters() {
         const string html = "<section class=\"private\"><p>Private text</p><a href=\"https://private.test\">Private link</a></section>"
             + "<p id=\"delegate-private\">Delegate private</p><p>Public text</p>";
-        var markdownOptions = MarkdownHtmlImportOptions.CreateOfficeIMOProfile();
+        var markdownOptions = HtmlMarkdownExportOptions.CreateOfficeIMOProfile();
         markdownOptions.ExcludeSelectors.Add(".private");
         int delegateMatchCount = 0;
         markdownOptions.ElementFilters.Add(element => {
@@ -282,7 +282,7 @@ public sealed class ReaderHtmlModularTests {
     [InlineData("blocked.example", false)]
     [InlineData("allowed.example", true)]
     public void PreparedNoscriptImageRespectsDocumentResourceHostPolicy(string host, bool allowed) {
-        var projection = MarkdownHtmlImportOptions.CreateOfficeIMOProfile();
+        var projection = HtmlMarkdownExportOptions.CreateOfficeIMOProfile();
         projection.ExcludeSelectors.Add(".remove");
         var conversion = HtmlConversionDocumentOptions.UntrustedDefaults;
         HtmlUrlPolicy resourcePolicy = HtmlUrlPolicy.CreateWebOnlyProfile();
@@ -489,7 +489,7 @@ public sealed class ReaderHtmlModularTests {
             html: html,
             sourceName: "limited.html",
             htmlOptions: new ReaderHtmlOptions {
-                HtmlToMarkdownOptions = new MarkdownHtmlImportOptions {
+                HtmlToMarkdownOptions = new HtmlMarkdownExportOptions {
                     MaxInputCharacters = 12
                 }
             }).ToList());
@@ -704,7 +704,7 @@ public sealed class ReaderHtmlModularTests {
     public void DocumentReaderHtml_BuilderHandler_PreservesConfiguredMaxInputCharacters() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
             .AddHtmlHandler(new ReaderHtmlOptions {
-                    HtmlToMarkdownOptions = new MarkdownHtmlImportOptions {
+                    HtmlToMarkdownOptions = new HtmlMarkdownExportOptions {
                         MaxInputCharacters = 12
                     }
                 })
@@ -721,7 +721,7 @@ public sealed class ReaderHtmlModularTests {
     public void DocumentReaderHtml_BuilderHandler_AppliesConfiguredMarkdownOptions() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
             .AddHtmlHandler(new ReaderHtmlOptions {
-                    HtmlToMarkdownOptions = new MarkdownHtmlImportOptions {
+                    HtmlToMarkdownOptions = new HtmlMarkdownExportOptions {
                         BaseUri = new Uri("https://example.com/docs/")
                     }
                 })

@@ -76,7 +76,7 @@ public sealed partial class HtmlRenderingTests {
         var source = HtmlConversionDocument.Parse("<img src='data:image/svg+xml;base64,"
             + Convert.ToBase64String(Encoding.UTF8.GetBytes(svg)) + "'>");
         int calls = 0;
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false,
             MaxResourceCount = limit,
             ResourceResolver = (_, _) => { calls++; return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(png, "image/png")); },

@@ -26,7 +26,7 @@ public sealed class PublisherGroupCanvasTests {
             });
         }
         PublisherDocument document = new PublisherPageProjector(source, text, escher,
-            new PublisherParseContext(new PublisherReadOptions(), default)).Project();
+            new PublisherParseContext(new PublisherLoadOptions(), default)).Project();
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(document.Pages[0].Drawing);
         Assert.Equal(OfficeColor.White, raster.GetPixel(300, 300));
         Assert.DoesNotContain(PublisherNativeTests.Elements(document.Pages[0].Drawing), item => item is OfficeDrawingEffectGroup);
@@ -80,7 +80,7 @@ public sealed class PublisherGroupCanvasTests {
         }) { Bounds = new PublisherNativeRectangle(0, 0, 12700, 12700),
             GroupTransform = OfficeTransform.Scale(0, 1), LayoutTransform = OfficeTransform.Scale(0, 1) });
         PublisherDocument document = new PublisherPageProjector(source, new PublisherQuillText(), escher,
-            new PublisherParseContext(new PublisherReadOptions(), default)).Project();
+            new PublisherParseContext(new PublisherLoadOptions(), default)).Project();
         Assert.DoesNotContain(PublisherNativeTests.Elements(document.Pages[0].Drawing), item => item is OfficeDrawingShape drawing && drawing.Shape.Kind == OfficeShapeKind.Line);
         Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_DEGENERATE_OBJECT_OMITTED");
     }
@@ -118,7 +118,7 @@ public sealed class PublisherGroupCanvasTests {
             });
         }
         return new PublisherPageProjector(source, text, escher,
-            new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None)).Project();
+            new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None)).Project();
     }
 
     [Theory]
@@ -162,7 +162,7 @@ public sealed class PublisherGroupCanvasTests {
             GroupTransform = grouped ? OfficeTransform.Translate(12700, 12700) : OfficeTransform.Identity
         });
         return new PublisherPageProjector(source, new PublisherQuillText(), escher,
-            new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None)).Project();
+            new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None)).Project();
     }
 
     [Theory]
@@ -214,6 +214,6 @@ public sealed class PublisherGroupCanvasTests {
             });
         }
         return new PublisherPageProjector(source, new PublisherQuillText(), escher,
-            new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None)).Project();
+            new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None)).Project();
     }
 }

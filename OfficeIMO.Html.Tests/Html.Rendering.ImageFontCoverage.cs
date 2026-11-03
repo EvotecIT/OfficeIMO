@@ -12,7 +12,7 @@ public sealed class HtmlImageFontCoverageTests {
     public void HtmlImages_UncoveredJoiningScriptRendersWithTheSameReplacementAsPdf() {
         const string html = "<p dir='rtl'>ܫܠܡ</p>";
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss
@@ -40,7 +40,7 @@ public sealed class HtmlImageFontCoverageTests {
             + "<p dir='rtl' style=\"font-family:'OfficeIMO Shaping Test'\">"
             + (styled ? "<span style='color:red'>" + text + " </span><span>" + text + "</span>" : text) + "</p>");
         var provider = new LayoutOnlyShapingProvider();
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
@@ -82,7 +82,7 @@ public sealed class HtmlImageFontCoverageTests {
             + "<p dir='rtl' style=\"font-family:'OfficeIMO Shaping Test'\">"
             + (styled ? "<span style='color:red'>" + text + " </span><span>" + text + "</span>" : text) + "</p>");
         var provider = new ManagedTextShapingTestAssets.RecordingProvider();
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
@@ -117,7 +117,7 @@ public sealed class HtmlImageFontCoverageTests {
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             "<style>@page{size:160px 60px;margin:0}body{margin:0}p{margin:0;font:20px Primary;white-space:pre-wrap}</style><p>"
             + text + "</p>");
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
@@ -144,7 +144,7 @@ public sealed class HtmlImageFontCoverageTests {
     public void HtmlImages_UncoveredSpacingGlyphStillFailsWithTypedLoss(char separator) {
         string html = "<p style='font-family:Primary;white-space:pre-wrap'>A" + separator + "B</p>";
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss

@@ -68,9 +68,9 @@ public static partial class HtmlPdfConverterExtensions {
         return (await RenderToPdfResultAsync(document, request, cancellationToken).ConfigureAwait(false)).Output;
     }
 
-    private static HtmlToPdfOptions ResolvePdfOptions(HtmlRenderRequest request) {
+    private static HtmlPdfExportOptions ResolvePdfOptions(HtmlRenderRequest request) {
         HtmlRenderOptions settings = request.Options;
-        return settings is HtmlToPdfOptions pdf ? pdf.ClonePdf() : new HtmlToPdfOptions(settings);
+        return settings is HtmlPdfExportOptions pdf ? pdf.ClonePdf() : new HtmlPdfExportOptions(settings);
     }
 
     private static HtmlPdfRenderRequestResult CreateRequestResult(HtmlPdfRenderResult rendered) {

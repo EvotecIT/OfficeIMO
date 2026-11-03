@@ -332,7 +332,7 @@ namespace OfficeIMO.Tests {
                 slide.ExportImage(OfficeImageExportFormat.Svg).Bytes);
             Assert.DoesNotContain("Hidden Portfolio", svg, StringComparison.Ordinal);
 
-            string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            string html = presentation.ToHtml(new PowerPointHtmlExportOptions {
                 Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
             });
             Assert.Contains("data-officeimo-show-in-legend=\"false\"", html,
@@ -764,7 +764,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(svg.Diagnostics,
                 diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
 
-            string htmlResult = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            string htmlResult = presentation.ToHtml(new PowerPointHtmlExportOptions {
                 Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
             }, out OfficeConversionReport htmlResultReport);
             string html = htmlResult;

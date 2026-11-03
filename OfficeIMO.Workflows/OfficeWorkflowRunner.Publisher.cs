@@ -9,7 +9,7 @@ public sealed partial class OfficeWorkflowRunner {
     private static (byte[], OfficeWorkflowConversionEvidence) ConvertPublisher(ValidatedRequest request, byte[] input,
         OfficeWorkflowRenderingOptions settings, CancellationToken token) {
         token.ThrowIfCancellationRequested();
-        PublisherReadOptions read = settings.PublisherRead?.Clone() ?? new PublisherReadOptions();
+        PublisherLoadOptions read = settings.PublisherRead?.Clone() ?? new PublisherLoadOptions();
         read.Limits.MaxInputBytes = (int)Math.Min(read.Limits.MaxInputBytes, request.Limits.MaximumInputBytes);
         PublisherDocument source = PublisherDocument.Load(input, read, token);
         var facts = new Dictionary<string, string> {

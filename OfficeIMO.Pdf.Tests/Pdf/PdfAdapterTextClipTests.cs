@@ -16,7 +16,7 @@ public sealed class PdfAdapterTextClipTests {
     [InlineData("font:italic 32px Arial;line-height:.8", 8)]
     public void HtmlLineMetricsDoNotClipGlyphsToTheirLayoutFrame(string style, int topMargin) {
         byte[] bytes = (HtmlConversionDocument.Parse("<p style='margin:0;" + style + "'>gypqj</p>")
-            .ToPdf(new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(topMargin) })).ToBytes();
+            .ToPdf(new HtmlPdfExportOptions { Margins = HtmlRenderMargins.All(topMargin) })).ToBytes();
 
         var page = PdfReadDocument.Open(bytes).Pages[0];
         PdfTextSpan span = Assert.Single(page.GetTextSpans());
@@ -39,7 +39,7 @@ public sealed class PdfAdapterTextClipTests {
         string text = link ? "<a href='https://example.com'>gypqj</a>" : "gypqj";
         byte[] bytes = (HtmlConversionDocument.Parse(
             "<div style='width:36px;height:12px;overflow:hidden;font:32px Arial'>" + text + "</div>")
-            .ToPdf(new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0) })).ToBytes();
+            .ToPdf(new HtmlPdfExportOptions { Margins = HtmlRenderMargins.All(0) })).ToBytes();
 
         var page = PdfReadDocument.Open(bytes).Pages[0];
         PdfTextSpan span = Assert.Single(page.GetTextSpans());

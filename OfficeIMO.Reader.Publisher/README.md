@@ -11,7 +11,7 @@ using OfficeIMO.Reader.Publisher;
 
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddPublisherHandler(new ReaderPublisherOptions {
-        ReadOptions = new OfficeIMO.Publisher.PublisherReadOptions {
+        ReadOptions = new OfficeIMO.Publisher.PublisherLoadOptions {
             MaxPages = 256
         },
         IncludeImagePayloads = false

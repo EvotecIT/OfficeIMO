@@ -224,7 +224,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
     [InlineData("Pinned")]
     [InlineData("Missing Document Font,Pinned")]
     public void PdfEmptyStrutUsesTheFirstAvailableRegisteredFace(string families) {
-        var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D), HonorCssPageRules = false };
+        var options = new HtmlPdfExportOptions { Margins = HtmlRenderMargins.All(0D), HonorCssPageRules = false };
         options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("Pinned", FontBytes()));
         // The pinned hhea uses A1950/D550 at2048 units/em. Centering that
         // raw face in20px leading leaves4.53125px below the atomic baseline.

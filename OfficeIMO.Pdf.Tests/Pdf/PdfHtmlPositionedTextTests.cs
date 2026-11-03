@@ -16,7 +16,7 @@ public sealed class PdfHtmlPositionedTextTests {
             X = global::OfficeIMO.OfficeLength.Points(210), Y = global::OfficeIMO.OfficeLength.Points(430), FontSize = global::OfficeIMO.OfficeLength.Points(22), RotationDegrees = 0, Color = global::OfficeIMO.OfficeColor.FromRgb(12, 34, 56)
         });
         var document = PdfDocument.Load(stamped.ToBytes()).Read();
-        var result = document.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+        var result = document.ToHtmlResult(PdfHtmlExportOptions.CreatePositionedReviewProfile());
         int start = result.Value.IndexOf("<svg class=\"pdf-native-text\"", StringComparison.Ordinal);
         int end = result.Value.IndexOf("</svg>", start, StringComparison.Ordinal) + 6;
         var svg = XElement.Parse(result.Value.Substring(start, end - start));

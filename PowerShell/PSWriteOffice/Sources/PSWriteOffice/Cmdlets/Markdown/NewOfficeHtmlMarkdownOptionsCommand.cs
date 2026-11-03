@@ -12,11 +12,11 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 /// <code>$options = New-OfficeHtmlMarkdownOptions -Portable -LineEnding LF
 /// Convert-OfficeDocument -Path ./Report.html -To Markdown -OutputPath ./Report.md -Options $options</code></example>
 [Cmdlet(VerbsCommon.New, "OfficeHtmlMarkdownOptions", DefaultParameterSetName = "Default")]
-[OutputType(typeof(MarkdownHtmlImportOptions))]
+[OutputType(typeof(HtmlMarkdownExportOptions))]
 public sealed class NewOfficeHtmlMarkdownOptionsCommand : OfficeCmdlet, IMarkdownWriteOptionSource {
     /// <summary>Native settings to copy before applying explicit changes.</summary>
-    [Parameter(ParameterSetName = "Default"), OfficeOptionsTransformation(typeof(MarkdownHtmlImportOptions)), ValidateNotNull]
-    public MarkdownHtmlImportOptions? BaseOptions { get; set; }
+    [Parameter(ParameterSetName = "Default"), OfficeOptionsTransformation(typeof(HtmlMarkdownExportOptions)), ValidateNotNull]
+    public HtmlMarkdownExportOptions? BaseOptions { get; set; }
     /// <summary>Start with the native portable profile instead of the OfficeIMO profile.</summary>
     [Parameter]
     public SwitchParameter Portable { get; set; }
@@ -71,8 +71,8 @@ public sealed class NewOfficeHtmlMarkdownOptionsCommand : OfficeCmdlet, IMarkdow
     protected override void ProcessRecord() {
         if (BaseOptions != null && Portable) throw new PSArgumentException("Choose BaseOptions or Portable.");
         if (MaxInputCharacters is <= 0) throw new PSArgumentException("MaxInputCharacters must be positive or null.");
-        MarkdownHtmlImportOptions options = BaseOptions?.Clone() ?? (Portable
-            ? MarkdownHtmlImportOptions.CreatePortableProfile() : MarkdownHtmlImportOptions.CreateOfficeIMOProfile());
+        HtmlMarkdownExportOptions options = BaseOptions?.Clone() ?? (Portable
+            ? HtmlMarkdownExportOptions.CreatePortableProfile() : HtmlMarkdownExportOptions.CreateOfficeIMOProfile());
         if (BoundSwitch(nameof(IncludeDocumentChrome)) is bool chrome) options.UseBodyContentsOnly = !chrome;
         if (BoundSwitch(nameof(PreserveScriptsAndStyles)) is bool scripts) options.RemoveScriptsAndStyles = !scripts;
         if (BoundSwitch(nameof(DropUnsupportedBlocks)) is bool blocks) options.PreserveUnsupportedBlocks = !blocks;

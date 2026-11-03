@@ -18,7 +18,7 @@ public class RtfHtmlMetadataTests {
         document.Properties.NumberOfWords = 42;
         document.AddParagraph("Body");
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true,
             FragmentOnly = false,
@@ -65,7 +65,7 @@ public class RtfHtmlMetadataTests {
         document.AddFooter(RtfHeaderFooterKind.Footer).AddParagraph("Footer");
         document.AddParagraph("Body");
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true,
             FragmentOnly = false,

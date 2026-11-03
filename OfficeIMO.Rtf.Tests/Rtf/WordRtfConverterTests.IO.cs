@@ -13,7 +13,7 @@ public partial class WordRtfConverterTests {
     public void Word_Rtf_IO_Provides_Byte_Stream_And_File_Loading_Surface() {
         using WordDocument word = WordDocument.Create();
         word.AddParagraph("Clinical ż");
-        var options = new RtfWriteOptions { IncludeGenerator = false };
+        var options = new RtfSaveOptions { IncludeGenerator = false };
 
         byte[] bytes = word.ToRtfBytes(options);
         string rtf = word.ToRtf(options);

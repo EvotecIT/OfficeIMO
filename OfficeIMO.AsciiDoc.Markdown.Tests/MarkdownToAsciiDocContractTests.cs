@@ -82,7 +82,7 @@ public sealed class MarkdownToAsciiDocContractTests {
     public void RequestedLineEnding_IsUsedThroughoutGeneratedSource() {
         MarkdownDocument document = MarkdownDocument.Parse("# Title\n\nParagraph\n");
 
-        MarkdownToAsciiDocResult result = document.ToAsciiDocDocumentResult(new MarkdownToAsciiDocOptions { LineEnding = "\r\n" });
+        MarkdownToAsciiDocResult result = document.ToAsciiDocDocumentResult(new MarkdownAsciiDocExportOptions { LineEnding = "\r\n" });
 
         Assert.DoesNotContain("\n", result.Source.Replace("\r\n", string.Empty), StringComparison.Ordinal);
         Assert.Equal(result.Source, result.Value.ToAsciiDoc());

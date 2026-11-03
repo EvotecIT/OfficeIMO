@@ -46,7 +46,7 @@ public class RtfParagraphFormattingTests {
             .SetBorder(RtfParagraphBorderSide.Right, RtfParagraphBorderStyle.Dashed);
         document.AddParagraph("Plain");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\cbpat1", rtf, StringComparison.Ordinal);
@@ -83,7 +83,7 @@ public class RtfParagraphFormattingTests {
         shaded.SetShading(fill, foregroundColorIndex: foreground, patternPercent: 3750, pattern: RtfShadingPattern.DarkForwardDiagonal);
         document.AddParagraph("Plain");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\cbpat1\cfpat2\shading3750\bgdkfdiag", rtf, StringComparison.Ordinal);
@@ -128,7 +128,7 @@ public class RtfParagraphFormattingTests {
         paragraph.Borders.LeftColorHex = "00AA55";
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
@@ -185,7 +185,7 @@ public class RtfParagraphFormattingTests {
         paragraph._paragraph.ParagraphProperties!.Shading!.Color = "4472C4";
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);

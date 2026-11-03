@@ -76,7 +76,7 @@ The tool accepts files or standard input, writes files atomically, and defaults 
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 
-var options = new HtmlToPdfOptions {
+var options = new HtmlPdfExportOptions {
     MaxPageCount = 200,
     PdfCreateOptions = new PdfCreateOptions().EnableTaggedPdfCatalogMarkers()
 };

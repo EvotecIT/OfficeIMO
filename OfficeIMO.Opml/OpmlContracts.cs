@@ -16,7 +16,7 @@ public enum OpmlVersion {
 }
 
 /// <summary>Controls parsing resource limits.</summary>
-public sealed class OpmlReadOptions {
+public sealed class OpmlLoadOptions {
     /// <summary>Maximum encoded input size. Defaults to 16 MiB.</summary>
     public long MaxInputBytes { get; set; } = 16L * 1024L * 1024L;
     /// <summary>Maximum XML character count. Defaults to 16 million.</summary>
@@ -41,7 +41,7 @@ public sealed class OpmlReadOptions {
 }
 
 /// <summary>Controls OPML serialization.</summary>
-public sealed class OpmlWriteOptions {
+public sealed class OpmlSaveOptions {
     /// <summary>When true, pretty-prints XML after a document has changed.</summary>
     public bool Indent { get; set; } = true;
     /// <summary>When true, an unchanged parsed document is emitted byte-for-byte.</summary>

@@ -44,16 +44,16 @@ _ = new HtmlCapabilityGalleryManifest(
 WordHtmlExportOptions word = WordHtmlExportOptions.CreateDocumentRoundTripProfile();
 word.DocumentOutput = output.Clone();
 word.Profile = OfficeHtmlConversionProfile.WordDocumentRoundTrip;
-ExcelHtmlSaveOptions excel = ExcelHtmlSaveOptions.CreateVisualReviewProfile();
+ExcelHtmlExportOptions excel = ExcelHtmlExportOptions.CreateVisualReviewProfile();
 excel.DocumentOutput = output.Clone();
 excel.Profile = OfficeHtmlConversionProfile.ExcelVisualReview;
-PowerPointHtmlSaveOptions powerPoint = PowerPointHtmlSaveOptions.CreateVisualReviewProfile();
+PowerPointHtmlExportOptions powerPoint = PowerPointHtmlExportOptions.CreateVisualReviewProfile();
 powerPoint.DocumentOutput = output.Clone();
 powerPoint.Profile = OfficeHtmlConversionProfile.PowerPointVisualReview;
-RtfToHtmlOptions rtf = RtfToHtmlOptions.CreatePrintReviewProfile();
+RtfHtmlExportOptions rtf = RtfHtmlExportOptions.CreatePrintReviewProfile();
 rtf.DocumentOutput = output.Clone();
 rtf.Profile = OfficeHtmlConversionProfile.RtfPrintReview;
-PdfToHtmlOptions pdf = PdfToHtmlOptions.CreatePositionedReviewProfile();
+PdfHtmlExportOptions pdf = PdfHtmlExportOptions.CreatePositionedReviewProfile();
 pdf.DocumentOutput = output.Clone();
 
 if (word.SharedProfile != HtmlConversionProfile.Document ||
@@ -113,7 +113,7 @@ if (!foundationPdf.ExtractText().Contains("Packed edit"))
 HtmlRenderRequest imageRequest = HtmlRenderRequest.Create(
     HtmlRenderIntentProfile.ScreenFullPage,
     HtmlRenderEncoder.Png,
-    new HtmlToPdfOptions { ViewportWidth = 480D });
+    new HtmlPdfExportOptions { ViewportWidth = 480D });
 HtmlRenderResult retained = HtmlRenderEngine.Execute(conversion, imageRequest);
 retained = retained.WithAdditionalDiagnostics(new[] {
     new HtmlDiagnostic("PackageSmoke", "RetainedBoundary", "Packed retained-result evidence",
@@ -142,7 +142,7 @@ if (renderArchive.EncodedLength < 1 || renderArchive.Manifest.Pages.Count != 1 |
 HtmlPdfRenderRequestResult explicitPdf = conversion.RenderToPdfResult(HtmlRenderRequest.Create(
     HtmlRenderIntentProfile.ScreenMediaPaged,
     HtmlRenderEncoder.Pdf,
-    new HtmlToPdfOptions()));
+    new HtmlPdfExportOptions()));
 byte[] explicitPdfBytes = explicitPdf.ToBytes();
 if (explicitPdf.RenderResult.Request.CssMedia != HtmlCssMediaContext.Screen ||
     explicitPdfBytes.Length < 4 || System.Text.Encoding.ASCII.GetString(explicitPdfBytes, 0, 4) != "%PDF")
@@ -150,7 +150,7 @@ if (explicitPdf.RenderResult.Request.CssMedia != HtmlCssMediaContext.Screen ||
 
 var accessibilitySource = HtmlConversionDocument.Parse(
     "<html lang='en'><body><h1>Accessible package</h1><svg width='10' height='10'><rect width='10' height='10'/></svg></body></html>");
-var accessibilityOptions = new HtmlToPdfOptions();
+var accessibilityOptions = new HtmlPdfExportOptions();
 accessibilityOptions.AdditionalStylesheets.Add("svg {display:none}");
 var accessiblePdf = accessibilitySource.RenderToPdfResult(HtmlRenderRequest.Create(
     HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, accessibilityOptions));

@@ -29,7 +29,7 @@ internal static partial class NativeAdapters {
             case "vsdx": {
                 var document = VisioDocument.Load(source);
                 var imageOptions = Images<VisioImageExportOptions>(suite, profile);
-                var pdfOptions = new VisioToPdfOptions {
+                var pdfOptions = new VisioPdfExportOptions {
                     ProjectionOptions = new PdfProjectionOptions { PdfOptions = new PdfCreateOptions().UseRenderingProfile(profile) }
                 };
                 using (PdfDocument pdf = document.ToPdf(pdfOptions, out OfficeConversionReport pdfReport, token))
@@ -47,7 +47,7 @@ internal static partial class NativeAdapters {
             }
             case "epub": {
                 byte[] reference = ReferencePdf(contract, source);
-                var document = EpubDocument.Load(source, new EpubReadOptions { IncludeRawHtml = true });
+                var document = EpubDocument.Load(source, new EpubLoadOptions { IncludeRawHtml = true });
                 var options = Images<EpubImageExportOptions>(suite, profile);
                 ConfigureHtml(options, contract, suite);
                 options.IncludeChapterTitle = false;

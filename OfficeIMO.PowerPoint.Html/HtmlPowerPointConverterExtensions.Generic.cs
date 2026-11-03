@@ -8,7 +8,7 @@ public static partial class HtmlPowerPointConverterExtensions {
     private static void ImportGenericDocument(
         HtmlSemanticDocument document,
         PptCore.PowerPointDocument presentation,
-        HtmlToPowerPointOptions options,
+        HtmlPowerPointExportOptions options,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
         HtmlEditableLayoutProjection? editableLayout) {
@@ -331,7 +331,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         IReadOnlyList<HtmlRenderLayoutRegion> regions,
         IReadOnlyList<int> firstSlideIndexes,
         PptCore.PowerPointDocument presentation,
-        HtmlToPowerPointOptions options,
+        HtmlPowerPointExportOptions options,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget) {
         if (presentation.Slides.Count == 0) {
@@ -677,7 +677,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         PptCore.PowerPointDocument presentation,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
-        HtmlToPowerPointOptions options,
+        HtmlPowerPointExportOptions options,
         ref double top) {
         if (!HtmlImageDataUri.TryParse(resource.Source, out HtmlImageDataUri dataUri)
             || !TryGetImagePartType(dataUri.MediaType, out OfficeImageFormat imagePartType)) {

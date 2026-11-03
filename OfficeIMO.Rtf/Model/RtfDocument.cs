@@ -114,7 +114,7 @@ public sealed partial class RtfDocument {
     public bool IsHtmlEncapsulationCurrent => _htmlEncapsulation != null &&
         string.Equals(_htmlSemanticBaseline, GetSemanticHtmlBaseline(), StringComparison.Ordinal);
 
-    private string GetSemanticHtmlBaseline() => RtfDocumentWriter.Write(this, new RtfWriteOptions {
+    private string GetSemanticHtmlBaseline() => RtfDocumentWriter.Write(this, new RtfSaveOptions {
         IncludeGenerator = false, IncludeHtmlEncapsulation = false
     }, semanticBaseline: true);
 
@@ -126,49 +126,49 @@ public sealed partial class RtfDocument {
     }
 
     /// <summary>Parses RTF text into the semantic document model.</summary>
-    public static RtfDocument Parse(string rtf, RtfReadOptions? options = null, CancellationToken cancellationToken = default) =>
+    public static RtfDocument Parse(string rtf, RtfLoadOptions? options = null, CancellationToken cancellationToken = default) =>
         ParseResult(rtf, options, cancellationToken).Document;
 
     /// <summary>Parses RTF text and returns the semantic document, lossless syntax, and diagnostics.</summary>
-    public static RtfReadResult ParseResult(string rtf, RtfReadOptions? options = null, CancellationToken cancellationToken = default) {
+    public static RtfReadResult ParseResult(string rtf, RtfLoadOptions? options = null, CancellationToken cancellationToken = default) {
         if (rtf == null) throw new ArgumentNullException(nameof(rtf));
-        RtfReadOptions readOptions = options ?? new RtfReadOptions();
+        RtfLoadOptions readOptions = options ?? new RtfLoadOptions();
         RtfSyntaxTree tree = RtfSyntaxTree.Parse(rtf, readOptions, cancellationToken);
         return RtfSemanticReader.Read(tree, readOptions, cancellationToken);
     }
 
     /// <summary>Loads RTF from a file into the semantic document model.</summary>
-    public static RtfDocument Load(string path, RtfReadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) =>
+    public static RtfDocument Load(string path, RtfLoadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) =>
         LoadResult(path, options, encoding, cancellationToken).Document;
 
     /// <summary>Loads RTF from a file with lossless syntax and diagnostics.</summary>
-    public static RtfReadResult LoadResult(string path, RtfReadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
+    public static RtfReadResult LoadResult(string path, RtfLoadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
-        RtfReadOptions readOptions = options ?? new RtfReadOptions();
+        RtfLoadOptions readOptions = options ?? new RtfLoadOptions();
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         return LoadResult(stream, readOptions, encoding, cancellationToken);
     }
 
     /// <summary>Loads RTF bytes into the semantic document model.</summary>
-    public static RtfDocument Load(byte[] bytes, RtfReadOptions? options = null, CancellationToken cancellationToken = default) =>
+    public static RtfDocument Load(byte[] bytes, RtfLoadOptions? options = null, CancellationToken cancellationToken = default) =>
         LoadResult(bytes, options, cancellationToken).Document;
 
     /// <summary>Loads RTF from source bytes using the byte-preserving lossless representation.</summary>
-    public static RtfReadResult LoadResult(byte[] bytes, RtfReadOptions? options = null, CancellationToken cancellationToken = default) {
+    public static RtfReadResult LoadResult(byte[] bytes, RtfLoadOptions? options = null, CancellationToken cancellationToken = default) {
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-        RtfReadOptions readOptions = options ?? new RtfReadOptions();
+        RtfLoadOptions readOptions = options ?? new RtfLoadOptions();
         new RtfReadLimitGuard(readOptions, cancellationToken).CheckInputBytes(bytes.LongLength);
         return ParseResult(RtfBytePreservingEncoding.GetString(bytes), readOptions, cancellationToken).AttachOriginalBytes(bytes);
     }
 
     /// <summary>Loads RTF from a stream into the semantic document model.</summary>
-    public static RtfDocument Load(Stream stream, RtfReadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) =>
+    public static RtfDocument Load(Stream stream, RtfLoadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) =>
         LoadResult(stream, options, encoding, cancellationToken).Document;
 
     /// <summary>Loads RTF from a stream with lossless syntax and diagnostics.</summary>
-    public static RtfReadResult LoadResult(Stream stream, RtfReadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
+    public static RtfReadResult LoadResult(Stream stream, RtfLoadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
-        RtfReadOptions readOptions = options ?? new RtfReadOptions();
+        RtfLoadOptions readOptions = options ?? new RtfLoadOptions();
         byte[] bytes = RtfBytePreservingEncoding.ReadBytesToEnd(stream, readOptions.Limits.MaxInputBytes, cancellationToken);
         string rtf = DecodeInput(bytes, encoding);
         return ParseResult(rtf, readOptions, cancellationToken).AttachOriginalBytes(bytes);
@@ -404,32 +404,32 @@ public sealed partial class RtfDocument {
     }
 
     /// <summary>Serializes the document to RTF.</summary>
-    public string ToRtf(RtfWriteOptions? options = null) => RtfDocumentWriter.Write(this, options ?? new RtfWriteOptions());
+    public string ToRtf(RtfSaveOptions? options = null) => RtfDocumentWriter.Write(this, options ?? new RtfSaveOptions());
 
     /// <summary>Serializes the document to encoded RTF bytes.</summary>
-    public byte[] ToBytes(RtfWriteOptions? options = null, Encoding? encoding = null) {
+    public byte[] ToBytes(RtfSaveOptions? options = null, Encoding? encoding = null) {
         return (encoding ?? CreateDefaultOutputEncoding()).GetBytes(ToRtf(options));
     }
 
     /// <summary>Serializes the document to an encoded RTF memory stream.</summary>
-    public MemoryStream ToStream(RtfWriteOptions? options = null, Encoding? encoding = null) {
+    public MemoryStream ToStream(RtfSaveOptions? options = null, Encoding? encoding = null) {
         return new MemoryStream(ToBytes(options, encoding));
     }
 
     /// <summary>Saves the document to an RTF file.</summary>
-    public void Save(string path, RtfWriteOptions? options = null, Encoding? encoding = null) {
+    public void Save(string path, RtfSaveOptions? options = null, Encoding? encoding = null) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         OfficeFileCommit.WriteAllBytes(path, ToFileBytes(options, encoding));
     }
 
     /// <summary>Saves the document to an RTF stream without closing the stream.</summary>
-    public void Save(Stream stream, RtfWriteOptions? options = null, Encoding? encoding = null) {
+    public void Save(Stream stream, RtfSaveOptions? options = null, Encoding? encoding = null) {
         OfficeStreamWriter.WriteAllBytes(stream, ToBytes(options, encoding));
     }
 
     private static Encoding CreateDefaultOutputEncoding() => new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
-    private byte[] ToFileBytes(RtfWriteOptions? options, Encoding? encoding) {
+    private byte[] ToFileBytes(RtfSaveOptions? options, Encoding? encoding) {
         Encoding outputEncoding = encoding ?? CreateDefaultOutputEncoding();
         byte[] content = outputEncoding.GetBytes(ToRtf(options));
         byte[] preamble = outputEncoding.GetPreamble();

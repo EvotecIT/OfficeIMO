@@ -105,7 +105,7 @@ public sealed class RtfPdfFontWarningTests {
     private static PdfCore.PdfEmbeddedFontFamily CreateFamily(string family, ushort advance) =>
         new PdfCore.PdfEmbeddedFontFamily(family, CreateFont(advance));
 
-    private static RtfToPdfOptions ConvertOptions(PdfCore.PdfCreateOptions caller) => new RtfToPdfOptions {
+    private static RtfPdfExportOptions ConvertOptions(PdfCore.PdfCreateOptions caller) => new RtfPdfExportOptions {
         PdfOptions = caller,
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
         TextFallbacks = PdfCore.PdfTextFallbackFeatures.None

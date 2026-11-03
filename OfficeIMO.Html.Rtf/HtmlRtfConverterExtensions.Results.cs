@@ -2,9 +2,9 @@ namespace OfficeIMO.Html;
 
 public static partial class HtmlRtfConverterExtensions {
     /// <summary>Imports a prepared shared HTML document into RTF and returns structured evidence.</summary>
-    public static HtmlToRtfResult ToRtfDocumentResult(this HtmlConversionDocument document, HtmlToRtfOptions? options = null) {
+    public static HtmlToRtfResult ToRtfDocumentResult(this HtmlConversionDocument document, HtmlRtfExportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        HtmlToRtfOptions resolved = (options ?? new HtmlToRtfOptions()).Clone();
+        HtmlRtfExportOptions resolved = (options ?? new HtmlRtfExportOptions()).Clone();
         HtmlUrlPolicy requestedHyperlinkPolicy = resolved.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
         HtmlUrlPolicy requestedResourcePolicy = resolved.ResourceUrlPolicy ?? requestedHyperlinkPolicy;
         resolved.UrlPolicy = HtmlUrlPolicy.Intersect(document.HyperlinkUrlPolicy, requestedHyperlinkPolicy);
@@ -49,7 +49,7 @@ public static partial class HtmlRtfConverterExtensions {
 
     private static void ReportIgnoredStylesheets(
         AngleSharp.Html.Dom.IHtmlDocument document,
-        HtmlToRtfOptions options,
+        HtmlRtfExportOptions options,
         HtmlCssMediaContext mediaContext) {
         var stylesheetOptions = new HtmlRenderOptions {
             Mode = mediaContext == HtmlCssMediaContext.Print ? HtmlRenderMode.Paged : HtmlRenderMode.Continuous
@@ -78,7 +78,7 @@ public static partial class HtmlRtfConverterExtensions {
         }
     }
 
-    private static void AddEditableLayoutDiagnostics(HtmlEditableLayoutProjection? projection, HtmlToRtfOptions options) {
+    private static void AddEditableLayoutDiagnostics(HtmlEditableLayoutProjection? projection, HtmlRtfExportOptions options) {
         if (projection == null) return;
         foreach (HtmlDiagnostic diagnostic in projection.Diagnostics) {
             options.AddDiagnostic(new HtmlRtfConversionDiagnostic(
@@ -100,7 +100,7 @@ public static partial class HtmlRtfConverterExtensions {
     private static void AddEditableLayoutFrames(
         RtfDocument document,
         HtmlEditableLayoutProjection projection,
-        HtmlToRtfOptions options) {
+        HtmlRtfExportOptions options) {
         const double twipsPerCssPixel = 15D;
         int insertionIndex = 0;
         foreach (HtmlRenderLayoutRegion region in projection.Regions.OrderBy(item => item.PaintOrder)) {
@@ -180,7 +180,7 @@ public static partial class HtmlRtfConverterExtensions {
         HtmlRenderImage? visual,
         double opacity,
         HtmlRenderLayoutRegion region,
-        HtmlToRtfOptions options,
+        HtmlRtfExportOptions options,
         double twipsPerCssPixel) {
         string source = HtmlImageSourceResolver.ResolveImageSource(
             sourceImage, options.BaseUri, options.GetResourceUrlPolicy());
@@ -282,9 +282,9 @@ public static partial class HtmlRtfConverterExtensions {
     }
 
     /// <summary>Exports RTF to semantic HTML and returns structured conversion evidence.</summary>
-    public static RtfToHtmlResult ToHtmlResult(this RtfDocument document, RtfToHtmlOptions? options = null) {
+    public static RtfToHtmlResult ToHtmlResult(this RtfDocument document, RtfHtmlExportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        RtfToHtmlOptions resolved = (options ?? new RtfToHtmlOptions()).Clone();
+        RtfHtmlExportOptions resolved = (options ?? new RtfHtmlExportOptions()).Clone();
         string html = ToHtmlCore(document, resolved);
         return new RtfToHtmlResult(html, resolved.HtmlDiagnostics, resolved.Diagnostics.AsReadOnly(), resolved.ConversionReport);
     }

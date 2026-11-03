@@ -45,7 +45,7 @@ public sealed class ConvertToOfficePdfPowerPointCommand : PSCmdlet
 
     /// <summary>Advanced OfficeIMO PDF-to-PowerPoint reconstruction options.</summary>
     [Parameter]
-    public PowerPointPdfImportOptions? Options { get; set; }
+    public PdfPowerPointExportOptions? Options { get; set; }
 
     /// <summary>Overwrite an existing output file.</summary>
     [Parameter]

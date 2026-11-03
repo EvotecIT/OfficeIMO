@@ -13,7 +13,7 @@ namespace OfficeIMO.Pdf.Excel {
         /// <summary>Imports logical PDF tables from an opened PDF into an editable Excel document plus an explicit table-scope report.</summary>
         internal static PdfExcelTableImportResult ConvertToExcelWithEvidence(
             this PdfCore.PdfDocument document,
-            ExcelPdfImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+            PdfExcelExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
             if (document == null) throw new ArgumentNullException(nameof(document));
             return ReadForExcel(document, options, cancellationToken).ConvertToExcelWithEvidence(options, cancellationToken);
@@ -29,7 +29,7 @@ namespace OfficeIMO.Pdf.Excel {
 
         private static PdfCore.PdfDocumentReadResult ReadForExcel(
             PdfCore.PdfDocument document,
-            ExcelPdfImportOptions? options,
+            PdfExcelExportOptions? options,
             CancellationToken cancellationToken = default) {
             return document.Read(options?.ReadOptions, cancellationToken);
         }
@@ -43,10 +43,10 @@ namespace OfficeIMO.Pdf.Excel {
         /// <summary>Imports logical PDF tables into an editable Excel document plus an explicit table-scope report.</summary>
         internal static PdfExcelTableImportResult ConvertToExcelWithEvidence(
             this PdfCore.PdfDocumentReadResult document,
-            ExcelPdfImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+            PdfExcelExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
             if (document == null) throw new ArgumentNullException(nameof(document));
-            ExcelPdfImportOptions operation = (options ?? new ExcelPdfImportOptions()).Clone();
+            PdfExcelExportOptions operation = (options ?? new PdfExcelExportOptions()).Clone();
             operation.CancellationToken = cancellationToken;
             PdfCore.PdfLogicalContentProjection.RequireComplete(document, cancellationToken);
             ExcelDocument workbook = ExcelDocument.Create();
@@ -70,7 +70,7 @@ namespace OfficeIMO.Pdf.Excel {
         private static IReadOnlyList<PdfExcelTableImportEntry> ImportTables(
             PdfCore.PdfDocumentReadResult document,
             ExcelDocument workbook,
-            ExcelPdfImportOptions options,
+            PdfExcelExportOptions options,
             List<OfficeDiagnostic> diagnostics) {
             options.CancellationToken.ThrowIfCancellationRequested();
             IReadOnlyList<PdfCore.PdfLogicalTableContinuationGroup> tables = PdfCore.PdfLogicalTableContinuations.Group(
@@ -305,7 +305,7 @@ namespace OfficeIMO.Pdf.Excel {
                 : numeric + signLiteral + separator + literal;
         }
 
-        private static void AddEmptyWorkbookSheet(ExcelDocument workbook, ExcelPdfImportOptions options) {
+        private static void AddEmptyWorkbookSheet(ExcelDocument workbook, PdfExcelExportOptions options) {
             ExcelSheet sheet = workbook.AddSheet(options.EmptyWorkbookSheetName, ExcelSheetNameValidationMode.Sanitize, options.CancellationToken);
             sheet.Cell(1, 1).SetValue("No PDF tables detected.");
         }
@@ -319,7 +319,7 @@ namespace OfficeIMO.Pdf.Excel {
             string tableName,
             IReadOnlyList<string> columns,
             IReadOnlyList<IReadOnlyList<string>> rows,
-            ExcelPdfImportOptions options) {
+            PdfExcelExportOptions options) {
             var table = new DataTable(tableName) {
                 Locale = CultureInfo.InvariantCulture
             };
@@ -365,7 +365,7 @@ namespace OfficeIMO.Pdf.Excel {
             bool?[] CurrencyAffixUsesSpacing) DetectColumnKinds(
             IReadOnlyList<string> columns,
             IReadOnlyList<IReadOnlyList<string>> rows,
-            ExcelPdfImportOptions options) {
+            PdfExcelExportOptions options) {
             IReadOnlyList<PdfCore.PdfLogicalTableValueProfile> profiles =
                 PdfCore.PdfLogicalTableValueAnalysis.Analyze(
                     columns,
@@ -427,7 +427,7 @@ namespace OfficeIMO.Pdf.Excel {
         private static object ConvertValue(
             string value,
             ExcelPdfTableColumnKind kind,
-            ExcelPdfImportOptions options) {
+            PdfExcelExportOptions options) {
             if (kind == ExcelPdfTableColumnKind.Text) return value;
             if (string.IsNullOrWhiteSpace(value)) return DBNull.Value;
             return kind switch {

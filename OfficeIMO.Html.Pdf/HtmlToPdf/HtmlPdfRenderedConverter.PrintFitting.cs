@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html.Pdf;
 
 internal static partial class HtmlPdfRenderedConverter {
-    private static void ApplyPrintLayoutWidth(HtmlRenderRequest request, HtmlToPdfOptions renderOptions) {
+    private static void ApplyPrintLayoutWidth(HtmlRenderRequest request, HtmlPdfExportOptions renderOptions) {
         if (renderOptions.PrintLayoutWidthCssPixels is not double layoutWidth) return;
         if (request.CssMedia != HtmlCssMediaContext.Print
             || request.Surface != HtmlRenderLayoutSurface.Paged
@@ -16,12 +16,12 @@ internal static partial class HtmlPdfRenderedConverter {
         }
         double physicalWidth = renderOptions.PageWidth;
         if (layoutWidth <= physicalWidth || layoutWidth > renderOptions.MaxSurfaceWidth)
-            throw new ArgumentOutOfRangeException(nameof(HtmlToPdfOptions.PrintLayoutWidthCssPixels),
+            throw new ArgumentOutOfRangeException(nameof(HtmlPdfExportOptions.PrintLayoutWidthCssPixels),
                 "The print layout width must exceed the physical page width and stay within the configured surface limit.");
         double layoutScale = physicalWidth / layoutWidth;
         double layoutHeight = renderOptions.PageHeight / layoutScale;
         if (layoutHeight > renderOptions.MaxSurfaceHeight)
-            throw new ArgumentOutOfRangeException(nameof(HtmlToPdfOptions.PrintLayoutWidthCssPixels),
+            throw new ArgumentOutOfRangeException(nameof(HtmlPdfExportOptions.PrintLayoutWidthCssPixels),
                 "The scaled page height exceeds the configured surface limit.");
 
         renderOptions.CssMediaWidthOverride = renderOptions.ViewportWidth;
@@ -36,7 +36,7 @@ internal static partial class HtmlPdfRenderedConverter {
             margins.Bottom / layoutScale);
     }
 
-    private static double ResolvePrintLayoutScale(HtmlToPdfOptions options) =>
+    private static double ResolvePrintLayoutScale(HtmlPdfExportOptions options) =>
         options.PrintFitScale ?? (options.PrintLayoutWidthCssPixels is double layoutWidth
             ? (options.PrintOutputPageSize ?? options.PageSize).Width.ToInches() * HtmlRenderOptions.CssPixelsPerInch / layoutWidth
             : 1D);

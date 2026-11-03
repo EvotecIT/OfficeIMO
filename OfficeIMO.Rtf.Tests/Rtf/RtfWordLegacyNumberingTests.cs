@@ -297,7 +297,7 @@ public sealed class RtfWordLegacyNumberingTests {
         numbering.TextAfter = ".";
     });
 
-    private static string Native(RtfDocument document) => document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+    private static string Native(RtfDocument document) => document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
     private static int Id(WordParagraph paragraph) {
         NumberingProperties? numbering = paragraph._paragraphProperties?.NumberingProperties;

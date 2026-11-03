@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             string markdown = File.ReadAllText(fixturePath).Replace("{{LOCAL_IMAGE}}", imagePath);
 
-            var options = new WordMarkdownImportOptions {
+            var options = new MarkdownWordExportOptions {
                 AllowLocalImages = true,
                 PreferNarrativeSingleLineDefinitions = true,
                 FitImagesToPageContentWidth = true,

@@ -17,11 +17,11 @@ public class RtfHtmlIoTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("Clinical ż");
 
-        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
-        byte[] bytes = document.ToHtmlBytes(RtfToHtmlOptions.CreateRoundTripProfile());
+        string html = document.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile());
+        byte[] bytes = document.ToHtmlBytes(RtfHtmlExportOptions.CreateRoundTripProfile());
 
         Assert.Equal(html, Encoding.UTF8.GetString(bytes));
-        using MemoryStream stream = document.ToHtmlStream(RtfToHtmlOptions.CreateRoundTripProfile());
+        using MemoryStream stream = document.ToHtmlStream(RtfHtmlExportOptions.CreateRoundTripProfile());
         Assert.Equal(bytes, stream.ToArray());
 
         RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtfDocument();
@@ -31,7 +31,7 @@ public class RtfHtmlIoTests {
     [Fact]
     public void Html_To_Rtf_Uses_One_Prepared_Source_For_All_Target_Forms() {
         HtmlConversionDocument source = HtmlConversionDocument.Parse("<p>Clinical ż</p>");
-        var writeOptions = new RtfWriteOptions { IncludeGenerator = false };
+        var writeOptions = new RtfSaveOptions { IncludeGenerator = false };
 
         string rtf = source.ToRtf(writeOptions: writeOptions);
         byte[] bytes = source.ToRtfBytes(writeOptions: writeOptions);
@@ -78,7 +78,7 @@ public class RtfHtmlIoTests {
     [Fact]
     public async Task Html_To_Rtf_Async_APIs_Are_Target_IO_Only() {
         HtmlConversionDocument source = HtmlConversionDocument.Parse("<p>Async ż</p>");
-        var writeOptions = new RtfWriteOptions { IncludeGenerator = false };
+        var writeOptions = new RtfSaveOptions { IncludeGenerator = false };
         byte[] expected = source.ToRtfBytes(writeOptions: writeOptions);
 
         using var output = new MemoryStream();

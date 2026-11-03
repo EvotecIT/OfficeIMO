@@ -40,7 +40,7 @@ The report belongs to that write operation. A lossless copy preserves the origin
 Semantic writing materializes supported effective formatting in the body by default, so native readers such as Word use the intended appearance:
 
 ```csharp
-RtfConversionResult<string> nativeOutput = document.ToRtfResult(new RtfWriteOptions {
+RtfConversionResult<string> nativeOutput = document.ToRtfResult(new RtfSaveOptions {
     MaterializeStyleFormatting = true
 });
 File.WriteAllText("native-output.rtf", nativeOutput.Value);
@@ -82,7 +82,7 @@ Parsed paragraphs retain the RTF stream's active line-spacing and tab-stop state
 The default OfficeIMO profile is bounded, does not materialize embedded objects or file-table references, and accepts only web and mail hyperlinks. Uploaded files can state that policy explicitly and provide a cancellation token:
 
 ```csharp
-RtfReadOptions options = RtfReadOptions.UntrustedDefaults;
+RtfLoadOptions options = RtfLoadOptions.UntrustedDefaults;
 using FileStream input = File.OpenRead("upload.rtf");
 
 RtfReadResult read = await RtfDocument.LoadResultAsync(
@@ -93,17 +93,17 @@ RtfReadResult read = await RtfDocument.LoadResultAsync(
 
 The profile caps input bytes and characters, group depth/count, token count, text, binary payloads, images, objects, and semantic block count. A breached limit throws `RtfReadLimitException` with a stable `Code`, `LimitSource`, observed value, configured limit, and source position.
 
-The core never fetches external resources. `RtfReadOptions.CreateCompatibilityProfile()` restores the former unbounded, object-materializing, all-schemes behavior for trusted legacy inputs only.
+The core never fetches external resources. `RtfLoadOptions.CreateCompatibilityProfile()` restores the former unbounded, object-materializing, all-schemes behavior for trusted legacy inputs only.
 
 ## Defer picture and object bytes
 
-Set `RtfReadOptions.DeferBinaryPayloads` to keep picture and object data as immutable source fragments during parsing. The parser still enforces source, group, token, binary declaration and semantic payload limits. Native `RtfImage.Data`, `RtfObject.Data` and semantic writing decode bytes when needed. The option defaults to `false` and does not enable `ReadEmbeddedObjects`, which remains `false` by default.
+Set `RtfLoadOptions.DeferBinaryPayloads` to keep picture and object data as immutable source fragments during parsing. The parser still enforces source, group, token, binary declaration and semantic payload limits. Native `RtfImage.Data`, `RtfObject.Data` and semantic writing decode bytes when needed. The option defaults to `false` and does not enable `ReadEmbeddedObjects`, which remains `false` by default.
 
 ```csharp
 using OfficeIMO;
 using OfficeIMO.Rtf;
 
-RtfReadResult read = RtfDocument.LoadResult("report.rtf", new RtfReadOptions {
+RtfReadResult read = RtfDocument.LoadResult("report.rtf", new RtfLoadOptions {
     DeferBinaryPayloads = true
 });
 using OfficeEmbeddedPayloadInspection payloads = read.InspectEmbeddedPayloads(

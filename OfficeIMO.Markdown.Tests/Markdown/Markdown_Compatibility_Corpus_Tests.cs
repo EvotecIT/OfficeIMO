@@ -71,7 +71,7 @@ public class Markdown_Compatibility_Corpus_Tests {
         string html = LoadCompatibilityFixture("html-rich-ast.html");
 
         MarkdownDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
-        string portableMarkdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(MarkdownHtmlImportOptions.CreatePortableProfile()).ToMarkdown();
+        string portableMarkdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(HtmlMarkdownExportOptions.CreatePortableProfile()).ToMarkdown();
         string renderedHtml = document.ToHtml(CreatePlainHtmlOptions());
 
         Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Level == 1 && heading.Text == "HTML Corpus");
@@ -100,7 +100,7 @@ public class Markdown_Compatibility_Corpus_Tests {
     public void Compatibility_Fixture_SharedVisualHosts_Html_Ingestion_Preserves_Generic_Semantic_Block_Recovery() {
         string html = LoadHtmlFixture("shared-visual-hosts.html");
 
-        MarkdownDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
+        MarkdownDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlMarkdownExportOptions {
             BaseUri = new Uri("https://example.com/visuals/archive.html")
         });
         string markdown = document.ToMarkdown(MarkdownSaveOptions.CreateOfficeIMOProfile());

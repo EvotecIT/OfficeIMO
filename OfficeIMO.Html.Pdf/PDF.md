@@ -28,7 +28,7 @@ render request when the PDF should follow another layout contract:
 ```csharp
 using OfficeIMO.Drawing;
 
-var options = new HtmlToPdfOptions {
+var options = new HtmlPdfExportOptions {
     ViewportWidth = 816,
     PageSize = OfficePageSizes.A4,
     Margins = HtmlRenderMargins.All(24)
@@ -79,7 +79,7 @@ the width for the source rather than assuming one width fits every page. CSS
 media queries and responsive resources still use the captured `ViewportWidth`.
 
 ```csharp
-var fitted = new HtmlToPdfOptions {
+var fitted = new HtmlPdfExportOptions {
     PageSize = OfficePageSizes.A4,
     Margins = HtmlRenderMargins.All(24),
     HonorCssPageRules = false,
@@ -194,7 +194,7 @@ For large output, prefer `SaveAsPdf(Stream, options)` over `ToPdf().ToBytes()`, 
 ```csharp
 using OfficeIMO.Pdf;
 
-var options = new HtmlToPdfOptions {
+var options = new HtmlPdfExportOptions {
     PdfOptions = new PdfCreateOptions {
         FileVersion = PdfFileVersion.Pdf17,
         ObjectSerializationMode = PdfObjectSerializationMode.ForwardOnly
@@ -224,7 +224,7 @@ An explicit standalone PDF/UA-1 request cannot retain these Formula attachments:
 
 Column notes retain note bodies as `Note` elements with unique IDs. Linked call markers remain in their originating paragraph, and return links remain in the note. The logical body follows column flow; notes follow the body of the page on which they start, with continuations belonging to the same note. These structural guarantees do not replace assistive-technology reading-order review.
 
-Set `HtmlToPdfOptions.MathMlSourceModificationDate` when an archival profile requires a modification date for embedded sources. The renderer does not invent dates.
+Set `HtmlPdfExportOptions.MathMlSourceModificationDate` when an archival profile requires a modification date for embedded sources. The renderer does not invent dates.
 
 An emitted tagged Formula MathML supplement can satisfy PDF/A-4f's embedded-file
 requirement. For reproducible archival output, supply text and mathematical fonts
@@ -268,7 +268,7 @@ consumers. Its declared fixture, font, platform and framework scope applies.
 Use strict mode when the input must stay inside the declared static contract, and require the PDF-stage report as well:
 
 ```csharp
-var options = new HtmlToPdfOptions {
+var options = new HtmlPdfExportOptions {
     FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
     PdfCreateOptions = new OfficeIMO.Pdf.PdfCreateOptions()
         .EnableTaggedPdfCatalogMarkers()
@@ -388,7 +388,7 @@ using System.Collections.Generic;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html.Pdf;
 
-var options = new HtmlToPdfOptions();
+var options = new HtmlPdfExportOptions();
 options.Fonts.FontVariationResolver = request =>
     request.FamilyName == "Report Variable"
         ? new Dictionary<string, float> {
@@ -418,7 +418,7 @@ For complete OpenType GSUB/GPOS shaping, add the optional `OfficeIMO.Drawing.Har
 ```csharp
 using OfficeIMO.Drawing.HarfBuzz;
 
-var options = new HtmlToPdfOptions {
+var options = new HtmlPdfExportOptions {
     TextShapingProvider = OfficeHarfBuzzTextShapingProvider.Instance,
     TextShapingLanguage = "ar"
 };
@@ -445,7 +445,7 @@ HtmlPortableBrowserFontProfile fonts = HtmlPortableBrowserFontProfile.Create(
     "my-portable-fonts-v1",
     fileName => File.ReadAllBytes(Path.Combine(fontDirectory, fileName)));
 
-HtmlToPdfOptions options = fonts.CreateHtmlOptions(
+HtmlPdfExportOptions options = fonts.CreateHtmlOptions(
     OfficeHarfBuzzTextShapingProvider.Instance);
 ```
 
@@ -467,14 +467,14 @@ Naming is consistent across the direct output APIs:
 
 ## One options shape for PDF and all image formats
 
-`HtmlToPdfOptions` derives from `HtmlRenderOptions`, so one configured instance can drive PDF and all five direct image outputs.
+`HtmlPdfExportOptions` derives from `HtmlRenderOptions`, so one configured instance can drive PDF and all five direct image outputs.
 
 ```csharp
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 
-var options = new HtmlToPdfOptions {
+var options = new HtmlPdfExportOptions {
     PageSize = OfficePageSizes.A4,
     Margins = HtmlRenderMargins.All(32),
     DefaultFontFamily = "Arial",
@@ -501,7 +501,7 @@ byte[] webp = source.ToWebp(options);
 Options are reusable configuration and are not mutated with operation results. Request a result when diagnostics matter.
 
 ```csharp
-var options = new HtmlToPdfOptions {
+var options = new HtmlPdfExportOptions {
     ResourcePolicy = PdfResourcePolicy.CreateTrustedHost(),
     ResourceResolver = (request, cancellationToken) =>
         Task.FromResult<HtmlResolvedResource?>(null)
@@ -535,7 +535,7 @@ HtmlConversionDocument page = HtmlConversionDocument.Load("site/index.html", new
     Trust = HtmlInputTrust.Trusted,
     BaseUri = new Uri(Path.GetFullPath("site") + Path.DirectorySeparatorChar)
 });
-page.SaveAsPdf("index.pdf", new HtmlToPdfOptions { ResourcePolicy = PdfResourcePolicy.CreateTrustedHost() });
+page.SaveAsPdf("index.pdf", new HtmlPdfExportOptions { ResourcePolicy = PdfResourcePolicy.CreateTrustedHost() });
 ```
 
 An image that does not load and has no authored size takes the space of its alternative text, as in a browser, and the conversion report names it.

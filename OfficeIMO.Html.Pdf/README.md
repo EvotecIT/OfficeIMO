@@ -37,7 +37,7 @@ using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 
 PdfDocument sourcePdf = PdfDocument.Load("quarterly-update.pdf");
-PdfToHtmlOptions semanticOptions = PdfToHtmlOptions.CreateSemanticProfile(
+PdfHtmlExportOptions semanticOptions = PdfHtmlExportOptions.CreateSemanticProfile(
     OfficeVisualThemeKind.TechnicalDocument);
 semanticOptions.ReadOptions = new PdfLoadOptions {
     PageSelection = PdfPageSelection.Parse("1-20"),
@@ -45,7 +45,7 @@ semanticOptions.ReadOptions = new PdfLoadOptions {
 };
 string semantic = sourcePdf.ToHtml(semanticOptions);
 
-PdfToHtmlOptions reviewOptions = PdfToHtmlOptions.CreatePositionedReviewProfile(
+PdfHtmlExportOptions reviewOptions = PdfHtmlExportOptions.CreatePositionedReviewProfile(
     OfficeVisualThemeKind.Report);
 reviewOptions.ImageExportMode = PdfHtmlImageExportMode.EmbeddedDataUri;
 OfficeIMO.OfficeConversionReport saveReport = sourcePdf.SaveAsHtml("quarterly-review.html", reviewOptions);
@@ -61,15 +61,15 @@ Choose semantic HTML when readable headings, paragraphs, lists, and tables matte
 
 `PdfHtmlImageExportMode.PlaceholderOnly` retains readable image metadata but omits the source pixels and reports that omission. `EmbeddedDataUri` embeds supported image files within the configured byte and output-size limits and reports any fallback to a placeholder. Fully transparent and unplaced resources are suppressed, while images whose clips, soft masks, unresolved transparency masks, or unsupported blend modes could reveal hidden pixels are represented without the raw data URI and reported as typed omissions. Supported opacity and blend modes are mapped to CSS with diagnostics where browser compositing can differ from PDF compositing.
 
-PDF-to-HTML profiles describe how an existing PDF is projected to review HTML. They are unrelated to HTML-to-PDF, which has one direct rendering path. HTML-to-PDF and HTML-to-PNG/JPEG/TIFF/SVG/WebP use the same `HtmlRenderOptions` scene and diagnostics; `HtmlToPdfOptions` extends that shared options type with PDF-only settings. PDF page images use `OfficeIMO.Pdf`'s `ToImage(options)` / `ExportImages(...)` API instead of routing through HTML. An image is embedded into HTML as a resource; turning image pixels into document structure is an OCR workflow, not an image-rendering profile.
+PDF-to-HTML profiles describe how an existing PDF is projected to review HTML. They are unrelated to HTML-to-PDF, which has one direct rendering path. HTML-to-PDF and HTML-to-PNG/JPEG/TIFF/SVG/WebP use the same `HtmlRenderOptions` scene and diagnostics; `HtmlPdfExportOptions` extends that shared options type with PDF-only settings. PDF page images use `OfficeIMO.Pdf`'s `ToImage(options)` / `ExportImages(...)` API instead of routing through HTML. An image is embedded into HTML as a resource; turning image pixels into document structure is an OCR workflow, not an image-rendering profile.
 
 When the source is an opened `PdfDocument`, positioned review uses the shared PDF drawing renderer to retain supported vector artwork, clipping, paint order, images, and embedded fonts as an embedded SVG image. Text remains selectable. Browser font substitution can affect text whose fonts are unavailable, and renderer diagnostics appear in the conversion report.
 
 The logical positioned projection is used for pages with form widgets, restricted reading-order projection, or image settings that require placeholders, omission, or a smaller byte limit. OCR-only pages keep the visual appearance layer and add a transparent searchable text overlay. Check the report for content that could not be reproduced; positioned review is not a guarantee of identical appearance for every PDF.
 
-Semantic output uses the shared crop-, rotation-, spanning-band-, and column-aware PDF reading order by default. Set `PdfToHtmlOptions.UseSharedPageReadingOrder = false` only when source sequence is deliberately preferred; positioned-review output always retains source geometry.
+Semantic output uses the shared crop-, rotation-, spanning-band-, and column-aware PDF reading order by default. Set `PdfHtmlExportOptions.UseSharedPageReadingOrder = false` only when source sequence is deliberately preferred; positioned-review output always retains source geometry.
 
-`PdfToHtmlOptions.ReadOptions` configures the canonical semantic read for an opened `PdfDocument`. Existing `PageRanges` take precedence over `ReadOptions.PageSelection`; the profile, layout, and semantic budgets still come from `ReadOptions`. The native read uses the loaded source document and these semantic settings.
+`PdfHtmlExportOptions.ReadOptions` configures the canonical semantic read for an opened `PdfDocument`. Existing `PageRanges` take precedence over `ReadOptions.PageSelection`; the profile, layout, and semantic budgets still come from `ReadOptions`. The native read uses the loaded source document and these semantic settings.
 
 ## Targets and license
 

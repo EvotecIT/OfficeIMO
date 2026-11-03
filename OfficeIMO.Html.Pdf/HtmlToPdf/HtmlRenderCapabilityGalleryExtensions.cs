@@ -38,7 +38,7 @@ public static class HtmlRenderCapabilityGalleryExtensions {
         if (formats.Length == 0 || formats.Any(format => !format.IsRaster() && format != OfficeImageExportFormat.Svg))
             throw new ArgumentException("At least one supported preview format is required.", nameof(options));
 
-        HtmlToPdfOptions pdfOptions = options.RenderOptions.ClonePdf();
+        HtmlPdfExportOptions pdfOptions = options.RenderOptions.ClonePdf();
         HtmlRenderOptions renderOptions = HtmlPdfRenderedConverter.ResolveRenderOptions(pdfOptions);
         return HtmlRenderEngine.ExecuteWithDeadline(renderOptions, cancellationToken, token =>
             SaveGalleryCore(document, directoryPath, options, pdfOptions, renderOptions, formats, token));
@@ -48,7 +48,7 @@ public static class HtmlRenderCapabilityGalleryExtensions {
         HtmlConversionDocument document,
         string directoryPath,
         HtmlRenderCapabilityGalleryOptions options,
-        HtmlToPdfOptions pdfOptions,
+        HtmlPdfExportOptions pdfOptions,
         HtmlRenderOptions renderOptions,
         OfficeImageExportFormat[] formats,
         CancellationToken cancellationToken) {

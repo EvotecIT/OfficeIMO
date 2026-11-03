@@ -67,7 +67,7 @@ internal static partial class HtmlPdfRenderedConverter {
         internal IOfficeRasterImageCodec? ImageCodec => _decodeOptions.ImageCodec;
         internal long MaximumPixels => _decodeOptions.MaximumDecodedPixels;
 
-        internal PdfImageResourceCache(HtmlToPdfOptions options, PdfCore.PdfConversionReport conversionReport, CancellationToken cancellationToken) {
+        internal PdfImageResourceCache(HtmlPdfExportOptions options, PdfCore.PdfConversionReport conversionReport, CancellationToken cancellationToken) {
             _conversionReport = conversionReport;
             _decodeOptions = new OfficeRasterDecodeOptions {
                 ImageCodec = options.ImageCodec,

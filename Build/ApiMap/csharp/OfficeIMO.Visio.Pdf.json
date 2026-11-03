@@ -80,6 +80,15 @@
       "reason": "Conversions use FailOnLoss to make reported loss an error.",
       "category": "conversion",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.Visio.Pdf.VisioToPdfOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Visio.Pdf.VisioPdfExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
     }
   ]
 }

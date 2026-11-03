@@ -12,7 +12,7 @@ public sealed class DrawPdfDateTimeFieldTests {
     [Fact]
     public void ExplicitRefreshReachesEveryPdfPageAndOptionsCloneOwnsIndependentSettings() {
         var source = Create();
-        var options = new OdgToPdfOptions { DateTimeFields = new() {
+        var options = new OdgPdfExportOptions { DateTimeFields = new() {
             Mode = OdfDateTimeFieldProjectionMode.RefreshDynamic,
             RefreshTimestamp = new DateTimeOffset(2024, 2, 29, 23, 59, 58, TimeSpan.FromHours(14)) } };
         var copy = options.Clone(); options.DateTimeFields.RefreshTimestamp = options.DateTimeFields.RefreshTimestamp.Value.AddDays(1);
@@ -27,7 +27,7 @@ public sealed class DrawPdfDateTimeFieldTests {
     [Fact]
     public void UnsupportedFieldFormattingLeavesStrictPdfDestinationUntouched() {
         var source = Create(); var field = source.Pages[0].MasterShapes[0].Paragraphs[0].Fields.Single(); field.DataStyleName = "Missing";
-        var options = new OdgToPdfOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported,
+        var options = new OdgPdfExportOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported,
             DateTimeFields = new() { Mode = OdfDateTimeFieldProjectionMode.RefreshDynamic, RefreshTimestamp = DateTimeOffset.MinValue } };
         byte[] original = { 1, 2, 3 }; using var output = new MemoryStream(original.ToArray(), writable: true);
         var result = source.SaveAsPdfResult(output, options);

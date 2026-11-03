@@ -38,7 +38,7 @@ public class RtfEffectiveNumberingRegressionTests {
         RtfDocument native = RtfDocument.ParseResult(document.ToRtf()).Document;
         Assert.Equal(0, native.Paragraphs[0].ListId);
         Assert.Null(native.ResolveListFormatting(native.Paragraphs[0]));
-        RtfDocument html = HtmlConversionDocument.Parse(document.ToHtml(new RtfToHtmlOptions { IncludeRoundTripMetadata = true })).ToRtfDocument();
+        RtfDocument html = HtmlConversionDocument.Parse(document.ToHtml(new RtfHtmlExportOptions { IncludeRoundTripMetadata = true })).ToRtfDocument();
         Assert.Equal(0, html.Paragraphs[0].ListId);
         Assert.Null(html.ResolveListFormatting(html.Paragraphs[0]));
     }
@@ -151,7 +151,7 @@ public class RtfEffectiveNumberingRegressionTests {
         document.AddParagraph("Second").SetList(3, 0);
         document.AddListOverride(4, 100).AddLevelOverride().OverrideStartAt = true;
         document.AddParagraph("Other").SetList(4, 0);
-        string html = document.ToHtml(new RtfToHtmlOptions { FragmentOnly = false, IncludeRoundTripMetadata = true });
+        string html = document.ToHtml(new RtfHtmlExportOptions { FragmentOnly = false, IncludeRoundTripMetadata = true });
         AngleSharp.Html.Dom.IHtmlDocument dom = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
         Assert.Single(dom.QuerySelectorAll("ol > li > ol > li"));
         Assert.Equal(2, dom.QuerySelectorAll("body > ol").Length);

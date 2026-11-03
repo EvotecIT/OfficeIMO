@@ -8,7 +8,7 @@ namespace OfficeIMO.Word.Html {
     /// Extension methods enabling HTML conversions for <see cref="WordDocument"/> instances.
     /// </summary>
     public static partial class WordHtmlConverterExtensions {
-        internal static WordHtmlStyleMissingEventArgs OnStyleMissing(WordHtmlImportOptions options, WordParagraph paragraph, string className) {
+        internal static WordHtmlStyleMissingEventArgs OnStyleMissing(HtmlWordExportOptions options, WordParagraph paragraph, string className) {
             var args = new WordHtmlStyleMissingEventArgs(paragraph, className);
             options.StyleMissingHandler?.Invoke(args);
             return args;
@@ -33,16 +33,16 @@ namespace OfficeIMO.Word.Html {
 
 
 
-        internal static WordHtmlImportOptions CreateWordOptionsForSharedDocument(HtmlInputTrust trust = HtmlInputTrust.Untrusted) {
+        internal static HtmlWordExportOptions CreateWordOptionsForSharedDocument(HtmlInputTrust trust = HtmlInputTrust.Untrusted) {
             return trust == HtmlInputTrust.Trusted
-                ? WordHtmlImportOptions.CreateTrustedDocumentProfile()
-                : WordHtmlImportOptions.UntrustedDefaults;
+                ? HtmlWordExportOptions.CreateTrustedDocumentProfile()
+                : HtmlWordExportOptions.UntrustedDefaults;
         }
 
-        private static WordHtmlImportOptions ResolveWordOptionsForSharedDocument(
+        private static HtmlWordExportOptions ResolveWordOptionsForSharedDocument(
             HtmlConversionDocument document,
-            WordHtmlImportOptions? options) {
-            WordHtmlImportOptions resolved = (options ?? CreateWordOptionsForSharedDocument(document.Trust)).Clone();
+            HtmlWordExportOptions? options) {
+            HtmlWordExportOptions resolved = (options ?? CreateWordOptionsForSharedDocument(document.Trust)).Clone();
             resolved.HyperlinkUrlPolicy = HtmlUrlPolicy.Intersect(document.HyperlinkUrlPolicy, resolved.HyperlinkUrlPolicy);
             resolved.ResourceUrlPolicy = HtmlUrlPolicy.Intersect(document.ResourceUrlPolicy, resolved.ResourceUrlPolicy);
             resolved.Limits = HtmlConversionLimits.Intersect(document.Limits, resolved.Limits);
@@ -56,10 +56,10 @@ namespace OfficeIMO.Word.Html {
         /// <param name="htmlDocument">Parsed HTML source to insert.</param>
         /// <param name="options">Optional conversion options.</param>
         /// <returns>Live imported elements in document order, using the existing Word element projection.</returns>
-        public static IReadOnlyList<WordElement> AddHtml(this WordDocument doc, HtmlConversionDocument htmlDocument, WordHtmlImportOptions? options = null) {
+        public static IReadOnlyList<WordElement> AddHtml(this WordDocument doc, HtmlConversionDocument htmlDocument, HtmlWordExportOptions? options = null) {
             if (doc == null) throw new System.ArgumentNullException(nameof(doc));
             if (htmlDocument == null) throw new System.ArgumentNullException(nameof(htmlDocument));
-            WordHtmlImportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
+            HtmlWordExportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
             resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
             EnsureOfflineSynchronousImport(htmlDocument, resolved);
             return doc.AddHtmlAsync(htmlDocument, resolved).GetAwaiter().GetResult();
@@ -73,12 +73,12 @@ namespace OfficeIMO.Word.Html {
         /// <param name="options">Optional conversion options.</param>
         /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
         /// <returns>Live imported elements in document order, using the existing Word element projection.</returns>
-        public static async Task<IReadOnlyList<WordElement>> AddHtmlAsync(this WordDocument doc, HtmlConversionDocument htmlDocument, WordHtmlImportOptions? options = null, CancellationToken cancellationToken = default) {
+        public static async Task<IReadOnlyList<WordElement>> AddHtmlAsync(this WordDocument doc, HtmlConversionDocument htmlDocument, HtmlWordExportOptions? options = null, CancellationToken cancellationToken = default) {
             if (doc == null) throw new System.ArgumentNullException(nameof(doc));
             if (htmlDocument == null) throw new System.ArgumentNullException(nameof(htmlDocument));
             cancellationToken.ThrowIfCancellationRequested();
 
-            WordHtmlImportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
+            HtmlWordExportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
             resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
 
             var section = doc.Sections.LastOrDefault() ?? throw new System.InvalidOperationException("The document does not contain any sections to append HTML to the body.");

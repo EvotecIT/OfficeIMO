@@ -23,7 +23,7 @@ public sealed partial class OfficeWorkflowRunner {
             ? VisioDocument.LoadLegacyXml(stream, extension == ".vtx" ? VisioPackageType.Template : VisioPackageType.Drawing, loadOptions, token)
             : null;
         VisioDocument source = imported?.Value ?? VisioDocument.Load(stream, loadOptions);
-        var options = settings.Visio ?? new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages };
+        var options = settings.Visio ?? new VisioPdfExportOptions { Mode = VisioPdfProjectionMode.DiagramPages };
         options.SourceName ??= request.InputPath;
         var facts = new Dictionary<string, string> {
             ["sourceFormat"] = extension.TrimStart('.').ToUpperInvariant(),

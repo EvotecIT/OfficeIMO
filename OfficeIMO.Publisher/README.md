@@ -146,7 +146,7 @@ multi-page PDF conversion.
 ```csharp
 using OfficeIMO;
 
-var options = new PublisherReadOptions {
+var options = new PublisherLoadOptions {
     MaxPages = 100,
     MaxImageBytes = 8 * 1024 * 1024,
     Limits = new OfficeLegacyImportLimits {
@@ -180,7 +180,7 @@ reports unassessed publication features, so a successful load is not a claim of
 complete Publisher fidelity.
 
 Native WMF/EMF assets remain available in `Images`. Their page projection uses an
-explicit application `PublisherReadOptions.ImageCodec` when supplied; otherwise
+explicit application `PublisherLoadOptions.ImageCodec` when supplied; otherwise
 it displays a placeholder and reports the omission. Codec output is subject to
 pixel and encoded-byte limits. No external decoder is installed or invoked by
 the package.

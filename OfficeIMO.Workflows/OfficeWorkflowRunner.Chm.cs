@@ -5,19 +5,19 @@ namespace OfficeIMO.Workflows;
 public sealed partial class OfficeWorkflowRunner {
     private static (byte[] Bytes, OfficeWorkflowConversionEvidence Evidence) ConvertChm(ValidatedRequest request, byte[] input,
         OfficeWorkflowRenderingOptions settings, CancellationToken token, bool emitHtmlTaggedStructure) {
-        var reading = new ChmReadOptions(); reading.MaxInputBytes = Math.Min(reading.MaxInputBytes, request.Limits.MaximumInputBytes);
+        var reading = new ChmLoadOptions(); reading.MaxInputBytes = Math.Min(reading.MaxInputBytes, request.Limits.MaximumInputBytes);
         ChmDocument source = ChmDocument.Load(input, reading, token);
         ChmConversionOptions conversion = settings.Chm?.Clone() ?? new ChmConversionOptions();
         conversion.MaxOutputBytes = Math.Min(conversion.MaxOutputBytes, request.Limits.MaximumOutputBytes);
         byte[] bytes; OfficeConversionReport report;
         switch (request.Route!.Id) {
             case "chm-pdf": {
-                var rendering = settings.Html?.ClonePdf() ?? new OfficeIMO.Html.Pdf.HtmlToPdfOptions();
+                var rendering = settings.Html?.ClonePdf() ?? new OfficeIMO.Html.Pdf.HtmlPdfExportOptions();
                 if (!emitHtmlTaggedStructure) rendering.PdfOptions.SetTaggedStructureMode(OfficeIMO.Pdf.PdfTaggedStructureMode.None);
                 var result = source.ToPdfBytesResult(conversion, rendering, token); bytes = result.Value; report = result.Report; break;
             }
             case "chm-epub": {
-                var result = source.ToEpubBytesResult(conversion, writeOptions: new OfficeIMO.Epub.EpubWriteOptions { MaxOutputBytes = conversion.MaxOutputBytes }, cancellationToken: token);
+                var result = source.ToEpubBytesResult(conversion, writeOptions: new OfficeIMO.Epub.EpubSaveOptions { MaxOutputBytes = conversion.MaxOutputBytes }, cancellationToken: token);
                 bytes = result.Value; report = result.Report; break;
             }
             default: {

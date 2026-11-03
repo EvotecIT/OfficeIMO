@@ -241,7 +241,7 @@ public sealed class RtfPdfFontAdmissionTests {
         Assert.Equal(before, document.ToBytes());
     }
 
-    private static RtfToPdfOptions Options() => new RtfToPdfOptions {
+    private static RtfPdfExportOptions Options() => new RtfPdfExportOptions {
         PdfOptions = new PdfCore.PdfCreateOptions { DefaultFont = PdfCore.PdfStandardFont.Helvetica },
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
         TextFallbacks = PdfCore.PdfTextFallbackFeatures.None,

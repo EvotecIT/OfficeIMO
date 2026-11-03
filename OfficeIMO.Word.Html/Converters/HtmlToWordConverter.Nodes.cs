@@ -34,7 +34,7 @@ namespace OfficeIMO.Word.Html {
             return false;
         }
 
-        private void ProcessNode(INode node, WordDocument doc, WordSection section, WordHtmlImportOptions options,
+        private void ProcessNode(INode node, WordDocument doc, WordSection section, HtmlWordExportOptions options,
             WordParagraph? currentParagraph, Stack<WordList> listStack, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter = null, WordList? headingList = null) {
             if (node is IElement element) {
                 ApplyCssToElement(element);

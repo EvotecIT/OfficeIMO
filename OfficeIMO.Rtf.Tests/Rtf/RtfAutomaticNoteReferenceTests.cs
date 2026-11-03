@@ -27,7 +27,7 @@ public class RtfAutomaticNoteReferenceTests {
             inline => Assert.Equal(" after", Assert.IsType<RtfRun>(inline).Text));
         Assert.Same(Assert.IsType<RtfGeneratedText>(paragraph.Inlines[1]).Note, Assert.Single(result.Document.Notes));
 
-        string written = result.Document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string written = result.Document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
         Assert.Contains(@"\chftn {\footnote", written, StringComparison.Ordinal);
         Assert.Contains(@"\i text\i0", written, StringComparison.Ordinal);
@@ -41,7 +41,7 @@ public class RtfAutomaticNoteReferenceTests {
         note.AddParagraph("Endnote body");
         paragraph.AddNoteReference(note);
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfDocument roundTrip = RtfDocument.ParseResult(rtf).Document;
         RtfGeneratedText reference = Assert.IsType<RtfGeneratedText>(Assert.Single(roundTrip.Paragraphs).Inlines[1]);
 

@@ -17,34 +17,34 @@ public partial class Html {
     [Fact]
     public void OfficeHtmlExportOptions_UseSourceSpecificProfilesAndRejectCrossFormatCompatibilityValues() {
         Assert.Equal(ExcelHtmlExportProfile.SemanticTables,
-            ExcelHtmlSaveOptions.CreateSemanticTablesProfile().ExportProfile);
+            ExcelHtmlExportOptions.CreateSemanticTablesProfile().ExportProfile);
         Assert.Equal(ExcelHtmlExportProfile.VisualReview,
-            ExcelHtmlSaveOptions.CreateVisualReviewProfile().ExportProfile);
+            ExcelHtmlExportOptions.CreateVisualReviewProfile().ExportProfile);
         Assert.Equal(PowerPointHtmlExportProfile.SemanticSlides,
-            PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile().ExportProfile);
+            PowerPointHtmlExportOptions.CreateSemanticSlidesProfile().ExportProfile);
         Assert.Equal(PowerPointHtmlExportProfile.VisualReview,
-            PowerPointHtmlSaveOptions.CreateVisualReviewProfile().ExportProfile);
+            PowerPointHtmlExportOptions.CreateVisualReviewProfile().ExportProfile);
         Assert.Equal(WordHtmlExportProfile.PrintReview,
             WordHtmlExportOptions.CreatePrintReviewProfile().ExportProfile);
         Assert.Equal(RtfHtmlExportProfile.PrintReview,
-            RtfToHtmlOptions.CreatePrintReviewProfile().ExportProfile);
+            RtfHtmlExportOptions.CreatePrintReviewProfile().ExportProfile);
         Assert.Equal(HtmlConversionProfile.Semantic,
-            ExcelHtmlSaveOptions.CreateSemanticTablesProfile().SharedProfile);
+            ExcelHtmlExportOptions.CreateSemanticTablesProfile().SharedProfile);
         Assert.Equal(HtmlConversionProfile.PositionedReview,
-            PowerPointHtmlSaveOptions.CreateVisualReviewProfile().SharedProfile);
+            PowerPointHtmlExportOptions.CreateVisualReviewProfile().SharedProfile);
         Assert.Equal(HtmlConversionProfile.Document,
             WordHtmlExportOptions.CreateDocumentRoundTripProfile().SharedProfile);
         Assert.Equal(HtmlConversionProfile.HighFidelityPrint,
-            RtfToHtmlOptions.CreatePrintReviewProfile().SharedProfile);
+            RtfHtmlExportOptions.CreatePrintReviewProfile().SharedProfile);
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new ExcelHtmlSaveOptions().Profile = OfficeHtmlConversionProfile.WordPrintReview);
+            new ExcelHtmlExportOptions().Profile = OfficeHtmlConversionProfile.WordPrintReview);
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new PowerPointHtmlSaveOptions().Profile = OfficeHtmlConversionProfile.ExcelVisualReview);
+            new PowerPointHtmlExportOptions().Profile = OfficeHtmlConversionProfile.ExcelVisualReview);
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             new WordHtmlExportOptions().Profile = OfficeHtmlConversionProfile.PowerPointVisualReview);
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new RtfToHtmlOptions().Profile = OfficeHtmlConversionProfile.WordSemanticDocument);
+            new RtfHtmlExportOptions().Profile = OfficeHtmlConversionProfile.WordSemanticDocument);
     }
 
     [Fact]
@@ -134,7 +134,7 @@ public partial class Html {
 
     [Fact]
     public void DocumentOutputSettings_ComposeShellPolicyAndKeepCompatibilityAliasesSynchronized() {
-        var excel = ExcelHtmlSaveOptions.CreateVisualReviewProfile();
+        var excel = ExcelHtmlExportOptions.CreateVisualReviewProfile();
         excel.DocumentOutput.EmitDocumentShell = false;
         excel.DocumentOutput.Language = "pl-PL";
         excel.DocumentOutput.NewLine = "\r\n";
@@ -147,7 +147,7 @@ public partial class Html {
         Assert.True(excel.IncludeDefaultStyles);
         Assert.Equal(OfficeVisualThemeKind.Report, excel.Theme);
 
-        var rtf = RtfToHtmlOptions.CreateWebSafeProfile();
+        var rtf = RtfHtmlExportOptions.CreateWebSafeProfile();
         Assert.True(rtf.FragmentOnly);
         rtf.FragmentOnly = false;
         Assert.True(rtf.DocumentOutput.EmitDocumentShell);
@@ -176,7 +176,7 @@ public partial class Html {
 
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         workbook.AddSheet("Data").Cell(1, 1).SetValue("Value");
-        ExcelHtmlSaveOptions excelOptions = ExcelHtmlSaveOptions.CreateSemanticTablesProfile();
+        ExcelHtmlExportOptions excelOptions = ExcelHtmlExportOptions.CreateSemanticTablesProfile();
         excelOptions.Title = "Packed review";
         excelOptions.Language = "pl-PL";
         excelOptions.NewLine = "\r\n";
@@ -202,7 +202,7 @@ public partial class Html {
 
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         workbook.AddSheet("Data").Cell(1, 1).SetValue("Excel");
-        ExcelHtmlSaveOptions excelOptions = ExcelHtmlSaveOptions.CreateSemanticTablesProfile();
+        ExcelHtmlExportOptions excelOptions = ExcelHtmlExportOptions.CreateSemanticTablesProfile();
         excelOptions.DocumentOutput.BodyClass = "customer-shell";
         Assert.Contains("<body class=\"officeimo-html officeimo-excel-html customer-shell\"", workbook.ToHtml(excelOptions), StringComparison.Ordinal);
 
@@ -210,7 +210,7 @@ public partial class Html {
         try {
             using PowerPointDocument presentation = PowerPointDocument.Create(presentationPath);
             presentation.AddSlide().AddTextBox("PowerPoint");
-            PowerPointHtmlSaveOptions powerPointOptions = PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile();
+            PowerPointHtmlExportOptions powerPointOptions = PowerPointHtmlExportOptions.CreateSemanticSlidesProfile();
             powerPointOptions.DocumentOutput.BodyClass = "customer-shell";
             Assert.Contains("<body class=\"officeimo-html officeimo-powerpoint-html customer-shell\"", presentation.ToHtml(powerPointOptions), StringComparison.Ordinal);
         } finally {
@@ -219,7 +219,7 @@ public partial class Html {
 
         RtfDocument rtf = RtfDocument.Create();
         rtf.AddParagraph("RTF");
-        RtfToHtmlOptions rtfOptions = RtfToHtmlOptions.CreatePrintReviewProfile();
+        RtfHtmlExportOptions rtfOptions = RtfHtmlExportOptions.CreatePrintReviewProfile();
         rtfOptions.DocumentOutput.BodyClass = "customer-shell";
         Assert.Contains("<body class=\"officeimo-html officeimo-rtf-html customer-shell\"", rtf.ToHtml(rtfOptions), StringComparison.Ordinal);
 
@@ -426,7 +426,7 @@ public partial class Html {
                 DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") }
             });
 
-            HtmlTextConversionResult result = document.ToHtmlResult(ExcelHtmlSaveOptions.CreateSemanticTablesProfile());
+            HtmlTextConversionResult result = document.ToHtmlResult(ExcelHtmlExportOptions.CreateSemanticTablesProfile());
             string html = result.Value;
 
             Assert.Contains("data-officeimo-feature=\"pivot-table\"", html, StringComparison.Ordinal);
@@ -453,7 +453,7 @@ public partial class Html {
             PowerPointMedia media = slide.AddLinkedVideo(new Uri("https://example.test/review-video.mp4"));
             media.LuminanceBrightness = 15;
 
-            string html = presentation.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile(), out OfficeConversionReport report);
+            string html = presentation.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile(), out OfficeConversionReport report);
 
             Assert.Contains("data-officeimo-feature=\"slide-master\"", html, StringComparison.Ordinal);
             Assert.Contains("data-officeimo-feature=\"smartart\"", html, StringComparison.Ordinal);

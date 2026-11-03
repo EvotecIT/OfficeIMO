@@ -5,10 +5,10 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.OpenDocument.Odg.Pdf;
 
 internal static class OdgPdfConversionEngine {
-    internal static PdfDocumentConversionResult Convert(OdgDocument source, OdgToPdfOptions? options, CancellationToken token) {
+    internal static PdfDocumentConversionResult Convert(OdgDocument source, OdgPdfExportOptions? options, CancellationToken token) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         token.ThrowIfCancellationRequested();
-        OdgToPdfOptions operation = (options ?? new OdgToPdfOptions()).Snapshot();
+        OdgPdfExportOptions operation = (options ?? new OdgPdfExportOptions()).Snapshot();
         var pdfReport = new PdfConversionReport();
         PdfCreateOptions pdfOptions = operation.PdfOptions ?? new PdfCreateOptions();
         pdfOptions.ReportDiagnosticsTo(pdfReport, "OfficeIMO.OpenDocument.Odg.Pdf");

@@ -11,12 +11,12 @@ namespace OfficeIMO.PowerPoint.Html;
 /// </summary>
 public static partial class PowerPointHtmlConverterExtensions {
     /// <summary>Converts a presentation to HTML text.</summary>
-    public static string ToHtml(this PptCore.PowerPointDocument presentation, PowerPointHtmlSaveOptions? options = null,
+    public static string ToHtml(this PptCore.PowerPointDocument presentation, PowerPointHtmlExportOptions? options = null,
         CancellationToken cancellationToken = default) =>
         presentation.ToHtml(options, out _, cancellationToken);
 
     /// <summary>Converts a presentation to HTML text and returns completed-stage findings, including visual snapshot diagnostics.</summary>
-    public static string ToHtml(this PptCore.PowerPointDocument presentation, PowerPointHtmlSaveOptions? options,
+    public static string ToHtml(this PptCore.PowerPointDocument presentation, PowerPointHtmlExportOptions? options,
         out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         var timer = System.Diagnostics.Stopwatch.StartNew();
         PowerPointToHtmlResult result = presentation.ConvertToHtmlWithEvidence(options, cancellationToken);
@@ -28,8 +28,8 @@ public static partial class PowerPointHtmlConverterExtensions {
     /// <summary>Converts a presentation to HTML text with its completed-stage report.</summary>
     /// <remarks>Conversion is CPU-bound and runs on the thread pool so the caller is not blocked.</remarks>
     public static async Task<OfficeConversionResult<string>> ToHtmlAsync(this PptCore.PowerPointDocument presentation,
-        PowerPointHtmlSaveOptions? options = null, CancellationToken cancellationToken = default) {
-        options = (options ?? new PowerPointHtmlSaveOptions()).Clone();
+        PowerPointHtmlExportOptions? options = null, CancellationToken cancellationToken = default) {
+        options = (options ?? new PowerPointHtmlExportOptions()).Clone();
         return await Task.Run(() => {
             string value = presentation.ToHtml(options, out OfficeConversionReport report, cancellationToken);
             return new OfficeConversionResult<string>(value, report);
@@ -37,10 +37,10 @@ public static partial class PowerPointHtmlConverterExtensions {
     }
 
     internal static PowerPointToHtmlResult ConvertToHtmlWithEvidence(this PptCore.PowerPointDocument presentation,
-        PowerPointHtmlSaveOptions? options, CancellationToken cancellationToken) {
+        PowerPointHtmlExportOptions? options, CancellationToken cancellationToken) {
         if (presentation == null) throw new ArgumentNullException(nameof(presentation));
         cancellationToken.ThrowIfCancellationRequested();
-        PowerPointHtmlSaveOptions operation = (options ?? new PowerPointHtmlSaveOptions()).Clone();
+        PowerPointHtmlExportOptions operation = (options ?? new PowerPointHtmlExportOptions()).Clone();
         operation.Validate();
         var imageDiagnostics = new List<OfficeImageExportDiagnostic>();
         var conversionDiagnostics = new List<HtmlDiagnostic>();
@@ -50,7 +50,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         return new PowerPointToHtmlResult(html, imageDiagnostics, conversionDiagnostics);
     }
 
-    private static string ConvertSemantic(PptCore.PowerPointDocument presentation, PowerPointHtmlSaveOptions options,
+    private static string ConvertSemantic(PptCore.PowerPointDocument presentation, PowerPointHtmlExportOptions options,
         IList<HtmlDiagnostic> diagnostics, CancellationToken cancellationToken) {
         IReadOnlyList<string> extractionProof = GetExtractionProof(presentation, options);
         var body = new StringBuilder();
@@ -76,7 +76,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         return Wrap(body.ToString(), options, GetTitle(options, "PowerPoint Presentation"));
     }
 
-    private static string ConvertVisual(PptCore.PowerPointDocument presentation, PowerPointHtmlSaveOptions options,
+    private static string ConvertVisual(PptCore.PowerPointDocument presentation, PowerPointHtmlExportOptions options,
         IList<OfficeImageExportDiagnostic> imageDiagnostics, IList<HtmlDiagnostic> diagnostics, CancellationToken cancellationToken) {
         IReadOnlyList<string> extractionProof = GetExtractionProof(presentation, options);
         var body = new StringBuilder();
@@ -101,7 +101,7 @@ public static partial class PowerPointHtmlConverterExtensions {
     }
 
     private static void AppendSemanticSlide(StringBuilder body, PptCore.PowerPointSlide slide, int slideNumber, int visibleIndex,
-        string? extractionProof, PowerPointHtmlSaveOptions options, IList<HtmlDiagnostic> diagnostics) {
+        string? extractionProof, PowerPointHtmlExportOptions options, IList<HtmlDiagnostic> diagnostics) {
         body.Append("<section class=\"officeimo-slide\" data-officeimo-slide=\"")
             .Append(slideNumber.ToString(CultureInfo.InvariantCulture))
             .Append('"');
@@ -117,7 +117,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         body.Append("</section>");
     }
 
-    private static void AppendVisualSlide(StringBuilder body, PptCore.PowerPointDocument presentation, PptCore.PowerPointSlide slide, int slideNumber, string? extractionProof, PowerPointHtmlSaveOptions options,
+    private static void AppendVisualSlide(StringBuilder body, PptCore.PowerPointDocument presentation, PptCore.PowerPointSlide slide, int slideNumber, string? extractionProof, PowerPointHtmlExportOptions options,
         IList<OfficeImageExportDiagnostic> imageDiagnostics, IList<HtmlDiagnostic> diagnostics) {
         double width = Math.Max(1D, presentation.SlideSize.Width.ToPoints());
         double height = Math.Max(1D, presentation.SlideSize.Height.ToPoints());
@@ -166,7 +166,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         body.Append("</section>");
     }
 
-    private static void AppendHeading(StringBuilder body, PowerPointHtmlSaveOptions options, string fallback) {
+    private static void AppendHeading(StringBuilder body, PowerPointHtmlExportOptions options, string fallback) {
         if (!options.IncludeHeading) return;
         body.Append("<h1>").Append(OfficeHtmlText.Escape(GetTitle(options, fallback))).Append("</h1>");
     }
@@ -202,7 +202,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         }
     }
 
-    private static void AppendPositionedShape(StringBuilder body, PptCore.PowerPointShape shape, PowerPointHtmlSaveOptions options) {
+    private static void AppendPositionedShape(StringBuilder body, PptCore.PowerPointShape shape, PowerPointHtmlExportOptions options) {
         double left = shape.Left.ToPoints();
         double top = shape.Top.ToPoints();
         double width = Math.Max(1D, shape.Width.ToPoints());
@@ -274,7 +274,7 @@ public static partial class PowerPointHtmlConverterExtensions {
     }
 
     private static void AppendSlideFeatureInventory(StringBuilder body, PptCore.PowerPointSlide slide,
-        PowerPointHtmlSaveOptions options, IList<HtmlDiagnostic> diagnostics) {
+        PowerPointHtmlExportOptions options, IList<HtmlDiagnostic> diagnostics) {
         IEnumerable<PptCore.PowerPointPicture> pictures = options.IncludeHiddenShapes
             ? slide.Pictures.Where(picture => picture is not PptCore.PowerPointMedia)
             : slide.Pictures.Where(picture => picture is not PptCore.PowerPointMedia && !picture.Hidden);
@@ -288,7 +288,7 @@ public static partial class PowerPointHtmlConverterExtensions {
     }
 
     private static void AppendPictureInventory(StringBuilder body, IEnumerable<PptCore.PowerPointPicture> pictures,
-        PowerPointHtmlSaveOptions options, IList<HtmlDiagnostic> diagnostics) {
+        PowerPointHtmlExportOptions options, IList<HtmlDiagnostic> diagnostics) {
         List<PptCore.PowerPointPicture> pictureList = pictures.ToList();
         if (pictureList.Count == 0) {
             return;
@@ -741,7 +741,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         body.Append("</tbody></table>");
     }
 
-    private static void AppendExtractionProof(StringBuilder body, string? extractionProof, PowerPointHtmlSaveOptions options) {
+    private static void AppendExtractionProof(StringBuilder body, string? extractionProof, PowerPointHtmlExportOptions options) {
         if (!options.IncludeExtractionProof || string.IsNullOrWhiteSpace(extractionProof)) {
             return;
         }
@@ -751,7 +751,7 @@ public static partial class PowerPointHtmlConverterExtensions {
             .Append("</pre></details>");
     }
 
-    private static IReadOnlyList<string> GetExtractionProof(PptCore.PowerPointDocument presentation, PowerPointHtmlSaveOptions options) {
+    private static IReadOnlyList<string> GetExtractionProof(PptCore.PowerPointDocument presentation, PowerPointHtmlExportOptions options) {
         if (!options.IncludeExtractionProof) {
             return Array.Empty<string>();
         }
@@ -766,7 +766,7 @@ public static partial class PowerPointHtmlConverterExtensions {
             .ToList();
     }
 
-    private static string Wrap(string body, PowerPointHtmlSaveOptions options, string title) {
+    private static string Wrap(string body, PowerPointHtmlExportOptions options, string title) {
         OfficeHtmlDocumentOptions output = options.DocumentOutput.Clone();
         output.Title = title;
         output.BodyClass = OfficeHtmlDocumentShell.MergeBodyClasses(
@@ -775,7 +775,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         return OfficeHtmlDocumentShell.WrapBody(body, output);
     }
 
-    private static string GetTitle(PowerPointHtmlSaveOptions options, string fallback) {
+    private static string GetTitle(PowerPointHtmlExportOptions options, string fallback) {
         return string.IsNullOrWhiteSpace(options.Title) ? fallback : options.Title!;
     }
 

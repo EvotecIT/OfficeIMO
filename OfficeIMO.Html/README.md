@@ -685,7 +685,7 @@ does not repeat the visible glyphs alongside their replacement. Page image expor
 retain the same scene geometry and page count; font rasterization can differ between
 viewers.
 `OfficeImageExportOptions.MaximumRasterPixels` limits HTML raster export,
-including intermediate effect surfaces. `HtmlToPdfOptions.MaximumRasterPixels`
+including intermediate effect surfaces. `HtmlPdfExportOptions.MaximumRasterPixels`
 also applies to managed raster fallback during PDF conversion. Encoded-byte
 limits remain separate.
 
@@ -703,7 +703,7 @@ font-source, decoded-byte and cancellation limits. SVG foreign-object viewports 
 the parent operation's resource-byte and resource-count budgets, including decoded
 fonts, without invoking external resolvers. Installed families vary by host;
 an unavailable face produces a diagnostic and follows the font fallback path.
-HTML-to-PDF also applies `HtmlToPdfOptions.ResourcePolicy`: the balanced PDF policy
+HTML-to-PDF also applies `HtmlPdfExportOptions.ResourcePolicy`: the balanced PDF policy
 permits renderer-selected mathematical families while blocking document-named host
 fonts. Portable deterministic policy disables installed-font discovery; explicitly
 supplied mathematical faces remain available.
@@ -781,12 +781,12 @@ See the [complete OfficeIMO package map](../README.md) for related formats and c
 
 `ToPng()`, `ToJpeg()`, `ToTiff()`, `ToSvg()`, and `ToWebp()` return in-memory output. `ExportImage()` and `ExportImages()` return encoded output plus dimensions and diagnostics. `ToImage(options)` returns encoded bytes; its `out report` overload and `ToImageAsync(options)` also return fidelity evidence. `SaveAsImage(pathOrStream, options)` and `SaveAsImages(folder, options)` return `OfficeConversionReport`. Options select the format, zero-based page, layout, resource policy and output limits; caller-owned streams remain open.
 
-HTML-to-PDF generation is in `OfficeIMO.Html.Pdf`. `HtmlToPdfOptions` derives from `HtmlRenderOptions`, so the same configured instance drives PDF and all five image formats. See [HTML to PDF and paged images](../OfficeIMO.Html.Pdf/PDF.md) for resource policies, fonts, paged-media semantics and complete examples.
+HTML-to-PDF generation is in `OfficeIMO.Html.Pdf`. `HtmlPdfExportOptions` derives from `HtmlRenderOptions`, so the same configured instance drives PDF and all five image formats. See [HTML to PDF and paged images](../OfficeIMO.Html.Pdf/PDF.md) for resource policies, fonts, paged-media semantics and complete examples.
 
 ```csharp
 using OfficeIMO.Html.Pdf;
 
-var options = new HtmlToPdfOptions {
+var options = new HtmlPdfExportOptions {
     Margins = HtmlRenderMargins.All(32)
 };
 

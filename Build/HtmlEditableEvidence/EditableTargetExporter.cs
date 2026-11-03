@@ -36,7 +36,7 @@ internal static class EditableTargetExporter {
                     NativeTables: EditableNativeTableEvidence.FromWord(loaded));
             }
             case "excel": {
-                HtmlToExcelResult result = source.ToExcelDocumentResult(new HtmlToExcelOptions {
+                HtmlToExcelResult result = source.ToExcelDocumentResult(new HtmlExcelExportOptions {
                     Mode = HtmlImportMode.Generic,
                     ImportEditableLayoutRegions = true
                 });
@@ -47,7 +47,7 @@ internal static class EditableTargetExporter {
                     NativeTables: EditableNativeTableEvidence.FromExcel(loaded));
             }
             case "powerpoint": {
-                HtmlToPowerPointResult result = source.ToPowerPointDocumentResult(new HtmlToPowerPointOptions {
+                HtmlToPowerPointResult result = source.ToPowerPointDocumentResult(new HtmlPowerPointExportOptions {
                     Mode = HtmlImportMode.Generic,
                     ImportEditableLayoutRegions = true
                 });
@@ -90,13 +90,13 @@ internal static class EditableTargetExporter {
                 string artifact = Path.Combine(output, documentName + ".rtf");
                 result.RequireValue().Save(artifact);
                 RtfDocument loaded = RtfDocument.Load(artifact);
-                return new EditableExport(result.Report, artifact, loaded.ToHtml(new RtfToHtmlOptions {
+                return new EditableExport(result.Report, artifact, loaded.ToHtml(new RtfHtmlExportOptions {
                     EmbedImagesAsDataUri = true,
                     MaxEmbeddedImageBytes = 16 * 1024 * 1024
                 }), NativeTables: EditableNativeTableEvidence.FromRtf(loaded));
             }
             case "markdown": {
-                HtmlToMarkdownResult result = source.ConvertToMarkdownWithEvidence(new MarkdownHtmlImportOptions());
+                HtmlToMarkdownResult result = source.ConvertToMarkdownWithEvidence(new HtmlMarkdownExportOptions());
                 string artifact = Path.Combine(output, documentName + ".md");
                 result.RequireValue().Save(artifact);
                 MarkdownDocument loaded = MarkdownDocument.Load(artifact);

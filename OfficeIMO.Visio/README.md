@@ -87,7 +87,7 @@ For diagram PDF output, select the adapter's page projection explicitly:
 ```csharp
 using OfficeIMO.Visio.Pdf;
 
-OfficeConversionReport pdfReport = imported.Value.SaveAsPdf("floorplan.pdf", new VisioToPdfOptions {
+OfficeConversionReport pdfReport = imported.Value.SaveAsPdf("floorplan.pdf", new VisioPdfExportOptions {
     Mode = VisioPdfProjectionMode.DiagramPages
 });
 ```

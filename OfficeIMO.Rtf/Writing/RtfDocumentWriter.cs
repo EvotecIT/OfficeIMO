@@ -1,10 +1,10 @@
 namespace OfficeIMO.Rtf.Writing;
 
 internal static partial class RtfDocumentWriter {
-    public static string Write(RtfDocument document, RtfWriteOptions options, RtfConversionReport? report = null,
+    public static string Write(RtfDocument document, RtfSaveOptions options, RtfConversionReport? report = null,
         bool semanticBaseline = false) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        options ??= new RtfWriteOptions();
+        options ??= new RtfSaveOptions();
         RtfTableTraversalGuard.ValidateDocument(document);
         // The comparison string keeps the authored \uc setting in the header, but
         // does not need fallback bytes to detect semantic edits.
@@ -73,7 +73,7 @@ internal static partial class RtfDocumentWriter {
 
     private static int GetUnicodeSkipCount(RtfDocumentSettings settings) => settings.UnicodeSkipCount ?? 1;
 
-    private static void WriteHtmlEncapsulation(StringBuilder builder, RtfDocument document, RtfWriteOptions options, int unicodeSkipCount) {
+    private static void WriteHtmlEncapsulation(StringBuilder builder, RtfDocument document, RtfSaveOptions options, int unicodeSkipCount) {
         if (!options.IncludeHtmlEncapsulation || !document.IsHtmlEncapsulationCurrent) return;
         RtfHtmlEncapsulation? encapsulation = document.HtmlEncapsulation;
         if (encapsulation == null || string.IsNullOrEmpty(encapsulation.Html)) return;

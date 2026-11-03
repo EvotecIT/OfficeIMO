@@ -8,8 +8,8 @@ namespace OfficeIMO.Epub;
 
 public sealed partial class EpubPublication {
     /// <summary>Produces a complete bounded ZIP before publication. Unedited imports return their exact original bytes.</summary>
-    public EpubWriteResult Write(EpubWriteOptions? options = null, CancellationToken cancellationToken = default) {
-        options ??= new EpubWriteOptions();
+    public EpubWriteResult Write(EpubSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        options ??= new EpubSaveOptions();
         long maxOutput = options.MaxOutputBytes, maxExpanded = options.MaxExpandedBytes;
         int maxEntries = options.MaxEntries;
         bool removeSignatures = options.RemoveInvalidatedSignatures;
@@ -108,7 +108,7 @@ public sealed partial class EpubPublication {
     }
 
     /// <summary>Atomically saves a completed artifact to a file, preserving an existing destination on validation/cancellation failure.</summary>
-    public EpubWriteReport Save(string path, EpubWriteOptions? options = null, CancellationToken cancellationToken = default) {
+    public EpubWriteReport Save(string path, EpubSaveOptions? options = null, CancellationToken cancellationToken = default) {
         string fullPath = Path.GetFullPath(path);
         EpubWriteResult result = Write(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -121,7 +121,7 @@ public sealed partial class EpubPublication {
         return result.Report;
     }
     /// <summary>Writes a staged complete artifact to a caller-owned stream. Seekable streams are replaced and rewound.</summary>
-    public EpubWriteReport Save(Stream stream, EpubWriteOptions? options = null, CancellationToken cancellationToken = default) {
+    public EpubWriteReport Save(Stream stream, EpubSaveOptions? options = null, CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         EpubWriteResult result = Write(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -129,7 +129,7 @@ public sealed partial class EpubPublication {
         return result.Report;
     }
     /// <summary>Asynchronously atomically saves a completed artifact to a file.</summary>
-    public async Task<EpubWriteReport> SaveAsync(string path, EpubWriteOptions? options = null, CancellationToken cancellationToken = default) {
+    public async Task<EpubWriteReport> SaveAsync(string path, EpubSaveOptions? options = null, CancellationToken cancellationToken = default) {
         string fullPath = Path.GetFullPath(path);
         EpubWriteResult result = Write(options, cancellationToken);
         string temporary = await OfficeFileCommit.StageAllBytesAsync(fullPath, result.Bytes, cancellationToken).ConfigureAwait(false);
@@ -141,7 +141,7 @@ public sealed partial class EpubPublication {
         return result.Report;
     }
     /// <summary>Asynchronously writes a staged artifact without closing the destination stream.</summary>
-    public async Task<EpubWriteReport> SaveAsync(Stream stream, EpubWriteOptions? options = null, CancellationToken cancellationToken = default) {
+    public async Task<EpubWriteReport> SaveAsync(Stream stream, EpubSaveOptions? options = null, CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         EpubWriteResult result = Write(options, cancellationToken);
         await OfficeStreamWriter.WriteAllBytesAsync(stream, result.Bytes, cancellationToken).ConfigureAwait(false);

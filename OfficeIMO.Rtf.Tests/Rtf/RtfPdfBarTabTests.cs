@@ -61,7 +61,7 @@ public class RtfPdfBarTabTests {
         source.AddHeader().AddParagraph("HEADER").AddTabStop(720, RtfTabAlignment.Bar);
         string before = Snapshot(source);
 
-        RtfToPdfOptions options = Options();
+        RtfPdfExportOptions options = Options();
         if (plainPresentation) options.PdfOptions!.HeaderAlign = global::OfficeIMO.OfficeAlignment.Right;
         PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(options);
         using var actual = PdfPigDocument.Open(result.ToBytes());
@@ -141,7 +141,7 @@ public class RtfPdfBarTabTests {
     }
 
     // Built-in Courier keeps the contract proof independent of installed fonts.
-    private static RtfToPdfOptions Options() => new RtfToPdfOptions {
+    private static RtfPdfExportOptions Options() => new RtfPdfExportOptions {
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
         PdfOptions = new PdfCore.PdfCreateOptions {
             DefaultFont = PdfCore.PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
@@ -149,7 +149,7 @@ public class RtfPdfBarTabTests {
         }
     };
 
-    private static string Snapshot(RtfDocument document) => document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+    private static string Snapshot(RtfDocument document) => document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
     private static void AssertApproximation(PdfCore.PdfDocumentConversionResult result) {
         PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings,

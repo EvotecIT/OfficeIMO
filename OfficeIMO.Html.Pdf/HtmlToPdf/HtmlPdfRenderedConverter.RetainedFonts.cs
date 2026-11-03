@@ -16,7 +16,7 @@ internal static partial class HtmlPdfRenderedConverter {
     internal static IReadOnlyList<string> RetainConfiguredDefaultFonts(OfficeFontFaceCollection fonts,
         HtmlRenderOptions options, HtmlResourceSession resources, HtmlDiagnosticReport diagnostics,
         CancellationToken cancellationToken) {
-        if (options is not HtmlToPdfOptions target) return Array.Empty<string>();
+        if (options is not HtmlPdfExportOptions target) return Array.Empty<string>();
         var configuredFamilies = new List<string>();
         IReadOnlyDictionary<string, PdfCore.PdfEmbeddedFontFamily> named = target.PdfOptions.NamedFontFamilies;
         foreach (string candidate in EnumerateFamilies(options.DefaultFontFamily)) {
@@ -66,7 +66,7 @@ internal static partial class HtmlPdfRenderedConverter {
     /// standard-slot and scoped-face behavior.
     /// </summary>
     internal static bool TryRetainSelectedDefaultFontFamily(PdfCore.PdfEmbeddedFontFamily family,
-        OfficeFontFaceCollection fonts, HtmlToPdfOptions options, HtmlResourceSession resources,
+        OfficeFontFaceCollection fonts, HtmlPdfExportOptions options, HtmlResourceSession resources,
         HtmlDiagnosticReport diagnostics, CancellationToken cancellationToken) {
         bool retained = false;
         foreach (string candidate in EnumerateFamilies(options.DefaultFontFamily)) {

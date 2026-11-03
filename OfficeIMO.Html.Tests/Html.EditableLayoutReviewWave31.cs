@@ -35,7 +35,7 @@ public sealed class HtmlEditableLayoutReviewWave31Tests {
         string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
         string html = "<div style='position:absolute;width:180px;height:70px'>"
             + "<img src='" + image + "' style='width:20px;height:20px'></div>";
-        var options = new WordHtmlImportOptions { EnableAccessibilityDiagnostics = true };
+        var options = new HtmlWordExportOptions { EnableAccessibilityDiagnostics = true };
 
         HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
         using WordDocument document = result.Value;
@@ -52,7 +52,7 @@ public sealed class HtmlEditableLayoutReviewWave31Tests {
             + "<img alt='Vector marker' src='" + image + "' style='width:24px;height:18px'></div>";
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
 
         ExcelImage nativeImage = Assert.Single(Assert.Single(workbook.Sheets).Images);
@@ -68,7 +68,7 @@ public sealed class HtmlEditableLayoutReviewWave31Tests {
             + "<img alt='Vector marker' src='" + image + "' style='width:24px;height:18px'></div>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
 
         PowerPointPicture nativeImage = Assert.Single(Assert.Single(presentation.Slides).Pictures);
@@ -86,7 +86,7 @@ public sealed class HtmlEditableLayoutReviewWave31Tests {
             + "' style='width:20px;height:20px;object-fit:cover'></div>";
 
         HtmlToExcelResult excelResult = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = excelResult.Value;
         ExcelImage excelImage = Assert.Single(Assert.Single(workbook.Sheets).Images);
         Assert.Equal(20, excelImage.Width.ToPixels());
@@ -95,7 +95,7 @@ public sealed class HtmlEditableLayoutReviewWave31Tests {
         Assert.Equal(0.25D, excelImage.CropRightRatio, precision: 3);
 
         HtmlToPowerPointResult powerPointResult = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = powerPointResult.Value;
         PowerPointPicture powerPointImage = Assert.Single(Assert.Single(presentation.Slides).Pictures);
         Assert.Equal(15D, powerPointImage.Width.ToPoints(), precision: 3);

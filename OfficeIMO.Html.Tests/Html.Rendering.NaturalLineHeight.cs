@@ -50,7 +50,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("standard")]
     public void HtmlNaturalLineHeight_DocumentAndPdfFallbackFacesIncludeTheFontLineGap(string source) {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(800, -200, 100, 200, 'A', 'B');
-        var options = new HtmlToPdfOptions(NaturalLineOptions()) {
+        var options = new HtmlPdfExportOptions(NaturalLineOptions()) {
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         };
         if (source == "named") options.PdfOptions.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("GapFace", font));
@@ -110,7 +110,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlNaturalLineHeight_StyledGlyphFallbackCombinesEachFacesOwnLeading(bool documentFonts) {
         byte[] regular = ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(700, -300, 100, 300, 'A', 'B');
         byte[] bold = ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(800, -200, 0, 200, 'A', 'C');
-        var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D),
+        var options = new HtmlPdfExportOptions { Margins = HtmlRenderMargins.All(0D),
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
         if (documentFonts) {
             options.Fonts.Add("Scoped", regular);

@@ -11,7 +11,7 @@ internal partial class HtmlToWordConverter {
     internal async Task AddEditableLayoutRegionsAsync(
         WordDocument document,
         HtmlEditableLayoutProjection projection,
-        WordHtmlImportOptions options,
+        HtmlWordExportOptions options,
         CancellationToken cancellationToken) {
         IReadOnlyList<IHtmlImageElement> allImages = projection.Regions
             .SelectMany(projection.GetSourceImages)
@@ -106,7 +106,7 @@ internal partial class HtmlToWordConverter {
         IHtmlImageElement sourceImage,
         HtmlEditableLayoutPicture? visual,
         WordDocument document,
-        WordHtmlImportOptions options,
+        HtmlWordExportOptions options,
         WordParagraph paragraph,
         HtmlRenderLayoutRegion region,
         int containerWidthTwips) {
@@ -191,7 +191,7 @@ internal partial class HtmlToWordConverter {
     }
 
     private static void AddRegionImageOmitted(
-        WordHtmlImportOptions options,
+        HtmlWordExportOptions options,
         HtmlRenderLayoutRegion region,
         string? source,
         string detail) {

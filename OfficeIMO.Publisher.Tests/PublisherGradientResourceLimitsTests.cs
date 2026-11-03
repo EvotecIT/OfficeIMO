@@ -22,7 +22,7 @@ public sealed class PublisherGradientResourceLimitsTests {
 
     private static PublisherEscherData Read(byte[] bytes, int maximumItems) =>
         new PublisherEscherReader(new PublisherBinaryData(bytes, "Escher/EscherStm"), null,
-            new PublisherParseContext(new PublisherReadOptions {
+            new PublisherParseContext(new PublisherLoadOptions {
                 Limits = new OfficeLegacyImportLimits { MaxItems = maximumItems }
             }, default)).Read();
 

@@ -43,7 +43,7 @@ public partial class Word {
             PdfOptions = new PdfCreateOptions { TaggedStructureMode = tagged ? PdfTaggedStructureMode.CatalogMarkers : PdfTaggedStructureMode.None }
         });
         var logical = PdfDocumentReadResult.Load(File.ReadAllBytes(output));
-        using WordDocument imported = PdfDocument.Load(output).ConvertToWordWithEvidence(new WordPdfImportOptions()).Value;
+        using WordDocument imported = PdfDocument.Load(output).ConvertToWordWithEvidence(new PdfWordExportOptions()).Value;
         WordParagraphStyles[] fallback = { WordParagraphStyles.Heading1, WordParagraphStyles.Heading2, WordParagraphStyles.Heading3 };
         for (int index = 0; index < levels.Length; index++) {
             string marker = "SparseHeading" + levels[index];
@@ -82,7 +82,7 @@ public partial class Word {
             var heading = Assert.Single(logical.Headings, h => h.Text == "AuthoredHeading" + level);
             Assert.Equal(level, heading.Level);
         }
-        using WordDocument imported = PdfDocument.Load(path).ConvertToWordWithEvidence(new WordPdfImportOptions()).Value;
+        using WordDocument imported = PdfDocument.Load(path).ConvertToWordWithEvidence(new PdfWordExportOptions()).Value;
         for (int level = 1; level <= 9; level++) {
             var heading = Assert.Single(imported.Paragraphs, p => p.Text == "AuthoredHeading" + level);
             Assert.Equal(styles[level - 1], heading.Style);

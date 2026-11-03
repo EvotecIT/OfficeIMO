@@ -16,7 +16,7 @@ public sealed class HtmlImportTests {
 
     [Fact]
     public void RejectedOversizedParagraphDoesNotConsumeShapeBudget() {
-        var options = new HtmlToOneNoteOptions {
+        var options = new HtmlOneNoteExportOptions {
             Limits = new HtmlImportLimits {
                 MaxMetadataCharacters = 5,
                 MaxShapes = 1
@@ -41,7 +41,7 @@ public sealed class HtmlImportTests {
         limits.MaxShapes = 1;
 
         HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse("<table></table><p>valid</p>")
-            .ToOneNoteSectionResult(new HtmlToOneNoteOptions { Limits = limits });
+            .ToOneNoteSectionResult(new HtmlOneNoteExportOptions { Limits = limits });
 
         OneNoteOutline outline = Assert.Single(Assert.Single(result.Value.Pages).Outlines);
         OneNoteParagraph paragraph = Assert.Single(outline.Children.OfType<OneNoteParagraph>());
@@ -58,7 +58,7 @@ public sealed class HtmlImportTests {
         limits.MaxTables = 1;
 
         HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse("<table></table><table><tr><td></td></tr></table>")
-            .ToOneNoteSectionResult(new HtmlToOneNoteOptions { Limits = limits });
+            .ToOneNoteSectionResult(new HtmlOneNoteExportOptions { Limits = limits });
 
         OneNoteOutline outline = Assert.Single(Assert.Single(result.Value.Pages).Outlines);
         Assert.Single(outline.Children.OfType<OneNoteTable>());

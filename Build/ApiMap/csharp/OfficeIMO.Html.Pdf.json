@@ -1,7 +1,26 @@
 {
   "package": "OfficeIMO.Html.Pdf",
   "status": "Adapter changes required by M2 Phase A.",
-  "changes": [],
+  "changes": [
+    {
+      "old": "OfficeIMO.Html.Pdf.HtmlToPdfOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Html.Pdf.HtmlPdfExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Html.Pdf.PdfToHtmlOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Html.Pdf.PdfHtmlExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
+    }
+  ],
   "extraChanges": [
     {
       "change": "The PDF-to-HTML adapter emits finite diagnostic codes through the M1 catalog; raw HTML engine emissions remain owned by the adapter.",
@@ -10,11 +29,11 @@
     },
     {
       "applied": "applied",
-      "note": "HTML to PDF now exposes ToPdf/out-report, ToPdfAsync and shared-report SaveAsPdf forms; private rendering evidence is retained for adapters and fidelity tests. HtmlToPdfOptions.FailOnLoss is copied by ClonePdf."
+      "note": "HTML to PDF now exposes ToPdf/out-report, ToPdfAsync and shared-report SaveAsPdf forms; private rendering evidence is retained for adapters and fidelity tests. HtmlPdfExportOptions.FailOnLoss is copied by ClonePdf."
     },
     {
       "applied": "applied",
-      "note": "PDF to HTML now exposes string ToHtml/out-report, OfficeConversionResult<string> ToHtmlAsync and shared-report saves. PdfToHtmlOptions.FailOnLoss rejects before publication and is captured in conversion options."
+      "note": "PDF to HTML now exposes string ToHtml/out-report, OfficeConversionResult<string> ToHtmlAsync and shared-report saves. PdfHtmlExportOptions.FailOnLoss rejects before publication and is captured in conversion options."
     },
     {
       "applied": "applied",

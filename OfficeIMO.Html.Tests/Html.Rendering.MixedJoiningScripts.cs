@@ -14,7 +14,7 @@ public sealed partial class HtmlRenderingTests {
         const string markup = "<style>@page{size:320px 120px;margin:0}body{margin:0}"
             + "p{font:20px 'OfficeIMO Shaping Test'}</style>"
             + "<p dir='rtl'><span>עברית </span><span style='color:red'>" + logical + "</span></p>";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
         };

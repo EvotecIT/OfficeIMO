@@ -17,7 +17,7 @@ public sealed class VisioDrawingPdfFailureEvidenceTests {
         VisioDocument document = VisioDocument.Create();
         document.AddPage("Page").AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), "Label").AddHyperlink("https://example.com");
         byte[] source = document.ToLegacyXmlResult().Value;
-        var options = new VisioToPdfOptions {
+        var options = new VisioPdfExportOptions {
             Mode = VisioPdfProjectionMode.DiagramPages,
             SourceName = "source.vdx",
             DrawingOptions = new VisioDrawingOptions { FailOnLoss = true }

@@ -78,89 +78,89 @@
       "old": "OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdown(HtmlConversionDocument document, HtmlToMarkdownOptions options = null)",
       "kind": "method",
       "action": "merge",
-      "new": "HtmlConversionDocument.ToMarkdown(MarkdownHtmlImportOptions options = null) with an out OfficeConversionReport overload",
+      "new": "HtmlConversionDocument.ToMarkdown(HtmlMarkdownExportOptions options = null) with an out OfficeConversionReport overload",
       "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Markdown.Html/HtmlMarkdownConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns string today.",
       "phase": "A",
       "applied": "applied",
-      "supersededM0Target": "HtmlConversionDocument.ToMarkdown(MarkdownHtmlImportOptions options = null) : MarkdownDocument  (or MarkdownDocument.FromHtml(html, options))",
+      "supersededM0Target": "HtmlConversionDocument.ToMarkdown(HtmlMarkdownExportOptions options = null) : MarkdownDocument  (or MarkdownDocument.FromHtml(html, options))",
       "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
     },
     {
       "old": "OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdown(HtmlConversionDocument document, HtmlToMarkdownOptions options, CancellationToken cancellationToken)",
       "kind": "method",
       "action": "merge",
-      "new": "HtmlConversionDocument.ToMarkdown(MarkdownHtmlImportOptions options = null) with an out OfficeConversionReport overload",
+      "new": "HtmlConversionDocument.ToMarkdown(HtmlMarkdownExportOptions options = null) with an out OfficeConversionReport overload",
       "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Markdown.Html/HtmlMarkdownConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns string today.",
       "phase": "A",
       "applied": "applied",
-      "supersededM0Target": "HtmlConversionDocument.ToMarkdown(MarkdownHtmlImportOptions options = null) : MarkdownDocument  (or MarkdownDocument.FromHtml(html, options))",
+      "supersededM0Target": "HtmlConversionDocument.ToMarkdown(HtmlMarkdownExportOptions options = null) : MarkdownDocument  (or MarkdownDocument.FromHtml(html, options))",
       "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
     },
     {
       "old": "OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdownDocument(HtmlConversionDocument document, HtmlToMarkdownOptions options = null)",
       "kind": "method",
       "action": "rename",
-      "new": "HtmlConversionDocument.ToMarkdown(MarkdownHtmlImportOptions options = null) with an out OfficeConversionReport overload",
+      "new": "HtmlConversionDocument.ToMarkdown(HtmlMarkdownExportOptions options = null) with an out OfficeConversionReport overload",
       "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Markdown.Html/HtmlMarkdownConverterExtensions.cs",
       "category": "conversion",
       "notes": "Static FromHtml from an adapter needs a C# 14 static extension member.",
       "phase": "A",
       "applied": "applied",
-      "supersededM0Target": "MarkdownDocument.FromHtml(string html | HtmlConversionDocument html, MarkdownHtmlImportOptions options = null, CancellationToken cancellationToken = default) : MarkdownDocument",
+      "supersededM0Target": "MarkdownDocument.FromHtml(string html | HtmlConversionDocument html, HtmlMarkdownExportOptions options = null, CancellationToken cancellationToken = default) : MarkdownDocument",
       "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
     },
     {
       "old": "OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdownDocument(HtmlConversionDocument document, HtmlToMarkdownOptions options, CancellationToken cancellationToken)",
       "kind": "method",
       "action": "rename",
-      "new": "HtmlConversionDocument.ToMarkdown(MarkdownHtmlImportOptions options = null) with an out OfficeConversionReport overload",
+      "new": "HtmlConversionDocument.ToMarkdown(HtmlMarkdownExportOptions options = null) with an out OfficeConversionReport overload",
       "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Markdown.Html/HtmlMarkdownConverterExtensions.cs",
       "category": "conversion",
       "notes": "Static FromHtml from an adapter needs a C# 14 static extension member.",
       "phase": "A",
       "applied": "applied",
-      "supersededM0Target": "MarkdownDocument.FromHtml(string html | HtmlConversionDocument html, MarkdownHtmlImportOptions options = null, CancellationToken cancellationToken = default) : MarkdownDocument",
+      "supersededM0Target": "MarkdownDocument.FromHtml(string html | HtmlConversionDocument html, HtmlMarkdownExportOptions options = null, CancellationToken cancellationToken = default) : MarkdownDocument",
       "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
     },
     {
       "old": "OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdownDocumentResult(HtmlConversionDocument document, HtmlToMarkdownOptions options = null)",
       "kind": "method",
       "action": "merge",
-      "new": "HtmlConversionDocument.ToMarkdown(MarkdownHtmlImportOptions options = null) with an out OfficeConversionReport overload",
+      "new": "HtmlConversionDocument.ToMarkdown(HtmlMarkdownExportOptions options = null) with an out OfficeConversionReport overload",
       "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
       "file": "OfficeIMO.Markdown.Html/HtmlMarkdownConverterExtensions.cs",
       "category": "conversion",
       "phase": "A",
       "applied": "applied",
-      "supersededM0Target": "MarkdownDocument.FromHtml(html, MarkdownHtmlImportOptions options, out OfficeConversionReport report)",
+      "supersededM0Target": "MarkdownDocument.FromHtml(html, HtmlMarkdownExportOptions options, out OfficeConversionReport report)",
       "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
     },
     {
       "old": "OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdownDocumentResult(HtmlConversionDocument document, HtmlToMarkdownOptions options, CancellationToken cancellationToken)",
       "kind": "method",
       "action": "merge",
-      "new": "HtmlConversionDocument.ToMarkdown(MarkdownHtmlImportOptions options = null) with an out OfficeConversionReport overload",
+      "new": "HtmlConversionDocument.ToMarkdown(HtmlMarkdownExportOptions options = null) with an out OfficeConversionReport overload",
       "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
       "file": "OfficeIMO.Markdown.Html/HtmlMarkdownConverterExtensions.cs",
       "category": "conversion",
       "phase": "A",
       "applied": "applied",
-      "supersededM0Target": "MarkdownDocument.FromHtml(html, MarkdownHtmlImportOptions options, out OfficeConversionReport report)",
+      "supersededM0Target": "MarkdownDocument.FromHtml(html, HtmlMarkdownExportOptions options, out OfficeConversionReport report)",
       "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
     },
     {
       "old": "OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.SaveAsMarkdown(HtmlConversionDocument document, string path, HtmlToMarkdownOptions options = null, Encoding encoding = null)",
       "kind": "method",
       "action": "change",
-      "new": "HtmlConversionDocument.SaveAsMarkdown(string path, MarkdownHtmlImportOptions options = null) : OfficeConversionReport",
+      "new": "HtmlConversionDocument.SaveAsMarkdown(string path, HtmlMarkdownExportOptions options = null) : OfficeConversionReport",
       "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Markdown.Html/HtmlMarkdownConverterExtensions.cs",
       "category": "conversion",
@@ -172,7 +172,7 @@
       "old": "OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.SaveAsMarkdown(HtmlConversionDocument document, Stream stream, HtmlToMarkdownOptions options = null, Encoding encoding = null)",
       "kind": "method",
       "action": "change",
-      "new": "HtmlConversionDocument.SaveAsMarkdown(Stream stream, MarkdownHtmlImportOptions options = null) : OfficeConversionReport",
+      "new": "HtmlConversionDocument.SaveAsMarkdown(Stream stream, HtmlMarkdownExportOptions options = null) : OfficeConversionReport",
       "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Markdown.Html/HtmlMarkdownConverterExtensions.cs",
       "category": "conversion",
@@ -184,7 +184,7 @@
       "old": "OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.SaveAsMarkdownAsync(HtmlConversionDocument document, string path, HtmlToMarkdownOptions options = null, Encoding encoding = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "change",
-      "new": "HtmlConversionDocument.SaveAsMarkdownAsync(string path, MarkdownHtmlImportOptions options = null) : Task<OfficeConversionReport>",
+      "new": "HtmlConversionDocument.SaveAsMarkdownAsync(string path, HtmlMarkdownExportOptions options = null) : Task<OfficeConversionReport>",
       "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Markdown.Html/HtmlMarkdownConverterExtensions.cs",
       "category": "conversion",
@@ -196,7 +196,7 @@
       "old": "OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.SaveAsMarkdownAsync(HtmlConversionDocument document, Stream stream, HtmlToMarkdownOptions options = null, Encoding encoding = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "change",
-      "new": "HtmlConversionDocument.SaveAsMarkdownAsync(Stream stream, MarkdownHtmlImportOptions options = null) : Task<OfficeConversionReport>",
+      "new": "HtmlConversionDocument.SaveAsMarkdownAsync(Stream stream, HtmlMarkdownExportOptions options = null) : Task<OfficeConversionReport>",
       "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Markdown.Html/HtmlMarkdownConverterExtensions.cs",
       "category": "conversion",
@@ -208,7 +208,7 @@
       "old": "OfficeIMO.Markdown.Html.HtmlToMarkdownOptions",
       "kind": "type",
       "action": "rename",
-      "new": "OfficeIMO.Markdown.Html.MarkdownHtmlImportOptions",
+      "new": "OfficeIMO.Markdown.Html.HtmlMarkdownExportOptions",
       "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
       "file": "OfficeIMO.Markdown.Html/Options/HtmlToMarkdownOptions.cs",
       "category": "options",
@@ -372,6 +372,15 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "Internal adapter implementation; existing friend access serves cross-package callers."
+    },
+    {
+      "old": "OfficeIMO.Markdown.Html.MarkdownHtmlImportOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.Html.HtmlMarkdownExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
     }
   ],
   "packageMoves": [
@@ -397,7 +406,7 @@
   "extraChanges": [
     {
       "subject": "HTML import serialization settings",
-      "note": "Encoding and FailOnLoss live in MarkdownHtmlImportOptions, including independent operation clones; the converted value is MarkdownDocument.",
+      "note": "Encoding and FailOnLoss live in HtmlMarkdownExportOptions, including independent operation clones; the converted value is MarkdownDocument.",
       "status": "applied"
     },
     {
@@ -414,7 +423,7 @@
     {
       "phase": "A",
       "applied": "applied",
-      "note": "String-output consumers preserve MarkdownHtmlImportOptions.MarkdownWriteOptions when serializing the returned MarkdownDocument. Public SaveAsMarkdown stream contracts exercise CommonMark fallback, list markers, line endings and custom block writer extensions. Reader.Html and the existing PowerShell HTML-to-Markdown cmdlet retain those configured writer settings."
+      "note": "String-output consumers preserve HtmlMarkdownExportOptions.MarkdownWriteOptions when serializing the returned MarkdownDocument. Public SaveAsMarkdown stream contracts exercise CommonMark fallback, list markers, line endings and custom block writer extensions. Reader.Html and the existing PowerShell HTML-to-Markdown cmdlet retain those configured writer settings."
     },
     {
       "phase": "A",
@@ -438,7 +447,7 @@
         "OfficeIMO.Markdown.Html/OfficeIMO.Markdown.Html.csproj",
         "Build/HtmlEditableEvidence/EditableTargetExporter.cs"
       ],
-      "note": "The evidence tool calls the current internal evidence converter with explicit MarkdownHtmlImportOptions. No public shim or runtime dependency is added."
+      "note": "The evidence tool calls the current internal evidence converter with explicit HtmlMarkdownExportOptions. No public shim or runtime dependency is added."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

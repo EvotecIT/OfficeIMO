@@ -9,11 +9,11 @@ namespace OfficeIMO.Pdf.Word;
 
 public static partial class PdfWordConverterExtensions {
     /// <summary>Reconstructs a Word document from the source PDF.</summary>
-    public static WordDocument ToWord(this PdfDocument document, WordPdfImportOptions? options = null,
+    public static WordDocument ToWord(this PdfDocument document, PdfWordExportOptions? options = null,
         CancellationToken cancellationToken = default) => document.ToWord(options, out _, cancellationToken);
 
     /// <summary>Reconstructs a Word document and returns its fidelity report.</summary>
-    public static WordDocument ToWord(this PdfDocument document, WordPdfImportOptions? options,
+    public static WordDocument ToWord(this PdfDocument document, PdfWordExportOptions? options,
         out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         var timer = Stopwatch.StartNew();
         PdfWordConversionResult result = document.ConvertToWordWithEvidence(options, cancellationToken);
@@ -27,8 +27,8 @@ public static partial class PdfWordConverterExtensions {
 
     /// <summary>Asynchronously reconstructs Word content and returns the model with its report.</summary>
     public static async Task<OfficeConversionResult<WordDocument>> ToWordAsync(this PdfDocument document,
-        WordPdfImportOptions? options = null, CancellationToken cancellationToken = default) {
-        options = (options ?? new WordPdfImportOptions()).Clone();
+        PdfWordExportOptions? options = null, CancellationToken cancellationToken = default) {
+        options = (options ?? new PdfWordExportOptions()).Clone();
         return await Task.Run(() => {
             WordDocument value = document.ToWord(options, out OfficeConversionReport report, cancellationToken);
             try { cancellationToken.ThrowIfCancellationRequested(); }
@@ -39,8 +39,8 @@ public static partial class PdfWordConverterExtensions {
 
     /// <summary>Reconstructs and saves a Word file, reporting any fidelity loss.</summary>
     public static OfficeConversionReport SaveAsWord(this PdfDocument document, string path,
-        WordPdfImportOptions? options = null, CancellationToken cancellationToken = default) {
-        options = (options ?? new WordPdfImportOptions()).Clone();
+        PdfWordExportOptions? options = null, CancellationToken cancellationToken = default) {
+        options = (options ?? new PdfWordExportOptions()).Clone();
         var timer = Stopwatch.StartNew();
         using var value = document.ToWord(options, out OfficeConversionReport report, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -51,7 +51,7 @@ public static partial class PdfWordConverterExtensions {
 
     /// <summary>Reconstructs Word content into a caller-owned stream.</summary>
     public static OfficeConversionReport SaveAsWord(this PdfDocument document, Stream stream,
-        WordPdfImportOptions? options = null, CancellationToken cancellationToken = default) {
+        PdfWordExportOptions? options = null, CancellationToken cancellationToken = default) {
         var timer = Stopwatch.StartNew();
         using var value = document.ToWord(options, out OfficeConversionReport report, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -62,8 +62,8 @@ public static partial class PdfWordConverterExtensions {
 
     /// <summary>Asynchronously reconstructs and writes a Word file.</summary>
     public static async Task<OfficeConversionReport> SaveAsWordAsync(this PdfDocument document, string path,
-        WordPdfImportOptions? options = null, CancellationToken cancellationToken = default) {
-        options = (options ?? new WordPdfImportOptions()).Clone();
+        PdfWordExportOptions? options = null, CancellationToken cancellationToken = default) {
+        options = (options ?? new PdfWordExportOptions()).Clone();
         var timer = Stopwatch.StartNew();
         using var value = document.ToWord(options, out OfficeConversionReport report, cancellationToken);
         await global::OfficeIMO.Core.Internal.OfficeConversionFailures.RunAsync(report, () => value.SaveAsync(path, cancellationToken)).ConfigureAwait(false);
@@ -73,8 +73,8 @@ public static partial class PdfWordConverterExtensions {
 
     /// <summary>Asynchronously reconstructs Word content into a caller-owned stream.</summary>
     public static async Task<OfficeConversionReport> SaveAsWordAsync(this PdfDocument document, Stream stream,
-        WordPdfImportOptions? options = null, CancellationToken cancellationToken = default) {
-        options = (options ?? new WordPdfImportOptions()).Clone();
+        PdfWordExportOptions? options = null, CancellationToken cancellationToken = default) {
+        options = (options ?? new PdfWordExportOptions()).Clone();
         var timer = Stopwatch.StartNew();
         using var value = document.ToWord(options, out OfficeConversionReport report, cancellationToken);
         await global::OfficeIMO.Core.Internal.OfficeConversionFailures.RunAsync(report, () => value.SaveAsync(stream, cancellationToken)).ConfigureAwait(false);

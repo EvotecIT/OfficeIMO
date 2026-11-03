@@ -5,7 +5,7 @@ namespace OfficeIMO.Epub;
 internal static partial class EpubReader {
     // Repeated spine positions share parsing results, including failures. Cache entries are
     // released at their last position; raw markup is cached only within the retention budget.
-    private static ParsedChapterEntry ParseChapterEntry(ChapterCandidate candidate, EpubReadOptions options,
+    private static ParsedChapterEntry ParseChapterEntry(ChapterCandidate candidate, EpubLoadOptions options,
         bool canRetainHtml, CancellationToken token) {
         string html;
         try {

@@ -6,7 +6,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Pdf.Word;
 
 internal static partial class PdfWordConverter {
-    internal static PdfWordConversionResult ConvertVisualPages(PdfCore.PdfDocument source, WordPdfImportOptions options) {
+    internal static PdfWordConversionResult ConvertVisualPages(PdfCore.PdfDocument source, PdfWordExportOptions options) {
         var token = options.CancellationToken;
         token.ThrowIfCancellationRequested();
         var renderOptions = new PdfCore.PdfPageRenderOptions {

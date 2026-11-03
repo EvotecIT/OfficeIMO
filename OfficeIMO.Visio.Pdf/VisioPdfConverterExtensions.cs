@@ -8,12 +8,12 @@ public static class VisioPdfConverterExtensions {
     private const string Source = "Visio";
 
     /// <summary>Converts a Visio document to a PDF model.</summary>
-    public static PdfDocument ToPdf(this VisioDocument document, VisioToPdfOptions? options = null,
+    public static PdfDocument ToPdf(this VisioDocument document, VisioPdfExportOptions? options = null,
         CancellationToken cancellationToken = default) =>
         document.ToPdf(options, out _, cancellationToken);
 
     /// <summary>Converts a Visio document and returns its completed conversion findings.</summary>
-    public static PdfDocument ToPdf(this VisioDocument document, VisioToPdfOptions? options,
+    public static PdfDocument ToPdf(this VisioDocument document, VisioPdfExportOptions? options,
         out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         var timer = Stopwatch.StartNew();
         PdfDocumentConversionResult converted = document.ConvertToPdfWithEvidence(options, cancellationToken);
@@ -24,8 +24,8 @@ public static class VisioPdfConverterExtensions {
     /// <summary>Converts a Visio document, returning the model and report together.</summary>
     /// <remarks>Conversion is CPU-bound and runs on the thread pool so the caller is not blocked.</remarks>
     public static async Task<OfficeConversionResult<PdfDocument>> ToPdfAsync(this VisioDocument document,
-        VisioToPdfOptions? options = null, CancellationToken cancellationToken = default) {
-        options = (options ?? new VisioToPdfOptions()).Clone();
+        VisioPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
+        options = (options ?? new VisioPdfExportOptions()).Clone();
         return await Task.Run(() => {
             PdfDocument value = document.ToPdf(options, out OfficeConversionReport report, cancellationToken);
             try { cancellationToken.ThrowIfCancellationRequested(); }
@@ -36,7 +36,7 @@ public static class VisioPdfConverterExtensions {
 
     /// <summary>Writes a PDF file and returns the complete conversion report.</summary>
     public static OfficeConversionReport SaveAsPdf(this VisioDocument document, string path,
-        VisioToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+        VisioPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         PdfConversionEvidence.ValidateDestination(path);
         var timer = Stopwatch.StartNew();
         PdfDocumentConversionResult converted = document.ConvertToPdfWithEvidence(options, cancellationToken);
@@ -49,7 +49,7 @@ public static class VisioPdfConverterExtensions {
 
     /// <summary>Writes PDF to a caller-owned stream and returns the complete conversion report.</summary>
     public static OfficeConversionReport SaveAsPdf(this VisioDocument document, Stream stream,
-        VisioToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+        VisioPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         PdfConversionEvidence.ValidateDestination(stream);
         var timer = Stopwatch.StartNew();
         PdfDocumentConversionResult converted = document.ConvertToPdfWithEvidence(options, cancellationToken);
@@ -63,9 +63,9 @@ public static class VisioPdfConverterExtensions {
     /// <summary>Asynchronously writes a PDF file and returns the complete conversion report.</summary>
     /// <remarks>Conversion is CPU-bound and runs on the thread pool; the file is written asynchronously.</remarks>
     public static async Task<OfficeConversionReport> SaveAsPdfAsync(this VisioDocument document, string path,
-        VisioToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+        VisioPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         PdfConversionEvidence.ValidateDestination(path);
-        options = (options ?? new VisioToPdfOptions()).Clone();
+        options = (options ?? new VisioPdfExportOptions()).Clone();
         var timer = Stopwatch.StartNew();
         PdfDocumentConversionResult converted = await Task.Run(
             () => document.ConvertToPdfWithEvidence(options, cancellationToken), cancellationToken).ConfigureAwait(false);
@@ -79,9 +79,9 @@ public static class VisioPdfConverterExtensions {
     /// <summary>Asynchronously writes PDF to a caller-owned stream and returns the complete conversion report.</summary>
     /// <remarks>Conversion is CPU-bound and runs on the thread pool; the stream is written asynchronously.</remarks>
     public static async Task<OfficeConversionReport> SaveAsPdfAsync(this VisioDocument document, Stream stream,
-        VisioToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+        VisioPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         PdfConversionEvidence.ValidateDestination(stream);
-        options = (options ?? new VisioToPdfOptions()).Clone();
+        options = (options ?? new VisioPdfExportOptions()).Clone();
         var timer = Stopwatch.StartNew();
         PdfDocumentConversionResult converted = await Task.Run(
             () => document.ConvertToPdfWithEvidence(options, cancellationToken), cancellationToken).ConfigureAwait(false);
@@ -93,6 +93,6 @@ public static class VisioPdfConverterExtensions {
     }
 
     internal static PdfDocumentConversionResult ConvertToPdfWithEvidence(this VisioDocument document,
-        VisioToPdfOptions? options, CancellationToken cancellationToken) =>
+        VisioPdfExportOptions? options, CancellationToken cancellationToken) =>
         VisioPdfConversionEngine.Convert(document, options, cancellationToken);
 }

@@ -53,7 +53,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderIntentProfile profile,
         HtmlRenderEncoder encoder,
         HtmlRenderOptions options) {
-        HtmlRenderRequest request = HtmlRenderRequest.Create(profile, encoder, HtmlToPdfOptions.ForImageExport(options));
+        HtmlRenderRequest request = HtmlRenderRequest.Create(profile, encoder, HtmlPdfExportOptions.ForImageExport(options));
         HtmlRenderResult result = HtmlRenderEngine.Execute(source, request);
         IReadOnlyList<OfficeImageExportResult> images = result.ExportImages();
 

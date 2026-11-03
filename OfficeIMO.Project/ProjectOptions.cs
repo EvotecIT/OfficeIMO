@@ -1,5 +1,9 @@
 namespace OfficeIMO.Project;
 
+/// <summary>Controls creation and persistence of a Project document associated with a path or stream.</summary>
+public sealed class ProjectCreateOptions : DocumentCreateOptions {
+}
+
 /// <summary>Bounded XML input and common document lifecycle policy.</summary>
 public sealed class ProjectLoadOptions : DocumentLoadOptions {
     /// <summary>Maximum input bytes, including buffering of non-seekable sources.</summary>

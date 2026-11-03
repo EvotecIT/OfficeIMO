@@ -599,7 +599,7 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Contains(logicalPage.Paragraphs, paragraph => paragraph.Text == "Quarterly report");
         Assert.Contains(logicalPage.Paragraphs, paragraph => paragraph.Text == "1 Audited values exclude pending adjustments.");
 
-        string html = result.ToHtml(new PdfToHtmlOptions { Profile = PdfHtmlProfile.Semantic });
+        string html = result.ToHtml(new PdfHtmlExportOptions { Profile = PdfHtmlProfile.Semantic });
         Assert.DoesNotContain("pdf-header", html, StringComparison.Ordinal);
         Assert.DoesNotContain("pdf-footer", html, StringComparison.Ordinal);
         Assert.DoesNotContain("pdf-caption", html, StringComparison.Ordinal);
@@ -2267,7 +2267,7 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Contains(heading.Evidence, static evidence => evidence.Code == "semantic-tagged-pdf-role");
         Assert.NotEmpty(result.Sections);
 
-        string html = result.ToHtml(new PdfToHtmlOptions { Profile = PdfHtmlProfile.Semantic });
+        string html = result.ToHtml(new PdfHtmlExportOptions { Profile = PdfHtmlProfile.Semantic });
         Assert.Contains("<h2>Wrapped tagged heading title</h2>", html, StringComparison.Ordinal);
     }
 

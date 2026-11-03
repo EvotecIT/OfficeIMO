@@ -10,7 +10,7 @@ internal static partial class HtmlPdfRenderedConverter {
     /// <summary>Reuses short built-in measurements within one prepared conversion and font configuration.</summary>
     /// <remarks>Dynamic host-face selection and caller shaping providers retain their ordinary callback behavior.</remarks>
     private static Func<string, OfficeFontInfo, OfficeFontFaceDescriptor, TValue?> ReuseTextMeasurement<TValue>(
-        HtmlToPdfOptions options,
+        HtmlPdfExportOptions options,
         PdfCore.PdfCreateOptions measurementOptions,
         Func<string, OfficeFontInfo, OfficeFontFaceDescriptor, TValue?> measure) where TValue : struct {
         if (options.TextShapingProvider != null

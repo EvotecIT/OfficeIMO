@@ -17,7 +17,7 @@ public sealed partial class HtmlRenderingTests {
     public async Task HtmlPageMarginPrintFit_StationeryDoesNotShrinkOrdinaryBody(string position, bool running) {
         string html = PageMarginPrintFitHtml(position, running, wideBody: false);
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
-        HtmlToPdfOptions options = PageMarginPrintFitOptions();
+        HtmlPdfExportOptions options = PageMarginPrintFitOptions();
         HtmlRenderResult automatic = await HtmlRenderEngine.ExecuteAsync(document,
             HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Png, options));
         options.AutoFitWidePrintContent = false;
@@ -36,7 +36,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData(false)]
     [InlineData(true)]
     public async Task HtmlPageMarginPrintFit_StationeryPreservesRealBodyOverflowFitting(bool running) {
-        HtmlToPdfOptions options = PageMarginPrintFitOptions();
+        HtmlPdfExportOptions options = PageMarginPrintFitOptions();
         HtmlRenderResult ordinary = await HtmlRenderEngine.ExecuteAsync(
             HtmlConversionDocument.Parse(PageMarginPrintFitHtml(null, running: false, wideBody: true)),
             HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Png, options));
@@ -62,11 +62,11 @@ public sealed partial class HtmlRenderingTests {
             + "';" + box + "}</style>" + snapshot + "<div" + (wideBody ? " style='width:440px'" : "") + ">BODY</div>";
     }
 
-    private static HtmlToPdfOptions PageMarginPrintFitOptions() {
+    private static HtmlPdfExportOptions PageMarginPrintFitOptions() {
         string family = ManagedTextShapingTestAssets.FamilyName;
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithScalarAdvances(
             Enumerable.Range(32, 95).ToDictionary(scalar => scalar, _ => (ushort)500));
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(400D / 96D), global::OfficeIMO.OfficeLength.Inches(400D / 96D)), Margins = HtmlRenderMargins.All(0D),
             ViewportWidth = 400D, ViewportHeight = 400D, AllowSystemFontFallback = false,
             DefaultFontFamily = family, FontFamily = new PdfEmbeddedFontFamily(family, font),

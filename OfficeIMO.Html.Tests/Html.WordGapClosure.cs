@@ -107,7 +107,7 @@ public partial class HtmlWordGapClosure {
     [Fact]
     public void HtmlToWord_InlineLogicalSpacing_IsReportedAsUnsupported() {
         const string html = """<p>Before <span style="margin-inline-start:10px">inline</span> after</p>""";
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error,
         };
 
@@ -383,7 +383,7 @@ public partial class HtmlWordGapClosure {
             """;
 
         HtmlToWordResult conversion = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(
-            new WordHtmlImportOptions { UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Warn });
+            new HtmlWordExportOptions { UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Warn });
         using WordDocument document = conversion.Value;
         WordParagraph background = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Background");
         WordParagraph border = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Border");
@@ -459,7 +459,7 @@ public partial class HtmlWordGapClosure {
 
     [Fact]
     public void HtmlToWord_NearestHighlightMode_ReportsColorApproximation() {
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             TextBackgroundMode = WordHtmlTextBackgroundMode.NearestHighlight
         };
 
@@ -495,7 +495,7 @@ public partial class HtmlWordGapClosure {
                 Interlocked.Decrement(ref active);
             }
         }));
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             HttpClient = httpClient,
             ImageProcessing = WordHtmlImageProcessingMode.Embed,
             MaxConcurrentResourceLoads = 2
@@ -514,12 +514,12 @@ public partial class HtmlWordGapClosure {
 
     [Fact]
     public void HtmlToWordOptions_Clone_PreservesNewConversionContracts() {
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             MaxConcurrentResourceLoads = 3,
             TextBackgroundMode = WordHtmlTextBackgroundMode.NearestHighlight
         };
 
-        WordHtmlImportOptions clone = options.Clone();
+        HtmlWordExportOptions clone = options.Clone();
 
         Assert.Equal(3, clone.MaxConcurrentResourceLoads);
         Assert.Equal(WordHtmlTextBackgroundMode.NearestHighlight, clone.TextBackgroundMode);
@@ -527,7 +527,7 @@ public partial class HtmlWordGapClosure {
 
     [Fact]
     public async Task HtmlToWord_InvalidResourceConcurrency_IsRejectedBeforeNetworkAccess() {
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             ImageProcessing = WordHtmlImageProcessingMode.Embed,
             MaxConcurrentResourceLoads = 0
         };
@@ -671,7 +671,7 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
         cell.Paragraphs[0].Text = "Existing";
-        var options = new WordHtmlImportOptions { SupportsHeadingNumbering = true };
+        var options = new HtmlWordExportOptions { SupportsHeadingNumbering = true };
 
         cell.AddHtml(HtmlConversionDocument.Parse("<h1>One</h1><p>Middle</p><h2>Two</h2>"), options);
 
@@ -705,7 +705,7 @@ public partial class HtmlWordGapClosure {
     public void WordTableCell_AddHtml_NumberedHeadingsReplaceTheFreshPlaceholder() {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
-        var options = new WordHtmlImportOptions { SupportsHeadingNumbering = true };
+        var options = new HtmlWordExportOptions { SupportsHeadingNumbering = true };
 
         cell.AddHtml(HtmlConversionDocument.Parse("<h1>One</h1><h2>Two</h2>"), options);
 

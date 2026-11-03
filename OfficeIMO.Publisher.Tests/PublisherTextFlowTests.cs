@@ -72,7 +72,7 @@ public sealed class PublisherTextFlowTests {
 
     [Fact]
     public void Repeated_story_measurement_obeys_the_configured_work_ceiling() {
-        var options = new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 10_000 } };
+        var options = new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 10_000 } };
         InvalidDataException error = Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(PublisherNativeTests.Fixture("SampleNewsletter.pub"), options));
         Assert.Contains("text layout character work limit", error.Message);
     }

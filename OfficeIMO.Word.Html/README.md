@@ -20,7 +20,7 @@ using OfficeIMO.Html;
 using OfficeIMO.Word.Html;
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse("<h1>Hello</h1><p>Body</p>");
-using WordDocument document = source.ToWord(new WordHtmlImportOptions());
+using WordDocument document = source.ToWord(new HtmlWordExportOptions());
 
 string html = document.ToHtml(
     WordHtmlExportOptions.CreateDocumentRoundTripProfile(OfficeVisualThemeKind.Report));
@@ -83,7 +83,7 @@ foreach (OfficeIMO.OfficeDiagnostic diagnostic in report.Diagnostics) {
 ```
 
 `HtmlConversionDocument` is the parsed source model; the document and cell
-`AddHtml` string overloads create it with bounded, untrusted-input defaults. It keeps parsing, base-URI handling, resource policy, and source diagnostics in one owner. `WordHtmlImportOptions.Limits` uses the shared `HtmlConversionLimits` contract; `MaxHtmlNodes`, `MaxHtmlDepth`, `MaxCssBytes`, and `MaxTotalCssBytes` remain forwarding properties for compatibility. `WordHtmlImportOptions.StyleMissingHandler` scopes custom class mapping to one conversion.
+`AddHtml` string overloads create it with bounded, untrusted-input defaults. It keeps parsing, base-URI handling, resource policy, and source diagnostics in one owner. `HtmlWordExportOptions.Limits` uses the shared `HtmlConversionLimits` contract; `MaxHtmlNodes`, `MaxHtmlDepth`, `MaxCssBytes`, and `MaxTotalCssBytes` remain forwarding properties for compatibility. `HtmlWordExportOptions.StyleMissingHandler` scopes custom class mapping to one conversion.
 
 The document result path projects bounded, single-surface `position:absolute`, `position:fixed`, and left/right floating regions into editable page-relative DrawingML text-box anchors. Exact offsets, size, native wrapping, solid fill, and z-order are retained. Repeated or fragmented paged regions stay in semantic flow, and CSS background layers or shadows without a Word-native editable equivalent produce stable layout diagnostics. Set `ImportEditableLayoutRegions = false` to keep every region in semantic flow.
 
@@ -127,7 +127,7 @@ Imported tables use a default column grid that fits the section text area or con
 
 ```csharp
 using OfficeIMO.Html;
-var safeOptions = WordHtmlImportOptions.UntrustedDefaults;
+var safeOptions = HtmlWordExportOptions.UntrustedDefaults;
 safeOptions.MaxHtmlNodes = 5000;
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
@@ -142,14 +142,14 @@ OfficeIMO.OfficeConversionResult<WordDocument> remote = await source.ToWordAsync
 using WordDocument remoteDocument = remote.Value;
 ```
 
-Remote image prefetch uses at most `WordHtmlImportOptions.MaxConcurrentResourceLoads` requests at
+Remote image prefetch uses at most `HtmlWordExportOptions.MaxConcurrentResourceLoads` requests at
 once. Imports with `MaxTotalImageBytes` stay sequential so responses that exceed the remaining
 budget can be rejected before their bodies are read.
 
 - `CreateOfficeIMOProfile()` keeps the compatibility-oriented defaults.
 - `UntrustedDefaults` keeps external document resources offline by default and enables bounded conversion. WebP images normalized to PNG are limited to four million decoded pixels; `MaxDecodedImagePixels` configures this limit independently of encoded-byte limits. Oversized images retain their alternative text and produce a diagnostic.
 - `CreateTrustedDocumentProfile()` enables document-provided stylesheet links for known-good HTML while keeping resource validation.
-- `new WordHtmlImportOptions()` embeds data URI images only; use a trusted/compatibility profile or set `ImageProcessing = WordHtmlImageProcessingMode.Embed` for trusted remote image fetching.
+- `new HtmlWordExportOptions()` embeds data URI images only; use a trusted/compatibility profile or set `ImageProcessing = WordHtmlImageProcessingMode.Embed` for trusted remote image fetching.
 - Local file images are not loaded by default; use a trusted/compatibility profile or add `Uri.UriSchemeFile` to `AllowedImageUriSchemes` for trusted local files.
 
 ## Related packages

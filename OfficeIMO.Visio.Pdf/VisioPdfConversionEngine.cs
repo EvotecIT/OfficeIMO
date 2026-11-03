@@ -6,10 +6,10 @@ namespace OfficeIMO.Visio.Pdf;
 internal static partial class VisioPdfConversionEngine {
     internal static PdfCore.PdfDocumentConversionResult Convert(
         VisioDocument document,
-        VisioToPdfOptions? options,
+        VisioPdfExportOptions? options,
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        VisioToPdfOptions operation = options ?? new VisioToPdfOptions();
+        VisioPdfExportOptions operation = options ?? new VisioPdfExportOptions();
         operation.Validate();
         cancellationToken.ThrowIfCancellationRequested();
 

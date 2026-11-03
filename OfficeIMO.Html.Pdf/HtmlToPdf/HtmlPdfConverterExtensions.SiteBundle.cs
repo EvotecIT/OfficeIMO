@@ -25,7 +25,7 @@ public static class HtmlSiteBundlePdfExtensions {
 
     // Image requests carrying PDF options use the same embedded-package policy boundary.
     internal static HtmlRenderRequest Prepare(HtmlSiteBundle bundle, HtmlRenderRequest request) {
-        var options = new HtmlToPdfOptions(request.Options);
+        var options = new HtmlPdfExportOptions(request.Options);
         options.BaseUri ??= bundle.BaseUri;
         options.EmbeddedPackageHostResourceUrlPolicy = options.GetResourceUrlPolicy().Clone();
         options.EmbeddedPackageResourceResolver = options.ResourcePolicy.AllowEmbeddedPackageResources

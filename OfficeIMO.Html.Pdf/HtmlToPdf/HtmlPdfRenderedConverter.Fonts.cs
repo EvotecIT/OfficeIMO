@@ -8,13 +8,13 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Html.Pdf;
 
 internal static partial class HtmlPdfRenderedConverter {
-    private static void ApplyLibraryDefaultFontEmbedding(HtmlToPdfOptions options, PdfCore.PdfCreateOptions fonts) {
+    private static void ApplyLibraryDefaultFontEmbedding(HtmlPdfExportOptions options, PdfCore.PdfCreateOptions fonts) {
         if (options.ResourcePolicy.AllowSystemFontEmbedding) fonts.ApplyDefaultFontEmbedding(standardMetrics: true);
         else fonts.EmbedDefaultFonts = false;
     }
 
     private static Func<string, OfficeFontInfo, OfficeFontFaceDescriptor, HtmlTextFaceMetrics?>? CreateFallbackTextFaceMetrics(
-        HtmlToPdfOptions options,
+        HtmlPdfExportOptions options,
         PdfCore.PdfCreateOptions measurementOptions) {
         bool useInstalledFonts = options.ResourcePolicy.AllowSystemFontEmbedding
             && options.ResourcePolicy.AllowDocumentFontEmbedding;
@@ -28,7 +28,7 @@ internal static partial class HtmlPdfRenderedConverter {
     }
 
     private static Func<string, OfficeFontInfo, OfficeFontFaceDescriptor, double?> CreateFallbackTextMeasurement(
-        HtmlToPdfOptions options,
+        HtmlPdfExportOptions options,
         PdfCore.PdfCreateOptions measurementOptions) {
         bool useInstalledFonts = options.ResourcePolicy.AllowSystemFontEmbedding
             && options.ResourcePolicy.AllowDocumentFontEmbedding;
