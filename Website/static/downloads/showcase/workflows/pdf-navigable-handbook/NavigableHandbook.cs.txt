@@ -10,10 +10,10 @@ internal static class NavigableHandbook {
             .Subtitle("A practical reference for hosts, facilitators and volunteers.")
             .TableOfContents()
             .Section("Before participants arrive", section => section
-                .Bullets(new[] { "Check access, seating and the sign-in desk.", "Test the demonstration equipment.", "Name the person who handles questions and changes." }))
+                .AddList(new[] { "Check access, seating and the sign-in desk.", "Test the demonstration equipment.", "Name the person who handles questions and changes." }))
             .Section("Run the session", section => section
-                .Paragraph(p => p.Text("Explain the outcome, demonstrate one complete example and leave time for participants to try it themselves."))
-                .Table(new[] {
+                .AddParagraph(p => p.AddText("Explain the outcome, demonstrate one complete example and leave time for participants to try it themselves."))
+                .AddTable(new[] {
                     new[] { "Segment", "Minutes", "Purpose" },
                     new[] { "Welcome", "10", "Set expectations and introduce the team" },
                     new[] { "Demonstration", "20", "Show one complete workflow" },
@@ -22,13 +22,13 @@ internal static class NavigableHandbook {
                 }))
             .PageBreak()
             .Section("Close and follow up", section => section
-                .Paragraph(p => p.Text("Finish with an outcome participants can keep: an example file, a checklist or a clear next action."))
+                .AddParagraph(p => p.AddText("Finish with an outcome participants can keep: an example file, a checklist or a clear next action."))
                 .H2("Before leaving")
-                .Bullets(new[] { "Collect shared equipment and remove temporary accounts.", "Record unanswered questions with named follow-up owners.", "Share the promised materials through the agreed channel." })
+                .AddList(new[] { "Collect shared equipment and remove temporary accounts.", "Record unanswered questions with named follow-up owners.", "Share the promised materials through the agreed channel." })
                 .H2("Review the workshop")
-                .Paragraph(p => p.Text("Compare the planned outcome with what participants completed. Separate problems with the exercise from problems with the room or equipment."))
-                .Paragraph(p => p.Text("Use the PDF table of contents or bookmarks to return to a section.")))),
-            new PdfCreateOptions { ShowPageNumbers = true, CreateOutlineFromHeadings = true, TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers, Language = "en-GB" })
+                .AddParagraph(p => p.AddText("Compare the planned outcome with what participants completed. Separate problems with the exercise from problems with the room or equipment."))
+                .AddParagraph(p => p.AddText("Use the PDF table of contents or bookmarks to return to a section.")))),
+            new PdfCreateOptions { PageSetup = { Footer = { Show = true } }, CreateOutlineFromHeadings = true, TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers, Language = "en-GB" })
             .Meta(title: "Community workshop handbook", author: "OfficeIMO")
             .Save(Path.Combine(folder, "example.pdf"));
     }

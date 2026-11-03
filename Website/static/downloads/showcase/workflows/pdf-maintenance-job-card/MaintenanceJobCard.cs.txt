@@ -7,8 +7,8 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             OfficeColor muted = OfficeTheme.Default.Palette.TextMuted;
             PdfDocument.Create(pdf => pdf.Content(content => {
                 content.Title("Maintenance job card")
-                    .Paragraph(p => p.FontSize(OfficeLength.Points(9)).Text("Northwind · Workplace operations · Demonstration form"), defaultColor: muted)
-                    .PanelParagraph(p => p.Bold("Scope").Text("\nRecord authorised work and its result. This example does not define a safety procedure or authorise equipment operation."))
+                    .AddParagraph(p => p.AddText("Northwind · Workplace operations · Demonstration form").SetFontSize(OfficeLength.Points(9)), color: muted)
+                    .AddPanelParagraph(p => { p.AddText("Scope").SetBold(); p.AddText("\nRecord authorised work and its result. This example does not define a safety procedure or authorise equipment operation."); })
                     .H2("Work order");
                 EquipmentInspection.Field(content, "Reference and asset", c => c.TextField("job-reference", width: OfficeLength.Points(300), fontSize: OfficeLength.Points(11), value: "WO-018 / ROOM-04", style: EquipmentInspection.Named("Reference and asset")));
                 EquipmentInspection.Field(content, "Assigned technician", c => c.TextField("technician", width: OfficeLength.Points(300), fontSize: OfficeLength.Points(11), style: EquipmentInspection.Named("Assigned technician")));
@@ -19,7 +19,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                 EquipmentInspection.Field(content, "Outcome", c => c.ChoiceField("outcome", new[] { "Awaiting work", "Completed", "Follow-up needed" }, value: "Awaiting work", width: OfficeLength.Points(260), fontSize: OfficeLength.Points(11), style: EquipmentInspection.Named("Outcome")));
                 EquipmentInspection.Check(content, "handover-acknowledged", "Handover acknowledged");
                 EquipmentInspection.Field(content, "Follow-up owner and date", c => c.TextField("follow-up", width: OfficeLength.Points(450), fontSize: OfficeLength.Points(11), style: EquipmentInspection.Named("Follow-up owner and date")));
-            }), new PdfCreateOptions { ShowPageNumbers = true })
+            }), new PdfCreateOptions { PageSetup = { Footer = { Show = true } } })
                 .Meta(title: "Maintenance job card", author: "OfficeIMO").Save(Path.Combine(folder, "example.pdf"));
         }
     }

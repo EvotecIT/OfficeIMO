@@ -8,8 +8,7 @@ internal static class MeetingMinutes {
     internal static void Create(string folder) {
         using WordDocument document = WordDocument.Create(Path.Combine(folder, "example.docx"));
         document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);
-        document.AddHeadersAndFooters();
-        document.Header!.Default!.AddParagraph("NORTHWIND / DELIVERY REVIEW");
+        document.PageSetup.Header.AddParagraph("NORTHWIND / DELIVERY REVIEW");
         document.AddParagraph("Delivery review minutes").Style = WordParagraphStyles.Heading1;
         document.AddParagraph("14 September 2026 | Facilitator: Jordan Lee | Duration: 30 minutes");
         document.AddParagraph("Attendees: Product, Engineering, Operations and Support.");
