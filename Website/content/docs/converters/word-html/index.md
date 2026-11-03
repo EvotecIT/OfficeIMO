@@ -96,7 +96,7 @@ string html = """
 """;
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse(WebUtility.HtmlDecode(html));
-using var document = source.ToWordDocument();
+using var document = source.ToWord();
 document.Save("from-html.docx");
 ```
 
@@ -105,7 +105,7 @@ document.Save("from-html.docx");
 ```csharp
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
 var options = HtmlWordExportOptions.CreateTrustedDocumentProfile();
-using var document = await source.ToWordDocumentAsync(options);
+using var document = (await source.ToWordAsync(options)).Value;
 document.Save("from-html.docx");
 ```
 
@@ -121,7 +121,7 @@ var options = new HtmlWordExportOptions {
 };
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
-using var document = source.ToWordDocument(options);
+using var document = source.ToWord(options);
 ```
 
 ## Adding HTML to an Existing Document

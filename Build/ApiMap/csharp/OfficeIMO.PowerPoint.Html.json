@@ -73,6 +73,24 @@
       "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
       "category": "options",
       "applied": true
+    },
+    {
+      "old": "HtmlConversionDocument.ToPowerPointDocument(HtmlPowerPointExportOptions) / ToPowerPointDocumentResult : HtmlToPowerPointResult",
+      "kind": "method",
+      "action": "merge",
+      "new": "HtmlConversionDocument.ToPowerPoint(HtmlPowerPointExportOptions options[, out OfficeConversionReport report], CancellationToken) : PowerPointDocument; ToPowerPointAsync; SaveAsPowerPoint(path | stream); SaveAsPowerPointAsync",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "HtmlPowerPointExportOptions without a loss policy",
+      "kind": "property",
+      "action": "change",
+      "new": "HtmlPowerPointExportOptions.FailOnLoss; Clone() is public",
+      "reason": "Conversions use FailOnLoss.",
+      "category": "options",
+      "applied": true
     }
   ]
 }

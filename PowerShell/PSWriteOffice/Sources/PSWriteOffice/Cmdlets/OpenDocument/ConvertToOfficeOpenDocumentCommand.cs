@@ -84,9 +84,12 @@ public sealed class ConvertToOfficeOpenDocumentCommand : PSCmdlet
                         word = WordDocumentService.LoadDocument(sourcePath, readOnly: true, autoSave: false);
                         ownedWord = word;
                     }
-                    var wordResult = word.ToOpenDocumentResult(WordOptions);
-                    if (FailOnLoss.IsPresent) wordResult.ThrowIfLoss();
-                    wordResult.Value.Save(output);
+                    OfficeConversionReport wordResult;
+                    using (var converted = word.ToOpenDocument(WordOptions, out wordResult))
+                    {
+                        if (FailOnLoss.IsPresent) wordResult.ThrowIfLoss();
+                        converted.Save(output);
+                    }
                     result = wordResult;
                     break;
                 case OdfDocumentKind.Spreadsheet:
@@ -96,9 +99,12 @@ public sealed class ConvertToOfficeOpenDocumentCommand : PSCmdlet
                         excel = ExcelDocumentService.LoadDocument(sourcePath, readOnly: true, autoSave: false);
                         ownedExcel = excel;
                     }
-                    var excelResult = excel.ToOpenDocumentResult(ExcelOptions);
-                    if (FailOnLoss.IsPresent) excelResult.ThrowIfLoss();
-                    excelResult.Value.Save(output);
+                    OfficeConversionReport excelResult;
+                    using (var converted = excel.ToOpenDocument(ExcelOptions, out excelResult))
+                    {
+                        if (FailOnLoss.IsPresent) excelResult.ThrowIfLoss();
+                        converted.Save(output);
+                    }
                     result = excelResult;
                     break;
                 case OdfDocumentKind.Presentation:
@@ -108,9 +114,12 @@ public sealed class ConvertToOfficeOpenDocumentCommand : PSCmdlet
                         presentation = PowerPointDocumentService.LoadDocument(sourcePath, readOnly: true);
                         ownedPresentation = presentation;
                     }
-                    var presentationResult = presentation.ToOpenDocumentResult(PowerPointOptions);
-                    if (FailOnLoss.IsPresent) presentationResult.ThrowIfLoss();
-                    presentationResult.Value.Save(output);
+                    OfficeConversionReport presentationResult;
+                    using (var converted = presentation.ToOpenDocument(PowerPointOptions, out presentationResult))
+                    {
+                        if (FailOnLoss.IsPresent) presentationResult.ThrowIfLoss();
+                        converted.Save(output);
+                    }
                     result = presentationResult;
                     break;
                 default:

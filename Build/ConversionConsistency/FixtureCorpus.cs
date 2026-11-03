@@ -24,7 +24,7 @@ internal static partial class FixtureCorpus {
                 body.FontFamily = family; body.FontSize = OfficeLength.Points(12);
             }
             word.Save(Path.Combine(output, "service-review.docx"));
-            word.ToOpenDocumentResult().Value.Save(Path.Combine(output, "service-review.odt"));
+            using (var converted = word.ToOpenDocument()) converted.Save(Path.Combine(output, "service-review.odt"));
         }
         using (var excel = ExcelDocument.Create()) {
             for (int page = 1; page <= 2; page++) {
@@ -46,7 +46,7 @@ internal static partial class FixtureCorpus {
                 .Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().First();
             defaultFont.FontName = new DocumentFormat.OpenXml.Spreadsheet.FontName { Val = family };
             excel.Save(Path.Combine(output, "service-review.xlsx"));
-            excel.ToOpenDocumentResult().Value.Save(Path.Combine(output, "service-review.ods"));
+            using (var converted = excel.ToOpenDocument()) converted.Save(Path.Combine(output, "service-review.ods"));
         }
         using (var presentation = PowerPointDocument.Create()) {
             presentation.SlideSize.Width= OfficeIMO.OfficeLength.Centimeters(12.7);
@@ -59,7 +59,7 @@ internal static partial class FixtureCorpus {
                 body.FontName = family; body.FontSize = OfficeLength.Points(12);
             }
             presentation.Save(Path.Combine(output, "service-review.pptx"));
-            presentation.ToOpenDocumentResult().Value.Save(Path.Combine(output, "service-review.odp"));
+            using (var converted = presentation.ToOpenDocument()) converted.Save(Path.Combine(output, "service-review.odp"));
         }
         var section = new OneNoteSection { Name = "Service review" };
         for (int number = 1; number <= 2; number++) {

@@ -36,7 +36,7 @@ internal static class EditableTargetExporter {
                     NativeTables: EditableNativeTableEvidence.FromWord(loaded));
             }
             case "excel": {
-                HtmlToExcelResult result = source.ToExcelDocumentResult(new HtmlExcelExportOptions {
+                HtmlToExcelResult result = source.ConvertToExcelWithEvidence(new HtmlExcelExportOptions {
                     Mode = HtmlImportMode.Generic,
                     ImportEditableLayoutRegions = true
                 });
@@ -47,7 +47,7 @@ internal static class EditableTargetExporter {
                     NativeTables: EditableNativeTableEvidence.FromExcel(loaded));
             }
             case "powerpoint": {
-                HtmlToPowerPointResult result = source.ToPowerPointDocumentResult(new HtmlPowerPointExportOptions {
+                HtmlToPowerPointResult result = source.ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions {
                     Mode = HtmlImportMode.Generic,
                     ImportEditableLayoutRegions = true
                 });
@@ -60,12 +60,12 @@ internal static class EditableTargetExporter {
                     NativeTables: EditableNativeTableEvidence.FromPowerPoint(loaded));
             }
             case "onenote": {
-                HtmlToOneNoteSectionResult result = source.ToOneNoteSectionResult();
+                HtmlToOneNoteSectionResult result = source.ConvertToOneNoteSectionWithEvidence();
                 string artifact = Path.Combine(output, documentName + ".one");
                 result.RequireValue().Save(artifact);
                 OneNoteSection loaded = OneNoteSectionReader.Read(artifact);
                 int imageIndex = 0;
-                return new EditableExport(result.Report, artifact, loaded.ToHtmlDocument(new OneNoteMarkdownOptions {
+                return new EditableExport(result.Report, artifact, loaded.ToHtml(new OfficeIMO.OneNote.Html.OneNoteHtmlExportOptions { ProjectionOptions = new OneNoteMarkdownExportOptions {
                     AssetUriResolver = element => {
                         if (element is not OneNoteImage { Payload: not null } image) return null;
                         string? extension = image.MediaType switch {
@@ -83,10 +83,10 @@ internal static class EditableTargetExporter {
                         File.WriteAllBytes(Path.Combine(directory, fileName), bytes);
                         return "assets/" + fileName;
                     }
-                }), NativeTables: EditableNativeTableEvidence.FromOneNote(loaded));
+                } }), NativeTables: EditableNativeTableEvidence.FromOneNote(loaded));
             }
             case "rtf": {
-                HtmlToRtfResult result = source.ToRtfDocumentResult();
+                HtmlToRtfResult result = source.ConvertToRtfWithEvidence();
                 string artifact = Path.Combine(output, documentName + ".rtf");
                 result.RequireValue().Save(artifact);
                 RtfDocument loaded = RtfDocument.Load(artifact);

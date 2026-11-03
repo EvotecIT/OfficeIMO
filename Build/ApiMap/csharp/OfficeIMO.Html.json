@@ -280,6 +280,15 @@
       "reason": "Cancellable operations take a final CancellationToken cancellationToken = default, in synchronous and asynchronous forms alike.",
       "category": "cancellation",
       "applied": true
+    },
+    {
+      "old": "HtmlConversionDocument.SaveAsPng / SaveAsJpeg / SaveAsTiff / SaveAsWebp / SaveAsSvg(path | stream, HtmlRenderOptions options = null, int pageIndex = 0)",
+      "kind": "method",
+      "action": "change",
+      "new": "... same, plus CancellationToken cancellationToken = default (package OfficeIMO.Html.Pdf)",
+      "reason": "Cancellable operations take a final CancellationToken.",
+      "category": "cancellation",
+      "applied": true
     }
   ],
   "extraChanges": [

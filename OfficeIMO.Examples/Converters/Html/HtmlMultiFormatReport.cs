@@ -38,12 +38,10 @@ internal static partial class Html {
         word.Margins.Type = WordMargin.Narrow;
         word.Save(stem + ".docx");
 
-        HtmlToExcelResult excelResult = report.ToExcelDocumentResult(new HtmlExcelExportOptions {
+        using ExcelDocument excel = report.ToExcel(new HtmlExcelExportOptions {
             Mode = HtmlImportMode.Generic,
             ImportTypedCellValues = true
-        });
-        using ExcelDocument excel = excelResult.Value;
-        excelResult.RequireValue();
+        }, out OfficeConversionReport excelReport);
         foreach (ExcelSheet sheet in excel.Sheets) {
             sheet.AutoFitColumns();
             var (firstRow, firstColumn, lastRow, lastColumn) = ExcelA1.ParseRange(sheet.UsedRange.Address);
@@ -62,8 +60,8 @@ internal static partial class Html {
         foreach (var warning in pdf.Diagnostics) conversionNotes.Add("PDF: " + warning.Code + ": " + warning.Message);
         foreach (OfficeDiagnostic diagnostic in wordReport.Diagnostics)
             conversionNotes.Add(diagnostic.Format + ": " + diagnostic.Code + ": " + diagnostic.Message);
-        foreach (HtmlDiagnostic diagnostic in excelResult.Report.NativeDiagnostics)
-            conversionNotes.Add(diagnostic.Component + ": " + diagnostic.Code + ": " + diagnostic.Message);
+        foreach (OfficeDiagnostic diagnostic in excelReport.Diagnostics)
+            conversionNotes.Add(diagnostic.Format + ": " + diagnostic.Code + ": " + diagnostic.Message);
         foreach (string extension in new[] { ".html", ".pdf", ".docx", ".xlsx" })
             index.Add("- [" + extension.TrimStart('.').ToUpperInvariant() + "](" + Uri.EscapeDataString(name + extension) + ")");
 
@@ -104,9 +102,9 @@ internal static partial class Html {
         File.WriteAllLines(Path.Combine(outputFolder, "index.md"), index);
 
         Console.WriteLine($"Report outputs: {outputFolder}");
-        Console.WriteLine($"PDF pages: {pdf.ItemsWritten}; Excel sheets: {excelResult.Sheets}; typed import cells: {excelResult.Cells}");
-        foreach (HtmlDiagnostic diagnostic in excelResult.Report.NativeDiagnostics) {
-            Console.WriteLine($"{diagnostic.Component}: {diagnostic.Code}: {diagnostic.Message} [{diagnostic.Source}] {diagnostic.Detail}");
+        Console.WriteLine($"PDF pages: {pdf.ItemsWritten}; Excel sheets: {excel.Sheets.Count}");
+        foreach (OfficeDiagnostic diagnostic in excelReport.Diagnostics) {
+            Console.WriteLine($"{diagnostic.Format}: {diagnostic.Code}: {diagnostic.Message} [{diagnostic.Location}]");
         }
     }
 }

@@ -41,6 +41,42 @@
       "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
       "category": "options",
       "applied": true
+    },
+    {
+      "old": "ExcelDocument/ExcelSheet.ToHtmlResult(ExcelHtmlExportOptions) : HtmlTextConversionResult",
+      "kind": "method",
+      "action": "merge",
+      "new": "ExcelDocument/ExcelSheet.ToHtml(ExcelHtmlExportOptions options, out OfficeConversionReport report, CancellationToken) : string",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "ExcelDocument/ExcelSheet.SaveAsHtml(string | Stream, ExcelHtmlExportOptions) : void / SaveAsHtmlAsync : Task",
+      "kind": "method",
+      "action": "change",
+      "new": "ExcelDocument/ExcelSheet.SaveAsHtml(string path | Stream stream, ExcelHtmlExportOptions options = null, CancellationToken) : OfficeConversionReport; SaveAsHtmlAsync : Task<OfficeConversionReport>",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "HtmlConversionDocument.ToExcelDocument(HtmlExcelExportOptions) / ToExcelDocumentResult : HtmlToExcelResult",
+      "kind": "method",
+      "action": "merge",
+      "new": "HtmlConversionDocument.ToExcel(HtmlExcelExportOptions options[, out OfficeConversionReport report], CancellationToken) : ExcelDocument; ToExcelAsync; SaveAsExcel(path | stream); SaveAsExcelAsync",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "(Excel HTML options) no loss policy",
+      "kind": "property",
+      "action": "change",
+      "new": "ExcelHtmlExportOptions.FailOnLoss / HtmlExcelExportOptions.FailOnLoss; HtmlExcelExportOptions.Clone() is public",
+      "reason": "Conversions use FailOnLoss.",
+      "category": "options",
+      "applied": true
     }
   ],
   "extraChanges": [
