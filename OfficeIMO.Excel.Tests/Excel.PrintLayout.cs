@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(worksheet.GetFirstChild<SheetProperties>()?.GetFirstChild<PageSetupProperties>()?.FitToPage);
             }
         }
-    
+
         [Fact]
         public void Test_PageSetupPropertiesWriteAndClearStoredValues() {
             using var document = ExcelDocument.Create(new MemoryStream());
