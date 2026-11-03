@@ -4479,6 +4479,26 @@ Handle `PdfRedactionMatchKind.BookmarkTitle` when switching on match kinds; its 
 Search redaction output for accepted object-stream and cross-reference-stream PDFs is always classic. If your code inspects saved structure, expect no object-stream or cross-reference-stream objects, no `/Prev` trailer entry, and null in place of references to free or missing objects.
 
 
+## Excel XLSB and XLS readers validate as they read
+
+`ExcelDocument.OpenReader` now reads XLSB and BIFF8 XLS worksheets in one pass and validates each row when `Read`
+reaches it. A malformed record or cell no longer fails `OpenReader`, `NextResult` or the first `Read`: it throws the
+same exception from the `Read` call for the bad row, after the earlier rows were returned. Workbook cell, record and
+row limits are charged as rows are read. Code that treated a successful open as proof that the whole sheet is valid
+must read every row, or handle the exception from `Read`, before it trusts the result.
+
+The column count is fixed before the first row: the declared worksheet dimension, widened by the header row, or by
+the first populated row when `HasHeaderRow` is false. Excel writes an accurate dimension, so Excel workbooks keep
+their columns. A later cell outside those columns throws `InvalidDataException` from `Read`; set
+`ExcelReaderOptions.A1Range` to read such a sheet with an explicit width. A stale dimension wider than the data adds
+empty columns. XLSX keeps validating the selected worksheet before the first row.
+
+## Excel tables reject captions
+
+`ExcelSheet.AddTable` with `OfficeTableOptions.Caption` now throws `NotSupportedException`, as PowerPoint and
+Markdown do. Excel tables have no visible caption, and the value used to be ignored. Write the caption to a cell
+above the table and keep `Name` for the table name.
+
 ## Excel cells inherit row and column styles
 
 A cell created by a write now starts with its row's style when the row has a custom format, otherwise with its
