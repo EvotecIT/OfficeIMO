@@ -15193,7 +15193,7 @@
     <command:returnValues>
       <command:returnValue>
         <dev:type>
-          <maml:name>OfficeIMO.Excel.ExcelSubtotalResult</maml:name>
+          <maml:name>OfficeIMO.Excel.Reports.ExcelSubtotalResult</maml:name>
         </dev:type>
       </command:returnValue>
     </command:returnValues>
@@ -32209,7 +32209,7 @@ This does not discover, bypass, or crack a missing password.</maml:para>
           <maml:description>
             <maml:para>Per-column horizontal alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment[]</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
@@ -32768,7 +32768,7 @@ This does not discover, bypass, or crack a missing password.</maml:para>
           <maml:description>
             <maml:para>Per-column horizontal alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment[]</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
@@ -33339,7 +33339,7 @@ This does not discover, bypass, or crack a missing password.</maml:para>
           <maml:description>
             <maml:para>Per-column horizontal alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment[]</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
@@ -33910,7 +33910,7 @@ This does not discover, bypass, or crack a missing password.</maml:para>
         <maml:description>
           <maml:para>Per-column horizontal alignment.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeAlignment[]</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
@@ -73555,7 +73555,7 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
       </command:example>
       <command:example>
         <maml:title>Run a resumable directory job with an explicit loss policy.</maml:title>
-        <dev:code>ConvertTo-OfficeDocument -InputDirectory ./source -OutputDirectory ./pdf -TargetExtension pdf -CheckpointDirectory ./state -ConversionOptions (New-OfficeConversionOptions -RequireNoLoss)</dev:code>
+        <dev:code>ConvertTo-OfficeDocument -InputDirectory ./source -OutputDirectory ./pdf -TargetExtension pdf -CheckpointDirectory ./state -ConversionOptions (New-OfficeConversionOptions -ThrowIfLoss)</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -143187,6 +143187,18 @@ and require an explicit save. The result reports the actual copied rows and colu
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>FailOnLoss</maml:name>
+          <maml:description>
+            <maml:para>Reject any reduction reported by the selected route.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>HtmlOptions</maml:name>
           <maml:description>
             <maml:para>HTML-to-PDF settings from New-OfficeHtmlPdfOptions.</maml:para>
@@ -143317,18 +143329,6 @@ and require an explicit save. The result reports the actual copied rows and colu
           <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
           <dev:type>
             <maml:name>Double</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>RequireNoLoss</maml:name>
-          <maml:description>
-            <maml:para>Reject any reduction reported by the selected route.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -143485,6 +143485,18 @@ and require an explicit save. The result reports the actual copied rows and colu
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>FailOnLoss</maml:name>
+        <maml:description>
+          <maml:para>Reject any reduction reported by the selected route.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>HtmlOptions</maml:name>
         <maml:description>
           <maml:para>HTML-to-PDF settings from New-OfficeHtmlPdfOptions.</maml:para>
@@ -143620,18 +143632,6 @@ and require an explicit save. The result reports the actual copied rows and colu
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>RequireNoLoss</maml:name>
-        <maml:description>
-          <maml:para>Reject any reduction reported by the selected route.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>RtfOptions</maml:name>
         <maml:description>
           <maml:para>RTF-to-PDF settings from New-OfficeRtfPdfOptions.</maml:para>
@@ -143724,7 +143724,7 @@ and require an explicit save. The result reports the actual copied rows and colu
     <command:examples>
       <command:example>
         <maml:title>Keep workbook charts in a strict conversion job.</maml:title>
-        <dev:code>$options = New-OfficeConversionOptions -RequireNoLoss -ExcelOptions (New-OfficeExcelPdfOptions -UseWorksheetCharts)
+        <dev:code>$options = New-OfficeConversionOptions -FailOnLoss -ExcelOptions (New-OfficeExcelPdfOptions -UseWorksheetCharts)
             ConvertTo-OfficeDocument -InputPath ./report.xlsx -OutputPath ./report.pdf -ConversionOptions $options</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
@@ -153018,7 +153018,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
           <command:parameterValue required="false" variableLength="false">HtmlRenderFidelityPolicy</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">AllowDiagnosedLoss</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">RequireNoLoss</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">FailOnLoss</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
             <maml:name>HtmlRenderFidelityPolicy</maml:name>
@@ -153369,7 +153369,7 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
         <command:parameterValue required="false" variableLength="false">HtmlRenderFidelityPolicy</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">AllowDiagnosedLoss</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">RequireNoLoss</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">FailOnLoss</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
           <maml:name>HtmlRenderFidelityPolicy</maml:name>
