@@ -1,0 +1,174 @@
+{
+  "baseline": "f15d165d18430d34e9eac85fdc7c593fbf4d58b8 (same pre-cache PowerPoint source; master only changes its project metadata)",
+  "candidateHead": "1f5ffdbe7b89e883afa0a0ff3fbaa87768246b33",
+  "candidateSourceHashes": {
+    "OfficeIMO.PowerPoint/PowerPointDocument.Lifecycle.cs": "52e6eb42c2af21e3179b8f8aad43df1d0751d9bf8ba7deb3d279f366e9327c1f",
+    "OfficeIMO.PowerPoint/PowerPointDocument.DefaultPackage.cs": "c16bb2762a5c9e59b97b1a2b69a5ea1b9373d3354c17ab8ebe56722310a4bbd1"
+  },
+  "hostLoad": "13:24  up 1 day, 13:57, 1 user, load averages: 8.62 9.48 9.28",
+  "runs": [
+    {
+      "iteration": 0,
+      "kind": "baseline",
+      "exitCode": 0,
+      "assemblySha256": "94d2c0bdddd2f6d74923f817310dbd6bc4577465f0537978195598a3817eebce",
+      "result": {
+        "framework": ".NET 10.0.14",
+        "measurements": [
+          {
+            "mode": "cold",
+            "count": 1,
+            "milliseconds": 157.0664,
+            "allocatedBytes": 5710072
+          },
+          {
+            "mode": "warm",
+            "count": 100,
+            "milliseconds": 9.075948,
+            "allocatedBytes": 2486082
+          },
+          {
+            "mode": "warm",
+            "count": 100,
+            "milliseconds": 9.003651999999999,
+            "allocatedBytes": 2486270
+          },
+          {
+            "mode": "warm",
+            "count": 100,
+            "milliseconds": 8.725653,
+            "allocatedBytes": 2480849
+          }
+        ],
+        "validation": "Passed"
+      }
+    },
+    {
+      "iteration": 1,
+      "kind": "candidate",
+      "exitCode": 0,
+      "assemblySha256": "b64259f41c7f45a6c123f84ff12bcbdf7dc3c0cf52e5241296bb8e44b918d78b",
+      "result": {
+        "framework": ".NET 10.0.14",
+        "measurements": [
+          {
+            "mode": "cold",
+            "count": 1,
+            "milliseconds": 156.0022,
+            "allocatedBytes": 6853000
+          },
+          {
+            "mode": "warm",
+            "count": 100,
+            "milliseconds": 1.252388,
+            "allocatedBytes": 1064146
+          },
+          {
+            "mode": "warm",
+            "count": 100,
+            "milliseconds": 1.667148,
+            "allocatedBytes": 1063598
+          },
+          {
+            "mode": "warm",
+            "count": 100,
+            "milliseconds": 1.7060570000000002,
+            "allocatedBytes": 1059319
+          }
+        ],
+        "validation": "Passed"
+      }
+    },
+    {
+      "iteration": 2,
+      "kind": "baseline",
+      "exitCode": 0,
+      "assemblySha256": "94d2c0bdddd2f6d74923f817310dbd6bc4577465f0537978195598a3817eebce",
+      "result": {
+        "framework": ".NET 10.0.14",
+        "measurements": [
+          {
+            "mode": "cold",
+            "count": 1,
+            "milliseconds": 143.3834,
+            "allocatedBytes": 5759552
+          },
+          {
+            "mode": "warm",
+            "count": 100,
+            "milliseconds": 9.371428,
+            "allocatedBytes": 2486142
+          },
+          {
+            "mode": "warm",
+            "count": 100,
+            "milliseconds": 9.099361,
+            "allocatedBytes": 2484315
+          },
+          {
+            "mode": "warm",
+            "count": 100,
+            "milliseconds": 9.207218000000001,
+            "allocatedBytes": 2481240
+          }
+        ],
+        "validation": "Passed"
+      }
+    },
+    {
+      "iteration": 3,
+      "kind": "candidate",
+      "exitCode": 0,
+      "assemblySha256": "b64259f41c7f45a6c123f84ff12bcbdf7dc3c0cf52e5241296bb8e44b918d78b",
+      "result": {
+        "framework": ".NET 10.0.14",
+        "measurements": [
+          {
+            "mode": "cold",
+            "count": 1,
+            "milliseconds": 146.1827,
+            "allocatedBytes": 6853112
+          },
+          {
+            "mode": "warm",
+            "count": 100,
+            "milliseconds": 1.249129,
+            "allocatedBytes": 1064156
+          },
+          {
+            "mode": "warm",
+            "count": 100,
+            "milliseconds": 1.5205520000000001,
+            "allocatedBytes": 1064148
+          },
+          {
+            "mode": "warm",
+            "count": 100,
+            "milliseconds": 1.450478,
+            "allocatedBytes": 1064173
+          }
+        ],
+        "validation": "Passed"
+      }
+    }
+  ],
+  "probeSource": "using System.Diagnostics;\nusing System.Text.Json;\nusing OfficeIMO.PowerPoint;\n\nvar measurements = new List<object>();\nvoid Run(string mode, int count) {\n    long before = GC.GetAllocatedBytesForCurrentThread();\n    var watch = Stopwatch.StartNew();\n    for (int index = 0; index < count; index++) {\n        using var presentation = PowerPointDocument.Create();\n        if (presentation.Slides.Count != 0) throw new InvalidOperationException(\"Unexpected initial slide.\");\n    }\n    watch.Stop();\n    measurements.Add(new { mode, count, milliseconds = watch.Elapsed.TotalMilliseconds / count, allocatedBytes = (GC.GetAllocatedBytesForCurrentThread() - before) / count });\n}\nRun(\"cold\", 1);\nfor (int i = 0; i < 12; i++) { using var presentation = PowerPointDocument.Create(); }\nfor (int i = 0; i < 3; i++) Run(\"warm\", 100);\nusing (var presentation = PowerPointDocument.Create()) {\n    presentation.AddSlide().AddTitle(\"Creation proof\");\n    using var output = new MemoryStream();\n    presentation.Save(output);\n    using var reopened = PowerPointDocument.Load(output);\n    if (reopened.Slides.Count != 1 || reopened.Slides[0].TextBoxes.First().Text != \"Creation proof\" || reopened.ValidateDocument().Any()) throw new InvalidOperationException(\"Saved presentation contract failed.\");\n}\nConsole.WriteLine(JsonSerializer.Serialize(new { framework = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription, measurements, validation = \"Passed\" }));\n",
+  "probeProject": "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup><ItemGroup><ProjectReference Include=\"$(PowerPointProject)\" /></ItemGroup></Project>",
+  "method": {
+    "configuration": "Release",
+    "target": "net10.0",
+    "order": [
+      "baseline",
+      "candidate",
+      "baseline",
+      "candidate"
+    ],
+    "coldCreations": 1,
+    "warmupCreations": 12,
+    "warmSamples": 3,
+    "creationsPerWarmSample": 100,
+    "timedWork": "PowerPointDocument.Create and Dispose; empty slide count checked",
+    "validation": "Outside timing: add a title slide, save, reload, check text and Open XML validity",
+    "reproduce": "Build probeProject with -p:PowerPointProject=<checkout>/OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj for each revision. Run each build in a fresh dotnet process in the recorded order."
+  }
+}

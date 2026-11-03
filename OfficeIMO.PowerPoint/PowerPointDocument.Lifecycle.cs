@@ -159,21 +159,40 @@ namespace OfficeIMO.PowerPoint {
                 if (options.Theme != null) copy.ApplyLayoutTheme(options.Theme);
                 return copy;
             }
-            var packageStream = new MemoryStream(StreamBufferSize);
+            OfficeTheme? theme = applyTheme ? options.Theme ?? OfficeTheme.Default : null;
+            bool themeApplied = ReferenceEquals(theme, OfficeTheme.Default);
+            byte[] packageBytes = themeApplied ? DefaultThemedPackage.Value : DefaultPackage.Value;
+            var packageStream = new MemoryStream(packageBytes.Length + StreamBufferSize);
+            PresentationDocument? document = null;
             try {
-                PresentationDocument document = PresentationDocument.Create(
-                    packageStream, PresentationDocumentType.Presentation, autoSave: false);
-                var presentation = new PowerPointDocument(document, filePath ?? string.Empty, isNewDocument: true) {
+                packageStream.Write(packageBytes, 0, packageBytes.Length);
+                packageStream.Position = 0;
+                document = PresentationDocument.Open(
+                    packageStream, true, new OpenSettings { AutoSave = false });
+                var presentation = new PowerPointDocument(document, filePath ?? string.Empty, isNewDocument: false) {
                     _packageStream = packageStream,
                     _sourceStream = sourceStream,
                     _persistenceMode = options.PersistenceMode
                 };
-                if (applyTheme) presentation.ApplyLayoutTheme(options.Theme ?? OfficeTheme.Default);
+                // Package structure is reusable; creation dates and authoring state belong to this instance.
+                DateTime timestamp = DateTime.UtcNow;
+                document.PackageProperties.Created = timestamp;
+                document.PackageProperties.Modified = timestamp;
+                if (themeApplied) {
+                    presentation._baseTheme = theme;
+                    presentation._layoutTheme = PowerPointLayoutTheme.From(theme);
+                } else if (theme != null) {
+                    presentation.ApplyLayoutTheme(theme);
+                }
                 presentation.PresentationRoot.Save();
-                presentation._document?.Save();
+                document.Save();
                 return presentation;
             } catch {
-                packageStream.Dispose();
+                try {
+                    document?.Dispose();
+                } finally {
+                    packageStream.Dispose();
+                }
                 throw;
             }
         }

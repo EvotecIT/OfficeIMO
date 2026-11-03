@@ -131,3 +131,29 @@ dotnet run -c Release -f net8.0 --project .\OfficeIMO.PowerPoint.Benchmarks -- -
 
 Use repeated same-machine comparisons for smaller timing changes. The checked-in
 budget is a regression guard, not a throughput guarantee.
+
+
+## Repeated default creation — 2026-11-03
+
+Default creation reuses serialized native scaffolding and opens an independent
+mutable package for each presentation. Custom themes use the neutral scaffold;
+explicit templates retain their existing load path.
+
+A Release/net10.0 probe on the normal macOS development host ran baseline,
+candidate, baseline, candidate. Each process measured its first creation, warmed
+up twelve times, then measured three batches of one hundred create/dispose
+operations. A separate save/reload check verified slide text and Open XML validity.
+All measurements and the complete probe source are in
+[the creation evidence](../Docs/performance/powerpoint-creation-2026-11-03.json).
+
+| Measurement | Baseline runs | Cached runs |
+| --- | --- | --- |
+| Median warm time per creation | 9.004 / 9.207 ms | 1.667 / 1.450 ms |
+| Median warm allocation per creation | 2,486,082 / 2,484,315 bytes | 1,063,598 / 1,064,156 bytes |
+| First creation time | 157.066 / 143.383 ms | 156.002 / 146.183 ms |
+| First creation allocation | 5,710,072 / 5,759,552 bytes | 6,853,000 / 6,853,112 bytes |
+
+The warm allocation reduction is about 57%; warm elapsed time falls by 81–84%.
+Initializing the cache costs about 1.1 MB of additional allocation on the first
+creation. First-call timing varies without a consistent improvement. These
+figures cover default create/dispose, not authoring or saving a complete deck.

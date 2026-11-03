@@ -55,6 +55,61 @@ public sealed class PowerPointCreationThemeTests {
     }
 
     [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void RepeatedCreationKeepsMutablePackagesAndThemesIndependent(int creation) {
+        PowerPointDocument CreatePresentation() => creation switch {
+            1 => PowerPointDocument.Create(new PowerPointCreateOptions { Theme = CustomTheme }),
+            2 => PowerPointDocument.CreateForImport(),
+            _ => PowerPointDocument.Create()
+        };
+
+        using var first = CreatePresentation();
+        string? originalAccent = first.GetThemeColor(PowerPointThemeColor.Accent1);
+        var firstMaster = first.OpenXmlDocument.PresentationPart!.SlideMasterParts.First().SlideMaster;
+        string originalMaster = firstMaster.OuterXml;
+        DateTime oldCreated = new(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        firstMaster.CommonSlideData!.Name = "First master";
+        first.SetThemeColor(PowerPointThemeColor.Accent1, "FF00FF");
+        first.Properties.Title = "First package";
+        first.Properties.Created = oldCreated;
+        first.ApplicationProperties.Company = "First company";
+        first.AddSlide().AddTitle("First slide");
+
+        using var second = CreatePresentation();
+        Assert.Empty(second.Slides);
+        Assert.Equal(originalAccent, second.GetThemeColor(PowerPointThemeColor.Accent1));
+        Assert.Equal(originalMaster, second.OpenXmlDocument.PresentationPart!.SlideMasterParts.First().SlideMaster.OuterXml);
+        Assert.True(string.IsNullOrEmpty(second.Properties.Title));
+        Assert.NotEqual(oldCreated, second.Properties.Created);
+        Assert.Equal(string.Empty, second.ApplicationProperties.Company);
+        second.AddSlide().AddTitle("Second slide");
+
+        using var firstStream = new MemoryStream();
+        first.Save(firstStream);
+        first.Dispose();
+        using var secondStream = new MemoryStream();
+        second.Save(secondStream);
+        using var firstSaved = PowerPointDocument.Load(firstStream);
+        using var secondSaved = PowerPointDocument.Load(secondStream);
+        Assert.Equal("First slide", Assert.Single(firstSaved.Slides).TextBoxes.First().Text);
+        Assert.Equal("FF00FF", firstSaved.GetThemeColor(PowerPointThemeColor.Accent1));
+        Assert.Equal(oldCreated, firstSaved.Properties.Created?.ToUniversalTime());
+        Assert.Equal("Second slide", Assert.Single(secondSaved.Slides).TextBoxes.First().Text);
+        Assert.Equal(originalAccent, secondSaved.GetThemeColor(PowerPointThemeColor.Accent1));
+        Assert.True(string.IsNullOrEmpty(secondSaved.Properties.Title));
+        Assert.Equal(string.Empty, secondSaved.ApplicationProperties.Company);
+
+        using var fresh = CreatePresentation();
+        Assert.Empty(fresh.Slides);
+        Assert.Equal(originalAccent, fresh.GetThemeColor(PowerPointThemeColor.Accent1));
+        Assert.True(string.IsNullOrEmpty(fresh.Properties.Title));
+        Assert.Empty(firstSaved.ValidateDocument());
+        Assert.Empty(secondSaved.ValidateDocument());
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void TemplateStyleSurvivesUnlessThemeIsExplicitlyChosen(bool chooseTheme) {
