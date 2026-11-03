@@ -15,7 +15,7 @@ public sealed class PdfContentBuilderTypedTableTests {
     [Fact]
     public void TypedProjectionEnumeratesOnceAndSavesSelectedOrderedFormattedColumns() {
         var source = new SinglePass<Row>(new[] { new Row("Ada", 12.5m), new Row("Grace", 7m) });
-        var options = new PdfTableOptions { Name = "Team totals", HeaderTransform = name => "Header " + name };
+        var options = new PdfTableOptions { Caption = "Team totals", HeaderTransform = name => "Header " + name };
         options.Exclude.Add(nameof(Row.Unused));
         options.Order.Add(nameof(Row.Amount));
         options.HeaderRenames[nameof(Row.Amount)] = "Total";

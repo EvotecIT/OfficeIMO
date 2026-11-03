@@ -15,6 +15,14 @@ public sealed class PowerPointTypedAuthoringLayoutTests {
     private static PowerPointChart Chart(PowerPointSlide slide, OfficeChartOptions? options = null) =>
         slide.AddChart(OfficeChartType.Column, Rows, nameof(Revenue.Period), options, nameof(Revenue.Amount));
 
+    [Fact]
+    public void TypedTableRejectsCaptionBecauseSlidesHaveNoVisibleTableCaption() {
+        using var document = PowerPointDocument.Create();
+        var slide = document.AddSlide();
+        Assert.Throws<NotSupportedException>(() => slide.AddTable(Rows, new OfficeTableOptions { Caption = "Revenue" }));
+        Assert.Empty(slide.Tables);
+    }
+
     [Theory]
     [InlineData(960D, 540D, false)]
     [InlineData(720D, 540D, false)]

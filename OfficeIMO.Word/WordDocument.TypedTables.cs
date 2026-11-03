@@ -6,16 +6,14 @@ namespace OfficeIMO.Word;
 
 public partial class WordDocument {
     /// <summary>Adds an editable table from a single pass over typed properties, fields, or string-keyed dictionaries.</summary>
+    /// <remarks><see cref="OfficeTableOptions.Name"/> becomes the table's accessible title. <see cref="OfficeTableOptions.Caption"/> adds a visible paragraph immediately before the table. Pass <see cref="WordTableOptions"/> to choose the table style and layout mode.</remarks>
     public WordTable AddTable<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(
         IEnumerable<T> rows, OfficeTableOptions? options = null) {
         bool headers = options?.IncludeHeaders ?? true;
         var data = ObjectDataHelpers.ProjectTypedTable(rows, headers, options: options);
         int rowCount = checked(data.Rows.Count + (headers ? 1 : 0));
         if (rowCount == 0) throw new ArgumentException("A headerless table requires at least one row.", nameof(rows));
-        var table = AddTable(rowCount, data.Headers.Length);
-        table.Title = options?.Name;
-        table.ConditionalFormattingFirstRow = headers;
-        table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = headers;
+        var table = CreateOptionsTable(rowCount, data.Headers.Length, options);
         int offset = headers ? 1 : 0;
         if (headers) {
             for (int column = 0; column < data.Headers.Length; column++) GetOrCreateParagraph(table, 0, column).Text = data.Headers[column];
@@ -33,10 +31,7 @@ public partial class WordDocument {
         ObjectDataHelpers.ValidateTableAlignments(options);
         int rows = values.GetLength(0), columns = values.GetLength(1);
         if (rows == 0 || columns == 0) throw new ArgumentException("A table matrix requires at least one row and column.", nameof(values));
-        var table = AddTable(rows, columns);
-        table.Title = options?.Name;
-        table.ConditionalFormattingFirstRow = options?.IncludeHeaders ?? true;
-        table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = options?.IncludeHeaders ?? true;
+        var table = CreateOptionsTable(rows, columns, options);
         for (int row = 0; row < rows; row++)
             for (int column = 0; column < columns; column++)
                 GetOrCreateParagraph(table, row, column).Text = System.Convert.ToString(values[row, column], CultureInfo.CurrentCulture) ?? string.Empty;
@@ -58,5 +53,18 @@ public partial class WordDocument {
         for (int row = 0; row < data.Length; row++)
             for (int column = 0; column < data[row].Length; column++) matrix[row, column] = data[row][column];
         return AddTable(matrix, options);
+    }
+
+    /// <summary>Creates the native table for an options-based overload: caption paragraph, style, layout, title and header-row flags.</summary>
+    private WordTable CreateOptionsTable(int rows, int columns, OfficeTableOptions? options) {
+        var wordOptions = options as WordTableOptions;
+        if (options?.Caption != null) AddParagraph(options.Caption);
+        var table = AddTable(rows, columns, wordOptions?.Style ?? WordTableStyle.OfficeIMOModern);
+        if (wordOptions?.LayoutMode is { } layoutMode) table.LayoutMode = layoutMode;
+        table.Title = options?.Name;
+        bool headers = options?.IncludeHeaders ?? true;
+        table.ConditionalFormattingFirstRow = headers;
+        table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = headers;
+        return table;
     }
 }

@@ -16,6 +16,8 @@ OfficeIMO.OfficePackageSecurityOptions.MaxRelationships.set -> void
 OfficeIMO.OfficePackageSecurityRule.RelationshipCount = 13 -> OfficeIMO.OfficePackageSecurityRule
 OfficeIMO.OfficeSeries.Trendline.get -> OfficeIMO.Drawing.OfficeChartTrendline?
 OfficeIMO.OfficeSeries.WithTrendline(OfficeIMO.Drawing.OfficeChartTrendline? trendline) -> OfficeIMO.OfficeSeries!
+OfficeIMO.OfficeTableOptions.Caption.get -> string?
+OfficeIMO.OfficeTableOptions.Caption.set -> void
 const OfficeIMO.OfficeDiagnosticCodes.FontNotEmbedded = "font-not-embedded" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.NativeBookmarkTargetMissing = "native-bookmark-target-missing" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.NativeBookmarkTargetUnprojected = "native-bookmark-target-unprojected" -> string!

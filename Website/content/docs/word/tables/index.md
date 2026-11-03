@@ -170,11 +170,10 @@ var employees = new[] {
     new { Name = "Carol", Role = "Manager", Salary = 105000 },
 };
 
-var table = document.AddTable(
-    employees,
-    WordTableStyle.GridTable4Accent1,
-    includeHeader: true
-);
+var table = document.AddTable(employees, new WordTableOptions {
+    Style = WordTableStyle.GridTable4Accent1,
+    Caption = "Table 1. Employees"
+});
 ```
 
 ## Accessing All Table Paragraphs

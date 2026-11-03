@@ -3095,6 +3095,15 @@
       "file": "OfficeIMO.Pdf/Manipulation/PdfRedactionMatch.cs",
       "category": "behavior",
       "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfContentBuilder.Table<T>(IEnumerable<T> rows, OfficeTableOptions? options) with OfficeTableOptions.Name rendered as the caption",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfContentBuilder.Table<T>(IEnumerable<T> rows, OfficeTableOptions? options)",
+      "replacement": "Set Caption instead of Name for the visible PDF table caption. A non-null Name now throws NotSupportedException.",
+      "reason": "Name is the native table identity, which PDF tables do not have; Caption is the visible text.",
+      "category": "tables"
     }
   ],
   "packageMoves": [

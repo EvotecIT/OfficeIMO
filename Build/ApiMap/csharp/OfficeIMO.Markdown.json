@@ -2054,6 +2054,15 @@
       "replacement": "The abbreviated methods remain as chaining shortcuts. Call the Add methods when you need the created block; AddHeading rejects levels outside 1 to 6 instead of clamping them.",
       "reason": "Markdown uses the AddParagraph/AddHeading/AddList/AddImage/AddTable vocabulary of the other document models.",
       "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDocument.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions? options = null) / AddTable(object? data, OfficeTableOptions? options = null) : TableBlock",
+      "kind": "method",
+      "action": "change",
+      "new": "Same signatures",
+      "replacement": "A non-null Name or Caption throws NotSupportedException (Name was silently ignored). Add a heading or paragraph before the table instead.",
+      "reason": "Markdown tables have neither a native name nor a caption, so the intent is reported instead of ignored.",
+      "category": "tables"
     }
   ],
   "packageMoves": [

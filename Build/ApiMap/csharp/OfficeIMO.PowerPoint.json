@@ -12351,6 +12351,15 @@
       "replacement": "Use AltText. It reads and writes the same OOXML descr value. Description trimmed surrounding whitespace; trim the value yourself if you relied on that.",
       "reason": "Description was a second name for AltText; AltText is the shared alternative-text name.",
       "category": "accessibility"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions? options = null) : PowerPointTable",
+      "kind": "method",
+      "action": "change",
+      "new": "Same signature",
+      "replacement": "Name stays the graphic-frame name. A non-null Caption throws NotSupportedException; add a text box next to the table for visible caption text.",
+      "reason": "PowerPoint tables have no visible caption, so the intent is reported instead of ignored.",
+      "category": "tables"
     }
   ],
   "packageMoves": [

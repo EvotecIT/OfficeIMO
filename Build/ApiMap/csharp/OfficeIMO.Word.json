@@ -7055,6 +7055,24 @@
       "replacement": "Read AltText; pass altText: instead of description: when using a named argument.",
       "reason": "The template image value uses the same name as WordImage.AltText.",
       "category": "accessibility"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AddTable(IEnumerable<object?> items, WordTableStyle style, bool includeHeader = true, WordTableLayoutMode? layout = null) : WordTable",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.AddTable(IEnumerable<object?> items, OfficeTableOptions? options) : WordTable",
+      "replacement": "document.AddTable(items, new WordTableOptions { Style = style, IncludeHeaders = includeHeader, LayoutMode = layout }). The runtime overload now also honours Include, Exclude, Order, HeaderRenames, HeaderTransform, Formatters, Alignments, Name and Caption, and rejects null rows before adding anything.",
+      "reason": "Runtime-object tables use the same options type as typed, matrix and text-row tables.",
+      "category": "tables"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions? options = null) / AddTable(object?[,] values, ...) / AddTable(IEnumerable<string[]> rows, ...) / AddTable(IEnumerable<IReadOnlyList<string>> rows, ...)",
+      "kind": "method",
+      "action": "change",
+      "new": "Same signatures",
+      "replacement": "OfficeTableOptions.Caption adds a visible paragraph immediately before the table; Name stays the table's accessible title. WordTableOptions.Style and LayoutMode are applied when given.",
+      "reason": "Caption is the visible caption; Name is the native identity.",
+      "category": "tables"
     }
   ],
   "packageMoves": [

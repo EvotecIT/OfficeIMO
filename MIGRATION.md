@@ -1520,7 +1520,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Word
 
 <details>
-<summary>410 changes</summary>
+<summary>412 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -1934,6 +1934,8 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | accessibility | `OfficeIMO.Word.WordImageOptions.Description` | Renamed | `OfficeIMO.Word.WordImageOptions.AltText` | AltText is the shared alternative-text name for images. |
 | accessibility | `OfficeIMO.Word.WordInlineImageInfo.Description` | Renamed | `OfficeIMO.Word.WordInlineImageInfo.AltText` | The inspection snapshot uses the same name as WordImage.AltText. |
 | accessibility | `OfficeIMO.Word.WordTemplateImage.Description / WordTemplateImage(byte[] content, string fileName, OfficeLength? width = null, OfficeLength? height = null, string description = "")` | Renamed | `OfficeIMO.Word.WordTemplateImage.AltText / WordTemplateImage(..., string altText = "")` | Read AltText; pass altText: instead of description: when using a named argument. |
+| tables | `OfficeIMO.Word.WordDocument.AddTable(IEnumerable<object?> items, WordTableStyle style, bool includeHeader = true, WordTableLayoutMode? layout = null) : WordTable` | Changed | `OfficeIMO.Word.WordDocument.AddTable(IEnumerable<object?> items, OfficeTableOptions? options) : WordTable` | document.AddTable(items, new WordTableOptions { Style = style, IncludeHeaders = includeHeader, LayoutMode = layout }). The runtime overload now also honours Include, Exclude, Order, HeaderRenames, HeaderTransform, Formatters, Alignments, Name and Caption, and rejects null rows before adding anything. |
+| tables | `OfficeIMO.Word.WordDocument.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions? options = null) / AddTable(object?[,] values, ...) / AddTable(IEnumerable<string[]> rows, ...) / AddTable(IEnumerable<IReadOnlyList<string>> rows, ...)` | Changed | `Same signatures` | OfficeTableOptions.Caption adds a visible paragraph immediately before the table; Name stays the table's accessible title. WordTableOptions.Style and LayoutMode are applied when given. |
 
 </details>
 
@@ -2478,7 +2480,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.PowerPoint
 
 <details>
-<summary>588 changes</summary>
+<summary>589 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -3070,6 +3072,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | images | `OfficeIMO.PowerPoint.PowerPointSlide.GetGroupPictures(PowerPointGroupShape groupShape) : IReadOnlyList<PowerPointPicture>` | Renamed | `OfficeIMO.PowerPoint.PowerPointSlide.GetGroupImages(PowerPointGroupShape groupShape) : IReadOnlyList<PowerPointImage>` | The lookup is named after the shared image handle type. |
 | images | `OfficeIMO.PowerPoint.PowerPointSlide.GetPicture(string name) : PowerPointPicture?` | Renamed | `OfficeIMO.PowerPoint.PowerPointSlide.GetImage(string name) : PowerPointImage?` | The lookup is named after the shared image handle type. |
 | images | `OfficeIMO.PowerPoint.PowerPointSlide.Pictures : IEnumerable<PowerPointPicture>` | Renamed | `OfficeIMO.PowerPoint.PowerPointSlide.Images : IEnumerable<PowerPointImage>` | The collection is named after the shared image handle type. |
+| tables | `OfficeIMO.PowerPoint.PowerPointSlide.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions? options = null) : PowerPointTable` | Changed | `Same signature` | Name stays the graphic-frame name. A non-null Caption throws NotSupportedException; add a text box next to the table for visible caption text. |
 
 </details>
 
@@ -3106,7 +3109,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Pdf
 
 <details>
-<summary>176 changes</summary>
+<summary>177 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -3286,13 +3289,14 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | geometry | `OfficeIMO.Pdf.PdfPageCanvas.TextField(... double geometry ...)` | Changed | `OfficeIMO.Pdf.PdfPageCanvas.TextField(... OfficeLength geometry ...)` | Require explicit physical units for x, y, width, height, fontSize. Omitted defaults preserve native point dimensions. |
 | geometry | `OfficeIMO.Pdf.PdfTableCellFormField.TextField(... double geometry ...)` | Changed | `OfficeIMO.Pdf.PdfTableCellFormField.TextField(... OfficeLength geometry ...)` | Require explicit physical units for width, height, fontSize. Omitted defaults preserve native point dimensions. |
 | geometry | `OfficeIMO.Pdf.PdfTableCellFormField.Width / Height / FontSize : double` | Changed | `OfficeIMO.Pdf.PdfTableCellFormField.Width / Height / FontSize : OfficeLength` | Keep the TextField public model consistent; the shared choice-field model and clone/render paths convert at the point boundary. |
+| tables | `OfficeIMO.Pdf.PdfContentBuilder.Table<T>(IEnumerable<T> rows, OfficeTableOptions? options) with OfficeTableOptions.Name rendered as the caption` | Changed | `OfficeIMO.Pdf.PdfContentBuilder.Table<T>(IEnumerable<T> rows, OfficeTableOptions? options)` | Set Caption instead of Name for the visible PDF table caption. A non-null Name now throws NotSupportedException. |
 
 </details>
 
 #### OfficeIMO.Markdown
 
 <details>
-<summary>88 changes</summary>
+<summary>89 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -3384,6 +3388,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Visibility | `OfficeIMO.Markdown.MarkdownSemanticKinds` | Internal | &mdash; | Use the documented document, options and result APIs. |
 | Visibility | `OfficeIMO.Markdown.MarkdownStreamingPreviewNormalizer` | Internal | &mdash; | Use the documented document, options and result APIs. |
 | Visibility | `OfficeIMO.Markdown.MarkdownTranscriptTransportMarkers` | Internal | &mdash; | Use the documented document, options and result APIs. |
+| tables | `OfficeIMO.Markdown.MarkdownDocument.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions? options = null) / AddTable(object? data, OfficeTableOptions? options = null) : TableBlock` | Changed | `Same signatures` | A non-null Name or Caption throws NotSupportedException (Name was silently ignored). Add a heading or paragraph before the table instead. |
 
 </details>
 
@@ -3489,7 +3494,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Core
 
 <details>
-<summary>60 changes</summary>
+<summary>62 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -3553,6 +3558,8 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Visibility | `OfficeIMO.Security.OfficeVbaSignatureService` | Internal | &mdash; | Use the documented document, options and result APIs. |
 | Visibility | `OfficeIMO.Security.OfficeXmlPackageSignatureService` | Internal | &mdash; | Use the documented document, options and result APIs. |
 | Visibility | `OfficeIMO.Security.XmlDigitalSignatureAlgorithms` | Internal | &mdash; | Use the documented document, options and result APIs. |
+| tables | `OfficeIMO.OfficeTableOptions.Name` | Changed | `OfficeIMO.OfficeTableOptions.Name` | Name is the native table name or identity (Excel table name, PowerPoint graphic-frame name, Word table title) and is never rendered as visible text. Use Caption for visible caption text. |
+| tables | `OfficeIMO.OfficeTableOptions.Name : string? (rendered as a visible PDF caption)` | Changed | `OfficeIMO.OfficeTableOptions.Name : string? (native name); OfficeIMO.OfficeTableOptions.Caption : string? (visible caption)` | Set Caption for visible caption text. Word adds a paragraph before the table and PDF renders it as the table caption; PowerPoint and Markdown throw NotSupportedException. |
 
 </details>
 

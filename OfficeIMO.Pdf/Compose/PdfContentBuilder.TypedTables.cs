@@ -18,11 +18,13 @@ public sealed partial class PdfContentBuilder {
     /// <summary>Adds a table from typed properties, tuples, or string-keyed dictionaries using the shared bounded projection engine.</summary>
     /// <param name="rows">Source rows, enumerated once while this call snapshots the table.</param>
     /// <param name="options">Common column selection, ordering, header, formatting and alignment options.</param>
-    /// <remarks>A table name becomes the PDF caption. Logical start/end align left/right; justified columns use PDF's left alignment.</remarks>
+    /// <remarks><see cref="OfficeTableOptions.Caption"/> becomes the visible PDF caption. PDF tables have no native name, so a non-null <see cref="OfficeTableOptions.Name"/> throws <see cref="NotSupportedException"/>. Logical start/end align left/right; justified columns use PDF's left alignment.</remarks>
     public PdfContentBuilder Table<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(
         IEnumerable<T> rows, OfficeTableOptions? options) {
         Guard.NotNull(rows, nameof(rows));
         ObjectDataHelpers.ValidateTableAlignments(options);
+        if (options?.Name != null)
+            throw new NotSupportedException("PDF tables have no native name. Use OfficeTableOptions.Caption for visible caption text.");
         var pdfOptions = options as PdfTableOptions;
         PdfAlign align = pdfOptions?.Align ?? PdfAlign.Left;
         Guard.LeftCenterRightAlign(align, nameof(options), "Table");
@@ -55,7 +57,7 @@ public sealed partial class PdfContentBuilder {
         var effectiveStyle = pdfOptions?.Style?.Clone() ?? _doc.CompositionOptions.DefaultTableStyle ?? new PdfTableStyle();
         effectiveStyle.HeaderRowCount = headers ? 1 : 0;
         effectiveStyle.RepeatHeaderRowCount = headers ? 1 : 0;
-        if (options?.Name != null) effectiveStyle.Caption = options.Name;
+        if (options?.Caption != null) effectiveStyle.Caption = options.Caption;
         if (options != null && options.Alignments.Count > 0) {
             var alignments = new List<PdfColumnAlign>();
             for (int column = 0; column < paths.Count; column++) {
