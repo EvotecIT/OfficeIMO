@@ -39149,5 +39149,275 @@
     "newPublicApi": false,
     "canClosePUB00": false,
     "canPromotePublicNativeCreation": false
+  },
+  "nativePopupDispatch": {
+    "sourceBaseCommit": "ae3d1576059590224ff63a1671aca00067cd9b1d",
+    "scope": "Static typed resource-loader and popup-target follow-up; no application/DLL execution or consent.",
+    "publisher": {
+      "version": "16.0.20527.20112",
+      "sha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+      "discriminator": "0x66c2",
+      "metadataRva": "0x96fa64",
+      "metadata": "0x4072",
+      "displayNibble": 7,
+      "nominalFlags": "0x2041",
+      "encodedStringKey": "0x67c40022",
+      "helpDiscriminator": "0x10cc12"
+    },
+    "stringLoader": {
+      "delaySlotRva": "0xbef8c0",
+      "module": "Mso30Win32Client.dll",
+      "ordinal": 47055,
+      "exportName": "MsoCchLoadWz",
+      "exportRva": "0x2ea0",
+      "resourceObjectGlobalRva": "0xa8d3a0",
+      "meaning": "Named string-loader route established; resource object initialization and encoded-key codec remain unknown."
+    },
+    "resourceInput": {
+      "module": "PUB6INTL.DLL",
+      "language": 1033,
+      "version": "16.0.19328.20010",
+      "sha256": "dac5ff42a44d8e06d50f86a2c1a882a8d792e91a2228747e8a1c930ccd64e073",
+      "customTable": {
+        "type": 234,
+        "id": 1,
+        "bytes": 212484,
+        "sha256": "08de1558b661cbbf3cb2f38f89dad4a8b5f1d603b47a19eb29dafcaae0184c03"
+      },
+      "boundary": "No matching direct standard resource ID. This older satellite is not proven to back the executable's live resource object."
+    },
+    "popupTarget": {
+      "module": "Mso30Win32Client.dll",
+      "version": "16.0.20527.20112",
+      "sha256": "fa3ce3df5121bd604fe7fcbc99d3ae756f1320420025a00dd811c32654153300",
+      "ordinal": 59301,
+      "exportName": null,
+      "rva": "0x863720",
+      "bodyBytes": 59,
+      "helperRva": "0x863880",
+      "helperBodyBytes": 133,
+      "objectGlobalRva": "0x10d6c60",
+      "logicalTarget": "Method loaded from the object vtable at +0x18",
+      "dispatchSlotRva": "0xbee518",
+      "limitation": "The indirect dispatch slot is separate from the unresolved logical callee. Recovered void pseudocode signatures do not establish the native return contract."
+    },
+    "providerEvidence": {
+      "provider": "Ghidra12.1.4",
+      "analysisProfileDigest": "dcc676845881c04a2d22833fb35d26569462e033daee5e99a95edac5aa61ac05",
+      "offlineByteExactPageSha256": "7366299d2f9eea650fdd84a9dc4085aaf878e9675f46be75350097b553850409",
+      "containment": "ev_756ca0d150c48b23d2458e12c58ee89998841050bcd57921d2640a0d46014959",
+      "wrapper": "ev_4eb63ea887da40b90bb679441422d9795968e9d37b5f72dafcc85e12e03fd8b0",
+      "helper": "ev_6a4e3013a3bba186517fecf5851e2b8578e85af84fe8d241ecdab7b61058bc15",
+      "limits": "Synthetic offline PE headers; original imports/data/relocations/unwind directory not mapped. Both represented bodies match separately inspected original ordinary unwind extents.",
+      "imports": 1,
+      "dossiers": 2,
+      "bundleRecords": 3,
+      "snapshotExported": true,
+      "targetAndProviderClosed": true
+    },
+    "responseBoundary": "Environment-blocked66c2 returns2. Popup response may lose bit0x1000; normalized1 enables the statically proven context-flag/retry path. Prompt/button semantics remain unknown; no Win32 flag or button-enum inference.",
+    "nextQuestion": "Resolve initialization and actual vtable+0x18 target of the MSO object, and the actual MsoCchLoadWz resource object/codec for key0x67c40022.",
+    "cancelledControlUntouched": true,
+    "canClosePUB00": false,
+    "canPromotePublicNativeCreation": false
+  },
+  "ordinaryMultiParagraphCreation": {
+    "sourceBaseCommit": "ae3d1576059590224ff63a1671aca00067cd9b1d",
+    "scope": "Bounded ordinary multi-paragraph model projection, CR typing, overflow, native linked character edit and public source restoration. No public writer promotion.",
+    "implementation": {
+      "admission": "One or more ordinary paragraphs, each with one or more explicitly styled runs; an empty-text styled run is supported. Zero-paragraph and zero-run states refuse.",
+      "serialization": "Existing character/paragraph range serializers unchanged.",
+      "probeKinds": [
+        "multi-paragraph",
+        "multi-paragraph-linked",
+        "multi-paragraph-linked-hyphenated"
+      ],
+      "defaultCorpusUnchanged": true
+    },
+    "profile": {
+      "font": "Black Arial with explicit language1033 and existing plain/bold style envelope",
+      "paragraphBodyLengths": [
+        44,
+        0,
+        1312
+      ],
+      "nativeStoryUtf16Length": 1359,
+      "semanticCharacters": 1358,
+      "paragraphCrOneBasedIndices": [
+        45,
+        46,
+        1359
+      ],
+      "lineHeightsPoints": [
+        22,
+        20,
+        18
+      ],
+      "emptyParagraphTyping": "14point bold CR",
+      "linkedPhysicalPageOrder": [
+        1,
+        3,
+        2
+      ],
+      "framesPoints": [
+        [
+          72,
+          72,
+          216,
+          72
+        ],
+        [
+          72,
+          144,
+          216,
+          72
+        ],
+        [
+          72,
+          216,
+          360,
+          108
+        ]
+      ]
+    },
+    "independentNativeControls": {
+      "cases": [
+        "MultiParagraphCreation",
+        "MultiParagraphCreationLinked"
+      ],
+      "wholeRange": "Actual TextFrame.Story.TextRange observes complete text before linking and after linking/save.",
+      "characterPoints": 55,
+      "perObservationCharacterPoints": 11,
+      "paragraphsPerObservation": 3,
+      "typing": "All selected run/CR font, size, bold, RGB and language observations match intended input; paragraph format observations match.",
+      "automaticHyphenation": "Native controls retain true from existing application setting. No application option is written.",
+      "typeLibrary": "REGKIND_NONE inspection exposes no verified per-story hyphenation setter; application option members are not used to alter controls.",
+      "listType": "Installed PbListType.pbListTypeNone=255, Arabic=0. Incorrect initial numeric assertion was corrected; failed receipt retained."
+    },
+    "nativeInitialLifecycle": {
+      "candidateProfiles": 3,
+      "stages": [
+        "ReadOnlyOpen",
+        "InitialInventory",
+        "InitialPdfExport",
+        "NativeSaveAs",
+        "ReadOnlyReopen",
+        "ResavedInventory",
+        "ResavedPdfExport"
+      ],
+      "sourceUnchanged": true,
+      "equivalentInputPdfPages": 8,
+      "dpi": 100,
+      "changedPixels": 0
+    },
+    "hyphenationBoundary": {
+      "unhyphenatedLinkedPage2ChangedPixels": 21063,
+      "otherPagesExact": true,
+      "cause": "Generated false and native true flags are independently decoded; native PDF shows over-/flow and para-/graph hyphenation.",
+      "matchingCandidate": "The separate explicit-true linked candidate matches all three native-control pages initially and after resave. False candidates retain their original bytes.",
+      "noGeneralFontOrDictionaryParityClaim": true
+    },
+    "nativeLinkedCharacterMutation": {
+      "target": "LinkedStoryFirstCharacter",
+      "operation": "NativeLinkedStoryFirstCharacterMutation",
+      "edit": "M to N at whole story Characters(1,1)",
+      "scope": "Exact three Letter frames and qualified1359text profile; physicalpagechain1/3/2.",
+      "guard": "Complete physical shape coverage, unique IDs, actual frame.Parent.ID, mutual links, exact geometry, all three complete story ranges and full observed CR/paragraph boundaries.",
+      "persistence": "Before/after/reopened snapshots retain all eleven typing styles, three paragraph formats, frame/page identities, geometry/layout and chain.",
+      "freshAndIndependentControl": true,
+      "sourceUnchanged": true,
+      "nativePdfPagePairs": 6,
+      "dpi": 100,
+      "changedPixels": 0
+    },
+    "publicRestoration": {
+      "api": "ReplaceStoryParagraphs",
+      "edit": "Restore first character M after actual native N edit",
+      "nativeTextLength": 1359,
+      "paragraphs": 3,
+      "reloadTextMatchesIndependentControl": true,
+      "lossPolicy": "Allow",
+      "diagnostics": [
+        "PUB_NATIVE_PREVIEW_INVALIDATED",
+        "PUB_NATIVE_QUILL_TEXT_UNQUALIFIED"
+      ],
+      "powerShellPdfSucceeded": true,
+      "nativeFullCompleted": true,
+      "nativePdfPagePairs": 6,
+      "dpi": 100,
+      "changedPixels": 0,
+      "preservation": "Effective per-character and empty/final-CR typing, original source run-length partitions, own36-point default tabs, all normalized frame geometry/layout/links and all logical storage except Quill text (plus declared preview invalidation); reload no-op stable."
+    },
+    "validation": {
+      "fullNet10": 1223,
+      "affectedNet8": 295,
+      "affectedNet472": 295,
+      "failed": 0,
+      "skipped": 0,
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net472",
+        "netstandard2.0"
+      ],
+      "probeAndModuleBuilds": "Zero warnings/errors",
+      "priorCreationProfilesByteExact": 41,
+      "scripts": "PowerShell7.6.9 and actual WindowsPowerShell5.1.26100.9711 parse changed helper/controller files with zero errors.",
+      "compatibilityRegression": "Native_edited_fresh_multi_paragraph_story_supports_public_restoration_with_chain_and_storage_preserved",
+      "newMultiParagraphCases": 6,
+      "focusedCreationLimitsAndMultiParagraphCases": 16,
+      "nativeRunsClosed": 9,
+      "successfulNativeRuns": 8,
+      "exactOwnedProcessesAbsent": true
+    },
+    "reviews": {
+      "creationAndCorpus": {
+        "fullPasses": 1,
+        "actionableFindings": 0,
+        "targetedConfirmations": 0
+      },
+      "linkedCharacterMutation": {
+        "fullPasses": 1,
+        "actionableFindings": 0,
+        "targetedConfirmations": 0
+      }
+    },
+    "fixtures": [
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/MultiParagraphCreation/native-multiparagraphcreation.pub",
+        "bytes": 92672,
+        "sha256": "1782d2639f4165d5eb8a3fe9f2d84e152fc3892042eb341187170a429ac1f346"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/MultiParagraphCreationLinked/native-multiparagraphcreationlinked.pub",
+        "bytes": 95232,
+        "sha256": "ab9f64b3dd9973ccd353e11fe100c6b7c0de9a622d3d91d03487a43a054bbc73"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/GeneratedMultiParagraph/native-edited.pub",
+        "bytes": 70656,
+        "sha256": "3a19469c13b011095efa0188e460c5d6f4947213944a4dc7d30eebf8dc216eb1"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/GeneratedMultiParagraph/native-control-edited.pub",
+        "bytes": 95232,
+        "sha256": "8bae8d2ecd1ec2445a979a695a8fc3654abc07f5f90dfc683b844e6c8289aa45"
+      }
+    ],
+    "limitations": [
+      "Managed PDF font/baseline parity remains unqualified; same disabled-hyphenation excerpt line breaks match the native candidate.",
+      "Additional fonts/scripts/layouts, arbitrary paragraph effects, labels, default/style libraries and zero-run stories",
+      "Native editing outside the guarded first-character linked profile",
+      "Native positive recovery, repair-free opening, earlier generations and public source-free native saving"
+    ],
+    "canClosePUB00": false,
+    "canPromotePublicNativeCreation": false,
+    "defaultTabBoundary": {
+      "nativeControlPoints": 28.3,
+      "generatedAndRestoredSourcePoints": 36,
+      "originAndAlignment": "Equal zero origin and false AlignWithParagraph; both explicit stop lists empty.",
+      "scope": "Text has no tabs; matched native PDF appearance does not establish default-tab metadata equivalence. Public restoration preserves its own source36-point interval.",
+      "contract": "Existing shared drawing default remains36; broader native ordinary multi-paragraph tab authoring is unqualified."
+    }
   }
 }

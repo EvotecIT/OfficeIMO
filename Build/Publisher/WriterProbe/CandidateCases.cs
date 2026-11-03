@@ -7,6 +7,10 @@ internal static class CandidateCases {
     private static readonly PublisherNativeCreationPlacement DefaultPlacement = new(72, 72, 288, 108);
 
     internal static PublisherNativeCreationPlan Create(string kind, string? value, string? secondValue = null) {
+        if (kind is "multi-paragraph" or "multi-paragraph-linked" or "multi-paragraph-linked-hyphenated") {
+            if (value != null || secondValue != null) throw new ArgumentException("The multi-paragraph specimens use fixed styled text.");
+            return CandidateMultiParagraph.Create(kind != "multi-paragraph", kind == "multi-paragraph-linked-hyphenated");
+        }
         if (kind is "caption-typing" or "caption-typing-language") {
             if (secondValue != null) throw new ArgumentException("The caption specimen accepts one text value.");
             return CandidateCaptionTyping.Create(value, kind == "caption-typing-language" ? 1033U : null);

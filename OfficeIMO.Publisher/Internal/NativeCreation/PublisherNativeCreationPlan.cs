@@ -52,8 +52,10 @@ internal sealed class PublisherNativeCreationStory {
         characterCount: paragraph.Runs.Sum(run => (long)run.Text.Length) + (paragraph.Label?.Run.Text.Length ?? 0));
 
     internal static PublisherNativeCreationStory Styled(PublisherTextStory story) {
-        if (story.Paragraphs.Count != 1)
-            throw new NotSupportedException("The text specimen requires one complete paragraph per story.");
+        if (story.Paragraphs.Count == 0)
+            throw new NotSupportedException("The text specimen requires at least one complete paragraph per story.");
+        if (story.Paragraphs.Any(paragraph => paragraph.Runs.Count == 0))
+            throw new NotSupportedException("The text specimen requires at least one explicitly styled run per paragraph.");
         return new PublisherNativeCreationStory(null, story.Paragraphs, automaticHyphenation: story.AutomaticHyphenation,
             characterCount: PublisherStoryEditor.CharacterCount(story));
     }

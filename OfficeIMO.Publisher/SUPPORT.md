@@ -992,6 +992,67 @@ reference. Generated files differ from that reference in hyphenation and frame
 breaks; native language/CR defaults, general layout parity, repair-free opening
 and public template-free native creation remain unqualified.
 
+The internal `multi-paragraph`, `multi-paragraph-linked` and
+`multi-paragraph-linked-hyphenated` specimens qualify ordinary stories with
+multiple explicitly styled paragraphs. The bounded profile uses black Arial,
+language 1033, no labels, Letter pages and an empty applied centered master.
+Its three paragraphs have 22/20/18-point line heights; the empty middle paragraph
+has an explicit 14-point bold run, which supplies its CR typing. Each paragraph
+requires at least one explicit run; empty text is valid, while zero-run
+paragraphs and zero-paragraph stories remain refused. The existing graph, Quill
+and OfficeArt serializers retain the complete 1,359-character native story,
+including CRs at one-based positions 45, 46 and 1,359. The linked variants retain
+one story through frames on pages 1, 3 and 2, including terminal overflow.
+
+Independent `MultiParagraphCreation` and `MultiParagraphCreationLinked` controls
+inspect the complete native `Story.TextRange`, separately from visible frame
+slices. Fifty-five native point observations confirm the intended font, size,
+bold and language at run/CR boundaries, and the paragraph-format observations
+match. Native initial opening, PDF export, save-as and reopening complete with
+the full story, frame chain and intended styles retained. The one-page specimen
+matches both native stages at 100 dpi. The linked specimen with automatic
+hyphenation enabled matches all
+three pages at both stages, giving eight zero-pixel page comparisons across
+equivalent inputs. Explicitly disabling hyphenation retains complete content
+but changes page 2 against the enabled linked control by 21,063 pixels at that
+resolution; pages 1 and 3 match. Decoded flags and native PDF hyphens distinguish
+these inputs. These per-story settings leave application-wide options unchanged.
+
+The `LinkedStoryFirstCharacter` native validation target separately qualifies
+replacing the first character from `M` to `N` in the generated hyphenated specimen
+and the independent linked control. Both complete native edit, save-as and
+read-only reopen with unchanged source bytes. Before/after/reopened observations
+retain the complete story, frame identities, layout and page 1/3/2 chain, all
+eleven sampled run/CR styles and all three paragraph formats. The six native PDF
+page comparisons across the initial and resaved stages match at 100 dpi. This
+qualifies only first-character mutation in that exact three-frame profile.
+
+Public `ReplaceStoryParagraphs` restores the initial `M` in the native-edited
+generated story. Source saving with explicit `Allow` and reload retain the three
+paragraphs and complete text matching the pristine independent linked control.
+The save reports `PUB_NATIVE_PREVIEW_INVALIDATED` and
+`PUB_NATIVE_QUILL_TEXT_UNQUALIFIED`; PSWriteOffice's `ConvertTo-OfficeDocument`
+produces the restored PDF. The saved PUB completes native opening, inventory,
+PDF export, save-as and reopening with unchanged source bytes. Its three pages
+match the pristine control at both native stages, giving six restoration page
+comparisons at 100 dpi. The equivalent-input creation, native edit and public
+restoration checks cover 20 initial/resaved native page pairs: eight, six and six
+respectively, all with zero changed pixels at that resolution.
+
+Public restoration retains the generated source's 36-point default-tab interval;
+the independent linked control uses 28.3 points. Both have zero origin, alignment
+disabled and no explicit stops. These stories contain no tab characters, so the
+20 native page comparisons do not qualify ordinary multi-paragraph creation
+containing tabs or establish matching default-tab metadata.
+
+Managed PDF output is readable and the disabled-hyphenation excerpt follows the
+native line wrapping, with a remaining font/baseline difference. This does not
+qualify general renderer parity. Broader native text editing, fonts/scripts/layouts
+and defaults, zero-run story creation, repair-free acceptance and public
+source-free native creation remain unqualified. Public native saving retains
+`PUB_NATIVE_SOURCE_REQUIRED` for source-free models; successful native opening and
+resaving do not supply a positive recovery control.
+
 The `tableCreation` record covers source-free creation of a borderless, unmerged
 2×2 table with unequal column/row tracks, bold headers, an empty cell and an
 independent label. One complete table story owns the cell text; native cell

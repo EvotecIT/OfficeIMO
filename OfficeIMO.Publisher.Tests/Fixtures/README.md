@@ -169,6 +169,29 @@ defines the final-run CR policy and the deliberate language/inactive-spacing lim
 TextPages has independent Arial 12/18-point stories on the first and last of
 three pages, with an empty middle page and explicit zero column spacing. It
 qualifies physical-page ownership in template-free native writer specimens.
+
+The ordinary multi-paragraph controls use three unlabelled Arial paragraphs,
+including an explicitly styled empty middle paragraph, and retain the complete
+1,359-character native story. The linked profile flows through physical pages
+1, 3 and 2. These four PUB fixtures distinguish independent native authoring
+from actual native edits of generated and independent inputs:
+
+| Fixture under `NativeComparison` | Origin and expected state |
+| --- | --- |
+| `MultiParagraphCreation/native-multiparagraphcreation.pub` | Independently authored one-page ordinary control; heading starts with `M`. |
+| `MultiParagraphCreationLinked/native-multiparagraphcreationlinked.pub` | Independently authored three-frame linked control; heading starts with `M`. |
+| `GeneratedMultiParagraph/native-edited.pub` | Generated hyphenated linked specimen after native first-character replacement from `M` to `N` and native save/reopen. |
+| `GeneratedMultiParagraph/native-control-edited.pub` | Independent linked control after the same native `M`-to-`N` edit and save/reopen. |
+
+The generated native-edited input supplies the public `ReplaceStoryParagraphs`
+restoration workload, with the independent `M` control providing its expected
+text. The same workload covers bounded source save/reload and PSWriteOffice PDF
+conversion. Complete native `Story.TextRange` observations distinguish retained
+overflow from visible frame slices. The [support contract](../../OfficeIMO.Publisher/SUPPORT.md)
+defines the qualified first-character edit, native page comparisons and remaining
+renderer and repair-free acceptance limits. Fixture provenance records the
+independent producer, generated/native mutation path and file hashes.
+
 ImplicitColumnGap retains a generated three-page input without a local or
 inherited gap property and an independently captured native inventory. Publisher
 reports 3.6 points through its half-gap automation property, corresponding to the

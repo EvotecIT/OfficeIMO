@@ -1,0 +1,48 @@
+{
+  "schema": "officeimo.publisher.native-multi-paragraph-provenance.v1",
+  "producer": {
+    "application": "Microsoft Publisher",
+    "version": "16.0.20527.20112",
+    "binarySha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+    "powershell": "7.6.9",
+    "automationSecurity": 3
+  },
+  "sourceBaseCommit": "ae3d1576059590224ff63a1671aca00067cd9b1d",
+  "authoringHelper": "Build/Publisher/Add-NativeMultiParagraphControl.ps1",
+  "authoringHelperSha256": "9bd6bbce8387ba569e2baaeea1f2f4118de792b57bb9f1bb50b052b98543e83c",
+  "nativeEditTarget": null,
+  "nativeEdit": null,
+  "profile": {
+    "nativeUtf16Length": 1359,
+    "paragraphCrOneBasedIndices": [
+      45,
+      46,
+      1359
+    ],
+    "lineHeightsPoints": [
+      22,
+      20,
+      18
+    ],
+    "font": "Arial",
+    "languageId": 1033,
+    "emptyParagraphTyping": "14point bold",
+    "linkedPhysicalPageOrder": [
+      1,
+      3,
+      2
+    ]
+  },
+  "applicationOptionsChanged": false,
+  "automaticHyphenation": "Independent controls and edited linked specimens retain native true; separate explicit-false generated specimens are not appearance-equivalent on linked page2.",
+  "repairStatus": "Unassessed. Successful native operations and PDF comparisons do not prove repair-free acceptance.",
+  "files": [
+    {
+      "name": "native-multiparagraphcreationlinked.pub",
+      "bytes": 95232,
+      "sha256": "ab9f64b3dd9973ccd353e11fe100c6b7c0de9a622d3d91d03487a43a054bbc73"
+    }
+  ],
+  "license": "MIT",
+  "nativeCorpusCase": "MultiParagraphCreationLinked"
+}

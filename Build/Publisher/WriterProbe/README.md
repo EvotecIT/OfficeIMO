@@ -56,6 +56,9 @@ dotnet $probe create multiple-masters ./candidate-multiple-masters.pub
 dotnet $probe create paired-masters ./candidate-paired-masters.pub
 dotnet $probe create linked-story ./candidate-linked-story.pub
 dotnet $probe create linked-story-overflow ./candidate-linked-overflow.pub
+dotnet $probe create multi-paragraph ./candidate-multi-paragraph.pub
+dotnet $probe create multi-paragraph-linked ./candidate-multi-paragraph-linked.pub
+dotnet $probe create multi-paragraph-linked-hyphenated ./candidate-multi-paragraph-linked-hyphenated.pub
 dotnet $probe create table ./candidate-table.pub
 dotnet $probe create table-edited ./candidate-table-edited.pub
 dotnet $probe create table-cluster-near ./candidate-table-cluster-near.pub
@@ -83,10 +86,9 @@ dotnet $probe edit-paragraphs ./native-textparagraphs.pub ./edited-paragraphs.pu
 Output parent directories must exist. Existing outputs are never overwritten.
 Inventory input is bounded to 64 MiB, plain text to 4,096 characters and images
 to 1 MiB. Reports can contain complete recovered text; use synthetic fixtures.
-The `blank-pages` case requires a physical page count from 1 to 16. Other creation
-cases place their objects on a single physical page, except `text-pages`, which
-requires 2 to 16 pages and places independent stories on the first and last pages,
-and the three-page `object-pages`, `image-pages` and `named-image-pages` specimens.
+The `blank-pages` case requires a physical page count from 1 to 16. The
+`text-pages` case requires 2 to 16 pages and places independent stories on the
+first and last pages. Fixed creation cases define their page counts below.
 
 `table-utility-source <pair-control.pub> <derived-input.pub> [missing-cell-indices]`
 derives a synthetic source input from an independent two-table control with a
@@ -356,14 +358,14 @@ after read-only reopen. The recorded styled specimen passes this operation,
 including quoted text and a trailing backslash; independent native PDF text
 matches and source bytes remain unchanged. A freshly assigned range can omit the
 final paragraph CR that appears after save/reopen. This is one controlled native
-object-model edit; character-level editing, manual UI editing, general formatting
-and repair-free opening remain unassessed.
+object-model edit; broader character-level editing, manual UI editing, general
+formatting and repair-free opening remain unassessed.
 
 `-NativeEditTarget FirstTableCell` uses the same isolated lifecycle to change
 the first unmerged cell of the sole table on one physical page. Other objects
 may coexist on that page. The report records the target, prior text and observed
-replacement, then verifies the cell after native save/reopen. These targets accept
-single-line text, including an empty replacement, and require `Validate/Full`.
+replacement, then verifies the cell after native save/reopen. The one-page targets
+accept single-line text, including an empty replacement, and require `Validate/Full`.
 
 ```powershell
 ./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full -InputPath ./table.pub -OutputDirectory ./native-cell-edit -NativeEditText 'Native Item' -NativeEditTarget FirstTableCell
@@ -377,6 +379,18 @@ includes native text replacement and public managed restoration:
 
 ```powershell
 ./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full -InputPath ./candidate-table-merged-decorated.pub -OutputDirectory ./native-merged-cell-edit -NativeEditText 'Native Horizontal' -NativeEditTarget FirstMergedTableCell
+```
+
+`LinkedStoryFirstCharacter` requires the qualified 1,359-character, three-paragraph
+story in exactly three Letter-page frames linked through pages 1, 3 and 2.
+It accepts one printable ASCII character different from the initial `M` and
+requires `Validate/Full`. The runner changes only that first native character,
+saves a separate PUB and reopens it read-only. Before/after/reopened snapshots
+check the complete story, frame identities, layout and chain, eleven run/CR typing
+points and all three paragraph formats:
+
+```powershell
+./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full -InputPath ./candidate-multi-paragraph-linked-hyphenated.pub -OutputDirectory ./native-linked-edit -NativeEditText 'N' -NativeEditTarget LinkedStoryFirstCharacter
 ```
 
 `-NativeAddClusterTable` instead adds a 2×4 table to the retained independent
@@ -410,6 +424,8 @@ Page, picture and image-asset counts depend on the selected case.
 | `master-content` | Projects the final public authoring model: one centered master owns a rectangle, picture and single-paragraph text frame and is applied to three Letter pages. Page-owned foreground overlaps the master; one page picture reuses the master asset. Current object order, geometry, paint, stories and referenced asset identity supply the codec inputs. One PNG path required. |
 | `newsletter` | Projects one final public model combining a recurring master heading, logo and rule with linked body text, an independent sidebar, a two-column story, a borderless 2×2 calendar and a page picture sharing the master asset. Three physical pages and six complete stories; one PNG path required. |
 | `linked-story`, `linked-story-overflow` | Projects the final public model with an empty applied master. One story flows through three frames on pages 1, 3 and 2, alongside an independent label. Fixed Arial text and 18-point line spacing; the longer specimen retains terminal overflow. |
+| `multi-paragraph` | Projects three unlabelled Arial paragraphs into one frame on a Letter page with an empty applied centered master. Mixed size/bold runs, an explicitly styled empty middle paragraph and complete overflow are retained. All runs request language 1033; automatic hyphenation is explicitly disabled. Fixed content takes no additional arguments. |
+| `multi-paragraph-linked`, `multi-paragraph-linked-hyphenated` | Uses the same complete story in three frames flowing through pages 1, 3 and 2. The first case explicitly disables automatic hyphenation; the second enables it for comparison with the independently authored native linked control. Fixed content takes no additional arguments. |
 | `frame-layout`, `frame-layout-edited` | Projects six final public-model text frames on two pages with an empty applied master: one/two/three columns, asymmetric and fractional insets, full intercolumn gaps and Top/Center/Bottom alignment. The edited case applies two columns, a 14-point full gap, 9/3/15/6-point insets and Bottom alignment. |
 | `table`, `table-edited` | Projects the final public model of a borderless 2×2 table with unequal tracks, bold headers, an empty final cell and independent label, with an empty applied master. The edited specimen adds a first-cell paragraph and refills the last cell. |
 | `table-grid`, `table-grid-empty`, `table-grid-edited` | Requires a `<rows>x<columns>` argument within the legible specimen range of 1–12 rows and 1–8 columns. Authors an unmerged borderless grid with a caption, fixed tracks and cell paragraphs. The empty variant retains every empty cell; the edited variant changes bounds and the final cell, then places the table before its caption in drawing/story order. |
@@ -437,6 +453,11 @@ baseline shifts, backgrounds, explicit pair kerning, per-run indentation and
 link annotations. The shared paragraph encoder also refuses labels. These
 checks apply to every styled story, including table cells and model-projected
 master content, so unsupported formatting cannot be silently dropped.
+
+Model-projected ordinary stories require at least one paragraph and at least one
+explicitly styled run per paragraph. An empty-text run supplies the paragraph CR's
+typing style; a paragraph with no runs is refused. The multi-paragraph specimens
+use 22/20/18-point line heights, with a 14-point bold empty middle paragraph.
 
 ## Native codec structure
 
@@ -573,8 +594,9 @@ absolute text-byte endpoints across the whole stream. `FDPC` and `FDPP` are
 generated 512-byte pages, aligned to 512 bytes, with auxiliary WORD 1 and a zero
 reserved DWORD. Their parallel arrays contain increasing endpoints and
 page-relative style offsets. Plain text has one character range per story;
-styled text has one per run, including the final CR in the last run. Paragraph
-ranges follow story boundaries. `BTEC` and `BTEP` use calculated absolute page
+styled text has one per run, including each paragraph's CR in its final run.
+Paragraph ranges end at every generated CR, including explicitly styled empty
+paragraphs. `BTEC` and `BTEP` use calculated absolute page
 offsets and bounds `[0, absolute TEXT end]`. The current formatter emits one
 character page and one paragraph page, and rejects ranges that exceed a page.
 
@@ -725,6 +747,32 @@ and stable resave pixels are qualified separately from independent appearance:
 the generated files do not reproduce the control's hyphenation and frame breaks.
 Language/CR defaults, repair-free opening and generic public native creation
 remain unqualified.
+
+The ordinary multi-paragraph specimens use the same graph, Quill and OfficeArt
+serializers, retaining all 41 earlier creation profiles byte-for-byte. Independent
+native controls confirm complete story text, paragraph formatting and sampled
+run/CR typing through native save/reopen. The one-page specimen and the linked
+specimen with automatic hyphenation enabled match their equivalent native inputs
+in all eight initial/resaved PDF page comparisons at 100 dpi. The linked specimen
+with hyphenation disabled differs from the enabled native control on page 2;
+pages 1 and 3 match. The `LinkedStoryFirstCharacter` target also qualifies an
+actual native `M`-to-`N` edit on the generated hyphenated specimen and its
+independent control. All six initial/resaved native PDF page comparisons match
+at 100 dpi.
+
+Public `ReplaceStoryParagraphs` restores the initial `M` in the native-edited
+generated story. Source saving with explicit `Allow` and reload retain all three
+paragraphs and the independent control's complete text, with
+`PUB_NATIVE_PREVIEW_INVALIDATED` and `PUB_NATIVE_QUILL_TEXT_UNQUALIFIED` reports.
+Source-built PSWriteOffice converts the restored file to PDF through
+`ConvertTo-OfficeDocument`. Native opening/export, save-as and reopening of the
+restored file match the pristine independent control on all three pages at both
+stages: six more native PDF page comparisons at 100 dpi. The independent linked
+control's default-tab interval is 28.3 points; the generated source retains
+36 points. These tab-free specimens do not qualify ordinary multi-paragraph
+creation containing tabs. The [support contract](../../../OfficeIMO.Publisher/SUPPORT.md)
+separates these bounded native results from the managed font/baseline gap,
+broader native editing and the remaining native creation acceptance requirements.
 
 The `tableCreation` record qualifies one borderless, unmerged table and its
 independent label. Public `AddTable` and cell-editing snapshots supply the grid,
