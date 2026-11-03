@@ -51,7 +51,7 @@ public sealed class LatexMarkdownConversionTests {
 
     [Fact]
     public void DirectPdfAdapter_PreservesProjectionDiagnosticsAndProducesPdf() {
-        var result = LatexDocument.ParseResult(Source).Document.ToPdfDocumentResult();
+        var result = LatexDocument.ParseResult(Source).Document.ConvertToPdfWithEvidence(null, default);
         byte[] bytes = result.ToBytes();
         LatexToMarkdownReport projection = Assert.IsType<LatexToMarkdownReport>(
             Assert.Single(result.SourceConversionReports));

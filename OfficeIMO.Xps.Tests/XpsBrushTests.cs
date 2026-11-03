@@ -77,7 +77,7 @@ public sealed class XpsBrushTests {
         Assert.Equal(OfficeColor.Green, raster.GetPixel(20, 45));
         Assert.Equal(OfficeColor.White, raster.GetPixel(30, 30));
         Assert.NotEqual(OfficeColor.Red, raster.GetPixel(5, 15));
-        Assert.NotEmpty(doc.ToPdf());
+        Assert.NotEmpty(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
 
         // Brush opacity is applied once at joins, and transforms move both tile
         // and coverage with the path while retaining its unpainted interior.
@@ -97,7 +97,7 @@ public sealed class XpsBrushTests {
         var path = xml.Elements().Single(); path.SetAttributeValue("Data", "M10,10H30V30H10Z"); path.SetAttributeValue("StrokeThickness", "5");
         path.Element(ns + "Path.Fill")!.Name = ns + "Path.Stroke";
         for (int i = 1; i < 30; i++) { var copy = new XElement(path); copy.SetAttributeValue("RenderTransform", "1,0,0,1,0," + i * 30); xml.Add(copy); }
-        page.ReplaceMarkup(xml); Assert.NotNull(page.ToDrawing()); Assert.NotEmpty(doc.ToPdf());
+        page.ReplaceMarkup(xml); Assert.NotNull(page.ToDrawing()); Assert.NotEmpty(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
     }
     [Theory]
     [InlineData(XpsFormat.Xps)]
@@ -107,7 +107,7 @@ public sealed class XpsBrushTests {
         var raster = Raster(doc.Pages[0]);
         Assert.True(raster.GetPixel(21, 40).R > raster.GetPixel(59, 40).R);
         Assert.True(raster.GetPixel(59, 40).B > raster.GetPixel(21, 40).B);
-        Assert.NotEmpty(doc.ToPdf());
+        Assert.NotEmpty(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
     }
     [Theory]
     [InlineData("mask")]

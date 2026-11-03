@@ -9,10 +9,9 @@ using OfficeIMO.OpenDocument.Odg.Pdf;
 
 OdgDocument drawing = OdgDocument.Load("diagram.odg");
 // For flat XML, use OdgDocument.LoadFlatXml("diagram.fodg").
-var conversion = drawing.ToPdfDocumentResult();
-conversion.Save("diagram.pdf").RequireSuccess();
+OfficeConversionReport report = drawing.SaveAsPdf("diagram.pdf");
 
-foreach (var diagnostic in conversion.Diagnostics)
+foreach (var diagnostic in report.Diagnostics)
     Console.WriteLine($"{diagnostic.Location}: {diagnostic.LossKind}: {diagnostic.Message}");
 ```
 
@@ -24,8 +23,10 @@ print-visible layers by default; set `OdgPdfExportOptions.ForPrint = false` for 
 screen-visible view. The converter leaves the source document and its associated
 destination unchanged. It uses no external application at runtime.
 
-`ToPdfBytes`, path and caller-owned stream `SaveAsPdf` overloads, asynchronous
-save methods, and structured `SaveAsPdfResult` methods use the same engine.
+`ToPdf(options, out report)`, `ToPdfAsync`, and the path and caller-owned stream
+`SaveAsPdf`/`SaveAsPdfAsync` overloads use the same engine and return the
+`OfficeConversionReport`. Set `FailOnLoss` (or a strict `LossPolicy`) to reject
+reported loss before the destination is written.
 Cancellation is checked between pages and shapes and during PDF saving.
 Loading uses `OdfLoadOptions`; `OdgPdfExportOptions.MaximumPages` bounds conversion
 to 1,000 pages by default. An empty drawing is rejected.

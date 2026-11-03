@@ -252,7 +252,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
                 evidence = CreateEmptyEvidence(originalSourceSha, ComputeSha256(output), recipeSha, request, candidatePlan,
                     originalPreflight.Probe.HasEncryption ? request.Recipe.EncryptedDocumentPolicy.ToString() : "NoRewrite", signature, externalValidators);
             } else {
-                PdfRedactionPlan approvedPlan = document.Redactions.Plan(approvedAreas, cancellationToken);
+                PdfRedactionPlan approvedPlan = document.Redactions.Plan(approvedAreas, cancellationToken: cancellationToken);
                 var applyOptions = new PdfRedactionApplyOptions {
                     CleanupScope = request.Recipe.CleanupScope,
                     RemoveIntersectingPaths = request.Recipe.RemoveIntersectingPaths,
@@ -305,7 +305,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
                 evidence = CreateEmptyEvidence(originalSourceSha, existingOutputSha, recipeSha, request, candidatePlan,
                     originalPreflight.Probe.HasEncryption ? request.Recipe.EncryptedDocumentPolicy.ToString() : "NoRewrite", signature, externalValidators);
             } else {
-                PdfRedactionPlan approvedPlan = document.Redactions.Plan(approvedAreas, cancellationToken);
+                PdfRedactionPlan approvedPlan = document.Redactions.Plan(approvedAreas, cancellationToken: cancellationToken);
                 PdfRedactionVerificationReport verification = PdfDocument.Load(verificationOutput, verificationOptions).Redactions.VerifyAppliedPlan(
                     approvedPlan,
                     new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true, CheckManagedRendering = true }, cancellationToken: cancellationToken);

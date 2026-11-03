@@ -14,13 +14,13 @@ public sealed class XpsPdfStreamTests {
         var page = document.AddPage(100, 100).AddPath("M10,10H20V20H10Z");
         var options = new XpsPdfExportOptions { MaximumPathCommands = 8 };
         using (var single = new MemoryStream())
-            Assert.True(document.SavePdf(single, options).Succeeded);
+            Assert.Equal(1, document.SaveAsPdf(single, options).ItemsWritten);
 
         document.Documents[0].InsertPage(1, page);
         using var output = new MemoryStream(new byte[] { 1, 2, 3 }, true);
         output.Position = 2;
 
-        InvalidDataException error = Assert.Throws<InvalidDataException>(() => document.SavePdf(output, options));
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => document.SaveAsPdf(output, options));
         Assert.Contains("MaximumPathCommands", error.Message, StringComparison.Ordinal);
         Assert.Equal(new byte[] { 1, 2, 3 }, output.ToArray());
         Assert.Equal(2, output.Position);
@@ -29,13 +29,13 @@ public sealed class XpsPdfStreamTests {
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void StreamExportRetainsNativeTextAndReplacesCallerOwnedContents(bool semantics) {
+    public void StreamExportRetainsNativeTextAndLeavesTheCallerStreamOpen(bool semantics) {
         var document = Create(XpsFormat.OpenXps, new[] { "Alpha", "Beta" });
         document.Pages[0].ReplaceStoryFragmentsMarkup(Fragments(document, null, null, Paragraph(document.StructureNamespace, "Beta", "Alpha")));
-        using var output = new MemoryStream(); output.SetLength(1024 * 1024); output.Position = 123;
-        var saved = document.SavePdf(output, new XpsPdfExportOptions { PreserveLogicalStructure = semantics });
-        Assert.True(saved.Succeeded); Assert.Equal(output.Length, saved.BytesWritten);
-        Assert.Equal(0, output.Position); Assert.True(output.CanWrite); Assert.InRange(output.Length, 1, 1024 * 1024 - 1);
+        using var output = new MemoryStream();
+        OfficeConversionReport saved = document.SaveAsPdf(output, new XpsPdfExportOptions { PreserveLogicalStructure = semantics });
+        Assert.Equal(document.Pages.Count, saved.ItemsWritten);
+        Assert.True(output.CanWrite); Assert.True(output.Length > 0);
         var read = PdfDocument.Load(new System.IO.MemoryStream(output.ToArray()));
         Assert.Equal(semantics, read.TaggedContent != null);
         Assert.Contains("Alpha", PdfDocument.Load(new System.IO.MemoryStream(output.ToArray())).Read().Text);
@@ -47,7 +47,7 @@ public sealed class XpsPdfStreamTests {
         var options = new XpsPdfExportOptions { PdfOptions = new PdfCreateOptions().SetEncryption("original") };
         var snapshot = options.Clone(); options.PdfOptions.SetEncryption("changed");
         using var output = new MemoryStream();
-        Create(XpsFormat.Xps, new[] { "Protected" }).SavePdf(output, snapshot);
+        Create(XpsFormat.Xps, new[] { "Protected" }).SaveAsPdf(output, snapshot);
         var loaded = PdfDocument.Load(new System.IO.MemoryStream(output.ToArray()), new PdfLoadOptions { Password = "original" });
         Assert.Contains("Protected", loaded.Read().Text);
     }
@@ -56,7 +56,7 @@ public sealed class XpsPdfStreamTests {
     public void PreCanceledExportDoesNotTouchCallerOutput() {
         using var output = new MemoryStream(new byte[] { 1, 2, 3 }, true); output.Position = 2;
         Assert.Throws<OperationCanceledException>(() => Create(XpsFormat.Xps, new[] { "Text" })
-            .SavePdf(output, cancellationToken: new CancellationToken(true)));
+            .SaveAsPdf(output, cancellationToken: new CancellationToken(true)));
         Assert.Equal(new byte[] { 1, 2, 3 }, output.ToArray()); Assert.Equal(2, output.Position); Assert.True(output.CanWrite);
     }
 }

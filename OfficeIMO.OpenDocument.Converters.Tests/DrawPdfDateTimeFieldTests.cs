@@ -16,12 +16,12 @@ public sealed class DrawPdfDateTimeFieldTests {
             Mode = OdfDateTimeFieldProjectionMode.RefreshDynamic,
             RefreshTimestamp = new DateTimeOffset(2024, 2, 29, 23, 59, 58, TimeSpan.FromHours(14)) } };
         var copy = options.Clone(); options.DateTimeFields.RefreshTimestamp = options.DateTimeFields.RefreshTimestamp.Value.AddDays(1);
-        var before = source.ToBytes(); var result = source.ToPdfDocumentResult(copy); var read = PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes()));
+        var before = source.ToBytes(); var result = source.ToPdf(copy, out OfficeConversionReport resultReport); var read = PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })));
         Assert.Equal(2, read.Pages.Count);
         foreach (var page in read.Pages) { Assert.Contains("2024-02-29", page.ExtractText()); Assert.DoesNotContain("stale", page.ExtractText()); }
         Assert.Equal(before, source.ToBytes());
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Location!.StartsWith("page:2:", StringComparison.Ordinal) && diagnostic.Location.EndsWith(":field-date-time-value", StringComparison.Ordinal));
-        Assert.Contains("stale", PdfDocument.Load(new System.IO.MemoryStream(source.ToPdfBytes())).ExtractText());
+        Assert.Contains(resultReport.Diagnostics, diagnostic => diagnostic.Location!.StartsWith("page:2:", StringComparison.Ordinal) && diagnostic.Location.EndsWith(":field-date-time-value", StringComparison.Ordinal));
+        Assert.Contains("stale", PdfDocument.Load(new System.IO.MemoryStream(source.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText());
     }
 
     [Fact]
@@ -30,11 +30,11 @@ public sealed class DrawPdfDateTimeFieldTests {
         var options = new OdgPdfExportOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported,
             DateTimeFields = new() { Mode = OdfDateTimeFieldProjectionMode.RefreshDynamic, RefreshTimestamp = DateTimeOffset.MinValue } };
         byte[] original = { 1, 2, 3 }; using var output = new MemoryStream(original.ToArray(), writable: true);
-        var result = source.SaveAsPdfResult(output, options);
-        Assert.False(result.Succeeded); Assert.Equal(original, output.ToArray()); Assert.True(output.CanWrite);
-        Assert.Contains(result.ConversionDiagnostics, diagnostic => diagnostic.Location!.EndsWith(":field-date-time-format", StringComparison.Ordinal));
+        var failure = Assert.ThrowsAny<OfficeConversionException>(() => source.SaveAsPdf(output, options));
+        Assert.Equal(original, output.ToArray()); Assert.True(output.CanWrite);
+        Assert.Contains(failure.Report.Diagnostics, diagnostic => diagnostic.Location!.EndsWith(":field-date-time-format", StringComparison.Ordinal));
         options.DateTimeFields.RefreshTimestamp = null;
-        Assert.Throws<ArgumentException>(() => source.ToPdfDocumentResult(options));
+        Assert.Throws<ArgumentException>(() => source.ToPdf(options, out _));
     }
 
     private static OdgDocument Create() {

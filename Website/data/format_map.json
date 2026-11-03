@@ -374,7 +374,7 @@
       "package": "OfficeIMO.AsciiDoc.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "AsciiDocDocument.ParseResult(source).Document.ToPdfDocumentResult(options)",
+      "api": "AsciiDocDocument.ParseResult(source).Document.SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -788,7 +788,7 @@
       "package": "OfficeIMO.Chm.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "ChmDocument.Load(stream).ToPdfBytesResult(options)",
+      "api": "ChmDocument.Load(stream).SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet",
         "cli",
@@ -1684,7 +1684,7 @@
       "package": "OfficeIMO.Latex.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "LatexDocument.ParseResult(source).Document.ToPdfDocumentResult(options)",
+      "api": "LatexDocument.ParseResult(source).Document.SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -1829,7 +1829,7 @@
       "package": "OfficeIMO.Mhtml.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "MhtmlDocument.Load(stream, options).ToPdfDocumentResult(pdfOptions)",
+      "api": "MhtmlDocument.Load(stream, options).SaveAsPdf(output, pdfOptions)",
       "surfaces": [
         "dotnet"
       ]
@@ -2136,7 +2136,7 @@
       "package": "OfficeIMO.OpenDocument.Odg.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdgDocument.Load(stream) or LoadFlatXml(stream), then ToPdfDocumentResult(options)",
+      "api": "OdgDocument.Load(stream) or LoadFlatXml(stream), then SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet",
         "cli",
@@ -2162,7 +2162,7 @@
       "package": "OfficeIMO.OpenDocument.Odp.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdpPresentation.Load(stream).ToPdfDocumentResult(conversionOptions, pdfOptions)",
+      "api": "OdpPresentation.Load(stream).SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2249,7 +2249,7 @@
       "package": "OfficeIMO.OpenDocument.Ods.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdsDocument.Load(stream).ToPdfDocumentResult(conversionOptions, pdfOptions)",
+      "api": "OdsDocument.Load(stream).SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2351,7 +2351,7 @@
       "package": "OfficeIMO.OpenDocument.Odt.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdtDocument.Load(stream).ToPdfDocumentResult(conversionOptions, pdfOptions)",
+      "api": "OdtDocument.Load(stream).SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2489,7 +2489,7 @@
       "package": "OfficeIMO.OneNote.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "section.ToPdfDocumentResult(options)",
+      "api": "section.SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2634,7 +2634,7 @@
       "package": "OfficeIMO.OpenDocument.Odp.Pdf",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "PdfDocument.Load(stream).ToOdpPresentationResult(pdfOptions, openDocumentOptions)",
+      "api": "PdfDocument.Load(stream).SaveAsOdp(output, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2646,7 +2646,7 @@
       "package": "OfficeIMO.OpenDocument.Ods.Pdf",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "PdfDocument.Load(stream).ToOdsDocumentResult(pdfOptions, openDocumentOptions)",
+      "api": "PdfDocument.Load(stream).SaveAsOds(output, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2658,7 +2658,7 @@
       "package": "OfficeIMO.OpenDocument.Odt.Pdf",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "PdfDocument.Load(stream).ToOdtDocumentResult(pdfOptions, openDocumentOptions)",
+      "api": "PdfDocument.Load(stream).SaveAsOdt(output, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -3354,7 +3354,7 @@
       "package": "OfficeIMO.Xps.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "XpsDocument.Load(stream).SavePdf(output, options)",
+      "api": "XpsDocument.Load(stream).SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet",
         "cli",

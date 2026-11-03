@@ -7,22 +7,24 @@ Convert XPS/OpenXPS pages to vector PDF through `OfficeIMO.Xps`,
 using OfficeIMO.Xps;
 
 XpsDocument document = XpsDocument.Load("report.xps");
-File.WriteAllBytes("report.pdf", document.ToPdf());
+OfficeConversionReport report = document.SaveAsPdf("report.pdf");
 ```
 
-For a caller-owned output stream, use `SavePdf`. It returns the PDF engine's
-`PdfSaveResult` and accepts its existing output settings:
+`ToPdf(options, out report)` returns the PDF model, `ToPdfAsync` returns it with
+the report, and `SaveAsPdf`/`SaveAsPdfAsync` write a path or a caller-owned
+stream, which stays open. `XpsPdfExportOptions` carries the PDF output settings
+and `FailOnLoss`:
 
 ```csharp
 using OfficeIMO.Pdf;
 
 using var output = File.Create("report.pdf");
-PdfSaveResult saved = document.SavePdf(output, new XpsPdfExportOptions {
+OfficeConversionReport saved = document.SaveAsPdf(output, new XpsPdfExportOptions {
     PdfOptions = new PdfCreateOptions().SetEncryption("document-password")
 }, cancellationToken);
 ```
 
-The stream remains open. A successful save replaces and rewinds seekable output.
+The stream remains open and the PDF is written at its current position.
 Validation runs before writing, but a serialization failure can leave partial
 stream contents. Stage and reopen output before publishing it when the destination
 must survive a failed operation. [OfficeIMO.Workflows](../OfficeIMO.Workflows/README.md)
@@ -72,7 +74,7 @@ ownership reject strict export. To retain the fixed canvas and markup-order sear
 text without mapping native semantics, use:
 
 ```csharp
-File.WriteAllBytes("report.pdf", document.ToPdf(preserveLogicalStructure: false));
+document.SaveAsPdf("report.pdf", new XpsPdfExportOptions { PreserveLogicalStructure = false });
 ```
 
 Safe web/mail links and native page, document and sequence targets become PDF

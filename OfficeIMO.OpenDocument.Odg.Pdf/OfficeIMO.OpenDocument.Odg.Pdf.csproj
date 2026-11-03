@@ -39,4 +39,11 @@
     <Using Include="System.Threading" />
     <Using Include="System.Threading.Tasks" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Workflows" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.OpenDocument.Converters.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
+  </ItemGroup>
 </Project>

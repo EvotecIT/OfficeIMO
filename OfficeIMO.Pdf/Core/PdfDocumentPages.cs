@@ -1,3 +1,4 @@
+#pragma warning disable RS0026, RS0027 // Existing optional-parameter overload families keep their shape.
 using System.Threading;
 
 namespace OfficeIMO.Pdf;
@@ -29,12 +30,13 @@ public sealed partial class PdfDocumentPages {
 
     /// <summary>Returns sections at a one-based outline level, retaining nested pages up to the next bookmark at the same or an outer level.</summary>
     public IReadOnlyList<PdfBookmarkPageRange> BookmarkPageRanges(int level, params string[] bookmarkTitles) =>
-        BookmarkPageRanges(level, CancellationToken.None, bookmarkTitles);
+        BookmarkPageRanges(level, bookmarkTitles, CancellationToken.None);
 
     /// <summary>Returns outline-level sections with cancellation and optional exact title selection.</summary>
-    public IReadOnlyList<PdfBookmarkPageRange> BookmarkPageRanges(int level, CancellationToken cancellationToken, params string[] bookmarkTitles) {
+    public IReadOnlyList<PdfBookmarkPageRange> BookmarkPageRanges(int level, IReadOnlyList<string> bookmarkTitles, CancellationToken cancellationToken = default) {
         if (level < 1) throw new ArgumentOutOfRangeException(nameof(level), "Outline levels are one-based.");
-        return GetBookmarkPageRanges(_document.ReadOptions, level, cancellationToken, bookmarkTitles);
+        Guard.NotNull(bookmarkTitles, nameof(bookmarkTitles));
+        return GetBookmarkPageRanges(_document.ReadOptions, level, cancellationToken, bookmarkTitles.ToArray());
     }
 
     private IReadOnlyList<PdfBookmarkPageRange> BookmarkPageRanges(PdfLoadOptions? options, CancellationToken cancellationToken, params string[] bookmarkTitles) =>

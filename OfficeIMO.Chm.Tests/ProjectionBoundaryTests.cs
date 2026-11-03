@@ -180,7 +180,7 @@ public sealed class ProjectionBoundaryTests {
 
     private static void Convert(byte[] archive, string route, ChmConversionOptions options) {
         if (route == "pdf") {
-            ChmDocument.Load(archive).ToPdfBytesResult(options);
+            ChmDocument.Load(archive).ToPdf(new ChmPdfExportOptions { ConversionOptions = options }).Dispose();
         } else {
             var reader = new OfficeDocumentReaderBuilder().AddChmHandler(new ReaderChmOptions { ConversionOptions = options }).Build();
             using var stream = new MemoryStream(archive);

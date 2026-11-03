@@ -34,7 +34,7 @@ public sealed class XpsRadialBoundaryTests {
             Assert.InRange(Math.Abs(pixel.G - 255 * (1 - opacity)), 0, 4);
             Assert.InRange(Math.Abs(pixel.B - (255 * ratio * opacity + 255 * (1 - opacity))), 0, 4);
         }
-        byte[] pdf = document.ToPdf();
+        byte[] pdf = document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(pdf)).Pages);
         var svg = page.ToSvg();
         Assert.Empty(svg.Diagnostics);
@@ -118,7 +118,7 @@ public sealed class XpsRadialBoundaryTests {
         }
         XpsRadialExteriorSpreadTests.AssertDirectSvgMatches(page, raster,
             new[] { (20, 20), (60, 40), (100, 80), (right - 10, 130) });
-        var pdf = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf()));
+        var pdf = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })));
         Assert.Single(pdf.Pages);
         if (!alpha) {
             var readback = OfficeDrawingRasterRenderer.Render(pdf.Pages[0].ToDrawing(), scale: 4D / 3D, background: OfficeColor.White);

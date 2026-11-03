@@ -1,7 +1,10 @@
 namespace OfficeIMO.OneNote.Pdf;
 
 /// <summary>Controls visual-preserving PDF generated from the native OneNote page canvas.</summary>
-public sealed class OneNoteVisualPdfOptions {
+public sealed class OneNoteVisualPdfExportOptions {
+    /// <summary>Throws <see cref="OfficeConversionException"/> when the conversion reports loss.</summary>
+    public bool FailOnLoss { get; set; }
+
     /// <summary>PDF generation settings, including encryption and compliance requirements.</summary>
     public OfficeIMO.Pdf.PdfCreateOptions PdfOptions { get; set; } = new OfficeIMO.Pdf.PdfCreateOptions();
 
@@ -26,7 +29,8 @@ public sealed class OneNoteVisualPdfOptions {
     /// <summary>Optional PDF keywords metadata.</summary>
     public string? Keywords { get; set; }
 
-    internal OneNoteVisualPdfOptions Clone() => new OneNoteVisualPdfOptions {
+    /// <summary>Creates an independent copy of these settings.</summary>
+    public OneNoteVisualPdfExportOptions Clone() => new OneNoteVisualPdfExportOptions {
         PdfOptions = PdfOptions?.Clone() ?? throw new InvalidOperationException("PDF options cannot be null."),
         PageRendering = PageRendering?.Clone() ?? new OneNotePageRenderingOptions(),
         RasterScale = RasterScale,
@@ -34,7 +38,8 @@ public sealed class OneNoteVisualPdfOptions {
         Title = Title,
         Author = Author,
         Subject = Subject,
-        Keywords = Keywords
+        Keywords = Keywords,
+        FailOnLoss = FailOnLoss
     };
 
     internal void Validate() {

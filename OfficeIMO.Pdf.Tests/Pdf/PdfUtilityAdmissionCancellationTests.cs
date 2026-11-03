@@ -129,7 +129,7 @@ public class PdfUtilityAdmissionCancellationTests {
             () => document.Pages.Extract(PdfPageSelector.Parse("last"), cancelled.Token),
             () => document.Pages.Split(cancelled.Token),
             () => document.Pages.Split(1, cancelled.Token),
-            () => document.Pages.Split(cancelled.Token, PdfPageSelection.From(1)),
+            () => document.Pages.Split(new[] { PdfPageSelection.From(1) }, cancelled.Token),
             () => document.Pages.Split("1", cancelled.Token)
         };
         foreach (var route in routes) Assert.Throws<OperationCanceledException>(route);

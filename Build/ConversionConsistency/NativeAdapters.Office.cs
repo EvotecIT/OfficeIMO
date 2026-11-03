@@ -45,21 +45,24 @@ internal static partial class NativeAdapters {
                 var document = OdtDocument.Load(source);
                 var imageOptions = Images<WordImageExportOptions>(suite, profile);
                 var pdfOptions = new WordPdfExportOptions().UseRenderingProfile(profile);
-                return Capture(document.ToPdfDocumentResult(pdfOptions: pdfOptions, cancellationToken: token),
-                    format => document.ExportImages(format, imageOptions, cancellationToken: token), token);
+                using (PdfDocument pdf = document.ToPdf(new OdtPdfExportOptions { PdfOptions = pdfOptions }, out OfficeConversionReport report, token))
+                    return Capture(pdf, report,
+                        format => document.ExportImages(format, imageOptions, cancellationToken: token), token);
             }
             case "ods": {
                 var document = OdsDocument.Load(source);
                 var imageOptions = Images<ExcelImageExportOptions>(suite, profile);
                 var pdfOptions = new ExcelPdfExportOptions().UseRenderingProfile(profile);
-                return Capture(document.ToPdfDocumentResult(pdfOptions: pdfOptions, cancellationToken: token),
-                    format => document.ExportImages(format, imageOptions, cancellationToken: token), token);
+                using (PdfDocument pdf = document.ToPdf(new OdsPdfExportOptions { PdfOptions = pdfOptions }, out OfficeConversionReport report, token))
+                    return Capture(pdf, report,
+                        format => document.ExportImages(format, imageOptions, cancellationToken: token), token);
             }
             case "odp": {
                 var document = OdpPresentation.Load(source);
                 var imageOptions = Images<PowerPointImageExportOptions>(suite, profile);
                 var pdfOptions = new PowerPointPdfExportOptions().UseRenderingProfile(profile);
-                return Capture(document.ToPdfDocumentResult(pdfOptions: pdfOptions, cancellationToken: token),
+                using (PdfDocument pdf = document.ToPdf(new OdpPdfExportOptions { PdfOptions = pdfOptions }, out OfficeConversionReport report, token))
+                    return Capture(pdf, report,
                     format => document.ExportImages(format, imageOptions, cancellationToken: token), token);
             }
             case "pdf": {

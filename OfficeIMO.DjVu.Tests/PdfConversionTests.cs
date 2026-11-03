@@ -9,7 +9,7 @@ public sealed class PdfConversionTests {
     [Fact]
     public void StoredUnicodeIsSearchableWithPhysicalRotatedPageSize() {
         var document = DjVuDocument.Load(ReaderAdapterTests.Fixture("unicode.djvu"));
-        var result = document.ToPdfDocumentResult();
+        var result = document.ConvertToPdfWithEvidence(null, default);
         var report = Assert.IsType<DjVuPdfConversionReport>(Assert.Single(result.SourceConversionReports));
         var pageReport = Assert.Single(report.Pages);
         Assert.Equal(DjVuPdfTextSource.StoredText, pageReport.TextSource);
@@ -41,7 +41,7 @@ public sealed class PdfConversionTests {
                 Spans = new[] { new OcrTextSpan { Sequence = 0, Text = "Recognized " + request.PageNumber, Level = OcrTextSpanLevel.Word,
                     CoordinateUnit = OcrCoordinateUnit.Normalized, Region = new OcrRegion { X = .1, Y = .2, Width = .6, Height = .15 }, Confidence = .99 } } });
         }, new OcrEngineCapabilities { SupportsWordSpans = true });
-        var result = await document.ToPdfDocumentResultAsync(new DjVuPdfExportOptions { OcrEngine = engine, PageNumbers = new[] { 4, 2, 3, 1 } });
+        var result = await document.ConvertToPdfWithEvidenceAsync(new DjVuPdfExportOptions { OcrEngine = engine, PageNumbers = new[] { 4, 2, 3, 1 } }, default);
         Assert.Equal(new[] { 3, 1 }, calls);
         var report = Assert.IsType<DjVuPdfConversionReport>(Assert.Single(result.SourceConversionReports));
         Assert.Equal(new[] { 4, 2, 3, 1 }, report.Pages.Select(p => p.SourcePageNumber));
@@ -51,15 +51,15 @@ public sealed class PdfConversionTests {
         Assert.Equal(.99, report.Pages[2].Recognition!.Confidence!.Value, 8);
         Assert.NotNull(report.OcrReport);
         Assert.Contains(report.Diagnostics, d => d.Code == "djvu.pdf.stored-text-corrupt");
-        var pdf = PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes()));
+        var pdf = PdfDocument.Load(new System.IO.MemoryStream(result.Value.ToBytes()));
         Assert.Equal(4, pdf.Pages.Count);
         Assert.Contains("Zażółć 😀", pdf.ExtractText());
         Assert.Contains("Recognized 3", pdf.ExtractText());
         Assert.Contains("Recognized 1", pdf.ExtractText());
         calls.Clear();
-        await document.ToPdfDocumentResultAsync(new DjVuPdfExportOptions { OcrEngine = engine, PageNumbers = new[] { 2, 4 } });
+        await document.ToPdfAsync(new DjVuPdfExportOptions { OcrEngine = engine, PageNumbers = new[] { 2, 4 } });
         Assert.Empty(calls);
-        Assert.Throws<InvalidOperationException>(() => document.ToPdfDocumentResult(new DjVuPdfExportOptions { OcrEngine = engine }));
+        Assert.Throws<InvalidOperationException>(() => document.ToPdf(new DjVuPdfExportOptions { OcrEngine = engine }, out _));
     }
 
     [Fact]
@@ -72,22 +72,22 @@ public sealed class PdfConversionTests {
         await Assert.ThrowsAsync<ArgumentException>(() => document.SaveAsPdfAsync(readOnly, settings));
         await Assert.ThrowsAsync<ArgumentException>(() => document.SaveAsPdfAsync(" ", settings));
         Assert.Equal(0, calls);
-        var result = await document.ToPdfDocumentResultAsync(settings);
+        var result = await document.ConvertToPdfWithEvidenceAsync(settings, default);
         var report = Assert.IsType<DjVuPdfConversionReport>(Assert.Single(result.SourceConversionReports));
         Assert.Equal(DjVuPdfTextSource.None, report.Pages[0].TextSource);
         Assert.Contains(report.Diagnostics, d => d.Code == "djvu.pdf.ocr-geometry-missing");
-        Assert.Equal(string.Empty, PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).ExtractText().Trim());
+        Assert.Equal(string.Empty, PdfDocument.Load(new System.IO.MemoryStream(result.Value.ToBytes())).ExtractText().Trim());
     }
 
     [Fact]
     public void PageTextImageAndSerializationLimitsAndCancellationStayExplicit() {
         var document = DjVuDocument.Load(ReaderAdapterTests.Fixture("reader-book.djvu"));
-        Assert.Throws<DjVuResourceLimitException>(() => document.ToPdfDocumentResult(new DjVuPdfExportOptions { MaxPages = 1 }));
-        Assert.Throws<DjVuResourceLimitException>(() => document.ToPdfDocumentResult(new DjVuPdfExportOptions { PageNumbers = new[] { 2 }, MaxTextCharacters = 1 }));
-        Assert.Throws<ArgumentException>(() => document.ToPdfDocumentResult(new DjVuPdfExportOptions { PageNumbers = new[] { 2, 2 } }));
-        Assert.Throws<ArgumentException>(() => document.ToPdfDocumentResult(new DjVuPdfExportOptions { PageNumbers = Array.Empty<int>() }));
-        Assert.Throws<OperationCanceledException>(() => document.ToPdfBytes(cancellationToken: new CancellationToken(true)));
-        Assert.Throws<InvalidDataException>(() => document.ToPdfBytes(new DjVuPdfExportOptions { PageNumbers = new[] { 2 }, MaxPdfBytes = 128 }));
-        Assert.Throws<OfficeIMO.Drawing.OfficeImageExportBatchLimitException>(() => document.ToPdfDocumentResult(new DjVuPdfExportOptions { MaxTotalImageBytes = 32 }));
+        Assert.Throws<DjVuResourceLimitException>(() => document.ToPdf(new DjVuPdfExportOptions { MaxPages = 1 }, out _));
+        Assert.Throws<DjVuResourceLimitException>(() => document.ToPdf(new DjVuPdfExportOptions { PageNumbers = new[] { 2 }, MaxTextCharacters = 1 }, out _));
+        Assert.Throws<ArgumentException>(() => document.ToPdf(new DjVuPdfExportOptions { PageNumbers = new[] { 2, 2 } }, out _));
+        Assert.Throws<ArgumentException>(() => document.ToPdf(new DjVuPdfExportOptions { PageNumbers = Array.Empty<int>() }, out _));
+        Assert.Throws<OperationCanceledException>(() => document.ToPdf(null, new CancellationToken(true)).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        Assert.IsType<InvalidDataException>(Assert.Throws<OfficeConversionException>(() => document.ToPdf(new DjVuPdfExportOptions { PageNumbers = new[] { 2 }, MaxPdfBytes = 128 })).InnerException);
+        Assert.Throws<OfficeIMO.Drawing.OfficeImageExportBatchLimitException>(() => document.ToPdf(new DjVuPdfExportOptions { MaxTotalImageBytes = 32 }, out _));
     }
 }

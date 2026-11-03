@@ -18,7 +18,7 @@ public sealed class PdfOpenDocumentBridgeTests {
             .ToBytes();
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Load(source);
 
-        PdfOdtConversionResult result = pdf.ToOdtDocumentResult();
+        PdfOdtConversionResult result = pdf.ConvertToOdtWithEvidence(null, default);
         byte[] odt = result.Value.ToBytes();
 
         Assert.Contains(result.Value.Paragraphs, paragraph =>
@@ -36,7 +36,7 @@ public sealed class PdfOpenDocumentBridgeTests {
             .ToBytes();
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Load(source);
 
-        PdfOdtConversionResult result = pdf.ToOdtDocumentResult();
+        PdfOdtConversionResult result = pdf.ConvertToOdtWithEvidence(null, default);
 
         Assert.True(result.HasLoss);
         Assert.Contains(result.Report.PdfReport.Warnings, warning =>
@@ -56,7 +56,7 @@ public sealed class PdfOpenDocumentBridgeTests {
             .ToBytes();
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Load(source);
 
-        PdfOdsConversionResult result = pdf.ToOdsDocumentResult();
+        PdfOdsConversionResult result = pdf.ConvertToOdsWithEvidence(null, default);
 
         Assert.NotEmpty(result.Value.Sheets);
         Assert.True(result.Report.PdfReport.HasOmittedPageContent);
@@ -92,7 +92,7 @@ public sealed class PdfOpenDocumentBridgeTests {
             .ToBytes();
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Load(source);
 
-        PdfOdpConversionResult result = pdf.ToOdpPresentationResult();
+        PdfOdpConversionResult result = pdf.ConvertToOdpWithEvidence(null, default);
 
         Assert.Equal(PowerPointPdfImportMode.EditableContent, result.Report.PdfReport.Mode);
         Assert.Equal(2, result.Value.Slides.Count);
@@ -109,21 +109,4 @@ public sealed class PdfOpenDocumentBridgeTests {
         Assert.Equal("Yes", table.Cell(1, 1).Text);
     }
 
-    [Theory]
-    [InlineData(typeof(OdtPdfConversionExtensions), "SaveAsOdt", "ToOdtDocument", "ToOdtDocumentResult")]
-    [InlineData(typeof(OdsPdfConversionExtensions), "SaveAsOds", "ToOdsDocument", "ToOdsDocumentResult")]
-    [InlineData(typeof(OdpPdfConversionExtensions), "SaveAsOdp", "ToOdpPresentation", "ToOdpPresentationResult")]
-    public void ReverseOpenDocumentAdaptersUseTheSameFacadeOnOpenedAndLogicalPdfDocuments(
-        Type converterType,
-        string saveName,
-        string importName,
-        string resultName) {
-        System.Reflection.MethodInfo[] methods = converterType
-            .GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
-
-        Assert.Equal(4, methods.Count(method => method.Name == saveName));
-        Assert.Equal(4, methods.Count(method => method.Name == saveName + "Async"));
-        Assert.Equal(2, methods.Count(method => method.Name == importName));
-        Assert.Equal(2, methods.Count(method => method.Name == resultName));
-    }
 }

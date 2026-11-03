@@ -24,7 +24,7 @@ public sealed class PdfOdpConversionReport : OfficeConversionReport {
 }
 
 /// <summary>An ODP presentation with diagnostics from both conversion stages.</summary>
-public sealed class PdfOdpConversionResult : OfficeConversionResult<OdpPresentation> {
+internal sealed class PdfOdpConversionResult : OfficeConversionResult<OdpPresentation> {
     /// <summary>Gets the typed conversion report.</summary>
     public new PdfOdpConversionReport Report => (PdfOdpConversionReport)base.Report;
 

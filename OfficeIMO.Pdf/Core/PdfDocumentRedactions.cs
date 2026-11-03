@@ -54,25 +54,15 @@ public sealed partial class PdfDocumentRedactions {
         return Plan(areas, layoutOptions, options);
     }
 
-    /// <summary>Plans one or more rich review regions while retaining their exact destructive geometry.</summary>
-    public PdfRedactionPlan Plan(IEnumerable<PdfRedactionRegion> regions, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
-        Guard.NotNull(regions, nameof(regions));
-        return Plan(regions.SelectMany(static region => region.Areas), layoutOptions, options);
-    }
-
     /// <summary>Plans rich review regions with cooperative cancellation.</summary>
-    public PdfRedactionPlan Plan(IEnumerable<PdfRedactionRegion> regions, CancellationToken cancellationToken, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
+    public PdfRedactionPlan Plan(IEnumerable<PdfRedactionRegion> regions, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
         Guard.NotNull(regions, nameof(regions));
         cancellationToken.ThrowIfCancellationRequested();
-        return Plan(regions.SelectMany(static region => region.Areas), cancellationToken, layoutOptions, options);
+        return Plan(regions.SelectMany(static region => region.Areas), layoutOptions, options, cancellationToken);
     }
 
-    /// <summary>Plans rectangle-based redaction impact without modifying the PDF.</summary>
-    public PdfRedactionPlan Plan(IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) =>
-        _document.PlanRedactions(areas, layoutOptions, options);
-
     /// <summary>Plans rectangle-based redaction impact with cooperative cancellation.</summary>
-    public PdfRedactionPlan Plan(IEnumerable<PdfRedactionArea> areas, CancellationToken cancellationToken, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) =>
+    public PdfRedactionPlan Plan(IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null, CancellationToken cancellationToken = default) =>
         _document.PlanRedactions(areas, layoutOptions, options, cancellationToken);
 
     /// <summary>Searches literal text, regex, logical kinds, and form-field names into a reviewable plan.</summary>

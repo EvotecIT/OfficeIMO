@@ -26,7 +26,7 @@ public class LatexFootnoteConversionTests {
         Assert.Single(Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]).Inlines.Nodes.OfType<ItalicSequenceInline>());
         Assert.Contains(" after.", Plain(paragraph.Inlines), StringComparison.Ordinal);
         Assert.DoesNotContain(result.Report.NativeDiagnostics, diagnostic => diagnostic.Feature.StartsWith("command:footnote", StringComparison.Ordinal));
-        string pdfText = PdfDocument.Load(new System.IO.MemoryStream(source.ToPdfDocumentResult().Value.ToBytes())).ExtractText();
+        string pdfText = PdfDocument.Load(new System.IO.MemoryStream(source.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText();
         foreach (string text in new[] { "Before", "after.", "First", "Second.", "One", "Two", "Quoted" })
             Assert.Single(System.Text.RegularExpressions.Regex.Matches(pdfText,
                 System.Text.RegularExpressions.Regex.Escape(text)).Cast<System.Text.RegularExpressions.Match>());

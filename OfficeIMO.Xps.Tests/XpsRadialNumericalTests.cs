@@ -20,7 +20,7 @@ public sealed class XpsRadialNumericalTests {
             stop.SetAttributeValue("Color", "#80" + color.Substring(3));
         }
         page.ReplaceMarkup(markup);
-        string syntax = Encoding.ASCII.GetString(document.ToPdf());
+        string syntax = Encoding.ASCII.GetString(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var bounds = Regex.Matches(syntax, @"/BBox \[([^]]+)\]");
         Assert.Equal(2, bounds.Count); // RGB endpoint Form and gray luminosity mask.
         foreach (Match match in bounds) {
@@ -44,7 +44,7 @@ public sealed class XpsRadialNumericalTests {
         var document = Create(format, spread, small);
         document = XpsDocument.Load(document.ToBytes());
         var native = OfficeDrawingRasterRenderer.Render(document.Pages[0].ToDrawing(), background: OfficeColor.White);
-        var pdfPage = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf())).Pages);
+        var pdfPage = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages);
         var readback = OfficeDrawingRasterRenderer.Render(pdfPage.ToDrawing(), scale: 4D / 3D, background: OfficeColor.White);
         var point = small ? (102, 105) : (100, 80);
         foreach (var image in new[] { native, readback }) {

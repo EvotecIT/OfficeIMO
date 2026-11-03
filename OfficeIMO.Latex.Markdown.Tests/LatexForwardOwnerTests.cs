@@ -21,7 +21,7 @@ public sealed class LatexForwardOwnerTests {
         Assert.Null(result.Value.FindFrontMatterEntry("date"));
         Assert.Equal("article", result.Value.FindFrontMatterEntry("documentclass")?.Value);
         Assert.Empty(result.Value.Blocks.OfType<HeadingBlock>());
-        string text = PdfDocument.Load(new System.IO.MemoryStream(LatexDocument.Parse(Wrap("Public") + trailer).ToPdfBytes())).ExtractText();
+        string text = PdfDocument.Load(new System.IO.MemoryStream(LatexDocument.Parse(Wrap("Public") + trailer).ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText();
         Assert.Contains("Public", text, StringComparison.Ordinal);
         Assert.DoesNotContain("PRIVATE", text, StringComparison.Ordinal);
         Assert.DoesNotContain("INERT", text, StringComparison.Ordinal);

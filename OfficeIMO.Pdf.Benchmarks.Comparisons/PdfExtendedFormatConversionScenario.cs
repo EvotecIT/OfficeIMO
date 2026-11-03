@@ -57,21 +57,21 @@ internal sealed record PdfExtendedFormatConversionScenario(
         using var stream = new MemoryStream(source, writable: false);
         return kind switch {
             PdfExtendedFormatConversionKind.AsciiDoc =>
-                AsciiDocDocument.ParseResult(Encoding.UTF8.GetString(source)).Document.ToPdfBytes(),
+                Serialize(AsciiDocDocument.ParseResult(Encoding.UTF8.GetString(source)).Document.ToPdf()),
             PdfExtendedFormatConversionKind.Latex =>
-                LatexDocument.ParseResult(Encoding.UTF8.GetString(source)).Document.ToPdfBytes(),
-            PdfExtendedFormatConversionKind.Mhtml => MhtmlDocument.Load(stream).ToPdfBytes(),
-            PdfExtendedFormatConversionKind.OneNote => OneNoteSectionReader.Read(stream).ToPdfBytes(),
-            PdfExtendedFormatConversionKind.Odt => OdtDocument.Load(stream).ToPdfBytes(),
-            PdfExtendedFormatConversionKind.Ods => OdsDocument.Load(stream).ToPdfBytes(),
-            PdfExtendedFormatConversionKind.Odp => OdpPresentation.Load(stream).ToPdfBytes(),
+                Serialize(LatexDocument.ParseResult(Encoding.UTF8.GetString(source)).Document.ToPdf()),
+            PdfExtendedFormatConversionKind.Mhtml => Serialize(MhtmlDocument.Load(stream).ToPdf()),
+            PdfExtendedFormatConversionKind.OneNote => Serialize(OneNoteSectionReader.Read(stream).ToPdf()),
+            PdfExtendedFormatConversionKind.Odt => Serialize(OdtDocument.Load(stream).ToPdf()),
+            PdfExtendedFormatConversionKind.Ods => Serialize(OdsDocument.Load(stream).ToPdf()),
+            PdfExtendedFormatConversionKind.Odp => Serialize(OdpPresentation.Load(stream).ToPdf()),
             PdfExtendedFormatConversionKind.Visio => Serialize(VisioDocument.Load(stream).ToPdf()),
             _ => throw new ArgumentOutOfRangeException(nameof(kind))
         };
     }
 
     private static byte[] Serialize(OfficeIMO.Pdf.PdfDocument pdf) {
-        using (pdf) return pdf.ToBytes();
+        using (pdf) return pdf.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 
     private static byte[] CreateAsciiDoc() {

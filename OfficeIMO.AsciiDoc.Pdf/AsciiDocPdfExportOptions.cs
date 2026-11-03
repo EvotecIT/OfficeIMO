@@ -6,6 +6,9 @@ namespace OfficeIMO.AsciiDoc.Pdf;
 
 /// <summary>Controls the loss-aware AsciiDoc-to-PDF route.</summary>
 public sealed class AsciiDocPdfExportOptions {
+    /// <summary>Throws <see cref="OfficeConversionException"/> when the conversion reports loss.</summary>
+    public bool FailOnLoss { get; set; }
+
     private AsciiDocMarkdownExportOptions _projectionOptions = new AsciiDocMarkdownExportOptions();
     private MarkdownPdfExportOptions _markdownOptions = new MarkdownPdfExportOptions();
 
@@ -31,4 +34,11 @@ public sealed class AsciiDocPdfExportOptions {
         },
         MarkdownOptions = MarkdownOptions.Clone()
     };
+
+    /// <summary>Creates an independent copy of these settings.</summary>
+    public AsciiDocPdfExportOptions Clone() {
+        AsciiDocPdfExportOptions copy = CloneForConversion();
+        copy.FailOnLoss = FailOnLoss;
+        return copy;
+    }
 }

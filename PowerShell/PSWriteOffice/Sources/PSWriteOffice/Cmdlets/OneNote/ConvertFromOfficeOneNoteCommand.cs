@@ -23,7 +23,7 @@ namespace PSWriteOffice.Cmdlets.OneNote;
 /// $report | Select-Object HasLoss, Diagnostics</code>
 /// </example>
 [Cmdlet(VerbsData.ConvertFrom, "OfficeOneNote", SupportsShouldProcess = true)]
-[OutputType(typeof(FileInfo), typeof(OneNoteMarkdownConversionReport), typeof(HtmlConversionReport), typeof(PdfDocumentConversionResult))]
+[OutputType(typeof(FileInfo), typeof(OneNoteMarkdownConversionReport), typeof(HtmlConversionReport), typeof(OfficeConversionReport))]
 public sealed class ConvertFromOfficeOneNoteCommand : PSCmdlet
 {
     /// <summary>Path to a .one section, .onetoc2 notebook index, or .onepkg archive.</summary>
@@ -143,18 +143,18 @@ public sealed class ConvertFromOfficeOneNoteCommand : PSCmdlet
 
     private object WritePdf(object source, string output)
     {
-        var options = PdfOptions ?? new OneNotePdfExportOptions { ProjectionOptions = ProjectionOptions ?? new OneNoteMarkdownOptions() };
-        var result = source switch
-        {
-            OneNoteSection section => section.ToPdfDocumentResult(options),
-            OneNoteNotebook notebook => notebook.ToPdfDocumentResult(options),
-            _ => throw new InvalidOperationException("Unsupported OneNote source model.")
-        };
+        var options = (PdfOptions ?? new OneNotePdfExportOptions { ProjectionOptions = ProjectionOptions ?? new OneNoteMarkdownOptions() }).Clone();
+        if (FailOnLoss.IsPresent) options.FailOnLoss = true;
+        OfficeConversionReport? report = null;
         OfficeFileOutput.Write(output, Force.IsPresent, temporaryPath =>
         {
-            result.Save(temporaryPath).RequireSuccess();
-            if (FailOnLoss.IsPresent) result.ThrowIfLoss();
+            report = source switch
+            {
+                OneNoteSection section => section.SaveAsPdf(temporaryPath, options),
+                OneNoteNotebook notebook => notebook.SaveAsPdf(temporaryPath, options),
+                _ => throw new InvalidOperationException("Unsupported OneNote source model.")
+            };
         });
-        return result;
+        return report!;
     }
 }

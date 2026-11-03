@@ -8,13 +8,12 @@ using OfficeIMO.Latex.Pdf;
 using OfficeIMO.Pdf;
 
 LatexDocument document = LatexDocument.Load("article.tex");
-PdfSaveResult result = document.SaveAsPdf("article.pdf");
+OfficeConversionReport report = document.SaveAsPdf("article.pdf");
 
-result.Report.ThrowIfLoss(); // optional strict conversion gate
-result.Pipeline.RequireSuccess(); // exact output pipeline gate
+report.ThrowIfLoss(); // optional strict conversion gate
 ```
 
-`PdfSaveResult` combines native parser, bounded-profile projection, PDF layout/resource/font diagnostics, and exact output-pipeline evidence. Use `ToPdfDocumentResult(...)` when conversion and post-processing should happen before save. TeX macros and package behavior are not executed; unsupported or simplified constructs are preserved visibly when configured and remain explicit warnings.
+The report combines native parser, bounded-profile projection, PDF layout/resource/font diagnostics. `ToPdf(options, out report)` returns the PDF model with its `OfficeConversionReport`, `ToPdfAsync` returns both as `OfficeConversionResult<PdfDocument>`, and `SaveAsPdf`/`SaveAsPdfAsync` write a path or caller-owned stream and return the report. Set `FailOnLoss` on the options to make reported loss an `OfficeConversionException` before anything is written. TeX macros and package behavior are not executed; unsupported or simplified constructs are preserved visibly when configured and remain explicit warnings.
 
 The zero-options resource policy is inherited from `MarkdownPdfExportOptions`: system fonts and bounded in-source resources are allowed, while arbitrary local and remote reads require explicit trust configuration.
 

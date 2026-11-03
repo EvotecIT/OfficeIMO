@@ -9,10 +9,10 @@ internal static class OneNoteVisualPdfRenderer {
     internal static PdfCore.PdfDocumentConversionResult Render(
         string sourceName,
         IReadOnlyList<OneNotePageReference> pages,
-        OneNoteVisualPdfOptions? options,
+        OneNoteVisualPdfExportOptions? options,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        OneNoteVisualPdfOptions effective = options?.Clone() ?? new OneNoteVisualPdfOptions();
+        OneNoteVisualPdfExportOptions effective = options?.Clone() ?? new OneNoteVisualPdfExportOptions();
         effective.Validate();
         effective.PdfOptions.UseContentStreamCompressionByDefault();
         string title = string.IsNullOrWhiteSpace(effective.Title) ? sourceName : effective.Title!;

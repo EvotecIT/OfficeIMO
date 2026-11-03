@@ -36,7 +36,7 @@ public sealed class PdfConversionOutputContracts {
             return value;
         };
         var mhtml = new MhtmlDocument("<a href='https://example.test/next'>Linked text</a>");
-        Assert.Throws<OperationCanceledException>(() => mhtml.ToPdfDocumentResult(options, cancellation.Token));
+        Assert.Throws<OperationCanceledException>(() => mhtml.ToPdf(options, out _, cancellation.Token));
         Assert.True(evaluatedPolicy);
     }
 

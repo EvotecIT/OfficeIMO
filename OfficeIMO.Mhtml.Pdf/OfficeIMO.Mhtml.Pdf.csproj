@@ -39,4 +39,11 @@
     <Using Include="System.Threading.Tasks" />
     <Using Include="OfficeIMO.Html" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Pdf.Benchmarks.Comparisons" />
+  </ItemGroup>
 </Project>

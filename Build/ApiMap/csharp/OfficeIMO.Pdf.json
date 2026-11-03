@@ -3538,6 +3538,69 @@
       "reason": "Cancellable page-range operations take a page selection followed by a final CancellationToken, matching the other PdfDocumentPages page-list overloads; a params page list could not be followed by the token.",
       "category": "cancellation",
       "applied": true
+    },
+    {
+      "old": "PdfDocumentPages.Delete / Reorder / Duplicate / Move / Rotate / RotateBy(..., CancellationToken cancellationToken, params int[] pageNumbers)",
+      "kind": "method",
+      "action": "merge",
+      "new": "The existing (..., PdfPageSelection selection, CancellationToken cancellationToken) overloads",
+      "reason": "Cancellable operations take a final CancellationToken cancellationToken = default; page lists use PdfPageSelection.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "PdfDocumentPages.SetPageBox / SetMediaBox / SetCropBox / SetBleedBox / SetTrimBox / SetArtBox / CropAndTranslate / Resize(PdfPageSize)(..., CancellationToken cancellationToken, params int[] pageNumbers)",
+      "kind": "method",
+      "action": "change",
+      "new": "(..., PdfPageSelection? selection, CancellationToken cancellationToken = default); null selects every page",
+      "reason": "Cancellable operations take a final CancellationToken cancellationToken = default; page lists use PdfPageSelection.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "PdfDocumentPages.ReorderWithMapping(CancellationToken cancellationToken, params int[] pageNumbers)",
+      "kind": "method",
+      "action": "change",
+      "new": "PdfDocumentPages.ReorderWithMapping(PdfPageSelection order, CancellationToken cancellationToken = default)",
+      "reason": "Cancellable operations take a final CancellationToken cancellationToken = default; page lists use PdfPageSelection.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "PdfDocumentPages.ApplyAttributes(CancellationToken cancellationToken, params PdfPageAttributeEdit[] edits)",
+      "kind": "method",
+      "action": "change",
+      "new": "PdfDocumentPages.ApplyAttributes(IReadOnlyList<PdfPageAttributeEdit> edits, CancellationToken cancellationToken = default)",
+      "reason": "Cancellable operations take a final CancellationToken cancellationToken = default; page lists use PdfPageSelection.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "PdfDocumentPages.BookmarkPageRanges / SplitByBookmarks([int level,] CancellationToken cancellationToken, params string[] bookmarkTitles)",
+      "kind": "method",
+      "action": "change",
+      "new": "([int level,] IReadOnlyList<string> bookmarkTitles, CancellationToken cancellationToken = default)",
+      "reason": "Cancellable operations take a final CancellationToken cancellationToken = default; page lists use PdfPageSelection.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "PdfDocumentPages.Split(CancellationToken cancellationToken, params PdfPageSelection[] selections)",
+      "kind": "method",
+      "action": "change",
+      "new": "PdfDocumentPages.Split(IReadOnlyList<PdfPageSelection> selections, CancellationToken cancellationToken = default)",
+      "reason": "Cancellable operations take a final CancellationToken cancellationToken = default; page lists use PdfPageSelection.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "PdfDocumentRedactions.Plan(IEnumerable<PdfRedactionRegion | PdfRedactionArea>, CancellationToken cancellationToken, PdfTextLayoutOptions layoutOptions = null, PdfLoadOptions options = null) and the token-less twin",
+      "kind": "method",
+      "action": "merge",
+      "new": "PdfDocumentRedactions.Plan(regions | areas, PdfTextLayoutOptions layoutOptions = null, PdfLoadOptions options = null, CancellationToken cancellationToken = default)",
+      "reason": "Cancellable operations take a final CancellationToken cancellationToken = default; page lists use PdfPageSelection.",
+      "category": "cancellation",
+      "applied": true
     }
   ],
   "packageMoves": [

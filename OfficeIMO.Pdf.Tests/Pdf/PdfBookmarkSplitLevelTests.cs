@@ -18,12 +18,12 @@ public class PdfBookmarkSplitLevelTests {
         Assert.Equal(2, chapters.Count);
         Assert.Equal(PdfPageRange.From(1, 2), chapters[0].PageRange);
         Assert.Equal(PdfPageRange.From(3, 3), chapters[1].PageRange);
-        var nested = Assert.Single(document.Pages.BookmarkPageRanges(2, CancellationToken.None, "Nested section"));
+        var nested = Assert.Single(document.Pages.BookmarkPageRanges(2, new[] { "Nested section" }, CancellationToken.None));
         Assert.Equal(PdfPageRange.From(2, 2), nested.PageRange);
         using PdfDocument extracted = document.Pages.Extract(chapters[0].PageRange);
         Assert.Contains("Nested body", extracted.Read().Text, System.StringComparison.Ordinal);
         Assert.DoesNotContain("Next chapter body", extracted.Read().Text, System.StringComparison.Ordinal);
         Assert.Throws<System.ArgumentException>(() => document.Pages.BookmarkPageRanges(1, "Nested section"));
-        Assert.Throws<System.OperationCanceledException>(() => document.Pages.BookmarkPageRanges(1, new CancellationToken(true)));
+        Assert.Throws<System.OperationCanceledException>(() => document.Pages.BookmarkPageRanges(1, System.Array.Empty<string>(), new CancellationToken(true)));
     }
 }

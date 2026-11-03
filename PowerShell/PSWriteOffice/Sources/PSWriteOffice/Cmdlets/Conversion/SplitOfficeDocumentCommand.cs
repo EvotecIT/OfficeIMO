@@ -163,7 +163,7 @@ public sealed class SplitOfficeDocumentCommand : AsyncPSCmdlet {
             int count = document.Inspect(null, token).PageCount;
             PdfPageSelection[] groups;
             if (bookmarks) {
-                var chapters = document.Pages.BookmarkPageRanges(1, token, titles);
+                var chapters = document.Pages.BookmarkPageRanges(1, titles, token);
                 if (chapters.Count == 0) throw new InvalidOperationException("The PDF has no readable top-level chapter bookmarks.");
                 groups = chapters.Select(chapter => PdfPageSelection.FromRanges(chapter.PageRange)).ToArray();
             } else if (selections != null) groups = selections;

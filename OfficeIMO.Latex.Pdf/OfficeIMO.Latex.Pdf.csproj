@@ -31,4 +31,8 @@
     <ProjectReference Include="..\OfficeIMO.Latex.Markdown\OfficeIMO.Latex.Markdown.csproj" />
     <ProjectReference Include="..\OfficeIMO.Markdown.Pdf\OfficeIMO.Markdown.Pdf.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Latex.Markdown.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
+  </ItemGroup>
 </Project>

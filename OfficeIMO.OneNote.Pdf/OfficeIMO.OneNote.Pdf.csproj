@@ -39,4 +39,8 @@
     <Using Include="System.Threading" />
     <Using Include="System.Threading.Tasks" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.OneNote.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
+  </ItemGroup>
 </Project>

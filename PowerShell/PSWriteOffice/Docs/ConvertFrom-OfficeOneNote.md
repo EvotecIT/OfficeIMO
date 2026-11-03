@@ -200,7 +200,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 - `System.IO.FileInfo`
 - `OfficeIMO.OneNote.Markdown.OneNoteMarkdownConversionReport`
 - `OfficeIMO.Html.HtmlConversionReport`
-- `OfficeIMO.Pdf.PdfDocumentConversionResult`
+- `OfficeIMO.OfficeConversionReport`
 
 ## RELATED LINKS
 

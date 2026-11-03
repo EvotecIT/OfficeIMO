@@ -64,11 +64,11 @@ public sealed class HtmlEditableLayoutReviewWave21Tests {
             }
         };
 
-        PdfCore.PdfDocumentConversionResult result = await document.ToPdfDocumentResultAsync(options);
+        var result = await document.ToPdfAsync(options);
 
         Assert.Equal(0, resolverCalls);
-        Assert.DoesNotContain(PdfCore.PdfImageExtractor.ExtractImages(result.ToBytes()), image => image.IsImageFile);
-        Assert.Contains(result.Warnings, warning =>
+        Assert.DoesNotContain(PdfCore.PdfImageExtractor.ExtractImages(result.Value.ToBytes()), image => image.IsImageFile);
+        Assert.Contains(result.Report.Diagnostics, warning =>
             warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
             || warning.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
     }
@@ -91,11 +91,11 @@ public sealed class HtmlEditableLayoutReviewWave21Tests {
         };
         document.ConfigureRenderOptions(options, remotePolicy);
 
-        PdfCore.PdfDocumentConversionResult result = await document.ToPdfDocumentResultAsync(options);
+        var result = await document.ToPdfAsync(options);
 
         Assert.Equal(1, fetcherCalls);
-        Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(result.ToBytes()), image => image.IsImageFile);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+        Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(result.Value.ToBytes()), image => image.IsImageFile);
+        Assert.DoesNotContain(result.Report.Diagnostics, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
     }
 
     private static int FindParagraphIndex(

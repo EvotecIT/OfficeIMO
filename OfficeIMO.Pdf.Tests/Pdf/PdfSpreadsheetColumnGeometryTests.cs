@@ -229,7 +229,7 @@ public sealed class PdfSpreadsheetColumnGeometryTests {
     }
 
     private static Artifact RoundTripOds(PdfDocumentReadResult source, PdfExcelExportOptions options) {
-        PdfOdsConversionResult result = source.ToOdsDocumentResult(options);
+        PdfOdsConversionResult result = source.ConvertToOdsWithEvidence(new PdfOdsExportOptions { PdfOptions = options }, default);
         PdfExcelTableImportEntry entry = Assert.Single(result.Report.PdfReport.Entries);
         using var bytes = new MemoryStream(result.Value.ToBytes());
         OdsDocument reopened = OdsDocument.Load(bytes);

@@ -91,7 +91,7 @@ public sealed class XpsSidewaysTests {
         var doc = XpsDocument.Load(XpsSidewaysFixtures.Create(metrics, positioned: true).ToBytes());
         byte[] png = doc.Pages[0].ExportImage(OfficeImageExportFormat.Png).Bytes;
         Assert.True(OfficeRasterImageDecoder.TryDecode(png, out var raster));
-        var pdf = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf()));
+        var pdf = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })));
         var pdfRaster = OfficeDrawingRasterRenderer.Render(pdf.Render.Drawing(1), 96D / 72D);
         int dark = 0;
         for (int y = 0; y < 160; y++) for (int x = 0; x < 260; x++) {

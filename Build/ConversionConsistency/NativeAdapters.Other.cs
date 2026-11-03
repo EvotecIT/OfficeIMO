@@ -19,12 +19,13 @@ internal static partial class NativeAdapters {
                 var document = OneNoteSectionReader.Read(source);
                 var imageOptions = Images<OneNotePageBatchRenderingOptions>(suite, profile);
                 imageOptions.DefaultFont = new OfficeFontInfo(suite.FontFamily, 11D);
-                var pdfOptions = new OneNoteVisualPdfOptions {
+                var pdfOptions = new OneNoteVisualPdfExportOptions {
                     PdfOptions = new PdfCreateOptions().UseRenderingProfile(profile),
                     PageRendering = imageOptions, RasterScale = suite.Dpi / 72D
                 };
-                return Capture(document.ToVisualPdfDocumentResult(pdfOptions, token),
-                    format => document.ExportImages(format, imageOptions), token) with { PdfRoute = "native-raster" };
+                using (PdfDocument pdf = document.ToVisualPdf(pdfOptions, out OfficeConversionReport pdfReport, token))
+                    return Capture(pdf, pdfReport,
+                        format => document.ExportImages(format, imageOptions), token) with { PdfRoute = "native-raster" };
             }
             case "vsdx": {
                 var document = VisioDocument.Load(source);

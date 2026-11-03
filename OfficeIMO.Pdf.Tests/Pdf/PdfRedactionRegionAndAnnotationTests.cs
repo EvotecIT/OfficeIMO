@@ -275,7 +275,7 @@ public sealed class PdfRedactionRegionAndAnnotationTests {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        Assert.ThrowsAny<OperationCanceledException>(() => source.Redactions.Plan(new[] { area }, cancellation.Token));
+        Assert.ThrowsAny<OperationCanceledException>(() => source.Redactions.Plan(new[] { area }, cancellationToken: cancellation.Token));
         Assert.ThrowsAny<OperationCanceledException>(() => source.Redactions.Apply(new[] { area }, new PdfRedactionApplyOptions(), cancellationToken: cancellation.Token));
         Assert.ThrowsAny<OperationCanceledException>(() => source.Redactions.Verify(new PdfRedactionVerificationOptions(), cancellationToken: cancellation.Token));
     }

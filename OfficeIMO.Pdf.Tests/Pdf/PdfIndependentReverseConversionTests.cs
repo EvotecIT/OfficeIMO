@@ -90,7 +90,7 @@ public sealed class PdfIndependentReverseConversionTests {
     }
 
     private static string ReadOdtText(PdfDocumentReadResult source) {
-        byte[] artifact = source.ToOdtDocumentResult().Value.ToBytes();
+        byte[] artifact = source.ConvertToOdtWithEvidence(null, default).Value.ToBytes();
         using var bytes = new MemoryStream(artifact);
         OdtDocument reopened = OdtDocument.Load(bytes);
         Assert.NotEmpty(reopened.Paragraphs);
@@ -136,7 +136,7 @@ public sealed class PdfIndependentReverseConversionTests {
     }
 
     private static void AssertOdsCells(PdfDocumentReadResult source, string[][] expected, PdfExcelExportOptions options) {
-        PdfOdsConversionResult result = source.ToOdsDocumentResult(options);
+        PdfOdsConversionResult result = source.ConvertToOdsWithEvidence(new PdfOdsExportOptions { PdfOptions = options }, default);
         Assert.Equal(expected.Length - 1, Assert.Single(result.Report.PdfReport.Entries).RowCount);
         Assert.True(result.Report.PdfReport.HasOmittedPageContent);
         using var bytes = new MemoryStream(result.Value.ToBytes());

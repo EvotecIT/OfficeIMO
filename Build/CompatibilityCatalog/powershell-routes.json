@@ -285,7 +285,7 @@
     "route": "onenote-pdf",
     "cmdlet": "ConvertFrom-OfficeOneNote",
     "example": "ConvertFrom-OfficeOneNote -Path ./in.one -OutputPath ./out.pdf",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/OneNote/ConvertFromOfficeOneNoteCommand.cs L36 (-OutputPath .pdf); L148 (section.ToPdfDocumentResult(options)). Output format is selected by the OutputPath extension (.md, .html or .pdf)."
+    "evidence": "Sources/PSWriteOffice/Cmdlets/OneNote/ConvertFromOfficeOneNoteCommand.cs L36 (-OutputPath .pdf); L148 (section.SaveAsPdf(temporaryPath, options)). Output format is selected by the OutputPath extension (.md, .html or .pdf)."
   },
   {
     "route": "pages-docx",

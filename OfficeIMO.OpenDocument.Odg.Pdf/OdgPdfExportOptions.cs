@@ -4,6 +4,9 @@ namespace OfficeIMO.OpenDocument.Odg.Pdf;
 
 /// <summary>Controls page-preserving Draw-to-PDF conversion through the shared Drawing engine.</summary>
 public sealed class OdgPdfExportOptions {
+    /// <summary>Throws <see cref="OfficeConversionException"/> when the conversion reports loss.</summary>
+    public bool FailOnLoss { get; set; }
+
     /// <summary>PDF generation settings. Page sizes and margins come from the drawing pages.</summary>
     public PdfCreateOptions? PdfOptions { get; set; }
 
@@ -22,7 +25,7 @@ public sealed class OdgPdfExportOptions {
     /// <summary>Creates independent settings for an operation.</summary>
     public OdgPdfExportOptions Clone() => new OdgPdfExportOptions {
         PdfOptions = PdfOptions?.Clone(), ForPrint = ForPrint, LossPolicy = LossPolicy, MaximumPages = MaximumPages,
-        DateTimeFields = DateTimeFields?.Clone()
+        DateTimeFields = DateTimeFields?.Clone(), FailOnLoss = FailOnLoss
     };
 
     internal OdgPdfExportOptions Snapshot() {

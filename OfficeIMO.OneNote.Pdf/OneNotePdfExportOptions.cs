@@ -11,6 +11,9 @@ public enum OneNotePdfProjectionMode {
 
 /// <summary>Controls explicit semantic OneNote-to-PDF projection.</summary>
 public sealed class OneNotePdfExportOptions {
+    /// <summary>Throws <see cref="OfficeConversionException"/> when the conversion reports loss.</summary>
+    public bool FailOnLoss { get; set; }
+
     private OneNoteMarkdownOptions _projectionOptions = new OneNoteMarkdownOptions();
     private MarkdownPdfExportOptions _markdownOptions = new MarkdownPdfExportOptions();
 
@@ -38,5 +41,12 @@ public sealed class OneNotePdfExportOptions {
             ProjectionOptions = ProjectionOptions.Clone(),
             MarkdownOptions = MarkdownOptions.Clone()
         };
+    }
+
+    /// <summary>Creates an independent copy of these settings.</summary>
+    public OneNotePdfExportOptions Clone() {
+        OneNotePdfExportOptions copy = CloneForConversion();
+        copy.FailOnLoss = FailOnLoss;
+        return copy;
     }
 }

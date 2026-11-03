@@ -95,7 +95,7 @@ public sealed class AsciiDocToMarkdownContractTests {
     [Fact]
     public void DirectPdfAdapter_PreservesProjectionDiagnosticsAndProducesPdf() {
         const string source = "= Guide\n\n== Start\nParagraph with stem:[x^2].\n\n|===\n|Name |Value\n|===\n";
-        var result = AsciiDocDocument.ParseResult(source).Document.ToPdfDocumentResult();
+        var result = AsciiDocDocument.ParseResult(source).Document.ConvertToPdfWithEvidence(null, default);
         byte[] bytes = result.ToBytes();
         AsciiDocToMarkdownReport projection = Assert.IsType<AsciiDocToMarkdownReport>(
             Assert.Single(result.SourceConversionReports));
