@@ -1,5 +1,3 @@
-#nullable enable
-
 namespace OfficeIMO.CSV.Benchmarks;
 
 internal struct CsvMaterializingRowFieldSpanVisitor : ICsvRowFieldSpanVisitor

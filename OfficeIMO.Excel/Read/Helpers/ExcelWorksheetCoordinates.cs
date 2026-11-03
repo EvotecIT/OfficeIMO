@@ -1,5 +1,3 @@
-#nullable enable
-
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {

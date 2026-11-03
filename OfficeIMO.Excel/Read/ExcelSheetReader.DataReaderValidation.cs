@@ -1,5 +1,3 @@
-#nullable enable
-
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.IO;
 using System.Threading;

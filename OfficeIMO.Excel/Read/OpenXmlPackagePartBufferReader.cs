@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.IO.Compression;
 using System.Buffers;
 using System.Threading;

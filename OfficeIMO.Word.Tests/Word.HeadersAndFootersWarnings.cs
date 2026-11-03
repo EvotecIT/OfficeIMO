@@ -4,8 +4,6 @@ using System.IO;
 using OfficeIMO.Word;
 using Xunit;
 
-#nullable enable
-
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]

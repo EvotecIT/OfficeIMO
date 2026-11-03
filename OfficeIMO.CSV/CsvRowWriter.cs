@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Globalization;
 using System.Diagnostics.CodeAnalysis;
 using System.Data;

@@ -12,7 +12,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using V = DocumentFormat.OpenXml.Vml;
 
-#nullable enable annotations
 using DocumentFormat.OpenXml.Office2010.Word.Drawing;
 using Pic = DocumentFormat.OpenXml.Drawing.Pictures;
 using A = DocumentFormat.OpenXml.Drawing;

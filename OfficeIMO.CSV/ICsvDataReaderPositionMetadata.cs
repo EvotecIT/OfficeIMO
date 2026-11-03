@@ -1,5 +1,3 @@
-#nullable enable
-
 namespace OfficeIMO.CSV;
 
 /// <summary>Exposes the current logical record and optional physical source-line position.</summary>
