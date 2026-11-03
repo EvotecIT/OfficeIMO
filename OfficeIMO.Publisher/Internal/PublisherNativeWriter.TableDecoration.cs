@@ -7,7 +7,7 @@ internal sealed partial class PublisherNativeWriter {
     private readonly Dictionary<uint, PublisherTableState> _newTableUtilityTargets = new();
     private readonly Dictionary<uint, PublisherTableState> _missingTableCellTargets = new();
     private PublisherEscherShapeEdits? _tableBorderRecords;
-    /// <summary>Edits utility fills and shared edges within the qualified existing drawing and allocation cluster.</summary>
+    /// <summary>Edits utility fills and shared edges while retaining the qualified drawing's allocation history.</summary>
     private void CompareTableDecoration(PublisherTableState before, PublisherTableState after) {
         string location = "Contents/object/" + before.Id;
         foreach (var edge in after.BorderSegments) {
@@ -140,7 +140,7 @@ internal sealed partial class PublisherNativeWriter {
         }
         PublisherEscherTableBorderPlan? plan = PublisherEscherTableBorderPlan.Create(_imported.NativeSource!.EscherBytes, _imported.Artwork,
             _tableBorderTargets, context, _newTableUtilityTargets, _missingTableCellTargets);
-        if (plan == null) { Reject("Escher/tables", "Utility edits require one existing direct utility drawing, consistent shape/allocation counts and room in its current SPID cluster."); return; }
+        if (plan == null) { Reject("Escher/tables", "Utility edits require one existing direct utility drawing, consistent shape/allocation ownership and counts, and representable fresh identifiers within the source limits."); return; }
         foreach (var edit in plan.Scalars) Patch(edit.Slot, edit.Value);
         _tableBorderRecords = plan.Shapes;
     }

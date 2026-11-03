@@ -57,9 +57,8 @@ public sealed class PublisherTableBorderTopologyTests {
 
     [Theory]
     [InlineData(0)]
-    [InlineData(1)]
     [InlineData(2)]
-    public void Invalid_shape_count_full_cluster_or_cursor_below_live_ids_refuses_topology_output(int invalid) {
+    public void Invalid_shape_count_or_cursor_below_live_ids_refuses_topology_output(int invalid) {
         byte[] source = Fixture("TableDecoration");
         OfficeCompoundFile compound = Compound(source);
         byte[] art = (byte[])compound.Streams["Escher/EscherStm"].Clone();
@@ -68,7 +67,7 @@ public sealed class PublisherTableBorderTopologyTests {
         if (invalid != 0) {
             PublisherEscherRecord fdg = records.Reader.Records(records.Utility.Offset, records.Utility.End).Single(item => item.Kind == 0xF008);
             uint cluster = BitConverter.ToUInt32(art, fdg.Offset + 4) >> 10;
-            uint used = invalid == 1 ? 1024U : 4U;
+            uint used = 4U;
             Write(fdg.Offset + 4, (cluster << 10) + used - 1);
             Write(global.Offset + 16 + ((int)cluster - 1) * 8 + 4, used);
         } else Write(global.Offset + 8, BitConverter.ToUInt32(art, global.Offset + 8) + 1);
@@ -79,6 +78,33 @@ public sealed class PublisherTableBorderTopologyTests {
         OfficeConversionException error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
         Assert.Contains(error.Report.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_EDIT_UNSUPPORTED" && item.LossKind == OfficeConversionLossKind.Failure);
         void Write(int offset, uint value) => Buffer.BlockCopy(BitConverter.GetBytes(value), 0, art, offset, 4);
+    }
+
+    [Fact]
+    public void Exhausted_utility_cluster_appends_new_cluster_for_border_topology() {
+        byte[] source = Fixture("TableDecoration");
+        OfficeCompoundFile compound = Compound(source);
+        byte[] art = (byte[])compound.Streams["Escher/EscherStm"].Clone();
+        var records = DrawingRecords(art);
+        var fdgg = records.Reader.Records(records.Dgg.Offset, records.Dgg.End).Single(item => item.Kind == 0xF006);
+        var fdg = records.Reader.Records(records.Utility.Offset, records.Utility.End).Single(item => item.Kind == 0xF008);
+        uint nextCluster = BitConverter.ToUInt32(art, fdgg.Offset + 4);
+        Write(fdg.Offset + 4, 4095); Write(fdgg.Offset + 36, 1024);
+        Write(fdgg.Offset, Math.Max(BitConverter.ToUInt32(art, fdgg.Offset), 4096));
+        byte[] input = OfficeCompoundFileWriter.Rewrite(compound, new Dictionary<string, byte[]> { ["Escher/EscherStm"] = art });
+        PublisherDocument document = PublisherDocument.Load(input);
+        Assert.Equal(input, document.ToPubBytes());
+        Apply(document, "TableBorderTopology");
+        byte[] saved = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        var before = Allocation(input); var after = Allocation(saved);
+        uint[] added = after.Ids.Except(before.Ids).ToArray();
+        Assert.NotEmpty(added); Assert.All(added, id => Assert.Equal(nextCluster, id >> 10));
+        Assert.Equal((uint)added.Length, after.Used);
+        Assert.Equal(after.Cursor + 1, after.Maximum);
+        Assert.Equal(Coverage(PublisherDocument.Load(Fixture("TableBorderTopology")).Pages[0].Tables[0]),
+            Coverage(PublisherDocument.Load(saved).Pages[0].Tables[0]));
+        PublisherNativeWritingTests.AssertPreservedStorage(input, saved, "Escher/EscherStm");
+        void Write(int offset, uint value) => BitConverter.GetBytes(value).CopyTo(art, offset);
     }
 
     [Fact]

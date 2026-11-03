@@ -42,13 +42,13 @@ internal static class QuillCandidate {
         if (text != null) {
             // TEXT is first, so its absolute formatting endpoint follows its
             // actual serialized position even when the other libraries grow.
-            int textEnd = FirstPayloadOffset + text.Length * 2;
-            int firstPageOffset = Align(FirstPayloadOffset + records.Sum(record => record.Body.Length), PublisherQuillFormattingPage.PageBytes);
+            int textEnd = checked(FirstPayloadOffset + text.Length * 2);
+            int firstPageOffset = Align(checked(FirstPayloadOffset + records.Sum(record => record.Body.Length)), PublisherQuillFormattingPage.PageBytes);
             var characterRanges = new List<PublisherQuillFormattingRange>();
             var paragraphRanges = new List<PublisherQuillFormattingRange>();
             int storyStart = FirstPayloadOffset;
             foreach (var story in stories) {
-                int storyEnd = storyStart + story.Source.Text.Length * 2;
+                int storyEnd = checked(storyStart + story.Source.Text.Length * 2);
                 if (story.Source.Paragraphs == null) {
                     characterRanges.Add(new PublisherQuillFormattingRange(storyEnd, Chunk(Scalar(0x0C, 0x22, 18 * 12700))));
                     paragraphRanges.Add(new PublisherQuillFormattingRange(storyEnd, Chunk()));
@@ -56,13 +56,13 @@ internal static class QuillCandidate {
                     int paragraphStart = storyStart;
                     foreach (var paragraph in story.Source.Paragraphs) {
                         characterRanges.AddRange(QuillCharacterFormatting.FromParagraph(paragraph, paragraphStart));
-                        paragraphStart += (paragraph.Runs.Sum(run => run.Text.Length) + 1) * 2;
+                        paragraphStart = checked(paragraphStart + (paragraph.Runs.Sum(run => run.Text.Length) + 1) * 2);
                         paragraphRanges.Add(new PublisherQuillFormattingRange(paragraphStart, QuillParagraphFormatting.Create(paragraph)));
                     }
                 }
                 storyStart = storyEnd;
             }
-            int formattingCapacity = PublisherQuillSourceLayout.DescriptorsPerDirectory - records.Count - 2;
+            int formattingCapacity = PublisherQuillSourceLayout.MaximumDescriptors - records.Count - 2;
             records.AddRange(QuillTextFormatting.CreateRecords(textEnd, firstPageOffset, characterRanges, paragraphRanges, formattingCapacity));
         }
         var positionedRecords = new List<(QuillRecord Record, int Offset)>();
@@ -70,41 +70,30 @@ internal static class QuillCandidate {
         foreach (var record in records) {
             payloadEnd = Align(payloadEnd, record.Alignment);
             positionedRecords.Add((record, payloadEnd));
-            payloadEnd += record.Body.Length;
+            payloadEnd = checked(payloadEnd + record.Body.Length);
         }
         int logicalLength = Math.Max(MinimumStreamBytes, payloadEnd);
-        byte[] header = Header(records.Count, logicalLength);
-        int directoryEnd = header.Length + records.Count * 24;
-        if (directoryEnd > FirstPayloadOffset) throw new InvalidDataException("The Quill directory exceeds its allocated envelope.");
-        return Bytes(writer => {
-            writer.Write(header);
-            foreach (var (record, offset) in positionedRecords) {
-                writer.Write((ushort)24); writer.Write(Encoding.ASCII.GetBytes(record.Tag));
-                writer.Write(record.Id); writer.Write((ushort)1); writer.Write((ushort)0);
-                writer.Write(Encoding.ASCII.GetBytes(record.DescriptorTag ?? record.Tag));
-                writer.Write(offset); writer.Write(record.Body.Length);
-            }
-            writer.Write(new byte[FirstPayloadOffset - directoryEnd]);
-            int offsetWritten = FirstPayloadOffset;
-            foreach (var (record, offset) in positionedRecords) {
-                writer.Write(new byte[offset - offsetWritten]);
-                writer.Write(record.Body);
-                offsetWritten = offset + record.Body.Length;
-            }
-            writer.Write(new byte[logicalLength - payloadEnd]);
-        });
+        PublisherQuillDirectoryWriter directories = PublisherQuillDirectoryWriter.PlanFresh(records.Count, () => {
+            int offset = Align(logicalLength, PublisherQuillFormattingPage.PageBytes);
+            logicalLength = checked(offset + PublisherQuillFormattingPage.PageBytes);
+            return offset;
+        }, CancellationToken.None);
+        var output = new byte[logicalLength]; Header().CopyTo(output, 0);
+        var rows = new List<PublisherQuillFreshDescriptor>();
+        foreach (var (record, offset) in positionedRecords) {
+            Buffer.BlockCopy(record.Body, 0, output, offset, record.Body.Length);
+            rows.Add(new(record.Tag, record.Id, record.DescriptorTag ?? record.Tag, offset, record.Body.Length));
+        }
+        directories.PublishFresh(output, rows, CancellationToken.None);
+        return output;
     }
 
-    private static byte[] Header(int totalDescriptors, int logicalLength) => Bytes(writer => {
+    private static byte[] Header() => Bytes(writer => {
         writer.Write(Encoding.ASCII.GetBytes("CHNKINK "));
-        // Native checks require version 4/7, byte +0x0F == 3 and a bounded,
-        // seekable DWORD at +0x14 of at least 512. The remaining values follow
-        // independently authored controls; their sufficiency is unqualified.
-        writer.Write((ushort)4); writer.Write((ushort)7); writer.Write((ushort)totalDescriptors);
+        // Shared directory publication owns counts, lengths and page links.
+        // This prefix retains the independently authored version/reserved fields.
+        writer.Write((ushort)4); writer.Write((ushort)7); writer.Write((ushort)0);
         writer.Write((byte)0); writer.Write((byte)3);
-        writer.Write(FirstPayloadOffset); writer.Write(logicalLength);
-        // The probe emits one directory; its count equals the total in +0x0C.
-        writer.Write((ushort)(FirstPayloadOffset - 8)); writer.Write((ushort)totalDescriptors); writer.Write(uint.MaxValue);
     });
 
     private static int Align(int offset, int alignment) => checked((offset + alignment - 1) / alignment * alignment);

@@ -10,6 +10,8 @@ inventories are persisted before PDF exports and repair remains unassessed.
 NativeEditText optionally replaces the sole unlinked physical text box or the
 sole table's first unmerged cell before native save-as during Validate/Full;
 it never modifies the original input.
+NativeAddClusterTable adds a fixed two-by-four table beside the retained
+eighteen-by-eighteen table in the writable snapshot during Validate/Full.
 #>
 [CmdletBinding()]
 param(
@@ -32,8 +34,10 @@ param(
     [ValidateSet('TextBox', 'FirstTableCell')]
     [string] $NativeEditTarget = 'TextBox',
 
+    [switch] $NativeAddClusterTable,
+
     [Parameter(Mandatory)]
-    [ValidateSet('Blank', 'BlankPages', 'TextPages', 'ObjectPages', 'ObjectPagesEdited', 'MixedObjectPages', 'MixedObjectPagesEdited', 'WrapObjectOrderDefaults', 'WrapObjectOrderLayout', 'WrapTextFrameOutside', 'WrapObjectOrderLeft', 'WrapObjectOrderRight', 'WrapObjectOrderLarger', 'WrapObjectOrderLargerLeft', 'WrapObjectOrderLargerTie', 'WrapObjectOrderLargerColumns', 'WrapObjectOrderOutside', 'WrapObjectOrderRectangleOnly', 'WrapObjectOrderPictureOnly', 'WrapObjectOrderSwap', 'WrapObjectOrder', 'WrapObjectOrderReversed', 'WrapObjectOrderNone', 'MixedObjectOrder', 'MixedObjectOrderReversed', 'MasterContent', 'MasterContentEdited', 'LinkedStory', 'LinkedStoryOverflow', 'TableCreation', 'TableCreationEdited', 'TableCreationMerged', 'TableCreationMergedEdited', 'TableDecoration', 'TableDecorationEdited', 'TableDecorationText', 'TableBordersOnly', 'TableBordersOnlyText', 'TableFillsOnly', 'TableBordersOnlyCleared', 'TableUtilityPair', 'TableUtilityPairStyled', 'TableUtilityPairBorders', 'TableUtilityPairFills', 'TableUtilityPairComposed', 'TableUtilityPairSingleFill', 'TableUtilityPairTargetComposed', 'TableFillVisibility', 'TableFillVisibilityRestored', 'TableFillVisibilityText', 'TableBorderTopology', 'TableBordersCleared', 'TableBorderTopologyTextFill', 'TableBorderDefaultFill', 'FrameCreation', 'FrameCreationEdited', 'FrameCreationFrench', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped', 'SharedImagePages', 'SharedImagePagesReplacement', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextNonuniformTextReplacements', 'TextMixedRunTextReplacements', 'TextFormattingTopology', 'TextEmptyRefill', 'TextRunSegmentation', 'TextNonuniformEmptyParagraphs', 'TextUniformEmptyParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextVerticalPlacement', 'TextFontMetrics', 'TextFallbackAlignment', 'TextFrameBreaks', 'TextLabelFitting', 'TextHyphenation', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'TableNonuniformParagraphs', 'TableNonuniformTextReplacements', 'TableMixedRunTextReplacements', 'TableFormattingTopology', 'TableEmptyRefill', 'TableRunSegmentation', 'TableNonuniformEmptyParagraphs', 'TableUniformEmptyParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'MultipleMastersEdited', 'TwoPageMasterEdited', 'MultipleMastersReassigned', 'MultipleMastersIgnored', 'TwoPageMasterReassigned', 'TwoPageMasterIgnored', 'PictureOwnership', 'PictureReplacement', 'PictureCropped', 'PictureCropFractions', 'PictureCropFractionsReplacement')]
+    [ValidateSet('Blank', 'BlankPages', 'TextPages', 'ObjectPages', 'ObjectPagesEdited', 'MixedObjectPages', 'MixedObjectPagesEdited', 'WrapObjectOrderDefaults', 'WrapObjectOrderLayout', 'WrapTextFrameOutside', 'WrapObjectOrderLeft', 'WrapObjectOrderRight', 'WrapObjectOrderLarger', 'WrapObjectOrderLargerLeft', 'WrapObjectOrderLargerTie', 'WrapObjectOrderLargerColumns', 'WrapObjectOrderOutside', 'WrapObjectOrderRectangleOnly', 'WrapObjectOrderPictureOnly', 'WrapObjectOrderSwap', 'WrapObjectOrder', 'WrapObjectOrderReversed', 'WrapObjectOrderNone', 'MixedObjectOrder', 'MixedObjectOrderReversed', 'MasterContent', 'MasterContentEdited', 'LinkedStory', 'LinkedStoryOverflow', 'TableCreation', 'TableCreationEdited', 'TableCreationMerged', 'TableCreationMergedEdited', 'TableDecoration', 'TableDecorationEdited', 'TableDecorationText', 'TableBordersOnly', 'TableBordersOnlyText', 'TableFillsOnly', 'TableBordersOnlyCleared', 'TableUtilityPair', 'TableUtilityPairStyled', 'TableUtilityPairBorders', 'TableUtilityPairFills', 'TableUtilityPairComposed', 'TableUtilityPairSingleFill', 'TableUtilityPairTargetComposed', 'TableClusterNear', 'TableClusterNearEdited', 'TableClusterWide', 'TableFillVisibility', 'TableFillVisibilityRestored', 'TableFillVisibilityText', 'TableBorderTopology', 'TableBordersCleared', 'TableBorderTopologyTextFill', 'TableBorderDefaultFill', 'FrameCreation', 'FrameCreationEdited', 'FrameCreationFrench', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped', 'SharedImagePages', 'SharedImagePagesReplacement', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextNonuniformTextReplacements', 'TextMixedRunTextReplacements', 'TextFormattingTopology', 'TextEmptyRefill', 'TextRunSegmentation', 'TextNonuniformEmptyParagraphs', 'TextUniformEmptyParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextVerticalPlacement', 'TextFontMetrics', 'TextFallbackAlignment', 'TextFrameBreaks', 'TextLabelFitting', 'TextHyphenation', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'TableNonuniformParagraphs', 'TableNonuniformTextReplacements', 'TableMixedRunTextReplacements', 'TableFormattingTopology', 'TableEmptyRefill', 'TableRunSegmentation', 'TableNonuniformEmptyParagraphs', 'TableUniformEmptyParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'MultipleMastersEdited', 'TwoPageMasterEdited', 'MultipleMastersReassigned', 'MultipleMastersIgnored', 'TwoPageMasterReassigned', 'TwoPageMasterIgnored', 'PictureOwnership', 'PictureReplacement', 'PictureCropped', 'PictureCropFractions', 'PictureCropFractionsReplacement')]
     [string] $Case,
 
     [Parameter(Mandatory)]
@@ -54,6 +58,12 @@ if ($PSBoundParameters.ContainsKey('NativeEditTarget') -and -not $nativeEditRequ
 }
 if ($nativeEditRequested -and ($Operation -ne 'Validate' -or $Stage -ne 'Full')) {
     throw 'NativeEditText requires candidate validation with Stage Full.'
+}
+if ($NativeAddClusterTable -and ($Operation -ne 'Validate' -or $Stage -ne 'Full')) {
+    throw 'NativeAddClusterTable requires candidate validation with Stage Full.'
+}
+if ($NativeAddClusterTable -and $nativeEditRequested) {
+    throw 'NativeAddClusterTable cannot be combined with NativeEditText.'
 }
 if ($env:OS -ne 'Windows_NT' -or [Threading.Thread]::CurrentThread.ApartmentState -ne 'STA') {
     throw 'Run the corpus controller on Windows; this worker requires an STA process.'
@@ -151,8 +161,10 @@ $layout = $null
 . (Join-Path $PSScriptRoot 'Add-NativeTableCreationControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeTableDecorationControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeTableUtilityPairControl.ps1')
+. (Join-Path $PSScriptRoot 'Add-NativeTableClusterControl.ps1')
 . (Join-Path $PSScriptRoot 'Get-NativeTableCellStyle.ps1')
 . (Join-Path $PSScriptRoot 'Set-NativeCandidateText.ps1')
+. (Join-Path $PSScriptRoot 'Add-NativeCandidateClusterTable.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeFrameCreationControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeImagePagesControl.ps1')
 . (Join-Path $PSScriptRoot 'New-NativeReplacementImage.ps1')
@@ -389,6 +401,7 @@ try {
         }
         $resavedInventory = $null
         $nativeTextMutation = $null
+        $nativeTableClusterMutation = $null
         if ($Stage -in @('Resave', 'Full')) {
             # Only this task-owned snapshot is opened writable. The original
             # candidate remains outside the native application's mutation path.
@@ -398,6 +411,10 @@ try {
                 Set-NativePhase 'NativeTextMutation'
                 $nativeTextMutation = Set-NativeCandidateText -Publication $document -Objects $objects -Target $NativeEditTarget -Text $NativeEditText
                 $qualifiedOperations.Add($(if ($NativeEditTarget -eq 'FirstTableCell') { 'NativeTableCellTextMutation' } else { 'NativeTextMutation' }))
+            }
+            if ($NativeAddClusterTable) {
+                Set-NativePhase 'NativeTableClusterAddition'
+                $nativeTableClusterMutation = Add-NativeCandidateClusterTable -Publication $document -Objects $objects
             }
             Set-NativePhase 'NativeResave'
             # 1 is pbFilePublication; exclude task output from recent files.
@@ -427,6 +444,35 @@ try {
                     }
                 }
                 if ($editedText -cne ($NativeEditText + "`r")) { throw 'The native text mutation did not survive save-as and reopen.' }
+            }
+            if ($NativeAddClusterTable) {
+                if ($resavedInventory.pageCount -ne 1) {
+                    throw 'The native cluster-table addition did not retain one physical page.'
+                }
+                $initialTables = @($initialInventory.pages[0].shapes | Where-Object type -eq 18)
+                $resavedTables = @($resavedInventory.pages[0].shapes | Where-Object type -eq 18)
+                $retainedTables = @($resavedTables | Where-Object {
+                    $_.name -ceq $nativeTableClusterMutation.retainedTableName -and
+                    $_.tableGeometry.rowHeightsPoints.Count -eq 18 -and
+                    $_.tableGeometry.columnWidthsPoints.Count -eq 18
+                })
+                $probeTables = @($resavedTables | Where-Object name -CEQ $nativeTableClusterMutation.shapeName)
+                if ($initialTables.Count -ne 1 -or $resavedTables.Count -ne 2 -or $retainedTables.Count -ne 1 -or
+                    $probeTables.Count -ne 1 -or $probeTables[0].tableGeometry.rowHeightsPoints.Count -ne 2 -or
+                    $probeTables[0].tableGeometry.columnWidthsPoints.Count -ne 4 -or $probeTables[0].tableCells.Count -ne 8) {
+                    throw 'The native cluster-table addition did not retain its original and named probe tables.'
+                }
+                for ($row = 1; $row -le 2; $row++) {
+                    for ($column = 1; $column -le 4; $column++) {
+                        $cells = @($probeTables[0].tableCells | Where-Object { $_.row -eq $row -and $_.column -eq $column })
+                        $expectedCellText = $nativeTableClusterMutation.expectedTexts[($row - 1) * 4 + $column - 1] + "`r"
+                        if ($cells.Count -ne 1 -or $cells[0].rowSpan -ne 1 -or $cells[0].columnSpan -ne 1 -or
+                            $cells[0].text -cne $expectedCellText) {
+                            throw ('The native cluster-table addition did not retain probe cell {0},{1}.' -f $row, $column)
+                        }
+                    }
+                }
+                $qualifiedOperations.Add('NativeTableClusterAddition')
             }
             $qualifiedOperations.Add('ReadOnlyReopen')
             $qualifiedOperations.Add('ResavedInventory')
@@ -488,6 +534,9 @@ try {
         }
         if ($nativeEditRequested) {
             $report.nativeTextMutation = $nativeTextMutation
+        }
+        if ($NativeAddClusterTable) {
+            $report.nativeTableClusterMutation = $nativeTableClusterMutation
         }
         Write-NewNativeJson -Path $validationPath -Value $report
         Set-NativePhase 'Shutdown'
@@ -672,6 +721,12 @@ try {
             $document.PageSetup.PageWidth = 612
             $document.PageSetup.PageHeight = 792
             $pageCount = Add-NativeFrameCreationControl -Document $document -FirstPage $page -LanguageId 1036
+        }
+        { $_ -in @('TableClusterNear', 'TableClusterNearEdited', 'TableClusterWide') } {
+            $document.PageSetup.PageWidth = 612
+            $document.PageSetup.PageHeight = 792
+            $size = if ($Case -eq 'TableClusterWide') { 20 } else { 18 }
+            $pageCount = Add-NativeTableClusterControl -FirstPage $page -Size $size -Edited:($Case -eq 'TableClusterNearEdited')
         }
         { $_ -in @('TableUtilityPair', 'TableUtilityPairStyled', 'TableUtilityPairBorders', 'TableUtilityPairFills', 'TableUtilityPairComposed', 'TableUtilityPairSingleFill', 'TableUtilityPairTargetComposed') } {
             $document.PageSetup.PageWidth = 612

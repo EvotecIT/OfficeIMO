@@ -2,8 +2,11 @@ namespace OfficeIMO.Publisher.Internal;
 
 /// <summary>Plans utility surgery in one existing native drawing, retaining allocation history and unrelated records.</summary>
 internal sealed class PublisherEscherTableBorderPlan {
-    internal PublisherEscherShapeEdits Shapes { get; } = new();
+    internal PublisherEscherShapeEdits Shapes { get; }
     internal List<(PublisherNativeValueSlot Slot, uint Value)> Scalars { get; } = new();
+
+    private PublisherEscherTableBorderPlan(PublisherNativeStreamEdit allocation) =>
+        Shapes = new PublisherEscherShapeEdits { AllocationRecord = allocation };
 
     internal static PublisherEscherTableBorderPlan? Create(byte[] source, PublisherEscherData art,
         IReadOnlyDictionary<uint, IReadOnlyList<PublisherTableBorderSegment>> desired, PublisherParseContext context,
@@ -15,7 +18,14 @@ internal sealed class PublisherEscherTableBorderPlan {
         PublisherEscherRecord[] dggs = top.Where(item => item.Kind == 0xF000).ToArray();
         PublisherEscherRecord[] drawings = top.Where(item => item.Kind == 0xF002).ToArray();
         if (dggs.Length != 1 || drawings.Length == 0) return null;
+        var globalRecords = reader.Records(dggs[0].Offset, dggs[0].End);
+        PublisherEscherRecord[] globals = globalRecords.Where(item => item.Kind == 0xF006).ToArray();
+        if (globals.Length != 1) return null;
+        PublisherEscherRecord fdgg = globals[0];
+        PublisherEscherDrawingAllocation? allocation = PublisherEscherDrawingAllocation.Read(data, fdgg, context);
+        if (allocation == null) return null;
         var spids = new HashSet<uint>();
+        var drawingIds = new HashSet<uint>();
         long total = 0;
         PublisherEscherRecord? utility = null, fdg = null, group = null;
         uint drawingId = 0;
@@ -24,9 +34,13 @@ internal sealed class PublisherEscherTableBorderPlan {
             IReadOnlyList<PublisherEscherRecord> children = reader.Records(drawing.Offset, drawing.End);
             PublisherEscherRecord[] counts = children.Where(item => item.Kind == 0xF008).ToArray();
             if (counts.Length != 1 || counts[0].Length != 8) return null;
-            int count = CountShapes(drawing.Offset, drawing.End, 0);
+            uint owner = (uint)(counts[0].Initial >> 4);
+            if ((counts[0].Initial & 15) != 0 || !drawingIds.Add(owner)
+                || !allocation.SelectDrawing(owner, data.U32(counts[0].Offset + 4), context.Token)) return null;
+            int count = CountShapes(drawing.Offset, drawing.End, 0, owner);
             if (count < 0 || data.U32(counts[0].Offset) != count) return null;
             total += count;
+            if (total > context.Options.Limits.MaxItems) return null;
             if (drawing.Offset < 12 || data.U32(drawing.Offset - 12) != 2) continue;
             PublisherEscherRecord[] groups = children.Where(item => item.Kind == 0xF003).ToArray();
             if (utility != null || groups.Length != 1) return null;
@@ -37,26 +51,9 @@ internal sealed class PublisherEscherTableBorderPlan {
         IReadOnlyList<PublisherEscherRecord> utilityShapes = reader.Records(group.Offset, group.End);
         if (utilityShapes.Any(item => item.Kind != 0xF004) || utilityShapes.Count != data.U32(fdg.Offset)) return null;
         var bodies = new HashSet<int>(utilityShapes.Select(item => item.Offset));
-        var globalRecords = reader.Records(dggs[0].Offset, dggs[0].End);
-        PublisherEscherRecord[] globals = globalRecords.Where(item => item.Kind == 0xF006).ToArray();
-        if (globals.Length != 1 || globals[0].Length < 16) return null;
-        PublisherEscherRecord fdgg = globals[0];
-        uint clusters = data.U32(fdgg.Offset + 4);
-        if (clusters < 2 || 16L + (clusters - 1L) * 8 != fdgg.Length
-            || data.U32(fdgg.Offset + 8) != total || data.U32(fdgg.Offset + 12) != drawings.Length) return null;
-        uint cursor = data.U32(fdg.Offset + 4), cluster = cursor >> 10;
-        if (cluster == 0 || cluster >= clusters) return null;
-        int clusterSlot = checked(fdgg.Offset + 16 + ((int)cluster - 1) * 8);
-        uint used = data.U32(clusterSlot + 4);
-        if (data.U32(clusterSlot) != drawingId || used > 1024 || used != (cursor & 1023) + 1) return null;
-        uint maximum = data.U32(fdgg.Offset);
-        if (spids.Count == 0 || maximum <= spids.Max()) return null;
-        foreach (PublisherEscherRecord shape in utilityShapes) {
-            PublisherEscherRecord descriptor = reader.Records(shape.Offset, shape.End).Single(item => item.Kind == 0xF00A);
-            uint id = data.U32(descriptor.Offset);
-            if (id >> 10 == cluster && id > cursor) return null;
-        }
-        var plan = new PublisherEscherTableBorderPlan();
+        if (data.U32(fdgg.Offset + 8) != total || data.U32(fdgg.Offset + 12) != drawings.Length
+            || spids.Count == 0 || !allocation.SelectDrawing(drawingId, data.U32(fdg.Offset + 4), context.Token)) return null;
+        var removed = new HashSet<int>();
         var added = new List<byte[]>();
         int additions = 0;
         if (newTables?.Count > 0 || partialTables?.Count > 0) {
@@ -87,10 +84,8 @@ internal sealed class PublisherEscherTableBorderPlan {
                 }
                 if (selectedCells.Count == start) return null;
             }
-            var cells = PublisherTableUtilityDrawingEncoding.WriteCells((cluster << 10) + used, inputs, selectedCells, (int)(1024 - used), context.Token);
+            var cells = PublisherTableUtilityDrawingEncoding.WriteCells(allocation, inputs, selectedCells, context.Options.Limits.MaxItems, context.Token);
             if (cells == null) return null;
-            for (uint index = 0; index < cells.Value.Count; index++)
-                if (!spids.Add((cluster << 10) + used + index)) return null;
             added.Add(cells.Value.Bytes); additions = (int)cells.Value.Count;
 
             bool QualifiedTable(uint id, PublisherTableState table) {
@@ -110,22 +105,23 @@ internal sealed class PublisherEscherTableBorderPlan {
                 if (binding == null || !binding.Matches(data) || !bodies.Contains(binding.BodyOffset)) return null;
                 var key = ((int)owner.Value(0x2004), (int)owner.Value(0x2005), (int)owner.Value(0x2006), (int)owner.Value(0x2007));
                 if (!existing.Add(key)) return null;
-                if (!wanted.ContainsKey(key)) plan.Shapes.Removed.Add(binding.BodyOffset);
+                if (!wanted.ContainsKey(key)) removed.Add(binding.BodyOffset);
             }
             foreach (PublisherTableBorderSegment border in table.Value) {
                 context.Token.ThrowIfCancellationRequested();
                 if (existing.Contains(Key(border))) continue;
-                if (used + additions >= 1024) return null; // A new cluster needs independent qualification.
-                uint id = (cluster << 10) + used + (uint)additions;
-                if (!spids.Add(id)) return null;
+                if (additions >= context.Options.Limits.MaxItems || !allocation.Allocate(context.Token, out uint id) || !spids.Add(id)) return null;
                 byte[]? bytes = PublisherTableBorderEncoding.Write(table.Key, id, border);
                 if (bytes == null) return null;
                 added.Add(bytes); additions++;
             }
         }
-        int delta = additions - plan.Shapes.Removed.Count;
+        int delta = additions - removed.Count;
         long newTotal = total + delta, newDrawingCount = utilityShapes.Count + (long)delta;
         if (newTotal < 0 || newTotal > context.Options.Limits.MaxItems || newDrawingCount < 1 || newDrawingCount > uint.MaxValue) return null;
+        var plan = new PublisherEscherTableBorderPlan(new(fdgg.Offset - 8, fdgg.Length + 8,
+            allocation.Record((uint)newTotal, (uint)drawings.Length, context.Token)));
+        foreach (int body in removed) plan.Shapes.Removed.Add(body);
         if (additions > 0) {
             // Fresh cells and edges inherit Dgg properties directly. A local
             // utility-default value must not mask unsafe document defaults.
@@ -135,26 +131,26 @@ internal sealed class PublisherEscherTableBorderPlan {
             using var stream = new MemoryStream((int)length);
             foreach (byte[] bytes in added) { context.Token.ThrowIfCancellationRequested(); stream.Write(bytes, 0, bytes.Length); }
             plan.Shapes.Appended.Add(group.Offset, stream.ToArray());
-            uint last = (cluster << 10) + used + (uint)additions - 1;
-            Scalar(fdg.Offset + 4, last); Scalar(clusterSlot + 4, used + (uint)additions);
-            Scalar(fdgg.Offset, Math.Max(maximum, checked(last + 1)));
+            Scalar(fdg.Offset + 4, allocation.LastSpid);
         }
-        Scalar(fdg.Offset, (uint)newDrawingCount); Scalar(fdgg.Offset + 8, (uint)newTotal);
+        Scalar(fdg.Offset, (uint)newDrawingCount);
         return plan;
 
         void Scalar(int offset, uint value) { if (data.U32(offset) != value) plan.Scalars.Add((new(offset, data.U32(offset)), value)); }
-        int CountShapes(int start, int end, int depth) {
+        int CountShapes(int start, int end, int depth, uint owner) {
             context.CheckDepth(depth); int count = 0;
             foreach (PublisherEscherRecord item in reader.Records(start, end)) {
                 context.Token.ThrowIfCancellationRequested();
                 if (item.Kind == 0xF004) {
                     PublisherEscherRecord[] descriptors = reader.Records(item.Offset, item.End).Where(value => value.Kind == 0xF00A).ToArray();
-                    if (descriptors.Length != 1 || descriptors[0].Length != 8 || !spids.Add(data.U32(descriptors[0].Offset))) return -1;
+                    if (descriptors.Length != 1 || descriptors[0].Length != 8) return -1;
+                    uint id = data.U32(descriptors[0].Offset);
+                    if (!allocation.Owns(owner, id) || !spids.Add(id)) return -1;
                     // Native FDG/FDGG counts exclude the drawing background,
                     // although its SPID still belongs to the allocation history.
                     if ((data.U32(descriptors[0].Offset + 4) & 0x400) == 0) count++;
                 } else if ((item.Initial & 15) == 15 && item.Kind != 0xF001) {
-                    int children = CountShapes(item.Offset, item.End, depth + 1);
+                    int children = CountShapes(item.Offset, item.End, depth + 1, owner);
                     if (children < 0) return -1;
                     count = checked(count + children);
                 }

@@ -176,7 +176,7 @@ public sealed class PublisherPopulatedTableUtilityTests {
     }
 
     [Fact]
-    public void Missing_cell_allocation_refuses_exhausted_cluster_without_reusing_retired_identifiers() {
+    public void Missing_cell_allocation_extends_exhausted_cluster_without_reusing_retired_identifiers() {
         byte[] original = MissingCells(); OfficeCompoundFile compound = Compound(original);
         byte[] art = (byte[])compound.Streams["Escher/EscherStm"].Clone(); var reader = Reader(art);
         var top = reader.Records(0, art.Length); var dgg = top.Single(item => item.Kind == 0xF000);
@@ -186,12 +186,19 @@ public sealed class PublisherPopulatedTableUtilityTests {
         uint cluster = BitConverter.ToUInt32(art, fdg.Offset + 4) >> 10;
         BitConverter.GetBytes((cluster << 10) + 1023).CopyTo(art, fdg.Offset + 4);
         BitConverter.GetBytes(1024U).CopyTo(art, fdgg.Offset + 16 + ((int)cluster - 1) * 8 + 4);
-        BitConverter.GetBytes((cluster + 1) << 10).CopyTo(art, fdgg.Offset);
+        BitConverter.GetBytes(Math.Max(BitConverter.ToUInt32(art, fdgg.Offset), (cluster + 1) << 10)).CopyTo(art, fdgg.Offset);
         byte[] source = OfficeCompoundFileWriter.Rewrite(compound, new Dictionary<string, byte[]> { ["Escher/EscherStm"] = art });
         PublisherDocument document = PublisherDocument.Load(source); Assert.Equal(source, document.ToPubBytes());
         PublisherTableUtilityCreationTests.Apply(document, "TableDecoration", Tables(document)[1]);
-        var error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(Allow()));
-        Assert.Contains(error.Report.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_EDIT_UNSUPPORTED" && item.LossKind == OfficeConversionLossKind.Failure);
+        byte[] saved = document.ToPubBytes(Allow());
+        PublisherTable target = Tables(PublisherDocument.Load(saved))[1];
+        PublisherTable expected = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/TableDecoration/native-tabledecoration.pub")).Pages[0].Tables.Single();
+        Assert.Equal(expected.Cells.Select(cell => cell.FillColor), target.Cells.Select(cell => cell.FillColor));
+        Assert.Equal(PublisherTableBorderTopologyTests.Coverage(expected), PublisherTableBorderTopologyTests.Coverage(target));
+        var added = Utilities(saved, target.Id, cellsOnly: false);
+        Assert.Equal(10, added.Count);
+        Assert.All(added.Keys, id => Assert.True(id > (cluster << 10) + 1023));
+        PublisherNativeWritingTests.AssertPreservedStorage(source, saved, "Escher/EscherStm");
     }
 
     private static PublisherSaveOptions Allow() => new() { LossPolicy = OfficeConversionLossPolicy.Allow };

@@ -1,0 +1,37 @@
+{
+  "schema": "officeimo.publisher.generated-dense-table-fixture.v1",
+  "license": "MIT",
+  "generator": "dotnet <WriterProbe.dll> create table-cluster-wide <generated.pub>",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20112",
+    "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+    "powershell": "7.6.9",
+    "automationSecurity": 3
+  },
+  "nativeMutation": "Native validation Full with -NativeEditText N101 -NativeEditTarget FirstTableCell. Independently repeat on TableClusterWide. Only the first unmerged cell is edited.",
+  "files": [
+    {
+      "name": "generated.pub",
+      "bytes": 169472,
+      "sha256": "c26b7168f4e83a8906cab2f1b272b030bc589aa14fd859d1a24ce0bb53cdbce9"
+    },
+    {
+      "name": "native-normalized.pub",
+      "bytes": 266240,
+      "sha256": "851dc7d9913c2bdbfb487b9a2769326d85f80036dc15f4633532d08abedb2237"
+    },
+    {
+      "name": "native-edited.pub",
+      "bytes": 266240,
+      "sha256": "44adc50916f691baee840816204b4d3e45347ac416c7a13fc9f2b42f37a563e0"
+    },
+    {
+      "name": "native-control-edited.pub",
+      "bytes": 567296,
+      "sha256": "0fbe4f9a730d6376697f82fb42575c00d952b9c44c2684f1a3f95905a57ec98a"
+    }
+  ],
+  "scope": "Template-free 20x20 candidate with 400 cells, 840 unit edges, 1243 utility shapes in two clusters and chained Quill directories. Native normalized and edited outputs; independent native edited control. Repair-free acceptance and public source-free saving remain unqualified."
+}

@@ -30,6 +30,8 @@ dotnet $probe table-utility-source ./decorated-bare-pair-control.pub ./missing-s
 dotnet $probe table-utility-source ./decorated-bare-pair-control.pub ./missing-first.pub 0
 dotnet $probe table-utility-source ./decorated-bare-pair-control.pub ./missing-diagonal.pub 0,3
 dotnet $probe table-utility-source ./pair-borders-control.pub ./missing-bordered-first.pub 0
+dotnet $probe table-cluster-source ./native-tableclusternear.pub ./missing-twenty.pub
+dotnet $probe table-cluster-compact-source ./native-tableclusterwide.pub ./compact-twenty.pub
 dotnet $probe create blank ./candidate-blank.pub
 dotnet $probe create blank-pages ./candidate-two-blank-pages.pub 2
 dotnet $probe create text-pages ./candidate-text-pages.pub 3
@@ -52,6 +54,9 @@ dotnet $probe create linked-story ./candidate-linked-story.pub
 dotnet $probe create linked-story-overflow ./candidate-linked-overflow.pub
 dotnet $probe create table ./candidate-table.pub
 dotnet $probe create table-edited ./candidate-table-edited.pub
+dotnet $probe create table-cluster-near ./candidate-table-cluster-near.pub
+dotnet $probe create table-cluster-near-edited ./candidate-table-cluster-near-edited.pub
+dotnet $probe create table-cluster-wide ./candidate-table-cluster-wide.pub
 dotnet $probe create frame-layout ./candidate-frame-layout.pub
 dotnet $probe create frame-layout-edited ./candidate-frame-layout-edited.pub
 dotnet $probe create text ./candidate-text.pub 'Template-free publication'
@@ -90,6 +95,31 @@ retaining allocation cursors, used slots, maximum-ID history, surviving cell/edg
 records and other logical storage. Its JSON output records source/output hashes,
 selected definition indices and retained allocation metadata. These are derived
 source inputs; independent pair controls supply final-state expectations.
+
+`table-cluster-source <native-near-control.pub> <derived-input.pub>` removes
+twenty selected invisible cell utility records from the independent 18×18
+`TableClusterNear` control. Active counts decrease by twenty; every allocation
+entry, cursor and consumed slot remains retained, along with surviving utilities
+and other logical streams. Recreating the missing cells therefore consumes the
+thirteen remaining slots before appending seven fresh identifiers in a new tail
+cluster. `TableClusterNearEdited` supplies the independent edited expectation.
+
+`table-cluster-compact-source <native-wide-control.pub> <derived-input.pub>`
+deliberately removes the independent 20×20 control's utility and auxiliary drawing
+scopes and their allocation history. It retains ordinary records, other global
+records and other logical streams to create a labelled synthetic initializer
+input. This command is not a preserving user operation or a native repair
+control. Public first-style edits rebuild 400 cell utilities and 840 shared-edge
+utilities in a 1,243-shape utility drawing across clusters 3 and 4. Both derivation
+commands report source/output hashes and the retained or discarded allocation
+metadata; the [fixture guide](../../../OfficeIMO.Publisher.Tests/Fixtures/README.md)
+records their provenance.
+
+Select the dense native controls explicitly with `-Case TableClusterNear`,
+`TableClusterNearEdited` or `TableClusterWide` and `-TimeoutSeconds 600` when
+running `New-NativeComparisonCorpus.ps1`. Native cell authoring takes several
+minutes, so these controls are excluded from the standard 90-second inventory;
+the 45-second phase deadline still applies.
 
 `inventory` records compound metadata and hashes, known Contents fields, Quill
 directories, OfficeArt envelopes and a separate OfficeIMO reader result.
@@ -325,6 +355,15 @@ single-line text, including an empty replacement, and require `Validate/Full`.
 ./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full -InputPath ./table.pub -OutputDirectory ./native-cell-edit -NativeEditText 'Native Item' -NativeEditTarget FirstTableCell
 ```
 
+`-NativeAddClusterTable` instead adds a 2×4 table to the retained independent
+near-boundary control, saves it separately and reopens it. This Full-only route
+cannot be combined with `-NativeEditText`. It records native allocation behavior
+and preserves the original 18×18 table for an independent inventory comparison:
+
+```powershell
+./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full -InputPath ./native-tableclusternear.pub -OutputDirectory ./native-cluster-append -NativeAddClusterTable
+```
+
 ## Creation cases
 
 All cases use Letter-size physical pages and the same ordered
@@ -350,6 +389,7 @@ Page, picture and image-asset counts depend on the selected case.
 | `frame-layout`, `frame-layout-edited` | Projects six final public-model text frames on two pages with an empty applied master: one/two/three columns, asymmetric and fractional insets, full intercolumn gaps and Top/Center/Bottom alignment. The edited case applies two columns, a 14-point full gap, 9/3/15/6-point insets and Bottom alignment. |
 | `table`, `table-edited` | Projects the final public model of a borderless 2×2 table with unequal tracks, bold headers, an empty final cell and independent label, with an empty applied master. The edited specimen adds a first-cell paragraph and refills the last cell. |
 | `table-grid`, `table-grid-empty`, `table-grid-edited` | Requires a `<rows>x<columns>` argument within the legible specimen range of 1–12 rows and 1–8 columns. Authors an unmerged borderless grid with a caption, fixed tracks and cell paragraphs. The empty variant retains every empty cell; the edited variant changes bounds and the final cell, then places the table before its caption in drawing/story order. |
+| `table-cluster-near`, `table-cluster-near-edited`, `table-cluster-wide` | Authors the dense unmerged rectangular table and label through the public model, with alternating solid fills and all shared unit edges. The near cases use an 18×18 grid; the edited case changes one previously invisible cell. The wide case uses a 20×20 grid to exercise multi-cluster utility allocation and a chained Quill directory. |
 | `cropped-image-pages` | Uses the named-image model and public `SetPictureCrop` on the first picture, with distinct left/top/right/bottom fractions `0.25/0.125/0.0625/0.1875`. The shared OfficeArt encoder owns the native values. Two PNG paths required for this qualified specimen. |
 | `text` | Text box at `(72,72)`, size `288×108` points; optional plain text argument. |
 | `styled-text` | Text box at the same position, containing the three styled runs below. |
@@ -482,6 +522,9 @@ The Quill envelope writes version values 4 and 7, byte `+0x0F` equal to 3, a
 first payload position of 512 and a truthful stream size at `+0x14`. The stream
 has at least 1,024 bytes. Header and directory descriptor counts follow the
 actual records; descriptors point to their calculated serialized positions.
+The shared directory encoder chains fresh descriptor pages when table formatting
+exceeds one page. The dense 20×20 specimen qualifies that creation path; it does
+not broaden ordinary source-save admission for unsupported directory overflow.
 Generated default libraries contain `INK ` version words `0x74/0x74`, one Arial
 `FONT` entry, one built-in-default `STSH` name and two paired empty character and
 paragraph OPLs in `STSH` ID1. No native style payload is copied.
@@ -659,8 +702,8 @@ cell texts, bounds and row/column tracks. All eight PDF pages were inspected for
 visible text and clipping. The 96-cell specimen uses two character-formatting
 and two paragraph-formatting pages; creation reuses the source writer's allocator,
 page links and indexes. The two original 2×2 outputs and four newsletter source
-saves remain byte-identical. Creation still requires one Quill descriptor
-directory and refuses formatting that exceeds it. These read-only native
+saves remain byte-identical. The separate dense-table profile below extends
+creation beyond one Quill descriptor directory. These read-only native
 operations do not qualify native editing, resave/reopen or repair-free opening.
 
 The `table-merged` specimen uses public `MergeTableCells` before filling a
@@ -708,9 +751,8 @@ input complete Full validation: eight cell/grid inventories and eight native PDF
 pairs match independent controls at 100 dpi. Four workflows cover three distinct
 candidate byte sequences; a direct source scalar edit equals fresh edited creation.
 The earlier blank, borderless-table and merged-table bytes remain unchanged.
-Decorated merges, utility allocation beyond the initialization profiles below,
-cluster rollover, broader native visibility definitions and utility layouts
-beyond the qualified two-table source profile remain open. Native cell mutation
+Decorated merges, broader native visibility definitions and utility layouts
+beyond the qualified source and ordered-cluster profiles below remain open. Native cell mutation
 uses the separate first-cell profile below; repair-free acceptance and public
 native creation remain gated.
 
@@ -733,7 +775,7 @@ edges within an existing direct utility drawing and current SPID cluster. New
 ranges use cell edges to match native joins. Counts exclude background shapes,
 while IDs, allocation cursors and used slots retain their history after deletion.
 Re-addition uses fresh IDs. Unsupported or conflicting ownership, invalid counts
-or cursors, missing drawings outside the initialization profiles below and required new clusters refuse output. Planning
+or cursors and missing drawings outside the initialization profiles below refuse output. Planning
 reuses source-bound artwork without decoding unrelated images again and retains
 the original read options for structural rewriting.
 
@@ -760,9 +802,10 @@ and ten PDF workflows retain text and colored primitive counts/colors.
 
 Final-size border checks reject styles wider than their perpendicular table
 extent in both source save paths and fresh encoding. Unsupported default opacity,
-ambiguous counts/history, cluster rollover, decorated merges and broader producers
+ambiguous counts/history, decorated merges and broader producers
 remain outside this profile. Populated utility drawings and native first-cell
-mutation use the separate profiles below. Managed/native text-baseline parity,
+mutation use the separate profiles below; ordered cluster allocation is also
+qualified separately. Managed/native text-baseline parity,
 repair-free acceptance and public source-free native creation remain unqualified.
 
 The `populatedTableUtilityInitialization` record extends first opaque solid fills
@@ -780,10 +823,10 @@ SaveAs/reopen retain sixteen complete inventories of both tables and labels;
 sixteen native PDF pairs match with zero changed pixels at 100 dpi. Managed
 colored primitives match, while text baselines remain approximate.
 
-Exhausted clusters, unsupported inherited opacity/defaults and grouped or
+Unsupported inherited opacity/defaults and grouped or
 unqualified ownership refuse output. Selectively missing cell sets in a table that
-already owns utilities use the separate profile below. New/rollover clusters,
-decorated merges and broader transforms/layouts/producers remain unqualified. This record adds no actual native
+already owns utilities and ordered cluster allocation use the separate profiles
+below. Decorated merges and broader transforms/layouts/producers remain unqualified. This record adds no actual native
 cell mutation claim; the first-cell profile below is separate. Repair-free
 acceptance and public source-free native creation remain open.
 
@@ -807,10 +850,59 @@ thirty-two complete inventories of both tables and labels; thirty-two native PDF
 pairs match controls with zero changed pixels at 100 dpi. Sixteen managed
 colored-primitive comparisons match, with approximate managed text baselines.
 Duplicate/unknown raw ownership, unsafe inherited drawing-group properties or defaults,
-exhausted clusters and inconsistent metadata refuse output. Larger grids,
-transformed/grouped or merged tables, new clusters and broader producers remain
+inconsistent metadata refuse output. Ordered cluster allocation is qualified
+separately below. Broader grids, transformed/grouped or merged tables and producers remain
 unqualified. Actual native cell text mutation uses the separate first-cell profile;
 this record does not qualify it, repair-free acceptance or public native creation.
+
+The `tableUtilityClusterRollover` record qualifies one ordered allocator shared
+by source saving and fresh encoding. SPID cluster identities follow FDGG `IDCL`
+entry positions, including retained history and nonadjacent clusters belonging to
+one drawing. Allocation consumes remaining current-cluster slots before appending
+at the history tail; it never compacts entries or reuses retired identifiers.
+
+Independent 18×18 and 20×20 controls have 1,011 and 1,243 utility-drawing shapes.
+The near control has thirteen slots left; the wide control spans clusters 3 and
+1,684. Native addition of a 2×4 table to the retained near control consumes those
+thirteen slots and seventeen slots in appended cluster 3,991, retaining all 3,963
+original allocation entries and the original table's complete inventory. Native
+transient allocations explain the intervening history; this mutation is distinct
+from the managed allocator's append at cluster 3,964 for the missing-cell input.
+
+Five public source-save/PowerShell PDF workflows cover twenty missing cells with
+one new fill, composed missing-cell initialization and edge deletion/re-addition,
+three-edge deletion/re-addition on the existing wide control, compact first styles
+and fill-only clearing after native resave. Native Full validation produces ten
+initial/resaved observations and ten native PDF pairs with zero changed pixels
+against independent controls at 100 dpi. Eight complete table/label inventories
+match exactly; two cleared-state observations differ only in one invisible cell's
+inactive RGB, retaining green instead of the control's white. All other fields
+match. Five managed colored-primitive comparisons match, with approximate text
+baselines.
+
+The internal fresh 20×20 specimen generates 400 cells, 840 edges and 1,243 utility
+shapes across two clusters, with a chained Quill directory. Native opening/export
+and SaveAs/reopen retain all 400 cell inventories and all table fields. Caption
+text, bounds, frame layout and kerning match; two PDF pairs match the independent
+wide control at 100 dpi with zero changed pixels. Generated shape names differ.
+The caption's whole-text-range query reports Arial/12 points/language 0 for the
+fresh output, versus an empty font name, mixed-size sentinel `-9999999` and language
+1033 for the native control's range including its paragraph terminator. Those
+caption font/size/language observations remain unqualified despite identical
+rendering. Six earlier complete PUB specimens remain byte-identical.
+Broader grids, decorated merges, grouped/transformed tables and additional
+producer/generation profiles remain unqualified. The fresh dense specimen and
+independent wide control also complete native first-unmerged-cell text replacement
+from `0101` to `N101`, save and reopen; the same table, caption text/layout and
+kerning comparisons and initial/resaved native PDFs match. Public cell-paragraph replacement
+restores the native-edited fresh file to `0101`; managed save/reload and native
+Full validation retain those matched fields and the caption metadata differences
+above. Two restored native PDF
+pairs match the independent wide control exactly at 100 dpi. The original and
+restored fresh files also pass PowerShell PDF colored-primitive comparison.
+`GeneratedTableCluster` retains the fresh and native-derived inputs. Arbitrary
+cell selection and general native formatting remain unqualified. Repair-free
+acceptance and public native creation remain gated.
 
 The `tableNativeCellMutation` record separately qualifies actual first-cell text
 replacement in four table outputs: fresh borderless/decorated authoring and

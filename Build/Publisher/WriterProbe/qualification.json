@@ -37240,5 +37240,873 @@
     ],
     "canClosePUB00": false,
     "canPromotePublicNativeCreation": false
+  },
+  "tableUtilityClusterRollover": {
+    "sourceBaseCommit": "224a8d23624f70aa09b8c191f47097bed3abf2b0",
+    "scope": "Ordered table utility cluster allocation, dense rectangular source editing, first-style initialization and an internal template-free dense specimen with chained Quill directories.",
+    "publicOperations": [
+      "SetTableCellFillColor",
+      "SetTableBorderStyle",
+      "ReplaceTableCellParagraphs",
+      "ToPubBytesResult",
+      "ConvertTo-OfficeDocument"
+    ],
+    "codec": {
+      "allocationOwner": "PublisherEscherDrawingAllocation retains ordered IDCL entries independently of drawing owners. It uses the selected current cluster suffix and appends at the global tail when full. Zero-owner history and retired identifiers are retained.",
+      "admission": "Every live drawing has a unique FDG owner and qualified current cursor. Every live SPID belongs to its actual owner cluster and consumed bound. Counts, exclusive maximum, representability and configured allocation/shape/output bounds are checked.",
+      "composition": "The complete FDGG replacement exclusively owns all changed FDGG metadata. Only FDG cursor and count remain scalar patches. Existing FOPT, shape removal, image-store and enclosing-length writers retain their ownership.",
+      "sharedEncoding": "Fresh drawings, whole/selective cell creation and new edges request explicit per-shape identifiers from the shared allocator. Existing simple utilities retain their bytes.",
+      "quill": "Fresh and preserving streams share PublisherQuillDirectoryWriter. TEXT stays at byte 512; extra directory pages append at the aligned stream tail. The dense specimen has 23 descriptors, seven FDPC pages, five FDPP pages and two directories.",
+      "lossReporting": "Native utility and formatting output remains explicitly unassessed under the current public loss policy. Public source-free native saving remains gated."
+    },
+    "nativeBinary": {
+      "name": "Microsoft Publisher",
+      "version": "16.0",
+      "executableVersion": "16.0.20527.20112",
+      "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+      "powershell": "7.6.9",
+      "automationSecurity": 3
+    },
+    "fixtures": [
+      {
+        "case": "TableClusterNear",
+        "classification": "independent-native-control",
+        "files": [
+          {
+            "name": "native-tableclusternear.pub",
+            "bytes": 479232,
+            "sha256": "c4e529be270625bba4f2afdd55bf38f1e5bf2d5af87022a35a1f6cc93f6897c4"
+          },
+          {
+            "name": "native-tableclusternear.pdf",
+            "bytes": 160203,
+            "sha256": "8bdef64d34036877d172fad9191c9f2386d3c1a80a239eab2caa1ad827e0395b"
+          },
+          {
+            "name": "native-tableclusternear.json",
+            "bytes": 498189,
+            "sha256": "ffd05d2fb80105897f5a0c20de1b6104e833531ffa0deec7d94e67a696f1c34e"
+          }
+        ]
+      },
+      {
+        "case": "TableClusterNearEdited",
+        "classification": "independent-native-control",
+        "files": [
+          {
+            "name": "native-tableclusternearedited.pub",
+            "bytes": 479232,
+            "sha256": "108f263e9b7431473ae67c3e64d0c04eb7c02b47699b4cce9829f525f0df2f43"
+          },
+          {
+            "name": "native-tableclusternearedited.pdf",
+            "bytes": 160318,
+            "sha256": "5e72f1fd0f13bbee61723f0fb66b93357e1498011fd2a1920ed9368c257d2940"
+          },
+          {
+            "name": "native-tableclusternearedited.json",
+            "bytes": 498208,
+            "sha256": "41f9b523bd741e725bbe3d4beb3984dc99bd1be8ced6eb27752fdcd4ff5bae2a"
+          }
+        ]
+      },
+      {
+        "case": "TableClusterWide",
+        "classification": "independent-native-control",
+        "files": [
+          {
+            "name": "native-tableclusterwide.pub",
+            "bytes": 567296,
+            "sha256": "2bd50ff6efeb9f9604948a3d7ee2ff13268679b74a2f258de4f1f6429ae3b06b"
+          },
+          {
+            "name": "native-tableclusterwide.pdf",
+            "bytes": 169350,
+            "sha256": "8f29ac9b9da28675f8f7bff2a82db9c5c7b9517588b6a64c9c211ffa6b740253"
+          },
+          {
+            "name": "native-tableclusterwide.json",
+            "bytes": 613792,
+            "sha256": "b1c268578e0283377eab5323acb673ca5e7c848781853aecb7df33a877f3bcc3"
+          }
+        ]
+      },
+      {
+        "case": "TableClusterNativeAppend",
+        "classification": "independent-native-control",
+        "files": [
+          {
+            "name": "native-tableclusternativeappend.pub",
+            "bytes": 489984,
+            "sha256": "ada8c66e01faddf85d5dfb644efc94649a8d5d6c0ce2920d2f36a4317dcd34f5"
+          },
+          {
+            "name": "native-tableclusternativeappend.pdf",
+            "bytes": 162641,
+            "sha256": "f8e6d7ddc3d5383b6ec3e37261b1f03df60345086160af02fd1ef2efaccc7f79"
+          },
+          {
+            "name": "native-tableclusternativeappend.json",
+            "bytes": 537043,
+            "sha256": "327b8f5d8ec68673c47bac3a15a8543dd0188382f4a0cc422caa1669c49d516f"
+          }
+        ]
+      },
+      {
+        "case": "TableClusterMissingCells",
+        "classification": "native-derived-preserving-missing-cell-input",
+        "files": [
+          {
+            "name": "missing-twenty.pub",
+            "bytes": 476160,
+            "sha256": "a88bc8c9fcc1a9b6a6c47422d58876788cb8faf78e47f2ed75813fb9a59a06b5"
+          }
+        ]
+      },
+      {
+        "case": "TableClusterCompact",
+        "classification": "synthetic-compact-input-with-deliberately-discarded-utility-history",
+        "files": [
+          {
+            "name": "compact-twenty.pub",
+            "bytes": 174080,
+            "sha256": "f0eb66cc989d6b9a1dcb1c27366ffa047845b4781c6ccb2ecb16c7dc3c47f6fc"
+          }
+        ]
+      },
+      {
+        "case": "GeneratedTableCluster",
+        "classification": "template-free-candidate-and-native-normalized-edited-outputs",
+        "files": [
+          {
+            "name": "generated.pub",
+            "bytes": 169472,
+            "sha256": "c26b7168f4e83a8906cab2f1b272b030bc589aa14fd859d1a24ce0bb53cdbce9"
+          },
+          {
+            "name": "native-normalized.pub",
+            "bytes": 266240,
+            "sha256": "851dc7d9913c2bdbfb487b9a2769326d85f80036dc15f4633532d08abedb2237"
+          },
+          {
+            "name": "native-edited.pub",
+            "bytes": 266240,
+            "sha256": "44adc50916f691baee840816204b4d3e45347ac416c7a13fc9f2b42f37a563e0"
+          },
+          {
+            "name": "native-control-edited.pub",
+            "bytes": 567296,
+            "sha256": "0fbe4f9a730d6376697f82fb42575c00d952b9c44c2684f1a3f95905a57ec98a"
+          }
+        ]
+      }
+    ],
+    "independentAllocationObservations": {
+      "near": {
+        "maximum": 4058118,
+        "clusterCount": 3963,
+        "activeShapes": 1015,
+        "savedDrawings": 3,
+        "drawings": [
+          {
+            "owner": 3,
+            "count": 1011,
+            "cursor": 4082
+          },
+          {
+            "owner": 2,
+            "count": 1,
+            "cursor": 2049
+          },
+          {
+            "owner": 1,
+            "count": 3,
+            "cursor": 1026
+          }
+        ],
+        "ownedClusters": [
+          {
+            "index": 1,
+            "owner": 1,
+            "used": 3
+          },
+          {
+            "index": 2,
+            "owner": 2,
+            "used": 2
+          },
+          {
+            "index": 3,
+            "owner": 3,
+            "used": 1011
+          }
+        ],
+        "retiredZeroOwnerClusters": 3960
+      },
+      "wide": {
+        "maximum": 5001222,
+        "clusterCount": 4884,
+        "activeShapes": 1247,
+        "savedDrawings": 3,
+        "drawings": [
+          {
+            "owner": 3,
+            "count": 1243,
+            "cursor": 1724634
+          },
+          {
+            "owner": 2,
+            "count": 1,
+            "cursor": 2049
+          },
+          {
+            "owner": 1,
+            "count": 3,
+            "cursor": 1026
+          }
+        ],
+        "ownedClusters": [
+          {
+            "index": 1,
+            "owner": 1,
+            "used": 3
+          },
+          {
+            "index": 2,
+            "owner": 2,
+            "used": 2
+          },
+          {
+            "index": 3,
+            "owner": 3,
+            "used": 1024
+          },
+          {
+            "index": 1684,
+            "owner": 3,
+            "used": 219
+          }
+        ],
+        "retiredZeroOwnerClusters": 4880
+      },
+      "retainedSourceAppend": {
+        "maximum": 4104198,
+        "clusterCount": 4008,
+        "activeShapes": 1046,
+        "savedDrawings": 3,
+        "drawings": [
+          {
+            "owner": 3,
+            "count": 1041,
+            "cursor": 4086800
+          },
+          {
+            "owner": 2,
+            "count": 1,
+            "cursor": 2049
+          },
+          {
+            "owner": 1,
+            "count": 4,
+            "cursor": 1027
+          }
+        ],
+        "ownedClusters": [
+          {
+            "index": 1,
+            "owner": 1,
+            "used": 4
+          },
+          {
+            "index": 2,
+            "owner": 2,
+            "used": 2
+          },
+          {
+            "index": 3,
+            "owner": 3,
+            "used": 1024
+          },
+          {
+            "index": 3991,
+            "owner": 3,
+            "used": 17
+          }
+        ],
+        "retiredZeroOwnerClusters": 4004
+      },
+      "retainedSourceAppendOperation": "Native addition of an eight-cell, twenty-two-edge table consumes thirteen current-cluster slots and seventeen fresh slots in a new tail cluster. All original historical entries retain owner/usage except the active ordinary and utility cursors. Native transient clusters explain the appended cluster index.",
+      "retainedOriginalTableInventoryExact": true
+    },
+    "derivedInputs": {
+      "missingCells": {
+        "schema": "officeimo.publisher.writer-probe.table-cluster-source.v1",
+        "profile": "independent-native-18x18-twenty-invisible-cell-holes",
+        "sourceSha256": "c4e529be270625bba4f2afdd55bf38f1e5bf2d5af87022a35a1f6cc93f6897c4",
+        "outputSha256": "a88bc8c9fcc1a9b6a6c47422d58876788cb8faf78e47f2ed75813fb9a59a06b5",
+        "tableId": 294,
+        "rows": 18,
+        "columns": 18,
+        "sourceCellUtilities": 324,
+        "sourceEdgeUtilities": 684,
+        "removedCellUtilities": 20,
+        "removedCellIndices": [
+          2,
+          5,
+          8,
+          11,
+          14,
+          17,
+          19,
+          22,
+          25,
+          28,
+          31,
+          34,
+          36,
+          39,
+          42,
+          45,
+          48,
+          51,
+          56,
+          59
+        ],
+        "retainedCellUtilities": 304,
+        "retainedEdgeUtilities": 684,
+        "drawingOwner": 3,
+        "retainedAllocationCursor": 4082,
+        "sourceActiveDrawingCount": 1011,
+        "activeDrawingCount": 991,
+        "sourceActiveTotal": 1015,
+        "activeTotal": 995,
+        "retainedAllocationMaximum": 4058118,
+        "retainedAllocationSlots": 3963,
+        "allocationHistorySha256": "1f65acb05880efa43d2192597d2641a4c18a7d55327e81221f5a33c5f3573556",
+        "nativeAcceptance": "not-run",
+        "scope": "Derived source input; native control remains independently authored. Only selected invisible cell containers, enclosing lengths and active counts change; allocation history and other logical streams are retained."
+      },
+      "compact": {
+        "schema": "officeimo.publisher.writer-probe.table-cluster-compact-source.v1",
+        "profile": "synthetic-compact-20x20-initializer-input",
+        "sourceSha256": "2bd50ff6efeb9f9604948a3d7ee2ff13268679b74a2f258de4f1f6429ae3b06b",
+        "outputSha256": "f0eb66cc989d6b9a1dcb1c27366ffa047845b4781c6ccb2ecb16c7dc3c47f6fc",
+        "tableId": 294,
+        "rows": 20,
+        "columns": 20,
+        "removedCellUtilities": 400,
+        "removedEdgeUtilities": 840,
+        "removedDrawingInstances": [
+          2,
+          1
+        ],
+        "retainedDrawingOwner": 1,
+        "retainedAllocationCursor": 1026,
+        "retainedOrdinaryUsed": 3,
+        "activeDrawingCount": 3,
+        "activeTotal": 3,
+        "allocationMaximum": 1027,
+        "allocationClusterCount": 2,
+        "savedDrawingCount": 1,
+        "sourceAllocationHistorySha256": "be3b0e4d64d1f7d94ec627c10590f0bc8a60dcca84c51bccdd3af6b888546bd0",
+        "nativeAcceptance": "not-run",
+        "noOpExact": true,
+        "scope": "Synthetic compact source/control only. All table paint and utility/auxiliary allocation history are deliberately discarded to qualify initializer creation; this is not a preserving user operation. Ordinary records, other global records and other logical streams are retained."
+      }
+    },
+    "sourceCases": [
+      {
+        "case": "partial",
+        "control": "TableClusterNearEdited",
+        "candidateSha256": "36f84dbf6d6247118a76c744413d70feffac76c0e1a9e4725a4872d98a10ba4e",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true
+      },
+      {
+        "case": "partial-readded",
+        "control": "TableClusterNearEdited",
+        "candidateSha256": "13a72bc207a27a1a2e5d7bd57976e6af9b0815fc4672a37fee7fef186fd5ad2e",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true
+      },
+      {
+        "case": "wide-readded",
+        "control": "TableClusterWide",
+        "candidateSha256": "76b62796204be288e38dc0cff3aaa93cd21dfb4c4b1e4ea92c1e3b6454e2dab4",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true
+      },
+      {
+        "case": "compact",
+        "control": "TableClusterWide",
+        "candidateSha256": "7f215c9cd8dc77be6077e8bf2f8d4bb5be0c283a996deeea84e04b2ed886db73",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true
+      },
+      {
+        "case": "native-partial-cleared",
+        "control": "TableClusterNear",
+        "candidateSha256": "e0830fc1eab1006cbf8331a98e04b95150fb6cf8ea1c653b41ce9542d3732b9b",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true
+      }
+    ],
+    "sourceComparison": {
+      "publicSavePdfWorkflows": 5,
+      "nativeInventoryComparisons": 10,
+      "completeExactInventories": 8,
+      "visibleSemanticInventories": 10,
+      "inactiveStoredFillDifferences": [
+        {
+          "case": "native-partial-cleared",
+          "stage": "initial",
+          "control": "TableClusterNear",
+          "completeTableAndLabelMatch": false,
+          "visibleTableAndLabelMatch": true,
+          "inactiveStoredFillDifferences": [
+            {
+              "cell": [
+                1,
+                3
+              ],
+              "actualRgb": 11858100,
+              "controlRgb": 16777215,
+              "visible": 0
+            }
+          ]
+        },
+        {
+          "case": "native-partial-cleared",
+          "stage": "resaved",
+          "control": "TableClusterNear",
+          "completeTableAndLabelMatch": false,
+          "visibleTableAndLabelMatch": true,
+          "inactiveStoredFillDifferences": [
+            {
+              "cell": [
+                1,
+                3
+              ],
+              "actualRgb": 11858100,
+              "controlRgb": 16777215,
+              "visible": 0
+            }
+          ]
+        }
+      ],
+      "pdfPairs": 10,
+      "dpi": 100,
+      "changedPixels": 0,
+      "managedColoredPrimitiveComparisons": 5
+    },
+    "freshCreation": {
+      "candidateSha256": "c26b7168f4e83a8906cab2f1b272b030bc589aa14fd859d1a24ce0bb53cdbce9",
+      "nativeStatus": "OpenedExportedResavedAndReopened",
+      "sourceUnchanged": true,
+      "rows": 20,
+      "columns": 20,
+      "cells": 400,
+      "unitEdges": 840,
+      "utilityShapes": 1243,
+      "utilityClusterUsage": [
+        1024,
+        219
+      ],
+      "independentControl": "TableClusterWide",
+      "allTableInventoryFieldsExactComparisons": 2,
+      "captionAppearanceFieldComparisons": 2,
+      "captionWholeTextRangeMetadataEquivalent": false,
+      "metadataComparison": {
+        "comparisons": [
+          {
+            "case": "fresh",
+            "stage": "initial",
+            "allTableFieldsExact": true,
+            "captionAppearanceFieldsExact": true,
+            "captionWholeTextRangeMetadataDifferences": [
+              {
+                "field": "font",
+                "actual": "Arial",
+                "control": ""
+              },
+              {
+                "field": "languageId",
+                "actual": 0,
+                "control": 1033
+              },
+              {
+                "field": "fontSizePoints",
+                "actual": 12.0,
+                "control": -9999999.0
+              }
+            ],
+            "generatedShapeNamesExcluded": true
+          },
+          {
+            "case": "fresh",
+            "stage": "resaved",
+            "allTableFieldsExact": true,
+            "captionAppearanceFieldsExact": true,
+            "captionWholeTextRangeMetadataDifferences": [
+              {
+                "field": "font",
+                "actual": "Arial",
+                "control": ""
+              },
+              {
+                "field": "languageId",
+                "actual": 0,
+                "control": 1033
+              },
+              {
+                "field": "fontSizePoints",
+                "actual": 12.0,
+                "control": -9999999.0
+              }
+            ],
+            "generatedShapeNamesExcluded": true
+          },
+          {
+            "case": "native-edited",
+            "stage": "initial",
+            "allTableFieldsExact": true,
+            "captionAppearanceFieldsExact": true,
+            "captionWholeTextRangeMetadataDifferences": [
+              {
+                "field": "font",
+                "actual": "Arial",
+                "control": ""
+              },
+              {
+                "field": "languageId",
+                "actual": 0,
+                "control": 1033
+              },
+              {
+                "field": "fontSizePoints",
+                "actual": 12.0,
+                "control": -9999999.0
+              }
+            ],
+            "generatedShapeNamesExcluded": true
+          },
+          {
+            "case": "native-edited",
+            "stage": "resaved",
+            "allTableFieldsExact": true,
+            "captionAppearanceFieldsExact": true,
+            "captionWholeTextRangeMetadataDifferences": [
+              {
+                "field": "font",
+                "actual": "Arial",
+                "control": ""
+              },
+              {
+                "field": "languageId",
+                "actual": 0,
+                "control": 1033
+              },
+              {
+                "field": "fontSizePoints",
+                "actual": 12.0,
+                "control": -9999999.0
+              }
+            ],
+            "generatedShapeNamesExcluded": true
+          },
+          {
+            "case": "managed-restored",
+            "stage": "initial",
+            "allTableFieldsExact": true,
+            "captionAppearanceFieldsExact": true,
+            "captionWholeTextRangeMetadataDifferences": [
+              {
+                "field": "font",
+                "actual": "Arial",
+                "control": ""
+              },
+              {
+                "field": "languageId",
+                "actual": 0,
+                "control": 1033
+              },
+              {
+                "field": "fontSizePoints",
+                "actual": 12.0,
+                "control": -9999999.0
+              }
+            ],
+            "generatedShapeNamesExcluded": true
+          },
+          {
+            "case": "managed-restored",
+            "stage": "resaved",
+            "allTableFieldsExact": true,
+            "captionAppearanceFieldsExact": true,
+            "captionWholeTextRangeMetadataDifferences": [
+              {
+                "field": "font",
+                "actual": "Arial",
+                "control": ""
+              },
+              {
+                "field": "languageId",
+                "actual": 0,
+                "control": 1033
+              },
+              {
+                "field": "fontSizePoints",
+                "actual": 12.0,
+                "control": -9999999.0
+              }
+            ],
+            "generatedShapeNamesExcluded": true
+          }
+        ],
+        "scope": "All table inventory fields match; caption text, bounds, frame layout, kerning and links match. Whole-text-range caption font/size/language metadata differs, independently of exact native PDF pixels. Native paragraph-terminator/default metadata equivalence remains unqualified."
+      },
+      "exactNativePdfPairs": 2,
+      "dpi": 100,
+      "nativeFirstCellMutation": {
+        "pairs": [
+          {
+            "stage": "initial",
+            "changedPixels": 0,
+            "allTableFieldsExact": true,
+            "captionAppearanceFieldsExact": true,
+            "captionWholeTextRangeMetadataEquivalent": false
+          },
+          {
+            "stage": "resaved",
+            "changedPixels": 0,
+            "allTableFieldsExact": true,
+            "captionAppearanceFieldsExact": true,
+            "captionWholeTextRangeMetadataEquivalent": false
+          }
+        ],
+        "nativeMutation": {
+          "target": "FirstTableCell",
+          "shapeName": "Control 2",
+          "before": "0101\r",
+          "requested": "N101",
+          "observed": "N101"
+        },
+        "freshSourceUnchanged": true,
+        "independentControlUnchanged": true,
+        "scope": "Native first-cell mutation from0101 toN101 on dense template-free candidate versus independent native control; all400cells/label/geometry/paint observed. Repair-free status unassessed.",
+        "captionMetadataLimitation": "All table inventory fields match; caption text, bounds, frame layout, kerning and links match. Whole-text-range caption font/size/language metadata differs, independently of exact native PDF pixels. Native paragraph-terminator/default metadata equivalence remains unqualified."
+      },
+      "managedRestoration": {
+        "pairs": [
+          {
+            "stage": "initial",
+            "changedPixels": 0,
+            "allTableFieldsExact": true,
+            "captionAppearanceFieldsExact": true,
+            "captionWholeTextRangeMetadataEquivalent": false
+          },
+          {
+            "stage": "resaved",
+            "changedPixels": 0,
+            "allTableFieldsExact": true,
+            "captionAppearanceFieldsExact": true,
+            "captionWholeTextRangeMetadataEquivalent": false
+          }
+        ],
+        "managedPaintComparisons": [
+          {
+            "case": "fresh-wide-final",
+            "coloredPrimitivesMatch": true
+          },
+          {
+            "case": "fresh-restored",
+            "coloredPrimitivesMatch": true
+          }
+        ],
+        "sourceUnchanged": true,
+        "restoredText": "0101",
+        "originalNativeEditedText": "N101",
+        "publicWorkflows": [
+          {
+            "case": "fresh-wide-final",
+            "workflowSucceeded": true,
+            "sha256": "c26b7168f4e83a8906cab2f1b272b030bc589aa14fd859d1a24ce0bb53cdbce9"
+          },
+          {
+            "case": "fresh-restored",
+            "workflowSucceeded": true,
+            "sha256": "91f227512028a498f49de461d551a435232931a04d3185fbce4a375adf975d5e"
+          }
+        ],
+        "captionMetadataLimitation": "All table inventory fields match; caption text, bounds, frame layout, kerning and links match. Whole-text-range caption font/size/language metadata differs, independently of exact native PDF pixels. Native paragraph-terminator/default metadata equivalence remains unqualified."
+      }
+    },
+    "aggregateComparison": {
+      "independentNativePdfPairs": 16,
+      "dpi": 100,
+      "changedPixels": 0,
+      "publicPowerShellPdfWorkflows": 7,
+      "managedColoredPrimitiveComparisons": 7,
+      "repairFreeQualified": false,
+      "managedNativeTextBaselineParityQualified": false
+    },
+    "stableIdentity": {
+      "sourceCandidates": [
+        {
+          "case": "partial",
+          "sha256": "36f84dbf6d6247118a76c744413d70feffac76c0e1a9e4725a4872d98a10ba4e",
+          "unchangedAcceptedBytes": true
+        },
+        {
+          "case": "partial-readded",
+          "sha256": "13a72bc207a27a1a2e5d7bd57976e6af9b0815fc4672a37fee7fef186fd5ad2e",
+          "unchangedAcceptedBytes": true
+        },
+        {
+          "case": "wide-readded",
+          "sha256": "76b62796204be288e38dc0cff3aaa93cd21dfb4c4b1e4ea92c1e3b6454e2dab4",
+          "unchangedAcceptedBytes": true
+        },
+        {
+          "case": "compact",
+          "sha256": "7f215c9cd8dc77be6077e8bf2f8d4bb5be0c283a996deeea84e04b2ed886db73",
+          "unchangedAcceptedBytes": true
+        },
+        {
+          "case": "native-partial-cleared",
+          "sha256": "e0830fc1eab1006cbf8331a98e04b95150fb6cf8ea1c653b41ce9542d3732b9b",
+          "unchangedAcceptedBytes": true
+        }
+      ],
+      "probeOutputs": [
+        {
+          "kind": "table",
+          "sha256": "d774ee79377be4e3104c185c1de2a43652a554ca8875422c933a7e5619988735",
+          "unchangedAcceptedBytes": true
+        },
+        {
+          "kind": "table-edited",
+          "sha256": "e62c3655ddb343afc7006cba946a26433d8ee082bc91ac4a1293880c80812b21",
+          "unchangedAcceptedBytes": true
+        },
+        {
+          "kind": "table-decorated",
+          "sha256": "4386154305b4fa7ff0d97785832fe1e91a012e25891c3e1107159bfa50642900",
+          "unchangedAcceptedBytes": true
+        },
+        {
+          "kind": "table-decorated-edited",
+          "sha256": "4e43b55045155329ab1c79abab9904e675ee5e1dd5a1aa9c0f7cbcfa66dfbcfe",
+          "unchangedAcceptedBytes": true
+        },
+        {
+          "kind": "table-merged",
+          "sha256": "21343f85132455613677402a7739d449fe7e854f8a8ff9eecaba0fe232ba9c1e",
+          "unchangedAcceptedBytes": true
+        },
+        {
+          "kind": "newsletter",
+          "sha256": "d35ecd90ce134e437fdf9fa42f702895cc5214e113c6547fbb3a567a3b22d552",
+          "unchangedAcceptedBytes": true
+        },
+        {
+          "kind": "table-cluster-wide",
+          "sha256": "c26b7168f4e83a8906cab2f1b272b030bc589aa14fd859d1a24ce0bb53cdbce9",
+          "unchangedAcceptedBytes": true
+        },
+        {
+          "source": "whole",
+          "sha256": "dd3f429c1341f8a52a8021e7107bab1d97722c049f0363ed1a267a7ff48e9716",
+          "unchangedAcceptedBytes": true
+        },
+        {
+          "source": "first",
+          "sha256": "12068b2b90928e6d8cebf5e114e0652ad23d49a08c1595551a6cb320ce967b14",
+          "unchangedAcceptedBytes": true
+        },
+        {
+          "source": "diagonal",
+          "sha256": "d761eec4330c54c261c195c95b3dff7508f76b47aaaaaa57b42c74b769904386",
+          "unchangedAcceptedBytes": true
+        },
+        {
+          "source": "bordered",
+          "sha256": "88ef50485589018932b1e8ea58e43c377b9f3bea8e95fae056306ee64e14c9ba",
+          "unchangedAcceptedBytes": true
+        },
+        {
+          "source": "dense-missing",
+          "sha256": "a88bc8c9fcc1a9b6a6c47422d58876788cb8faf78e47f2ed75813fb9a59a06b5",
+          "unchangedAcceptedBytes": true
+        },
+        {
+          "source": "dense-compact",
+          "sha256": "f0eb66cc989d6b9a1dcb1c27366ffa047845b4781c6ccb2ecb16c7dc3c47f6fc",
+          "unchangedAcceptedBytes": true
+        }
+      ]
+    },
+    "regressionProof": {
+      "initialCases": 6,
+      "initialFailed": 5,
+      "initialPassed": 1,
+      "failures": "Missing-cell rollover refused; fresh 1243-shape utilities refused; ordinary live owner and consumed-bound corruption were admitted. Existing nonadjacent-cluster editing already passed.",
+      "directoryBoundaryCases": [
+        20,
+        21,
+        41
+      ],
+      "legacyExhaustionArrangement": "Retains the original global maximum and appends after all native historical entries; does not collapse history to cluster four."
+    },
+    "validation": {
+      "testResults": {
+        "cluster-stable-full-net10": 1194,
+        "cluster-stable-tables-net8": 219,
+        "cluster-stable-tables-net472": 219,
+        "cluster-focused": 55,
+        "cluster-quill-focused": 52
+      },
+      "netstandard2Build": "Passed",
+      "powerShellAndProbeBuild": "Passed",
+      "nativeToolPreflight": {
+        "unchangedDefaultCases": 124,
+        "denseCasesExplicitOnly": true,
+        "preflight": [
+          {
+            "case": "corpus-switch",
+            "expectedError": "NativeAddClusterTable requires candidate validation with Stage Full.",
+            "outputCreated": false
+          },
+          {
+            "case": "inspect-switch",
+            "expectedError": "NativeAddClusterTable requires candidate validation with Stage Full.",
+            "outputCreated": false
+          },
+          {
+            "case": "mixed-mutations",
+            "expectedError": "NativeAddClusterTable cannot be combined with NativeEditText.",
+            "outputCreated": false
+          }
+        ]
+      },
+      "nativeScriptParsing": "Five scripts pass PowerShell 7.6.9 and Windows PowerShell 5.1.26100.9711."
+    },
+    "review": {
+      "allocationBoundary": "One independent read-only full pass, no confirmed actionable findings; import-record budget observation closed against the documented source-limit contract.",
+      "freshQuillBoundary": "One independent read-only full pass, no actionable findings.",
+      "targetedFixConfirmations": 0
+    },
+    "limitations": [
+      "Bounded ordinary unmerged rectangular source profiles and fixed dense specimens; no general grouped/transformed or decorated merged-table qualification",
+      "Native cell mutation covers only the first unmerged cell of the sole physical table; arbitrary cell selection and formatting remain unqualified",
+      "Broader producer/generation profiles, dynamic row sizing, layout and overflow",
+      "Ordinary drawing object overflow remains outside the isolated creation specimen",
+      "Managed/native text baseline parity",
+      "Fresh caption whole-text-range font, size and language metadata differs from the native control; paragraph-terminator/default metadata equivalence remains unqualified",
+      "Positive recovery control and repair-free native acceptance",
+      "Public source-free native creation remains gated"
+    ],
+    "canClosePUB00": false,
+    "canPromotePublicNativeCreation": false
   }
 }

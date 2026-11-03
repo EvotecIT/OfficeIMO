@@ -22,14 +22,12 @@ internal static partial class PublisherEscherTableUtilityPlan {
                 || !profile.OrdinaryBodies.Contains(binding.BodyOffset)) return null;
             inputs.Add(new(table.Id, table.Rows.Count, table.Columns.Count, table.Width, table.Height, table.CellFills, table.BorderSegments));
         }
-        int available = (int)Math.Min(1024L, context.Options.Limits.MaxItems - (long)profile.OrdinaryCount - 1);
-        PublisherTableUtilityDrawing? utility = PublisherTableUtilityDrawingEncoding.Write(3, inputs, available, context.Token);
+        PublisherEscherDrawingAllocation? allocation = PublisherEscherDrawingAllocation.Read(data, profile.Allocation, context);
+        if (allocation == null || !allocation.StartDrawing(2, profile.AuxiliaryUsed, context.Token)) return null;
+        int available = (int)(context.Options.Limits.MaxItems - (long)profile.OrdinaryCount - 1);
+        PublisherTableUtilityDrawing? utility = PublisherTableUtilityDrawingEncoding.Write(allocation, 3, inputs, available, context.Token);
         if (utility == null) return null;
-        byte[] replacement = new byte[48];
-        Buffer.BlockCopy(source, profile.Allocation.Offset - 8, replacement, 0, 32);
-        Write(4, 40); Write(8, utility.LastSpid + 1); Write(12, 4);
-        Write(16, (uint)profile.OrdinaryCount + utility.Count + 1); Write(20, 3);
-        Write(32, 2); Write(36, profile.AuxiliaryUsed); Write(40, 3); Write(44, utility.Count);
+        byte[] replacement = allocation.Record((uint)profile.OrdinaryCount + utility.Count + 1, 3, context.Token);
         var edits = new PublisherEscherShapeEdits {
             AllocationRecord = new(profile.Allocation.Offset - 8, profile.Allocation.Length + 8, replacement)
         };
@@ -58,8 +56,6 @@ internal static partial class PublisherEscherTableUtilityPlan {
             };
         }
         return edits;
-
-        void Write(int offset, uint value) => BitConverter.GetBytes(value).CopyTo(replacement, offset);
     }
 
     private sealed record SourceProfile(PublisherEscherRecord Allocation, PublisherEscherRecord Ordinary,

@@ -18,6 +18,10 @@ internal static class CandidateCases {
             if (value != null || secondValue != null) throw new ArgumentException("The frame layout specimens use fixed text.");
             return CandidateFrameLayout.Create(kind == "frame-layout-edited");
         }
+        if (kind is "table-cluster-near" or "table-cluster-near-edited" or "table-cluster-wide") {
+            if (value != null || secondValue != null) throw new ArgumentException("The dense table specimens use fixed grids, text and paint.");
+            return CandidateTableCluster.Create(kind == "table-cluster-wide" ? 20 : 18, kind == "table-cluster-near-edited");
+        }
         if (kind is "table" or "table-edited") {
             if (value != null || secondValue != null) throw new ArgumentException("The table specimens use fixed cell text.");
             return CandidateTableCreation.Create(kind == "table-edited");

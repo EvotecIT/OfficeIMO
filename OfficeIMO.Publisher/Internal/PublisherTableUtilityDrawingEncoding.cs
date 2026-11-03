@@ -8,44 +8,49 @@ internal static class PublisherTableUtilityDrawingEncoding {
         int maximumShapes, CancellationToken token) {
         token.ThrowIfCancellationRequested();
         if (drawingId is 0 or > 4095 || tables.Count == 0) return null;
-        int limit = Math.Min(1024, maximumShapes);
-        if (limit < 3) return null;
-        uint root = drawingId << 10;
-        var shapes = new List<byte[]> { Root(drawingId) };
-        shapes.Add(Utility(root + 1, 1, Array.Empty<(ushort, uint)>(), new[] {
+        return Write(PublisherEscherDrawingAllocation.Fresh(drawingId, token), drawingId, tables, maximumShapes, token);
+    }
+
+    internal static PublisherTableUtilityDrawing? Write(PublisherEscherDrawingAllocation allocation, uint drawingId,
+        IReadOnlyList<PublisherTableUtilityInput> tables, int maximumShapes, CancellationToken token) {
+        token.ThrowIfCancellationRequested();
+        if (tables.Count == 0 || maximumShapes < 3 || !allocation.StartDrawing(drawingId, 0, token)
+            || !allocation.Allocate(token, out uint root) || !allocation.Allocate(token, out uint cellDefault)
+            || !allocation.Allocate(token, out uint borderDefault)) return null;
+        var shapes = new List<byte[]> { Root(root) };
+        shapes.Add(Utility(cellDefault, 1, Array.Empty<(ushort, uint)>(), new[] {
             ((ushort)0x0181, 0x00FFFFFFU), ((ushort)0x01BF, 0x001F000CU), ((ushort)0x01FF, 0x00080000U)
         }));
-        shapes.Add(Utility(root + 2, 20, new[] { ((ushort)0x2001, 1U) }, new[] {
+        shapes.Add(Utility(borderDefault, 20, new[] { ((ushort)0x2001, 1U) }, new[] {
             ((ushort)0x01BF, 0x00100000U), ((ushort)0x01CB, 0U), ((ushort)0x01FF, 0x00080000U)
         }));
-        if (!AppendTables(shapes, root, tables, limit, token)) return null;
-        uint last = root + (uint)shapes.Count - 1;
-        return new(Drawing(drawingId, shapes, last), (uint)shapes.Count, last);
+        if (!AppendTables(shapes, allocation, tables, maximumShapes, token)) return null;
+        return new(Drawing(drawingId, shapes, allocation.LastSpid, token), (uint)shapes.Count, allocation.LastSpid);
     }
 
     /// <summary>Encodes complete-table utilities and selected missing cells at the next free utility-drawing slot.</summary>
-    internal static (byte[] Bytes, uint Count, uint LastSpid)? WriteCells(uint firstSpid,
+    internal static (byte[] Bytes, uint Count, uint LastSpid)? WriteCells(PublisherEscherDrawingAllocation allocation,
         IReadOnlyList<PublisherTableUtilityInput> tables, IReadOnlyList<PublisherTableCellUtilityInput> cells,
         int maximumShapes, CancellationToken token) {
         token.ThrowIfCancellationRequested();
-        int limit = (int)Math.Min(1024L - (firstSpid & 1023), maximumShapes);
-        if (firstSpid < 1024 || (tables.Count == 0 && cells.Count == 0) || limit < 1) return null;
+        if ((tables.Count == 0 && cells.Count == 0) || maximumShapes < 1) return null;
         var shapes = new List<byte[]>();
-        if (!AppendTables(shapes, firstSpid, tables, limit, token)) return null;
+        if (!AppendTables(shapes, allocation, tables, maximumShapes, token)) return null;
         var completeTables = new HashSet<uint>(tables.Select(table => table.Id));
         var owners = new HashSet<(uint, int)>();
         foreach (PublisherTableCellUtilityInput cell in cells) {
             token.ThrowIfCancellationRequested();
-            if (shapes.Count >= limit || completeTables.Contains(cell.TableId) || !owners.Add((cell.TableId, cell.Index))) return null;
-            byte[]? bytes = Cell(firstSpid + (uint)shapes.Count, cell.TableId, cell.Index, cell.Fill);
+            if (shapes.Count >= maximumShapes || completeTables.Contains(cell.TableId) || !owners.Add((cell.TableId, cell.Index))
+                || !allocation.Allocate(token, out uint id)) return null;
+            byte[]? bytes = Cell(id, cell.TableId, cell.Index, cell.Fill);
             if (bytes == null) return null;
             shapes.Add(bytes);
         }
-        return (Bytes(writer => { foreach (byte[] shape in shapes) writer.Write(shape); }),
-            (uint)shapes.Count, firstSpid + (uint)shapes.Count - 1);
+        return (Bytes(writer => { foreach (byte[] shape in shapes) { token.ThrowIfCancellationRequested(); writer.Write(shape); } }),
+            (uint)shapes.Count, allocation.LastSpid);
     }
 
-    private static bool AppendTables(List<byte[]> shapes, uint firstSpid, IReadOnlyList<PublisherTableUtilityInput> tables,
+    private static bool AppendTables(List<byte[]> shapes, PublisherEscherDrawingAllocation allocation, IReadOnlyList<PublisherTableUtilityInput> tables,
         int limit, CancellationToken token) {
         var ids = new HashSet<uint>();
         foreach (PublisherTableUtilityInput table in tables) {
@@ -54,8 +59,8 @@ internal static class PublisherTableUtilityDrawingEncoding {
                 || (long)table.Rows * table.Columns != table.Fills.Count) return false;
             for (int index = 0; index < table.Fills.Count; index++) {
                 token.ThrowIfCancellationRequested();
-                if (shapes.Count >= limit) return false;
-                byte[]? bytes = Cell(firstSpid + (uint)shapes.Count, table.Id, index, table.Fills[index]);
+                if (shapes.Count >= limit || !allocation.Allocate(token, out uint id)) return false;
+                byte[]? bytes = Cell(id, table.Id, index, table.Fills[index]);
                 if (bytes == null) return false;
                 shapes.Add(bytes);
             }
@@ -67,10 +72,10 @@ internal static class PublisherTableUtilityDrawingEncoding {
                 int start = horizontal ? border.FirstColumn : border.FirstRow, end = horizontal ? border.LastColumn : border.LastRow;
                 for (int index = start; index < end; index++) {
                     token.ThrowIfCancellationRequested();
-                    if (shapes.Count >= limit) return false;
+                    if (shapes.Count >= limit || !allocation.Allocate(token, out uint id)) return false;
                     var unit = new PublisherTableBorderSegment(horizontal ? border.FirstRow : index, horizontal ? index : border.FirstColumn,
                         horizontal ? border.LastRow : index + 1, horizontal ? index + 1 : border.LastColumn, border.Side);
-                    byte[]? encoded = PublisherTableBorderEncoding.Write(table.Id, firstSpid + (uint)shapes.Count, unit);
+                    byte[]? encoded = PublisherTableBorderEncoding.Write(table.Id, id, unit);
                     if (encoded == null) return false;
                     shapes.Add(encoded);
                 }
@@ -88,18 +93,20 @@ internal static class PublisherTableUtilityDrawingEncoding {
         });
     }
 
-    internal static byte[] EmptyDrawing(uint id) => Drawing(id, new[] { Root(id) }, id << 10);
+    internal static byte[] EmptyDrawing(uint id) => Drawing(id, new[] { Root(id << 10) }, id << 10);
 
-    private static byte[] Root(uint id) => Record(15, 0xF004, Bytes(writer => {
+    private static byte[] Root(uint spid) => Record(15, 0xF004, Bytes(writer => {
         writer.Write(Record(1, 0xF009, new byte[16]));
-        writer.Write(Record(2, 0xF00A, Bytes(value => { value.Write(id << 10); value.Write(5U); })));
+        writer.Write(Record(2, 0xF00A, Bytes(value => { value.Write(spid); value.Write(5U); })));
     }));
 
-    private static byte[] Drawing(uint id, IEnumerable<byte[]> shapes, uint last) {
+    private static byte[] Drawing(uint id, IEnumerable<byte[]> shapes, uint last, CancellationToken token = default) {
         byte[][] items = shapes.ToArray();
         return Record(15, 0xF002, Bytes(writer => {
             writer.Write(Record((ushort)(id << 4), 0xF008, Bytes(value => { value.Write((uint)items.Length); value.Write(last); })));
-            writer.Write(Record(15, 0xF003, Bytes(value => { foreach (byte[] item in items) value.Write(item); })));
+            writer.Write(Record(15, 0xF003, Bytes(value => {
+                foreach (byte[] item in items) { token.ThrowIfCancellationRequested(); value.Write(item); }
+            })));
         }));
     }
 

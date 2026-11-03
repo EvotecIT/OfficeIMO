@@ -1,0 +1,33 @@
+{
+  "schema": "officeimo.publisher.native-retained-cluster-append.v1",
+  "license": "MIT",
+  "source": "../TableClusterNear/native-tableclusternear.pub",
+  "sourceSha256": "c4e529be270625bba4f2afdd55bf38f1e5bf2d5af87022a35a1f6cc93f6897c4",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20112",
+    "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+    "powershell": "7.6.9",
+    "automationSecurity": 3
+  },
+  "reproduction": "pwsh Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full -InputPath <TableClusterNear/native-tableclusternear.pub> -OutputDirectory <empty-directory> -NativeAddClusterTable -TimeoutSeconds 600 -PhaseTimeoutSeconds 45",
+  "scope": "Independent native mutation of the retained near-boundary control. A new 2x4 table consumes 13 remaining utility slots and 17 fresh slots in appended cluster 3991, retaining all 3963 original entries. COM transient allocations occur before and after rollover. The complete original 18x18 table inventory is identical. Repair-free status remains unassessed.",
+  "files": [
+    {
+      "name": "native-tableclusternativeappend.pub",
+      "bytes": 489984,
+      "sha256": "ada8c66e01faddf85d5dfb644efc94649a8d5d6c0ce2920d2f36a4317dcd34f5"
+    },
+    {
+      "name": "native-tableclusternativeappend.pdf",
+      "bytes": 162641,
+      "sha256": "f8e6d7ddc3d5383b6ec3e37261b1f03df60345086160af02fd1ef2efaccc7f79"
+    },
+    {
+      "name": "native-tableclusternativeappend.json",
+      "bytes": 537043,
+      "sha256": "327b8f5d8ec68673c47bac3a15a8543dd0188382f4a0cc422caa1669c49d516f"
+    }
+  ]
+}

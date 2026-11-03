@@ -29,6 +29,26 @@ internal static class SourceTableUtilityControl {
         owners = owners.Where(owner => selected.Contains((int)owner.Value(0x2003))).ToArray();
         if (owners.Length != selected.Length) throw new InvalidDataException("Missing cell ownership is ambiguous.");
         uint removed = (uint)owners.Length;
+        UtilityRemoval removal = RemoveCellUtilities(compound, art, reader, owners);
+        using (var stream = new FileStream(output, FileMode.CreateNew, FileAccess.Write)) stream.Write(removal.Bytes);
+        Console.WriteLine(JsonSerializer.Serialize(new {
+            sourceSha256 = Convert.ToHexString(SHA256.HashData(source)).ToLowerInvariant(),
+            outputSha256 = Convert.ToHexString(SHA256.HashData(removal.Bytes)).ToLowerInvariant(),
+            firstTableId = tables[0].Id, secondTableId = tables[1].Id, removedCellUtilities = removed, removedCellIndices = selected,
+            retainedAllocationCursor = removal.RetainedAllocationCursor,
+            activeDrawingCount = removal.ActiveDrawingCount, activeTotal = removal.ActiveTotal,
+            scope = "Derived source input; native control remains independently authored. Cursors, used slots, other records and logical streams retained."
+        }));
+        return 0;
+    }
+
+    /// <summary>Removes selected native cell containers and adjusts active counts without reclaiming their allocation history.</summary>
+    internal static UtilityRemoval RemoveCellUtilities(OfficeCompoundFile compound, byte[] art, PublisherEscherReader reader,
+        IReadOnlyList<PublisherTableArtwork> owners) {
+        if (owners.Count == 0 || owners.Any(owner => owner.Value(0x2001) != 0 || owner.Shape.NativeBinding == null)
+            || owners.Select(owner => owner.Shape.NativeBinding!.BodyOffset).Distinct().Count() != owners.Count)
+            throw new InvalidDataException("Cell removal requires distinct native cell owners.");
+        uint removed = (uint)owners.Count;
         var top = reader.Records(0, art.Length); var dgg = top.Single(item => item.Kind == 0xF000);
         var fdgg = reader.Records(dgg.Offset, dgg.End).Single(item => item.Kind == 0xF006);
         var drawing = top.Single(item => item.Kind == 0xF002 && BitConverter.ToUInt32(art, item.Offset - 12) == 2);
@@ -42,17 +62,10 @@ internal static class SourceTableUtilityControl {
         byte[] rewritten = PublisherEscherSourceWriter.Rewrite(art, new Dictionary<int, IReadOnlyDictionary<ushort, OfficeArtProperty>>(),
             null, Context(), 64L * 1024 * 1024, edits) ?? throw new InvalidDataException("Utility removal failed.");
         byte[] result = OfficeCompoundFileWriter.Rewrite(compound, new Dictionary<string, byte[]> { ["Escher/EscherStm"] = rewritten });
-        using (var stream = new FileStream(output, FileMode.CreateNew, FileAccess.Write)) stream.Write(result);
-        Console.WriteLine(JsonSerializer.Serialize(new {
-            sourceSha256 = Convert.ToHexString(SHA256.HashData(source)).ToLowerInvariant(),
-            outputSha256 = Convert.ToHexString(SHA256.HashData(result)).ToLowerInvariant(),
-            firstTableId = tables[0].Id, secondTableId = tables[1].Id, removedCellUtilities = removed, removedCellIndices = selected,
-            retainedAllocationCursor = BitConverter.ToUInt32(art, fdg.Offset + 4),
-            activeDrawingCount = oldDrawing - removed, activeTotal = oldTotal - removed,
-            scope = "Derived source input; native control remains independently authored. Cursors, used slots, other records and logical streams retained."
-        }));
-        return 0;
+        return new(result, rewritten, BitConverter.ToUInt32(art, fdg.Offset + 4), oldDrawing - removed, oldTotal - removed);
     }
+
+    internal sealed record UtilityRemoval(byte[] Bytes, byte[] Artwork, uint RetainedAllocationCursor, uint ActiveDrawingCount, uint ActiveTotal);
 
     private static PublisherParseContext Context() => new(new PublisherReadOptions(), CancellationToken.None);
 }

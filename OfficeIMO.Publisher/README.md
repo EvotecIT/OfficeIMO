@@ -602,15 +602,15 @@ Native source saving supports solid recoloring, clearing and activation through
 qualified existing cell utility records, preserving latent colors when hidden.
 A missing local color field can be inserted; visibility requires an unambiguous
 local owning field. Existing shared-border color/width edits use qualified local
-scalars. Shared edges can also be added, cleared and replaced within one existing
-utility drawing and its current SPID allocation cluster. New ranges use native cell
-edges; reopened segmentation and record order can differ while retaining shared
+scalars. Shared edges can also be added, cleared and replaced within a qualified
+direct utility drawing. New ranges use native cell edges; reopened segmentation
+and record order can differ while retaining shared
 grid coverage. First fills and borders can also initialize utilities for qualified
 borderless rectangular tables in compact sources and native-normalized empty
 utility scopes. A table with no cell or edge utility records can receive its first
 fills and borders beside an already decorated table in a qualified populated
-drawing, using its current SPID cluster. This can compose with supported peer
-border edits and cell-paragraph growth in one save. A fill or border decoration
+drawing. This can compose with supported peer border edits and cell-paragraph
+growth in one save. A fill or border decoration
 change can also initialize selectively missing cell utilities in qualified
 unmerged tables. Only missing native cell-definition indices receive the final
 fill/no-fill state; existing invisible cell records retain their ownership.
@@ -619,10 +619,14 @@ initialization composes with supported border edits on the same table or a peer,
 and with cell-paragraph growth. The writer retains ordinary drawing bytes,
 unrelated storage and unchanged cell/edge records, and validates counts,
 identifiers, inherited defaults and allocation history. Duplicate or unknown raw
-ownership, exhausted clusters, cluster rollover, unsafe defaults, inconsistent
-metadata, unsupported paint and widths without an exact signed-EMU representation
+ownership, unsafe defaults, inconsistent metadata, unsupported paint and widths
+without an exact signed-EMU representation
 refuse saving. A border must fit the table's final perpendicular extent, including
 after resizing.
+Qualified allocation uses the remaining slots in the current SPID cluster before
+appending fresh ordered clusters. Existing allocation entries keep their positions
+and consumed history; retired identifiers are not reused. The [support contract](SUPPORT.md#ordered-table-utility-cluster-allocation)
+defines the dense-grid source profiles and their native validation limits.
 Gradients, cell-specific padding and broader native appearances remain separate profiles.
 Unsupported paint is reported rather than presented as an observed empty style.
 

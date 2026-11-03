@@ -1,0 +1,38 @@
+{
+  "schema": "officeimo.publisher.derived-table-cluster-source.v1",
+  "license": "MIT",
+  "derivedFrom": "../TableClusterNear/native-tableclusternear.pub",
+  "sourceSha256": "c4e529be270625bba4f2afdd55bf38f1e5bf2d5af87022a35a1f6cc93f6897c4",
+  "removedDefinitionIndices": [
+    2,
+    5,
+    8,
+    11,
+    14,
+    17,
+    19,
+    22,
+    25,
+    28,
+    31,
+    34,
+    36,
+    39,
+    42,
+    45,
+    48,
+    51,
+    56,
+    59
+  ],
+  "reproduction": "dotnet <WriterProbe.dll> table-cluster-source <TableClusterNear/native-tableclusternear.pub> <output.pub>",
+  "operation": "Remove twenty invisible cell utility containers and reduce active FDG/FDGG counts. Preserve all consumed allocation history, other utilities and logical streams.",
+  "files": [
+    {
+      "name": "missing-twenty.pub",
+      "bytes": 476160,
+      "sha256": "a88bc8c9fcc1a9b6a6c47422d58876788cb8faf78e47f2ed75813fb9a59a06b5"
+    }
+  ],
+  "scope": "Labelled derived input; independent native TableClusterNearEdited provides the expected edited model."
+}

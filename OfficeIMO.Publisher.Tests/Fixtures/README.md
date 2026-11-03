@@ -87,6 +87,43 @@ derived hashes. These inputs qualify selective initialization after fill/border
 edits against the independent final-state controls; they are not independent
 native producers or native repair controls.
 
+TableClusterNear and TableClusterNearEdited independently author an 18×18 dense
+table with a label, alternating solid fills and every shared unit edge; the edited
+control activates one previously invisible cell. TableClusterWide supplies the
+independent 20×20 table and label. Their native utility drawings have 1,011 and
+1,243 shapes respectively. The near control has thirteen free slots in its current
+cluster; the wide control already uses nonadjacent clusters 3 and 1,684. Their
+allocation entries retain native retired history.
+
+TableClusterNativeAppend records a separate native mutation of the retained near
+control through `-NativeAddClusterTable`. A new 2×4 table consumes thirteen current
+slots and seventeen slots in appended cluster 3,991 while preserving all 3,963
+original allocation entries. The original 18×18 table's complete native inventory
+is unchanged. This supplies native append evidence; repair-free status remains
+unassessed.
+
+Two labelled derived inputs serve different qualification boundaries:
+
+| Derived source under `NativeComparison` | Independent source control | Derivation |
+| --- | --- | --- |
+| `TableClusterMissingCells/missing-twenty.pub` | `TableClusterNear` | `table-cluster-source` removes twenty selected invisible cell utilities and reduces active counts, retaining all consumed allocation history, surviving utilities and other logical streams. `TableClusterNearEdited` supplies the expected edited state. |
+| `TableClusterCompact/compact-twenty.pub` | `TableClusterWide` | `table-cluster-compact-source` deliberately discards utility/auxiliary scopes, table paint and their allocation history, retaining ordinary records, other global records and other logical streams for a synthetic first-style input. |
+
+The compact derivation is not a preserving user operation, independent native
+producer or native repair control. Each derived fixture's provenance records its
+source hash, output hash and reproduction command. Independent native controls
+supply the final-state expectations.
+
+`NativeComparison/GeneratedTableCluster` retains the template-free 20×20
+`generated.pub`, its `native-normalized.pub` and `native-edited.pub`, and the
+independently mutated `native-control-edited.pub`. Native editing replaces only
+the first unmerged cell's `0101` with `N101`. These inputs also qualify public
+managed text restoration to `0101`, source save/reload and PDF conversion while
+retaining the other cells, table fields and caption text/layout. The [support contract](../../OfficeIMO.Publisher/SUPPORT.md#ordered-table-utility-cluster-allocation)
+defines the caption metadata comparison limits. The provenance records generation,
+native mutation, producer identity and file hashes; repair-free acceptance remains
+unassessed.
+
 TextPages has independent Arial 12/18-point stories on the first and last of
 three pages, with an empty middle page and explicit zero column spacing. It
 qualifies physical-page ownership in template-free native writer specimens.

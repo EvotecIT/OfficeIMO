@@ -27,13 +27,13 @@ internal static class QuillTextFormatting {
     }
 
     private static IReadOnlyList<byte[]> Pages(IReadOnlyList<PublisherQuillFormattingRange> ranges, int maximumPages) {
-        if (maximumPages < 1) throw new NotSupportedException("The formatting pages exceed the specimen's single directory.");
+        if (maximumPages < 1) throw new NotSupportedException("The formatting pages exceed the Quill descriptor limit.");
         // Preserve earlier unshared encodings. Table cells can exceed that
         // envelope while repeating the same few native style definitions.
         if (8 + ranges.Count * 6 + ranges.Sum(range => range.Style.Length) <= PageBytes)
             return new[] { PublisherQuillFormattingPage.Write(ranges) };
         return PublisherQuillPageAllocator.PackMinimum(ranges, maximumPages, CancellationToken.None)
-            ?? throw new NotSupportedException("The formatting ranges exceed the specimen's single-directory capacity.");
+            ?? throw new NotSupportedException("The formatting ranges exceed the Quill descriptor limit.");
     }
 
     private static IEnumerable<QuillRecord> Records(string tag, IReadOnlyList<byte[]> pages) {

@@ -31,22 +31,14 @@ internal static partial class CandidateOfficeArt {
     internal static byte[] Create(Graph graph, IReadOnlyList<ImageBinding> images) {
         uint shapeCount = (uint)graph.Objects.Count + 1;
         uint lastShapeId = RootShapeId + shapeCount - 1;
-        var tableDrawing = TableDrawing(graph);
-        if (tableDrawing.HasValue && shapeCount > 1024)
-            throw new NotSupportedException("The table utility specimen uses one SPID cluster per drawing.");
-        byte[] fdgg = Art(0, 0xF006, Bytes(writer => {
-            // Follow the native/PPT allocation convention: one beyond the
-            // greatest allocated SPID. No hidden background shape is emitted.
-            writer.Write((tableDrawing?.LastSpid ?? lastShapeId) + 1); // spidMax
-            writer.Write(tableDrawing.HasValue ? 4U : 2U); // IDCL entries plus one.
-            writer.Write(shapeCount + (tableDrawing.HasValue ? tableDrawing.Value.Count + 1 : 0));
-            writer.Write(tableDrawing.HasValue ? 3U : 1U); // cdgSaved
-            writer.Write(DrawingId); writer.Write(shapeCount); // IDCL
-            if (tableDrawing.HasValue) {
-                writer.Write(2U); writer.Write(1U);
-                writer.Write(3U); writer.Write(tableDrawing.Value.Count);
-            }
-        }));
+        var allocation = PublisherEscherDrawingAllocation.Fresh(1, CancellationToken.None);
+        if (shapeCount > 1024 || !allocation.StartDrawing(DrawingId, shapeCount, CancellationToken.None))
+            throw new NotSupportedException("The ordinary object drawing specimen is limited to one SPID cluster; table utility drawings can span clusters.");
+        var tableDrawing = TableDrawing(graph, allocation);
+        // The shared allocator owns every IDCL entry and the exclusive maximum;
+        // table utility rollover does not add another saved drawing.
+        byte[] fdgg = allocation.Record(shapeCount + (tableDrawing != null ? tableDrawing.Count + 1 : 0),
+            tableDrawing != null ? 3U : 1U, CancellationToken.None);
         var groupRecords = new List<byte[]> { fdgg };
         // Native references follow model asset identity, never byte equality.
         if (images.Count != 0) groupRecords.Add(Art(checked((ushort)((images.Count << 4) | 15)), 0xF001,
@@ -61,7 +53,7 @@ internal static partial class CandidateOfficeArt {
         // The four-byte prefixes select drawing instances, rather than padding.
         // Native table controls serialize utility instance 2, empty instance 1,
         // then ordinary instance 0; SPID drawing identifiers remain 3, 2 and 1.
-        return tableDrawing.HasValue ? Join(dgg, Bytes(writer => writer.Write(2U)), tableDrawing.Value.Bytes,
+        return tableDrawing != null ? Join(dgg, Bytes(writer => writer.Write(2U)), tableDrawing.Bytes,
             Bytes(writer => writer.Write(1U)), PublisherTableUtilityDrawingEncoding.EmptyDrawing(2), new byte[4], drawing)
             : Join(dgg, new byte[4], drawing);
     }
