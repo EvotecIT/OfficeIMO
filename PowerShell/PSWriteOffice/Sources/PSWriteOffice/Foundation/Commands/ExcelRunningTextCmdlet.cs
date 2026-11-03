@@ -78,14 +78,22 @@ public abstract class ExcelRunningTextCmdlet : AsyncPSCmdlet {
         bool? oddEven = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(DifferentOddEven));
         bool? noAlign = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(NoAlignWithMargins));
         bool? noScale = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(NoScaleWithDocument));
-        if (IsHeader) sheet.SetHeader(Left, Center, Right, first, oddEven, noAlign.HasValue ? !noAlign.Value : null, noScale.HasValue ? !noScale.Value : null);
-        else sheet.SetFooter(Left, Center, Right, first, oddEven, noAlign.HasValue ? !noAlign.Value : null, noScale.HasValue ? !noScale.Value : null);
+        ExcelSheetPageSetup page = sheet.PageSetup;
+        ExcelHeaderFooter target = IsHeader ? page.Header : page.Footer;
+        if (Left != null) target.Left.Text = Left;
+        if (Center != null) target.Center.Text = Center;
+        if (Right != null) target.Right.Text = Right;
+        if (first.HasValue) page.DifferentFirstPage = first.Value;
+        if (oddEven.HasValue) page.DifferentOddEven = oddEven.Value;
+        if (noAlign.HasValue) page.AlignHeaderFooterWithMargins = !noAlign.Value;
+        if (noScale.HasValue) page.ScaleHeaderFooterWithDocument = !noScale.Value;
+        ExcelHeaderFooterSection imageSection = ImagePosition == ExcelHeaderFooterPosition.Left ? target.Left
+            : ImagePosition == ExcelHeaderFooterPosition.Center ? target.Center
+            : target.Right;
         if (bytes != null) {
-            if (IsHeader) sheet.SetHeaderImage(ImagePosition, bytes, contentType!, ImageWidth, ImageHeight);
-            else sheet.SetFooterImage(ImagePosition, bytes, contentType!, ImageWidth, ImageHeight);
+            imageSection.SetImage(bytes, contentType!, ImageWidth, ImageHeight);
         } else if (url != null) {
-            if (IsHeader) await sheet.SetHeaderImageFromUrlAsync(ImagePosition, url.AbsoluteUri, ImageWidth, ImageHeight, CancelToken).ConfigureAwait(false);
-            else await sheet.SetFooterImageFromUrlAsync(ImagePosition, url.AbsoluteUri, ImageWidth, ImageHeight, CancelToken).ConfigureAwait(false);
+            await imageSection.SetImageFromUrlAsync(url.AbsoluteUri, ImageWidth, ImageHeight, CancelToken).ConfigureAwait(false);
         }
         if (PassThru) WriteObject(sheet);
     }

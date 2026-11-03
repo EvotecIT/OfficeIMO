@@ -47,7 +47,7 @@ public static class ProjectDataWorkflow {
                         string? value = mapped.Table.Rows[r][c]; if (value != null) sheet.Cell(r + 2, c + 1).SetValue(value);
                     }
                 }
-                sheet.Freeze(1); sheet.AutoFitColumns(ct: cancellationToken);
+                sheet.View.Freeze(1); sheet.AutoFitColumns(ct: cancellationToken);
             }
             ValidateExcelGrid(export.Notices.Count, 1, "Transfer notes");
             var notes = document.AddSheet("Transfer notes"); notes.Cell(1, 1).SetValue("Projection boundaries");

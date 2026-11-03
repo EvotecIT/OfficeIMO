@@ -39,10 +39,10 @@ namespace OfficeIMO.Tests
             try {
                 using var document = ExcelDocument.Create(path);
                 ExcelSheet filters = document.AddSheet("Filters");
-                filters.AddAutoFilter("A1:AA2001");
+                filters.Range("A1:AA2001").AutoFilter();
 
                 ExcelSheet conditional = document.AddSheet("Conditional");
-                conditional.AddConditionalRule("B2:AB2002", ExcelConditionalFormattingOperator.GreaterThan, "10");
+                conditional.Range("B2:AB2002").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "10");
 
                 ExcelSheet charts = document.AddSheet("Charts");
                 charts.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "A" }, new[] { new ExcelChartSeries("Sales", new[] { 1d }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 2003, Column = 29 });
@@ -71,8 +71,8 @@ namespace OfficeIMO.Tests
             try {
                 using var document = ExcelDocument.Create(path);
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.AddConditionalDuplicateValuesRule("A2:A100");
-                sheet.AddConditionalUniqueValuesRule("B2:B100");
+                sheet.Range("A2:A100").ConditionalFormat().DuplicateValues();
+                sheet.Range("B2:B100").ConditionalFormat().UniqueValues();
 
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
                 GoogleSheetsAddConditionalFormatRuleRequest[] rules = batch.Requests
@@ -93,11 +93,7 @@ namespace OfficeIMO.Tests
                 using var document = ExcelDocument.Create(path);
                 document.DateSystem = ExcelDateSystem.NineteenFour;
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.ValidationDate(
-                    "A1:A2",
-                    ExcelDataValidationOperator.Between,
-                    new DateTime(2024, 1, 1),
-                    new DateTime(2024, 12, 31));
+                sheet.Range("A1:A2").Validation().Date(ExcelDataValidationOperator.Between, new DateTime(2024, 1, 1), new DateTime(2024, 12, 31));
 
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
 
@@ -215,7 +211,7 @@ namespace OfficeIMO.Tests
                 try {
                     using var document = ExcelDocument.Create(path);
                     ExcelSheet sheet = document.AddSheet("Data");
-                    sheet.AddConditionalRule("A1:A10", ExcelConditionalFormattingOperator.GreaterThan, threshold, fillColor: fillColor);
+                    sheet.Range("A1:A10").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, threshold, fillColor: fillColor);
                     return GoogleSheetsDiffPlanner.CreateCheckpoint(document).ContentHashes["sheet/Data/conditionalFormat/0"];
                 } finally {
                     if (File.Exists(path)) File.Delete(path);
@@ -243,7 +239,7 @@ namespace OfficeIMO.Tests
                     sheet.Cell(2, 4).SetValue(1d);
                     sheet.Cell(3, 3).SetValue("B");
                     sheet.Cell(3, 4).SetValue(2d);
-                    sheet.AddAutoFilter(range, new Dictionary<uint, IEnumerable<string>> { [0] = new[] { visibleValue } });
+                    sheet.Range(range).AutoFilter().Column(0).Equals(new[] { visibleValue });
                     sheet.Range("C1:D3").CreateTable("DataTable", includeAutoFilter: true);
                     return GoogleSheetsDiffPlanner.CreateCheckpoint(document);
                 } finally {
@@ -269,11 +265,7 @@ namespace OfficeIMO.Tests
                 ExcelSheet sheet = document.AddSheet("Data");
                 sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(20)));
                 sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
-                sheet.ValidationDate(
-                    "A1:A2",
-                    ExcelDataValidationOperator.Between,
-                    new DateTime(2024, 1, 1),
-                    new DateTime(2024, 12, 31));
+                sheet.Range("A1:A2").Validation().Date(ExcelDataValidationOperator.Between, new DateTime(2024, 1, 1), new DateTime(2024, 12, 31));
 
                 GoogleSheetsSyncCheckpoint baseline = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
                 string rowPath = "sheet/Data/row/2";
@@ -310,11 +302,7 @@ namespace OfficeIMO.Tests
                     ExcelSheet alternateSheet = alternate.AddSheet("Data");
                     alternateSheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(20)));
                     alternateSheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
-                    alternateSheet.ValidationDate(
-                        "A1:A2",
-                        ExcelDataValidationOperator.Between,
-                        new DateTime(2024, 1, 1),
-                        new DateTime(2025, 12, 31));
+                    alternateSheet.Range("A1:A2").Validation().Date(ExcelDataValidationOperator.Between, new DateTime(2024, 1, 1), new DateTime(2025, 12, 31));
                     GoogleSheetsSyncCheckpoint alternateValidation = GoogleSheetsDiffPlanner.CreateCheckpoint(alternate);
                     Assert.NotEqual(baseline.ContentHashes[validationPath], alternateValidation.ContentHashes[validationPath]);
                 } finally {

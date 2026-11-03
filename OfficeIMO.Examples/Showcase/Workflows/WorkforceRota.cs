@@ -27,10 +27,10 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             }
             sheet.AddTable("A4:G8", true, "SupportRota", ExcelTableStyle.TableStyleMedium2);
             // Rules follow edited shifts in Excel and in the native range preview.
-            sheet.Range("B5:F8").Validation.List(new[] { "D", "R", "-" }, allowBlank: false);
-            sheet.Range("B5:F8").ConditionalFormatting.ContainsText("D", "DCFCE7");
-            sheet.Range("B5:F8").ConditionalFormatting.ContainsText("R", "DBEAFE");
-            sheet.Range("B5:F8").ConditionalFormatting.ContainsText("-", "F1F5F9");
+            sheet.Range("B5:F8").Validation().List(new[] { "D", "R", "-" }, allowBlank: false);
+            sheet.Range("B5:F8").ConditionalFormat().Text(ExcelConditionalFormatType.ContainsText, "D", "DCFCE7");
+            sheet.Range("B5:F8").ConditionalFormat().Text(ExcelConditionalFormatType.ContainsText, "R", "DBEAFE");
+            sheet.Range("B5:F8").ConditionalFormat().Text(ExcelConditionalFormatType.ContainsText, "-", "F1F5F9");
             sheet.Cell(10, 1).SetValue("Desk coverage");
             for (int column = 2; column <= 6; column++) {
                 string letter = ((char)('A' + column - 1)).ToString();
@@ -38,7 +38,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             }
             sheet.Range("A12:G12").Merge(); sheet.Cell(12, 1).SetValue("Review coverage before sharing. Names and shifts are synthetic.");
             sheet.Range("A13:G13").Merge(); sheet.Cell(13, 1).SetValue("This records a rota; it does not check working-time rules or approve leave.");
-            sheet.SetGridlinesVisible(false);
+            sheet.View.ShowGridlines = false;
             for (int row = 1; row <= 16; row++) {
                 sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(row == 1 ? 34 : row == 3 ? 12 : 25)));
                 for (int column = 1; column <= 7; column++) {

@@ -148,7 +148,7 @@ namespace OfficeIMO.Excel {
 
             var diagnostics = new List<OfficeImageExportDiagnostic>();
             if (options.UsePrintArea) {
-                string? printArea = GetPrintArea();
+                string? printArea = GetPrintAreaText();
                 cancellationToken.ThrowIfCancellationRequested();
                 string source = Name + "!_xlnm.Print_Area";
                 if (string.IsNullOrWhiteSpace(printArea)) {
@@ -276,7 +276,7 @@ namespace OfficeIMO.Excel {
 
         private IReadOnlyList<OfficeImageExportDiagnostic> BuildPageLevelUnsupportedDiagnostics(bool includePrintTitlesUnsupported, bool includeHeaderFooterUnsupported) {
             var diagnostics = new List<OfficeImageExportDiagnostic>();
-            ExcelPrintTitles printTitles = GetPrintTitles();
+            ExcelPrintTitles printTitles = ReadPrintTitles();
             if (includePrintTitlesUnsupported && (printTitles.HasRows || printTitles.HasColumns)) {
                 diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
@@ -285,7 +285,7 @@ namespace OfficeIMO.Excel {
                     Name + "!_xlnm.Print_Titles"));
             }
 
-            ExcelSheetPageSetup pageSetup = GetPageSetup();
+            ExcelSheetPageSetup pageSetup = PageSetup;
             if (ExcelPageSetupGeometry.HasUnsupportedFitToPageScale(pageSetup)) {
                 diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
@@ -359,7 +359,7 @@ namespace OfficeIMO.Excel {
             }
 
             var ranges = new List<string>((int)pageCount);
-            ExcelPageOrder pageOrder = GetPageSetup().PageOrder ?? ExcelPageOrder.DownThenOver;
+            ExcelPageOrder pageOrder = PageSetup.PageOrder ?? ExcelPageOrder.DownThenOver;
             if (pageOrder == ExcelPageOrder.OverThenDown) {
                 foreach (PageBreakSegment row in rowSegments) {
                     foreach (PageBreakSegment column in columnSegments) {

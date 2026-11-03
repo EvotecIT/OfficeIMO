@@ -25,12 +25,12 @@ namespace OfficeIMO.Tests {
                         }
                     }
 
-                    sheet.AddConditionalRule("A2:A5", ExcelConditionalFormattingOperator.NotBetween, "2", "5");
-                    sheet.AddConditionalRule("B2:B5", ExcelConditionalFormattingOperator.Equal, "8");
-                    sheet.AddConditionalRule("C2:C5", ExcelConditionalFormattingOperator.NotEqual, "9");
-                    sheet.AddConditionalRule("D2:D5", ExcelConditionalFormattingOperator.LessThan, "20");
-                    sheet.AddConditionalRule("E2:E5", ExcelConditionalFormattingOperator.GreaterThanOrEqual, "15");
-                    sheet.AddConditionalRule("F2:F3 H2:H3", ExcelConditionalFormattingOperator.LessThanOrEqual, "30");
+                    sheet.Range("A2:A5").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.NotBetween, "2", "5");
+                    sheet.Range("B2:B5").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.Equal, "8");
+                    sheet.Range("C2:C5").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.NotEqual, "9");
+                    sheet.Range("D2:D5").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.LessThan, "20");
+                    sheet.Range("E2:E5").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThanOrEqual, "15");
+                    sheet.Range("F2:F3 H2:H3").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.LessThanOrEqual, "30");
 
                     document.Save(xlsOutputPath);
                 }
@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
                     sheet.Cell(2, 1).SetValue(5d);
                     sheet.Cell(3, 1).SetValue(10d);
 
-                    sheet.AddConditionalRule("A1:A3", ExcelConditionalFormattingOperator.GreaterThan, "3", null, stopIfTrue: true);
+                    sheet.Range("A1:A3").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "3", null, stopIfTrue: true);
 
                     document.Save(xlsOutputPath);
                 }
@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("SingleCf");
                     sheet.Cell(1, 1).SetValue(3d);
-                    sheet.AddConditionalRule("A1", ExcelConditionalFormattingOperator.GreaterThan, "1");
+                    sheet.Range("A1").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "1");
 
                     document.Save(xlsOutputPath);
                 }
@@ -185,9 +185,9 @@ namespace OfficeIMO.Tests {
                     sheet.Cell(1, 3).SetValue("#N/A");
                     sheet.Cell(2, 3).SetValue("Ok");
 
-                    sheet.AddConditionalTextRule("A1:A3", ExcelConditionalFormatType.ContainsText, "Ready");
-                    sheet.AddConditionalBlanksRule("B1:B3");
-                    sheet.AddConditionalErrorsRule("C1:C3", containsErrors: false);
+                    sheet.Range("A1:A3").ConditionalFormat().Text(ExcelConditionalFormatType.ContainsText, "Ready");
+                    sheet.Range("B1:B3").ConditionalFormat().Blanks();
+                    sheet.Range("C1:C3").ConditionalFormat().Errors(containsErrors: false);
 
                     document.Save(xlsOutputPath);
                 }
@@ -350,7 +350,7 @@ namespace OfficeIMO.Tests {
                 string longLiteral = "\"" + new string('A', 255) + "\"";
                 string formula = string.Join("&", Enumerable.Repeat(longLiteral, 260));
 
-                sheet.AddConditionalFormulaRule("A1:A1", "A1<>\"\"");
+                sheet.Range("A1:A1").ConditionalFormat().Formula("A1<>\"\"");
                 OpenXmlConditionalFormattingRule rule = sheet.WorksheetPart.Worksheet!
                     .Elements<OpenXmlConditionalFormatting>()
                     .Last()
@@ -381,14 +381,14 @@ namespace OfficeIMO.Tests {
                         sheet.Cell(row, 8).SetValue(row * 10);
                     }
 
-                    sheet.AddConditionalDuplicateValuesRule("A1:A5");
-                    sheet.AddConditionalUniqueValuesRule("B1:B5");
-                    sheet.AddConditionalAboveAverageRule("C1:C5");
-                    sheet.AddConditionalAboveAverageRule("D1:D5", aboveAverage: false, equalAverage: true, standardDeviation: 1);
-                    sheet.AddConditionalTopBottomRule("E1:E5", rank: 2);
-                    sheet.AddConditionalTopBottomRule("F1:F5", rank: 2, bottom: true);
-                    sheet.AddConditionalTopBottomRule("G1:G5", rank: 40, percent: true);
-                    sheet.AddConditionalTopBottomRule("H1:H5", rank: 40, bottom: true, percent: true);
+                    sheet.Range("A1:A5").ConditionalFormat().DuplicateValues();
+                    sheet.Range("B1:B5").ConditionalFormat().UniqueValues();
+                    sheet.Range("C1:C5").ConditionalFormat().AboveAverage();
+                    sheet.Range("D1:D5").ConditionalFormat().AboveAverage(aboveAverage: false, equalAverage: true, standardDeviation: 1);
+                    sheet.Range("E1:E5").ConditionalFormat().TopBottom(rank: 2);
+                    sheet.Range("F1:F5").ConditionalFormat().TopBottom(rank: 2, bottom: true);
+                    sheet.Range("G1:G5").ConditionalFormat().TopBottom(rank: 40, percent: true);
+                    sheet.Range("H1:H5").ConditionalFormat().TopBottom(rank: 40, bottom: true, percent: true);
 
                     document.Save(xlsOutputPath);
                 }
@@ -442,7 +442,7 @@ namespace OfficeIMO.Tests {
                     secondRegion.Cell(2, 1).SetValue(4d);
 
                     document.SetNamedRange("Threshold", "'Input'!$A$1", save: false);
-                    input.AddConditionalFormulaRule("B1:B2", "SUM(Threshold,'Region 1:Region 2'!$A$1:$A$2)>0");
+                    input.Range("B1:B2").ConditionalFormat().Formula("SUM(Threshold,'Region 1:Region 2'!$A$1:$A$2)>0");
 
                     document.Save(xlsOutputPath);
                 }
@@ -476,7 +476,7 @@ namespace OfficeIMO.Tests {
                     ExcelSheet sheet = document.AddSheet("CfTime");
                     sheet.Cell(1, 1).SetValue(new DateTime(2026, 6, 27));
                     sheet.Cell(2, 1).SetValue(new DateTime(2026, 6, 26));
-                    sheet.AddConditionalTimePeriodRule("A1:A2", timePeriod);
+                    sheet.Range("A1:A2").ConditionalFormat().TimePeriod(timePeriod);
 
                     document.Save(xlsOutputPath);
                 }

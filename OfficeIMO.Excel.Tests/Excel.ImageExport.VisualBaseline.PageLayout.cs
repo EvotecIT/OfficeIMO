@@ -126,11 +126,12 @@ namespace OfficeIMO.Tests {
                 }
             }
 
-            document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null, save: false);
-            sheet.SetOrientation(OfficePageOrientation.Landscape);
-            sheet.SetMargins(OfficeLength.Inches(0.35D), OfficeLength.Inches(0.35D), OfficeLength.Inches(0.35D), OfficeLength.Inches(0.35D));
-            sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0, paperSize: ExcelPaperSize.Letter);
-            sheet.SetHeaderFooter(headerCenter: "&BPage &P / &N - &A", footerRight: "&IReviewed");
+            sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1, firstColumn: null, lastColumn: null);
+            sheet.PageSetup.Orientation = OfficePageOrientation.Landscape;
+            sheet.PageSetup.SetMargins(OfficeLength.Inches(0.35D), OfficeLength.Inches(0.35D), OfficeLength.Inches(0.35D), OfficeLength.Inches(0.35D));
+            sheet.PageSetup.FitToWidth = 1; sheet.PageSetup.FitToHeight = 0; sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
+            sheet.PageSetup.Header.Center.Text = "&BPage &P / &N - &A";
+            sheet.PageSetup.Footer.Right.Text = "&IReviewed";
             sheet.AddManualRowPageBreak(2, save: false);
             return new ExcelBaselineFixture(document, sheet);
         }
@@ -143,7 +144,7 @@ namespace OfficeIMO.Tests {
             sheet.Range("A" + row.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":D" + row.ToString(System.Globalization.CultureInfo.InvariantCulture))
                 .SetFillColor(row == 2 ? "F8FAFC" : "FFFFFF");
             sheet.Cell(row, 3).SetFillColor(statusFill).SetFontColor(statusText).SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
-            sheet.Cell(row, 4).Percent(0).SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
+            sheet.Cell(row, 4).SetNumberFormat("0%").SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
             sheet.Cell(row, 4).SetHorizontalAlignment(ExcelHorizontalAlignment.Right);
         }
 

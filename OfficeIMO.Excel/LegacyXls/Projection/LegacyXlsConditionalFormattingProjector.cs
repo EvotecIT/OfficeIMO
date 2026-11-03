@@ -16,17 +16,18 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                         return;
                     }
 
-                    sheet.AddConditionalRule(
+                    sheet.CreateConditionalCellIsRule(
                         range,
                         ToOperator(conditionalFormatting.Operator.Value).ToOfficeEnum(),
                         conditionalFormatting.Formula1,
                         conditionalFormatting.Formula2,
+                        fillColor: null,
                         conditionalFormatting.StopIfTrue,
                         conditionalFormatting.Priority);
                     ApplyDifferentialFormatId(sheet, differentialFormatId, range, conditionalFormatting.Priority, ConditionalFormatValues.CellIs);
                     break;
                 case LegacyXlsConditionalFormattingType.Formula:
-                    sheet.AddConditionalFormulaRule(range, conditionalFormatting.Formula1, conditionalFormatting.StopIfTrue, conditionalFormatting.Priority);
+                    sheet.CreateConditionalFormulaRule(range, conditionalFormatting.Formula1, fillColor: null, conditionalFormatting.StopIfTrue, conditionalFormatting.Priority);
                     ApplyDifferentialFormatId(sheet, differentialFormatId, range, conditionalFormatting.Priority, ConditionalFormatValues.Expression);
                     break;
             }

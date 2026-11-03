@@ -5,8 +5,8 @@ namespace OfficeIMO.Excel {
         /// References may include an absolute cell address and a quoted worksheet prefix.
         /// Returns an empty list when no print area is configured.
         /// </summary>
-        public IReadOnlyList<string> GetPrintAreas() {
-            string? text = GetPrintArea();
+        internal IReadOnlyList<string> GetPrintAreaParts() {
+            string? text = GetPrintAreaText();
             return string.IsNullOrWhiteSpace(text)
                 ? Array.Empty<string>()
                 : SplitDefinedNameParts(text!).ToArray();

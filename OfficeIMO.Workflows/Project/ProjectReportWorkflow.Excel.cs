@@ -56,7 +56,7 @@ public static partial class ProjectReportWorkflow {
     private static void FinishSheet(ExcelSheet sheet, CancellationToken token, int rows, int columns = 4, int repeatedColumns = 0) {
         sheet.UsedRange.SetFontName("Arial").SetFontSize(global::OfficeIMO.OfficeLength.Points(12)).SetFontColor("183047");
         sheet.Range("A1:" + sheet.Cell(1, columns).Address).SetBold().SetFillColor("183047").SetFontColor("FFFFFF");
-        sheet.Freeze(1); sheet.AutoFitColumns(ct: token);
+        sheet.View.Freeze(1); sheet.AutoFitColumns(ct: token);
         for (int c = 1; c <= columns; c++) {
             token.ThrowIfCancellationRequested();
             sheet.TryGetCellText(1, c, out string? header);
@@ -71,12 +71,12 @@ public static partial class ProjectReportWorkflow {
         if (rows > 1) sheet.SetRowsLayout(Enumerable.Range(2, rows - 1).Where(row => row % 2 == 0),
             new ExcelRowLayoutOptions { BackgroundColor = "F4F7FA", FirstColumn = 1, LastColumn = columns });
         sheet.AutoFitRows(ct: token);
-        sheet.ApplyPrintLayout(new ExcelPrintLayoutOptions {
+        sheet.PageSetup.ApplyLayout(new ExcelPrintLayoutOptions {
             Preset = columns > 8 ? ExcelPrintLayoutPreset.Worksheet : ExcelPrintLayoutPreset.Report, PaperSize = ExcelPaperSize.A4,
             Orientation = columns <= 5 ? OfficePageOrientation.Portrait : OfficePageOrientation.Landscape,
             Margins = ExcelMarginPreset.Narrow, RepeatFirstRow = 1, RepeatLastRow = 1,
             RepeatFirstColumn = repeatedColumns > 0 ? 1 : null, RepeatLastColumn = repeatedColumns > 0 ? repeatedColumns : null
         });
-        sheet.SetPrintOptions(horizontalCentered: true);
+        sheet.PageSetup.HorizontalCentered = true;
     }
 }

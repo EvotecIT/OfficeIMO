@@ -90,12 +90,12 @@ namespace OfficeIMO.Tests
                 {
                     int row = index + 2;
                     source.Cell(row, 1).SetValue(new DateTime(index < 12 ? 2024 : 2025, index % 12 + 1, 1));
-                    source.Cell(row, 1).DateTime("yyyy-mm-dd");
+                    source.Cell(row, 1).SetNumberFormat("yyyy-mm-dd");
                     source.Cell(row, 2).SetValue((double)(index + 1));
                 }
 
                 source.Cell(26, 1).SetValue(new DateTime(2025, 1, 15, 8, 30, 0));
-                source.Cell(26, 1).DateTime("yyyy-mm-dd hh:mm");
+                source.Cell(26, 1).SetNumberFormat("yyyy-mm-dd hh:mm");
                 source.Cell(26, 2).SetValue(100d);
                 source.Cell(27, 2).SetValue(1000d);
                 JsonElement month = oracleCase.GetProperty("month");

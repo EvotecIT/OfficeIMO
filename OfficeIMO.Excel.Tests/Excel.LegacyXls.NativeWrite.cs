@@ -284,13 +284,14 @@ namespace OfficeIMO.Tests {
                     sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(21d)));
                     sheet.SetRowOutline(2, 1, collapsed: true);
                     sheet.SetRowHidden(3, true);
-                    sheet.Freeze(2, 1);
-                    sheet.SetGridlinesVisible(false);
-                    sheet.SetRowColumnHeadingsVisible(false);
-                    sheet.SetZeroValuesVisible(false);
-                    sheet.SetRightToLeft(true);
-                    sheet.SetZoomScale(125);
-                    sheet.SetViewOptions(zoomScaleNormal: 90, view: ExcelWorksheetViewKind.PageBreakPreview);
+                    sheet.View.Freeze(2, 1);
+                    sheet.View.ShowGridlines = false;
+                    sheet.View.ShowRowColumnHeadings = false;
+                    sheet.View.ShowZeros = false;
+                    sheet.View.RightToLeft = true;
+                    sheet.View.ZoomScale = 125;
+                    sheet.View.ZoomScaleNormal = 90;
+                    sheet.View.Kind = ExcelWorksheetViewKind.PageBreakPreview;
                     DocumentFormat.OpenXml.Spreadsheet.SheetView sheetView = sheet.WorksheetPart.Worksheet
                         .GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetViews>()!
                         .GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetView>()!;
@@ -335,17 +336,17 @@ namespace OfficeIMO.Tests {
                 ExcelRowInfo hiddenRow = Assert.Single(loadedSheet.GetRowDefinitions(), row => row.Index == 3);
                 Assert.True(hiddenRow.Hidden);
 
-                ExcelWorksheetViewInfo view = loadedSheet.GetViewInfo();
+                ExcelWorksheetViewInfo view = loadedSheet.View.Inspect();
                 Assert.True(view.HasPane);
                 Assert.Equal(2, view.FrozenRowCount);
                 Assert.Equal(1, view.FrozenColumnCount);
                 Assert.False(view.ShowGridlines);
-                Assert.False(loadedSheet.RowColumnHeadingsVisible);
-                Assert.False(loadedSheet.ZeroValuesVisible);
+                Assert.False(loadedSheet.View.ShowRowColumnHeadings);
+                Assert.False(loadedSheet.View.ShowZeros);
                 Assert.True(view.RightToLeft);
                 Assert.Equal(125U, view.ZoomScale);
                 Assert.Equal(90U, view.ZoomScaleNormal);
-                Assert.Equal(125U, loadedSheet.GetZoomScale());
+                Assert.Equal(125U, loadedSheet.View.ZoomScale);
                 Assert.Equal("pageBreakPreview", view.View);
                 DocumentFormat.OpenXml.Spreadsheet.SheetView loadedSheetView = loadedSheet.WorksheetPart.Worksheet
                     .GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetViews>()!
@@ -375,7 +376,9 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("PageLayout");
                     sheet.Cell(1, 1).SetValue("Page layout view");
-                    sheet.SetViewOptions(zoomScale: 115, zoomScaleNormal: 100, view: ExcelWorksheetViewKind.PageLayout);
+                    sheet.View.ZoomScale = 115;
+                    sheet.View.ZoomScaleNormal = 100;
+                    sheet.View.Kind = ExcelWorksheetViewKind.PageLayout;
                     document.Save(xlsOutputPath);
                 }
 
@@ -392,13 +395,13 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(4, pageLayoutMetadata.BodyByteCount);
 
                 ExcelSheet loadedSheet = result.Document.Sheets.Single();
-                ExcelWorksheetViewInfo view = loadedSheet.GetViewInfo();
+                ExcelWorksheetViewInfo view = loadedSheet.View.Inspect();
                 Assert.Equal("pageLayout", view.View);
                 Assert.Equal(115U, view.ZoomScale);
                 Assert.Equal(100U, view.ZoomScaleNormal);
 
                 using ExcelDocument normalLoaded = ExcelDocument.Load(xlsOutputPath);
-                ExcelWorksheetViewInfo normalView = normalLoaded.Sheets.Single().GetViewInfo();
+                ExcelWorksheetViewInfo normalView = normalLoaded.Sheets.Single().View.Inspect();
                 Assert.Equal("pageLayout", normalView.View);
                 Assert.Equal(115U, normalView.ZoomScale);
             } finally {
@@ -793,11 +796,16 @@ namespace OfficeIMO.Tests {
                     ExcelSheet sheet = document.AddSheet("Print");
                     sheet.Cell(1, 1).SetValue("Printable sheet");
                     sheet.Cell(20, 5).SetValue(42d);
-                    sheet.SetMargins(OfficeLength.Inches(0.25d), OfficeLength.Inches(0.35d), OfficeLength.Inches(0.45d), OfficeLength.Inches(0.55d), OfficeLength.Inches(0.2d), OfficeLength.Inches(0.25d));
-                    sheet.SetOrientation(OfficePageOrientation.Landscape);
-                    sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U, scale: 90U, pageOrder: ExcelPageOrder.OverThenDown);
-                    sheet.SetPrintOptions(printGridLines: true, printHeadings: true, horizontalCentered: true, verticalCentered: false);
-                    sheet.SetHeaderFooter("Left header", "Page &P", "Right header", "Left footer", "Generated", "Page &P of &N");
+                    sheet.PageSetup.SetMargins(OfficeLength.Inches(0.25d), OfficeLength.Inches(0.35d), OfficeLength.Inches(0.45d), OfficeLength.Inches(0.55d), OfficeLength.Inches(0.2d), OfficeLength.Inches(0.25d));
+                    sheet.PageSetup.Orientation = OfficePageOrientation.Landscape;
+                    sheet.PageSetup.FitToWidth = 1U; sheet.PageSetup.FitToHeight = 0U; sheet.PageSetup.Scale = 90U; sheet.PageSetup.PageOrder = ExcelPageOrder.OverThenDown;
+                    sheet.PageSetup.PrintGridLines = true; sheet.PageSetup.PrintHeadings = true; sheet.PageSetup.HorizontalCentered = true; sheet.PageSetup.VerticalCentered = false;
+                    sheet.PageSetup.Header.Left.Text = "Left header";
+                    sheet.PageSetup.Header.Center.Text = "Page &P";
+                    sheet.PageSetup.Header.Right.Text = "Right header";
+                    sheet.PageSetup.Footer.Left.Text = "Left footer";
+                    sheet.PageSetup.Footer.Center.Text = "Generated";
+                    sheet.PageSetup.Footer.Right.Text = "Page &P of &N";
                     sheet.AddManualRowPageBreak(10);
                     sheet.AddManualColumnPageBreak(3);
 
@@ -809,7 +817,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(loaded.SourceFormat == ExcelFileFormat.Xls);
 
-                ExcelSheetPageSetup pageSetup = loadedSheet.GetPageSetup();
+                ExcelSheetPageSetup pageSetup = loadedSheet.PageSetup;
                 Assert.Equal(OfficePageOrientation.Landscape, pageSetup.Orientation);
                 Assert.Equal(1U, pageSetup.FitToWidth);
                 Assert.Equal(0U, pageSetup.FitToHeight);
@@ -823,7 +831,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(0.2d, pageSetup.Margins.Header.ToInches(), 6);
                 Assert.Equal(0.25d, pageSetup.Margins.Footer.ToInches(), 6);
 
-                ExcelSheetPrintOptions printOptions = loadedSheet.GetPrintOptions();
+                ExcelSheetPageSetup printOptions = loadedSheet.PageSetup;
                 Assert.True(printOptions.PrintGridLines);
                 Assert.True(printOptions.PrintHeadings);
                 Assert.True(printOptions.HorizontalCentered);
@@ -981,13 +989,14 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Variants");
                     sheet.Cell(1, 1).SetValue("Header/footer variants");
-                    sheet.SetHeaderFooter(
-                        headerCenter: "Odd header",
-                        footerRight: "Odd footer",
-                        alignWithMargins: false,
-                        scaleWithDoc: false);
-                    sheet.SetFirstPageHeaderFooter(headerLeft: "First left", footerCenter: "First footer");
-                    sheet.SetEvenPageHeaderFooter(headerRight: "Even right", footerLeft: "Even footer");
+                    sheet.PageSetup.Header.Center.Text = "Odd header";
+                    sheet.PageSetup.Footer.Right.Text = "Odd footer";
+                    sheet.PageSetup.AlignHeaderFooterWithMargins = false;
+                    sheet.PageSetup.ScaleHeaderFooterWithDocument = false;
+                    sheet.PageSetup.FirstPageHeader.Left.Text = "First left";
+                    sheet.PageSetup.FirstPageFooter.Center.Text = "First footer";
+                    sheet.PageSetup.EvenPageHeader.Right.Text = "Even right";
+                    sheet.PageSetup.EvenPageFooter.Left.Text = "Even footer";
 
                     document.Save(xlsOutputPath);
                 }
@@ -3193,9 +3202,9 @@ namespace OfficeIMO.Tests {
                     sheet.Cell(4, 1).SetValue("Closed");
                     sheet.Cell(4, 2).SetValue(25d);
                     sheet.Cell(4, 3).SetValue("Done");
-                    sheet.AutoFilterAdd("A1:C4");
-                    sheet.AutoFilterByHeadersEquals(("Status", new[] { "Open", "Pending" }));
-                    sheet.AutoFilterByHeaderBetween("Amount", 10d, 20d);
+                    sheet.Range("A1:C4").AutoFilter();
+                    sheet.Range("A1:C4").AutoFilter().Column("Status").Equals(new[] { "Open", "Pending" });
+                    sheet.Range("A1:C4").AutoFilter().Column("Amount").Between(10d, 20d);
 
                     document.Save(xlsOutputPath);
                 }
@@ -3259,7 +3268,7 @@ namespace OfficeIMO.Tests {
                     sheet.Cell(1, 4).SetValue("Discount");
                     sheet.Cell(1, 5).SetValue("Start");
 
-                    sheet.ValidationList("B2:B5", new[] { "Open", "Closed", "Pending" });
+                    sheet.Range("B2:B5").Validation().List(new[] { "Open", "Closed", "Pending" });
                     sheet.SetDataValidationMessages("B2:B5", new ExcelDataValidationMessageOptions {
                         PromptTitle = "Status",
                         Prompt = "Pick a status.",
@@ -3268,9 +3277,9 @@ namespace OfficeIMO.Tests {
                         ErrorStyle = ExcelDataValidationErrorStyle.Warning,
                         SuppressDropDown = true
                     });
-                    sheet.ValidationWholeNumber("C2:C5", ExcelDataValidationOperator.Between, 1, 10, errorTitle: "Invalid quantity", errorMessage: "Use 1-10.");
-                    sheet.ValidationDecimal("D2:D5", ExcelDataValidationOperator.GreaterThan, 5.5d, allowBlank: false, errorTitle: "Invalid discount", errorMessage: "Use a value greater than 5.5.");
-                    sheet.ValidationTime("E2:E5", ExcelDataValidationOperator.Equal, TimeSpan.FromHours(9), allowBlank: true, errorTitle: "Invalid time", errorMessage: "Use 09:00.");
+                    sheet.Range("C2:C5").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 10, errorTitle: "Invalid quantity", errorMessage: "Use 1-10.");
+                    sheet.Range("D2:D5").Validation().Decimal(ExcelDataValidationOperator.GreaterThan, 5.5d, allowBlank: false, errorTitle: "Invalid discount", errorMessage: "Use a value greater than 5.5.");
+                    sheet.Range("E2:E5").Validation().Time(ExcelDataValidationOperator.Equal, TimeSpan.FromHours(9), allowBlank: true, errorTitle: "Invalid time", errorMessage: "Use 09:00.");
 
                     document.Save(xlsOutputPath);
                 }
@@ -3348,7 +3357,7 @@ namespace OfficeIMO.Tests {
                     ExcelSheet sheet = document.AddSheet("Validation");
                     sheet.Cell(1, 1).SetValue("Header");
                     sheet.Cell(2, 1).SetValue(1d);
-                    sheet.ValidationCustomFormula("A2:A5", "A2>0");
+                    sheet.Range("A2:A5").Validation().CustomFormula("A2>0");
 
                     document.Save(xlsOutputPath);
                 }
@@ -3386,9 +3395,9 @@ namespace OfficeIMO.Tests {
                     sheet.Cell(2, 4).SetValue(1d);
                     sheet.Cell(3, 4).SetValue(-1d);
 
-                    sheet.AddConditionalRule("B2:B5", ExcelConditionalFormattingOperator.GreaterThan, "10");
-                    sheet.AddConditionalRule("C2:C5", ExcelConditionalFormattingOperator.Between, "1", "5");
-                    sheet.AddConditionalFormulaRule("D2:D5", "D2>0");
+                    sheet.Range("B2:B5").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "10");
+                    sheet.Range("C2:C5").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.Between, "1", "5");
+                    sheet.Range("D2:D5").ConditionalFormat().Formula("D2>0");
 
                     document.Save(xlsOutputPath);
                 }
@@ -3448,7 +3457,7 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Conditions");
                     sheet.Cell(2, 1).SetValue(1d);
-                    sheet.AddConditionalFormulaRule("A2:A5", "A2>0");
+                    sheet.Range("A2:A5").ConditionalFormat().Formula("A2>0");
 
                     document.Save(xlsOutputPath);
                 }
@@ -3611,8 +3620,8 @@ namespace OfficeIMO.Tests {
 
                     document.SetNamedRange("SalesBlock", "'Names'!A1:B2", save: false);
                     document.SetNamedRange("LocalCell", "C3", scoped, save: false, hidden: true);
-                    document.SetPrintArea(names, "A1:C5", save: false);
-                    document.SetPrintTitles(names, firstRow: 1, lastRow: 2, firstCol: 1, lastCol: 2, save: false);
+                    names.PageSetup.PrintArea = "A1:C5";
+                    names.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 2, firstColumn: 1, lastColumn: 2);
 
                     document.Save(xlsOutputPath);
                 }
@@ -4086,15 +4095,15 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(2, 1).SetValue("Alpha");
                 sheet.Cell(3, 1).SetValue("Beta");
                 sheet.Cell(4, 1).SetValue("Gamma");
-                sheet.AddAutoFilter("A1:A2");
-                sheet.AutoFilterByHeaderEquals("Name", new[] { "Alpha", "Beta", "Gamma" });
+                sheet.Range("A1:A2").AutoFilter();
+                sheet.Range("A1:A2").AutoFilter().Column("Name").Equals(new[] { "Alpha", "Beta", "Gamma" });
             });
 
             AssertNativeXlsSaveNotSupported("conditional formatting visual or extension payloads", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue(1d);
                 sheet.Cell(2, 1).SetValue(2d);
                 sheet.Cell(3, 1).SetValue(3d);
-                sheet.AddConditionalColorScale("A1:A3", "FFFF0000", "FF00FF00");
+                sheet.Range("A1:A3").ConditionalFormat().ColorScale("FFFF0000", "FF00FF00");
             });
 
             AssertNativeXlsSaveNotSupported("unsupported external hyperlink targets", (document, sheet) => {

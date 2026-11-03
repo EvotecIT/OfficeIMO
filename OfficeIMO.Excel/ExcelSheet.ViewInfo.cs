@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Reads worksheet view metadata such as frozen panes, gridline visibility, zoom, and direction.
         /// </summary>
-        public ExcelWorksheetViewInfo GetViewInfo() {
+        internal ExcelWorksheetViewInfo ReadViewInfo() {
             SheetView? sheetView = WorksheetRoot
                 .GetFirstChild<SheetViews>()?
                 .Elements<SheetView>()

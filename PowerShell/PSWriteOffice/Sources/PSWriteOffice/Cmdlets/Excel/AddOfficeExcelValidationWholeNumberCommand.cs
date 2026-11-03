@@ -86,7 +86,7 @@ public sealed class AddOfficeExcelValidationWholeNumberCommand : PSCmdlet
     {
         var sheet = ResolveSheet();
         string targetRange = ExcelTargetRangeResolver.Resolve(sheet, Range, HeaderName, TableName, HeaderRow, IncludeHeader.IsPresent);
-        sheet.ValidationWholeNumber(targetRange, Operator, Formula1, Formula2, AllowBlank, ErrorTitle, ErrorMessage);
+        sheet.Range(targetRange).Validation().WholeNumber(Operator, Formula1, Formula2, AllowBlank, ErrorTitle, ErrorMessage);
 
         if (PassThru.IsPresent)
         {

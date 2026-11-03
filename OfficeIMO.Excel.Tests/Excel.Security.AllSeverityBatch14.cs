@@ -51,7 +51,7 @@ public sealed class ExcelAllSeverityBatch14SecurityTests {
             using ExcelDocument document = ExcelDocument.Create(workbookPath);
             ExcelSheet sheet = document.AddSheet("Report");
             sheet.Cell(1, 1).SetValue("body");
-            sheet.SetHeaderFooter(headerLeft: "Path &[Path] &Z");
+            sheet.PageSetup.Header.Left.Text = "Path &[Path] &Z";
 
             string defaultSvg = Encoding.UTF8.GetString(Assert.Single(sheet.ExportImages(
                 OfficeImageExportFormat.Svg,

@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests
                     new ExcelRichTextRun(" plain"),
                 });
                 sheet.Cell(2, 1).SetValue(12);
-                sheet.AddConditionalRule("A2:A5", ExcelConditionalFormattingOperator.GreaterThan, "10", fillColor: "FFC6EFCE");
+                sheet.Range("A2:A5").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "10", fillColor: "FFC6EFCE");
                 sheet.GroupRows(2, 5, outlineLevel: 1);
 
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests
                 using (var document = ExcelDocument.Create(path)) {
                     ExcelSheet sheet = document.AddSheet("Data");
                     sheet.Cell(2, 1).SetValue(12);
-                    sheet.AddConditionalRule("A2:A5", ExcelConditionalFormattingOperator.GreaterThan, "10", fillColor: "FFC6EFCE");
+                    sheet.Range("A2:A5").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "10", fillColor: "FFC6EFCE");
                     document.Save();
                 }
 

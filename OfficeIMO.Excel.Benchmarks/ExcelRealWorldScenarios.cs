@@ -234,7 +234,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Data");
             ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
-            sheet.Freeze(topRows: 1, leftCols: 1);
+            sheet.View.Freeze(topRows: 1, leftColumns: 1);
             document.Save(stream);
         }
 
@@ -280,7 +280,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Data");
             ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
-            sheet.AddAutoFilter(BuildSalesRange(rows.Count));
+            sheet.Range(BuildSalesRange(rows.Count)).AutoFilter();
             document.Save(stream);
         }
 
@@ -650,8 +650,8 @@ internal static partial class ExcelLibraryComparisonRunner {
     }
 
     private static void ApplyOfficeImoNavigation(ExcelSheet sheet, string range) {
-        sheet.Freeze(topRows: 1, leftCols: 1);
-        sheet.AddAutoFilter(range);
+        sheet.View.Freeze(topRows: 1, leftColumns: 1);
+        sheet.Range(range).AutoFilter();
     }
 
     private static void ApplyEpPlusNavigation(ExcelWorksheet worksheet, int rowCount, int columnCount) {
@@ -666,10 +666,10 @@ internal static partial class ExcelLibraryComparisonRunner {
         string amountRange = BuildColumnRange(amountColumn, 2, lastRow);
         string unitsRange = BuildColumnRange(unitsColumn, 2, lastRow);
 
-        sheet.AddConditionalRule(amountRange, ExcelConditionalFormattingOperator.GreaterThan, "3000");
-        sheet.AddConditionalRule(unitsRange, ExcelConditionalFormattingOperator.LessThan, "5");
-        sheet.AddConditionalColorScale(amountRange, OfficeColor.LightPink, OfficeColor.LightGreen);
-        sheet.AddConditionalDataBar(unitsRange, OfficeColor.SteelBlue);
+        sheet.Range(amountRange).ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "3000");
+        sheet.Range(unitsRange).ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.LessThan, "5");
+        sheet.Range(amountRange).ConditionalFormat().ColorScale(OfficeColor.LightPink, OfficeColor.LightGreen);
+        sheet.Range(unitsRange).ConditionalFormat().DataBar(OfficeColor.SteelBlue);
     }
 
     private static void ApplyEpPlusVariantConditionalFormatting(ExcelWorksheet worksheet, int rowCount, IReadOnlyList<RealWorldColumnSpec> columns) {
@@ -691,7 +691,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static void ApplyOfficeImoVariantDataValidation(ExcelSheet sheet, int rowCount, IReadOnlyList<RealWorldColumnSpec> columns) {
         int unitsColumn = GetColumnIndex(columns, "Units");
         int lastRow = rowCount + 1;
-        sheet.ValidationWholeNumber(BuildColumnRange(unitsColumn, 2, lastRow), ExcelDataValidationOperator.Between, 1, 24);
+        sheet.Range(BuildColumnRange(unitsColumn, 2, lastRow)).Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 24);
     }
 
     private static void ApplyEpPlusVariantDataValidation(ExcelWorksheet worksheet, int rowCount, IReadOnlyList<RealWorldColumnSpec> columns) {
@@ -806,21 +806,21 @@ internal static partial class ExcelLibraryComparisonRunner {
     }
 
     private static void ApplyOfficeImoNavigation(ExcelSheet sheet, int rowCount) {
-        sheet.Freeze(topRows: 1, leftCols: 1);
-        sheet.AddAutoFilter(BuildSalesRange(rowCount));
+        sheet.View.Freeze(topRows: 1, leftColumns: 1);
+        sheet.Range(BuildSalesRange(rowCount)).AutoFilter();
     }
 
     private static void ApplyOfficeImoConditionalFormatting(ExcelSheet sheet, int rowCount) {
         int lastRow = rowCount + 1;
-        sheet.AddConditionalRule($"E2:E{lastRow.ToString(CultureInfo.InvariantCulture)}", ExcelConditionalFormattingOperator.GreaterThan, "3000");
-        sheet.AddConditionalRule($"F2:F{lastRow.ToString(CultureInfo.InvariantCulture)}", ExcelConditionalFormattingOperator.LessThan, "5");
-        sheet.AddConditionalColorScale($"E2:E{lastRow.ToString(CultureInfo.InvariantCulture)}", OfficeColor.LightPink, OfficeColor.LightGreen);
-        sheet.AddConditionalDataBar($"F2:F{lastRow.ToString(CultureInfo.InvariantCulture)}", OfficeColor.SteelBlue);
+        sheet.Range($"E2:E{lastRow.ToString(CultureInfo.InvariantCulture)}").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "3000");
+        sheet.Range($"F2:F{lastRow.ToString(CultureInfo.InvariantCulture)}").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.LessThan, "5");
+        sheet.Range($"E2:E{lastRow.ToString(CultureInfo.InvariantCulture)}").ConditionalFormat().ColorScale(OfficeColor.LightPink, OfficeColor.LightGreen);
+        sheet.Range($"F2:F{lastRow.ToString(CultureInfo.InvariantCulture)}").ConditionalFormat().DataBar(OfficeColor.SteelBlue);
     }
 
     private static void ApplyOfficeImoDataValidation(ExcelSheet sheet, int rowCount) {
         int lastRow = rowCount + 1;
-        sheet.ValidationWholeNumber($"F2:F{lastRow.ToString(CultureInfo.InvariantCulture)}", ExcelDataValidationOperator.Between, 1, 24);
+        sheet.Range($"F2:F{lastRow.ToString(CultureInfo.InvariantCulture)}").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 24);
     }
 
     private static void AddOfficeImoPivotTable(ExcelSheet sheet, int rowCount) {

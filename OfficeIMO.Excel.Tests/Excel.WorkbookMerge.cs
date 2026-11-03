@@ -103,7 +103,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet summary = source.AddSheet("Summary");
                 summary.Cell(1, 1).SetFormula("Data!B2+'Imported Data'!A1+Data!TaxRate+SUM(People[Amount])+TotalWithTax+SUM(Jan:Mar!A1)+SUM('Jan 2026:Mar 2026'!A1)");
                 summary.SetInternalLink(2, 1, "Data!A1", "Go");
-                summary.ValidationCustomFormula("B2", "COUNTIF(Data!$A$1:$A$1,\">0\")>0");
+                summary.Range("B2").Validation().CustomFormula("COUNTIF(Data!$A$1:$A$1,\">0\")>0");
                 source.Save();
             }
 

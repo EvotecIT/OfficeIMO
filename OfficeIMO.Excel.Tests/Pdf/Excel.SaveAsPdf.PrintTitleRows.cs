@@ -14,9 +14,9 @@ public partial class Excel {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Report");
         for (int row = 1; row <= 8; row++) sheet.Cell(row, 1).SetValue("Row" + row.ToString("D3"));
-        document.SetPrintArea(sheet, "A1:A8");
-        document.SetPrintTitles(sheet, firstRow: 3, lastRow: 4, firstCol: null, lastCol: null);
-        sheet.SetPageSetup(pageOrder: pageOrder);
+        sheet.PageSetup.PrintArea = "A1:A8";
+        sheet.PageSetup.SetPrintTitles(firstRow: 3, lastRow: 4, firstColumn: null, lastColumn: null);
+        sheet.PageSetup.PageOrder = pageOrder;
         sheet.AddManualRowPageBreak(2); sheet.AddManualRowPageBreak(4);
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false,
@@ -38,8 +38,8 @@ public partial class Excel {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Report");
         for (int row = 1; row <= 8; row++) sheet.Cell(row, 1).SetValue("Row" + row.ToString("D3"));
-        document.SetPrintArea(sheet, "A1:B8");
-        document.SetPrintTitles(sheet, firstRow: 3, lastRow: 4, firstCol: null, lastCol: null);
+        sheet.PageSetup.PrintArea = "A1:B8";
+        sheet.PageSetup.SetPrintTitles(firstRow: 3, lastRow: 4, firstColumn: null, lastColumn: null);
         sheet.AddManualRowPageBreak(firstBreak); sheet.AddManualRowPageBreak(6);
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout,
@@ -69,9 +69,9 @@ public partial class Excel {
         for (int row = 1; row <= 26; row++) {
             sheet.Cell(row, 1).SetValue("Row" + row.ToString("D3")); sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30D)));
         }
-        document.SetPrintArea(sheet, "A1:A26");
-        document.SetPrintTitles(sheet, firstRow: 3, lastRow: 4, firstCol: null, lastCol: null);
-        if (fitPages > 0) sheet.SetPageSetup(fitToWidth: 0, fitToHeight: (uint)fitPages);
+        sheet.PageSetup.PrintArea = "A1:A26";
+        sheet.PageSetup.SetPrintTitles(firstRow: 3, lastRow: 4, firstColumn: null, lastColumn: null);
+        if (fitPages > 0) { sheet.PageSetup.FitToWidth = 0; sheet.PageSetup.FitToHeight = (uint)fitPages; }
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0,
             UseWorksheetPrintTitleRows = repeatTitles,

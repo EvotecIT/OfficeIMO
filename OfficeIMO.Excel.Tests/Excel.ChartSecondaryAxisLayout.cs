@@ -100,7 +100,7 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
         sheet.Cell(1, 1).SetValue("Region"); sheet.Cell(1, 2).SetValue("Count"); sheet.Cell(1, 3).SetValue("Ratio");
         sheet.Cell(2, 1).SetValue("North"); sheet.Cell(2, 2).SetValue(100); sheet.Cell(2, 3).SetValue(.5);
         sheet.Cell(3, 1).SetValue("South"); sheet.Cell(3, 2).SetValue(200); sheet.Cell(3, 3).SetValue(.75);
-        sheet.Cell(2, 3).Percent(0); sheet.Cell(3, 3).Percent(0);
+        sheet.Cell(2, 3).SetNumberFormat("0%"); sheet.Cell(3, 3).SetNumberFormat("0%");
         var chart = sheet.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "North", "South" }, new[] {
                 new OfficeSeries("Count", new[] { 100d, 200d }),
                 new OfficeSeries("Ratio", new[] { .5, .75 }, null, null, null, true,

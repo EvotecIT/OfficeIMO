@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 }
             }
 
-            sheet.AddAutoFilter(range, equalityFilters.Count == 0 ? null : equalityFilters);
+            sheet.AddAutoFilterCore(range, equalityFilters.Count == 0 ? null : equalityFilters);
 
             foreach (LegacyXlsAutoFilterCriteria columnCriteria in blankFilters) {
                 sheet.ApplyAutoFilterBlankCriteria(range, columnCriteria.ColumnId);
@@ -86,7 +86,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
 
             AutoFilter? autoFilter = worksheet.GetFirstChild<AutoFilter>();
             if (autoFilter == null || !string.Equals(autoFilter.Reference?.Value, range, StringComparison.OrdinalIgnoreCase)) {
-                sheet.AddAutoFilter(range);
+                sheet.AddAutoFilterCore(range);
                 worksheet = sheet.WorksheetPart.Worksheet;
                 autoFilter = worksheet?.GetFirstChild<AutoFilter>();
             }

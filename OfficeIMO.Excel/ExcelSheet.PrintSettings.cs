@@ -3,53 +3,6 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     /// <summary>
-    /// Readable worksheet page setup values relevant to print/export pipelines.
-    /// </summary>
-    public sealed class ExcelSheetPageSetup {
-        /// <summary>
-        /// Worksheet page orientation when present.
-        /// </summary>
-        public OfficePageOrientation? Orientation { get; internal set; }
-
-        /// <summary>
-        /// Worksheet print physical margins when present.
-        /// </summary>
-        public ExcelSheetPageMargins? Margins { get; internal set; }
-
-        /// <summary>
-        /// Number of pages to fit horizontally when fit-to-page mode is enabled.
-        /// An omitted dimension defaults to one; zero leaves this axis unlimited.
-        /// </summary>
-        public uint? FitToWidth { get; internal set; }
-
-        /// <summary>
-        /// Number of pages to fit vertically when fit-to-page mode is enabled.
-        /// An omitted dimension defaults to one; zero leaves this axis unlimited.
-        /// </summary>
-        public uint? FitToHeight { get; internal set; }
-
-        /// <summary>
-        /// Manual worksheet print scale percentage, when configured.
-        /// </summary>
-        public uint? Scale { get; internal set; }
-
-        /// <summary>
-        /// OpenXML worksheet paper-size code, when configured.
-        /// </summary>
-        public uint? PaperSizeCode { get; internal set; }
-
-        /// <summary>
-        /// Known worksheet paper size, when the configured code maps to a supported OfficeIMO value.
-        /// </summary>
-        public ExcelPaperSize? PaperSize { get; internal set; }
-
-        /// <summary>
-        /// Worksheet page order for multi-page print/export output, when configured.
-        /// </summary>
-        public ExcelPageOrder? PageOrder { get; internal set; }
-    }
-
-    /// <summary>
     /// Worksheet page physical margins.
     /// </summary>
     public sealed class ExcelSheetPageMargins {
@@ -70,7 +23,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Worksheet print options that are stored in the Open XML printOptions element.
     /// </summary>
-    public sealed class ExcelSheetPrintOptions {
+    internal sealed class ExcelSheetPrintOptions {
         /// <summary>Gets whether worksheet gridlines are printed, when configured.</summary>
         public bool? PrintGridLines { get; internal set; }
 
@@ -104,56 +57,9 @@ namespace OfficeIMO.Excel {
 
     public partial class ExcelSheet {
         /// <summary>
-        /// Reads worksheet page setup values used by print/export pipelines.
-        /// </summary>
-        public ExcelSheetPageSetup GetPageSetup() {
-            var result = new ExcelSheetPageSetup();
-            PageSetup? pageSetup = WorksheetRoot.GetFirstChild<PageSetup>();
-            bool fitToPage = WorksheetRoot.GetFirstChild<SheetProperties>()?
-                .GetFirstChild<PageSetupProperties>()?.FitToPage?.Value == true;
-            if (fitToPage) {
-                result.FitToWidth = pageSetup?.FitToWidth?.Value ?? 1U;
-                result.FitToHeight = pageSetup?.FitToHeight?.Value ?? 1U;
-            }
-            if (pageSetup?.Orientation?.Value == OrientationValues.Landscape) {
-                result.Orientation = OfficePageOrientation.Landscape;
-            } else if (pageSetup?.Orientation?.Value == OrientationValues.Portrait) {
-                result.Orientation = OfficePageOrientation.Portrait;
-            }
-
-            if (pageSetup != null) {
-                result.Scale = pageSetup.Scale?.Value;
-                result.PaperSizeCode = pageSetup.PaperSize?.Value;
-                if (pageSetup.PaperSize?.Value is uint paperSizeCode && Enum.IsDefined(typeof(ExcelPaperSize), paperSizeCode)) {
-                    result.PaperSize = (ExcelPaperSize)paperSizeCode;
-                }
-
-                if (pageSetup.PageOrder?.Value == PageOrderValues.OverThenDown) {
-                    result.PageOrder = ExcelPageOrder.OverThenDown;
-                } else if (pageSetup.PageOrder?.Value == PageOrderValues.DownThenOver) {
-                    result.PageOrder = ExcelPageOrder.DownThenOver;
-                }
-            }
-
-            PageMargins? margins = WorksheetRoot.GetFirstChild<PageMargins>();
-            if (margins != null) {
-                result.Margins = new ExcelSheetPageMargins {
-                    Left = OfficeLength.Inches(margins.Left?.Value ?? 0D),
-                    Right = OfficeLength.Inches(margins.Right?.Value ?? 0D),
-                    Top = OfficeLength.Inches(margins.Top?.Value ?? 0D),
-                    Bottom = OfficeLength.Inches(margins.Bottom?.Value ?? 0D),
-                    Header = OfficeLength.Inches(margins.Header?.Value ?? 0D),
-                    Footer = OfficeLength.Inches(margins.Footer?.Value ?? 0D)
-                };
-            }
-
-            return result;
-        }
-
-        /// <summary>
         /// Reads worksheet print options.
         /// </summary>
-        public ExcelSheetPrintOptions GetPrintOptions() {
+        internal ExcelSheetPrintOptions ReadPrintOptions() {
             PrintOptions? printOptions = WorksheetRoot.GetFirstChild<PrintOptions>();
             return new ExcelSheetPrintOptions {
                 PrintGridLines = printOptions?.GridLines?.Value,
@@ -166,7 +72,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets worksheet print options. Null values leave the current option unchanged.
         /// </summary>
-        public void SetPrintOptions(
+        internal void SetPrintOptionsCore(
             bool? printGridLines = null,
             bool? printHeadings = null,
             bool? horizontalCentered = null,
@@ -207,14 +113,14 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets the worksheet print area range, or null when no print area is configured.
         /// </summary>
-        public string? GetPrintArea() {
+        internal string? GetPrintAreaText() {
             return _excelDocument.GetNamedRangeText("_xlnm.Print_Area", this);
         }
 
         /// <summary>
         /// Gets worksheet print title rows and columns.
         /// </summary>
-        public ExcelPrintTitles GetPrintTitles() {
+        internal ExcelPrintTitles ReadPrintTitles() {
             var titles = new ExcelPrintTitles();
             string? definedName = _excelDocument.GetNamedRangeText("_xlnm.Print_Titles", this);
             if (string.IsNullOrWhiteSpace(definedName)) {

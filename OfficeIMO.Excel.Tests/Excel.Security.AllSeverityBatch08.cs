@@ -257,7 +257,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(stream);
             ExcelSheet sheet = document.AddSheet("Rules");
             sheet.Cell(1, 1).SetValue(DateTime.Today);
-            sheet.AddConditionalTimePeriodRule("A1", ExcelConditionalTimePeriod.Today, fillColor: "C6EFCE");
+            sheet.Range("A1").ConditionalFormat().TimePeriod(ExcelConditionalTimePeriod.Today, fillColor: "C6EFCE");
 
             ConditionalFormattingRule rule = sheet.WorksheetPart.Worksheet
                 .Descendants<ConditionalFormattingRule>()

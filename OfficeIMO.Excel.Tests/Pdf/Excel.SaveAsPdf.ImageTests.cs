@@ -23,7 +23,7 @@ public partial class Excel {
         using (ExcelDocument source = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Drawings" })) {
             ExcelSheet sheet = source.Sheets[0];
             sheet.Cell(2, 2).SetValue("Visible cell");
-            source.SetPrintArea(sheet, "B2");
+            sheet.PageSetup.PrintArea = "B2";
             source.Save();
         }
         using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(workbookPath, true)) {

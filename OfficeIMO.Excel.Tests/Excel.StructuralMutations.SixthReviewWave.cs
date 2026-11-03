@@ -46,10 +46,10 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
             document.AddSheet("Other");
-            sheet.AutoFilterBlanks("A1:C3", 1);
+            sheet.Range("A1:C3").AutoFilter().Column(1).Blanks();
 
-            Assert.Throws<ArgumentException>(() => sheet.AutoFilterBlanks("Other!A1:C3", 1));
-            Assert.Throws<ArgumentException>(() => sheet.AutoFilterTopBottom("Data!A1:C3", 2, 5));
+            Assert.Throws<ArgumentException>(() => sheet.Range("Other!A1:C3").AutoFilter().Column(1).Blanks());
+            Assert.Throws<ArgumentException>(() => sheet.Range("Data!A1:C3").AutoFilter().Column(2).TopBottom(5));
 
             ExcelAutoFilterInfo filter = Assert.Single(sheet.GetAutoFilters());
             Assert.Equal("A1:C3", filter.Range);
@@ -107,8 +107,8 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralColumns_RemapsWorksheetFilterCriteria() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.AutoFilterBlanks("A1:C3", 1);
-            sheet.AutoFilterTopBottom("A1:C3", 2, 5);
+            sheet.Range("A1:C3").AutoFilter().Column(1).Blanks();
+            sheet.Range("A1:C3").AutoFilter().Column(2).TopBottom(5);
 
             sheet.InsertColumnsTransactional(2);
 

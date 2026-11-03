@@ -26,7 +26,8 @@ namespace OfficeIMO.Tests {
                 Dictionary<uint, IEnumerable<string>> criteria = new Dictionary<uint, IEnumerable<string>> {
                     { 0, new[] { "A" } }
                 };
-                sheet.AddAutoFilter("A1:B3", criteria);
+                sheet.Range("A1:B3").AutoFilter();
+                foreach (var criterion in criteria) sheet.Range("A1:B3").AutoFilter().Column(criterion.Key).Equals(criterion.Value);
                 document.Save();
             }
 
@@ -67,7 +68,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(3, 2).SetValue(20d);
 
                 var tasks = Enumerable.Range(0, 5)
-                    .Select(_ => Task.Run(() => sheet.AddAutoFilter("A1:B3")))
+                    .Select(_ => Task.Run(() => sheet.Range("A1:B3").AutoFilter()))
                     .ToArray();
                 await Task.WhenAll(tasks);
                 document.Save();
@@ -103,16 +104,13 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(3, 2).SetValue("Operations");
                 sheet.Cell(3, 3).SetValue(30d);
                 sheet.Cell(3, 4).SetValue("review");
-                sheet.AutoFilterAdd("A1:D3");
-                sheet.AutoFilterByHeaderEquals("Region", new[] { "Old" });
-                sheet.AutoFilterByHeadersEquals(
-                    ("Region", new[] { "North", "north", "South" }),
-                    ("Missing", new[] { "Ignored" }),
-                    ("Score", new[] { "20", "20", "30" }),
-                    ("Region", new[] { "East" }));
-                sheet.AutoFilterByHeadersEquals(
-                    ("Region", new[] { "East" }),
-                    ("Score", new[] { "20", "30" }));
+                sheet.Range("A1:D3").AutoFilter();
+                sheet.Range("A1:D3").AutoFilter().Column("Region").Equals(new[] { "Old" });
+                sheet.Range("A1:D3").AutoFilter()
+                    .Column("Region").Equals(new[] { "North", "north", "South" })
+                    .Column("Score").Equals(new[] { "20", "20", "30" })
+                    .Column("Region").Equals(new[] { "East" });
+                sheet.Range("A1:D3").AutoFilter().Column("Region").Equals(new[] { "East" }).Column("Score").Equals(new[] { "20", "30" });
                 document.Save();
             }
 
@@ -164,12 +162,12 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(4, 3).SetValue(30d);
                 sheet.Cell(4, 4).SetValue("done");
                 sheet.Cell(4, 5).SetValue(15d);
-                sheet.AutoFilterAdd("A1:E4");
-                sheet.AutoFilterByHeaderStartsWith("Region", "No");
-                sheet.AutoFilterByHeaderEndsWith("Department", "ions");
-                sheet.AutoFilterByHeaderGreaterThanOrEqual("Score", 20d);
-                sheet.AutoFilterByHeaderDoesNotContain("Notes", "view");
-                sheet.AutoFilterByHeaderNotEqual("Delta", 10d);
+                sheet.Range("A1:E4").AutoFilter();
+                sheet.Range("A1:E4").AutoFilter().Column("Region").BeginsWith("No");
+                sheet.Range("A1:E4").AutoFilter().Column("Department").EndsWith("ions");
+                sheet.Range("A1:E4").AutoFilter().Column("Score").GreaterThanOrEqual(20d);
+                sheet.Range("A1:E4").AutoFilter().Column("Notes").DoesNotContain("view");
+                sheet.Range("A1:E4").AutoFilter().Column("Delta").NotEqual(10d);
                 document.Save();
             }
 
@@ -230,9 +228,9 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(3, 2).SetValue(15d);
                 sheet.Cell(4, 1).SetValue(30d);
                 sheet.Cell(4, 2).SetValue(25d);
-                sheet.AutoFilterAdd("A1:B4");
-                sheet.AutoFilterByHeaderBetween("Budget", 12d, 28d);
-                sheet.AutoFilterByHeaderNotBetween("Score", 10d, 20d);
+                sheet.Range("A1:B4").AutoFilter();
+                sheet.Range("A1:B4").AutoFilter().Column("Budget").Between(12d, 28d);
+                sheet.Range("A1:B4").AutoFilter().Column("Score").NotBetween(10d, 20d);
                 document.Save();
             }
 

@@ -143,8 +143,8 @@ namespace OfficeIMO.Tests {
                 // DrawingML has no status slots. Only the report has a palette for these roles.
                 foreach (OfficeColor role in new[] { OfficeColor.Success, OfficeColor.Warning, OfficeColor.Danger }) {
                     Assert.Throws<InvalidOperationException>(() => sheet.Cell(99, 1).SetFillColor(role));
-                    Assert.Throws<InvalidOperationException>(() => sheet.AddConditionalColorScale("B99:B100", OfficeColor.Accent1, role));
-                    Assert.Throws<InvalidOperationException>(() => sheet.AddConditionalDataBar("C99:C100", role));
+                    Assert.Throws<InvalidOperationException>(() => sheet.Range("B99:B100").ConditionalFormat().ColorScale(OfficeColor.Accent1, role));
+                    Assert.Throws<InvalidOperationException>(() => sheet.Range("C99:C100").ConditionalFormat().DataBar(role));
                 }
                 sheet.Cell(1, 1).SetFillColor(OfficeColor.Accent1);
                 Assert.Equal("FF102030", document.ResolveThemeColorArgb(4U));

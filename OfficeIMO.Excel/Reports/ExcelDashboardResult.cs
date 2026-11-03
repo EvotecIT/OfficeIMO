@@ -1,4 +1,4 @@
-namespace OfficeIMO.Excel {
+namespace OfficeIMO.Excel.Reports {
     /// <summary>
     /// Result of a dashboard build operation.
     /// </summary>

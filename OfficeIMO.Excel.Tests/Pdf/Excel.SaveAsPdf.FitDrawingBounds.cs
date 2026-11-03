@@ -24,7 +24,7 @@ public partial class Excel {
             Width = OfficeIMO.OfficeLength.Pixels(800),
             Height = OfficeIMO.OfficeLength.Pixels(16)
         });
-        sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0);
+        sheet.PageSetup.FitToWidth = 1; sheet.PageSetup.FitToHeight = 0;
         workbook.Save();
         using var pdf = PdfPigDocument.Open(workbook.ToPdf(new ExcelPdfExportOptions {
             PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(300)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))

@@ -93,7 +93,7 @@ namespace OfficeIMO.Excel {
                         toc.CellBackground(headerRow, column, "#F2F2F2");
                     }
                 }
-                try { toc.Freeze(topRows: headerRow, leftCols: 0); } catch { }
+                try { toc.FreezeCore(headerRow, 0); } catch { }
                 toc.AutoFitColumns();
             }
             if (placeFirst) MoveSheetToBeginning(tocName);

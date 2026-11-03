@@ -228,11 +228,11 @@ internal sealed partial class OfficeMarkupExcelExporter {
     private static void FinalizeWorkbook(WorkbookExportContext context) {
         foreach (var sheet in context.Sheets) {
             if (context.Options.FreezeTableHeaderRows && context.TryGetFreezeRow(sheet.Name, out var freezeRow)) {
-                sheet.Freeze(topRows: freezeRow, leftCols: 0);
+                sheet.View.Freeze(topRows: freezeRow);
             }
 
             if (context.Options.HideGridlines) {
-                sheet.SetGridlinesVisible(false);
+                sheet.View.ShowGridlines = false;
             }
 
             if (context.Options.AutoFitColumns) {

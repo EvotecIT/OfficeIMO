@@ -48,7 +48,7 @@ namespace OfficeIMO.Excel {
 
             foreach (OpenXmlElement child in WorksheetRoot.ChildElements) {
                 if (child is not (SheetProperties or SheetDimension or SheetViews or SheetFormatProperties
-                    or Columns or SheetData or PageMargins or PageSetup or PrintOptions or HeaderFooter or TableParts)) return false;
+                    or Columns or SheetData or PageMargins or DocumentFormat.OpenXml.Spreadsheet.PageSetup or PrintOptions or HeaderFooter or TableParts)) return false;
             }
 
             WorksheetPart edited = _worksheetPart;

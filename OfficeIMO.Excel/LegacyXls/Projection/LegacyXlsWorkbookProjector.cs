@@ -775,7 +775,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 }
 
                 if (legacySheet.FreezePane != null) {
-                    currentSheet.Freeze(legacySheet.FreezePane.TopRows, legacySheet.FreezePane.LeftColumns);
+                    currentSheet.FreezeCore(legacySheet.FreezePane.TopRows, legacySheet.FreezePane.LeftColumns);
                     if (legacySheet.FrozenWithoutSplit == true) {
                         ApplyFrozenWithoutSplit(currentSheet);
                     }
@@ -789,7 +789,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                     SheetView? sheetView = null;
 
                     if (legacySheet.ZoomScale.HasValue) {
-                        currentSheet.SetZoomScale(legacySheet.ZoomScale.Value, save: false);
+                        currentSheet.SetZoomScaleCore(legacySheet.ZoomScale.Value, save: false);
                     }
 
                     if (legacySheet.ZoomScaleNormal.HasValue) {
@@ -803,7 +803,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                     }
 
                     if (legacySheet.ShowGridLines.HasValue) {
-                        currentSheet.SetGridlinesVisible(legacySheet.ShowGridLines.Value);
+                        currentSheet.SetGridlinesVisibleCore(legacySheet.ShowGridLines.Value);
                     }
 
                     if (legacySheet.ShowFormulas.HasValue) {
@@ -812,15 +812,15 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                     }
 
                     if (legacySheet.ShowRowColumnHeadings.HasValue) {
-                        currentSheet.SetRowColumnHeadingsVisible(legacySheet.ShowRowColumnHeadings.Value);
+                        currentSheet.SetRowColumnHeadingsVisibleCore(legacySheet.ShowRowColumnHeadings.Value);
                     }
 
                     if (legacySheet.ShowZeroValues.HasValue) {
-                        currentSheet.SetZeroValuesVisible(legacySheet.ShowZeroValues.Value);
+                        currentSheet.SetZeroValuesVisibleCore(legacySheet.ShowZeroValues.Value);
                     }
 
                     if (legacySheet.RightToLeft.HasValue) {
-                        currentSheet.SetRightToLeft(legacySheet.RightToLeft.Value);
+                        currentSheet.SetRightToLeftCore(legacySheet.RightToLeft.Value);
                     }
 
                     if (legacySheet.DefaultGridColor.HasValue) {
@@ -1622,14 +1622,14 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 if (scope != null
                     && string.Equals(definedName.Name, "_xlnm.Print_Titles", StringComparison.OrdinalIgnoreCase)
                     && TryParsePrintTitles(definedName.Reference, scope, out int? firstRow, out int? lastRow, out int? firstColumn, out int? lastColumn)) {
-                    document.SetPrintTitles(scope, firstRow, lastRow, firstColumn, lastColumn, save: false);
+                    document.SetPrintTitlesCore(scope, firstRow, lastRow, firstColumn, lastColumn, save: false);
                     continue;
                 }
 
                 if (scope != null
                     && string.Equals(definedName.Name, "_FilterDatabase", StringComparison.OrdinalIgnoreCase)
                     && TryParseScopedRange(definedName.Reference, scope, out string autoFilterRange)) {
-                    scope.AddAutoFilter(autoFilterRange);
+                    scope.AddAutoFilterCore(autoFilterRange);
                 }
 
                 if (!TrySetNamedRange(document, definedName, scope)) {
@@ -2028,7 +2028,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 || pageSetup.BottomMargin.HasValue
                 || pageSetup.HeaderMargin.HasValue
                 || pageSetup.FooterMargin.HasValue) {
-                sheet.SetMargins(
+                sheet.SetMarginsCore(
                     OfficeLength.Inches(pageSetup.LeftMargin ?? 0.7d),
                     OfficeLength.Inches(pageSetup.RightMargin ?? 0.7d),
                     OfficeLength.Inches(pageSetup.TopMargin ?? 0.75d),
@@ -2038,14 +2038,14 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
 
             if (pageSetup.Landscape.HasValue) {
-                sheet.SetOrientation(pageSetup.Landscape.Value ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait);
+                sheet.SetOrientationCore(pageSetup.Landscape.Value ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait);
             }
 
             if (pageSetup.PrintGridLines.HasValue
                 || pageSetup.PrintHeadings.HasValue
                 || pageSetup.HorizontalCentered.HasValue
                 || pageSetup.VerticalCentered.HasValue) {
-                sheet.SetPrintOptions(
+                sheet.SetPrintOptionsCore(
                     pageSetup.PrintGridLines,
                     pageSetup.PrintHeadings,
                     pageSetup.HorizontalCentered,
@@ -2057,7 +2057,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             uint? fitToHeight = pageSetup.FitToHeight.HasValue ? pageSetup.FitToHeight.Value : null;
             uint? scale = pageSetup.Scale.HasValue ? pageSetup.Scale.Value : null;
             if (fitToWidth.HasValue || fitToHeight.HasValue || scale.HasValue || pageSetup.PageOrder.HasValue) {
-                sheet.SetPageSetup(fitToWidth, fitToHeight, scale, pageSetup.PageOrder);
+                sheet.SetPageSetupCore(fitToWidth, fitToHeight, scale, pageSetup.PageOrder);
             }
 
             if (pageSetup.FitToPage.HasValue) {
@@ -2072,7 +2072,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 || pageSetup.AlignHeaderFooterWithMargins.HasValue) {
                 var header = SplitHeaderFooterText(pageSetup.HeaderText);
                 var footer = SplitHeaderFooterText(pageSetup.FooterText);
-                sheet.SetHeaderFooter(
+                sheet.SetHeaderFooterCore(
                     header.Left,
                     header.Center,
                     header.Right,
@@ -2090,7 +2090,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 || !string.IsNullOrEmpty(pageSetup.FirstFooterText)) {
                 var firstHeader = SplitHeaderFooterText(pageSetup.FirstHeaderText);
                 var firstFooter = SplitHeaderFooterText(pageSetup.FirstFooterText);
-                sheet.SetFirstPageHeaderFooter(
+                sheet.SetFirstPageHeaderFooterCore(
                     firstHeader.Left,
                     firstHeader.Center,
                     firstHeader.Right,
@@ -2105,7 +2105,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 || !string.IsNullOrEmpty(pageSetup.EvenFooterText)) {
                 var evenHeader = SplitHeaderFooterText(pageSetup.EvenHeaderText);
                 var evenFooter = SplitHeaderFooterText(pageSetup.EvenFooterText);
-                sheet.SetEvenPageHeaderFooter(
+                sheet.SetEvenPageHeaderFooterCore(
                     evenHeader.Left,
                     evenHeader.Center,
                     evenHeader.Right,

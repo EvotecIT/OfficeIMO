@@ -30,7 +30,7 @@ internal static class InventoryReorder {
             sheet.Cell(row, 7).SetFormula($"E{row}*F{row}"); sheet.Cell(row, 7).SetNumberFormat("#,##0.00");
         }
         sheet.AddTable("A4:G9", hasHeader: true, name: "Stock", style: ExcelTableStyle.TableStyleMedium2);
-        sheet.ValidationWholeNumber("B5:C9", ExcelDataValidationOperator.Between, 0, 10000);
+        sheet.Range("B5:C9").Validation().WholeNumber(ExcelDataValidationOperator.Between, 0, 10000);
         sheet.Cell(11, 1).SetValue("Proposed spend"); sheet.Cell(11, 7).SetFormula("SUM(G5:G9)"); sheet.Cell(11, 7).SetNumberFormat("#,##0.00");
         sheet.Cell(11, 7).SetBold(true); sheet.Cell(11, 7).SetFillColor("E7F6ED");
         sheet.Range("A13:G13").Merge(); sheet.Cell(13, 1).SetValue("Proposal only: check lead times and committed orders before purchasing.");

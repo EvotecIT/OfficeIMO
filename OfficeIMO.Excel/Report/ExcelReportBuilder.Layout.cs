@@ -167,7 +167,7 @@ namespace OfficeIMO.Excel {
             Sheet.CellBold(_row, 1, true);
             Sheet.Cell(_row, 2).SetValue(value);
             string range = $"B{_row}:B{_row}";
-            Sheet.AddConditionalDataBar(range, OfficeIMO.OfficeColor.LightGreen);
+            Sheet.CreateConditionalDataBar(range, OfficeIMO.OfficeColor.LightGreen);
             _row++;
             return Spacer();
         }

@@ -39,7 +39,7 @@ internal static class ProjectWorkbook {
             summary.Cell(index + 5, 4).SetFillColor("E7F6ED");
         }
         delivery.AddTable("A1:D5", true, "DeliveryPlan", ExcelTableStyle.TableStyleMedium2);
-        delivery.Freeze(topRows: 1);
+        delivery.View.Freeze(topRows: 1);
         summary.Range("A11:D11").Merge();
         summary.Cell(11, 1).SetValue("Edit the Delivery sheet; Summary references the same values.");
         document.Calculate();

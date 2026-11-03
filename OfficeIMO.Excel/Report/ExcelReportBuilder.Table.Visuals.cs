@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
                 visualOptions.ShowLastColumn,
                 visualOptions.ShowRowStripes,
                 visualOptions.ShowColumnStripes);
-            if (visualOptions.FreezeHeaderRow) Sheet.Freeze(topRows: headerRow, leftCols: 0);
+            if (visualOptions.FreezeHeaderRow) Sheet.FreezeCore(headerRow, 0);
 
             const int startColumn = 1;
             for (int index = 0; index < headers.Count; index++) {
@@ -41,12 +41,12 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (visualOptions.DataBars.TryGetValue(header, out var color))
-                    Sheet.AddConditionalDataBar(columnRange, color);
+                    Sheet.CreateConditionalDataBar(columnRange, color);
 
                 if (visualOptions.IconSets.TryGetValue(header, out var iconOptions))
-                    Sheet.AddConditionalIconSet(columnRange, iconOptions.IconSet, iconOptions.ShowValue, iconOptions.ReverseOrder, iconOptions.PercentThresholds, iconOptions.NumberThresholds);
+                    Sheet.CreateConditionalIconSet(columnRange, iconOptions.IconSet, iconOptions.ShowValue, iconOptions.ReverseOrder, iconOptions.PercentThresholds, iconOptions.NumberThresholds);
                 else if (visualOptions.IconSetColumns.Contains(header))
-                    Sheet.AddConditionalIconSet(columnRange);
+                    Sheet.CreateConditionalIconSet(columnRange, ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false, percentThresholds: null, numberThresholds: null);
 
                 if (visualOptions.TextBackgrounds.TryGetValue(header, out var backgroundMap)) {
                     columnStyle.BackgroundByTextMap(backgroundMap);
@@ -67,7 +67,7 @@ namespace OfficeIMO.Excel {
                         lastRow);
                     columnStyle.Number(visualOptions.AutoFormatDecimals);
                     string columnRange = $"{ColumnLetter(startColumn + index)}{headerRow + 1}:{ColumnLetter(startColumn + index)}{lastRow}";
-                    Sheet.AddConditionalDataBar(columnRange, visualOptions.AutoFormatDataBarColor);
+                    Sheet.CreateConditionalDataBar(columnRange, visualOptions.AutoFormatDataBarColor);
                 }
             }
 

@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
             sheet.Cell(1, 1).SetValue("Value");
             sheet.Cell(2, 1).SetValue(1);
             sheet.Cell(3, 1).SetValue(2);
-            sheet.AutoFilterAdd("A1:A3");
+            sheet.Range("A1:A3").AutoFilter();
             var worksheetCondition = new X14.SortCondition { Reference = "A2:A3" };
             sheet.WorksheetPart.Worksheet.GetFirstChild<AutoFilter>()!.Append(
                 new SortState(worksheetCondition) { Reference = "A2:A3" });

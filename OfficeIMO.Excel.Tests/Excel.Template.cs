@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var invoice = document.AddSheet("Invoice");
-                invoice.Cell(1, 1).SetValue("Invoice {{Invoice.Number}}").HeaderStyle();
+                invoice.Cell(1, 1).SetValue("Invoice {{Invoice.Number}}").SetBold().SetFillColor("D9EAF7").SetFontColor("1F4E79");
                 invoice.Cell(2, 1).SetValue("Customer: {{Customer.Name}}");
 
                 var summary = document.AddSheet("Summary");
@@ -139,8 +139,8 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Invoice");
-                sheet.Cell(1, 1).SetValue("Item").HeaderStyle();
-                sheet.Cell(1, 2).SetValue("Amount").HeaderStyle();
+                sheet.Cell(1, 1).SetValue("Item").SetBold().SetFillColor("D9EAF7").SetFontColor("1F4E79");
+                sheet.Cell(1, 2).SetValue("Amount").SetBold().SetFillColor("D9EAF7").SetFontColor("1F4E79");
                 sheet.Cell(2, 1).SetValue("{{Name}}");
                 sheet.Cell(2, 2).SetValue("{{Amount:currency}}");
                 sheet.Cell(3, 1).SetValue("Footer");
@@ -354,7 +354,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(5, 2).SetValue(10);
                 sheet.Cell(6, 1).SetValue("US");
                 sheet.Cell(6, 2).SetValue(20);
-                sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
+                sheet.PageSetup.FitToWidth = 1U; sheet.PageSetup.FitToHeight = 0U;
                 sheet.AddChart(OfficeChartType.ColumnClustered, "A4:B6", new OfficeIMO.Excel.ExcelChartOptions { Row = 8, Column = 4, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), HasHeaders = true, Title = "Sales" });
 
                 int replacements = sheet.ApplyTemplateRows(2, new[] {
@@ -496,7 +496,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(6, 2).SetValue(10);
                 sheet.Cell(7, 1).SetValue("US");
                 sheet.Cell(7, 2).SetValue(20);
-                sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
+                sheet.PageSetup.FitToWidth = 1U; sheet.PageSetup.FitToHeight = 0U;
                 sheet.AddChart(OfficeChartType.ColumnClustered, "A5:B7", new OfficeIMO.Excel.ExcelChartOptions { Row = 9, Column = 4, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), HasHeaders = true, Title = "Sales" });
 
                 int replacements = sheet.RemoveTemplateOptionalRows(2, 2);
@@ -602,7 +602,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(4, 1).SetValue("Trailing");
                 sheet.SetComment(4, 1, "Trailing note");
                 sheet.SetHyperlink(3, 1, "https://example.org");
-                sheet.AddConditionalFormulaRule("C3", "C3>0");
+                sheet.Range("C3").ConditionalFormat().Formula("C3>0");
                 document.Save();
             }
 
@@ -756,23 +756,23 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Region Template");
-                sheet.Cell(1, 1).SetValue("Region {{Region}}").HeaderStyle();
+                sheet.Cell(1, 1).SetValue("Region {{Region}}").SetBold().SetFillColor("D9EAF7").SetFontColor("1F4E79");
                 sheet.Cell(2, 1).SetValue("Owner");
                 sheet.Cell(2, 2).SetValue("{{Owner}}");
                 sheet.Cell(3, 1).SetValue("Amount");
                 sheet.Cell(3, 2).SetValue("{{Amount:currency}}");
-                sheet.Range("B3").Validation.DecimalBetween(0, 1000, allowBlank: false, errorTitle: "Amount", errorMessage: "Use amount 0-1000");
-                sheet.Range("C3").Validation.CustomFormula("'Region Template'!B3>0", allowBlank: false, errorTitle: "Amount", errorMessage: "Use positive amount");
-                sheet.Range("B3").ConditionalFormatting.GreaterThan("'Region Template'!B3");
+                sheet.Range("B3").Validation().Decimal(ExcelDataValidationOperator.Between, 0, 1000, allowBlank: false, errorTitle: "Amount", errorMessage: "Use amount 0-1000");
+                sheet.Range("C3").Validation().CustomFormula("'Region Template'!B3>0", allowBlank: false, errorTitle: "Amount", errorMessage: "Use positive amount");
+                sheet.Range("B3").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "'Region Template'!B3");
                 sheet.Cell(4, 2).SetFormula("'Region Template'!B3*2");
                 sheet.Cell(5, 2).SetFormula("SUM(TemplateWorkbookArea)");
                 sheet.Range("A1:B1").Merge();
                 sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
-                sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
+                sheet.PageSetup.FitToWidth = 1U; sheet.PageSetup.FitToHeight = 0U;
                 document.SetNamedRange("TemplateWorkbookArea", "'Region Template'!A1:B3", save: false);
                 sheet.SetNamedRange("TemplateArea", "A1:B3", save: false);
-                document.SetPrintArea(sheet, "A1:B7", save: false);
-                document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null, save: false);
+                sheet.PageSetup.PrintArea = "A1:B7";
+                sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1, firstColumn: null, lastColumn: null);
                 sheet.Cell(6, 1).SetValue("Owner");
                 sheet.Cell(6, 2).SetValue("Amount");
                 sheet.Cell(7, 1).SetValue("{{Owner}}");
@@ -888,16 +888,16 @@ namespace OfficeIMO.Tests {
                     Assert.Equal("A1:B1", merge.Reference!.Value);
                     Assert.Equal(1U, setup.FitToWidth!.Value);
                     Assert.Equal(0U, setup.FitToHeight!.Value);
-                    Assert.Equal("B3:B3", validation.SequenceOfReferences!.InnerText);
+                    Assert.Equal("B3", validation.SequenceOfReferences!.InnerText);
                     Assert.Equal(DataValidationValues.Decimal, validation.Type!.Value);
                     Assert.Equal(DataValidationOperatorValues.Between, validation.Operator!.Value);
                     Assert.False(validation.AllowBlank!.Value);
                     Assert.Equal("0", validation.Formula1!.Text);
                     Assert.Equal("1000", validation.Formula2!.Text);
-                    Assert.Equal("C3:C3", customValidation.SequenceOfReferences!.InnerText);
+                    Assert.Equal("C3", customValidation.SequenceOfReferences!.InnerText);
                     Assert.False(customValidation.AllowBlank!.Value);
                     Assert.Equal($"'{generatedSheet.Name}'!B3>0", customValidation.Formula1!.Text);
-                    Assert.Equal("B3:B3", conditionalFormatting.SequenceOfReferences!.InnerText);
+                    Assert.Equal("B3", conditionalFormatting.SequenceOfReferences!.InnerText);
                     Assert.Equal(ConditionalFormatValues.CellIs, conditionalRule.Type!.Value);
                     Assert.Equal(ConditionalFormattingOperatorValues.GreaterThan, conditionalRule.Operator!.Value);
                     Assert.Equal($"'{generatedSheet.Name}'!B3", Assert.Single(conditionalRule.Elements<Formula>()).Text);

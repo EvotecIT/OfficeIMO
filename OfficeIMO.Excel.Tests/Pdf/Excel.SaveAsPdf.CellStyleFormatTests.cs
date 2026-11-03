@@ -284,7 +284,7 @@ public partial class Excel {
             sheet.Cell(2, 1).SetValue(0);
             sheet.Cell(3, 1).SetValue(50);
             sheet.Cell(4, 1).SetValue(100);
-            sheet.AddConditionalColorScale("A2:A4", "FFFF0000", "FF00FF00");
+            sheet.Range("A2:A4").ConditionalFormat().ColorScale("FFFF0000", "FF00FF00");
 
             ExcelConditionalFormattingInfo rule = Assert.Single(sheet.GetConditionalFormattingRules("A2:A4"));
             Assert.Equal("ColorScale", rule.Type);
@@ -335,7 +335,7 @@ public partial class Excel {
             sheet.Cell(2, 1).SetValue(0);
             sheet.Cell(3, 1).SetValue(50);
             sheet.Cell(4, 1).SetValue(100);
-            sheet.AddConditionalDataBar("A2:A4", "FF5B9BD5");
+            sheet.Range("A2:A4").ConditionalFormat().DataBar("FF5B9BD5");
 
             ExcelConditionalFormattingInfo rule = Assert.Single(sheet.GetConditionalFormattingRules("A2:A4"));
             Assert.Equal("DataBar", rule.Type);
@@ -374,7 +374,7 @@ public partial class Excel {
             sheet.Cell(2, 1).SetValue(-100);
             sheet.Cell(3, 1).SetValue(0);
             sheet.Cell(4, 1).SetValue(100);
-            sheet.AddConditionalDataBar("A2:A4", "FF5B9BD5");
+            sheet.Range("A2:A4").ConditionalFormat().DataBar("FF5B9BD5");
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -409,7 +409,7 @@ public partial class Excel {
             sheet.Cell(2, 1).SetValue(0);
             sheet.Cell(3, 1).SetValue(50);
             sheet.Cell(4, 1).SetValue(100);
-            sheet.AddConditionalIconSet("A2:A4", ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
+            sheet.Range("A2:A4").ConditionalFormat().IconSet(ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
 
             ExcelConditionalFormattingInfo rule = Assert.Single(sheet.GetConditionalFormattingRules("A2:A4"));
             Assert.Equal("IconSet", rule.Type);
@@ -587,11 +587,11 @@ public partial class Excel {
             sheet.Cell(1, 1).SetValue("Kind");
             sheet.Cell(1, 2).SetValue("Value");
             sheet.Cell(2, 1).SetValue("Currency");
-            sheet.Cell(2, 2).SetValue(1234.5).Currency(2, CultureInfo.GetCultureInfo("en-US"));
+            sheet.Cell(2, 2).SetValue(1234.5).SetNumberFormat("\"$\"#,##0.00");
             sheet.Cell(3, 1).SetValue("Percent");
-            sheet.Cell(3, 2).SetValue(0.257).Percent(1);
+            sheet.Cell(3, 2).SetValue(0.257).SetNumberFormat("0.0%");
             sheet.Cell(4, 1).SetValue("Date");
-            sheet.Cell(4, 2).SetValue(new DateTime(2026, 1, 15)).Date("yyyy-mm-dd");
+            sheet.Cell(4, 2).SetValue(new DateTime(2026, 1, 15)).SetNumberFormat("yyyy-mm-dd");
             sheet.Cell(5, 1).SetValue("Minutes");
             sheet.Cell(5, 2).SetValue(new DateTime(2026, 1, 15, 0, 30, 5)).SetNumberFormat("mm:ss");
             sheet.Cell(6, 1).SetValue("Negative");

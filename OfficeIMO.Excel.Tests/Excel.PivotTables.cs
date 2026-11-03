@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests
                 sheet.Cell(4, 3).SetValue(7);
                 sheet.AddPivotTable("A1:C4", "E2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, ColumnFields = new[] { "Product" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") } });
                 Assert.Equal("F3:G3", sheet.GetPivotTableRange("SalesPivot", ExcelPivotRangeTarget.DataBody));
-                sheet.AddPivotConditionalRule("SalesPivot", ExcelConditionalFormattingOperator.GreaterThan, "0");
+                sheet.Range(sheet.GetPivotTableRange("SalesPivot", ExcelPivotRangeTarget.DataBody)).ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "0");
                 document.Save();
             }
 

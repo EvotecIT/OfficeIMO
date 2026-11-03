@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests
                 {
                     int row = index + 2;
                     source.Cell(row, 1).SetValue(sourceDates[index]);
-                    source.Cell(row, 1).DateTime("yyyy-mm-dd hh:mm");
+                    source.Cell(row, 1).SetNumberFormat("yyyy-mm-dd hh:mm");
                     source.Cell(row, 2).SetValue((double)(index + 1));
                 }
 

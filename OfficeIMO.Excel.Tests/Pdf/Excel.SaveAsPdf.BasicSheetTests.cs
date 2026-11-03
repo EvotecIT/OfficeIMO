@@ -101,7 +101,7 @@ public partial class Excel {
             excluded.Cell(11, 1).SetValue("OfficeIMO");
             excluded.Cell(11, 2).SetValue("Ready");
             excluded.AddTable("A10:B11", hasHeader: true, name: "ExcludedTable", style: ExcelTableStyle.TableStyleMedium2);
-            document.SetPrintArea(excluded, "A1:B2", save: false);
+            excluded.PageSetup.PrintArea = "A1:B2";
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions { UseWorksheetPrintAreas = true }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -264,7 +264,7 @@ public partial class Excel {
             ExcelSheet summary = document.AddSheet("Summary");
             summary.Cell(1, 1).SetValue("Metric");
             summary.Cell(2, 1).SetValue("SelectedValue");
-            summary.SetHeaderFooter(headerCenter: "Selected Header &A");
+            summary.PageSetup.Header.Center.Text = "Selected Header &A";
             ExcelSheet internalSheet = document.AddSheet("Internal");
             internalSheet.Cell(1, 1).SetValue("HiddenValue");
             document.Save();

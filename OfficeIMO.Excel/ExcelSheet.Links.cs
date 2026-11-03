@@ -126,444 +126,98 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Links a column identified by <paramref name="header"/> to internal sheets using each cell's text.
-        /// Defaults to linking to a sheet with the same name as the cell text. When the header is missing the operation is skipped.
+        /// Turns each non-empty cell under a header into a link to a worksheet or URL built from the cell text.
         /// </summary>
-        /// <param name="header">Header text of the column to process.</param>
-        /// <param name="rowFrom">First data row (1-based). Defaults to 2 (skip header).</param>
-        /// <param name="rowTo">Last data row (inclusive). When &lt;= 0, uses the bottom of the used range.</param>
-        /// <param name="destinationSheetForCellText">Maps cell text to a destination sheet name; defaults to identity.</param>
-        /// <param name="targetA1">Destination cell on the target sheet (default "A1").</param>
-        /// <param name="display">Optional display selector; defaults to the cell text.</param>
-        /// <param name="styled">Apply hyperlink styling (blue + underline).</param>
-        public void LinkByHeaderToInternalSheets(
-            string header,
-            int rowFrom = 2,
-            int rowTo = -1,
-            Func<string, string>? destinationSheetForCellText = null,
-            string targetA1 = "A1",
-            Func<string, string>? display = null,
-            bool styled = true) {
-            if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            if (!TryGetColumnIndexByHeader(header, out var col)) return;
-            if (rowTo <= 0) {
-                var (r1, _, r2, _) = ExcelA1.ParseRange(GetUsedRangeA1());
-                rowTo = r2;
-                if (rowFrom < r1) rowFrom = r1 + 1; // move below header
-            }
-            var toSheet = destinationSheetForCellText ?? (text => text);
-            for (int r = rowFrom; r <= rowTo; r++) {
-                if (!TryGetCellText(r, col, out var text) || string.IsNullOrWhiteSpace(text)) continue;
-                string sheetName = toSheet(text);
-                if (string.IsNullOrWhiteSpace(sheetName)) continue;
-                string location = ResolveInternalSheetLinkLocation(sheetName, targetA1);
-                string disp = display?.Invoke(text) ?? text;
-                SetInternalLink(r, col, location, disp, styled);
-            }
-        }
-
-        /// <summary>
-        /// Non-throwing variant of <see cref="LinkByHeaderToInternalSheets"/>.
-        /// Returns false when the header cannot be found or inputs are invalid.
-        /// </summary>
-        public bool TryLinkByHeaderToInternalSheets(
-            string header,
-            int rowFrom = 2,
-            int rowTo = -1,
-            Func<string, string>? destinationSheetForCellText = null,
-            string targetA1 = "A1",
-            Func<string, string>? display = null,
-            bool styled = true) {
-            if (string.IsNullOrWhiteSpace(header)) return false;
-            if (!TryGetColumnIndexByHeader(header, out var col)) return false;
-            if (rowTo <= 0) {
-                var ok = ExcelA1.TryParseRange(GetUsedRangeA1(), out var r1, out _, out var r2, out _);
-                if (!ok) return false;
-                rowTo = r2;
-                if (rowFrom < r1) rowFrom = r1 + 1;
-            }
-            var toSheet = destinationSheetForCellText ?? (text => text);
-            for (int r = rowFrom; r <= rowTo; r++) {
-                if (!TryGetCellText(r, col, out var text) || string.IsNullOrWhiteSpace(text)) continue;
-                string sheetName = toSheet(text);
-                if (string.IsNullOrWhiteSpace(sheetName)) continue;
-                string location = ResolveInternalSheetLinkLocation(sheetName, targetA1);
-                string disp = display?.Invoke(text) ?? text;
-                SetInternalLink(r, col, location, disp, styled);
-            }
-            return true;
-        }
-
-        /// <summary>
-        /// Links a column identified by <paramref name="header"/> to external URLs built from each cell's text.
-        /// When the header is missing the operation is skipped.
-        /// </summary>
-        /// <param name="header">Header text of the column to process.</param>
-        /// <param name="rowFrom">First data row (1-based). Defaults to 2 (skip header).</param>
-        /// <param name="rowTo">Last data row (inclusive). When &lt;= 0, uses the bottom of the used range.</param>
-        /// <param name="urlForCellText">Maps cell text to URL.</param>
-        /// <param name="titleForCellText">Optional display selector; when null, a smart display (RFC/host) is used.</param>
-        /// <param name="styled">Apply hyperlink styling (blue + underline).</param>
-        public void LinkByHeaderToUrls(
-            string header,
-            int rowFrom = 2,
-            int rowTo = -1,
-            Func<string, string> urlForCellText = null!,
-            Func<string, string>? titleForCellText = null,
-            bool styled = true) {
-            if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            if (urlForCellText is null) throw new ArgumentNullException(nameof(urlForCellText));
-            if (!TryGetColumnIndexByHeader(header, out var col)) return;
-            if (rowTo <= 0) {
-                var (r1, _, r2, _) = ExcelA1.ParseRange(GetUsedRangeA1());
-                rowTo = r2;
-                if (rowFrom < r1) rowFrom = r1 + 1;
-            }
-            for (int r = rowFrom; r <= rowTo; r++) {
-                if (!TryGetCellText(r, col, out var text) || string.IsNullOrWhiteSpace(text)) continue;
-                string url = urlForCellText(text);
-                if (string.IsNullOrWhiteSpace(url)) continue;
-                if (titleForCellText != null)
-                    SetHyperlink(r, col, url, titleForCellText(text), styled);
-                else
-                    SetHyperlinkSmart(r, col, url, null, styled);
-            }
-        }
-
-        /// <summary>
-        /// Non-throwing variant of <see cref="LinkByHeaderToUrls"/>.
-        /// Returns false when the header cannot be found or inputs are invalid.
-        /// </summary>
-        public bool TryLinkByHeaderToUrls(
-            string header,
-            int rowFrom = 2,
-            int rowTo = -1,
-            Func<string, string>? urlForCellText = null,
-            Func<string, string>? titleForCellText = null,
-            bool styled = true) {
-            if (string.IsNullOrWhiteSpace(header)) return false;
-            if (urlForCellText is null) return false;
-            if (!TryGetColumnIndexByHeader(header, out var col)) return false;
-            if (rowTo <= 0) {
-                var ok = ExcelA1.TryParseRange(GetUsedRangeA1(), out var r1, out _, out var r2, out _);
-                if (!ok) return false;
-                rowTo = r2;
-                if (rowFrom < r1) rowFrom = r1 + 1;
-            }
-            for (int r = rowFrom; r <= rowTo; r++) {
-                if (!TryGetCellText(r, col, out var text) || string.IsNullOrWhiteSpace(text)) continue;
-                string url = urlForCellText(text);
-                if (string.IsNullOrWhiteSpace(url)) continue;
-                if (titleForCellText != null)
-                    SetHyperlink(r, col, url, titleForCellText(text), styled);
-                else
-                    SetHyperlinkSmart(r, col, url, null, styled);
-            }
-            return true;
-        }
-
+        /// <param name="header">Header text of the column to link (case-insensitive).</param>
+        /// <param name="target">Where each cell points: <see cref="ExcelLinkTarget.Sheet"/> or <see cref="ExcelLinkTarget.Url"/>.</param>
+        /// <param name="options">Optional range or table scope, row bounds, display text and styling.</param>
+        /// <returns>The linked column and count, the skipped cells, or why nothing was linked.</returns>
         /// <example>
-        /// // Internal: link "Domain" column to same-named sheets, rows 2..used bottom
-        /// sheet.LinkByHeaderToInternalSheets("Domain");
-        /// // External: link "RFC" column to IETF datatracker pages
-        /// sheet.LinkByHeaderToUrls("RFC", urlForCellText: rfc => $"https://datatracker.ietf.org/doc/html/{rfc}");
+        /// sheet.LinkByHeader("Domain", ExcelLinkTarget.Sheet());
+        /// sheet.LinkByHeader("RFC", ExcelLinkTarget.Url(rfc => $"https://datatracker.ietf.org/doc/html/{rfc}"),
+        ///     new ExcelLinkByHeaderOptions { Table = "Summary" });
         /// </example>
-
-        /// <summary>
-        /// Links a column within a table to internal sheets. The table range determines the row bounds.
-        /// </summary>
-        /// <param name="tableName">Name of the table (as shown in Excel's Name Manager).</param>
-        /// <param name="header">Header text of the column inside the table.</param>
-        /// <param name="destinationSheetForCellText">Maps cell text to a destination sheet name (defaults to identity).</param>
-        /// <param name="targetA1">Destination cell on the target sheet (default "A1").</param>
-        /// <param name="display">Optional display selector; defaults to the cell text.</param>
-        /// <param name="styled">Apply hyperlink styling (blue + underline).</param>
-        public void LinkByHeaderToInternalSheetsInTable(
-            string tableName,
-            string header,
-            Func<string, string>? destinationSheetForCellText = null,
-            string targetA1 = "A1",
-            Func<string, string>? display = null,
-            bool styled = true) {
-            if (string.IsNullOrWhiteSpace(tableName)) throw new ArgumentNullException(nameof(tableName));
+        public ExcelLinkByHeaderResult LinkByHeader(string header, ExcelLinkTarget target, ExcelLinkByHeaderOptions? options = null) {
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            var tdp = _worksheetPart.TableDefinitionParts.FirstOrDefault(p => string.Equals(p.Table?.Name?.Value, tableName, StringComparison.OrdinalIgnoreCase));
-            if (tdp?.Table == null) throw new InvalidOperationException($"Table '{tableName}' not found on sheet '{Name}'.");
-            var table = tdp.Table;
-            string? refA1 = table.Reference?.Value;
-            if (string.IsNullOrWhiteSpace(refA1)) throw new InvalidOperationException($"Table '{tableName}' has no Reference.");
-            var (r1, c1, r2, c2) = ExcelA1.ParseRange(refA1!);
-            // Determine header offset
-            var headers = table.TableColumns?.Elements<DocumentFormat.OpenXml.Spreadsheet.TableColumn>().Select(tc => tc.Name?.Value ?? string.Empty).ToList() ?? new System.Collections.Generic.List<string>();
-            int colOffset = headers.FindIndex(h => string.Equals(h, header, StringComparison.OrdinalIgnoreCase));
-            if (colOffset < 0) throw new InvalidOperationException($"Header '{header}' not found in table '{tableName}'.");
-            // Header and totals
-            int headerRows = (int)(table.HeaderRowCount?.Value ?? 1U);
-            bool totals = table.TotalsRowShown?.Value ?? false;
-            int totalsRows = totals ? 1 : 0;
-            int startRow = r1 + headerRows;
-            int endRow = r2 - totalsRows;
-            int column = c1 + colOffset;
-            var toSheet = destinationSheetForCellText ?? (text => text);
-            for (int r = startRow; r <= endRow; r++) {
-                if (!TryGetCellText(r, column, out var text) || string.IsNullOrWhiteSpace(text)) continue;
-                string sheetName = toSheet(text);
-                if (string.IsNullOrWhiteSpace(sheetName)) continue;
-                string location = ResolveInternalSheetLinkLocation(sheetName, targetA1);
-                string disp = display?.Invoke(text) ?? text;
-                SetInternalLink(r, column, location, disp, styled);
+            if (target == null) throw new ArgumentNullException(nameof(target));
+            var opts = options ?? new ExcelLinkByHeaderOptions();
+            if (!string.IsNullOrWhiteSpace(opts.Range) && !string.IsNullOrWhiteSpace(opts.Table)) {
+                throw new ArgumentException("Set either Range or Table, not both.", nameof(options));
             }
-        }
 
-        /// <summary>
-        /// Non-throwing variant of <see cref="LinkByHeaderToInternalSheetsInTable"/>.
-        /// Returns false when the table or header cannot be found.
-        /// </summary>
-        public bool TryLinkByHeaderToInternalSheetsInTable(
-            string tableName,
-            string header,
-            Func<string, string>? destinationSheetForCellText = null,
-            string targetA1 = "A1",
-            Func<string, string>? display = null,
-            bool styled = true) {
-            if (string.IsNullOrWhiteSpace(tableName) || string.IsNullOrWhiteSpace(header)) return false;
-            var tdp = _worksheetPart.TableDefinitionParts.FirstOrDefault(p => string.Equals(p.Table?.Name?.Value, tableName, StringComparison.OrdinalIgnoreCase));
-            var table = tdp?.Table; if (table == null) return false;
-            string? refA1 = table.Reference?.Value; if (string.IsNullOrWhiteSpace(refA1)) return false;
-            if (!ExcelA1.TryParseRange(refA1!, out var r1, out var c1, out var r2, out var c2)) return false;
-            var headers = table.TableColumns?.Elements<DocumentFormat.OpenXml.Spreadsheet.TableColumn>().Select(tc => tc.Name?.Value ?? string.Empty).ToList() ?? new System.Collections.Generic.List<string>();
-            int colOffset = headers.FindIndex(h => string.Equals(h, header, StringComparison.OrdinalIgnoreCase));
-            if (colOffset < 0) return false;
-            int headerRows = (int)(table.HeaderRowCount?.Value ?? 1U);
-            bool totals = table.TotalsRowShown?.Value ?? false;
-            int totalsRows = totals ? 1 : 0;
-            int startRow = r1 + headerRows;
-            int endRow = r2 - totalsRows;
-            int column = c1 + colOffset;
-            var toSheet = destinationSheetForCellText ?? (text => text);
-            for (int r = startRow; r <= endRow; r++) {
-                if (!TryGetCellText(r, column, out var text) || string.IsNullOrWhiteSpace(text)) continue;
-                string sheetName = toSheet(text);
-                if (string.IsNullOrWhiteSpace(sheetName)) continue;
-                string location = ResolveInternalSheetLinkLocation(sheetName, targetA1);
-                string disp = display?.Invoke(text) ?? text;
-                SetInternalLink(r, column, location, disp, styled);
-            }
-            return true;
-        }
+            int column;
+            int firstRow;
+            int lastRow;
+            if (!string.IsNullOrWhiteSpace(opts.Table)) {
+                string tableName = opts.Table!;
+                var table = _worksheetPart.TableDefinitionParts
+                    .Select(part => part.Table)
+                    .FirstOrDefault(candidate => string.Equals(candidate?.Name?.Value, tableName, StringComparison.OrdinalIgnoreCase));
+                if (table == null || !ExcelA1.TryParseRange(table.Reference?.Value ?? string.Empty, out int r1, out int c1, out int r2, out _)) {
+                    return ExcelLinkByHeaderResult.Failed($"Table '{tableName}' was not found on sheet '{Name}'.");
+                }
 
-        /// <summary>
-        /// Links a column within a table to external URLs. The table range determines the row bounds.
-        /// </summary>
-        /// <param name="tableName">Name of the table.</param>
-        /// <param name="header">Header text of the column inside the table.</param>
-        /// <param name="urlForCellText">Maps cell text to URL.</param>
-        /// <param name="titleForCellText">Optional display selector; when null, a smart display (RFC/host) is used.</param>
-        /// <param name="styled">Apply hyperlink styling (blue + underline).</param>
-        public void LinkByHeaderToUrlsInTable(
-            string tableName,
-            string header,
-            Func<string, string> urlForCellText,
-            Func<string, string>? titleForCellText = null,
-            bool styled = true) {
-            if (string.IsNullOrWhiteSpace(tableName)) throw new ArgumentNullException(nameof(tableName));
-            if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            if (urlForCellText is null) throw new ArgumentNullException(nameof(urlForCellText));
-            var tdp = _worksheetPart.TableDefinitionParts.FirstOrDefault(p => string.Equals(p.Table?.Name?.Value, tableName, StringComparison.OrdinalIgnoreCase));
-            if (tdp?.Table == null) throw new InvalidOperationException($"Table '{tableName}' not found on sheet '{Name}'.");
-            var table = tdp.Table;
-            string? refA1 = table.Reference?.Value;
-            if (string.IsNullOrWhiteSpace(refA1)) throw new InvalidOperationException($"Table '{tableName}' has no Reference.");
-            var (r1, c1, r2, c2) = ExcelA1.ParseRange(refA1!);
-            var headers = table.TableColumns?.Elements<DocumentFormat.OpenXml.Spreadsheet.TableColumn>().Select(tc => tc.Name?.Value ?? string.Empty).ToList() ?? new System.Collections.Generic.List<string>();
-            int colOffset = headers.FindIndex(h => string.Equals(h, header, StringComparison.OrdinalIgnoreCase));
-            if (colOffset < 0) throw new InvalidOperationException($"Header '{header}' not found in table '{tableName}'.");
-            int headerRows = (int)(table.HeaderRowCount?.Value ?? 1U);
-            bool totals = table.TotalsRowShown?.Value ?? false;
-            int totalsRows = totals ? 1 : 0;
-            int startRow = r1 + headerRows;
-            int endRow = r2 - totalsRows;
-            int column = c1 + colOffset;
-            for (int r = startRow; r <= endRow; r++) {
-                if (!TryGetCellText(r, column, out var text) || string.IsNullOrWhiteSpace(text)) continue;
-                string url = urlForCellText(text);
-                if (string.IsNullOrWhiteSpace(url)) continue;
-                if (titleForCellText != null)
-                    SetHyperlink(r, column, url, titleForCellText(text), styled);
-                else
-                    SetHyperlinkSmart(r, column, url, null, styled);
-            }
-        }
+                var headers = table.TableColumns?.Elements<DocumentFormat.OpenXml.Spreadsheet.TableColumn>()
+                    .Select(tableColumn => tableColumn.Name?.Value ?? string.Empty).ToList() ?? new List<string>();
+                int offset = headers.FindIndex(name => string.Equals(name, header, StringComparison.OrdinalIgnoreCase));
+                if (offset < 0) return ExcelLinkByHeaderResult.Failed($"Header '{header}' was not found in table '{tableName}'.");
+                column = c1 + offset;
+                firstRow = r1 + (int)(table.HeaderRowCount?.Value ?? 1U);
+                lastRow = r2 - (table.TotalsRowShown?.Value == true ? 1 : 0);
+            } else if (!string.IsNullOrWhiteSpace(opts.Range)) {
+                if (!ExcelA1.TryParseRange(opts.Range!, out int r1, out int c1, out int r2, out int c2)) {
+                    throw new ArgumentException($"Range '{opts.Range}' is not a valid A1 range.", nameof(options));
+                }
 
-        /// <summary>
-        /// Non-throwing variant of <see cref="LinkByHeaderToUrlsInTable"/>.
-        /// Returns false when the table or header cannot be found.
-        /// </summary>
-        public bool TryLinkByHeaderToUrlsInTable(
-            string tableName,
-            string header,
-            Func<string, string>? urlForCellText,
-            Func<string, string>? titleForCellText = null,
-            bool styled = true) {
-            if (string.IsNullOrWhiteSpace(tableName) || string.IsNullOrWhiteSpace(header)) return false;
-            if (urlForCellText is null) return false;
-            var tdp = _worksheetPart.TableDefinitionParts.FirstOrDefault(p => string.Equals(p.Table?.Name?.Value, tableName, StringComparison.OrdinalIgnoreCase));
-            var table = tdp?.Table; if (table == null) return false;
-            string? refA1 = table.Reference?.Value; if (string.IsNullOrWhiteSpace(refA1)) return false;
-            if (!ExcelA1.TryParseRange(refA1!, out var r1, out var c1, out var r2, out var c2)) return false;
-            var headers = table.TableColumns?.Elements<DocumentFormat.OpenXml.Spreadsheet.TableColumn>().Select(tc => tc.Name?.Value ?? string.Empty).ToList() ?? new System.Collections.Generic.List<string>();
-            int colOffset = headers.FindIndex(h => string.Equals(h, header, StringComparison.OrdinalIgnoreCase));
-            if (colOffset < 0) return false;
-            int headerRows = (int)(table.HeaderRowCount?.Value ?? 1U);
-            bool totals = table.TotalsRowShown?.Value ?? false;
-            int totalsRows = totals ? 1 : 0;
-            int startRow = r1 + headerRows;
-            int endRow = r2 - totalsRows;
-            int column = c1 + colOffset;
-            for (int r = startRow; r <= endRow; r++) {
-                if (!TryGetCellText(r, column, out var text) || string.IsNullOrWhiteSpace(text)) continue;
-                string url = urlForCellText(text);
-                if (string.IsNullOrWhiteSpace(url)) continue;
-                if (titleForCellText != null)
-                    SetHyperlink(r, column, url, titleForCellText(text), styled);
-                else
-                    SetHyperlinkSmart(r, column, url, null, styled);
-            }
-            return true;
-        }
+                column = -1;
+                for (int c = c1; c <= c2; c++) {
+                    if (TryGetCellText(r1, c, out var text) && !string.IsNullOrWhiteSpace(text) && string.Equals(text, header, StringComparison.OrdinalIgnoreCase)) {
+                        column = c;
+                        break;
+                    }
+                }
 
-        /// <summary>
-        /// Links a column identified by <paramref name="header"/> within a rectangular A1 range to internal sheets.
-        /// Uses the first row of the range as the header row and links rows r1+1..r2.
-        /// </summary>
-        /// <param name="rangeA1">A1 range (e.g., "A1:D50"). The first row is treated as the header row.</param>
-        /// <param name="header">Header text to match (case-insensitive).</param>
-        /// <param name="destinationSheetForCellText">Maps cell text to destination sheet name (defaults to identity).</param>
-        /// <param name="targetA1">Destination cell on the target sheet (default "A1").</param>
-        /// <param name="display">Optional display selector; defaults to the cell text.</param>
-        /// <param name="styled">Apply hyperlink styling (blue + underline).</param>
-        public void LinkByHeaderToInternalSheetsInRange(
-            string rangeA1,
-            string header,
-            Func<string, string>? destinationSheetForCellText = null,
-            string targetA1 = "A1",
-            Func<string, string>? display = null,
-            bool styled = true) {
-            if (string.IsNullOrWhiteSpace(rangeA1)) throw new ArgumentNullException(nameof(rangeA1));
-            if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            var (r1, c1, r2, c2) = ExcelA1.ParseRange(rangeA1);
-            // Find header column within first row of range
-            int headerCol = -1;
-            for (int c = c1; c <= c2; c++) {
-                if (TryGetCellText(r1, c, out var text) && !string.IsNullOrWhiteSpace(text) && string.Equals(text, header, StringComparison.OrdinalIgnoreCase)) {
-                    headerCol = c; break;
+                if (column < 0) return ExcelLinkByHeaderResult.Failed($"Header '{header}' was not found in range '{opts.Range}'.");
+                firstRow = r1 + 1;
+                lastRow = r2;
+            } else {
+                if (!TryGetColumnIndexByHeader(header, out column)) {
+                    return ExcelLinkByHeaderResult.Failed($"Header '{header}' was not found on sheet '{Name}'.");
+                }
+
+                firstRow = opts.FirstRow;
+                if (opts.LastRow is int requestedLastRow && requestedLastRow > 0) {
+                    lastRow = requestedLastRow;
+                } else {
+                    var (usedFirstRow, _, usedLastRow, _) = ExcelA1.ParseRange(GetUsedRangeA1());
+                    lastRow = usedLastRow;
+                    if (firstRow < usedFirstRow) firstRow = usedFirstRow + 1;
                 }
             }
-            if (headerCol < 0) throw new InvalidOperationException($"Header '{header}' not found in range '{rangeA1}'.");
-            var toSheet = destinationSheetForCellText ?? (t => t);
-            for (int r = r1 + 1; r <= r2; r++) {
-                if (!TryGetCellText(r, headerCol, out var value) || string.IsNullOrWhiteSpace(value)) continue;
-                string sheetName = toSheet(value);
-                if (string.IsNullOrWhiteSpace(sheetName)) continue;
-                string location = ResolveInternalSheetLinkLocation(sheetName, targetA1);
-                string disp = display?.Invoke(value) ?? value;
-                SetInternalLink(r, headerCol, location, disp, styled);
-            }
-        }
 
-        /// <summary>
-        /// Links a column identified by <paramref name="header"/> within a rectangular A1 range to external URLs.
-        /// Uses the first row of the range as the header row and links rows r1+1..r2.
-        /// </summary>
-        /// <param name="rangeA1">A1 range (e.g., "A1:D50"). The first row is treated as the header row.</param>
-        /// <param name="header">Header text to match (case-insensitive).</param>
-        /// <param name="urlForCellText">Maps cell text to URL.</param>
-        /// <param name="titleForCellText">Optional display selector; when null, a smart display (RFC/host) is used.</param>
-        /// <param name="styled">Apply hyperlink styling (blue + underline).</param>
-        public void LinkByHeaderToUrlsInRange(
-            string rangeA1,
-            string header,
-            Func<string, string> urlForCellText,
-            Func<string, string>? titleForCellText = null,
-            bool styled = true) {
-            if (string.IsNullOrWhiteSpace(rangeA1)) throw new ArgumentNullException(nameof(rangeA1));
-            if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            if (urlForCellText is null) throw new ArgumentNullException(nameof(urlForCellText));
-            var (r1, c1, r2, c2) = ExcelA1.ParseRange(rangeA1);
-            int headerCol = -1;
-            for (int c = c1; c <= c2; c++) {
-                if (TryGetCellText(r1, c, out var text) && !string.IsNullOrWhiteSpace(text) && string.Equals(text, header, StringComparison.OrdinalIgnoreCase)) { headerCol = c; break; }
-            }
-            if (headerCol < 0) throw new InvalidOperationException($"Header '{header}' not found in range '{rangeA1}'.");
-            for (int r = r1 + 1; r <= r2; r++) {
-                if (!TryGetCellText(r, headerCol, out var value) || string.IsNullOrWhiteSpace(value)) continue;
-                string url = urlForCellText(value);
-                if (string.IsNullOrWhiteSpace(url)) continue;
-                if (titleForCellText != null)
-                    SetHyperlink(r, headerCol, url, titleForCellText(value), styled);
-                else
-                    SetHyperlinkSmart(r, headerCol, url, null, styled);
-            }
-        }
+            int linked = 0;
+            List<string>? skipped = null;
+            Func<string, string> map = target.Map ?? (text => text);
+            for (int row = firstRow; row <= lastRow; row++) {
+                if (!TryGetCellText(row, column, out var text) || string.IsNullOrWhiteSpace(text)) continue;
+                string destination = map(text);
+                if (string.IsNullOrWhiteSpace(destination)) {
+                    (skipped ??= new List<string>()).Add(ExcelA1.CellReference(row, column));
+                    continue;
+                }
 
-        /// <summary>
-        /// Non-throwing variant of <see cref="LinkByHeaderToInternalSheetsInRange"/>.
-        /// Returns false when the range cannot be parsed or the header is missing.
-        /// </summary>
-        public bool TryLinkByHeaderToInternalSheetsInRange(
-            string rangeA1,
-            string header,
-            string targetA1 = "A1",
-            Func<string, string>? destinationSheetForCellText = null,
-            Func<string, string>? display = null,
-            bool styled = true) {
-            if (string.IsNullOrWhiteSpace(rangeA1) || string.IsNullOrWhiteSpace(header)) return false;
-            if (!ExcelA1.TryParseRange(rangeA1, out var r1, out var c1, out var r2, out var c2)) return false;
-            int headerCol = -1;
-            for (int c = c1; c <= c2; c++) {
-                if (TryGetCellText(r1, c, out var text) && !string.IsNullOrWhiteSpace(text) && string.Equals(text, header, StringComparison.OrdinalIgnoreCase)) { headerCol = c; break; }
-            }
-            if (headerCol < 0) return false;
-            var toSheet = destinationSheetForCellText ?? (t => t);
-            for (int r = r1 + 1; r <= r2; r++) {
-                if (!TryGetCellText(r, headerCol, out var value) || string.IsNullOrWhiteSpace(value)) continue;
-                string sheetName = toSheet(value);
-                if (string.IsNullOrWhiteSpace(sheetName)) continue;
-                string location = ResolveInternalSheetLinkLocation(sheetName, targetA1);
-                string disp = display?.Invoke(value) ?? value;
-                SetInternalLink(r, headerCol, location, disp, styled);
-            }
-            return true;
-        }
+                if (target.IsUrl) {
+                    if (opts.Display != null) SetHyperlink(row, column, destination, opts.Display(text), opts.Styled);
+                    else SetHyperlinkSmart(row, column, destination, null, opts.Styled);
+                } else {
+                    string location = ResolveInternalSheetLinkLocation(destination, target.TargetCell);
+                    SetInternalLink(row, column, location, opts.Display?.Invoke(text) ?? text, opts.Styled);
+                }
 
-        /// <summary>
-        /// Non-throwing variant of <see cref="LinkByHeaderToUrlsInRange"/>.
-        /// Returns false when the range cannot be parsed or the header is missing.
-        /// </summary>
-        public bool TryLinkByHeaderToUrlsInRange(
-            string rangeA1,
-            string header,
-            Func<string, string>? urlForCellText,
-            Func<string, string>? titleForCellText = null,
-            bool styled = true) {
-            if (string.IsNullOrWhiteSpace(rangeA1) || string.IsNullOrWhiteSpace(header)) return false;
-            if (urlForCellText is null) return false;
-            if (!ExcelA1.TryParseRange(rangeA1, out var r1, out var c1, out var r2, out var c2)) return false;
-            int headerCol = -1;
-            for (int c = c1; c <= c2; c++) {
-                if (TryGetCellText(r1, c, out var text) && !string.IsNullOrWhiteSpace(text) && string.Equals(text, header, StringComparison.OrdinalIgnoreCase)) { headerCol = c; break; }
+                linked++;
             }
-            if (headerCol < 0) return false;
-            for (int r = r1 + 1; r <= r2; r++) {
-                if (!TryGetCellText(r, headerCol, out var value) || string.IsNullOrWhiteSpace(value)) continue;
-                string url = urlForCellText(value);
-                if (string.IsNullOrWhiteSpace(url)) continue;
-                if (titleForCellText != null)
-                    SetHyperlink(r, headerCol, url, titleForCellText(value), styled);
-                else
-                    SetHyperlinkSmart(r, headerCol, url, null, styled);
-            }
-            return true;
+
+            return new ExcelLinkByHeaderResult(null, column, linked, (IReadOnlyList<string>?)skipped ?? Array.Empty<string>());
         }
     }
 }

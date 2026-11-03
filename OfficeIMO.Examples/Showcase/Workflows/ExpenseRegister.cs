@@ -36,13 +36,13 @@ internal static class ExpenseRegister {
             sheet.Cell(row, 5).SetValue(index < 2 ? "Approved" : "Submitted");
         }
         sheet.AddTable("A4:E8", true, "Expenses", ExcelTableStyle.TableStyleMedium2);
-        sheet.ValidationList("C5:C8", new[] { "Travel", "Training", "Meals", "Equipment" });
-        sheet.ValidationList("E5:E8", new[] { "Submitted", "Approved", "Returned" });
+        sheet.Range("C5:C8").Validation().List(new[] { "Travel", "Training", "Meals", "Equipment" });
+        sheet.Range("E5:E8").Validation().List(new[] { "Submitted", "Approved", "Returned" });
         sheet.Cell(10, 3).SetValue("Total");
         sheet.Cell(10, 4).SetFormula("SUM(D5:D8)");
         sheet.Cell(10, 4).SetNumberFormat("#,##0.00");
         sheet.Cell(10, 4).SetBold(true);
-        sheet.Freeze(topRows: 4);
+        sheet.View.Freeze(topRows: 4);
         document.Calculate();
         sheet.Range("A1:E12").ExportImage(OfficeImageExportFormat.Png)
             .Save(Path.Combine(folder, "preview.png"), OfficeImageExportFileConflictPolicy.Replace);

@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests
                     if (!blank || index != 1)
                     {
                         source.Cell(row, 1).SetValue(keys[index]);
-                        source.Cell(row, 1).DateTime("yyyy-mm-dd");
+                        source.Cell(row, 1).SetNumberFormat("yyyy-mm-dd");
                     }
 
                     source.Cell(row, 2).SetValue(sales[index]);

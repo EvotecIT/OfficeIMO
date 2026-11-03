@@ -106,8 +106,8 @@ namespace OfficeIMO.Tests {
         public void Choose_formula_references_rebase_for_validation_and_conditional_formatting(string expression) {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Rules");
-            sheet.ValidationCustomFormula("D4:D5", expression);
-            sheet.AddConditionalFormulaRule("D4:D5", expression);
+            sheet.Range("D4:D5").Validation().CustomFormula(expression);
+            sheet.Range("D4:D5").ConditionalFormat().Formula(expression);
             var native = LegacyXlsWorkbook.Load(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls }));
             Assert.Equal(expression, Assert.Single(native.Worksheets[0].DataValidations).Formula1);
             Assert.Equal(expression, Assert.Single(native.Worksheets[0].ConditionalFormattings).Formula1);

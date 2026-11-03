@@ -85,9 +85,9 @@ namespace OfficeIMO.Examples.Excel
                     sheet1.Cell(nextRow2, 5).SetValue("Active");
                     nextRow2++;
                     sheet1.AddTable("A1:E11", true, "EmployeeData");
-                    sheet1.Freeze(topRows: 1, leftCols: 1);
-                    sheet1.AddConditionalColorScale("B2:B11", Color.Red, Color.Green);
-                    sheet1.AddConditionalDataBar("B2:B11", Color.Blue);
+                    sheet1.View.Freeze(topRows: 1, leftColumns: 1);
+                    sheet1.Range("B2:B11").ConditionalFormat().ColorScale(Color.Red, Color.Green);
+                    sheet1.Range("B2:B11").ConditionalFormat().DataBar(Color.Blue);
                     sheet1.AutoFitColumns();
                     sheet1.AutoFitRows();
                     sheet1.SetColumnWidth(1, ExcelColumnWidth.Characters(15));

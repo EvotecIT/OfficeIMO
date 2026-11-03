@@ -24,7 +24,7 @@ namespace OfficeIMO.Excel.Pdf {
 
         private static IReadOnlyList<string> GetExportRanges(ExcelSheetReader sheet, ExcelSheet? workbookSheet, ExcelPdfExportOptions options) {
             IReadOnlyList<string> areas = options.UseWorksheetPrintAreas && workbookSheet != null
-                ? workbookSheet.GetPrintAreas()
+                ? workbookSheet.PageSetup.PrintAreas
                 : Array.Empty<string>();
             if (areas.Count == 0) return new[] { ExtendUsedRangeToMergedCells(sheet.GetUsedRangeA1(), workbookSheet, options) };
 
@@ -79,7 +79,7 @@ namespace OfficeIMO.Excel.Pdf {
             !string.IsNullOrWhiteSpace(GetWorksheetPrintArea(workbookSheet, options));
 
         private static string? GetWorksheetPrintArea(ExcelSheet? workbookSheet, ExcelPdfExportOptions options) =>
-            options.UseWorksheetPrintAreas && workbookSheet != null ? workbookSheet.GetPrintArea() : null;
+            options.UseWorksheetPrintAreas && workbookSheet != null ? workbookSheet.PageSetup.PrintArea : null;
 
         private static SheetExportData ReadSheetExportData(ExcelDocument document, ExcelSheetReader sheet, ExcelSheet? workbookSheet, string exportRange, ExcelPdfExportOptions options, PdfCore.PdfStandardFont defaultFontFamily) {
             string normalizedRange = NormalizeA1Range(exportRange);
@@ -104,7 +104,7 @@ namespace OfficeIMO.Excel.Pdf {
                 return CreateSheetExportData(metadataSheet, values, styles, hyperlinks, cellReferences, mergedCells, columnWidths, rowHeights, headerRows, rangeFirstRow, structuredTables, options);
             }
 
-            ExcelPrintTitles titles = metadataSheet.GetPrintTitles();
+            ExcelPrintTitles titles = metadataSheet.PageSetup.PrintTitles;
             if (!titles.HasRows) {
                 return CreateSheetExportData(metadataSheet, values, styles, hyperlinks, cellReferences, mergedCells, columnWidths, rowHeights, headerRows, rangeFirstRow, structuredTables, options);
             }

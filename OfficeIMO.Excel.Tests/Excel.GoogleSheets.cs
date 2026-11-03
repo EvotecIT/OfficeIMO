@@ -93,13 +93,11 @@ namespace OfficeIMO.Tests {
                         ["Name"] = ExcelTableTotalsFunction.Count,
                         ["Column2"] = ExcelTableTotalsFunction.Sum,
                     });
-                    summary.AddAutoFilter("D1:G4", new Dictionary<uint, IEnumerable<string>> {
-                        { 0, new[] { "Open" } }
-                    });
-                    summary.AutoFilterByHeaderContains("Region", "or");
-                    summary.AutoFilterByHeaderGreaterThanOrEqual("Score", 15d);
-                    summary.AutoFilterByHeaderBetween("Budget", 10d, 20d);
-                    summary.Freeze(topRows: 1, leftCols: 1);
+                    summary.Range("D1:G4").AutoFilter().Column(0).Equals(new[] { "Open" });
+                    summary.Range("D1:G4").AutoFilter().Column("Region").Contains("or");
+                    summary.Range("D1:G4").AutoFilter().Column("Score").GreaterThanOrEqual(15d);
+                    summary.Range("D1:G4").AutoFilter().Column("Budget").Between(10d, 20d);
+                    summary.View.Freeze(topRows: 1, leftColumns: 1);
                     summary.Protect(new ExcelSheetProtectionOptions {
                         AllowSelectLockedCells = false,
                         AllowSelectUnlockedCells = false,
@@ -323,13 +321,11 @@ namespace OfficeIMO.Tests {
                     });
                     summary.Cell(3, 1).SetFillColor("#D9EAD3");
                     summary.Cell(3, 2).SetFillColor("#D9EAD3");
-                    summary.AddAutoFilter("G1:J4", new Dictionary<uint, IEnumerable<string>> {
-                        { 0, new[] { "Open" } }
-                    });
-                    summary.AutoFilterByHeaderContains("Region", "or");
-                    summary.AutoFilterByHeaderGreaterThanOrEqual("Score", 15d);
-                    summary.AutoFilterByHeaderBetween("Budget", 10d, 20d);
-                    summary.Freeze(topRows: 1, leftCols: 1);
+                    summary.Range("G1:J4").AutoFilter().Column(0).Equals(new[] { "Open" });
+                    summary.Range("G1:J4").AutoFilter().Column("Region").Contains("or");
+                    summary.Range("G1:J4").AutoFilter().Column("Score").GreaterThanOrEqual(15d);
+                    summary.Range("G1:J4").AutoFilter().Column("Budget").Between(10d, 20d);
+                    summary.View.Freeze(topRows: 1, leftColumns: 1);
                     summary.Protect(new ExcelSheetProtectionOptions {
                         AllowSelectLockedCells = false,
                         AllowSelectUnlockedCells = false,
@@ -478,7 +474,7 @@ namespace OfficeIMO.Tests {
                 using var document = ExcelDocument.Create(filePath);
                 var sheet = document.AddSheet("Data");
                 sheet.Cell(1, 1).SetValue("Value");
-                document.SetPrintArea(sheet, "A1:A5", save: false);
+                sheet.PageSetup.PrintArea = "A1:A5";
 
                 var batch = document.BuildGoogleSheetsBatch();
 
@@ -520,12 +516,12 @@ namespace OfficeIMO.Tests {
                     data.Cell(4, 4).SetValue("done");
                     data.Cell(4, 5).SetValue(15d);
 
-                    data.AddAutoFilter("A1:E4");
-                    data.AutoFilterByHeaderStartsWith("Prefix", "Op");
-                    data.AutoFilterByHeaderEndsWith("Suffix", "Ops");
-                    data.AutoFilterByHeaderNotBetween("Variance", 10d, 20d);
-                    data.AutoFilterByHeaderDoesNotContain("Notes", "view");
-                    data.AutoFilterByHeaderNotEqual("Delta", 10d);
+                    data.Range("A1:E4").AutoFilter();
+                    data.Range("A1:E4").AutoFilter().Column("Prefix").BeginsWith("Op");
+                    data.Range("A1:E4").AutoFilter().Column("Suffix").EndsWith("Ops");
+                    data.Range("A1:E4").AutoFilter().Column("Variance").NotBetween(10d, 20d);
+                    data.Range("A1:E4").AutoFilter().Column("Notes").DoesNotContain("view");
+                    data.Range("A1:E4").AutoFilter().Column("Delta").NotEqual(10d);
 
                     document.Save();
                 }
@@ -676,7 +672,7 @@ namespace OfficeIMO.Tests {
                     summary.Cell(3, 2).SetValue("Closed");
 
                     summary.AddTable("A1:B3", hasHeader: true, name: "StatusTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
-                    summary.ValidationList("B2:B3", new[] { "Open", "Closed", "Pending" });
+                    summary.Range("B2:B3").Validation().List(new[] { "Open", "Closed", "Pending" });
 
                     document.Save();
                 }
@@ -740,7 +736,7 @@ namespace OfficeIMO.Tests {
                     summary.Cell(3, 2).SetValue("Closed");
 
                     summary.AddTable("A1:B3", hasHeader: true, name: "StatusTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
-                    summary.ValidationListNamedRange("B2:B3", "StatusOptions");
+                    summary.Range("B2:B3").Validation().ListNamedRange("StatusOptions");
 
                     document.Save();
                 }
@@ -798,7 +794,7 @@ namespace OfficeIMO.Tests {
                     summary.Cell(3, 2).SetValue("Closed");
 
                     summary.AddTable("A1:B3", hasHeader: true, name: "StatusTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
-                    summary.ValidationListRange("B2:B3", "A1:A3", "Options");
+                    summary.Range("B2:B3").Validation().ListRange("A1:A3", "Options");
 
                     document.Save();
                 }
@@ -855,7 +851,7 @@ namespace OfficeIMO.Tests {
                     summary.Cell(4, 4).SetValue("Pending");
 
                     summary.AddTable("A1:B3", hasHeader: true, name: "StatusTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
-                    summary.ValidationListRange("B2:B3", "D2:D4");
+                    summary.Range("B2:B3").Validation().ListRange("D2:D4");
 
                     document.Save();
                 }
@@ -907,8 +903,8 @@ namespace OfficeIMO.Tests {
                     data.Cell(2, 2).SetValue(5.75);
                     data.Cell(3, 2).SetValue(7.25);
 
-                    data.ValidationWholeNumber("A2:A3", ExcelDataValidationOperator.Between, 1, 10);
-                    data.ValidationDecimal("B2:B3", ExcelDataValidationOperator.GreaterThanOrEqual, 5.5);
+                    data.Range("A2:A3").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 10);
+                    data.Range("B2:B3").Validation().Decimal(ExcelDataValidationOperator.GreaterThanOrEqual, 5.5);
 
                     document.Save();
                 }
@@ -987,7 +983,7 @@ namespace OfficeIMO.Tests {
                     data.Cell(2, 1).SetValue(minimumDate);
                     data.Cell(3, 1).SetValue(new DateTime(2024, 6, 15));
 
-                    data.ValidationDate("A2:A3", ExcelDataValidationOperator.Between, minimumDate, maximumDate);
+                    data.Range("A2:A3").Validation().Date(ExcelDataValidationOperator.Between, minimumDate, maximumDate);
 
                     document.Save();
                 }
@@ -1048,7 +1044,7 @@ namespace OfficeIMO.Tests {
                     data.Cell(2, 1).SetValue("ABCD");
                     data.Cell(3, 1).SetValue("WXYZ");
 
-                    data.ValidationTextLength("A2:A3", ExcelDataValidationOperator.Equal, 4);
+                    data.Range("A2:A3").Validation().TextLength(ExcelDataValidationOperator.Equal, 4);
 
                     document.Save();
                 }
@@ -1108,7 +1104,7 @@ namespace OfficeIMO.Tests {
 
                     data.Cell(1, 1).SetValue("Quantity");
                     data.Cell(2, 1).SetValue(2);
-                    data.ValidationWholeNumber("A2:A2000", ExcelDataValidationOperator.Between, 1, 10);
+                    data.Range("A2:A2000").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 10);
 
                     document.Save();
                 }
@@ -1163,7 +1159,7 @@ namespace OfficeIMO.Tests {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var data = document.AddSheet("Data");
                     data.Cell(1, 1).SetValue("Quantity");
-                    data.ValidationWholeNumber("A1:A1048576", ExcelDataValidationOperator.Between, 1, 10);
+                    data.Range("A1:A1048576").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 10);
                     document.Save();
                 }
 
@@ -1183,8 +1179,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet first = document.AddSheet("First");
             ExcelSheet second = document.AddSheet("Second");
-            first.ValidationWholeNumber("A1:ALM5000", ExcelDataValidationOperator.Between, 1, 10);
-            second.ValidationWholeNumber("A1:ALM5000", ExcelDataValidationOperator.Between, 1, 10);
+            first.Range("A1:ALM5000").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 10);
+            second.Range("A1:ALM5000").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 10);
 
             NotSupportedException exception = Assert.Throws<NotSupportedException>(
                 () => document.BuildGoogleSheetsBatch());
@@ -1203,7 +1199,7 @@ namespace OfficeIMO.Tests {
 
                     data.Cell(1, 1).SetValue("Status");
                     data.Cell(2, 1).SetValue("Open");
-                    data.ValidationList("A2:A4", new[] { "Open", "Closed", "Pending" });
+                    data.Range("A2:A4").Validation().List(new[] { "Open", "Closed", "Pending" });
 
                     document.Save();
                 }
@@ -1288,13 +1284,11 @@ namespace OfficeIMO.Tests {
                     });
                     summary.Cell(3, 1).SetFillColor("#D9EAD3");
                     summary.Cell(3, 2).SetFillColor("#D9EAD3");
-                    summary.AddAutoFilter("G1:J4", new Dictionary<uint, IEnumerable<string>> {
-                        { 0, new[] { "Open" } }
-                    });
-                    summary.AutoFilterByHeaderContains("Region", "or");
-                    summary.AutoFilterByHeaderGreaterThanOrEqual("Score", 15d);
-                    summary.AutoFilterByHeaderBetween("Budget", 10d, 20d);
-                    summary.Freeze(topRows: 1, leftCols: 1);
+                    summary.Range("G1:J4").AutoFilter().Column(0).Equals(new[] { "Open" });
+                    summary.Range("G1:J4").AutoFilter().Column("Region").Contains("or");
+                    summary.Range("G1:J4").AutoFilter().Column("Score").GreaterThanOrEqual(15d);
+                    summary.Range("G1:J4").AutoFilter().Column("Budget").Between(10d, 20d);
+                    summary.View.Freeze(topRows: 1, leftColumns: 1);
                     summary.Protect(new ExcelSheetProtectionOptions {
                         AllowSelectLockedCells = false,
                         AllowSelectUnlockedCells = false,

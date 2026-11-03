@@ -598,7 +598,7 @@ namespace OfficeIMO.Tests {
                 source.Cell(2, 3).SetValue("Ada");
                 source.Cell(2, 4).SetValue(10);
                 source.AddTable("C1:D2", hasHeader: true, name: "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
-                source.ValidationCustomFormula("B2", "COUNTIF(People[Name],B2)>0");
+                source.Range("B2").Validation().CustomFormula("COUNTIF(People[Name],B2)>0");
                 source.Cell(3, 1).SetFormula("ROWS(People)");
                 source.Cell(4, 1).SetFormula("'People'!A1+ROWS(People)");
                 source.Cell(5, 1).SetFormula("SUM(Sales[People])+ROWS(People)");

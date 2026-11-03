@@ -931,71 +931,6 @@ OfficeIMO.Excel.ExcelCustomPropertyType.NumberDouble = 2 -> OfficeIMO.Excel.Exce
 OfficeIMO.Excel.ExcelCustomPropertyType.NumberInteger = 1 -> OfficeIMO.Excel.ExcelCustomPropertyType
 OfficeIMO.Excel.ExcelCustomPropertyType.Text = 0 -> OfficeIMO.Excel.ExcelCustomPropertyType
 OfficeIMO.Excel.ExcelCustomPropertyType.YesNo = 3 -> OfficeIMO.Excel.ExcelCustomPropertyType
-OfficeIMO.Excel.ExcelDashboardChartOptions
-OfficeIMO.Excel.ExcelDashboardChartOptions.ChartType.get -> OfficeIMO.OfficeChartType?
-OfficeIMO.Excel.ExcelDashboardChartOptions.ChartType.set -> void
-OfficeIMO.Excel.ExcelDashboardChartOptions.ColorStyleId.get -> int?
-OfficeIMO.Excel.ExcelDashboardChartOptions.ColorStyleId.set -> void
-OfficeIMO.Excel.ExcelDashboardChartOptions.Column.get -> int
-OfficeIMO.Excel.ExcelDashboardChartOptions.Column.set -> void
-OfficeIMO.Excel.ExcelDashboardChartOptions.ExcelDashboardChartOptions() -> void
-OfficeIMO.Excel.ExcelDashboardChartOptions.HasHeaders.get -> bool
-OfficeIMO.Excel.ExcelDashboardChartOptions.HasHeaders.set -> void
-OfficeIMO.Excel.ExcelDashboardChartOptions.Height.get -> OfficeIMO.OfficeLength?
-OfficeIMO.Excel.ExcelDashboardChartOptions.Height.set -> void
-OfficeIMO.Excel.ExcelDashboardChartOptions.IncludeCachedData.get -> bool
-OfficeIMO.Excel.ExcelDashboardChartOptions.IncludeCachedData.set -> void
-OfficeIMO.Excel.ExcelDashboardChartOptions.Preset.get -> OfficeIMO.Excel.ExcelDashboardChartPreset
-OfficeIMO.Excel.ExcelDashboardChartOptions.Preset.set -> void
-OfficeIMO.Excel.ExcelDashboardChartOptions.Range.get -> string?
-OfficeIMO.Excel.ExcelDashboardChartOptions.Range.set -> void
-OfficeIMO.Excel.ExcelDashboardChartOptions.Row.get -> int
-OfficeIMO.Excel.ExcelDashboardChartOptions.Row.set -> void
-OfficeIMO.Excel.ExcelDashboardChartOptions.StyleId.get -> int?
-OfficeIMO.Excel.ExcelDashboardChartOptions.StyleId.set -> void
-OfficeIMO.Excel.ExcelDashboardChartOptions.TableName.get -> string?
-OfficeIMO.Excel.ExcelDashboardChartOptions.TableName.set -> void
-OfficeIMO.Excel.ExcelDashboardChartOptions.Title.get -> string?
-OfficeIMO.Excel.ExcelDashboardChartOptions.Title.set -> void
-OfficeIMO.Excel.ExcelDashboardChartOptions.Width.get -> OfficeIMO.OfficeLength?
-OfficeIMO.Excel.ExcelDashboardChartOptions.Width.set -> void
-OfficeIMO.Excel.ExcelDashboardChartPreset
-OfficeIMO.Excel.ExcelDashboardChartPreset.CompactComparison = 3 -> OfficeIMO.Excel.ExcelDashboardChartPreset
-OfficeIMO.Excel.ExcelDashboardChartPreset.Comparison = 0 -> OfficeIMO.Excel.ExcelDashboardChartPreset
-OfficeIMO.Excel.ExcelDashboardChartPreset.Contribution = 2 -> OfficeIMO.Excel.ExcelDashboardChartPreset
-OfficeIMO.Excel.ExcelDashboardChartPreset.Trend = 1 -> OfficeIMO.Excel.ExcelDashboardChartPreset
-OfficeIMO.Excel.ExcelDashboardOptions
-OfficeIMO.Excel.ExcelDashboardOptions.AddChart.get -> bool
-OfficeIMO.Excel.ExcelDashboardOptions.AddChart.set -> void
-OfficeIMO.Excel.ExcelDashboardOptions.AutoFit.get -> bool
-OfficeIMO.Excel.ExcelDashboardOptions.AutoFit.set -> void
-OfficeIMO.Excel.ExcelDashboardOptions.ChartColumn.get -> int?
-OfficeIMO.Excel.ExcelDashboardOptions.ChartColumn.set -> void
-OfficeIMO.Excel.ExcelDashboardOptions.ChartPreset.get -> OfficeIMO.Excel.ExcelDashboardChartPreset
-OfficeIMO.Excel.ExcelDashboardOptions.ChartPreset.set -> void
-OfficeIMO.Excel.ExcelDashboardOptions.ChartRow.get -> int?
-OfficeIMO.Excel.ExcelDashboardOptions.ChartRow.set -> void
-OfficeIMO.Excel.ExcelDashboardOptions.ChartTitle.get -> string?
-OfficeIMO.Excel.ExcelDashboardOptions.ChartTitle.set -> void
-OfficeIMO.Excel.ExcelDashboardOptions.ExcelDashboardOptions() -> void
-OfficeIMO.Excel.ExcelDashboardOptions.IncludeAutoFilter.get -> bool
-OfficeIMO.Excel.ExcelDashboardOptions.IncludeAutoFilter.set -> void
-OfficeIMO.Excel.ExcelDashboardOptions.Subtitle.get -> string?
-OfficeIMO.Excel.ExcelDashboardOptions.Subtitle.set -> void
-OfficeIMO.Excel.ExcelDashboardOptions.TableColumn.get -> int
-OfficeIMO.Excel.ExcelDashboardOptions.TableColumn.set -> void
-OfficeIMO.Excel.ExcelDashboardOptions.TableName.get -> string?
-OfficeIMO.Excel.ExcelDashboardOptions.TableName.set -> void
-OfficeIMO.Excel.ExcelDashboardOptions.TableRow.get -> int
-OfficeIMO.Excel.ExcelDashboardOptions.TableRow.set -> void
-OfficeIMO.Excel.ExcelDashboardOptions.TableStyle.get -> OfficeIMO.Excel.ExcelTableStyle
-OfficeIMO.Excel.ExcelDashboardOptions.TableStyle.set -> void
-OfficeIMO.Excel.ExcelDashboardOptions.Title.get -> string?
-OfficeIMO.Excel.ExcelDashboardOptions.Title.set -> void
-OfficeIMO.Excel.ExcelDashboardResult
-OfficeIMO.Excel.ExcelDashboardResult.Chart.get -> OfficeIMO.Excel.ExcelChart?
-OfficeIMO.Excel.ExcelDashboardResult.TableName.get -> string?
-OfficeIMO.Excel.ExcelDashboardResult.TableRange.get -> string!
 OfficeIMO.Excel.ExcelDataModelReport
 OfficeIMO.Excel.ExcelDataModelReport.ConnectionPartCount.get -> int
 OfficeIMO.Excel.ExcelDataModelReport.Details.get -> System.Collections.Generic.IReadOnlyList<string!>!
@@ -1287,8 +1222,6 @@ OfficeIMO.Excel.ExcelDocument.SetActiveWorksheet(string! sheetName) -> void
 OfficeIMO.Excel.ExcelDocument.SetCustomDocumentProperty(string! name, OfficeIMO.Excel.ExcelCustomProperty! property) -> void
 OfficeIMO.Excel.ExcelDocument.SetCustomDocumentProperty(string! name, object? value) -> void
 OfficeIMO.Excel.ExcelDocument.SetNamedRange(string! name, string! range, OfficeIMO.Excel.ExcelSheet? scope = null, bool save = true, bool hidden = false, OfficeIMO.Excel.ExcelDefinedNameValidationMode validationMode = OfficeIMO.Excel.ExcelDefinedNameValidationMode.Sanitize) -> void
-OfficeIMO.Excel.ExcelDocument.SetPrintArea(OfficeIMO.Excel.ExcelSheet! sheet, string! range, bool save = true) -> void
-OfficeIMO.Excel.ExcelDocument.SetPrintTitles(OfficeIMO.Excel.ExcelSheet! sheet, int? firstRow, int? lastRow, int? firstCol, int? lastCol, bool save = true) -> void
 OfficeIMO.Excel.ExcelDocument.SetRefreshOnOpen(bool enabled = true, bool pivotTables = true, bool connections = true, bool? savePivotSourceData = null) -> OfficeIMO.Excel.ExcelRefreshOnOpenResult!
 OfficeIMO.Excel.ExcelDocument.SetVbaProject(OfficeIMO.OfficeVbaProject! project, OfficeIMO.OfficeVbaWriteOptions? options = null) -> void
 OfficeIMO.Excel.ExcelDocument.SetWorkbookThemeName(string! name) -> OfficeIMO.Excel.ExcelDocument!
@@ -2508,33 +2441,19 @@ OfficeIMO.Excel.ExcelQueryRefreshResult.RowCount.get -> int
 OfficeIMO.Excel.ExcelQueryRefreshResult.Source.get -> OfficeIMO.Excel.ExcelQueryBackedTableInfo!
 OfficeIMO.Excel.ExcelRange
 OfficeIMO.Excel.ExcelRange.Address.get -> string!
-OfficeIMO.Excel.ExcelRange.ApplyAutoFilter(System.Collections.Generic.Dictionary<uint, System.Collections.Generic.IEnumerable<string!>!>? filterCriteria = null) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.Clear(OfficeIMO.Excel.ExcelClearOptions options = OfficeIMO.Excel.ExcelClearOptions.All) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRange.ClearAutoFilter() -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRange.ConditionalFormat.get -> OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder!
-OfficeIMO.Excel.ExcelRange.ConditionalFormatting.get -> OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder!
 OfficeIMO.Excel.ExcelRange.CopyTo(string! destinationTopLeft, OfficeIMO.Excel.ExcelMutationPlanOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Excel.ExcelMutationResult!
 OfficeIMO.Excel.ExcelRange.CreateTable(string! name, bool hasHeader = true, OfficeIMO.Excel.ExcelTableStyle style = OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, bool includeAutoFilter = true) -> OfficeIMO.Excel.ExcelTable!
 OfficeIMO.Excel.ExcelRange.CreateVisualSnapshot(OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> OfficeIMO.Excel.ExcelRangeVisualInfo!
-OfficeIMO.Excel.ExcelRange.Currency(int decimals = 2, System.Globalization.CultureInfo? culture = null) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRange.Date(string! pattern = "yyyy-mm-dd") -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRange.DateTime(string! pattern = "yyyy-mm-dd hh:mm:ss") -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.Delete(OfficeIMO.Excel.ExcelCellShiftDirection direction, OfficeIMO.Excel.ExcelMutationPlanOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Excel.ExcelMutationResult!
-OfficeIMO.Excel.ExcelRange.DurationHours() -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRange.Error() -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat format, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Drawing.OfficeImageExportResult!
 OfficeIMO.Excel.ExcelRange.FirstColumn.get -> int
 OfficeIMO.Excel.ExcelRange.FirstRow.get -> int
-OfficeIMO.Excel.ExcelRange.HeaderStyle() -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.Insert(OfficeIMO.Excel.ExcelCellShiftDirection direction, OfficeIMO.Excel.ExcelMutationPlanOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Excel.ExcelMutationResult!
-OfficeIMO.Excel.ExcelRange.Integer() -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.LastColumn.get -> int
 OfficeIMO.Excel.ExcelRange.LastRow.get -> int
 OfficeIMO.Excel.ExcelRange.Merge() -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.MoveTo(string! destinationTopLeft, OfficeIMO.Excel.ExcelMutationPlanOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Excel.ExcelMutationResult!
-OfficeIMO.Excel.ExcelRange.MutedText() -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRange.Number(int decimals = 2) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRange.Percent(int decimals = 0) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.SaveAsImage(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
 OfficeIMO.Excel.ExcelRange.SaveAsImage(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
 OfficeIMO.Excel.ExcelRange.SaveAsImageAsync(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
@@ -2559,18 +2478,12 @@ OfficeIMO.Excel.ExcelRange.SetValues(object?[,]! values) -> OfficeIMO.Excel.Exce
 OfficeIMO.Excel.ExcelRange.SetVerticalTextAlignment(OfficeIMO.Excel.ExcelVerticalTextAlignment alignment) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.Sheet.get -> OfficeIMO.Excel.ExcelSheet!
 OfficeIMO.Excel.ExcelRange.SortByColumn(int columnOffset, bool ascending = true, bool hasHeader = true) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRange.Success() -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRange.Text() -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRange.Time() -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.ToImage(OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> byte[]!
 OfficeIMO.Excel.ExcelRange.ToImage(OfficeIMO.Excel.ExcelImageExportOptions? options, out OfficeIMO.OfficeConversionReport! report, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> byte[]!
 OfficeIMO.Excel.ExcelRange.ToImageAsync(OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionResult<byte[]!>!>!
 OfficeIMO.Excel.ExcelRange.TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.TransposeTo(string! destinationTopLeft, OfficeIMO.Excel.ExcelMutationPlanOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Excel.ExcelMutationResult!
 OfficeIMO.Excel.ExcelRange.Unmerge() -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRange.Validate.get -> OfficeIMO.Excel.ExcelRangeDataValidationBuilder!
-OfficeIMO.Excel.ExcelRange.Validation.get -> OfficeIMO.Excel.ExcelRangeDataValidationBuilder!
-OfficeIMO.Excel.ExcelRange.Warning() -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRangeCompareOptions
 OfficeIMO.Excel.ExcelRangeCompareOptions.ExcelRangeCompareOptions() -> void
 OfficeIMO.Excel.ExcelRangeCompareOptions.IgnoreCase.get -> bool
@@ -2580,71 +2493,17 @@ OfficeIMO.Excel.ExcelRangeCompareOptions.TreatNullAndEmptyStringAsEqual.set -> v
 OfficeIMO.Excel.ExcelRangeCompareOptions.TrimStrings.get -> bool
 OfficeIMO.Excel.ExcelRangeCompareOptions.TrimStrings.set -> void
 OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.AboveAverage() -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.AboveAverage(bool equalAverage = false, uint? standardDeviation = null) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.AboveAverage(string? fillColor, bool equalAverage = false) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.BeginsWith(string! text) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.BeginsWithText(string! text) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.BeginsWithText(string! text, string? fillColor) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.BelowAverage() -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.BelowAverage(bool equalAverage = false, uint? standardDeviation = null) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.BelowAverage(string? fillColor, bool equalAverage = false) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.Between(string! formula1, string! formula2) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.Between(string! formula1, string! formula2, string? fillColor) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.Blanks() -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.Bottom(uint rank, bool percent = false) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.Bottom(uint rank, string? fillColor, bool percent = false) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.CellIs(OfficeIMO.Excel.ExcelConditionalFormattingOperator operator, string! formula1) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.CellIs(OfficeIMO.Excel.ExcelConditionalFormattingOperator operator, string! formula1, string? formula2 = null, string? fillColor = null) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.CellIs(OfficeIMO.Excel.ExcelConditionalFormattingOperator operator, string! formula1, string? formula2) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.Clear() -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.ColorScale(OfficeIMO.OfficeColor startColor, OfficeIMO.OfficeColor endColor) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.ColorScale(string! startColor, string! endColor) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.ContainsText(string! text) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.ContainsText(string! text, string? fillColor) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.DataBar(OfficeIMO.OfficeColor color) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.DataBar(string! color) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.DuplicateValues() -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.DuplicateValues(string? fillColor) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.EndsWith(string! text) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.EndsWithText(string! text) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.EndsWithText(string! text, string? fillColor) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.Errors() -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.Formula(string! formula) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.Formula(string! formula, bool stopIfTrue = false, string? fillColor = null) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.Formula(string! formula, bool stopIfTrue) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.GreaterThan(string! formula) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.GreaterThan(string! formula, string? fillColor) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.IconSet() -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.IconSet(OfficeIMO.Excel.ExcelIconSet iconSet, bool showValue = true, bool reverseIconOrder = false, double[]? percentThresholds = null, double[]? numberThresholds = null) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.LessThan(string! formula) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.LessThan(string! formula, string? fillColor) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.NonBlanks() -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.NonErrors() -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.NotContainsText(string! text) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.NotContainsText(string! text, string? fillColor) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.TimePeriod(OfficeIMO.Excel.ExcelConditionalTimePeriod timePeriod) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.TimePeriod(OfficeIMO.Excel.ExcelConditionalTimePeriod timePeriod, string! fillColor) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.Top(uint rank, bool percent = false) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.Top(uint rank, string? fillColor, bool percent = false) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.UniqueValues() -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.UniqueValues(string? fillColor) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRangeDataValidationBuilder
-OfficeIMO.Excel.ExcelRangeDataValidationBuilder.Clear() -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRangeDataValidationBuilder.CustomFormula(string! formula, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRangeDataValidationBuilder.Date(OfficeIMO.Excel.ExcelDataValidationOperator operator, System.DateTime formula1, System.DateTime? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeDataValidationBuilder.DateBetween(System.DateTime minimum, System.DateTime maximum, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRangeDataValidationBuilder.Decimal(OfficeIMO.Excel.ExcelDataValidationOperator operator, double formula1, double? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeDataValidationBuilder.DecimalBetween(double minimum, double maximum, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRangeDataValidationBuilder.List(System.Collections.Generic.IEnumerable<string!>! items, bool allowBlank = true) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRangeDataValidationBuilder.List(params string![]! items) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRangeDataValidationBuilder.ListNamedRange(string! namedRange, bool allowBlank = true) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRangeDataValidationBuilder.ListRange(string! sourceA1Range, string? sourceSheetName = null, bool allowBlank = true) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeDataValidationBuilder.Messages(OfficeIMO.Excel.ExcelDataValidationMessageOptions! options) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRangeDataValidationBuilder.TextLength(OfficeIMO.Excel.ExcelDataValidationOperator operator, int formula1, int? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRangeDataValidationBuilder.Time(OfficeIMO.Excel.ExcelDataValidationOperator operator, System.TimeSpan formula1, System.TimeSpan? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRangeDataValidationBuilder.WholeNumber(OfficeIMO.Excel.ExcelDataValidationOperator operator, int formula1, int? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRangeDataValidationBuilder.WholeNumberBetween(int minimum, int maximum, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRangeDifference
 OfficeIMO.Excel.ExcelRangeDifference.ExcelRangeDifference(OfficeIMO.Excel.ExcelRangeDifferenceKind kind, int leftRow, int leftColumn, int rightRow, int rightColumn, string! leftCell, string! rightCell, object? leftValue, object? rightValue) -> void
 OfficeIMO.Excel.ExcelRangeDifference.Kind.get -> OfficeIMO.Excel.ExcelRangeDifferenceKind
@@ -2981,7 +2840,6 @@ OfficeIMO.Excel.ExcelSaveOptions.ValidateOpenXml.set -> void
 OfficeIMO.Excel.ExcelSaveOptions.XlsbUseSharedStrings.get -> bool?
 OfficeIMO.Excel.ExcelSaveOptions.XlsbUseSharedStrings.set -> void
 OfficeIMO.Excel.ExcelSheet
-OfficeIMO.Excel.ExcelSheet.AddAutoFilter(string! range, System.Collections.Generic.Dictionary<uint, System.Collections.Generic.IEnumerable<string!>!>? filterCriteria = null) -> OfficeIMO.Excel.ExcelAutoFilter!
 OfficeIMO.Excel.ExcelSheet.AddBubbleChartFromRanges(System.Collections.Generic.IEnumerable<OfficeIMO.Excel.ExcelChartSeriesRange!>! seriesRanges, int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string? title = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddChart(OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddChart(OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data, OfficeIMO.OfficeChartOptions? options) -> OfficeIMO.Excel.ExcelChart!
@@ -2992,41 +2850,7 @@ OfficeIMO.Excel.ExcelSheet.AddChart<T, TCategory>(OfficeIMO.OfficeChartType type
 OfficeIMO.Excel.ExcelSheet.AddChart<T, TCategory>(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<T>! data, System.Func<T, TCategory>! category, params OfficeIMO.OfficeSeries![]! series) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddChart<T>(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<T>! data, string! category, OfficeIMO.OfficeChartOptions? options, params string![]! series) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddChart<T>(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<T>! data, string! category, params string![]! series) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddConditionalAboveAverageRule(string! range, bool aboveAverage = true, bool equalAverage = false, uint? standardDeviation = null, bool stopIfTrue = false, string? fillColor = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalBeginsWithTextRule(string! range, string! text, string? fillColor = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalBlanksRule(string! range, bool containsBlanks = true, bool stopIfTrue = false) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalColorScale(string! range, OfficeIMO.OfficeColor startColor, OfficeIMO.OfficeColor endColor) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalColorScale(string! range, string! startColor, string! endColor) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalContainsTextRule(string! range, string! text, string? fillColor = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalDataBar(string! range, OfficeIMO.OfficeColor color) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalDataBar(string! range, string! color) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalDuplicateValuesRule(string! range) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalDuplicateValuesRule(string! range, string? fillColor) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalEndsWithTextRule(string! range, string! text, string? fillColor = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalErrorsRule(string! range, bool containsErrors = true, bool stopIfTrue = false) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
 OfficeIMO.Excel.ExcelSheet.AddConditionalFormattingRule(OfficeIMO.Excel.ExcelConditionalFormattingInfo! definition) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(string! range, string! formula) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(string! range, string! formula, bool stopIfTrue = false, string? fillColor = null, int? priority = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(string! range, string! formula, bool stopIfTrue) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalFormulaRule(string! range, string! formula, bool stopIfTrue, int? priority) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalIconSet(string! range) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalIconSet(string! range, OfficeIMO.Excel.ExcelIconSet iconSet, bool showValue, bool reverseIconOrder) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalIconSet(string! range, OfficeIMO.Excel.ExcelIconSet iconSet, bool showValue, bool reverseIconOrder, double[]? percentThresholds, double[]? numberThresholds) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalNotContainsTextRule(string! range, string! text, string? fillColor = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalRule(string! range, OfficeIMO.Excel.ExcelConditionalFormattingOperator operator, string! formula1) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalRule(string! range, OfficeIMO.Excel.ExcelConditionalFormattingOperator operator, string! formula1, string? formula2 = null, string? fillColor = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalRule(string! range, OfficeIMO.Excel.ExcelConditionalFormattingOperator operator, string! formula1, string? formula2) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalRule(string! range, OfficeIMO.Excel.ExcelConditionalFormattingOperator operator, string! formula1, string? formula2, bool stopIfTrue, int? priority = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalRule(string! range, OfficeIMO.Excel.ExcelConditionalFormattingOperator operator, string! formula1, string? formula2, string? fillColor, bool stopIfTrue = false, int? priority = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalTextRule(string! range, OfficeIMO.Excel.ExcelConditionalFormatType type, string! text, bool stopIfTrue = false) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalTimePeriodRule(string! range, OfficeIMO.Excel.ExcelConditionalTimePeriod timePeriod, bool stopIfTrue = false, string? fillColor = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalTopBottomRule(string! range, uint rank, bool bottom = false, bool percent = false) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalTopBottomRule(string! range, uint rank, bool bottom, bool percent, string? fillColor) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalUniqueValuesRule(string! range) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddConditionalUniqueValuesRule(string! range, string? fillColor) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddContributionChart(string! dataRangeA1, int row, int column, string! title = "Contribution", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddDashboard(System.Data.DataTable! data, OfficeIMO.Excel.ExcelDashboardOptions? options = null) -> OfficeIMO.Excel.ExcelDashboardResult!
-OfficeIMO.Excel.ExcelSheet.AddDashboardChart(OfficeIMO.Excel.ExcelDashboardChartOptions! options) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddFunnelChart(System.Collections.Generic.IEnumerable<string!>! categories, System.Collections.Generic.IEnumerable<double>! values, int row, int column, string! title = "Funnel", bool sortDescending = true, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddHistogramChart(System.Collections.Generic.IEnumerable<double>! values, int row, int column, string! title = "Histogram", int? binCount = null, double? binWidth = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddIgnoredErrorRegion(System.Collections.Generic.IEnumerable<string!>! ranges, OfficeIMO.Excel.ExcelIgnoredErrorKind errors) -> OfficeIMO.Excel.ExcelIgnoredErrorRegionInfo!
@@ -3048,24 +2872,16 @@ OfficeIMO.Excel.ExcelSheet.AddImageAsync(int row, int column, string! path, Offi
 OfficeIMO.Excel.ExcelSheet.AddImageAsync(string! cellOrRange, System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
 OfficeIMO.Excel.ExcelSheet.AddImageAsync(string! cellOrRange, System.Uri! uri, OfficeIMO.Excel.ExcelImageOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
 OfficeIMO.Excel.ExcelSheet.AddImageAsync(string! cellOrRange, string! path, OfficeIMO.Excel.ExcelImageOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
-OfficeIMO.Excel.ExcelSheet.AddKpiScorecardChart(string! dataRangeA1, int row, int column, string! title = "KPI Scorecard", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddManualColumnPageBreak(int column, bool save = true) -> OfficeIMO.Excel.ExcelPageBreak!
 OfficeIMO.Excel.ExcelSheet.AddManualRowPageBreak(int row, bool save = true) -> OfficeIMO.Excel.ExcelPageBreak!
 OfficeIMO.Excel.ExcelSheet.AddModernChart(OfficeIMO.Excel.ExcelChartData! data, int row, int column, OfficeIMO.Excel.ExcelModernChartType chartType, string? title = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Excel.ExcelModernChart!
 OfficeIMO.Excel.ExcelSheet.AddParetoChart(System.Collections.Generic.IEnumerable<string!>! categories, System.Collections.Generic.IEnumerable<double>! values, int row, int column, string! title = "Pareto", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddPivotChartFromRange(string! pivotTableName, string! dataRangeA1, int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.OfficeChartType type = OfficeIMO.OfficeChartType.Column, bool hasHeaders = true, string? title = null, bool includeCachedData = true, uint formatId = 0) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddPivotConditionalColorScale(string! pivotTableName, string! startColor, string! endColor, OfficeIMO.Excel.ExcelPivotRangeTarget target = OfficeIMO.Excel.ExcelPivotRangeTarget.DataBody) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddPivotConditionalDataBar(string! pivotTableName, string! color, OfficeIMO.Excel.ExcelPivotRangeTarget target = OfficeIMO.Excel.ExcelPivotRangeTarget.DataBody) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddPivotConditionalIconSet(string! pivotTableName, OfficeIMO.Excel.ExcelIconSet iconSet, bool showValue, bool reverseIconOrder, double[]? percentThresholds = null, double[]? numberThresholds = null, OfficeIMO.Excel.ExcelPivotRangeTarget target = OfficeIMO.Excel.ExcelPivotRangeTarget.DataBody) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddPivotConditionalRule(string! pivotTableName, OfficeIMO.Excel.ExcelConditionalFormattingOperator operator, string! formula1, string? formula2 = null, OfficeIMO.Excel.ExcelPivotRangeTarget target = OfficeIMO.Excel.ExcelPivotRangeTarget.DataBody) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
 OfficeIMO.Excel.ExcelSheet.AddPivotManualGrouping(string! pivotTableName, string! sourceFieldName, string! groupFieldName, System.Collections.Generic.IReadOnlyDictionary<string!, string![]!>! groups, System.Collections.Generic.IReadOnlyCollection<string!>? hiddenGroupItems = null) -> OfficeIMO.Excel.ExcelPivotGroupingInfo!
 OfficeIMO.Excel.ExcelSheet.AddPivotTable(string! sourceRange, string! destinationCell, OfficeIMO.Excel.ExcelPivotTableOptions? options = null) -> OfficeIMO.Excel.ExcelPivotTable!
-OfficeIMO.Excel.ExcelSheet.AddRevenueTrendChart(string! dataRangeA1, int row, int column, string! title = "Revenue Trend", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddScatterChartFromRanges(System.Collections.Generic.IEnumerable<OfficeIMO.Excel.ExcelChartSeriesRange!>! seriesRanges, int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string? title = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddSparklines(string! dataRange, string! locationRange, OfficeIMO.Excel.ExcelSparklineType type, bool displayMarkers = false, bool displayHighLow = false, bool displayFirstLast = false, bool displayNegative = false, bool displayAxis = false, OfficeIMO.OfficeColor? seriesColor = null, OfficeIMO.OfficeColor? axisColor = null, OfficeIMO.OfficeColor? negativeColor = null, OfficeIMO.OfficeColor? markersColor = null, OfficeIMO.OfficeColor? highColor = null, OfficeIMO.OfficeColor? lowColor = null, OfficeIMO.OfficeColor? firstColor = null, OfficeIMO.OfficeColor? lastColor = null) -> OfficeIMO.Excel.ExcelSparklineGroup!
 OfficeIMO.Excel.ExcelSheet.AddSparklines(string! dataRange, string! locationRange, bool displayMarkers = false, bool displayHighLow = false, bool displayFirstLast = false, bool displayNegative = false, bool displayAxis = false, OfficeIMO.OfficeColor? seriesColor = null, OfficeIMO.OfficeColor? axisColor = null, OfficeIMO.OfficeColor? negativeColor = null, OfficeIMO.OfficeColor? markersColor = null, OfficeIMO.OfficeColor? highColor = null, OfficeIMO.OfficeColor? lowColor = null, OfficeIMO.OfficeColor? firstColor = null, OfficeIMO.OfficeColor? lastColor = null) -> OfficeIMO.Excel.ExcelSparklineGroup!
-OfficeIMO.Excel.ExcelSheet.AddStatusBreakdownChart(string! dataRangeA1, int row, int column, string! title = "Status Breakdown", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddSubtotalSummary(OfficeIMO.Excel.ExcelSubtotalOptions! options) -> OfficeIMO.Excel.ExcelSubtotalResult!
 OfficeIMO.Excel.ExcelSheet.AddTable(System.Data.DataTable! data, OfficeIMO.OfficeTableOptions? options = null, int row = 1, int column = 1) -> OfficeIMO.Excel.ExcelTable!
 OfficeIMO.Excel.ExcelSheet.AddTable(string! range, bool hasHeader = true, string? name = null, OfficeIMO.Excel.ExcelTableStyle style = OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, bool includeAutoFilter = true, OfficeIMO.Excel.ExcelTableNameValidationMode validationMode = OfficeIMO.Excel.ExcelTableNameValidationMode.Sanitize) -> OfficeIMO.Excel.ExcelTable!
 OfficeIMO.Excel.ExcelSheet.AddTable<T>(System.Collections.Generic.IEnumerable<T>! rows, (string! Header, System.Func<T, object?>! Selector)[]! columns, OfficeIMO.OfficeTableOptions? options = null, int row = 1, int column = 1) -> OfficeIMO.Excel.ExcelTable!
@@ -3073,15 +2889,10 @@ OfficeIMO.Excel.ExcelSheet.AddTable<T>(System.Collections.Generic.IEnumerable<T>
 OfficeIMO.Excel.ExcelSheet.AddThreadedComment(OfficeIMO.Excel.ExcelThreadedCommentOptions! options) -> OfficeIMO.Excel.ExcelThreadedCommentResult!
 OfficeIMO.Excel.ExcelSheet.AddThreadedComment(string! address, string! text, string! author = "OfficeIMO", string? parentId = null, bool done = false) -> OfficeIMO.Excel.ExcelThreadedCommentResult!
 OfficeIMO.Excel.ExcelSheet.AddThreadedComments(System.Collections.Generic.IEnumerable<OfficeIMO.Excel.ExcelThreadedCommentOptions!>! options) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelThreadedCommentResult!>!
-OfficeIMO.Excel.ExcelSheet.AddTopNBarChart(string! dataRangeA1, int row, int column, string! title = "Top Items", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddVarianceColumnChart(string! dataRangeA1, int row, int column, string! title = "Variance", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddVarianceWaterfallChart(string! dataRangeA1, int row, int column, string! title = "Variance Bridge", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddWaterfallChart(System.Collections.Generic.IEnumerable<string!>! categories, System.Collections.Generic.IEnumerable<double>! changes, int row, int column, string! title = "Waterfall", bool includeTotal = true, string! totalLabel = "Total", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AppendDataTableToTable(System.Data.DataTable! dataTable, string! tableName, bool matchColumnsByHeader = true, OfficeIMO.Excel.ExcelExecutionMode? mode = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> string!
 OfficeIMO.Excel.ExcelSheet.ApplyColumnFormatPlan(OfficeIMO.Excel.ExcelColumnFormatPlan! plan, bool includeHeader = false, bool autoFit = false, int? headerRow = null, OfficeIMO.Excel.ExcelReaderOptions? options = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelColumnFormatResult!>!
 OfficeIMO.Excel.ExcelSheet.ApplyNamedStyle(string! name, string! range, int maximumCells = 1000000, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> void
-OfficeIMO.Excel.ExcelSheet.ApplyPrintLayout(OfficeIMO.Excel.ExcelPrintLayoutOptions! options) -> OfficeIMO.Excel.ExcelSheet!
-OfficeIMO.Excel.ExcelSheet.ApplyPrintLayoutPreset(OfficeIMO.Excel.ExcelPrintLayoutPreset preset, string? printArea = null) -> OfficeIMO.Excel.ExcelSheet!
 OfficeIMO.Excel.ExcelSheet.ApplyTemplate(System.Collections.Generic.IDictionary<string!, object?>! values, OfficeIMO.Excel.ExcelTemplateOptions! options) -> int
 OfficeIMO.Excel.ExcelSheet.ApplyTemplate(System.Collections.Generic.IDictionary<string!, object?>! values, System.IFormatProvider? provider = null, bool throwOnMissing = false) -> int
 OfficeIMO.Excel.ExcelSheet.ApplyTemplate(object! model, OfficeIMO.Excel.ExcelTemplateOptions! options) -> int
@@ -3090,21 +2901,6 @@ OfficeIMO.Excel.ExcelSheet.ApplyTemplateOptionalRows(int firstRow, int rowCount,
 OfficeIMO.Excel.ExcelSheet.ApplyTemplateOptionalRows(int firstRow, int rowCount, bool include, object! model, OfficeIMO.Excel.ExcelTemplateOptions? options = null) -> int
 OfficeIMO.Excel.ExcelSheet.ApplyTemplateRows(int templateRow, System.Collections.Generic.IEnumerable<System.Collections.Generic.IDictionary<string!, object?>!>! rows, OfficeIMO.Excel.ExcelTemplateOptions? options = null) -> int
 OfficeIMO.Excel.ExcelSheet.ApplyTemplateRows<T>(int templateRow, System.Collections.Generic.IEnumerable<T>! rows, OfficeIMO.Excel.ExcelTemplateOptions? options = null) -> int
-OfficeIMO.Excel.ExcelSheet.AutoFilterAdd(string! a1Range) -> void
-OfficeIMO.Excel.ExcelSheet.AutoFilterBlanks(string! range, uint columnOffset) -> void
-OfficeIMO.Excel.ExcelSheet.AutoFilterByHeaderBetween(string! header, double minimumInclusive, double maximumInclusive) -> void
-OfficeIMO.Excel.ExcelSheet.AutoFilterByHeaderContains(string! header, string! containsText) -> void
-OfficeIMO.Excel.ExcelSheet.AutoFilterByHeaderDoesNotContain(string! header, string! containsText) -> void
-OfficeIMO.Excel.ExcelSheet.AutoFilterByHeaderEndsWith(string! header, string! endsWithText) -> void
-OfficeIMO.Excel.ExcelSheet.AutoFilterByHeaderEquals(string! header, System.Collections.Generic.IEnumerable<string!>! values) -> void
-OfficeIMO.Excel.ExcelSheet.AutoFilterByHeaderGreaterThanOrEqual(string! header, double value) -> void
-OfficeIMO.Excel.ExcelSheet.AutoFilterByHeaderLessThanOrEqual(string! header, double value) -> void
-OfficeIMO.Excel.ExcelSheet.AutoFilterByHeaderNotBetween(string! header, double minimumExclusive, double maximumExclusive) -> void
-OfficeIMO.Excel.ExcelSheet.AutoFilterByHeaderNotEqual(string! header, double value) -> void
-OfficeIMO.Excel.ExcelSheet.AutoFilterByHeaderStartsWith(string! header, string! startsWithText) -> void
-OfficeIMO.Excel.ExcelSheet.AutoFilterByHeadersEquals(params (string! Header, System.Collections.Generic.IEnumerable<string!>! Values)[]! filters) -> void
-OfficeIMO.Excel.ExcelSheet.AutoFilterClear() -> void
-OfficeIMO.Excel.ExcelSheet.AutoFilterTopBottom(string! range, uint columnOffset, ushort value, bool top = true, bool percent = false) -> void
 OfficeIMO.Excel.ExcelSheet.AutoFitColumn(int columnIndex) -> void
 OfficeIMO.Excel.ExcelSheet.AutoFitColumns(OfficeIMO.Excel.ExcelExecutionMode? mode = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> void
 OfficeIMO.Excel.ExcelSheet.AutoFitColumnsExcept(System.Collections.Generic.IEnumerable<int>! columnsToSkip, OfficeIMO.Excel.ExcelExecutionMode? mode = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> void
@@ -3115,7 +2911,6 @@ OfficeIMO.Excel.ExcelSheet.Batch(System.Action<OfficeIMO.Excel.ExcelSheet!>! act
 OfficeIMO.Excel.ExcelSheet.ChartLayout(int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, int chartsPerRow = 2, OfficeIMO.OfficeLength? horizontalGap = null, int verticalGapRows = 2) -> OfficeIMO.Excel.ExcelChartGridLayout!
 OfficeIMO.Excel.ExcelSheet.Charts.get -> System.Collections.Generic.IEnumerable<OfficeIMO.Excel.ExcelChart!>!
 OfficeIMO.Excel.ExcelSheet.ClearArrayFormula(string! a1RangeOrCell) -> void
-OfficeIMO.Excel.ExcelSheet.ClearAutoFilterColumn(uint columnOffset) -> bool
 OfficeIMO.Excel.ExcelSheet.ClearCachedFormulaResults() -> void
 OfficeIMO.Excel.ExcelSheet.ClearColumnGroup(int startColumn, int endColumn, bool unhide = true) -> void
 OfficeIMO.Excel.ExcelSheet.ClearComment(int row, int column) -> void
@@ -3145,70 +2940,6 @@ OfficeIMO.Excel.ExcelSheet.DeleteRowsTransactional(int firstRow, int count = 1, 
 OfficeIMO.Excel.ExcelSheet.Dispose() -> void
 OfficeIMO.Excel.ExcelSheet.EnumerateCells(OfficeIMO.Excel.ExcelReaderOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<OfficeIMO.Excel.ExcelCellValueInfo>!
 OfficeIMO.Excel.ExcelSheet.EnumerateRange(string! a1Range, OfficeIMO.Excel.ExcelReaderOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<OfficeIMO.Excel.ExcelCellValueInfo>!
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterImageInfo
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterImageInfo.Bytes.get -> byte[]!
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterImageInfo.ContentType.get -> string!
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterImageInfo.Height.get -> OfficeIMO.OfficeLength
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterImageInfo.Position.get -> OfficeIMO.Excel.ExcelHeaderFooterPosition
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterImageInfo.Width.get -> OfficeIMO.OfficeLength
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.DifferentFirstPage.get -> bool
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.DifferentFirstPage.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.DifferentOddEven.get -> bool
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.DifferentOddEven.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.EvenFooterCenter.get -> string!
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.EvenFooterCenter.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.EvenFooterLeft.get -> string!
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.EvenFooterLeft.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.EvenFooterRight.get -> string!
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.EvenFooterRight.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.EvenHeaderCenter.get -> string!
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.EvenHeaderCenter.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.EvenHeaderLeft.get -> string!
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.EvenHeaderLeft.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.EvenHeaderRight.get -> string!
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.EvenHeaderRight.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.ExcelHeaderFooterInfo() -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FirstFooterCenter.get -> string!
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FirstFooterCenter.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FirstFooterLeft.get -> string!
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FirstFooterLeft.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FirstFooterRight.get -> string!
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FirstFooterRight.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FirstHeaderCenter.get -> string!
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FirstHeaderCenter.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FirstHeaderLeft.get -> string!
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FirstHeaderLeft.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FirstHeaderRight.get -> string!
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FirstHeaderRight.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FooterCenter.get -> string!
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FooterCenter.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FooterCenterImage.get -> OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterImageInfo?
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FooterCenterImage.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FooterHasPicturePlaceholder.get -> bool
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FooterHasPicturePlaceholder.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FooterLeft.get -> string!
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FooterLeft.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FooterLeftImage.get -> OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterImageInfo?
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FooterLeftImage.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FooterRight.get -> string!
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FooterRight.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FooterRightImage.get -> OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterImageInfo?
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.FooterRightImage.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.HeaderCenter.get -> string!
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.HeaderCenter.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.HeaderCenterImage.get -> OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterImageInfo?
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.HeaderCenterImage.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.HeaderHasPicturePlaceholder.get -> bool
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.HeaderHasPicturePlaceholder.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.HeaderLeft.get -> string!
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.HeaderLeft.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.HeaderLeftImage.get -> OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterImageInfo?
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.HeaderLeftImage.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.HeaderRight.get -> string!
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.HeaderRight.set -> void
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.HeaderRightImage.get -> OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterImageInfo?
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.HeaderRightImage.set -> void
 OfficeIMO.Excel.ExcelSheet.ExecutionOverride.get -> OfficeIMO.Excel.ExcelExecutionPolicy?
 OfficeIMO.Excel.ExcelSheet.ExecutionOverride.set -> void
 OfficeIMO.Excel.ExcelSheet.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat format, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Drawing.OfficeImageExportResult!
@@ -3218,7 +2949,6 @@ OfficeIMO.Excel.ExcelSheet.FindComments(OfficeIMO.Excel.ExcelCommentFilter? filt
 OfficeIMO.Excel.ExcelSheet.FindFirst(string! text) -> string?
 OfficeIMO.Excel.ExcelSheet.ForEachColumn(string! a1, System.Action<int>! action) -> void
 OfficeIMO.Excel.ExcelSheet.ForEachRow(string! a1, System.Action<int>! action) -> void
-OfficeIMO.Excel.ExcelSheet.Freeze(int topRows = 0, int leftCols = 0) -> void
 OfficeIMO.Excel.ExcelSheet.FromJson(string! json, int startRow = 1, int startColumn = 1, bool includeHeaders = true, OfficeIMO.Excel.ExcelExecutionMode? mode = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> string!
 OfficeIMO.Excel.ExcelSheet.FromXml(System.IO.Stream! input, int startRow = 1, int startColumn = 1, bool includeHeaders = false, OfficeIMO.Excel.ExcelXmlTableOptions? options = null, OfficeIMO.Excel.ExcelExecutionMode? mode = null) -> string!
 OfficeIMO.Excel.ExcelSheet.FromXml(string! xml, int startRow = 1, int startColumn = 1, bool includeHeaders = false, OfficeIMO.Excel.ExcelXmlTableOptions? options = null, OfficeIMO.Excel.ExcelExecutionMode? mode = null) -> string!
@@ -3234,7 +2964,6 @@ OfficeIMO.Excel.ExcelSheet.GetConditionalFormattingRules(string? a1Range = null)
 OfficeIMO.Excel.ExcelSheet.GetDataValidations(string? a1Range = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelDataValidationInfo!>!
 OfficeIMO.Excel.ExcelSheet.GetFormulaCells() -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelFormulaCellInfo!>!
 OfficeIMO.Excel.ExcelSheet.GetFormulaText(int row, int column) -> string?
-OfficeIMO.Excel.ExcelSheet.GetHeaderFooter() -> OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo!
 OfficeIMO.Excel.ExcelSheet.GetHeaderMap(OfficeIMO.Excel.ExcelReaderOptions? options = null) -> System.Collections.Generic.Dictionary<string!, int>!
 OfficeIMO.Excel.ExcelSheet.GetHyperlinks() -> System.Collections.Generic.IReadOnlyDictionary<string!, OfficeIMO.Excel.ExcelHyperlinkInfo!>!
 OfficeIMO.Excel.ExcelSheet.GetIgnoredErrorRegions() -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelIgnoredErrorRegionInfo!>!
@@ -3245,14 +2974,9 @@ OfficeIMO.Excel.ExcelSheet.GetManualRowPageBreaks() -> System.Collections.Generi
 OfficeIMO.Excel.ExcelSheet.GetMergedRanges() -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelMergedRangeInfo!>!
 OfficeIMO.Excel.ExcelSheet.GetMergedRanges(int maximumRanges) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelMergedRangeInfo!>!
 OfficeIMO.Excel.ExcelSheet.GetModernChart(string! name) -> OfficeIMO.Excel.ExcelModernChart?
-OfficeIMO.Excel.ExcelSheet.GetPageSetup() -> OfficeIMO.Excel.ExcelSheetPageSetup!
 OfficeIMO.Excel.ExcelSheet.GetPivotData(string! pivotTableName, string! dataField, System.Collections.Generic.IReadOnlyDictionary<string!, object?>? items = null) -> OfficeIMO.Excel.ExcelCellData!
 OfficeIMO.Excel.ExcelSheet.GetPivotTableRange(string! pivotTableName, OfficeIMO.Excel.ExcelPivotRangeTarget target = OfficeIMO.Excel.ExcelPivotRangeTarget.WholeTable) -> string!
 OfficeIMO.Excel.ExcelSheet.GetPivotTables() -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelPivotTableInfo!>!
-OfficeIMO.Excel.ExcelSheet.GetPrintArea() -> string?
-OfficeIMO.Excel.ExcelSheet.GetPrintAreas() -> System.Collections.Generic.IReadOnlyList<string!>!
-OfficeIMO.Excel.ExcelSheet.GetPrintOptions() -> OfficeIMO.Excel.ExcelSheetPrintOptions!
-OfficeIMO.Excel.ExcelSheet.GetPrintTitles() -> OfficeIMO.Excel.ExcelPrintTitles!
 OfficeIMO.Excel.ExcelSheet.GetRangeBounds(string! a1) -> (int r1, int c1, int r2, int c2)
 OfficeIMO.Excel.ExcelSheet.GetRangeSize(string! range) -> (OfficeIMO.OfficeLength Width, OfficeIMO.OfficeLength Height)
 OfficeIMO.Excel.ExcelSheet.GetRowDefinitions() -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelRowInfo!>!
@@ -3261,13 +2985,9 @@ OfficeIMO.Excel.ExcelSheet.GetTableRange(string! tableName) -> string?
 OfficeIMO.Excel.ExcelSheet.GetTables() -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelTableInfo!>!
 OfficeIMO.Excel.ExcelSheet.GetThreadedComment(string! id) -> OfficeIMO.Excel.ExcelThreadedCommentInfo?
 OfficeIMO.Excel.ExcelSheet.GetThreadedComments() -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelThreadedCommentInfo!>!
-OfficeIMO.Excel.ExcelSheet.GetViewInfo() -> OfficeIMO.Excel.ExcelWorksheetViewInfo!
-OfficeIMO.Excel.ExcelSheet.GetZoomScale() -> uint?
 OfficeIMO.Excel.ExcelSheet.GroupColumns(int startColumn, int endColumn, byte outlineLevel = 1, bool collapsed = false, bool hidden = false) -> void
 OfficeIMO.Excel.ExcelSheet.GroupRows(int startRow, int endRow, byte outlineLevel = 1, bool collapsed = false, bool hidden = false) -> void
 OfficeIMO.Excel.ExcelSheet.HasComment(int row, int column) -> bool
-OfficeIMO.Excel.ExcelSheet.HeaderLogoFromUrlAsync(string! url, OfficeIMO.Drawing.OfficeRemoteImageLoadOptions! remoteImageOptions, OfficeIMO.Excel.ExcelHeaderFooterPosition position = OfficeIMO.Excel.ExcelHeaderFooterPosition.Right, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string? leftText = null, string? centerText = null, string? rightText = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-OfficeIMO.Excel.ExcelSheet.HeaderLogoFromUrlAsync(string! url, OfficeIMO.Excel.ExcelHeaderFooterPosition position = OfficeIMO.Excel.ExcelHeaderFooterPosition.Right, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string? leftText = null, string? centerText = null, string? rightText = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 OfficeIMO.Excel.ExcelSheet.Hidden.get -> bool
 OfficeIMO.Excel.ExcelSheet.Images.get -> System.Collections.Generic.IEnumerable<OfficeIMO.Excel.ExcelImage!>!
 OfficeIMO.Excel.ExcelSheet.InsertCells(string! range, OfficeIMO.Excel.ExcelCellShiftDirection direction, OfficeIMO.Excel.ExcelMutationPlanOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Excel.ExcelMutationResult!
@@ -3281,12 +3001,6 @@ OfficeIMO.Excel.ExcelSheet.InspectTemplate(System.Collections.Generic.IDictionar
 OfficeIMO.Excel.ExcelSheet.InspectTemplate(object! model) -> OfficeIMO.Excel.ExcelTemplateInspection!
 OfficeIMO.Excel.ExcelSheet.InvalidateFormulas() -> void
 OfficeIMO.Excel.ExcelSheet.IsProtected.get -> bool
-OfficeIMO.Excel.ExcelSheet.LinkByHeaderToInternalSheets(string! header, int rowFrom = 2, int rowTo = -1, System.Func<string!, string!>? destinationSheetForCellText = null, string! targetA1 = "A1", System.Func<string!, string!>? display = null, bool styled = true) -> void
-OfficeIMO.Excel.ExcelSheet.LinkByHeaderToInternalSheetsInRange(string! rangeA1, string! header, System.Func<string!, string!>? destinationSheetForCellText = null, string! targetA1 = "A1", System.Func<string!, string!>? display = null, bool styled = true) -> void
-OfficeIMO.Excel.ExcelSheet.LinkByHeaderToInternalSheetsInTable(string! tableName, string! header, System.Func<string!, string!>? destinationSheetForCellText = null, string! targetA1 = "A1", System.Func<string!, string!>? display = null, bool styled = true) -> void
-OfficeIMO.Excel.ExcelSheet.LinkByHeaderToUrls(string! header, int rowFrom = 2, int rowTo = -1, System.Func<string!, string!>! urlForCellText = null, System.Func<string!, string!>? titleForCellText = null, bool styled = true) -> void
-OfficeIMO.Excel.ExcelSheet.LinkByHeaderToUrlsInRange(string! rangeA1, string! header, System.Func<string!, string!>! urlForCellText, System.Func<string!, string!>? titleForCellText = null, bool styled = true) -> void
-OfficeIMO.Excel.ExcelSheet.LinkByHeaderToUrlsInTable(string! tableName, string! header, System.Func<string!, string!>! urlForCellText, System.Func<string!, string!>? titleForCellText = null, bool styled = true) -> void
 OfficeIMO.Excel.ExcelSheet.LinkCellsToInternalSheets(string! a1, System.Func<string!, string!>! destinationSheetForCellText, string! targetA1 = "A1", System.Func<string!, string!>? display = null, bool styled = true) -> void
 OfficeIMO.Excel.ExcelSheet.MaterializePivotTable(string! pivotTableName, OfficeIMO.Excel.ExcelMutationPlanOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken), System.DateTime? referenceDate = null) -> OfficeIMO.Excel.ExcelPivotMaterializationResult!
 OfficeIMO.Excel.ExcelSheet.ModernCharts.get -> System.Collections.Generic.IEnumerable<OfficeIMO.Excel.ExcelModernChart!>!
@@ -3324,8 +3038,6 @@ OfficeIMO.Excel.ExcelSheet.ReplaceAll(string! oldText, string! newText) -> int
 OfficeIMO.Excel.ExcelSheet.ReplyToThreadedComment(string! parentId, string! text, string! author = "OfficeIMO", System.DateTime? date = null, string? id = null) -> OfficeIMO.Excel.ExcelThreadedCommentResult!
 OfficeIMO.Excel.ExcelSheet.Report(OfficeIMO.Excel.ExcelReportOptions? options = null) -> OfficeIMO.Excel.ExcelReportBuilder!
 OfficeIMO.Excel.ExcelSheet.ResizeTable(string! tableOrRange, string! newRange) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelTableColumnInfo!>!
-OfficeIMO.Excel.ExcelSheet.RightToLeft.get -> bool
-OfficeIMO.Excel.ExcelSheet.RowColumnHeadingsVisible.get -> bool
 OfficeIMO.Excel.ExcelSheet.RowsAs<T>(OfficeIMO.Excel.ExcelReaderOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<T>!
 OfficeIMO.Excel.ExcelSheet.RowsAs<T>(System.Action<OfficeIMO.Data.RowMapper<T>!>! configure, OfficeIMO.Excel.ExcelReaderOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<T>!
 OfficeIMO.Excel.ExcelSheet.RowsAs<T>(System.Func<System.Data.IDataRecord!, T>! factory, OfficeIMO.Excel.ExcelReaderOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<T>!
@@ -3360,16 +3072,6 @@ OfficeIMO.Excel.ExcelSheet.SetDataValidationMessages(string! a1Range, OfficeIMO.
 OfficeIMO.Excel.ExcelSheet.SetDefaultColumnWidth(OfficeIMO.Excel.ExcelColumnWidth width, bool save = true) -> void
 OfficeIMO.Excel.ExcelSheet.SetDefaultRowHeight(OfficeIMO.Excel.ExcelColumnWidth height, bool hidden = false, bool save = true) -> void
 OfficeIMO.Excel.ExcelSheet.SetDynamicArrayFormula(string! a1Cell, string! formula) -> void
-OfficeIMO.Excel.ExcelSheet.SetEvenPageHeaderFooter(string? headerLeft = null, string? headerCenter = null, string? headerRight = null, string? footerLeft = null, string? footerCenter = null, string? footerRight = null, bool enabled = true) -> void
-OfficeIMO.Excel.ExcelSheet.SetFirstPageHeaderFooter(string? headerLeft = null, string? headerCenter = null, string? headerRight = null, string? footerLeft = null, string? footerCenter = null, string? footerRight = null, bool enabled = true) -> void
-OfficeIMO.Excel.ExcelSheet.SetFooterImage(OfficeIMO.Excel.ExcelHeaderFooterPosition position, byte[]! imageBytes, string! contentType = "image/png", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> void
-OfficeIMO.Excel.ExcelSheet.SetFooterImageFromUrlAsync(OfficeIMO.Excel.ExcelHeaderFooterPosition position, string! url, OfficeIMO.Drawing.OfficeRemoteImageLoadOptions! remoteImageOptions, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-OfficeIMO.Excel.ExcelSheet.SetFooterImageFromUrlAsync(OfficeIMO.Excel.ExcelHeaderFooterPosition position, string! url, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-OfficeIMO.Excel.ExcelSheet.SetGridlinesVisible(bool visible) -> void
-OfficeIMO.Excel.ExcelSheet.SetHeaderFooter(string? headerLeft = null, string? headerCenter = null, string? headerRight = null, string? footerLeft = null, string? footerCenter = null, string? footerRight = null, bool differentFirstPage = false, bool differentOddEven = false, bool alignWithMargins = true, bool scaleWithDoc = true) -> void
-OfficeIMO.Excel.ExcelSheet.SetHeaderImage(OfficeIMO.Excel.ExcelHeaderFooterPosition position, byte[]! imageBytes, string! contentType = "image/png", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> void
-OfficeIMO.Excel.ExcelSheet.SetHeaderImageFromUrlAsync(OfficeIMO.Excel.ExcelHeaderFooterPosition position, string! url, OfficeIMO.Drawing.OfficeRemoteImageLoadOptions! remoteImageOptions, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-OfficeIMO.Excel.ExcelSheet.SetHeaderImageFromUrlAsync(OfficeIMO.Excel.ExcelHeaderFooterPosition position, string! url, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 OfficeIMO.Excel.ExcelSheet.SetHidden(bool hidden) -> void
 OfficeIMO.Excel.ExcelSheet.SetHyperlink(int row, int column, string! url, string? display = null, bool style = true) -> void
 OfficeIMO.Excel.ExcelSheet.SetHyperlink(int row, int column, string! url, string? display, bool style, string? tooltip) -> void
@@ -3383,17 +3085,9 @@ OfficeIMO.Excel.ExcelSheet.SetInternalLink(int row, int column, OfficeIMO.Excel.
 OfficeIMO.Excel.ExcelSheet.SetInternalLink(int row, int column, OfficeIMO.Excel.ExcelSheet! target, string! a1, string? display, bool style, string? tooltip) -> void
 OfficeIMO.Excel.ExcelSheet.SetInternalLink(int row, int column, string! location, string? display = null, bool style = true) -> void
 OfficeIMO.Excel.ExcelSheet.SetInternalLink(int row, int column, string! location, string? display, bool style, string? tooltip) -> void
-OfficeIMO.Excel.ExcelSheet.SetMargins(OfficeIMO.OfficeLength left, OfficeIMO.OfficeLength right, OfficeIMO.OfficeLength top, OfficeIMO.OfficeLength bottom, OfficeIMO.OfficeLength? header = null, OfficeIMO.OfficeLength? footer = null) -> void
-OfficeIMO.Excel.ExcelSheet.SetMarginsPreset(OfficeIMO.Excel.ExcelMarginPreset preset) -> void
 OfficeIMO.Excel.ExcelSheet.SetNamedRange(string! name, string! range, bool save = true, bool hidden = false) -> void
 OfficeIMO.Excel.ExcelSheet.SetNamedRange(string! name, string! range, bool save, bool hidden, OfficeIMO.Excel.ExcelDefinedNameValidationMode validationMode) -> void
-OfficeIMO.Excel.ExcelSheet.SetOrientation(OfficeIMO.OfficePageOrientation orientation) -> void
 OfficeIMO.Excel.ExcelSheet.SetOutlineSummary(bool? summaryBelow = null, bool? summaryRight = null) -> void
-OfficeIMO.Excel.ExcelSheet.SetPageSetup(uint? fitToWidth = null, uint? fitToHeight = null, uint? scale = null, OfficeIMO.Excel.ExcelPageOrder? pageOrder = null, OfficeIMO.Excel.ExcelPaperSize? paperSize = null) -> void
-OfficeIMO.Excel.ExcelSheet.SetPaperSize(OfficeIMO.Excel.ExcelPaperSize paperSize) -> void
-OfficeIMO.Excel.ExcelSheet.SetPrintOptions(bool? printGridLines = null, bool? printHeadings = null, bool? horizontalCentered = null, bool? verticalCentered = null, bool save = true) -> void
-OfficeIMO.Excel.ExcelSheet.SetRightToLeft(bool rightToLeft) -> void
-OfficeIMO.Excel.ExcelSheet.SetRowColumnHeadingsVisible(bool visible) -> void
 OfficeIMO.Excel.ExcelSheet.SetRowHeight(int rowIndex, OfficeIMO.Excel.ExcelColumnWidth height) -> void
 OfficeIMO.Excel.ExcelSheet.SetRowHidden(int rowIndex, bool hidden) -> void
 OfficeIMO.Excel.ExcelSheet.SetRowLayout(int rowIndex, OfficeIMO.Excel.ExcelRowLayoutOptions! options) -> void
@@ -3407,10 +3101,6 @@ OfficeIMO.Excel.ExcelSheet.SetTableTotals(string! range, System.Collections.Gene
 OfficeIMO.Excel.ExcelSheet.SetTableTotalsByName(string! tableName, System.Collections.Generic.IDictionary<string!, OfficeIMO.Excel.ExcelTableTotalsFunction>! byHeader) -> void
 OfficeIMO.Excel.ExcelSheet.SetThreadedCommentResolved(string! id, bool resolved = true) -> OfficeIMO.Excel.ExcelThreadedCommentResult!
 OfficeIMO.Excel.ExcelSheet.SetVeryHidden(bool veryHidden) -> void
-OfficeIMO.Excel.ExcelSheet.SetViewOptions(OfficeIMO.Excel.ExcelWorksheetViewOptions! options) -> void
-OfficeIMO.Excel.ExcelSheet.SetViewOptions(bool? showGridlines = null, bool? rightToLeft = null, uint? zoomScale = null, uint? zoomScaleNormal = null, OfficeIMO.Excel.ExcelWorksheetViewKind? view = null) -> void
-OfficeIMO.Excel.ExcelSheet.SetZeroValuesVisible(bool visible) -> void
-OfficeIMO.Excel.ExcelSheet.SetZoomScale(uint scale, bool save = true) -> void
 OfficeIMO.Excel.ExcelSheet.SortUsedRangeByHeader(string! header, bool ascending = true) -> void
 OfficeIMO.Excel.ExcelSheet.SortUsedRangeByHeaders(params (string! Header, bool Ascending)[]! keys) -> void
 OfficeIMO.Excel.ExcelSheet.Table(string! nameOrRange) -> OfficeIMO.Excel.ExcelTable!
@@ -3430,12 +3120,6 @@ OfficeIMO.Excel.ExcelSheet.TryGetCellValueSnapshot(int row, int column, out Offi
 OfficeIMO.Excel.ExcelSheet.TryGetColumnIndexByHeader(string! header, out int columnIndex, OfficeIMO.Excel.ExcelReaderOptions? options = null) -> bool
 OfficeIMO.Excel.ExcelSheet.TryGetColumnRangeByHeader(string! headerName, string? tableName, int headerRow, bool includeHeader, bool normalizeHeader, out string! range) -> bool
 OfficeIMO.Excel.ExcelSheet.TryGetColumnStyleByHeader(string! header, bool includeHeader, out OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder! builder, out int columnIndex, OfficeIMO.Excel.ExcelReaderOptions? options = null, bool preferDirectTabularMetadata = true) -> bool
-OfficeIMO.Excel.ExcelSheet.TryLinkByHeaderToInternalSheets(string! header, int rowFrom = 2, int rowTo = -1, System.Func<string!, string!>? destinationSheetForCellText = null, string! targetA1 = "A1", System.Func<string!, string!>? display = null, bool styled = true) -> bool
-OfficeIMO.Excel.ExcelSheet.TryLinkByHeaderToInternalSheetsInRange(string! rangeA1, string! header, string! targetA1 = "A1", System.Func<string!, string!>? destinationSheetForCellText = null, System.Func<string!, string!>? display = null, bool styled = true) -> bool
-OfficeIMO.Excel.ExcelSheet.TryLinkByHeaderToInternalSheetsInTable(string! tableName, string! header, System.Func<string!, string!>? destinationSheetForCellText = null, string! targetA1 = "A1", System.Func<string!, string!>? display = null, bool styled = true) -> bool
-OfficeIMO.Excel.ExcelSheet.TryLinkByHeaderToUrls(string! header, int rowFrom = 2, int rowTo = -1, System.Func<string!, string!>? urlForCellText = null, System.Func<string!, string!>? titleForCellText = null, bool styled = true) -> bool
-OfficeIMO.Excel.ExcelSheet.TryLinkByHeaderToUrlsInRange(string! rangeA1, string! header, System.Func<string!, string!>? urlForCellText, System.Func<string!, string!>? titleForCellText = null, bool styled = true) -> bool
-OfficeIMO.Excel.ExcelSheet.TryLinkByHeaderToUrlsInTable(string! tableName, string! header, System.Func<string!, string!>? urlForCellText, System.Func<string!, string!>? titleForCellText = null, bool styled = true) -> bool
 OfficeIMO.Excel.ExcelSheet.Unprotect() -> void
 OfficeIMO.Excel.ExcelSheet.UpdateComments(OfficeIMO.Excel.ExcelCommentFilter! filter, string! text, string? author = null, string? initials = null) -> int
 OfficeIMO.Excel.ExcelSheet.UpdateCommentsRichText(OfficeIMO.Excel.ExcelCommentFilter! filter, System.Collections.Generic.IEnumerable<OfficeIMO.Excel.ExcelRichTextRun!>! runs, string? author = null, string? initials = null) -> int
@@ -3443,22 +3127,12 @@ OfficeIMO.Excel.ExcelSheet.UpdateConditionalFormattingRule(OfficeIMO.Excel.Excel
 OfficeIMO.Excel.ExcelSheet.UpdateDataValidationMessages(string! a1Range, System.Action<OfficeIMO.Excel.ExcelDataValidationMessageOptions!>! update) -> void
 OfficeIMO.Excel.ExcelSheet.UpdatePivotTableSource(string! pivotTableName, OfficeIMO.Excel.ExcelSheet! sourceSheet, string! sourceRange, OfficeIMO.Excel.ExcelPivotSourceUpdateOptions? options = null) -> OfficeIMO.Excel.ExcelPivotSourceUpdateResult!
 OfficeIMO.Excel.ExcelSheet.UpdateThreadedComment(OfficeIMO.Excel.ExcelThreadedCommentUpdateOptions! options) -> OfficeIMO.Excel.ExcelThreadedCommentResult!
-OfficeIMO.Excel.ExcelSheet.ValidationCustomFormula(string! a1Range, string! formula, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) -> void
-OfficeIMO.Excel.ExcelSheet.ValidationDate(string! a1Range, OfficeIMO.Excel.ExcelDataValidationOperator operator, System.DateTime formula1, System.DateTime? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) -> void
-OfficeIMO.Excel.ExcelSheet.ValidationDecimal(string! a1Range, OfficeIMO.Excel.ExcelDataValidationOperator operator, double formula1, double? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) -> void
-OfficeIMO.Excel.ExcelSheet.ValidationList(string! a1Range, System.Collections.Generic.IEnumerable<string!>! items, bool allowBlank = true) -> void
-OfficeIMO.Excel.ExcelSheet.ValidationListNamedRange(string! a1Range, string! namedRange, bool allowBlank = true) -> void
-OfficeIMO.Excel.ExcelSheet.ValidationListRange(string! a1Range, string! sourceA1Range, string? sourceSheetName = null, bool allowBlank = true) -> void
-OfficeIMO.Excel.ExcelSheet.ValidationTextLength(string! a1Range, OfficeIMO.Excel.ExcelDataValidationOperator operator, int formula1, int? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) -> void
-OfficeIMO.Excel.ExcelSheet.ValidationTime(string! a1Range, OfficeIMO.Excel.ExcelDataValidationOperator operator, System.TimeSpan formula1, System.TimeSpan? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) -> void
-OfficeIMO.Excel.ExcelSheet.ValidationWholeNumber(string! a1Range, OfficeIMO.Excel.ExcelDataValidationOperator operator, int formula1, int? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) -> void
 OfficeIMO.Excel.ExcelSheet.VeryHidden.get -> bool
 OfficeIMO.Excel.ExcelSheet.WriteChartData(OfficeIMO.Excel.ExcelChartData! data, int startRow = 1, int startColumn = 1, string? categoryHeader = null, bool includeHeaderRow = true, bool numericCategories = false, OfficeIMO.Excel.ExcelChartDataOrientation orientation = OfficeIMO.Excel.ExcelChartDataOrientation.Vertical) -> OfficeIMO.Excel.ExcelChartDataRange!
 OfficeIMO.Excel.ExcelSheet.WriteData(System.Data.DataTable! data, int row = 1, int column = 1, bool includeHeaders = true, OfficeIMO.Excel.ExcelExecutionMode? mode = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> void
 OfficeIMO.Excel.ExcelSheet.WriteData<T>(System.Collections.Generic.IEnumerable<T>! data, bool includeHeaders = true, int row = 1) -> void
 OfficeIMO.Excel.ExcelSheet.WriteData<T>(System.Collections.Generic.IEnumerable<T>! data, bool includeHeaders, int row, params (string! Header, System.Func<T, object?>! Selector)[]! columns) -> void
 OfficeIMO.Excel.ExcelSheet.WriteData<T>(System.Collections.Generic.IEnumerable<T>! data, params (string! Header, System.Func<T, object?>! Selector)[]! columns) -> void
-OfficeIMO.Excel.ExcelSheet.ZeroValuesVisible.get -> bool
 OfficeIMO.Excel.ExcelSheetNameValidationMode
 OfficeIMO.Excel.ExcelSheetNameValidationMode.None = 0 -> OfficeIMO.Excel.ExcelSheetNameValidationMode
 OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize = 1 -> OfficeIMO.Excel.ExcelSheetNameValidationMode
@@ -3472,7 +3146,6 @@ OfficeIMO.Excel.ExcelSheetPageMargins.Left.get -> OfficeIMO.OfficeLength
 OfficeIMO.Excel.ExcelSheetPageMargins.Right.get -> OfficeIMO.OfficeLength
 OfficeIMO.Excel.ExcelSheetPageMargins.Top.get -> OfficeIMO.OfficeLength
 OfficeIMO.Excel.ExcelSheetPageSetup
-OfficeIMO.Excel.ExcelSheetPageSetup.ExcelSheetPageSetup() -> void
 OfficeIMO.Excel.ExcelSheetPageSetup.FitToHeight.get -> uint?
 OfficeIMO.Excel.ExcelSheetPageSetup.FitToWidth.get -> uint?
 OfficeIMO.Excel.ExcelSheetPageSetup.Margins.get -> OfficeIMO.Excel.ExcelSheetPageMargins?
@@ -3481,12 +3154,6 @@ OfficeIMO.Excel.ExcelSheetPageSetup.PageOrder.get -> OfficeIMO.Excel.ExcelPageOr
 OfficeIMO.Excel.ExcelSheetPageSetup.PaperSize.get -> OfficeIMO.Excel.ExcelPaperSize?
 OfficeIMO.Excel.ExcelSheetPageSetup.PaperSizeCode.get -> uint?
 OfficeIMO.Excel.ExcelSheetPageSetup.Scale.get -> uint?
-OfficeIMO.Excel.ExcelSheetPrintOptions
-OfficeIMO.Excel.ExcelSheetPrintOptions.ExcelSheetPrintOptions() -> void
-OfficeIMO.Excel.ExcelSheetPrintOptions.HorizontalCentered.get -> bool?
-OfficeIMO.Excel.ExcelSheetPrintOptions.PrintGridLines.get -> bool?
-OfficeIMO.Excel.ExcelSheetPrintOptions.PrintHeadings.get -> bool?
-OfficeIMO.Excel.ExcelSheetPrintOptions.VerticalCentered.get -> bool?
 OfficeIMO.Excel.ExcelSheetProtectionOptions
 OfficeIMO.Excel.ExcelSheetProtectionOptions.AllowAutoFilter.get -> bool
 OfficeIMO.Excel.ExcelSheetProtectionOptions.AllowAutoFilter.set -> void
@@ -3650,57 +3317,6 @@ OfficeIMO.Excel.ExcelStyleDefinition.VerticalAlignment.get -> OfficeIMO.Excel.Ex
 OfficeIMO.Excel.ExcelStyleDefinition.VerticalAlignment.set -> void
 OfficeIMO.Excel.ExcelStyleDefinition.WrapText.get -> bool
 OfficeIMO.Excel.ExcelStyleDefinition.WrapText.set -> void
-OfficeIMO.Excel.ExcelSubtotalFunction
-OfficeIMO.Excel.ExcelSubtotalFunction.Average = 0 -> OfficeIMO.Excel.ExcelSubtotalFunction
-OfficeIMO.Excel.ExcelSubtotalFunction.Count = 1 -> OfficeIMO.Excel.ExcelSubtotalFunction
-OfficeIMO.Excel.ExcelSubtotalFunction.CountNonBlank = 2 -> OfficeIMO.Excel.ExcelSubtotalFunction
-OfficeIMO.Excel.ExcelSubtotalFunction.Max = 3 -> OfficeIMO.Excel.ExcelSubtotalFunction
-OfficeIMO.Excel.ExcelSubtotalFunction.Min = 4 -> OfficeIMO.Excel.ExcelSubtotalFunction
-OfficeIMO.Excel.ExcelSubtotalFunction.Sum = 5 -> OfficeIMO.Excel.ExcelSubtotalFunction
-OfficeIMO.Excel.ExcelSubtotalGroupResult
-OfficeIMO.Excel.ExcelSubtotalGroupResult.Key.get -> string!
-OfficeIMO.Excel.ExcelSubtotalGroupResult.SourceEndRow.get -> int
-OfficeIMO.Excel.ExcelSubtotalGroupResult.SourceStartRow.get -> int
-OfficeIMO.Excel.ExcelSubtotalGroupResult.SummaryRow.get -> int
-OfficeIMO.Excel.ExcelSubtotalOptions
-OfficeIMO.Excel.ExcelSubtotalOptions.BlankGroupLabel.get -> string!
-OfficeIMO.Excel.ExcelSubtotalOptions.BlankGroupLabel.set -> void
-OfficeIMO.Excel.ExcelSubtotalOptions.DataEndRow.get -> int
-OfficeIMO.Excel.ExcelSubtotalOptions.DataEndRow.set -> void
-OfficeIMO.Excel.ExcelSubtotalOptions.DataStartRow.get -> int
-OfficeIMO.Excel.ExcelSubtotalOptions.DataStartRow.set -> void
-OfficeIMO.Excel.ExcelSubtotalOptions.ExcelSubtotalOptions() -> void
-OfficeIMO.Excel.ExcelSubtotalOptions.Function.get -> OfficeIMO.Excel.ExcelSubtotalFunction
-OfficeIMO.Excel.ExcelSubtotalOptions.Function.set -> void
-OfficeIMO.Excel.ExcelSubtotalOptions.GrandTotalLabel.get -> string!
-OfficeIMO.Excel.ExcelSubtotalOptions.GrandTotalLabel.set -> void
-OfficeIMO.Excel.ExcelSubtotalOptions.GroupColumn.get -> int
-OfficeIMO.Excel.ExcelSubtotalOptions.GroupColumn.set -> void
-OfficeIMO.Excel.ExcelSubtotalOptions.HeaderRow.get -> int
-OfficeIMO.Excel.ExcelSubtotalOptions.HeaderRow.set -> void
-OfficeIMO.Excel.ExcelSubtotalOptions.HideDetailRows.get -> bool
-OfficeIMO.Excel.ExcelSubtotalOptions.HideDetailRows.set -> void
-OfficeIMO.Excel.ExcelSubtotalOptions.IncludeGrandTotal.get -> bool
-OfficeIMO.Excel.ExcelSubtotalOptions.IncludeGrandTotal.set -> void
-OfficeIMO.Excel.ExcelSubtotalOptions.IncludeHeader.get -> bool
-OfficeIMO.Excel.ExcelSubtotalOptions.IncludeHeader.set -> void
-OfficeIMO.Excel.ExcelSubtotalOptions.LabelSuffix.get -> string!
-OfficeIMO.Excel.ExcelSubtotalOptions.LabelSuffix.set -> void
-OfficeIMO.Excel.ExcelSubtotalOptions.OutlineDetailRows.get -> bool
-OfficeIMO.Excel.ExcelSubtotalOptions.OutlineDetailRows.set -> void
-OfficeIMO.Excel.ExcelSubtotalOptions.OutlineLevel.get -> byte
-OfficeIMO.Excel.ExcelSubtotalOptions.OutlineLevel.set -> void
-OfficeIMO.Excel.ExcelSubtotalOptions.SummaryStartRow.get -> int?
-OfficeIMO.Excel.ExcelSubtotalOptions.SummaryStartRow.set -> void
-OfficeIMO.Excel.ExcelSubtotalOptions.ValueColumns.get -> System.Collections.Generic.IReadOnlyList<int>!
-OfficeIMO.Excel.ExcelSubtotalOptions.ValueColumns.set -> void
-OfficeIMO.Excel.ExcelSubtotalResult
-OfficeIMO.Excel.ExcelSubtotalResult.GrandTotalWritten.get -> bool
-OfficeIMO.Excel.ExcelSubtotalResult.GroupCount.get -> int
-OfficeIMO.Excel.ExcelSubtotalResult.Groups.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelSubtotalGroupResult!>!
-OfficeIMO.Excel.ExcelSubtotalResult.SummaryEndRow.get -> int
-OfficeIMO.Excel.ExcelSubtotalResult.SummaryRange.get -> string!
-OfficeIMO.Excel.ExcelSubtotalResult.SummaryStartRow.get -> int
 OfficeIMO.Excel.ExcelTable
 OfficeIMO.Excel.ExcelTable.AppendDataTable(System.Data.DataTable! table) -> OfficeIMO.Excel.ExcelTable!
 OfficeIMO.Excel.ExcelTable.AsRange() -> OfficeIMO.Excel.ExcelRange!
@@ -4536,18 +4152,6 @@ OfficeIMO.Excel.ExcelWorksheetViewKind
 OfficeIMO.Excel.ExcelWorksheetViewKind.Normal = 0 -> OfficeIMO.Excel.ExcelWorksheetViewKind
 OfficeIMO.Excel.ExcelWorksheetViewKind.PageBreakPreview = 1 -> OfficeIMO.Excel.ExcelWorksheetViewKind
 OfficeIMO.Excel.ExcelWorksheetViewKind.PageLayout = 2 -> OfficeIMO.Excel.ExcelWorksheetViewKind
-OfficeIMO.Excel.ExcelWorksheetViewOptions
-OfficeIMO.Excel.ExcelWorksheetViewOptions.ExcelWorksheetViewOptions() -> void
-OfficeIMO.Excel.ExcelWorksheetViewOptions.RightToLeft.get -> bool?
-OfficeIMO.Excel.ExcelWorksheetViewOptions.RightToLeft.set -> void
-OfficeIMO.Excel.ExcelWorksheetViewOptions.ShowGridlines.get -> bool?
-OfficeIMO.Excel.ExcelWorksheetViewOptions.ShowGridlines.set -> void
-OfficeIMO.Excel.ExcelWorksheetViewOptions.View.get -> OfficeIMO.Excel.ExcelWorksheetViewKind?
-OfficeIMO.Excel.ExcelWorksheetViewOptions.View.set -> void
-OfficeIMO.Excel.ExcelWorksheetViewOptions.ZoomScale.get -> uint?
-OfficeIMO.Excel.ExcelWorksheetViewOptions.ZoomScale.set -> void
-OfficeIMO.Excel.ExcelWorksheetViewOptions.ZoomScaleNormal.get -> uint?
-OfficeIMO.Excel.ExcelWorksheetViewOptions.ZoomScaleNormal.set -> void
 OfficeIMO.Excel.ExcelWriterOptions
 OfficeIMO.Excel.ExcelWriterOptions.AutoFit.get -> bool
 OfficeIMO.Excel.ExcelWriterOptions.AutoFit.set -> void

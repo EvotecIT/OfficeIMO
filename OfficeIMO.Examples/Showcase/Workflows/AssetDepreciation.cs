@@ -27,11 +27,11 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                 foreach (int column in new[] { 2, 3, 5, 6 }) sheet.Cell(row, column).SetNumberFormat("#,##0.00");
             }
             sheet.AddTable("A4:F8", true, "AssetSchedule", ExcelTableStyle.TableStyleMedium2);
-            sheet.ValidationWholeNumber("D5:D8", ExcelDataValidationOperator.Between, 1, 50);
+            sheet.Range("D5:D8").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 50);
             sheet.Cell(10, 1).SetValue("Annual charge total"); sheet.Cell(10, 5).SetFormula("SUM(E5:E8)"); sheet.Cell(10, 5).SetNumberFormat("#,##0.00"); sheet.Cell(10, 5).SetBold(true);
             sheet.Range("A12:F12").Merge(); sheet.Cell(12, 1).SetValue("Assumes a full first year and cost above residual value.");
             sheet.Range("A13:F13").Merge(); sheet.Cell(13, 1).SetValue("Illustrative planning only; confirm accounting policy and tax treatment.");
-            sheet.SetGridlinesVisible(false);
+            sheet.View.ShowGridlines = false;
             for (int row = 1; row <= 16; row++) {
                 sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(row == 1 ? 34 : row == 3 ? 12 : 25)));
                 for (int column = 1; column <= 6; column++) {

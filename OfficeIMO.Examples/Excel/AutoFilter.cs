@@ -24,7 +24,8 @@ namespace OfficeIMO.Examples.Excel {
                     { 0, new[] { "A" } }
                 };
 
-                sheet.AddAutoFilter("A1:B3", criteria);
+                sheet.Range("A1:B3").AutoFilter();
+                foreach (var criterion in criteria) sheet.Range("A1:B3").AutoFilter().Column(criterion.Key).Equals(criterion.Value);
                 document.Save();
                 if (openExcel) document.OpenInApplication();
             }

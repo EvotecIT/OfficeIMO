@@ -112,11 +112,11 @@ public static partial class ProjectReportWorkflow {
                     usage.Cell(r + 2, 1).SetValue(view.Rows[r].Uid); usage.Cell(r + 2, 2).SetValue(view.Rows[r].Name);
                     for (int b = 0; b < view.Buckets.Count; b++) usage.Cell(r + 2, b + 3).SetValue(view.Rows[r].BucketWorkHours[b]);
                 }
-                FinishSheet(usage, cancellationToken, view.Rows.Count + 1, view.Buckets.Count + 2, 2); usage.Freeze(1, 2);
+                FinishSheet(usage, cancellationToken, view.Rows.Count + 1, view.Buckets.Count + 2, 2); usage.View.Freeze(1, 2);
             }
             AddExcelSupplementalTables(document, view, cancellationToken);
             foreach (var reportSheet in document.Sheets) {
-                reportSheet.SetHeaderFooter(headerLeft: view.Title.Replace("&", "&&"), headerRight: "&A", footerRight: "Page &P of &N");
+                reportSheet.PageSetup.Header.Left.Text = view.Title.Replace("&", "&&"); reportSheet.PageSetup.Header.Right.Text = "&A"; reportSheet.PageSetup.Footer.Right.Text = "Page &P of &N";
             }
             return document;
         } catch { document.Dispose(); throw; }

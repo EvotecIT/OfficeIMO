@@ -744,9 +744,9 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
             sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
-            sheet.AddConditionalColorScale("A1:A3", OfficeColor.Red, OfficeColor.Lime);
-            sheet.AddConditionalDataBar("B1:B3", OfficeColor.Blue);
-            sheet.AddConditionalIconSet("C1:C3");
+            sheet.Range("A1:A3").ConditionalFormat().ColorScale(OfficeColor.Red, OfficeColor.Lime);
+            sheet.Range("B1:B3").ConditionalFormat().DataBar(OfficeColor.Blue);
+            sheet.Range("C1:C3").ConditionalFormat().IconSet();
 
             ExcelRange range = sheet.Range("A1:C3");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
@@ -796,7 +796,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(2, 1).SetValue(50);
                 sheet.Cell(3, 1).SetValue(100);
                 sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
-                sheet.AddConditionalDataBar("A1:A3", OfficeColor.Blue);
+                sheet.Range("A1:A3").ConditionalFormat().DataBar(OfficeColor.Blue);
                 document.Save();
             }
 
@@ -830,7 +830,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(row, 1).SetValue(row);
             }
 
-            sheet.AddConditionalDataBar("A1:A10", OfficeColor.Blue);
+            sheet.Range("A1:A10").ConditionalFormat().DataBar(OfficeColor.Blue);
 
             ExcelRangeVisualInfo snapshot = sheet.Range("A5:A5").CreateVisualSnapshot();
 
@@ -848,7 +848,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(row, 1).SetValue(row);
             }
 
-            sheet.AddConditionalColorScale("A1:A10", OfficeColor.Red, OfficeColor.Lime);
+            sheet.Range("A1:A10").ConditionalFormat().ColorScale(OfficeColor.Red, OfficeColor.Lime);
 
             ExcelRangeVisualInfo snapshot = sheet.Range("A5:A5").CreateVisualSnapshot();
 
@@ -861,7 +861,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("OversizedConditional");
             sheet.Cell(1, 1).SetValue(0D);
             sheet.Cell(100_001, 1).SetValue(1000D);
-            sheet.AddConditionalColorScale("A1:A100001", OfficeColor.Red, OfficeColor.Lime);
+            sheet.Range("A1:A100001").ConditionalFormat().ColorScale(OfficeColor.Red, OfficeColor.Lime);
 
             ExcelRangeVisualInfo snapshot = sheet.Range("A1:A1").CreateVisualSnapshot();
 
@@ -879,8 +879,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("AggregateConditional");
             sheet.Cell(1, 1).SetValue(0D);
-            sheet.AddConditionalColorScale("A1:A60000", OfficeColor.Red, OfficeColor.Lime);
-            sheet.AddConditionalColorScale("A1:A60000", OfficeColor.Blue, OfficeColor.White);
+            sheet.Range("A1:A60000").ConditionalFormat().ColorScale(OfficeColor.Red, OfficeColor.Lime);
+            sheet.Range("A1:A60000").ConditionalFormat().ColorScale(OfficeColor.Blue, OfficeColor.White);
 
             ExcelRangeVisualInfo snapshot = sheet.Range("A1:A1").CreateVisualSnapshot();
 
@@ -1042,7 +1042,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportOmitsConditionalRulesWhenNoRuleFitsWorkBudget() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("OversizedRuleCellWork");
-            sheet.AddConditionalFormulaRule("A1", "=A1>0", stopIfTrue: true, fillColor: "C6EFCE");
+            sheet.Range("A1").ConditionalFormat().Formula("=A1>0", stopIfTrue: true, fillColor: "C6EFCE");
             var cells = new CountingVisualCellList(1_000_001);
             var diagnostics = new List<OfficeImageExportDiagnostic>();
 
@@ -1096,7 +1096,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportReservesEveryConditionalEvaluatorPass() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("MultiPassRuleCellWork");
-            sheet.AddConditionalFormulaRule("A1", "=A1>0", stopIfTrue: true, fillColor: "C6EFCE");
+            sheet.Range("A1").ConditionalFormat().Formula("=A1>0", stopIfTrue: true, fillColor: "C6EFCE");
             var cells = new CountingVisualCellList(1_000_000);
             var diagnostics = new List<OfficeImageExportDiagnostic>();
 
@@ -1123,8 +1123,8 @@ namespace OfficeIMO.Tests {
             sheet.Cell(1, 1).SetValue(0);
             sheet.Cell(2, 1).SetValue(5);
             sheet.Cell(3, 1).SetValue(10);
-            sheet.AddConditionalFormulaRule("A1:A3", "A1=0", stopIfTrue: true);
-            sheet.AddConditionalColorScale("A1:A3", OfficeColor.Red, OfficeColor.Lime);
+            sheet.Range("A1:A3").ConditionalFormat().Formula("A1=0", stopIfTrue: true);
+            sheet.Range("A1:A3").ConditionalFormat().ColorScale(OfficeColor.Red, OfficeColor.Lime);
 
             ExcelRangeVisualInfo snapshot = sheet.Range("A1:A3").CreateVisualSnapshot();
 
@@ -1163,7 +1163,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(2, 1).SetValue(50);
                 sheet.Cell(3, 1).SetValue(100);
                 sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
-                sheet.AddConditionalColorScale("A1:A3", OfficeColor.Red, OfficeColor.Green);
+                sheet.Range("A1:A3").ConditionalFormat().ColorScale(OfficeColor.Red, OfficeColor.Green);
                 document.Save();
             }
 
@@ -1201,7 +1201,7 @@ namespace OfficeIMO.Tests {
                     sheet.Cell(row, 1).SetValue(values[row - 1]);
                 }
 
-                sheet.AddConditionalColorScale("A1:A5", OfficeColor.Red, OfficeColor.Green);
+                sheet.Range("A1:A5").ConditionalFormat().ColorScale(OfficeColor.Red, OfficeColor.Green);
                 document.Save();
             }
 
@@ -1235,7 +1235,7 @@ namespace OfficeIMO.Tests {
                     sheet.Cell(row, 1).SetValue(row);
                 }
 
-                sheet.AddConditionalColorScale("A1:A4", OfficeColor.Red, OfficeColor.Green);
+                sheet.Range("A1:A4").ConditionalFormat().ColorScale(OfficeColor.Red, OfficeColor.Green);
                 document.Save();
             }
 
@@ -1273,7 +1273,7 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
-            sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeTrafficLights1, showValue: false, reverseIconOrder: false);
+            sheet.Range("A1:A3").ConditionalFormat().IconSet(ExcelIconSet.ThreeTrafficLights1, showValue: false, reverseIconOrder: false);
 
             ExcelRange range = sheet.Range("A1:A3");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
@@ -1301,7 +1301,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(1, 1).SetValue(0);
                 sheet.Cell(2, 1).SetValue(50);
                 sheet.Cell(3, 1).SetValue(100);
-                sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
+                sheet.Range("A1:A3").ConditionalFormat().IconSet(ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
                 document.Save();
             }
 
@@ -1339,7 +1339,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(2, 1).SetValue(2);
                 sheet.Cell(3, 1).SetValue(3);
                 sheet.Cell(4, 1).SetValue(100);
-                sheet.AddConditionalIconSet("A1:A4", ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
+                sheet.Range("A1:A4").ConditionalFormat().IconSet(ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
                 document.Save();
             }
 
@@ -1375,8 +1375,7 @@ namespace OfficeIMO.Tests {
                     sheet.Cell(1, 1).SetValue(1);
                     sheet.Cell(2, 1).SetValue(2);
                     sheet.Cell(3, 1).SetValue(3);
-                    sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeTrafficLights1,
-                        showValue: true, reverseIconOrder: false);
+                    sheet.Range("A1:A3").ConditionalFormat().IconSet(ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
                     document.Save();
                 }
 
@@ -1407,7 +1406,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(1, 1).SetValue(42);
                 sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
                 sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
-                sheet.AddConditionalDataBar("A1:A1", OfficeColor.Blue);
+                sheet.Range("A1:A1").ConditionalFormat().DataBar(OfficeColor.Blue);
                 document.Save();
             }
 
@@ -1439,8 +1438,8 @@ namespace OfficeIMO.Tests {
             sheet.Cell(1, 1).SetValue(20);
             sheet.Cell(2, 1).SetValue(10);
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
-            sheet.AddConditionalDataBar("A1:A2", OfficeColor.Blue);
-            sheet.AddConditionalDataBar("A1:A1", OfficeColor.Red);
+            sheet.Range("A1:A2").ConditionalFormat().DataBar(OfficeColor.Blue);
+            sheet.Range("A1:A1").ConditionalFormat().DataBar(OfficeColor.Red);
 
             ExcelRange range = sheet.Range("A1:A1");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
@@ -1464,8 +1463,8 @@ namespace OfficeIMO.Tests {
                 ApplyBuiltInNumberFormatId(document, sheet, "B" + row.ToString(CultureInfo.InvariantCulture), 10U);
             }
 
-            sheet.AddConditionalDataBar("A1:A3", OfficeColor.Blue);
-            sheet.AddConditionalIconSet("B1:B3", ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
+            sheet.Range("A1:A3").ConditionalFormat().DataBar(OfficeColor.Blue);
+            sheet.Range("B1:B3").ConditionalFormat().IconSet(ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
 
             ExcelRangeVisualInfo snapshot = sheet.Range("A1:B3").CreateVisualSnapshot();
 
@@ -1487,7 +1486,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(row, 2).SetValue("row " + row.ToString(CultureInfo.InvariantCulture));
             }
 
-            sheet.AddConditionalFormulaRule("B1:B3", "=$A$1>0", stopIfTrue: false, fillColor: "C6EFCE");
+            sheet.Range("B1:B3").ConditionalFormat().Formula("=$A$1>0", stopIfTrue: false, fillColor: "C6EFCE");
 
             ExcelRangeVisualInfo snapshot = sheet.Range("A1:B3").CreateVisualSnapshot();
 
@@ -1501,8 +1500,8 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("StopOnly");
             sheet.Cell(1, 1).SetValue(1);
             sheet.Cell(1, 2).SetValue(10);
-            sheet.AddConditionalFormulaRule("B1:B1", "=$A$1>0", stopIfTrue: true, fillColor: null);
-            sheet.AddConditionalFormulaRule("B1:B1", "=B1>0", stopIfTrue: false, fillColor: "FCE4D6");
+            sheet.Range("B1:B1").ConditionalFormat().Formula("=$A$1>0", stopIfTrue: true, fillColor: null);
+            sheet.Range("B1:B1").ConditionalFormat().Formula("=B1>0", stopIfTrue: false, fillColor: "FCE4D6");
 
             ExcelRangeVisualInfo snapshot = sheet.Range("A1:B1").CreateVisualSnapshot();
 
@@ -1517,9 +1516,9 @@ namespace OfficeIMO.Tests {
             sheet.Cell(1, 1).SetValue(1);
             sheet.Cell(2, 1).SetValue(2);
             sheet.Cell(3, 1).SetValue(3);
-            sheet.AddConditionalFormulaRule("A2:A2", "=A2>0", stopIfTrue: true, fillColor: null);
-            sheet.AddConditionalDataBar("A1:A3", OfficeColor.Blue);
-            sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
+            sheet.Range("A2:A2").ConditionalFormat().Formula("=A2>0", stopIfTrue: true, fillColor: null);
+            sheet.Range("A1:A3").ConditionalFormat().DataBar(OfficeColor.Blue);
+            sheet.Range("A1:A3").ConditionalFormat().IconSet(ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
 
             ExcelRangeVisualInfo snapshot = sheet.Range("A1:A3").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
 
@@ -1540,7 +1539,7 @@ namespace OfficeIMO.Tests {
             }
 
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
-            sheet.AddConditionalIconSet("A1:A5", ExcelIconSet.FiveArrows, showValue: true, reverseIconOrder: false);
+            sheet.Range("A1:A5").ConditionalFormat().IconSet(ExcelIconSet.FiveArrows, showValue: true, reverseIconOrder: false);
 
             ExcelRange range = sheet.Range("A1:A5");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
@@ -1574,7 +1573,7 @@ namespace OfficeIMO.Tests {
             }
 
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
-            sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeFlags, showValue: true, reverseIconOrder: false);
+            sheet.Range("A1:A3").ConditionalFormat().IconSet(ExcelIconSet.ThreeFlags, showValue: true, reverseIconOrder: false);
 
             ExcelRange range = sheet.Range("A1:A3");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
@@ -1611,9 +1610,9 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
-            sheet.AddConditionalRule("A1:A3", ExcelConditionalFormattingOperator.GreaterThan, "10", fillColor: "C6EFCE");
-            sheet.AddConditionalFormulaRule("B1:B3", "B1<0", stopIfTrue: true, fillColor: "FEE2E2");
-            sheet.AddConditionalColorScale("B1:B3", OfficeColor.Red, OfficeColor.Lime);
+            sheet.Range("A1:A3").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "10", fillColor: "C6EFCE");
+            sheet.Range("B1:B3").ConditionalFormat().Formula("B1<0", stopIfTrue: true, fillColor: "FEE2E2");
+            sheet.Range("B1:B3").ConditionalFormat().ColorScale(OfficeColor.Red, OfficeColor.Lime);
 
             ExcelRange range = sheet.Range("A1:B3");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
@@ -1664,7 +1663,7 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
-            sheet.AddConditionalRule("A1:A3", ExcelConditionalFormattingOperator.GreaterThan, "10");
+            sheet.Range("A1:A3").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "10");
             uint differentialFormatId = sheet.AppendConditionalDifferentialFormat(new X.DifferentialFormat(
                 new X.Font(
                     new X.Bold(),
@@ -1716,7 +1715,7 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(16));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
-            sheet.AddConditionalRule("A1:A2", ExcelConditionalFormattingOperator.GreaterThan, "10");
+            sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "10");
             uint differentialFormatId = sheet.AppendConditionalDifferentialFormat(new X.DifferentialFormat(
                 new X.Border(
                     new X.LeftBorder(new X.Color { Rgb = "FFFF0000" }) { Style = X.BorderStyleValues.Thick },
@@ -1762,7 +1761,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("FalseFontRules");
             sheet.Cell(1, 1).SetValue(20);
-            sheet.AddConditionalRule("A1:A1", ExcelConditionalFormattingOperator.GreaterThan, "10");
+            sheet.Range("A1:A1").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "10");
 
             var bold = new X.Bold();
             bold.SetAttribute(new OpenXmlAttribute("val", string.Empty, "0"));
@@ -1792,7 +1791,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("UnderlineNone");
             sheet.Cell(1, 1).SetValue(20);
-            sheet.AddConditionalRule("A1:A1", ExcelConditionalFormattingOperator.GreaterThan, "10");
+            sheet.Range("A1:A1").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "10");
 
             uint differentialFormatId = sheet.AppendConditionalDifferentialFormat(new X.DifferentialFormat(
                 new X.Font(new X.Underline { Val = X.UnderlineValues.None })));
@@ -1816,8 +1815,8 @@ namespace OfficeIMO.Tests {
             sheet.Cell(2, 2).SetValue(4);
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
-            sheet.AddConditionalRule("A1:A2", ExcelConditionalFormattingOperator.Equal, "\"Hot\"", fillColor: "FEE2E2");
-            sheet.AddConditionalFormulaRule("B1:B2", "MOD(B1,2)=0", fillColor: "C6EFCE");
+            sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.Equal, "\"Hot\"", fillColor: "FEE2E2");
+            sheet.Range("B1:B2").ConditionalFormat().Formula("MOD(B1,2)=0", fillColor: "C6EFCE");
             AddMalformedTimePeriodRuleWithFill(sheet, "B1:B2");
 
             ExcelRange range = sheet.Range("A1:B2");
@@ -1857,10 +1856,10 @@ namespace OfficeIMO.Tests {
                 sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(15));
             }
 
-            sheet.Range("A1:A4").ConditionalFormatting.ContainsText("hot", "FCE4D6");
-            sheet.Range("B1:B4").ConditionalFormatting.NotContainsText("hot", "DBEAFE");
-            sheet.Range("C1:C4").ConditionalFormatting.BeginsWithText("ops", "C6EFCE");
-            sheet.Range("D1:D4").ConditionalFormatting.EndsWithText("ops", "FEE2E2");
+            sheet.Range("A1:A4").ConditionalFormat().Text(ExcelConditionalFormatType.ContainsText, "hot", "FCE4D6");
+            sheet.Range("B1:B4").ConditionalFormat().Text(ExcelConditionalFormatType.NotContainsText, "hot", "DBEAFE");
+            sheet.Range("C1:C4").ConditionalFormat().Text(ExcelConditionalFormatType.BeginsWith, "ops", "C6EFCE");
+            sheet.Range("D1:D4").ConditionalFormat().Text(ExcelConditionalFormatType.EndsWith, "ops", "FEE2E2");
 
             ExcelRange range = sheet.Range("A1:D4");
             ExcelImageExportOptions options = new ExcelImageExportOptions { ShowGridlines = false };
@@ -1936,9 +1935,9 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
             sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
-            sheet.Range("A1:A5").ConditionalFormatting.AboveAverage("C6EFCE");
-            sheet.Range("B1:B5").ConditionalFormatting.BelowAverage("DBEAFE", equalAverage: true);
-            sheet.AddConditionalAboveAverageRule("C1:C5", aboveAverage: true, equalAverage: false, fillColor: "FCE4D6");
+            sheet.Range("A1:A5").ConditionalFormat().AboveAverage(fillColor: "C6EFCE");
+            sheet.Range("B1:B5").ConditionalFormat().AboveAverage(aboveAverage: false, fillColor: "DBEAFE", equalAverage: true);
+            sheet.Range("C1:C5").ConditionalFormat().AboveAverage(aboveAverage: true, equalAverage: false, fillColor: "FCE4D6");
             MarkAboveAverageRuleAsStdDev(sheet, "C1:C5", stdDev: 1);
 
             ExcelRange range = sheet.Range("A1:C5");
@@ -1985,8 +1984,8 @@ namespace OfficeIMO.Tests {
             sheet.Cell(1, 1).SetValue(1);
             sheet.Cell(2, 1).SetValue(2);
             sheet.Cell(3, 1).SetValue(100);
-            sheet.AddConditionalFormulaRule("A3:A3", "=A3>0", stopIfTrue: true, fillColor: "FCE4D6");
-            sheet.Range("A1:A3").ConditionalFormatting.AboveAverage("C6EFCE");
+            sheet.Range("A3:A3").ConditionalFormat().Formula("=A3>0", stopIfTrue: true, fillColor: "FCE4D6");
+            sheet.Range("A1:A3").ConditionalFormat().AboveAverage(fillColor: "C6EFCE");
 
             ExcelRangeVisualInfo snapshot = sheet.Range("A1:A3").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
 
@@ -2008,8 +2007,8 @@ namespace OfficeIMO.Tests {
 
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(14));
-            sheet.Range("A1:A6").ConditionalFormatting.DuplicateValues("FCE4D6");
-            sheet.Range("B1:B6").ConditionalFormatting.UniqueValues("DBEAFE");
+            sheet.Range("A1:A6").ConditionalFormat().DuplicateValues("FCE4D6");
+            sheet.Range("B1:B6").ConditionalFormat().UniqueValues("DBEAFE");
 
             ExcelRange range = sheet.Range("A1:B6");
             ExcelImageExportOptions options = new ExcelImageExportOptions { ShowGridlines = false };
@@ -2065,7 +2064,7 @@ namespace OfficeIMO.Tests {
             sheet.Cell(1, 1).SetValue("Alpha");
             sheet.Cell(2, 1).SetValue("Alpha");
             sheet.Cell(3, 1).SetValue("Beta");
-            sheet.Range("A1:A3").ConditionalFormatting.DuplicateValues("FCE4D6");
+            sheet.Range("A1:A3").ConditionalFormat().DuplicateValues("FCE4D6");
 
             ExcelRangeVisualInfo duplicateSnapshot = sheet.Range("A1:A1").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
             ExcelRangeVisualInfo uniqueSnapshot = sheet.Range("A3:A3").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
@@ -2082,7 +2081,7 @@ namespace OfficeIMO.Tests {
             sheet.Cell(1, 1).SetValue(1).SetNumberFormat("0.00");
             sheet.Cell(2, 1).SetValue(1).SetNumberFormat("0");
             sheet.Cell(3, 1).SetValue(2).SetNumberFormat("0.00");
-            sheet.Range("A1:A3").ConditionalFormatting.DuplicateValues("FCE4D6");
+            sheet.Range("A1:A3").ConditionalFormat().DuplicateValues("FCE4D6");
 
             ExcelRangeVisualInfo snapshot = sheet.Range("A1:A3").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
 
@@ -2113,10 +2112,10 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
             sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
             sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(12));
-            sheet.Range("A1:A5").ConditionalFormatting.Top(2, "C6EFCE");
-            sheet.Range("B1:B5").ConditionalFormatting.Bottom(1, "FEE2E2");
-            sheet.AddConditionalTopBottomRule("C1:C5", 20, bottom: false, percent: true, fillColor: "FCE4D6");
-            sheet.AddConditionalTopBottomRule("D1:D5", 40, bottom: true, percent: true, fillColor: "DBEAFE");
+            sheet.Range("A1:A5").ConditionalFormat().TopBottom(2, fillColor: "C6EFCE");
+            sheet.Range("B1:B5").ConditionalFormat().TopBottom(1, bottom: true, fillColor: "FEE2E2");
+            sheet.Range("C1:C5").ConditionalFormat().TopBottom(20, bottom: false, percent: true, fillColor: "FCE4D6");
+            sheet.Range("D1:D5").ConditionalFormat().TopBottom(40, bottom: true, percent: true, fillColor: "DBEAFE");
 
             ExcelRange range = sheet.Range("A1:D5");
             ExcelImageExportOptions options = new ExcelImageExportOptions { ShowGridlines = false };
@@ -2177,7 +2176,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(row, 1).SetValue(row);
             }
 
-            sheet.Range("A1:A10").ConditionalFormatting.Top(1, "C6EFCE");
+            sheet.Range("A1:A10").ConditionalFormat().TopBottom(1, fillColor: "C6EFCE");
 
             ExcelRangeVisualInfo middleSnapshot = sheet.Range("A5:A5").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
             ExcelRangeVisualInfo topSnapshot = sheet.Range("A10:A10").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
@@ -3419,8 +3418,8 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(row, 2).SetValue(row * 10);
             }
 
-            sheet.AddConditionalDataBar("A1:A3", OfficeColor.Blue);
-            sheet.AddConditionalColorScale("B1:B3", OfficeColor.Red, OfficeColor.Green);
+            sheet.Range("A1:A3").ConditionalFormat().DataBar(OfficeColor.Blue);
+            sheet.Range("B1:B3").ConditionalFormat().ColorScale(OfficeColor.Red, OfficeColor.Green);
             SetFirstDataBarThresholdFormula(sheet, "A1");
             SetFirstColorScaleThresholdFormula(sheet, "B1");
 
@@ -5003,7 +5002,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AddMalformedTimePeriodRuleWithFill(ExcelSheet sheet, string range) {
-            sheet.AddConditionalTimePeriodRule(range, ExcelConditionalTimePeriod.Today, fillColor: "C6EFCE");
+            sheet.Range(range).ConditionalFormat().TimePeriod(ExcelConditionalTimePeriod.Today, fillColor: "C6EFCE");
             ConditionalFormattingRule rule = sheet.WorksheetPart.Worksheet!
                 .Elements<ConditionalFormatting>()
                 .Where(conditional => string.Equals(conditional.SequenceOfReferences?.InnerText, range, StringComparison.Ordinal))

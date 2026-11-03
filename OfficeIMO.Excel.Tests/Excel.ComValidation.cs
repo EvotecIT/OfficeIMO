@@ -7,6 +7,7 @@ using System.Runtime.Versioning;
 #endif
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
+using OfficeIMO.Excel.Reports;
 using OfficeColor = OfficeIMO.OfficeColor;
 using Xunit;
 
@@ -230,7 +231,7 @@ namespace OfficeIMO.Tests
             sheet.Cell(3, 1).SetValue("Beta");
             sheet.Cell(3, 2).SetValue(20.5d);
             sheet.Cell(4, 2).SetFormula("SUM(B2:B3)");
-            sheet.Range("A1:B1").HeaderStyle();
+            sheet.Range("A1:B1").SetBold().SetFillColor("D9EAF7").SetFontColor("1F4E79");
             document.Save();
             return filePath;
         }
@@ -245,10 +246,8 @@ namespace OfficeIMO.Tests
             sheet.Cell(3, 1).SetValue("South");
             sheet.Cell(3, 2).SetValue(95d);
             sheet.AddTable("A1:B3", true, "ScoresTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
-            sheet.AddAutoFilter("A1:B3", new Dictionary<uint, IEnumerable<string>> {
-                { 0, new[] { "North", "South" } }
-            });
-            sheet.Freeze(topRows: 1, leftCols: 1);
+            sheet.Range("A1:B3").AutoFilter().Column(0).Equals(new[] { "North", "South" });
+            sheet.View.Freeze(topRows: 1, leftColumns: 1);
             document.Save();
             return filePath;
         }
@@ -259,9 +258,9 @@ namespace OfficeIMO.Tests
             sheet.Cell(1, 1).SetValue("Score");
             sheet.Cell(2, 1).SetValue(42d);
             sheet.Cell(3, 1).SetValue(87d);
-            sheet.AddConditionalColorScale("A2:A3", OfficeColor.Red, OfficeColor.Lime);
-            sheet.AddConditionalDataBar("A2:A3", OfficeColor.Blue);
-            sheet.AddConditionalRule("A2:A3", ExcelConditionalFormattingOperator.GreaterThan, "50");
+            sheet.Range("A2:A3").ConditionalFormat().ColorScale(OfficeColor.Red, OfficeColor.Lime);
+            sheet.Range("A2:A3").ConditionalFormat().DataBar(OfficeColor.Blue);
+            sheet.Range("A2:A3").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "50");
             document.Save();
             return filePath;
         }

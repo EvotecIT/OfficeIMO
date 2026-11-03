@@ -29,8 +29,8 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddSheet("Data");
                 sheet.Cell(2, 1).SetValue(1);
                 sheet.Cell(3, 1).SetValue(2);
-                sheet.Range("B2:B3").Validation.CustomFormula("A2>$A$2");
-                sheet.AddConditionalFormulaRule("C2:C3", "A2>$A$2");
+                sheet.Range("B2:B3").Validation().CustomFormula("A2>$A$2");
+                sheet.Range("C2:C3").ConditionalFormat().Formula("A2>$A$2");
 
                 sheet.InsertRows(2);
 
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
                     new ProtectedRanges(protectedRange),
                     sheetData);
 
-                sheet.AutoFilterAdd("A1:B4");
+                sheet.Range("A1:B4").AutoFilter();
                 AutoFilter filter = sheet.WorksheetPart.Worksheet.GetFirstChild<AutoFilter>()!;
                 filter.Append(new SortState(
                     new SortCondition { Reference = "A2:A3" }) {

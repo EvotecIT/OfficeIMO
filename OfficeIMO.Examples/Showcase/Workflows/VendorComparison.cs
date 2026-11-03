@@ -22,11 +22,11 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                 sheet.Cell(row, 5).SetFormula($"B{row}*0.5+C{row}*0.3+D{row}*0.2"); sheet.Cell(row, 5).SetNumberFormat("0.00");
             }
             sheet.AddTable("A4:E7", true, "VendorScores", ExcelTableStyle.TableStyleMedium2);
-            sheet.ValidationWholeNumber("B5:D7", ExcelDataValidationOperator.Between, 1, 5);
+            sheet.Range("B5:D7").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 5);
             sheet.Range("A10:E10").Merge(); sheet.Cell(10, 1).SetValue("Scoring guide: 1 = limited evidence; 3 = meets need; 5 = strong evidence.");
             sheet.Range("A12:E12").Merge(); sheet.Cell(12, 1).SetValue("Weights sum to 100%. Keep evidence and conflicts of interest in the review record.");
             sheet.Range("A13:E13").Merge(); sheet.Cell(13, 1).SetValue("Scores support review; they do not approve a purchase.");
-            sheet.SetGridlinesVisible(false);
+            sheet.View.ShowGridlines = false;
             for (int row = 1; row <= 16; row++) {
                 sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(row == 1 ? 34 : row == 3 ? 12 : 25)));
                 for (int column = 1; column <= 5; column++) {

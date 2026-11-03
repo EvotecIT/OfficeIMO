@@ -281,7 +281,7 @@ namespace OfficeIMO.Tests
             sheet.Cell(1, 3).SetValue("Amount");
             sheet.Cell(2, 1).SetValue("East");
             sheet.Cell(2, 2).SetFormula("DATE(2026,1,2)");
-            sheet.Cell(2, 2).DateTime("yyyy-mm-dd");
+            sheet.Cell(2, 2).SetNumberFormat("yyyy-mm-dd");
             sheet.Cell(2, 3).SetValue(10d);
             Assert.Equal(1, document.Calculate());
             Cell formulaCell = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<Cell>(), cell => cell.CellReference?.Value == "B2");

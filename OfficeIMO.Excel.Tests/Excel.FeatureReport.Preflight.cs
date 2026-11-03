@@ -715,8 +715,7 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Images");
                 sheet.Cell(1, 1).SetValue("Image");
-                sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, CreateFeatureReportGif(), "image/gif",
-                    width: OfficeLength.Points(24), height: OfficeLength.Points(24));
+                sheet.PageSetup.Header.Center.SetImage(CreateFeatureReportGif(), "image/gif", width: OfficeLength.Points(24), height: OfficeLength.Points(24));
                 document.Save();
             }
 
@@ -738,7 +737,7 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Headers");
                 sheet.Cell(1, 1).SetValue("Report");
-                sheet.SetHeaderFooter(headerCenter: "&UConfidential");
+                sheet.PageSetup.Header.Center.Text = "&UConfidential";
                 document.Save();
             }
 
