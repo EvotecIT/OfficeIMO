@@ -25,9 +25,9 @@ public class PdfPageWorkflowCancellationTests {
             () => document.Pages.Rotate(90, "1", token),
             () => document.Pages.RotateBy(90, selection, token),
             () => document.Pages.SetCropBox(20, 20, 400, 700, token, 1),
-            () => document.Pages.Resize(new PdfPageResizeOptions(PdfPageSizes.Letter) { CancellationToken = token }, 1),
+            () => document.Pages.Resize(new PdfPageResizeOptions(PdfPageSizes.Letter), selection, token),
             () => document.Pages.CropAndTranslate(20, 20, 400, 700, token, 1),
-            () => document.Pages.DestructiveCrop(20, 20, 400, 700, new PdfDestructiveCropOptions { CancellationToken = token }, 1),
+            () => document.Pages.DestructiveCrop(20, 20, 400, 700, new PdfDestructiveCropOptions(), selection, token),
             () => document.Pages.ApplyAttributes(token, PdfPageAttributeEdit.RotateBy(90, selection)),
             () => document.Pages.ReorderWithMapping(token, 2, 1),
             () => document.Pages.BookmarkPageRanges(token),
@@ -113,14 +113,12 @@ public class PdfPageWorkflowCancellationTests {
     }
 
     [Fact]
-    public void ResizeHonorsBothItsOptionTokenAndTheExplicitOwnerToken() {
+    public void ResizeHonorsTheExplicitToken() {
         byte[] source = CreateSource();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        var options = new PdfPageResizeOptions(PdfPageSizes.Letter) { CancellationToken = cancellation.Token };
-        Assert.Throws<OperationCanceledException>(() => PdfPageEditor.ResizePages(source, options, null, CancellationToken.None));
-        options.CancellationToken = CancellationToken.None;
-        Assert.Throws<OperationCanceledException>(() => PdfPageEditor.ResizePages(source, options, null, cancellation.Token));
+        var options = new PdfPageResizeOptions(PdfPageSizes.Letter);
+        Assert.Throws<OperationCanceledException>(() => PdfPageEditor.ResizePages(source, options, selection: null, cancellation.Token));
     }
 
     [Fact]

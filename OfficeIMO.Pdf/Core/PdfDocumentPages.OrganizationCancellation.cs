@@ -260,7 +260,8 @@ public sealed partial class PdfDocumentPages {
 
     /// <summary>Resizes selected pages with cooperative cancellation.</summary>
     public PdfDocument Resize(PdfPageSize pageSize, CancellationToken cancellationToken, params int[] pageNumbers) =>
-        Resize(new PdfPageResizeOptions(pageSize) { CancellationToken = cancellationToken }, pageNumbers);
+        _document.ApplyMutation(input => PdfPageEditor.ResizePages(input, new PdfPageResizeOptions(pageSize), _document.ReadOptions, cancellationToken, pageNumbers),
+            cancellationToken: cancellationToken);
 
     /// <summary>Crops and translates selected pages while retaining the source read options and observing cancellation.</summary>
     public PdfDocument CropAndTranslate(double left, double bottom, double right, double top, CancellationToken cancellationToken, params int[] pageNumbers) =>

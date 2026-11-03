@@ -19,12 +19,14 @@ internal static partial class PdfPageEditor {
     /// Creates a new PDF with selected pages scaled into the target page size described by <paramref name="options"/>.
     /// If no page numbers are supplied, all pages are resized.
     /// </summary>
-    public static byte[] ResizePages(byte[] pdf, PdfPageResizeOptions options, params int[] pageNumbers) {
-        return ResizePages(pdf, options, readOptions: null, pageNumbers);
-    }
+    public static byte[] ResizePages(byte[] pdf, PdfPageResizeOptions options, PdfPageSelection? selection = null, CancellationToken cancellationToken = default) =>
+        ResizePages(pdf, options, readOptions: null, cancellationToken, PdfPageSelection.ToPageNumbers(selection));
 
     internal static byte[] ResizePages(byte[] pdf, PdfPageResizeOptions options, PdfLoadOptions? readOptions, params int[] pageNumbers) =>
         ResizePages(pdf, options, readOptions, options?.CancellationToken ?? default, pageNumbers);
+
+    internal static byte[] ResizePages(byte[] pdf, PdfPageResizeOptions options, PdfLoadOptions? readOptions, PdfPageSelection? selection, CancellationToken cancellationToken) =>
+        ResizePages(pdf, options, readOptions, cancellationToken, PdfPageSelection.ToPageNumbers(selection));
 
     internal static byte[] ResizePages(byte[] pdf, PdfPageResizeOptions options, PdfLoadOptions? readOptions, CancellationToken cancellationToken, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
@@ -128,8 +130,8 @@ internal static partial class PdfPageEditor {
     }
 
     /// <summary>Creates a new PDF with selected pages scaled into the target page size described by <paramref name="options"/> from a readable stream.</summary>
-    public static byte[] ResizePages(Stream stream, PdfPageResizeOptions options, params int[] pageNumbers) {
-        return ResizePages(ReadStream(stream, nameof(stream)), options, pageNumbers);
+    public static byte[] ResizePages(Stream stream, PdfPageResizeOptions options, PdfPageSelection? selection = null, CancellationToken cancellationToken = default) {
+        return ResizePages(ReadStream(stream, nameof(stream), cancellationToken: cancellationToken), options, selection, cancellationToken);
     }
 
     /// <summary>Writes a new PDF with selected pages scaled into the supplied target page size.</summary>
@@ -138,8 +140,8 @@ internal static partial class PdfPageEditor {
     }
 
     /// <summary>Writes a new PDF with selected pages scaled into the target page size described by <paramref name="options"/>.</summary>
-    public static void ResizePages(byte[] pdf, Stream outputStream, PdfPageResizeOptions options, params int[] pageNumbers) {
-        WriteOutput(outputStream, ResizePages(pdf, options, pageNumbers));
+    public static void ResizePages(byte[] pdf, Stream outputStream, PdfPageResizeOptions options, PdfPageSelection? selection = null, CancellationToken cancellationToken = default) {
+        WriteOutput(outputStream, ResizePages(pdf, options, selection, cancellationToken), cancellationToken);
     }
 
     /// <summary>Writes a new PDF with selected pages scaled into the supplied target page size from a readable stream.</summary>
@@ -148,8 +150,8 @@ internal static partial class PdfPageEditor {
     }
 
     /// <summary>Writes a new PDF with selected pages scaled into the target page size described by <paramref name="options"/> from a readable stream.</summary>
-    public static void ResizePages(Stream inputStream, Stream outputStream, PdfPageResizeOptions options, params int[] pageNumbers) {
-        WriteOutput(outputStream, ResizePages(inputStream, options, pageNumbers));
+    public static void ResizePages(Stream inputStream, Stream outputStream, PdfPageResizeOptions options, PdfPageSelection? selection = null, CancellationToken cancellationToken = default) {
+        WriteOutput(outputStream, ResizePages(inputStream, options, selection, cancellationToken), cancellationToken);
     }
 
     /// <summary>Writes a new PDF file with selected pages scaled into the supplied target page size.</summary>
@@ -162,12 +164,12 @@ internal static partial class PdfPageEditor {
     }
 
     /// <summary>Writes a new PDF file with selected pages scaled into the target page size described by <paramref name="options"/>.</summary>
-    public static void ResizePages(string inputPath, string outputPath, PdfPageResizeOptions options, params int[] pageNumbers) {
+    public static void ResizePages(string inputPath, string outputPath, PdfPageResizeOptions options, PdfPageSelection? selection = null, CancellationToken cancellationToken = default) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        WriteOutput(fullOutputPath, ResizePages(ReadPath(inputPath), options, pageNumbers));
+        WriteOutput(fullOutputPath, ResizePages(ReadPath(inputPath, cancellationToken: cancellationToken), options, selection, cancellationToken), cancellationToken);
     }
 
     /// <summary>Creates a new PDF with selected pages scaled into the supplied target page size from a file path.</summary>
@@ -177,9 +179,9 @@ internal static partial class PdfPageEditor {
     }
 
     /// <summary>Creates a new PDF with selected pages scaled into the target page size described by <paramref name="options"/> from a file path.</summary>
-    public static byte[] ResizePages(string inputPath, PdfPageResizeOptions options, params int[] pageNumbers) {
+    public static byte[] ResizePages(string inputPath, PdfPageResizeOptions options, PdfPageSelection? selection = null, CancellationToken cancellationToken = default) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return ResizePages(ReadPath(inputPath), options, pageNumbers);
+        return ResizePages(ReadPath(inputPath, cancellationToken: cancellationToken), options, selection, cancellationToken);
     }
 
     /// <summary>Creates a new PDF with the inclusive one-based page range scaled into the supplied target page size.</summary>
@@ -189,8 +191,7 @@ internal static partial class PdfPageEditor {
 
     /// <summary>Creates a new PDF with the inclusive one-based page range scaled into the target page size described by <paramref name="options"/>.</summary>
     public static byte[] ResizePageRange(byte[] pdf, PdfPageResizeOptions options, int firstPage, int lastPage, System.Threading.CancellationToken cancellationToken = default) {
-        options = PdfOperationCancellation.Bind(options, cancellationToken)!;
-        return ResizePages(pdf, options, BuildInclusivePageRange(firstPage, lastPage, nameof(lastPage)));
+        return ResizePages(pdf, options, readOptions: null, cancellationToken, BuildInclusivePageRange(firstPage, lastPage, nameof(lastPage)));
     }
 
     /// <summary>Creates a new PDF with the supplied page ranges scaled into the supplied target page size.</summary>
@@ -199,8 +200,8 @@ internal static partial class PdfPageEditor {
     }
 
     /// <summary>Creates a new PDF with the supplied page ranges scaled into the target page size described by <paramref name="options"/>.</summary>
-    public static byte[] ResizePageRanges(byte[] pdf, PdfPageResizeOptions options, params PdfPageRange[] pageRanges) {
-        return ResizePages(pdf, options, ExpandPageRangesDistinct(pageRanges, nameof(pageRanges)));
+    public static byte[] ResizePageRanges(byte[] pdf, PdfPageResizeOptions options, PdfPageRange[] pageRanges, CancellationToken cancellationToken = default) {
+        return ResizePages(pdf, options, readOptions: null, cancellationToken, ExpandPageRangesDistinct(pageRanges, nameof(pageRanges)));
     }
 
     private static PdfArray BuildResizedContentsArray(Dictionary<int, PdfIndirectObject> objects, PdfObject? existingContents, int prefixPseudoObjectNumber, int suffixPseudoObjectNumber) {

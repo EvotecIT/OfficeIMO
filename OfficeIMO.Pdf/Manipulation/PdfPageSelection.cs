@@ -88,6 +88,10 @@ public sealed class PdfPageSelection : IEquatable<PdfPageSelection> {
         return true;
     }
 
+    /// <summary>Expands an optional selection in caller order; null selects every page and yields an empty list.</summary>
+    internal static int[] ToPageNumbers(PdfPageSelection? selection) =>
+        selection == null ? Array.Empty<int>() : selection._ranges.SelectMany(static range => range.ToPageNumbers()).ToArray();
+
     internal PdfPageRange[] ToRanges() {
         return (PdfPageRange[])_ranges.Clone();
     }

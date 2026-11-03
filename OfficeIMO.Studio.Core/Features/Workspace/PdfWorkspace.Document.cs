@@ -93,7 +93,8 @@ internal sealed partial class PdfWorkspace {
     internal Task ResizePagesAsync(IReadOnlyList<int> pageNumbers, PdfPageSize size, PdfPageResizeMode mode, CancellationToken cancellationToken,
         IProgress<PdfWorkspaceProgress>? progress = null) =>
         MutateBytesAsync(PdfWorkspaceOperationKind.Resize, "Resized pages", pageNumbers,
-            bytes => LoadDocument(bytes).Pages.Resize(new PdfPageResizeOptions(size) { Mode = mode }, pageNumbers.ToArray()).ToBytes(),
+            bytes => LoadDocument(bytes).Pages.Resize(new PdfPageResizeOptions(size) { Mode = mode },
+                pageNumbers.Count == 0 ? null : PdfPageSelection.From(pageNumbers.ToArray()), cancellationToken).ToBytes(),
             cancellationToken, progress);
 
     internal async Task<int> ExportDocumentAsync(PdfExportKind kind, string destination, CancellationToken cancellationToken,

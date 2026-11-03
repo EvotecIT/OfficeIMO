@@ -1087,7 +1087,7 @@ public class PdfDocumentWorkflowTests {
             FlattenVisualAnnotations = true
         };
         PdfDocument inserted = PdfDocument.Load(new System.IO.MemoryStream(target)).Pages.Insert(1, source, PdfPageSelection.From(2), importOptions);
-        Assert.Equal(PdfPageImporter.InsertPages(importOptions, target, source, 1, 2), inserted.ToBytes());
+        Assert.Equal(PdfPageImporter.InsertPages(importOptions, target, source, 1, PdfPageSelection.From(2)), inserted.ToBytes());
 
         PdfOperationResult<PdfDocument> imported = PdfDocument.Load(new System.IO.MemoryStream(target)).Pages.AppendResult(PdfDocument.Load(new System.IO.MemoryStream(source)), PdfPageSelection.From(1));
         Assert.True(imported.Succeeded);

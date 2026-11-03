@@ -3518,6 +3518,26 @@
       "reason": "One cancellation shape across packages (F15).",
       "category": "cancellation",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocumentPages.Resize(PdfPageResizeOptions options, params int[] pageNumbers)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocumentPages.Resize(PdfPageResizeOptions options, PdfPageSelection selection = null, CancellationToken cancellationToken = default)",
+      "replacement": "Pass PdfPageSelection.From(1, 3) for selected pages, or null for every page.",
+      "reason": "Cancellable page-range operations take a page selection followed by a final CancellationToken, matching the other PdfDocumentPages page-list overloads; a params page list could not be followed by the token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocumentPages.DestructiveCrop(double left, double bottom, double right, double top, PdfDestructiveCropOptions options = null, params int[] pageNumbers)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocumentPages.DestructiveCrop(double left, double bottom, double right, double top, PdfDestructiveCropOptions options = null, PdfPageSelection selection = null, CancellationToken cancellationToken = default)",
+      "replacement": "Pass PdfPageSelection.From(1) for selected pages, or null for every page.",
+      "reason": "Cancellable page-range operations take a page selection followed by a final CancellationToken, matching the other PdfDocumentPages page-list overloads; a params page list could not be followed by the token.",
+      "category": "cancellation",
+      "applied": true
     }
   ],
   "packageMoves": [
