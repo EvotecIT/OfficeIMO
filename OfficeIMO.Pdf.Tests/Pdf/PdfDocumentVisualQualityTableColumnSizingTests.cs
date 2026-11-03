@@ -69,7 +69,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "ID", "Description", "Score" },
                                     new[] { "A1", "Longer descriptive value", "100" }
                                 }, style: style))))))
@@ -177,7 +177,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "ID", "Description", "Score" },
                                     new[] { "A1", "Longer descriptive value", "100" }
                                 }, style: style))))))
@@ -278,7 +278,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "ID", "Description", "Score" },
                                     new[] { "A1", "Longer descriptive value", "100" }
                                 }, style: style))))))
@@ -351,7 +351,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Name", "Notes" },
                                     new[] {
                                         "BottomValue",
@@ -461,7 +461,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "MMMMMMMMMMMMMMMMMMMMMMMM", "State" }
                                 }, style: style))))))
             .ToBytes();
@@ -1005,7 +1005,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "SKU", "Description", "Amount" },
                                     new[] { "A1", "Managed service renewal with monitoring and incident response", "1250" }
                                 }, style: style))))))
@@ -1052,7 +1052,7 @@ public partial class PdfDocumentVisualQualityTests {
             return insideRow
                 ? PdfDocument.Create(options)
                     .Compose(document => document.Page(page => page.Content(content => content.Row(row =>
-                        row.PercentColumn(100, column => column.Table(rows, style: style))))))
+                        row.PercentColumn(100, column => column.AddTable(rows, style: style))))))
                     .ToBytes()
                 : PdfDocument.Create(options)
                     .Table(rows, style: style)
@@ -1134,7 +1134,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Metric", "Amount" },
                                     new[] { "Revenue", "$1,234.50" },
                                     new[] { "Refund", "(45.20)" },

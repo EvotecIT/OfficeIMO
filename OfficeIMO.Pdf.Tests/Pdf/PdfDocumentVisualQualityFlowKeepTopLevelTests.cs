@@ -29,7 +29,7 @@ public partial class PdfDocumentVisualQualityTests {
         string longText = string.Join(" ", Enumerable.Range(1, 180).Select(i => "segment" + i.ToString("000")));
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text(longText), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText(longText), style: new PdfParagraphStyle {
                 LineHeight = 1.3,
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
@@ -64,15 +64,16 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
             })
-            .Paragraph(p => p
-                .Text("KeepFirst")
-                .LineBreak()
-                .Text("KeepMiddle")
-                .LineBreak()
-                .Text("KeepLast"), style: new PdfParagraphStyle {
+            .Paragraph(p => {
+                p.AddText("KeepFirst");
+                p.AddLineBreak();
+                p.AddText("KeepMiddle");
+                p.AddLineBreak();
+                p.AddText("KeepLast");
+            }, style: new PdfParagraphStyle {
                     KeepTogether = true,
                     SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                 })
@@ -101,7 +102,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
             })
             .Bullets(new[] {
@@ -137,7 +138,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(64)
             })
             .Bullets(new[] {
@@ -148,7 +149,7 @@ public partial class PdfDocumentVisualQualityTests {
                 ItemSpacing = global::OfficeIMO.OfficeLength.Points(0),
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
-            .Paragraph(p => p.Text("FollowingListBody"))
+            .Paragraph(p => p.AddText("FollowingListBody"))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -175,13 +176,13 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
             })
-            .Paragraph(p => p.Text("KeepWithNextLabel"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("KeepWithNextLabel"), style: new PdfParagraphStyle {
                 KeepWithNext = true
             })
-            .Paragraph(p => p.Text("FollowingBody"))
+            .Paragraph(p => p.AddText("FollowingBody"))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -207,10 +208,10 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
             })
-            .Paragraph(p => p.Text("KeepWithListLabel"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("KeepWithListLabel"), style: new PdfParagraphStyle {
                 KeepWithNext = true
             })
             .Bullets(new[] { "FollowingBullet" })
@@ -239,10 +240,10 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
             })
-            .Paragraph(p => p.Text("KeepWithTableLabel"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("KeepWithTableLabel"), style: new PdfParagraphStyle {
                 KeepWithNext = true
             })
             .Table(new[] {
@@ -278,10 +279,10 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(35)
             })
-            .Paragraph(p => p.Text("KeepWithNarrowTableLabel"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("KeepWithNarrowTableLabel"), style: new PdfParagraphStyle {
                 KeepWithNext = true
             })
             .Table(new[] {
@@ -319,16 +320,16 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content => {
                         content.Column(column => {
-                            column.Item().Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+                            column.Item().AddParagraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
                             });
-                            column.Item().Paragraph(p => p.Text("KeepWithRowLabel"), style: new PdfParagraphStyle {
+                            column.Item().AddParagraph(p => p.AddText("KeepWithRowLabel"), style: new PdfParagraphStyle {
                                 KeepWithNext = true
                             });
                         });
                         content.Row(row => row
-                            .PercentColumn(50, column => column.Paragraph(p => p.Text("RowLeftBody")))
-                            .PercentColumn(50, column => column.Paragraph(p => p.Text("RowRightBody"))));
+                            .PercentColumn(50, column => column.AddParagraph(p => p.AddText("RowLeftBody")))
+                            .PercentColumn(50, column => column.AddParagraph(p => p.AddText("RowRightBody"))));
                     })))
             .ToBytes();
 
@@ -356,11 +357,11 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
             })
             .H3("SignalHeading")
-            .Paragraph(p => p.Text("SignalBody"))
+            .Paragraph(p => p.AddText("SignalBody"))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -386,12 +387,12 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(45)
             })
             .H2("ChainTopHeading")
             .H3("ChainSubHeading")
-            .Paragraph(p => p.Text("ChainBody"))
+            .Paragraph(p => p.AddText("ChainBody"))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -431,12 +432,12 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(50)
             })
             .H2("WidowChainHeading", style: heading2)
             .H3("WidowChainSubHeading", style: heading3)
-            .Paragraph(p => p.Text("Following body text wraps enough to require multiple rendered lines in this narrow frame."), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("Following body text wraps enough to require multiple rendered lines in this narrow frame."), style: new PdfParagraphStyle {
                 WidowControl = true,
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
@@ -468,7 +469,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(44)
             })
             .H2("RuleChainTopHeading")
@@ -479,7 +480,7 @@ public partial class PdfDocumentVisualQualityTests {
                 KeepWithNext = true
             })
             .H3("RuleChainSubHeading")
-            .Paragraph(p => p.Text("RuleChainBody"))
+            .Paragraph(p => p.AddText("RuleChainBody"))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -508,7 +509,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         PdfDocument document = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(45)
             })
             .Bookmark("bookmark-chain-top-heading")
@@ -519,7 +520,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = document
             .H3("BookmarkChainSubHeading")
-            .Paragraph(p => p.Text("BookmarkChainBody"))
+            .Paragraph(p => p.AddText("BookmarkChainBody"))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -549,11 +550,11 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
             })
             .H3("PanelSignalHeading")
-            .PanelParagraph(p => p.Text("PanelSignalBody"), new PdfPanelStyle {
+            .PanelParagraph(p => p.AddText("PanelSignalBody"), new PdfPanelStyle {
                 PaddingY = global::OfficeIMO.OfficeLength.Points(5),
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
@@ -582,15 +583,15 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(64)
             })
-            .PanelParagraph(p => p.Text("PanelKeepWithNext"), new PdfPanelStyle {
+            .PanelParagraph(p => p.AddText("PanelKeepWithNext"), new PdfPanelStyle {
                 KeepWithNext = true,
                 PaddingY = global::OfficeIMO.OfficeLength.Points(5),
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
-            .Paragraph(p => p.Text("FollowingPanelBody"))
+            .Paragraph(p => p.AddText("FollowingPanelBody"))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -616,16 +617,16 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(56)
             })
-            .PanelParagraph(p => p.Text("PanelChainKeepWithNext"), new PdfPanelStyle {
+            .PanelParagraph(p => p.AddText("PanelChainKeepWithNext"), new PdfPanelStyle {
                 KeepWithNext = true,
                 PaddingY = global::OfficeIMO.OfficeLength.Points(5),
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
             .H3("FollowingPanelHeading")
-            .Paragraph(p => p.Text("FollowingPanelChainBody"))
+            .Paragraph(p => p.AddText("FollowingPanelChainBody"))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -654,7 +655,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
             })
             .H3("TableSignalHeading")
@@ -693,14 +694,14 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content => {
                         content.Column(column => {
-                            column.Item().Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+                            column.Item().AddParagraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
                             });
                             column.Item().H3("RowSignalHeading");
                         });
                         content.Row(row => row
-                            .PercentColumn(50, column => column.Paragraph(p => p.Text("RowSignalLeft")))
-                            .PercentColumn(50, column => column.Paragraph(p => p.Text("RowSignalRight"))));
+                            .PercentColumn(50, column => column.AddParagraph(p => p.AddText("RowSignalLeft")))
+                            .PercentColumn(50, column => column.AddParagraph(p => p.AddText("RowSignalRight"))));
                     })))
             .ToBytes();
 
@@ -728,15 +729,16 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
             })
-            .Paragraph(p => p
-                .Text("WidowFirst")
-                .LineBreak()
-                .Text("WidowSecond")
-                .LineBreak()
-                .Text("WidowThird"), style: new PdfParagraphStyle {
+            .Paragraph(p => {
+                p.AddText("WidowFirst");
+                p.AddLineBreak();
+                p.AddText("WidowSecond");
+                p.AddLineBreak();
+                p.AddText("WidowThird");
+            }, style: new PdfParagraphStyle {
                     WidowControl = true,
                     SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                 })

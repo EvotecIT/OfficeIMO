@@ -42,12 +42,13 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                     page.Content(c => c
                         .Column(column => {
                             column.Item().H1("Compose DSL");
-                            column.Item().Paragraph(p => p.Text("A compact multi-page visual baseline for the OfficeIMO.Pdf composition API."));
-                            column.Item().PanelParagraph(
-                                p => p
-                                    .Bold("What this protects")
-                                    .LineBreak()
-                                    .Text("Page settings, composed content, explicit page breaks, header/footer tokens, and rich text inside composed items."),
+                            column.Item().AddParagraph(p => p.AddText("A compact multi-page visual baseline for the OfficeIMO.Pdf composition API."));
+                            column.Item().AddPanelParagraph(
+                                p => {
+                                    p.AddText("What this protects").SetBold();
+                                    p.AddLineBreak();
+                                    p.AddText("Page settings, composed content, explicit page breaks, header/footer tokens, and rich text inside composed items.");
+                                },
                                 new PdfPanelStyle {
                                     Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                                     BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
@@ -57,23 +58,24 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                             column.Item().PageBreak();
 
                             column.Item().H2("Operational Notes");
-                            column.Item().Bullets(new[] {
+                            column.Item().AddList(new[] {
                                 "Compose uses the same document engine as fluent blocks.",
                                 "Visual gates should cover both public authoring styles.",
                                 "Footer page totals must remain correct after explicit breaks."
                             }, color: global::OfficeIMO.OfficeColor.FromRgb(55, 65, 81));
                             column.Item().HR(global::OfficeIMO.OfficeLength.Points(0.8), global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207), global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8));
-                            column.Item().Paragraph(p => p
-                                .Text("Status: ")
-                                .Bold("ready for wrapper experiments ")
-                                .Color(global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180)).Text("once visual quality keeps improving."));
+                            column.Item().AddParagraph(p => {
+                                p.AddText("Status: ");
+                                p.AddText("ready for wrapper experiments ").SetBold();
+                                p.AddText("once visual quality keeps improving.").SetColor(global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180));
+                            });
                             column.Item().PageBreak();
 
                             column.Item().H2("Color Sections");
-                            column.Item().Paragraph(p => p.Color(global::OfficeIMO.OfficeColor.FromRgb(185, 28, 28)).Text("Critical items should remain readable when colored inline."));
-                            column.Item().Paragraph(p => p.Color(global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52)).Text("Healthy items should use calm green without overpowering the page."));
-                            column.Item().Paragraph(p => p.Color(global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180)).Text("Informational items should keep good contrast on white backgrounds."));
-                            column.Item().Paragraph(p => p.Text("End of compose DSL sample."), OfficeAlignment.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80));
+                            column.Item().AddParagraph(p => p.AddText("Critical items should remain readable when colored inline.").SetColor(global::OfficeIMO.OfficeColor.FromRgb(185, 28, 28)));
+                            column.Item().AddParagraph(p => p.AddText("Healthy items should use calm green without overpowering the page.").SetColor(global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52)));
+                            column.Item().AddParagraph(p => p.AddText("Informational items should keep good contrast on white backgrounds.").SetColor(global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180)));
+                            column.Item().AddParagraph(p => p.AddText("End of compose DSL sample."), OfficeAlignment.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80));
                         }));
 
                     page.Footer(f => f.AlignCenter().Text(t => t
@@ -114,28 +116,28 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                     page.DefaultParagraphStyle(new PdfParagraphStyle { LineHeight = 1.18, SpacingAfter = global::OfficeIMO.OfficeLength.Points(5) });
                     page.Content(content => {
                         content.Item(item => item.H1("Quarterly Operations Dashboard", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42)));
-                        content.Item(item => item.Paragraph(p => p.Text("A single-page control surface composed from rows, panels, reusable drawings, wrapped tables, and compact list rhythm."), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(10) }));
+                        content.Item(item => item.AddParagraph(p => p.AddText("A single-page control surface composed from rows, panels, reusable drawings, wrapped tables, and compact list rhythm."), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(10) }));
 
                         content.Row(row => {
                             row.Gap(global::OfficeIMO.OfficeLength.Points(14))
-                                .PercentColumn(25, column => column.PanelParagraph(p => p.Bold("92%").Text("\nSLA attainment"), CreateDashboardMetricPanel(global::OfficeIMO.OfficeColor.FromRgb(236, 253, 245), global::OfficeIMO.OfficeColor.FromRgb(22, 163, 74)), OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52)))
-                                .PercentColumn(25, column => column.PanelParagraph(p => p.Bold("1.8h").Text("\nMean response"), CreateDashboardMetricPanel(global::OfficeIMO.OfficeColor.FromRgb(239, 246, 255), global::OfficeIMO.OfficeColor.FromRgb(37, 99, 235)), OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175)))
-                                .PercentColumn(25, column => column.PanelParagraph(p => p.Bold("34").Text("\nOpen actions"), CreateDashboardMetricPanel(global::OfficeIMO.OfficeColor.FromRgb(255, 251, 235), global::OfficeIMO.OfficeColor.FromRgb(217, 119, 6)), OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(146, 64, 14)))
-                                .PercentColumn(25, column => column.PanelParagraph(p => p.Bold("0").Text("\nCritical blockers"), CreateDashboardMetricPanel(global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252), global::OfficeIMO.OfficeColor.FromRgb(100, 116, 139)), OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(51, 65, 85)));
+                                .PercentColumn(25, column => column.AddPanelParagraph(p => { p.AddText("92%").SetBold(); p.AddText("\nSLA attainment"); }, CreateDashboardMetricPanel(global::OfficeIMO.OfficeColor.FromRgb(236, 253, 245), global::OfficeIMO.OfficeColor.FromRgb(22, 163, 74)), OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52)))
+                                .PercentColumn(25, column => column.AddPanelParagraph(p => { p.AddText("1.8h").SetBold(); p.AddText("\nMean response"); }, CreateDashboardMetricPanel(global::OfficeIMO.OfficeColor.FromRgb(239, 246, 255), global::OfficeIMO.OfficeColor.FromRgb(37, 99, 235)), OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175)))
+                                .PercentColumn(25, column => column.AddPanelParagraph(p => { p.AddText("34").SetBold(); p.AddText("\nOpen actions"); }, CreateDashboardMetricPanel(global::OfficeIMO.OfficeColor.FromRgb(255, 251, 235), global::OfficeIMO.OfficeColor.FromRgb(217, 119, 6)), OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(146, 64, 14)))
+                                .PercentColumn(25, column => column.AddPanelParagraph(p => { p.AddText("0").SetBold(); p.AddText("\nCritical blockers"); }, CreateDashboardMetricPanel(global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252), global::OfficeIMO.OfficeColor.FromRgb(100, 116, 139)), OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(51, 65, 85)));
                         });
 
                         content.Spacer(global::OfficeIMO.OfficeLength.Points(12));
                         content.Row(row => {
                             row.Gap(global::OfficeIMO.OfficeLength.Points(18))
                                 .PercentColumn(58, column => {
-                                    column.Paragraph(p => p.Bold("Delivery trend"), style: CreateDashboardSectionLabelStyle());
+                                    column.AddParagraph(p => p.AddText("Delivery trend").SetBold(), style: CreateDashboardSectionLabelStyle());
                                     column.Drawing(CreateDashboardTrendDrawing(), OfficeAlignment.Left, spacingBefore: global::OfficeIMO.OfficeLength.Points(2), spacingAfter: global::OfficeIMO.OfficeLength.Points(8));
-                                    column.Table(CreateDashboardRiskRows(), style: CreateDashboardRiskTableStyle());
+                                    column.AddTable(CreateDashboardRiskRows(), style: CreateDashboardRiskTableStyle());
                                 })
                                 .PercentColumn(42, column => {
-                                    column.Paragraph(p => p.Bold("Narrative"), style: CreateDashboardSectionLabelStyle());
-                                    column.PanelParagraph(
-                                        p => p.Text("The dashboard deliberately avoids a domain-specific report object. It uses the same primitive surface that a Word, Excel, or PowerPoint exporter could target later: page setup, rows, tables, paragraphs, shapes, and themes."),
+                                    column.AddParagraph(p => p.AddText("Narrative").SetBold(), style: CreateDashboardSectionLabelStyle());
+                                    column.AddPanelParagraph(
+                                        p => p.AddText("The dashboard deliberately avoids a domain-specific report object. It uses the same primitive surface that a Word, Excel, or PowerPoint exporter could target later: page setup, rows, tables, paragraphs, shapes, and themes."),
                                         new PdfPanelStyle {
                                             Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                                             BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225),
@@ -143,13 +145,13 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                                             PaddingX = global::OfficeIMO.OfficeLength.Points(10),
                                             PaddingY = global::OfficeIMO.OfficeLength.Points(8)
                                         });
-                                    column.Bullets(new[] {
+                                    column.AddList(new[] {
                                         "Rows keep gutters as layout state.",
                                         "Tables use explicit widths and numeric alignment.",
                                         "Vector drawing comes from OfficeIMO.Drawing descriptors.",
                                         "Visual gates can rasterize the result and catch rhythm regressions."
                                     }, style: new PdfListStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(4), ItemSpacing = global::OfficeIMO.OfficeLength.Points(2) });
-                                    column.Table(CreateDashboardDecisionRows(), style: CreateDashboardDecisionTableStyle());
+                                    column.AddTable(CreateDashboardDecisionRows(), style: CreateDashboardDecisionTableStyle());
                                 });
                         });
                     });
@@ -248,12 +250,13 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             })
             .Meta(title: "OfficeIMO.Pdf Drawing Gallery", author: "OfficeIMO")
             .H1("Drawing Gallery", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
-            .Paragraph(p => p.Text("A visual baseline for shared OfficeIMO.Drawing vector descriptors rendered by the dependency-free PDF engine."))
+            .Paragraph(p => p.AddText("A visual baseline for shared OfficeIMO.Drawing vector descriptors rendered by the dependency-free PDF engine."))
             .Drawing(CreateDrawingScene(), OfficeAlignment.Center, spacingBefore: 8, spacingAfter: 10)
-            .Paragraph(p => p
-                .Text("Covered: ")
-                .Bold("gradients")
-                .Text(", shadows, dashed strokes, line caps and joins, clipping paths, transforms, grouped scenes, and freeform paths."))
+            .Paragraph(p => {
+                p.AddText("Covered: ");
+                p.AddText("gradients").SetBold();
+                p.AddText(", shadows, dashed strokes, line caps and joins, clipping paths, transforms, grouped scenes, and freeform paths.");
+            })
             .ToBytes();
     }
 
@@ -340,10 +343,12 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             .Meta(title: "OfficeIMO.Pdf Watermark", author: "OfficeIMO")
             .Watermark("DRAFT", fontSize: 74, color: global::OfficeIMO.OfficeColor.FromRgb(90, 106, 130), opacity: 0.14, rotationAngle: -38)
             .H1("Watermark Gate", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
-            .Paragraph(p => p.Text("This baseline verifies reusable page watermarks render behind normal document content without taking layout space or reducing text readability."))
-            .PanelParagraph(p => p
-                    .Bold("Document state").LineBreak()
-                    .Text("Watermark text is a page decoration, not a body block, so paragraphs, tables, and footers keep their normal rhythm."),
+            .Paragraph(p => p.AddText("This baseline verifies reusable page watermarks render behind normal document content without taking layout space or reducing text readability."))
+            .PanelParagraph(p => {
+                p.AddText("Document state").SetBold();
+                p.AddLineBreak();
+                p.AddText("Watermark text is a page decoration, not a body block, so paragraphs, tables, and footers keep their normal rhythm.");
+            },
                 new PdfPanelStyle {
                     Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                     BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225),
@@ -369,7 +374,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
             })
-            .Paragraph(p => p.Text("The watermark remains readable in the raster gate while the foreground table and panel stay crisp."))
+            .Paragraph(p => p.AddText("The watermark remains readable in the raster gate while the foreground table and panel stay crisp."))
             .ToBytes();
     }
 
@@ -395,10 +400,12 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             .Meta(title: "OfficeIMO.Pdf Image Watermark", author: "OfficeIMO")
             .ImageWatermark(logo, width: 220, height: 92, opacity: 0.16, rotationAngle: -22)
             .H1("Image Watermark Gate", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
-            .Paragraph(p => p.Text("This baseline verifies reusable image watermarks render behind normal document content without occupying flow space."))
-            .PanelParagraph(p => p
-                    .Bold("Layering expectation").LineBreak()
-                    .Text("The image watermark is a page decoration. Foreground text, panels, and table borders stay readable and crisp."),
+            .Paragraph(p => p.AddText("This baseline verifies reusable image watermarks render behind normal document content without occupying flow space."))
+            .PanelParagraph(p => {
+                p.AddText("Layering expectation").SetBold();
+                p.AddLineBreak();
+                p.AddText("The image watermark is a page decoration. Foreground text, panels, and table borders stay readable and crisp.");
+            },
                 new PdfPanelStyle {
                     Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                     BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225),
@@ -424,7 +431,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
             })
-            .Paragraph(p => p.Text("The raster gate keeps this from quietly regressing into an above-content stamp or layout-consuming image block."))
+            .Paragraph(p => p.AddText("The raster gate keeps this from quietly regressing into an above-content stamp or layout-consuming image block."))
             .ToBytes();
     }
 
@@ -448,10 +455,12 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             .Background(global::OfficeIMO.OfficeColor.FromRgb(250, 252, 255))
             .PageBorder(global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175), width: 1.15, inset: 30, opacity: 0.72, dashStyle: OfficeStrokeDashStyle.Solid)
             .H1("Page Border Gate", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
-            .Paragraph(p => p.Text("This baseline verifies reusable page borders render as decoration without taking layout space or crowding text."))
-            .PanelParagraph(p => p
-                    .Bold("Frame expectation").LineBreak()
-                    .Text("The frame should visually finish the page while content keeps normal margins, table rhythm, and footer placement."),
+            .Paragraph(p => p.AddText("This baseline verifies reusable page borders render as decoration without taking layout space or crowding text."))
+            .PanelParagraph(p => {
+                p.AddText("Frame expectation").SetBold();
+                p.AddLineBreak();
+                p.AddText("The frame should visually finish the page while content keeps normal margins, table rhythm, and footer placement.");
+            },
                 new PdfPanelStyle {
                     Background = global::OfficeIMO.OfficeColor.FromRgb(255, 255, 255),
                     BorderColor = global::OfficeIMO.OfficeColor.FromRgb(191, 219, 254),
@@ -477,7 +486,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
             })
-            .Paragraph(p => p.Text("The border is a generic page primitive that Word, Markdown, Excel, and wrappers can reuse without template-specific APIs."))
+            .Paragraph(p => p.AddText("The border is a generic page primitive that Word, Markdown, Excel, and wrappers can reuse without template-specific APIs."))
             .ToBytes();
     }
 
@@ -505,10 +514,12 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             .BackgroundImage(logo, OfficeImageFit.Contain, opacity: 0.08)
             .PageBorder(global::OfficeIMO.OfficeColor.FromRgb(148, 163, 184), width: 0.9, inset: 30, opacity: 0.55)
             .H1("Background Image Gate", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
-            .Paragraph(p => p.Text("This baseline verifies a page background image can fill the visual surface without becoming a body image."))
-            .PanelParagraph(p => p
-                    .Bold("Layering expectation").LineBreak()
-                    .Text("The background image is fitted to the page box behind content, watermarks, borders, headers, footers, and normal flow blocks."),
+            .Paragraph(p => p.AddText("This baseline verifies a page background image can fill the visual surface without becoming a body image."))
+            .PanelParagraph(p => {
+                p.AddText("Layering expectation").SetBold();
+                p.AddLineBreak();
+                p.AddText("The background image is fitted to the page box behind content, watermarks, borders, headers, footers, and normal flow blocks.");
+            },
                 new PdfPanelStyle {
                     Background = global::OfficeIMO.OfficeColor.FromRgb(255, 255, 255),
                     BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225),
@@ -534,7 +545,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
             })
-            .Paragraph(p => p.Text("The same primitive can later power Markdown themes, Word backgrounds, letterheads, and wrapper presets."))
+            .Paragraph(p => p.AddText("The same primitive can later power Markdown themes, Word backgrounds, letterheads, and wrapper presets."))
             .ToBytes();
     }
 
@@ -561,10 +572,12 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             .BackgroundEllipse(456, 92, 190, 190, global::OfficeIMO.OfficeColor.FromRgb(224, 242, 254), fillOpacity: 0.45)
             .PageBorder(global::OfficeIMO.OfficeColor.FromRgb(148, 163, 184), width: 0.9, inset: 30, opacity: 0.55)
             .H1("Background Shapes Gate", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
-            .Paragraph(p => p.Text("This baseline verifies vector page decoration can add Word-like polish without taking body layout space."))
-            .PanelParagraph(p => p
-                    .Bold("Layering expectation").LineBreak()
-                    .Text("Rounded bands, ellipses, gradients, opacity, borders, headers, footers, and foreground flow should stay in a stable visual stack."),
+            .Paragraph(p => p.AddText("This baseline verifies vector page decoration can add Word-like polish without taking body layout space."))
+            .PanelParagraph(p => {
+                p.AddText("Layering expectation").SetBold();
+                p.AddLineBreak();
+                p.AddText("Rounded bands, ellipses, gradients, opacity, borders, headers, footers, and foreground flow should stay in a stable visual stack.");
+            },
                 new PdfPanelStyle {
                     Background = global::OfficeIMO.OfficeColor.FromRgb(255, 255, 255),
                     BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225),
@@ -590,7 +603,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
             })
-            .Paragraph(p => p.Text("This gives Markdown and Office exporters a dependency-free way to create visually richer pages than literal plain Markdown output."))
+            .Paragraph(p => p.AddText("This gives Markdown and Office exporters a dependency-free way to create visually richer pages than literal plain Markdown output."))
             .ToBytes();
     }
 
@@ -616,20 +629,19 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                     page.Content(content => {
                         content.Column(column => {
                             column.Item().H1("Row Columns");
-                            column.Item().Paragraph(p => p.Text("A compact visual gate for composed columns with first-class gutters and independent column flow."));
+                            column.Item().AddParagraph(p => p.AddText("A compact visual gate for composed columns with first-class gutters and independent column flow."));
                         });
                         content.Row(row => {
                             row.Gap(global::OfficeIMO.OfficeLength.Points(18));
                             row.PercentColumn(50, column => column
                                 .H2("Status")
-                                .Paragraph(p => p
-                                    .Text("The left column carries operational copy with comfortable wrapping, spacing, and no collision with the neighboring column."))
-                                .Bullets(new[] {
+                                .AddParagraph(p => p.AddText("The left column carries operational copy with comfortable wrapping, spacing, and no collision with the neighboring column."))
+                                .AddList(new[] {
                                     "Gutters are first-class layout state.",
                                     "List markers stay inside the column frame."
                                 }, color: global::OfficeIMO.OfficeColor.FromRgb(55, 65, 81))
-                                .PanelParagraph(
-                                    p => p.Bold("Callout: ").Text("column panels can hold emphasis without leaving the row flow."),
+                                .AddPanelParagraph(
+                                    p => { p.AddText("Callout: ").SetBold(); p.AddText("column panels can hold emphasis without leaving the row flow."); },
                                     new PdfPanelStyle {
                                         Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                                         BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
@@ -638,19 +650,19 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                                         KeepTogether = true
                                     })
                                 .RoundedRectangle(global::OfficeIMO.OfficeLength.Points(96), global::OfficeIMO.OfficeLength.Points(5), global::OfficeIMO.OfficeLength.Points(2.5), strokeColor: global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52), strokeWidth: global::OfficeIMO.OfficeLength.Points(0), fillColor: global::OfficeIMO.OfficeColor.FromRgb(22, 163, 74), spacingBefore: global::OfficeIMO.OfficeLength.Points(8), spacingAfter: global::OfficeIMO.OfficeLength.Points(8))
-                                .Paragraph(p => p
-                                    .Bold("Ready: ")
-                                    .Text("row gutters are part of the composition model instead of caller-managed whitespace.")));
+                                .AddParagraph(p => {
+                                    p.AddText("Ready: ").SetBold();
+                                    p.AddText("row gutters are part of the composition model instead of caller-managed whitespace.");
+                                }));
                             row.PercentColumn(50, column => column
                                 .H2("Next")
-                                .Paragraph(p => p
-                                    .Text("The right column uses the same page flow but starts after an explicit gutter, giving report layouts a professional reading rhythm."))
-                                .Numbered(new[] {
+                                .AddParagraph(p => p.AddText("The right column uses the same page flow but starts after an explicit gutter, giving report layouts a professional reading rhythm."))
+                                .AddNumberedList(new[] {
                                     "Compose column content.",
                                     "Render each list item independently.",
                                     "Compare the raster baseline."
                                 }, color: global::OfficeIMO.OfficeColor.FromRgb(55, 65, 81))
-                                .Table(new[] {
+                                .AddTable(new[] {
                                     new[] { "Metric", "Value" },
                                     new[] { "Gutter", "18 pt" },
                                     new[] { "Panels", "Yes" }
@@ -670,12 +682,13 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                                     ColumnWidthWeights = new System.Collections.Generic.List<double> { 1.2, 0.8 }
                                 })
                                 .HR(global::OfficeIMO.OfficeLength.Points(0.8), global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207), global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8))
-                                .Paragraph(p => p
-                                    .Bold("Guarded: ")
-                                    .Text("the Poppler baseline catches cramped columns and accidental gutter regressions.")));
+                                .AddParagraph(p => {
+                                    p.AddText("Guarded: ").SetBold();
+                                    p.AddText("the Poppler baseline catches cramped columns and accidental gutter regressions.");
+                                }));
                         });
                         content.Column(column => {
-                            column.Item().Paragraph(p => p.Text("End of row column sample."), OfficeAlignment.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80));
+                            column.Item().AddParagraph(p => p.AddText("End of row column sample."), OfficeAlignment.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80));
                         });
                     });
                 });
@@ -702,9 +715,9 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             })
             .Meta(title: "OfficeIMO.Pdf Headers and Footers", author: "OfficeIMO")
             .H1("Header and Footer Baseline", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
-            .Paragraph(p => p.Text("Page one protects header placement, footer placement, and page number rendering on the first page."))
+            .Paragraph(p => p.AddText("Page one protects header placement, footer placement, and page number rendering on the first page."))
             .PanelParagraph(
-                p => p.Text("The same options should continue to render consistently after an explicit page break."),
+                p => p.AddText("The same options should continue to render consistently after an explicit page break."),
                 new PdfPanelStyle {
                     Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                     BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
@@ -713,8 +726,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 })
             .PageBreak()
             .H2("Continuation Page", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
-            .Paragraph(p => p.Text("Page two proves the raster harness compares more than the first page and guards the {page}/{pages} footer tokens."))
-            .Paragraph(p => p.Text("Right-aligned continuation note."), OfficeAlignment.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80))
+            .Paragraph(p => p.AddText("Page two proves the raster harness compares more than the first page and guards the {page}/{pages} footer tokens."))
+            .Paragraph(p => p.AddText("Right-aligned continuation note."), OfficeAlignment.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80))
             .ToBytes();
     }
 
@@ -737,41 +750,48 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             .Meta(title: "OfficeIMO.Pdf Style Cheatsheet", author: "OfficeIMO")
             .H1("Style Cheatsheet", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
             .PanelParagraph(
-                p => p.Text("A compact visual sample for rich text, color, underline, and alignment behavior."),
+                p => p.AddText("A compact visual sample for rich text, color, underline, and alignment behavior."),
                 new PdfPanelStyle {
                     Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                     BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
                     PaddingX = global::OfficeIMO.OfficeLength.Points(9),
                     PaddingY = global::OfficeIMO.OfficeLength.Points(7)
                 })
-            .Paragraph(p => p
-                .Text("Normal ")
-                .Bold("Bold ")
-                .Italic("Italic ")
-                .Bold("Bold").Italic(" Italic ")
-                .Underlined("Underline "))
-            .Paragraph(p => p
-                .Text("Colors: ")
-                .Color(global::OfficeIMO.OfficeColor.FromRgb(200, 0, 0)).Text("Red ")
-                .Color(global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180)).Text("Blue ")
-                .Color(global::OfficeIMO.OfficeColor.FromRgb(0, 128, 0)).Text("Green"))
-            .Paragraph(p => p
-                .Text("Combinations: ")
-                .Bold("Bold ")
-                .Italic("Italic ")
-                .Underlined("Underlined ")
-                .Bold("Bold ").Italic("Italic ").Underlined("Underlined "))
-            .Paragraph(p => p
-                .Text("Stateful toggles: ")
-                .Bold(true).Text("bold on ")
-                .Bold(false).Text("bold off ")
-                .Italic(true).Text("italic on ")
-                .Italic(false).Text("italic off ")
-                .Underline(true).Text("ul on ")
-                .Underline(false).Text("ul off"))
+            .Paragraph(p => {
+                p.AddText("Normal ");
+                p.AddText("Bold ").SetBold();
+                p.AddText("Italic ").SetItalic();
+                p.AddText("Bold").SetBold();
+                p.AddText(" Italic ").SetItalic();
+                p.AddText("Underline ").SetUnderline();
+            })
+            .Paragraph(p => {
+                p.AddText("Colors: ");
+                p.AddText("Red ").SetColor(global::OfficeIMO.OfficeColor.FromRgb(200, 0, 0));
+                p.AddText("Blue ").SetColor(global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180));
+                p.AddText("Green").SetColor(global::OfficeIMO.OfficeColor.FromRgb(0, 128, 0));
+            })
+            .Paragraph(p => {
+                p.AddText("Combinations: ");
+                p.AddText("Bold ").SetBold();
+                p.AddText("Italic ").SetItalic();
+                p.AddText("Underlined ").SetUnderline();
+                p.AddText("Bold ").SetBold();
+                p.AddText("Italic ").SetItalic();
+                p.AddText("Underlined ").SetUnderline();
+            })
+            .Paragraph(p => {
+                p.AddText("Stateful toggles: ");
+                p.AddText("bold on ").SetBold();
+                p.AddText("bold off ");
+                p.AddText("italic on ").SetItalic();
+                p.AddText("italic off ");
+                p.AddText("ul on ").SetUnderline();
+                p.AddText("ul off");
+            })
             .HR(0.8, global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207), 8, 8)
-            .Paragraph(p => p.Text("Center aligned line"), OfficeAlignment.Center)
-            .Paragraph(p => p.Text("Right aligned line"), OfficeAlignment.Right)
+            .Paragraph(p => p.AddText("Center aligned line"), OfficeAlignment.Center)
+            .Paragraph(p => p.AddText("Right aligned line"), OfficeAlignment.Right)
             .ToBytes();
     }
 
@@ -798,7 +818,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             })
             .Meta(title: "OfficeIMO.Pdf Table Style Gallery", author: "OfficeIMO")
             .H1("Table Style Gallery", OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
-            .Paragraph(p => p.Text("Generic Word-style table names rendered by OfficeIMO.Pdf without invoice or report-specific behavior."));
+            .Paragraph(p => p.AddText("Generic Word-style table names rendered by OfficeIMO.Pdf without invoice or report-specific behavior."));
 
         string[] visualStyleNames = {
             "TableGrid",

@@ -18,7 +18,7 @@ public sealed class PdfInlineRuleTests {
     [InlineData(24D, 24D)]
     public void CappedRuleClampsToTheActualFrame(double frameWidth, double expectedWidth) {
         var rule = new PdfInlineRule(global::OfficeIMO.OfficeLength.Points(.5D), RuleColor, maximumWidth: global::OfficeIMO.OfficeLength.Points(40D), baselineOffset: global::OfficeIMO.OfficeLength.Points(3D));
-        byte[] bytes = Create(frameWidth).Paragraph(p => p.Runs(new[] { PdfTextRun.Inline(rule) }), style: Style()).ToBytes();
+        byte[] bytes = Create(frameWidth).Paragraph(p => p.AddRuns(new[] { PdfTextRun.Inline(rule) }), style: Style()).ToBytes();
         var band = Assert.Single(ReadBands(bytes));
         Assert.Equal(20D, band.X, 3);
         Assert.Equal(expectedWidth, band.Width, 3);
@@ -27,7 +27,7 @@ public sealed class PdfInlineRuleTests {
 
     [Fact]
     public void FillRuleConsumesOnlyTheWidthAfterLeadingTextAndWrapsFollowingText() {
-        byte[] bytes = Create(100D).Paragraph(p => p.Runs(new[] {
+        byte[] bytes = Create(100D).Paragraph(p => p.AddRuns(new[] {
             PdfTextRun.Normal("LEAD"), PdfTextRun.Inline(new PdfInlineRule(global::OfficeIMO.OfficeLength.Points(.5D), RuleColor)), PdfTextRun.Normal("TAIL")
         }), style: Style()).ToBytes();
         var band = Assert.Single(ReadBands(bytes));
@@ -48,7 +48,7 @@ public sealed class PdfInlineRuleTests {
     [InlineData(OfficeAlignment.Center, 50D)]
     [InlineData(OfficeAlignment.Right, 80D)]
     public void ParagraphAlignmentUsesTheResolvedBandWidth(OfficeAlignment alignment, double expectedX) {
-        byte[] bytes = Create(100D).Paragraph(p => p.Runs(new[] {
+        byte[] bytes = Create(100D).Paragraph(p => p.AddRuns(new[] {
             PdfTextRun.Inline(new PdfInlineRule(global::OfficeIMO.OfficeLength.Points(.5D), RuleColor, maximumWidth: global::OfficeIMO.OfficeLength.Points(40D)))
         }), alignment, style: Style()).ToBytes();
         var band = Assert.Single(ReadBands(bytes));
@@ -60,8 +60,8 @@ public sealed class PdfInlineRuleTests {
     public void ReusingTheSameRuleAcrossFramesAndSerializationsDoesNotFreezeItsWidth() {
         var rule = new PdfInlineRule(global::OfficeIMO.OfficeLength.Points(.5D), RuleColor, maximumWidth: global::OfficeIMO.OfficeLength.Points(40D));
         var run = PdfTextRun.Inline(rule);
-        var narrow = Create(24D).Paragraph(p => p.Runs(new[] { run }), style: Style());
-        var wide = Create(100D).Paragraph(p => p.Runs(new[] { run }), style: Style());
+        var narrow = Create(24D).Paragraph(p => p.AddRuns(new[] { run }), style: Style());
+        var wide = Create(100D).Paragraph(p => p.AddRuns(new[] { run }), style: Style());
         Assert.Equal(24D, Assert.Single(ReadBands(narrow.ToBytes())).Width, 3);
         Assert.Equal(40D, Assert.Single(ReadBands(wide.ToBytes())).Width, 3);
         Assert.Equal(24D, Assert.Single(ReadBands(narrow.ToBytes())).Width, 3);
@@ -73,7 +73,7 @@ public sealed class PdfInlineRuleTests {
     public void AdditionalBandRetainsItsColorAndBaselineWhileSharingTheResolvedWidth() {
         var original = new PdfInlineRule(global::OfficeIMO.OfficeLength.Points(.5D), RuleColor, maximumWidth: global::OfficeIMO.OfficeLength.Points(40D), baselineOffset: global::OfficeIMO.OfficeLength.Points(3D));
         var decorated = original.WithAdditionalBand(.75D, AdditionalColor, baselineOffset: -4D);
-        PdfDocument Render(PdfInlineRule rule) => Create(60D).Paragraph(p => p.Runs(new[] {
+        PdfDocument Render(PdfInlineRule rule) => Create(60D).Paragraph(p => p.AddRuns(new[] {
             PdfTextRun.Normal("A"), PdfTextRun.Inline(rule), PdfTextRun.Normal("\nB")
         }), style: Style());
 
@@ -102,7 +102,7 @@ public sealed class PdfInlineRuleTests {
     public void ZeroRemainingWidthSuppressesEveryBandWithoutChangingTheSourceFontLineBox() {
         var original = new PdfInlineRule(global::OfficeIMO.OfficeLength.Points(.5D), RuleColor, baselineOffset: global::OfficeIMO.OfficeLength.Points(3D));
         var decorated = original.WithAdditionalBand(.75D, AdditionalColor, baselineOffset: -40D);
-        byte[] Render(PdfInlineRule rule) => Create(60D).Paragraph(p => p.Runs(new[] {
+        byte[] Render(PdfInlineRule rule) => Create(60D).Paragraph(p => p.AddRuns(new[] {
             PdfTextRun.Normal("0123456789"),
             PdfTextRun.Inline(rule, PdfTextRun.Normal(string.Empty, fontSize: global::OfficeIMO.OfficeLength.Points(24D))),
             PdfTextRun.Normal("\nB")
@@ -156,16 +156,16 @@ public sealed class PdfInlineRuleTests {
     [Fact]
     public void ZeroRemainingWidthRetainsSourceMetricsAndReferenceWithoutPaintingInk() {
         var document = Create(60D);
-        var note = document.Content.DefineFootnote(body => body.Text("Note", style: Style()));
+        var note = document.Content.DefineFootnote(body => body.AddParagraph("Note", style: Style()));
         var source = PdfTextRun.Normal(string.Empty).WithFootnoteReference(note);
-        document.Paragraph(p => p.Runs(new[] {
+        document.Paragraph(p => p.AddRuns(new[] {
             PdfTextRun.Normal("0123456789"),
             PdfTextRun.Inline(new PdfInlineRule(global::OfficeIMO.OfficeLength.Points(.5D), RuleColor), source),
             PdfTextRun.Normal("\nB")
         }), style: Style());
         byte[] bytes = document.ToBytes();
         using var actual = PdfPigDocument.Open(bytes);
-        using var reference = PdfPigDocument.Open(Create(60D).Paragraph(p => p.Text("0123456789\nB"), style: Style()).ToBytes());
+        using var reference = PdfPigDocument.Open(Create(60D).Paragraph(p => p.AddText("0123456789\nB"), style: Style()).ToBytes());
         Assert.Empty(ReadBands(bytes));
         Assert.Equal(1, actual.NumberOfPages);
         Assert.Contains("Note", actual.GetPage(1).Text, StringComparison.Ordinal);
@@ -181,7 +181,7 @@ public sealed class PdfInlineRuleTests {
         PdfTabAlignment alignment, double expectedX, double expectedWidth) {
         var style = Style();
         style.TabStops.Add(new PdfTabStop(global::OfficeIMO.OfficeLength.Points(60D), alignment));
-        byte[] bytes = Create(100D).Paragraph(p => p.Runs(new[] {
+        byte[] bytes = Create(100D).Paragraph(p => p.AddRuns(new[] {
             PdfTextRun.Normal("A"), PdfTextRun.Tab(),
             PdfTextRun.Inline(new PdfInlineRule(global::OfficeIMO.OfficeLength.Points(.5D), RuleColor)), PdfTextRun.Normal("TAIL")
         }), style: style).ToBytes();
@@ -213,10 +213,10 @@ public sealed class PdfInlineRuleTests {
             ShrinkTextToFit = true, MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(10D), AutoFitWidthUsesContentMinimum = importedGrid
         });
         document.Content.Row(row => row
-            .AutoColumn(column => column.Paragraph(p => p.Runs(new[] {
+            .AutoColumn(column => column.AddParagraph(p => p.AddRuns(new[] {
                 PdfTextRun.Normal("C"), PdfTextRun.Inline(new PdfInlineRule(global::OfficeIMO.OfficeLength.Points(.5D), RuleColor))
             }), style: Style()))
-            .RelativeColumn(column => column.Text("D", style: Style())));
+            .RelativeColumn(column => column.AddParagraph("D", style: Style())));
         byte[] bytes = document.ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(1, pdf.NumberOfPages);
@@ -250,13 +250,13 @@ public sealed class PdfInlineRuleTests {
     [Fact]
     public void PageContinuationRetainsTheFlexibleSourceAndItsLargeFontLineBox() {
         byte[] Render(bool rule) {
-            var source = PdfTextRun.Normal("R", fontSize: global::OfficeIMO.OfficeLength.Points(24D), font: PdfStandardFont.Helvetica);
+            var source = PdfTextRun.Normal("R", fontSize: global::OfficeIMO.OfficeLength.Points(24D), standardFont: PdfStandardFont.Helvetica);
             var document = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = global::OfficeIMO.OfficeLength.Points(140D), PageHeight = global::OfficeIMO.OfficeLength.Points(80D), MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
                 MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(8D),
                 DefaultFont = PdfStandardFont.Courier, CompressContentStreams = false
             });
-            return document.Paragraph(p => p.Runs(new[] {
+            return document.Paragraph(p => p.AddRuns(new[] {
                 PdfTextRun.Normal("A\n", fontSize: global::OfficeIMO.OfficeLength.Points(8D)),
                 rule ? PdfTextRun.Inline(new PdfInlineRule(global::OfficeIMO.OfficeLength.Points(.5D), RuleColor)
                     .WithAdditionalBand(.75D, AdditionalColor, baselineOffset: -2D), source) : source,
@@ -303,13 +303,13 @@ public sealed class PdfInlineRuleTests {
         };
         if (family is not null) options.RegisterNamedFontFamily(family);
         var document = PdfDocument.Create(options);
-        document.Content.Paragraph(p => {
-            p.FontSize(global::OfficeIMO.OfficeLength.Points(24D)).Bold(boldItalic).Italic(boldItalic);
-            if (family is null) p.Font(font);
-            else p.FontFamily(family.FamilyName);
-            if (rule) p.Inline(new PdfInlineRule(global::OfficeIMO.OfficeLength.Points(.5D), RuleColor));
-            else p.Text("R");
-            p.ResetFontSize().ResetFont().Bold(false).Italic(false).Text("\nB");
+        document.Content.AddParagraph(p => {
+            p.RunDefaults.FontSize = global::OfficeIMO.OfficeLength.Points(24D); p.RunDefaults.Bold = boldItalic; p.RunDefaults.Italic = boldItalic;
+            if (family is null) { p.RunDefaults.StandardFont = font; p.RunDefaults.FontFamily = null; }
+            else { p.RunDefaults.FontFamily = family.FamilyName; p.RunDefaults.StandardFont = null; }
+            if (rule) p.AddInline(new PdfInlineRule(global::OfficeIMO.OfficeLength.Points(.5D), RuleColor));
+            else p.AddText("R");
+            p.RunDefaults.FontSize = null; p.RunDefaults.StandardFont = null; p.RunDefaults.FontFamily = null; p.RunDefaults.Bold = false; p.RunDefaults.Italic = false; p.AddText("\nB");
         });
         return document.ToBytes();
     }
@@ -331,14 +331,14 @@ public sealed class PdfInlineRuleTests {
     }
 
     private static byte[] RenderFontMetrics(string frame, bool rule) {
-        var source = PdfTextRun.Normal(rule ? string.Empty : "R", fontSize: global::OfficeIMO.OfficeLength.Points(24D), font: PdfStandardFont.Helvetica);
+        var source = PdfTextRun.Normal(rule ? string.Empty : "R", fontSize: global::OfficeIMO.OfficeLength.Points(24D), standardFont: PdfStandardFont.Helvetica);
         source.IsLineBoxStrut = rule;
         PdfTextRun[] runs = { rule ? PdfTextRun.Inline(new PdfInlineRule(global::OfficeIMO.OfficeLength.Points(.5D), RuleColor, global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(3D)), source) : source,
             PdfTextRun.Normal("\nB", fontSize: global::OfficeIMO.OfficeLength.Points(8D)) };
         var document = Create(100D);
         var style = new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(8D), LineSpacing = PdfLineSpacing.Multiple(1.4D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) };
-        if (frame == "flow") document.Paragraph(p => p.Runs(runs), style: style);
-        else if (frame == "column") document.Content.Row(row => row.RelativeColumn(column => column.Paragraph(p => p.Runs(runs), style: style)));
+        if (frame == "flow") document.Paragraph(p => p.AddRuns(runs), style: style);
+        else if (frame == "column") document.Content.Row(row => row.RelativeColumn(column => column.AddParagraph(p => p.AddRuns(runs), style: style)));
         else document.Table(new[] { new[] { new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: global::OfficeIMO.OfficeLength.Points(8D), lineSpacing: style.LineSpacing) }) } },
             style: new PdfTableStyle { FontSize = global::OfficeIMO.OfficeLength.Points(8D), HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D), BorderColor = null });
         return document.ToBytes();

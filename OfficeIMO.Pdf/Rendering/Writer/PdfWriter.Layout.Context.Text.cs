@@ -161,7 +161,7 @@ internal static partial class PdfWriter {
                     continue;
                 }
 
-                PdfStandardFont runBaseFont = ChooseNormal(run.Font ?? currentOpts.DefaultFont);
+                PdfStandardFont runBaseFont = ChooseNormal(run.StandardFont ?? currentOpts.DefaultFont);
                 PdfStandardFont runFont = run.Bold && run.Italic
                     ? ChooseBoldItalic(runBaseFont)
                     : run.Bold

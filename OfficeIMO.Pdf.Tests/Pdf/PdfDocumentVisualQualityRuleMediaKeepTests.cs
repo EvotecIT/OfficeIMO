@@ -55,7 +55,7 @@ public partial class PdfDocumentVisualQualityTests {
                 color: global::OfficeIMO.OfficeColor.FromRgb(26, 51, 77),
                 spacingBefore: 4,
                 spacingAfter: 6)
-            .Paragraph(p => p.Text("Guarded rhythm stays below the rule."))
+            .Paragraph(p => p.AddText("Guarded rhythm stays below the rule."))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -91,7 +91,7 @@ public partial class PdfDocumentVisualQualityTests {
                                     color: global::OfficeIMO.OfficeColor.FromRgb(26, 51, 77),
                                     spacingBefore: global::OfficeIMO.OfficeLength.Points(4),
                                     spacingAfter: global::OfficeIMO.OfficeLength.Points(6))
-                                .Paragraph(p => p.Text("Guarded rhythm stays below the rule.")))))))
+                                .AddParagraph(p => p.AddText("Guarded rhythm stays below the rule.")))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -122,7 +122,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(81)
             })
             .HR(style: new PdfHorizontalRuleStyle {
@@ -131,7 +131,7 @@ public partial class PdfDocumentVisualQualityTests {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
                 KeepWithNext = true
             })
-            .Paragraph(p => p.Text("FollowingRuleBody"))
+            .Paragraph(p => p.AddText("FollowingRuleBody"))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -160,7 +160,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(81)
             })
             .Compose(document =>
@@ -174,7 +174,7 @@ public partial class PdfDocumentVisualQualityTests {
                                     SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
                                     KeepWithNext = true
                                 })
-                                .Paragraph(p => p.Text("ColumnFollowingRuleBody")))))))
+                                .AddParagraph(p => p.AddText("ColumnFollowingRuleBody")))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -204,13 +204,13 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(66)
             })
             .Image(png, 24, 24, style: new PdfImageStyle {
                 KeepWithNext = true
             })
-            .Paragraph(p => p.Text("FollowingImageBody"))
+            .Paragraph(p => p.AddText("FollowingImageBody"))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -240,14 +240,14 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(56)
             })
             .Image(png, 24, 24, style: new PdfImageStyle {
                 KeepWithNext = true
             })
             .H3("FollowingImageHeading")
-            .Paragraph(p => p.Text("FollowingImageChainBody"))
+            .Paragraph(p => p.AddText("FollowingImageChainBody"))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -279,7 +279,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(66)
             })
             .Compose(document =>
@@ -287,10 +287,10 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column => column
-                                .Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), style: new PdfImageStyle {
+                                .AddImage(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), style: new PdfImageStyle {
                                     KeepWithNext = true
                                 })
-                                .Paragraph(p => p.Text("ColumnFollowingImageBody")))))))
+                                .AddParagraph(p => p.AddText("ColumnFollowingImageBody")))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -321,13 +321,13 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(66)
             })
             .Shape(shape, style: new PdfDrawingStyle {
                 KeepWithNext = true
             })
-            .Paragraph(p => p.Text("FollowingShapeBody"))
+            .Paragraph(p => p.AddText("FollowingShapeBody"))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -358,7 +358,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(66)
             })
             .Compose(document =>
@@ -369,7 +369,7 @@ public partial class PdfDocumentVisualQualityTests {
                                 .Shape(shape, style: new PdfDrawingStyle {
                                     KeepWithNext = true
                                 })
-                                .Paragraph(p => p.Text("ColumnFollowingShapeBody")))))))
+                                .AddParagraph(p => p.AddText("ColumnFollowingShapeBody")))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -399,13 +399,13 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(66)
             })
             .Drawing(drawing, style: new PdfDrawingStyle {
                 KeepWithNext = true
             })
-            .Paragraph(p => p.Text("FollowingDrawingBody"))
+            .Paragraph(p => p.AddText("FollowingDrawingBody"))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -435,7 +435,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(66)
             })
             .Compose(document =>
@@ -446,7 +446,7 @@ public partial class PdfDocumentVisualQualityTests {
                                 .Drawing(drawing, style: new PdfDrawingStyle {
                                     KeepWithNext = true
                                 })
-                                .Paragraph(p => p.Text("ColumnFollowingDrawingBody")))))))
+                                .AddParagraph(p => p.AddText("ColumnFollowingDrawingBody")))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -478,14 +478,14 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(60)
             })
             .Table(new[] {
                 new[] { "TableKeepHeader", "Ready" },
                 new[] { "TableKeepValue", "Ready" }
             }, style: style)
-            .Paragraph(p => p.Text("FollowingTableBody"))
+            .Paragraph(p => p.AddText("FollowingTableBody"))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -515,7 +515,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(60)
             })
             .Compose(document =>
@@ -523,11 +523,11 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column => column
-                                .Table(new[] {
+                                .AddTable(new[] {
                                     new[] { "ColumnTableKeepHeader", "Ready" },
                                     new[] { "ColumnTableKeepValue", "Ready" }
                                 }, style: style)
-                                .Paragraph(p => p.Text("ColumnFollowingTableBody")))))))
+                                .AddParagraph(p => p.AddText("ColumnFollowingTableBody")))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -561,16 +561,16 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content => {
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+                            column.Item().AddParagraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(75)
                             }));
                         content.Row(row => {
                             row.Style(rowStyle);
                             row.PercentColumn(100, column =>
-                                column.Paragraph(p => p.Text("RowKeepColumn")));
+                                column.AddParagraph(p => p.AddText("RowKeepColumn")));
                         });
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("FollowingRowBody")));
+                            column.Item().AddParagraph(p => p.AddText("FollowingRowBody")));
                     })))
             .ToBytes();
 
@@ -605,17 +605,17 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content => {
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+                            column.Item().AddParagraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(56)
                             }));
                         content.Row(row => {
                             row.Style(rowStyle);
                             row.PercentColumn(100, column =>
-                                column.Paragraph(p => p.Text("RowChainKeepColumn")));
+                                column.AddParagraph(p => p.AddText("RowChainKeepColumn")));
                         });
                         content.Column(column => {
                             column.Item().H3("FollowingRowHeading");
-                            column.Item().Paragraph(p => p.Text("FollowingRowChainBody"));
+                            column.Item().AddParagraph(p => p.AddText("FollowingRowChainBody"));
                         });
                     })))
             .ToBytes();

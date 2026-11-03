@@ -22,8 +22,11 @@ public partial class PdfDocumentVisualQualityTests {
                 JustifyLastLine = justifyFinal
             };
             style.AddTabStop(global::OfficeIMO.OfficeLength.Points(160D), alignment);
-            return PdfDocument.Create(JustificationPolicyOptions()).Paragraph(paragraph => paragraph
-                .Text("Name\tUSD 12.50 net").LineBreak().Text("Name\tUSD 12.50 net"),
+            return PdfDocument.Create(JustificationPolicyOptions()).Paragraph(paragraph => {
+                paragraph.AddText("Name\tUSD 12.50 net");
+                paragraph.AddLineBreak();
+                paragraph.AddText("Name\tUSD 12.50 net");
+            },
                 paragraphAlignment, style: style).ToBytes();
         }
 

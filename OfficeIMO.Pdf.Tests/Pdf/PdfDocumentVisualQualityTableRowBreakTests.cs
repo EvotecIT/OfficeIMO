@@ -121,7 +121,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { PdfTableCell.TextCell("Type"), PdfTableCell.TextCell("Description") },
                                     new[] { PdfTableCell.TextCell("Finding"), PdfTableCell.RichTextCell(richRuns) }
                                 }, style: style))))))
@@ -165,7 +165,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Type", "Description" },
                                     new[] { "Finding", longValue }
                                 }, style: style))))))
@@ -310,7 +310,7 @@ public partial class PdfDocumentVisualQualityTests {
                         content.Row(row =>
                             row.PercentColumn(100, column => column
                                 .Spacer(global::OfficeIMO.OfficeLength.Points(94))
-                                .Table(new[] {
+                                .AddTable(new[] {
                                     new[] { "Name", "Value" },
                                     new[] { "Row01", "Alpha" },
                                     new[] { "Row02", "Beta" },
@@ -341,7 +341,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(rows, style: style))))))
+                                column.AddTable(rows, style: style))))))
             .ToBytes();
 
         AssertRowSplitUsesPageRemainder(bytes);
@@ -461,7 +461,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Type", "Description" },
                                     new[] { "Finding", longValue }
                                 }, style: style))))))
@@ -497,7 +497,7 @@ public partial class PdfDocumentVisualQualityTests {
                         page.Content(content =>
                             content.Row(row =>
                                 row.PercentColumn(100, column =>
-                                    column.Table(new[] {
+                                    column.AddTable(new[] {
                                         new[] { "Type", "Description" },
                                         new[] { "Finding", longValue }
                                     }, style: style))))))
@@ -531,7 +531,7 @@ public partial class PdfDocumentVisualQualityTests {
                         page.Content(content =>
                             content.Row(row =>
                                 row.PercentColumn(100, column =>
-                                    column.Table(new[] {
+                                    column.AddTable(new[] {
                                         new[] { "Type", "Description" },
                                         new[] { "Finding", longValue }
                                     }, style: style))))))

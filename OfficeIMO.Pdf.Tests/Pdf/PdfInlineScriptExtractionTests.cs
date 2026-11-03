@@ -78,7 +78,7 @@ public sealed class PdfInlineScriptExtractionTests {
     }
 
     private static void AddMassScript(PdfPageCanvas canvas) => canvas.Text(new[] {
-        new PdfTextRun("-2", fontSize: global::OfficeIMO.OfficeLength.Points(18D), font: PdfStandardFont.Courier, baseline: PdfTextBaseline.Superscript)
+        new PdfTextRun("-2", fontSize: global::OfficeIMO.OfficeLength.Points(18D), standardFont: PdfStandardFont.Courier, baseline: PdfTextBaseline.Superscript)
     }, global::OfficeIMO.OfficeLength.Points(143.2D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(40D), fontSize: global::OfficeIMO.OfficeLength.Points(18D));
 
     [Fact]
@@ -87,8 +87,8 @@ public sealed class PdfInlineScriptExtractionTests {
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(18D),
             CompressContentStreams = false
         }).Compose(document => document.Content(content => content
-            .Paragraph(paragraph => paragraph.Text("m").Superscript("-1").Text(" tail"))
-            .Paragraph(paragraph => paragraph.Text("H").Subscript("2").Text("O"))))
+            .AddParagraph(paragraph => { paragraph.AddText("m"); paragraph.AddText("-1").SetSuperscript(); paragraph.AddText(" tail"); })
+            .AddParagraph(paragraph => { paragraph.AddText("H"); paragraph.AddText("2").SetSubscript(); paragraph.AddText("O"); })))
             .ToBytes();
         PdfReadPage page = PdfReadDocument.Open(bytes).Pages[0];
 
@@ -238,9 +238,9 @@ public sealed class PdfInlineScriptExtractionTests {
     public void PublicTransformedCanvasKeepsAConnectedRaisedRunAdjacent(double scaleX, double scaleY, double angle) {
         PdfReadPage page = CreateTransformedCanvas(scaleX, scaleY, angle, canvas => canvas
             .Text("m", global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(40D), fontSize: global::OfficeIMO.OfficeLength.Points(18D), font: PdfStandardFont.Courier)
-            .Text(new[] { new PdfTextRun("-", fontSize: global::OfficeIMO.OfficeLength.Points(18D), font: PdfStandardFont.Courier,
+            .Text(new[] { new PdfTextRun("-", fontSize: global::OfficeIMO.OfficeLength.Points(18D), standardFont: PdfStandardFont.Courier,
                 baseline: PdfTextBaseline.Superscript) }, global::OfficeIMO.OfficeLength.Points(110.8D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(40D), fontSize: global::OfficeIMO.OfficeLength.Points(18D))
-            .Text(new[] { new PdfTextRun("1", fontSize: global::OfficeIMO.OfficeLength.Points(18D), font: PdfStandardFont.Courier,
+            .Text(new[] { new PdfTextRun("1", fontSize: global::OfficeIMO.OfficeLength.Points(18D), standardFont: PdfStandardFont.Courier,
                 baseline: PdfTextBaseline.Superscript) }, global::OfficeIMO.OfficeLength.Points(119.82D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(40D), fontSize: global::OfficeIMO.OfficeLength.Points(18D)));
         IReadOnlyList<PdfTextSpan> spans = page.GetTextSpans();
         var geometry = spans.Select(span =>

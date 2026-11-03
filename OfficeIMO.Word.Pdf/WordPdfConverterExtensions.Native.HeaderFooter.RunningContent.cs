@@ -246,7 +246,7 @@ public static partial class WordPdfConverterExtensions {
                     index + 1 < elements.Count ? elements[index + 1] : null);
             }
             if (addPageNumber)
-                content.Paragraph(paragraph => paragraph.Text(FormatNativeRunningPageTokens(
+                content.AddParagraph(paragraph => paragraph.AddText(FormatNativeRunningPageTokens(
                     GetNativePageNumberFormat(options), context, null)), global::OfficeIMO.OfficeAlignment.Right);
         };
     }

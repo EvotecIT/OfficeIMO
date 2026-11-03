@@ -75,7 +75,7 @@ public sealed class PdfOptionalBreakEncodingDiagnosticsTests {
                 OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'V'))
         }));
 
-        var diagnostic = Assert.Single(PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("AV")).AnalyzeTextEncoding());
+        var diagnostic = Assert.Single(PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText("AV")).AnalyzeTextEncoding());
 
         Assert.Equal("missing-embedded-font-fallback-glyph", diagnostic.Code);
         Assert.Contains("Identifier fallback", diagnostic.Message);

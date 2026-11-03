@@ -41,7 +41,7 @@ public sealed class PdfOcrRedactionSearchTests {
 
     [Fact]
     public async Task CancellationStopsBeforeProviderWork() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("page")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("page")).ToBytes();
         bool invoked = false;
         var engine = new DelegateOcrEngine("never", (_, _) => { invoked = true; return Task.FromResult(new OcrResult()); });
         using var cancellation = new CancellationTokenSource();
@@ -56,7 +56,7 @@ public sealed class PdfOcrRedactionSearchTests {
 
     [Fact]
     public async Task LiteralDoesNotJoinWordsAcrossProviderLines() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("page")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("page")).ToBytes();
         var engine = new DelegateOcrEngine("fixture-ocr", (_, _) => Task.FromResult(new OcrResult {
             Spans = new[] {
                 Word("Account", 20, 30, 45, 12, 0.96, "line-1"),
@@ -72,7 +72,7 @@ public sealed class PdfOcrRedactionSearchTests {
 
     [Fact]
     public async Task MissingLineIdsDoNotEraseProviderBlockBoundaries() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("page")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("page")).ToBytes();
         OcrTextSpan first = Word("Account", 20, 30, 45, 12, 0.96);
         OcrTextSpan second = Word("Secret", 70, 30, 38, 12, 0.91);
         first.BlockId = "first"; second.BlockId = "second";

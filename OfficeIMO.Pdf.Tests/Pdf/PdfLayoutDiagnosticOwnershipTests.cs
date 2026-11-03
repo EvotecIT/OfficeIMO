@@ -28,9 +28,9 @@ public sealed class PdfLayoutDiagnosticOwnershipTests {
             observations.Add(new InnerObservation(innerReport, innerReport.HasLoss, innerReport.Warnings.ToArray()));
             SaveEvidence(abortOuter ? "inner-before-aborted-outer" : "inner-before-completed-outer", inner);
             if (abortOuter) throw new OuterProbeAbortedException();
-            content.Paragraph(paragraph => paragraph.Text("HEADER"));
+            content.AddParagraph(paragraph => paragraph.AddText("HEADER"));
         }, global::OfficeIMO.OfficeLength.Points(18D)));
-        outer.Paragraph(paragraph => paragraph.Text("OUTER"));
+        outer.Paragraph(paragraph => paragraph.AddText("OUTER"));
 
         if (abortOuter) Assert.Throws<OuterProbeAbortedException>(() => outer.ToBytes());
         else {

@@ -47,7 +47,7 @@ public partial class Excel {
     public void PdfTables_Export_PreservesHeaderWhenNarrativePrecedesAutoSizedTable() {
         byte[] pdf = PdfCore.PdfDocument.Create()
             .H1("Quarterly results")
-            .Paragraph(paragraph => paragraph.Text("Revenue improved in the current quarter."))
+            .Paragraph(paragraph => paragraph.AddText("Revenue improved in the current quarter."))
             .Table(new[] {
                 new[] { "Region", "Revenue", "Active" },
                 new[] { "North", "1250", "True" },
@@ -1521,7 +1521,7 @@ logical,            workbook,
     [Fact]
     public void PdfTables_PositionedContinuationsMatchStableColumnStartsInsteadOfTextWidths() {
         PdfCore.PdfLogicalPage page = Assert.Single(PdfCore.PdfDocumentReadResult.Load(
-            PdfCore.PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Page geometry")).ToBytes()).Pages);
+            PdfCore.PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Page geometry")).ToBytes()).Pages);
 
         static PdfCore.PdfLogicalTable Table(double firstWidth, double secondWidth) {
             var table = new PdfCore.PdfStructuredTable {
@@ -1579,7 +1579,7 @@ logical,            workbook,
                 CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .PageBreak()
-            .Paragraph(p => p.Text("No table on this page."))
+            .Paragraph(p => p.AddText("No table on this page."))
             .ToBytes();
 
         using var workbook = new MemoryStream();

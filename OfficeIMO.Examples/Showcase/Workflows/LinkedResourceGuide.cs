@@ -6,32 +6,30 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class LinkedResourceGuide {
     internal static void Create(string folder) {
         string repository = "https://github.com/EvotecIT/OfficeIMO";
-        string[][] rows = {
-            new[] { "Resource", "Use it for" },
-            new[] { "Source repository", "Browse code, examples and package READMEs." },
-            new[] { "Published releases", "Read release notes and inspect release assets." },
-            new[] { "Issue tracker", "Search known problems before filing a reproducible report." }
-        };
-        var links = new Dictionary<(int Row, int Col), string> {
-            [(1, 0)] = repository,
-            [(2, 0)] = repository + "/releases",
-            [(3, 0)] = repository + "/issues"
+        PdfTableCell[][] rows = {
+            new[] { PdfTableCell.TextCell("Resource"), PdfTableCell.TextCell("Use it for") },
+            new[] { PdfTableCell.TextCell("Source repository", repository), PdfTableCell.TextCell("Browse code, examples and package READMEs.") },
+            new[] { PdfTableCell.TextCell("Published releases", repository + "/releases"), PdfTableCell.TextCell("Read release notes and inspect release assets.") },
+            new[] { PdfTableCell.TextCell("Issue tracker", repository + "/issues"), PdfTableCell.TextCell("Search known problems before filing a reproducible report.") }
         };
         PdfDocument.Create(pdf => pdf.Content(content => content
             .Title("Document automation reading list")
             .Subtitle("A compact PDF reference for a team starting a document-generation workflow.")
             .H2("Start with a runnable example")
-            .Paragraph(p => p.Text("Open the ").Link("OfficeIMO examples directory", repository + "/tree/master/OfficeIMO.Examples")
-                .Text(" and choose a format close to your intended output. Keep the generated file alongside its input data."))
+            .AddParagraph(p => {
+                p.AddText("Open the ");
+                p.AddLink("OfficeIMO examples directory", repository + "/tree/master/OfficeIMO.Examples");
+                p.AddText(" and choose a format close to your intended output. Keep the generated file alongside its input data.");
+            })
             .H2("Keep these references close")
-            .TableWithLinks(rows, links)
+            .AddTable(rows)
             .H2("When reporting a problem")
-            .Bullets(new[] {
+            .AddList(new[] {
                 "Include the smallest input that reproduces the issue.",
                 "State the package version, target framework and operating system.",
                 "Describe the expected result and attach a safe sample of the actual output."
             })
-            .Paragraph(p => p.Text("The resource names are clickable annotations. A static image shows their labels; open the PDF to follow them."))),
+            .AddParagraph(p => p.AddText("The resource names are clickable annotations. A static image shows their labels; open the PDF to follow them."))),
             new PdfCreateOptions { ShowPageNumbers = true })
             .Meta(title: "Document automation reading list", author: "OfficeIMO")
             .Save(Path.Combine(folder, "example.pdf"));

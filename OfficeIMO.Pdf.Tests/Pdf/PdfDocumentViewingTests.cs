@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed class PdfDocumentViewingTests {
     [Fact]
     public void DefaultLoadOptionsRemainSourceCompatibleWithViewingInspection() {
-        var document = PdfDocument.Load(PdfDocument.Create().Paragraph(p => p.Text("Viewing contract")).ToBytes());
+        var document = PdfDocument.Load(PdfDocument.Create().Paragraph(p => p.AddText("Viewing contract")).ToBytes());
         Assert.NotNull(document.InspectForViewing(default).LogicalContent);
         Assert.NotNull(document.InspectForViewing(default, default).LogicalContent);
         Func<PdfLoadOptions?, CancellationToken, PdfDocumentViewInfo> inspect = document.InspectForViewing;
@@ -72,7 +72,7 @@ public sealed class PdfDocumentViewingTests {
             }
         };
         var document = PdfDocument.Create(options);
-        for (int index = 0; index < 30; index++) document.Paragraph(paragraph => paragraph.Text(new string('W', 600)));
+        for (int index = 0; index < 30; index++) document.Paragraph(paragraph => paragraph.AddText(new string('W', 600)));
         Assert.ThrowsAny<OperationCanceledException>(() => {
             switch (route) {
                 case "display": document.Render.DisplayPage(1, cancellationToken: cancellation.Token); break;
@@ -119,6 +119,6 @@ public sealed class PdfDocumentViewingTests {
         PdfDocument.Create(new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
             OwnerPassword = "owner", AllowedPermissions = permissions
         })).Meta(title: "Private metadata")
-          .Paragraph(paragraph => paragraph.Text("Visible content with restricted extraction"))
+          .Paragraph(paragraph => paragraph.AddText("Visible content with restricted extraction"))
           .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(30, 90, 180), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(40D))).ToBytes();
 }

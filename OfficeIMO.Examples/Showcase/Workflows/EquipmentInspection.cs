@@ -8,8 +8,8 @@ internal static class EquipmentInspection {
         OfficeColor muted = OfficeTheme.Default.Palette.TextMuted;
         PdfDocument template = PdfDocument.Create(pdf => pdf.Content(content => {
             content.Title("Equipment inspection")
-                .Paragraph(p => p.FontSize(OfficeLength.Points(9)).Text("Northwind · Workplace operations · Fillable checklist"), defaultColor: muted)
-                .Paragraph(p => p.Text("Record the inspection before returning equipment to the shared pool. This sample is not a safety certification."))
+                .AddParagraph(p => p.AddText("Northwind · Workplace operations · Fillable checklist").SetFontSize(OfficeLength.Points(9)), color: muted)
+                .AddParagraph(p => p.AddText("Record the inspection before returning equipment to the shared pool. This sample is not a safety certification."))
                 .H2("Asset and inspector");
             Field(content, "Asset identifier", c => c.TextField("asset-id", width: OfficeLength.Points(280), value: "NW-LT-042", style: Named("Asset identifier")));
             Field(content, "Inspector", c => c.TextField("inspector", width: OfficeLength.Points(280), style: Named("Inspector")));
@@ -40,14 +40,14 @@ internal static class EquipmentInspection {
 
     // A label sits close to its own field and well clear of the field above it.
     internal static void Field(PdfContentBuilder content, string label, System.Action<PdfContentBuilder> field) {
-        content.Paragraph(p => p.Bold(label), style: new PdfParagraphStyle { SpacingBefore = OfficeLength.Points(10), SpacingAfter = OfficeLength.Points(3), KeepWithNext = true });
+        content.AddParagraph(p => p.AddText(label).SetBold(), style: new PdfParagraphStyle { SpacingBefore = OfficeLength.Points(10), SpacingAfter = OfficeLength.Points(3), KeepWithNext = true });
         field(content);
     }
 
     internal static void Check(PdfContentBuilder content, string name, string label) =>
         content.Row(row => row.Style(new PdfRowStyle { SpacingBefore = OfficeLength.Points(6), SpacingAfter = OfficeLength.Points(2) }).Gap(OfficeLength.Points(8))
             .FixedColumn(OfficeLength.Points(16), column => column.CheckBox(name, spacingAfter: OfficeLength.Points(0), style: Named(label)))
-            .RelativeColumn(column => column.Paragraph(p => p.Text(label), style: new PdfParagraphStyle { SpacingBefore = OfficeLength.Points(3), SpacingAfter = OfficeLength.Points(0) })));
+            .RelativeColumn(column => column.AddParagraph(p => p.AddText(label), style: new PdfParagraphStyle { SpacingBefore = OfficeLength.Points(3), SpacingAfter = OfficeLength.Points(0) })));
 
     internal static PdfFormFieldStyle Named(string label, bool multiline = false) =>
         new PdfFormFieldStyle { AlternateName = label, IsMultiline = multiline };

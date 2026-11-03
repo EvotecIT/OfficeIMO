@@ -18,8 +18,8 @@ PdfDocument.Create(pdf => pdf.Page(page => page
         .Footer(f => f.Text("Confidential").AlignCenter())
         .Content(layout => layout.Item(content => content
             .H1("Service report")
-            .Paragraph(p => p.Text("Generated from validated operational data."))
-            .Table(new[] {
+            .AddParagraph(p => p.AddText("Generated from validated operational data."))
+            .AddTable(new[] {
                 new[] { "Service", "Availability", "Status" },
                 new[] { "API", "99.97%", "On target" },
                 new[] { "Portal", "99.92%", "Review" }

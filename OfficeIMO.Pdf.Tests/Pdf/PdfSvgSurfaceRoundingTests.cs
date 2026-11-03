@@ -10,7 +10,7 @@ public sealed class PdfSvgSurfaceRoundingTests {
     [Fact]
     public void FractionalDpiSvgDimensionsMatchTheRoundedEncodedSurface() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(612), PageHeight = global::OfficeIMO.OfficeLength.Points(792) })
-            .Paragraph(p => p.Text("SVG surface rounding"))
+            .Paragraph(p => p.AddText("SVG surface rounding"))
             .ToBytes();
         var page = PdfReadDocument.Open(pdf).Pages[0];
         OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Svg,

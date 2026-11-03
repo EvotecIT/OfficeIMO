@@ -19,12 +19,12 @@ internal static class PdfRewritePreservationTestSupport {
                 author: "OfficeIMO",
                 subject: "Rewrite preservation proof",
                 keywords: "pdf,preservation")
-            .Paragraph(p => p.Text("PreservationMarker"))
-            .Paragraph(p => p.Link("ExternalLink", "https://evotec.xyz"))
-            .Paragraph(p => p.LinkToBookmark("JumpToSecondPage", "SecondPage"))
+            .Paragraph(p => p.AddText("PreservationMarker"))
+            .Paragraph(p => p.AddLink("ExternalLink", "https://evotec.xyz"))
+            .Paragraph(p => p.AddBookmarkLink("JumpToSecondPage", "SecondPage"))
             .PageBreak()
             .Bookmark("SecondPage")
-            .Paragraph(p => p.Text("SecondPageMarker"))
+            .Paragraph(p => p.AddText("SecondPageMarker"))
             .ToBytes();
     }
 
@@ -33,7 +33,7 @@ internal static class PdfRewritePreservationTestSupport {
             .TaggedPdfCatalogMarkers()
             .Language("en-US")
             .H1("Tagged preservation heading")
-            .Paragraph(p => p.Text("TaggedPreservationMarker"))
+            .Paragraph(p => p.AddText("TaggedPreservationMarker"))
             .ToBytes();
     }
 

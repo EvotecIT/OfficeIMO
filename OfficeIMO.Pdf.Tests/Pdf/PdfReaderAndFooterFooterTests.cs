@@ -24,7 +24,7 @@ public partial class PdfReaderAndFooterRegressionTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("Body text only."))
+            .Paragraph(p => p.AddText("Body text only."))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -54,7 +54,7 @@ public partial class PdfReaderAndFooterRegressionTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("Body text only."))
+            .Paragraph(p => p.AddText("Body text only."))
             .ToBytes();
 
         string content = Encoding.ASCII.GetString(bytes);
@@ -78,7 +78,7 @@ public partial class PdfReaderAndFooterRegressionTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("Body text only."))
+            .Paragraph(p => p.AddText("Body text only."))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -101,7 +101,7 @@ public partial class PdfReaderAndFooterRegressionTests {
 
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(options)
-                .Paragraph(p => p.Text("Body text only."))
+                .Paragraph(p => p.AddText("Body text only."))
                 .ToBytes());
 
         Assert.Contains("PDF footer offset must not exceed the bottom margin when footer content is enabled.", exception.Message, StringComparison.Ordinal);

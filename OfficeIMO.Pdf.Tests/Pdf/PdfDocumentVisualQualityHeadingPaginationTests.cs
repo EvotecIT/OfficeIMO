@@ -53,7 +53,7 @@ public partial class PdfDocumentVisualQualityTests {
             CreateOutlineFromHeadings = true
         };
         string heading = string.Join(" ", Enumerable.Repeat("Heading text", 100)) + " FINAL-MARKER";
-        byte[] bytes = PdfDocument.Create(options).TaggedPdfCatalogMarkers().H1(heading, linkUri: "https://example.test/heading").Paragraph(p => p.Text("Following paragraph")).ToBytes();
+        byte[] bytes = PdfDocument.Create(options).TaggedPdfCatalogMarkers().H1(heading, linkUri: "https://example.test/heading").Paragraph(p => p.AddText("Following paragraph")).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.True(pdf.NumberOfPages > 2);
         Assert.Contains("FINAL-MARKER", string.Join("", pdf.GetPages().Select(page => page.Text)), StringComparison.Ordinal);
@@ -91,13 +91,13 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(24),
             DefaultParagraphStyle = new PdfParagraphStyle { LineHeight = 1.4, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }
         };
-        Assert.Throws<ArgumentException>(() => PdfDocument.Create(options).Paragraph(p => p.Text("Too tall")).ToBytes());
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create(options).Paragraph(p => p.AddText("Too tall")).ToBytes());
     }
 
     [Fact]
     public void SmallPositiveFrameAcceptsALineThatFits() {
         var options = new PdfCreateOptions { PageHeight = global::OfficeIMO.OfficeLength.Points(50.2), MarginTop = global::OfficeIMO.OfficeLength.Points(25), MarginBottom = global::OfficeIMO.OfficeLength.Points(25), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(0.1) };
-        byte[] bytes = PdfDocument.Create(options).Paragraph(p => p.Text("Fits")).ToBytes();
+        byte[] bytes = PdfDocument.Create(options).Paragraph(p => p.AddText("Fits")).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(1, pdf.NumberOfPages);
         Assert.Equal("Fits", pdf.GetPage(1).Text);

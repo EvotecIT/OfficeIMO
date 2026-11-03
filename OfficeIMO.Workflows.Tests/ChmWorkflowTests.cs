@@ -18,7 +18,7 @@ public sealed class ChmWorkflowTests {
                 index => ChmFixture.Html("<p>Help topic " + index + "</p>"));
             File.WriteAllBytes(input, ChmFixture.Archive(topics));
             File.WriteAllBytes(text, PdfDocument.Create(compose => compose.Page(page => page.Content(content =>
-                content.Item(item => item.Paragraph(paragraph => paragraph.Text("Other document")))))).ToBytes());
+                content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Other document")))))).ToBytes());
             var result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest { Sources = [input, text], OutputPath = output });
             Assert.True(result.Succeeded, result.Summary);
             var pdf = PdfReadDocument.Open(File.ReadAllBytes(output));

@@ -25,7 +25,7 @@ public class PdfIncrementalObjectWriterTests {
     public void Append_XrefStreamRevisionPreservesPrefixAndReadsUpdatedObject() {
         byte[] source = PdfDocument.Create()
             .Meta(title: "Original xref-stream title")
-            .Paragraph(paragraph => paragraph.Text("Xref stream revision body"))
+            .Paragraph(paragraph => paragraph.AddText("Xref stream revision body"))
             .ToBytes();
         PdfDocumentSecurityInfo before = PdfSyntax.ReadDocumentSecurityInfo(source);
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(source);
@@ -55,7 +55,7 @@ public class PdfIncrementalObjectWriterTests {
     [Fact]
     public void Append_ClassicRevisionRejectsDuplicateRawObjectNumbers() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Duplicate raw object source"))
+            .Paragraph(paragraph => paragraph.AddText("Duplicate raw object source"))
             .ToBytes();
         PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(source);
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(source);

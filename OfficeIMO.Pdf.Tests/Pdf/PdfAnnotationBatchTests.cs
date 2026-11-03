@@ -291,7 +291,7 @@ public sealed class PdfAnnotationBatchTests {
     }
 
     internal static PdfDocument CreateAnnotatedDocument() {
-        var document = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Source content"));
+        var document = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Source content"));
         document = document.Annotations.Add(new PdfAnnotationCreateOptions {
             Subtype = "Line", Name = "line", Rectangle = new[] { 40D, 50D, 180D, 100D },
             Line = new[] { 45D, 55D, 175D, 95D }, GenerateAppearance = true

@@ -18,9 +18,9 @@ public sealed class PdfBridgeApiContracts {
     [Fact]
     public void OpenedDocumentAdaptersPropagateTheCanonicalSemanticPageLimit() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("First page"))
+            .Paragraph(paragraph => paragraph.AddText("First page"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second page"))
+            .Paragraph(paragraph => paragraph.AddText("Second page"))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(pdf));
         var readOptions = new PdfLoadOptions {
@@ -47,9 +47,9 @@ public sealed class PdfBridgeApiContracts {
     [Fact]
     public void WordImportUsesCanonicalPageSelectionWithinTheConfiguredLimit() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("First page marker"))
+            .Paragraph(paragraph => paragraph.AddText("First page marker"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second page marker"))
+            .Paragraph(paragraph => paragraph.AddText("Second page marker"))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(pdf));
         var options = new WordPdfImportOptions {

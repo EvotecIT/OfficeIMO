@@ -46,7 +46,7 @@ public class PdfDelimitedTokenFrameTests {
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D)
         };
         var document = PdfDocument.Create(options);
-        if (route == 0) document.Content.Text(text, style: new PdfParagraphStyle {
+        if (route == 0) document.Content.AddParagraph(text, style: new PdfParagraphStyle {
             FontSize = global::OfficeIMO.OfficeLength.Points(10D), LineHeight = 1D, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D)
         });
         else {
@@ -62,7 +62,7 @@ public class PdfDelimitedTokenFrameTests {
                 cell = new PdfTableCell(Array.Empty<PdfTextRun>(), null, blocks: new IPdfBlock[] { inner });
                 style = style.Clone(); style.CellPaddingX = style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D);
             }
-            document.Content.Table(new[] { new[] { cell } }, style: style);
+            document.Content.AddTable(new[] { new[] { cell } }, style: style);
         }
         return document.ToBytes();
     }

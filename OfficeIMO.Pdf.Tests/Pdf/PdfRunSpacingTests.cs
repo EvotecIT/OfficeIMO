@@ -28,7 +28,7 @@ public sealed class PdfRunSpacingTests {
             options.EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "SpacingTest");
             PdfTextRun word = new PdfTextRun("office", fontSize: global::OfficeIMO.OfficeLength.Points(12D));
             if (styled) word = word.WithHorizontalTextScaling(50D).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1D));
-            return PdfDocument.Create(options).Paragraph(paragraph => paragraph.Runs(new[] { word, PdfTextRun.Normal("X", fontSize: global::OfficeIMO.OfficeLength.Points(12D)) })).ToBytes();
+            return PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddRuns(new[] { word, PdfTextRun.Normal("X", fontSize: global::OfficeIMO.OfficeLength.Points(12D)) })).ToBytes();
         }
         using var natural = PdfPigDocument.Open(Render(false));
         using var styled = PdfPigDocument.Open(Render(true));
@@ -47,7 +47,7 @@ public sealed class PdfRunSpacingTests {
         options.MarginLeft = options.MarginRight = options.MarginTop = options.MarginBottom = global::OfficeIMO.OfficeLength.Points(20D);
         PdfTextRun run = new PdfTextRun(string.Join("\n", Enumerable.Repeat("ABCD", 20)), fontSize: global::OfficeIMO.OfficeLength.Points(12D))
             .WithHorizontalTextScaling(50D).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1D));
-        byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Runs(new[] { run })).ToBytes();
+        byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddRuns(new[] { run })).ToBytes();
         Letter[] baseline = Letters(Create("paragraph", new PdfTextRun("ABCD", fontSize: global::OfficeIMO.OfficeLength.Points(12D))));
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.True(pdf.NumberOfPages > 1);
@@ -77,7 +77,7 @@ public sealed class PdfRunSpacingTests {
     [InlineData("header", 50D, 1D)]
     [InlineData("header", 200D, -0.5D)]
     public void RunSpacing_UsesPhysicalAdvancesAndPreservesGlyphHeight(string surface, double scaling, double spacing) {
-        PdfTextRun natural = new PdfTextRun("ABCD", font: PdfStandardFont.Helvetica, fontSize: global::OfficeIMO.OfficeLength.Points(12D));
+        PdfTextRun natural = new PdfTextRun("ABCD", standardFont: PdfStandardFont.Helvetica, fontSize: global::OfficeIMO.OfficeLength.Points(12D));
         Letter[] baseline = Letters(Create(surface, natural));
         Letter[] actual = Letters(Create(surface, natural.WithHorizontalTextScaling(scaling).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(spacing))));
         Assert.Equal("ABCD", string.Concat(actual.Select(letter => letter.Value)));
@@ -93,8 +93,10 @@ public sealed class PdfRunSpacingTests {
     [Fact]
     public void ParagraphBuilder_RestoresNaturalTextAfterStyledRuns() {
         byte[] actualBytes = PdfDocument.Create(Options())
-            .Paragraph(paragraph => paragraph.HorizontalTextScaling(50D).CharacterSpacing(global::OfficeIMO.OfficeLength.Points(1D)).Text("AB")
-                .HorizontalTextScaling(100D).CharacterSpacing(global::OfficeIMO.OfficeLength.Points(0D)).Text("CD"))
+            .Paragraph(paragraph => {
+                paragraph.AddText("AB").SetHorizontalTextScaling(50D).SetCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1D));
+                paragraph.AddText("CD");
+            })
             .ToBytes();
         Letter[] baseline = Letters(Create("paragraph", new PdfTextRun("ABCD", fontSize: global::OfficeIMO.OfficeLength.Points(12D))));
         Letter[] actual = Letters(actualBytes);
@@ -148,11 +150,11 @@ public sealed class PdfRunSpacingTests {
     private static byte[] Create(string surface, PdfTextRun run) {
         PdfDocument document = PdfDocument.Create(Options());
         switch (surface) {
-            case "paragraph": document.Paragraph(paragraph => paragraph.Runs(new[] { run })); break;
+            case "paragraph": document.Paragraph(paragraph => paragraph.AddRuns(new[] { run })); break;
             case "table":
                 document.Table(new[] { new[] { PdfTableCell.RichTextCell(new[] { run }) } }, style: new PdfTableStyle { HeaderRowCount = 0 });
                 break;
-            case "header": document.Header(header => header.Text(text => text.Run(run))).Paragraph(paragraph => paragraph.Text("body")); break;
+            case "header": document.Header(header => header.Text(text => text.Run(run))).Paragraph(paragraph => paragraph.AddText("body")); break;
             default: throw new ArgumentOutOfRangeException(nameof(surface));
         }
         return document.ToBytes();

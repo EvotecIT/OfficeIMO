@@ -22,7 +22,7 @@ public partial class PdfFontFamilyTests {
                 ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 700, ' ', 'A')))
             .RegisterEmbeddedFontFallbacks(fallbacks);
         PdfTextRun template = fallbacks.PlanTextRuns("A", styleTemplate:
-                PdfTextRun.Normal("template", font: PdfStandardFont.Courier))[0]
+                PdfTextRun.Normal("template", standardFont: PdfStandardFont.Courier))[0]
             .WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1)).WithHorizontalTextScaling(50);
         PdfTextFallbackPlan plan = PdfTextDiagnostics.PlanEmbeddedFontFallbackText("A A", new[] {
             new PdfEmbeddedFontFallbackCandidate("Planner Without Spaces",
@@ -35,13 +35,13 @@ public partial class PdfFontFamilyTests {
             ? plan.ToNamedTextRuns(new[] { "Caller Family" }, template)
             : plan.ToTextRuns(new[] { PdfStandardFont.TimesRoman }, template);
         PdfTextRun MappedLetter() => PdfTextRun.Normal("A",
-                font: namedMapping ? null : PdfStandardFont.TimesRoman,
+                standardFont: namedMapping ? null : PdfStandardFont.TimesRoman,
                 fontFamily: namedMapping ? "Caller Family" : null)
             .WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1)).WithHorizontalTextScaling(50);
-        PdfTextRun gap = PdfTextRun.Normal(" ", font: PdfStandardFont.Courier)
+        PdfTextRun gap = PdfTextRun.Normal(" ", standardFont: PdfStandardFont.Courier)
             .WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1)).WithHorizontalTextScaling(50);
         byte[] Render(IReadOnlyList<PdfTextRun> textRuns) => PdfDocument.Create(options.Clone())
-            .Paragraph(paragraph => paragraph.Runs(textRuns)).ToBytes();
+            .Paragraph(paragraph => paragraph.AddRuns(textRuns)).ToBytes();
 
         // The explicitly mapped letters and the Courier layout gap form the
         // independent public-API reference. Reusing a planned template must

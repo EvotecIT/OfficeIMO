@@ -38,7 +38,7 @@ public sealed class ImageExportConformanceContracts {
             }));
 
         PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(PdfDocument.Create(document => document
-            .Content(content => content.Paragraph(paragraph => paragraph.Text("PDF"))))
+            .Content(content => content.AddParagraph(paragraph => paragraph.AddText("PDF"))))
             .ToBytes()));
         results.Add(pdf.Pages[0].ExportImage(
             OfficeImageExportFormat.Webp,

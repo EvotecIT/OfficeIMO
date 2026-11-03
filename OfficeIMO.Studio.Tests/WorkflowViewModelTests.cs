@@ -11,9 +11,9 @@ public sealed class WorkflowViewModelTests {
         using var scope = new TestDirectory();
         string input = Path.Combine(scope.Path, "print.pdf");
         PdfDocument.Create(document => {
-            document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(600)).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("First")))));
-            document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(400)).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Second")))));
-            document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(620)).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Third")))));
+            document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(600)).Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("First")))));
+            document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(400)).Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Second")))));
+            document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(620)).Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Third")))));
         }).Save(input);
 
         using var session = TestAppBuilder.StartSession();
@@ -314,7 +314,7 @@ public sealed class WorkflowViewModelTests {
         using var scope = new TestDirectory();
         string input = Path.Combine(scope.Path, "source.pdf");
         PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
-            item.Paragraph(paragraph => paragraph.Text("Studio health")))))).Save(input);
+            item.AddParagraph(paragraph => paragraph.AddText("Studio health")))))).Save(input);
         using var viewModel = new DocumentHealthViewModel(
             _ => Task.FromResult<string?>(input),
             _ => Task.FromResult<string?>(scope.Path));

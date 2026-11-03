@@ -1,3 +1,4 @@
+#pragma warning disable RS0026 // The short alt-text image overload keeps the common meaningful-image call positional.
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
@@ -95,26 +96,53 @@ public sealed partial class PdfDocument {
         return Shape(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
     }
 
-    /// <summary>Adds a raster image supported by OfficeIMO.Drawing at the current flow position.</summary>
-    internal PdfDocument Image(byte[] jpegBytes, double width, double height, OfficeAlignment? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) =>
-        Image(jpegBytes, width, height, align, clipPath, fit, spacingBefore, spacingAfter, style, linkUri, linkContents, alternativeText: null);
+    /// <summary>Appends a meaningful image from supported image bytes with alternative text.</summary>
+    public PdfImage AddImage(byte[] imageBytes, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string? altText) =>
+        AddImageCore(imageBytes, width.ToPoints(), height.ToPoints(), null, null, null, null, null, null, null, null, altText);
 
-    /// <summary>Adds a supported meaningful image at the current flow position with alternate text.</summary>
-    internal PdfDocument Image(byte[] jpegBytes, double width, double height, string? alternativeText) =>
-        Image(jpegBytes, width, height, align: null, clipPath: null, fit: null, spacingBefore: null, spacingAfter: null, style: null, linkUri: null, linkContents: null, alternativeText: alternativeText);
+    /// <summary>Appends a raster image supported by OfficeIMO.Drawing at the current flow position.</summary>
+    /// <param name="imageBytes">Supported image bytes.</param>
+    /// <param name="width">Image frame width.</param>
+    /// <param name="height">Image frame height.</param>
+    /// <param name="align">Image alignment inside the content width.</param>
+    /// <param name="clipPath">Optional local clipping path applied before drawing the image.</param>
+    /// <param name="fit">Image fitting mode inside the frame.</param>
+    /// <param name="spacingBefore">Top spacing, inherited from the current default image style when omitted.</param>
+    /// <param name="spacingAfter">Bottom spacing, inherited from the current default image style when omitted.</param>
+    /// <param name="style">Optional reusable image placement style.</param>
+    /// <param name="linkUri">Optional absolute URI or catalog-base-relative URI for an image link annotation.</param>
+    /// <param name="linkContents">Optional link annotation contents metadata.</param>
+    /// <param name="altText">Optional alternative text for a meaningful image.</param>
+    public PdfImage AddImage(byte[] imageBytes, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, OfficeAlignment? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, global::OfficeIMO.OfficeLength? spacingBefore = null, global::OfficeIMO.OfficeLength? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? altText = null) =>
+        AddImageCore(imageBytes, width.ToPoints(), height.ToPoints(), align, clipPath, fit, spacingBefore?.ToPoints(), spacingAfter?.ToPoints(), style, linkUri, linkContents, altText);
 
-    /// <summary>Adds a raster image supported by OfficeIMO.Drawing at the current flow position.</summary>
-    internal PdfDocument Image(byte[] jpegBytes, double width, double height, OfficeAlignment? align, OfficeClipPath? clipPath, OfficeImageFit? fit, double? spacingBefore, double? spacingAfter, PdfImageStyle? style, string? linkUri, string? linkContents, string? alternativeText) {
-        Guard.NotNullOrEmpty(jpegBytes, nameof(jpegBytes));
+    // Chaining forms used by adapters and tests that compose a document in one expression.
+    internal PdfDocument Image(byte[] jpegBytes, double width, double height, OfficeAlignment? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) {
+        AddImageCore(jpegBytes, width, height, align, clipPath, fit, spacingBefore, spacingAfter, style, linkUri, linkContents, altText: null);
+        return this;
+    }
+
+    internal PdfDocument Image(byte[] jpegBytes, double width, double height, string? altText) {
+        AddImageCore(jpegBytes, width, height, null, null, null, null, null, null, null, null, altText);
+        return this;
+    }
+
+    internal PdfDocument Image(byte[] jpegBytes, double width, double height, OfficeAlignment? align, OfficeClipPath? clipPath, OfficeImageFit? fit, double? spacingBefore, double? spacingAfter, PdfImageStyle? style, string? linkUri, string? linkContents, string? altText) {
+        AddImageCore(jpegBytes, width, height, align, clipPath, fit, spacingBefore, spacingAfter, style, linkUri, linkContents, altText);
+        return this;
+    }
+
+    private PdfImage AddImageCore(byte[] imageBytes, double width, double height, OfficeAlignment? align, OfficeClipPath? clipPath, OfficeImageFit? fit, double? spacingBefore, double? spacingAfter, PdfImageStyle? style, string? linkUri, string? linkContents, string? altText) {
+        Guard.NotNullOrEmpty(imageBytes, nameof(imageBytes));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.OptionalUriAction(linkUri, nameof(linkUri));
-        PdfImageStyle? imageStyle = CreateImageStyle(align, clipPath, fit, spacingBefore, spacingAfter, style, alternativeText);
+        PdfImageStyle? imageStyle = CreateImageStyle(align, clipPath, fit, spacingBefore, spacingAfter, style, altText);
         if (imageStyle != null) {
             ValidateImageStyleForBox(imageStyle, width, height, nameof(clipPath));
         }
 
-        PreparedImage prepared = PrepareImageBytes(jpegBytes);
+        PreparedImage prepared = PrepareImageBytes(imageBytes);
         if (imageStyle != null) {
             ValidateImageFitDimensions(prepared.Info, imageStyle.Fit, nameof(fit));
         }
@@ -129,7 +157,7 @@ public sealed partial class PdfDocument {
             linkContents,
             useDataSnapshot: true,
             preparedStream: prepared.PreparedStream));
-        return this;
+        return new PdfImage(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), imageStyle?.AltText);
     }
 
     internal static ShapeBlock CreateShapeBlock(OfficeShape shape, OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
@@ -252,8 +280,8 @@ public sealed partial class PdfDocument {
         return ruleStyle;
     }
 
-    internal static PdfImageStyle? CreateImageStyle(OfficeAlignment? align, OfficeClipPath? clipPath, OfficeImageFit? fit, double? spacingBefore, double? spacingAfter, PdfImageStyle? style, string? alternativeText = null) {
-        if (!align.HasValue && clipPath == null && !fit.HasValue && !spacingBefore.HasValue && !spacingAfter.HasValue && style == null && alternativeText == null) {
+    internal static PdfImageStyle? CreateImageStyle(OfficeAlignment? align, OfficeClipPath? clipPath, OfficeImageFit? fit, double? spacingBefore, double? spacingAfter, PdfImageStyle? style, string? altText = null) {
+        if (!align.HasValue && clipPath == null && !fit.HasValue && !spacingBefore.HasValue && !spacingAfter.HasValue && style == null && altText == null) {
             return null;
         }
 
@@ -279,8 +307,8 @@ public sealed partial class PdfDocument {
             imageStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingAfter.Value);
         }
 
-        if (alternativeText != null) {
-            imageStyle.AlternativeText = alternativeText;
+        if (altText != null) {
+            imageStyle.AltText = altText;
         }
 
         return imageStyle;

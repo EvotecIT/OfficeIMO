@@ -158,7 +158,7 @@ public sealed partial class PdfPageCanvas {
     /// <summary>Adds text inside a fixed page rectangle using top-left page coordinates.</summary>
     public PdfPageCanvas Text(string text, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeLength? fontSize = null, global::OfficeIMO.OfficeColor? color = null, OfficeAlignment align = OfficeAlignment.Left, PdfStandardFont? font = null) {
         Guard.NotNull(text, nameof(text));
-        return Text(new[] { PdfTextRun.Normal(text, color, fontSize, font: font) }, x, y, width, height, color, align, fontSize);
+        return Text(new[] { PdfTextRun.Normal(text, color, fontSize, standardFont: font) }, x, y, width, height, color, align, fontSize);
     }
 
     /// <summary>Adds rich text runs inside a fixed page rectangle using top-left page coordinates.</summary>
@@ -517,7 +517,7 @@ public sealed partial class PdfPageCanvas {
             }
             bool applyTextColor = !run.Color.HasValue && style.TextColor.HasValue;
             bool applyFontSize = !(run.FontSize?.ToPoints()).HasValue && style.FontSize.HasValue;
-            bool applyFont = !run.Font.HasValue && style.Font.HasValue;
+            bool applyFont = !run.StandardFont.HasValue && style.Font.HasValue;
             if (!applyTextColor && !applyFontSize && !applyFont) {
                 styled.Add(run);
                 continue;
@@ -531,7 +531,7 @@ public sealed partial class PdfPageCanvas {
                 run.Italic,
                 run.Strike,
                 (applyFontSize ? style.FontSize!.Value : run.FontSize),
-                applyFont ? style.Font : run.Font,
+                applyFont ? style.Font : run.StandardFont,
                 run.LinkUri,
                 run.LinkContents,
                 run.Baseline,

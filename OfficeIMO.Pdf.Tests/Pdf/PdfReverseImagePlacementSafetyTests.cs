@@ -86,7 +86,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     [InlineData(true)]
     public void SuppressedImageOnlyPageDoesNotCreateAnEmptyWordPage(bool preserveSourcePageSize) {
         byte[] source = CreateDocument()
-            .Paragraph(paragraph => paragraph.Text("Visible first page"))
+            .Paragraph(paragraph => paragraph.AddText("Visible first page"))
             .PageBreak()
             .Canvas(canvas => canvas.Effect(
                 OfficeIMO.Drawing.OfficeTransform.Identity,
@@ -121,7 +121,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
                 0D,
                 effect => effect.Image(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(40D))))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Visible second page"))
+            .Paragraph(paragraph => paragraph.AddText("Visible second page"))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
@@ -745,7 +745,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         const string marker = "Scaled user unit text";
         byte[] source = WithUserUnit(
             CreateDocument()
-                .Paragraph(paragraph => paragraph.FontSize(global::OfficeIMO.OfficeLength.Points(10D)).Text(marker))
+                .Paragraph(paragraph => paragraph.AddText(marker).SetFontSize(global::OfficeIMO.OfficeLength.Points(10D)))
                 .ToBytes(),
             2D);
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
@@ -795,9 +795,9 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         const string secondMarker = "Second page typography";
         byte[] source = WithPageUserUnit(
             CreateDocument()
-                .Paragraph(paragraph => paragraph.FontSize(global::OfficeIMO.OfficeLength.Points(10D)).Text(firstMarker))
+                .Paragraph(paragraph => paragraph.AddText(firstMarker).SetFontSize(global::OfficeIMO.OfficeLength.Points(10D)))
                 .PageBreak()
-                .Paragraph(paragraph => paragraph.FontSize(global::OfficeIMO.OfficeLength.Points(10D)).Text(secondMarker))
+                .Paragraph(paragraph => paragraph.AddText(secondMarker).SetFontSize(global::OfficeIMO.OfficeLength.Points(10D)))
                 .ToBytes(),
             pageNumber: 2,
             userUnit: 2D);

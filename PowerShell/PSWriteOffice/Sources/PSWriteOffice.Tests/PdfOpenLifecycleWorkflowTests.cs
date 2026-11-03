@@ -117,8 +117,8 @@ public sealed class PdfOpenLifecycleWorkflowTests : IDisposable {
     private string CreateSource(string name, string? password = null) {
         string path = Path.Combine(_root, name);
         using var document = PdfDocument.Create();
-        document.Compose(compose => compose.Content(content => content.Paragraph(p => p.Text("First page")).PageBreak()
-            .Paragraph(p => p.Text("Second page")).PageBreak().Paragraph(p => p.Text("Last page"))));
+        document.Compose(compose => compose.Content(content => content.AddParagraph(p => p.AddText("First page")).PageBreak()
+            .AddParagraph(p => p.AddText("Second page")).PageBreak().AddParagraph(p => p.AddText("Last page"))));
         document.Save(path, new PdfSaveOptions { AllowLoss = true, Encryption = password == null ? null : new PdfStandardEncryptionOptions(password) });
         return path;
     }

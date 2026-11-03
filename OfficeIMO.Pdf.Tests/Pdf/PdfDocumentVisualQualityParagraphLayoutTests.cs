@@ -21,7 +21,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Bold("Finding").LineBreak().Text("No critical issues detected."))
+            .Paragraph(p => { p.AddText("Finding").SetBold(); p.AddLineBreak(); p.AddText("No critical issues detected."); })
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -80,10 +80,10 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] defaultBytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("TopMarker"))
+            .Paragraph(p => p.AddText("TopMarker"))
             .ToBytes();
         byte[] spacedBytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("TopMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("TopMarker"), style: new PdfParagraphStyle {
                 SpacingBefore = global::OfficeIMO.OfficeLength.Points(28),
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
@@ -113,11 +113,11 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] defaultBytes = PdfDocument.Create(options)
             .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.PercentColumn(100, column => column
-                .Paragraph(p => p.Text("ColumnTopMarker")))))))
+                .AddParagraph(p => p.AddText("ColumnTopMarker")))))))
             .ToBytes();
         byte[] spacedBytes = PdfDocument.Create(options)
             .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.PercentColumn(100, column => column
-                .Paragraph(p => p.Text("ColumnTopMarker"), style: new PdfParagraphStyle {
+                .AddParagraph(p => p.AddText("ColumnTopMarker"), style: new PdfParagraphStyle {
                     SpacingBefore = global::OfficeIMO.OfficeLength.Points(28),
                     SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                 }))))))
@@ -147,9 +147,9 @@ public partial class PdfDocumentVisualQualityTests {
 
         var paragraphStyle = new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) };
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("BeforeMarker"), style: paragraphStyle)
+            .Paragraph(p => p.AddText("BeforeMarker"), style: paragraphStyle)
             .Spacer(24)
-            .Paragraph(p => p.Text("AfterMarker"), style: paragraphStyle)
+            .Paragraph(p => p.AddText("AfterMarker"), style: paragraphStyle)
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -180,9 +180,9 @@ public partial class PdfDocumentVisualQualityTests {
         var paragraphStyle = new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) };
         byte[] bytes = PdfDocument.Create(options)
             .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.PercentColumn(100, column => column
-                .Paragraph(p => p.Text("TopMarker"), style: paragraphStyle)
+                .AddParagraph(p => p.AddText("TopMarker"), style: paragraphStyle)
                 .Spacer(global::OfficeIMO.OfficeLength.Points(20))
-                .Paragraph(p => p.Text("BottomMarker"), style: paragraphStyle))))))
+                .AddParagraph(p => p.AddText("BottomMarker"), style: paragraphStyle))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -324,10 +324,11 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p
-                .Text("FirstIndentMarker")
-                .LineBreak()
-                .Text("SecondIndentMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => {
+                p.AddText("FirstIndentMarker");
+                p.AddLineBreak();
+                p.AddText("SecondIndentMarker");
+            }, style: new PdfParagraphStyle {
                     FirstLineIndent = global::OfficeIMO.OfficeLength.Points(24),
                     SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                 })
@@ -360,10 +361,11 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p
-                .Text("DefaultFirstIndent")
-                .LineBreak()
-                .Text("DefaultSecondIndent"))
+            .Paragraph(p => {
+                p.AddText("DefaultFirstIndent");
+                p.AddLineBreak();
+                p.AddText("DefaultSecondIndent");
+            })
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -394,10 +396,11 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .DefaultParagraphStyle(style)
-            .Paragraph(p => p
-                .Text("FluentDefaultFirst")
-                .LineBreak()
-                .Text("FluentDefaultSecond"))
+            .Paragraph(p => {
+                p.AddText("FluentDefaultFirst");
+                p.AddLineBreak();
+                p.AddText("FluentDefaultSecond");
+            })
             .ToBytes();
 
         style.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(0);
@@ -434,7 +437,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("ExplicitMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("ExplicitMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
             .ToBytes();
@@ -461,10 +464,11 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p
-                .Text("HangingFirst")
-                .LineBreak()
-                .Text("HangingSecond"), style: new PdfParagraphStyle {
+            .Paragraph(p => {
+                p.AddText("HangingFirst");
+                p.AddLineBreak();
+                p.AddText("HangingSecond");
+            }, style: new PdfParagraphStyle {
                     LeftIndent = global::OfficeIMO.OfficeLength.Points(24),
                     FirstLineIndent = global::OfficeIMO.OfficeLength.Points(-24),
                     SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
@@ -499,10 +503,11 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column => column
-                                .Paragraph(p => p
-                                    .Text("ColumnFirstIndent")
-                                    .LineBreak()
-                                    .Text("ColumnSecondIndent"), style: new PdfParagraphStyle {
+                                .AddParagraph(p => {
+                                    p.AddText("ColumnFirstIndent");
+                                    p.AddLineBreak();
+                                    p.AddText("ColumnSecondIndent");
+                                }, style: new PdfParagraphStyle {
                                         FirstLineIndent = global::OfficeIMO.OfficeLength.Points(24),
                                         SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                                     }))))))
@@ -540,10 +545,11 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column => column
-                                .Paragraph(p => p
-                                    .Text("ColumnDefaultFirst")
-                                    .LineBreak()
-                                    .Text("ColumnDefaultSecond")))))))
+                                .AddParagraph(p => {
+                                    p.AddText("ColumnDefaultFirst");
+                                    p.AddLineBreak();
+                                    p.AddText("ColumnDefaultSecond");
+                                }))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));

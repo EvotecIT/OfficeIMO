@@ -51,7 +51,7 @@ internal static partial class PdfWriter {
 
             PdfTextRun run = cell.Runs[0];
             if (run.Bold || run.Italic || run.Underline || run.Strike || run.Color.HasValue ||
-                run.BackgroundColor.HasValue || run.DecorationColor.HasValue || (run.FontSize?.ToPoints()).HasValue || run.Font.HasValue ||
+                run.BackgroundColor.HasValue || run.DecorationColor.HasValue || (run.FontSize?.ToPoints()).HasValue || run.StandardFont.HasValue ||
                 run.FontFamily != null || run.LinkUri != null || run.LinkDestinationName != null || run.LinkContents != null ||
                 run.Baseline != PdfTextBaseline.Normal || run.HorizontalTextScaling != 100D || (run.CharacterSpacing.ToPoints()) != 0D ||
                 run.TabLeader != PdfTabLeaderStyle.None ||

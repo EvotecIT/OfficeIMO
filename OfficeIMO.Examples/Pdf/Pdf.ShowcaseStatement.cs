@@ -22,30 +22,30 @@ namespace OfficeIMO.Examples.Pdf {
                         page.Margin(global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(58));
                         page.Content(content => {
                             content.Item(item => item.H1("Statement #4048", OfficeAlignment.Left));
-                            content.Item(item => item.Paragraph(p => p.Text("Issue date: 23/12/2025 \u00B7 Due date: 06/01/2026"), style: TightParagraph()));
+                            content.Item(item => item.AddParagraph(p => p.AddText("Issue date: 23/12/2025 \u00B7 Due date: 06/01/2026"), style: TightParagraph()));
                             content.Spacer(OfficeLength.Points(18));
                             content.Row(row => {
                                 row.Gap(global::OfficeIMO.OfficeLength.Points(58))
                                     .PercentColumn(50, column => {
-                                        column.Paragraph(p => p.Bold("From"), style: LabelParagraph());
+                                        column.AddParagraph(p => p.AddText("From").SetBold(), style: LabelParagraph());
                                         column.HR(OfficeLength.Points(1.2), OfficeColor.FromRgb(15, 23, 42), spacingBefore: OfficeLength.Points(0), spacingAfter: OfficeLength.Points(8));
-                                        column.Paragraph(p => p.Text("Syllabae Representative\nOvum picem\nPrinceps avem distant, Linteum amicitia\nofficium21@autstatum.com\n881-306-3914"), style: AddressParagraph());
+                                        column.AddParagraph(p => p.AddText("Syllabae Representative\nOvum picem\nPrinceps avem distant, Linteum amicitia\nofficium21@autstatum.com\n881-306-3914"), style: AddressParagraph());
                                     })
                                     .PercentColumn(50, column => {
-                                        column.Paragraph(p => p.Bold("For"), style: LabelParagraph());
+                                        column.AddParagraph(p => p.AddText("For").SetBold(), style: LabelParagraph());
                                         column.HR(global::OfficeIMO.OfficeLength.Points(1.2), global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42), spacingBefore: global::OfficeIMO.OfficeLength.Points(0), spacingAfter: global::OfficeIMO.OfficeLength.Points(8));
-                                        column.Paragraph(p => p.Text("Ceciderit Original\nAurum currunt\nSolis multum platea, Cocus fuge fluvio\nsubsisto93@celeritate.com\n839-621-9110"), style: AddressParagraph());
+                                        column.AddParagraph(p => p.AddText("Ceciderit Original\nAurum currunt\nSolis multum platea, Cocus fuge fluvio\nsubsisto93@celeritate.com\n839-621-9110"), style: AddressParagraph());
                                     });
                             });
 
                             content.Spacer(OfficeLength.Points(24));
-                            content.Table(CreateLineItemRows(), style: LineItemStyle());
+                            content.AddTable(CreateLineItemRows(), style: LineItemStyle());
                             content.Row(row => {
                                 row.Style(new PdfRowStyle { KeepTogether = true, SpacingBefore = OfficeLength.Points(10) })
                                     .Gap(OfficeLength.Points(22))
                                     .PercentColumn(58, column => {
-                                        column.PanelParagraph(
-                                            p => p.Bold("Payment note: ").Text("This is a generic document sample. The layout is built from headings, paragraphs, rows, tables, and cell styles rather than an invoice-specific API."),
+                                        column.AddPanelParagraph(
+                                            p => { p.AddText("Payment note: ").SetBold(); p.AddText("This is a generic document sample. The layout is built from headings, paragraphs, rows, tables, and cell styles rather than an invoice-specific API."); },
                                             new PdfPanelStyle {
                                                 Background = global::OfficeIMO.OfficeColor.FromRgb(247, 250, 252),
                                                 BorderColor = global::OfficeIMO.OfficeColor.FromRgb(211, 219, 229),
@@ -53,10 +53,10 @@ namespace OfficeIMO.Examples.Pdf {
                                                 PaddingX = global::OfficeIMO.OfficeLength.Points(9),
                                                 PaddingY = global::OfficeIMO.OfficeLength.Points(8)
                                             },
-                                            defaultColor: global::OfficeIMO.OfficeColor.FromRgb(51, 65, 85));
+                                            color: global::OfficeIMO.OfficeColor.FromRgb(51, 65, 85));
                                     })
                                     .PercentColumn(42, column => {
-                                        column.Table(CreateTotalsRows(), style: TotalsStyle());
+                                        column.AddTable(CreateTotalsRows(), style: TotalsStyle());
                                     });
                             });
                         });

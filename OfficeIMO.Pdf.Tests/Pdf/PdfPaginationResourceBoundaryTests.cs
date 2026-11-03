@@ -20,7 +20,7 @@ public sealed class PdfPaginationResourceBoundaryTests {
                 LineSpacing = PdfLineSpacing.Exact(OfficeLength.Points(height)), SpacingBefore = OfficeLength.Points(0), SpacingAfter = OfficeLength.Points(0), ItemSpacing = OfficeLength.Points(0)
             });
         } else {
-            document.Paragraph(paragraph => paragraph.Text("x"), style: new PdfParagraphStyle {
+            document.Paragraph(paragraph => paragraph.AddText("x"), style: new PdfParagraphStyle {
                 LineSpacing = PdfLineSpacing.Exact(OfficeLength.Points(height)), SpacingBefore = OfficeLength.Points(0), SpacingAfter = OfficeLength.Points(0), WidowControl = false
             });
         }

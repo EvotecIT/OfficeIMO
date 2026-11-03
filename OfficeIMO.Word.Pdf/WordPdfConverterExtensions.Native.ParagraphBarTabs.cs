@@ -12,7 +12,7 @@ public static partial class WordPdfConverterExtensions {
         // the same font/spacing owner as empty table and note paragraphs.
         PdfCore.PdfTextRun mark = CreateNativeParagraphMarkStrut(paragraph,
             NativeTableStyleDefaults.Empty, defaults, fonts);
-        flow.Paragraph(builder => builder.Runs(new[] { mark }), style: style);
+        flow.Paragraph(builder => builder.AddRuns(new[] { mark }), style: style);
         return true;
     }
 

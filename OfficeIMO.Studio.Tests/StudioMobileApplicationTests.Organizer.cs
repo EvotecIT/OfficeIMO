@@ -14,7 +14,7 @@ public sealed partial class StudioMobileApplicationTests {
         string source = Path.Combine(root, "three-pages.pdf");
         PdfDocument.Create(pdf => {
             for (int page = 1; page <= 3; page++)
-                pdf.Page(item => item.Content(content => content.Text($"Page {page}")));
+                pdf.Page(item => item.Content(content => content.AddParagraph($"Page {page}")));
         }).Save(source);
         try {
             using var session = TestAppBuilder.StartSession();

@@ -62,7 +62,7 @@ namespace OfficeIMO.Word.Pdf {
                 ResetSpacingCollapse();
             }
 
-            public void Paragraph(Action<PdfCore.PdfParagraphBuilder> build, global::OfficeIMO.OfficeAlignment align = global::OfficeIMO.OfficeAlignment.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null) {
+            public void Paragraph(Action<PdfCore.PdfParagraph> build, global::OfficeIMO.OfficeAlignment align = global::OfficeIMO.OfficeAlignment.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null) {
                 PdfCore.PdfParagraphStyle? collapsedStyle = style;
                 if (style != null) {
                     collapsedStyle = style.Clone();
@@ -84,7 +84,7 @@ namespace OfficeIMO.Word.Pdf {
                 _pendingSpacingAfter = (style?.SpacingAfter.ToPoints());
             }
 
-            public void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, global::OfficeIMO.OfficeAlignment align = global::OfficeIMO.OfficeAlignment.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null) {
+            public void PanelParagraph(Action<PdfCore.PdfParagraph> build, PdfCore.PdfPanelStyle? style = null, global::OfficeIMO.OfficeAlignment align = global::OfficeIMO.OfficeAlignment.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null) {
                 PdfCore.PdfPanelStyle? collapsedStyle = style;
                 if (style != null) {
                     collapsedStyle = style.Clone();
@@ -95,7 +95,7 @@ namespace OfficeIMO.Word.Pdf {
                 _pendingSpacingAfter = paragraphStyle?.SpacingAfter?.ToPoints() ?? (style?.SpacingAfter.ToPoints());
             }
 
-            public void Heading(int level, string text, Action<PdfCore.PdfParagraphBuilder> build, global::OfficeIMO.OfficeAlignment align, global::OfficeIMO.OfficeColor? color, PdfCore.PdfHeadingStyle? style) {
+            public void Heading(int level, string text, Action<PdfCore.PdfParagraph> build, global::OfficeIMO.OfficeAlignment align, global::OfficeIMO.OfficeColor? color, PdfCore.PdfHeadingStyle? style) {
                 PdfCore.PdfHeadingStyle? collapsedStyle = style;
                 if (style != null) {
                     collapsedStyle = style.Clone();

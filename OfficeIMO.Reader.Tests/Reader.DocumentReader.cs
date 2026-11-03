@@ -1102,7 +1102,7 @@ public sealed class ReaderDocumentReaderTests {
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             });
             pdf.H1("PDF Title");
-            pdf.Paragraph(p => p.Text("This is a PDF body."));
+            pdf.Paragraph(p => p.AddText("This is a PDF body."));
             pdf.Save(path);
 
             var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path).ToList();

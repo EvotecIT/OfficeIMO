@@ -32,7 +32,7 @@ public class PdfAnalysisScalingBenchmarks {
                     content.PageBreak();
                 }
 
-                content.Paragraph(paragraph => paragraph.Text("Page " + page + " preflight content."));
+                content.AddParagraph(paragraph => paragraph.AddText("Page " + page + " preflight content."));
             }
         }), options).Meta(title: "Preflight scaling");
 

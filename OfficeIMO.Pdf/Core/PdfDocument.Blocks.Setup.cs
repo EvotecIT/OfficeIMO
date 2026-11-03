@@ -20,18 +20,24 @@ public sealed partial class PdfDocument {
         }
     }
 
-    /// <summary>Adds a heading with its authored hierarchy level, from 1 through 9.</summary>
-    internal PdfDocument Heading(int level, string text, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
+    /// <summary>Appends a heading at an authored level from 1 through 9 and adds it to the outline.</summary>
+    /// <remarks>Levels 7 through 9 retain their outline depth and use custom tagged roles mapped to H6.</remarks>
+    public PdfHeading AddHeading(string text, int level = 1, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
         AddBlock(new HeadingBlock(level, text, align, color, linkUri, style, linkContents, linkDestinationName));
+        return new PdfHeading(text, level);
+    }
+
+    internal PdfDocument Heading(int level, string text, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
+        AddHeading(text, level, align, color, linkUri, style, linkContents, linkDestinationName);
         return this;
     }
 
     // Adapters retain their run formatting without putting note markers in the outline title.
-    internal PdfDocument Heading(int level, string title, System.Action<PdfParagraphBuilder> build, OfficeAlignment align, global::OfficeIMO.OfficeColor? color, PdfHeadingStyle? style) {
+    internal PdfDocument Heading(int level, string title, System.Action<PdfParagraph> build, OfficeAlignment align, global::OfficeIMO.OfficeColor? color, PdfHeadingStyle? style) {
         Guard.NotNull(build, nameof(build));
-        var builder = new PdfParagraphBuilder(align, color);
-        build(builder);
-        AddBlock(new HeadingBlock(level, title, align, color, style: style, runs: builder.Build().Runs));
+        var paragraph = new PdfParagraph(align, color, this);
+        build(paragraph);
+        AddBlock(new HeadingBlock(level, title, align, color, style: style, runs: paragraph.Runs));
         return this;
     }
 
@@ -57,7 +63,7 @@ public sealed partial class PdfDocument {
         OfficeTheme theme = _options.EffectiveTheme;
         OfficeColor resolved = color ?? theme.Palette.Accent1;
         double size = theme.TypeScale.Heading3.ToPoints();
-        return Paragraph(p => p.Color(resolved).FontSize(OfficeLength.Points(size)).Text(text), align, resolved, new PdfParagraphStyle {
+        return Paragraph(p => p.AddText(text).SetColor(resolved).SetFontSize(OfficeLength.Points(size)), align, resolved, new PdfParagraphStyle {
             SpacingAfter = theme.Spacing.ParagraphAfter * 1.5D,
             KeepWithNext = true
         });

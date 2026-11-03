@@ -25,15 +25,15 @@ namespace OfficeIMO.Examples.Pdf {
                         page.DefaultParagraphStyle(new PdfParagraphStyle { LineHeight = 1.18, SpacingAfter = global::OfficeIMO.OfficeLength.Points(5) });
                         page.Content(content => {
                             content.Item(item => item.H1("Quarterly operations dashboard", OfficeAlignment.Left));
-                            content.Item(item => item.Paragraph(p => p.Text("Service levels, resolved volume and the decisions needed for Q4."), style: new PdfParagraphStyle { SpacingAfter = OfficeLength.Points(10) }));
+                            content.Item(item => item.AddParagraph(p => p.AddText("Service levels, resolved volume and the decisions needed for Q4."), style: new PdfParagraphStyle { SpacingAfter = OfficeLength.Points(10) }));
 
                             // Four KPI panels share the row width.
                             content.Row(row => {
                                 row.Gap(global::OfficeIMO.OfficeLength.Points(14))
-                                    .PercentColumn(25, column => column.PanelParagraph(p => p.FontSize(global::OfficeIMO.OfficeLength.Points(22)).Bold("94.2%").FontSize(global::OfficeIMO.OfficeLength.Points(9.5)).Text("\nSLA attainment (target 92%)"), MetricPanel(global::OfficeIMO.OfficeColor.FromRgb(236, 253, 245), global::OfficeIMO.OfficeColor.FromRgb(22, 163, 74)), OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52)))
-                                    .PercentColumn(25, column => column.PanelParagraph(p => p.FontSize(global::OfficeIMO.OfficeLength.Points(22)).Bold("1.8 h").FontSize(global::OfficeIMO.OfficeLength.Points(9.5)).Text("\nMean first response"), MetricPanel(global::OfficeIMO.OfficeColor.FromRgb(239, 246, 255), global::OfficeIMO.OfficeColor.FromRgb(37, 99, 235)), OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175)))
-                                    .PercentColumn(25, column => column.PanelParagraph(p => p.FontSize(global::OfficeIMO.OfficeLength.Points(22)).Bold("37").FontSize(global::OfficeIMO.OfficeLength.Points(9.5)).Text("\nOpen escalations"), MetricPanel(global::OfficeIMO.OfficeColor.FromRgb(255, 251, 235), global::OfficeIMO.OfficeColor.FromRgb(217, 119, 6)), OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(146, 64, 14)))
-                                    .PercentColumn(25, column => column.PanelParagraph(p => p.FontSize(global::OfficeIMO.OfficeLength.Points(22)).Bold("0").FontSize(global::OfficeIMO.OfficeLength.Points(9.5)).Text("\nCritical blockers"), MetricPanel(global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252), global::OfficeIMO.OfficeColor.FromRgb(100, 116, 139)), OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(51, 65, 85)));
+                                    .PercentColumn(25, column => column.AddPanelParagraph(p => { p.AddText("94.2%").SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(22)); p.AddText("\nSLA attainment (target 92%)").SetFontSize(global::OfficeIMO.OfficeLength.Points(9.5)); }, MetricPanel(global::OfficeIMO.OfficeColor.FromRgb(236, 253, 245), global::OfficeIMO.OfficeColor.FromRgb(22, 163, 74)), OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52)))
+                                    .PercentColumn(25, column => column.AddPanelParagraph(p => { p.AddText("1.8 h").SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(22)); p.AddText("\nMean first response").SetFontSize(global::OfficeIMO.OfficeLength.Points(9.5)); }, MetricPanel(global::OfficeIMO.OfficeColor.FromRgb(239, 246, 255), global::OfficeIMO.OfficeColor.FromRgb(37, 99, 235)), OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175)))
+                                    .PercentColumn(25, column => column.AddPanelParagraph(p => { p.AddText("37").SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(22)); p.AddText("\nOpen escalations").SetFontSize(global::OfficeIMO.OfficeLength.Points(9.5)); }, MetricPanel(global::OfficeIMO.OfficeColor.FromRgb(255, 251, 235), global::OfficeIMO.OfficeColor.FromRgb(217, 119, 6)), OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(146, 64, 14)))
+                                    .PercentColumn(25, column => column.AddPanelParagraph(p => { p.AddText("0").SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(22)); p.AddText("\nCritical blockers").SetFontSize(global::OfficeIMO.OfficeLength.Points(9.5)); }, MetricPanel(global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252), global::OfficeIMO.OfficeColor.FromRgb(100, 116, 139)), OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(51, 65, 85)));
                             });
 
                             content.Spacer(global::OfficeIMO.OfficeLength.Points(12));
@@ -42,14 +42,14 @@ namespace OfficeIMO.Examples.Pdf {
                             content.Row(row => {
                                 row.Gap(global::OfficeIMO.OfficeLength.Points(18))
                                     .PercentColumn(58, column => {
-                                        column.Paragraph(p => p.Bold("Tickets resolved per month"), style: SectionLabel());
+                                        column.AddParagraph(p => p.AddText("Tickets resolved per month").SetBold(), style: SectionLabel());
                                         column.Drawing(CreateTrendDrawing(), OfficeAlignment.Left, spacingBefore: global::OfficeIMO.OfficeLength.Points(2), spacingAfter: global::OfficeIMO.OfficeLength.Points(8));
-                                        column.Table(CreateServiceRows(), style: ServiceTableStyle());
+                                        column.AddTable(CreateServiceRows(), style: ServiceTableStyle());
                                     })
                                     .PercentColumn(42, column => {
-                                        column.Paragraph(p => p.Bold("Summary"), style: SectionLabel());
-                                        column.PanelParagraph(
-                                            p => p.Text("SLA attainment finished above the 92% target in all three months while resolved volume grew 15%. Integrations is the only service line below target, and its response time is the main driver."),
+                                        column.AddParagraph(p => p.AddText("Summary").SetBold(), style: SectionLabel());
+                                        column.AddPanelParagraph(
+                                            p => p.AddText("SLA attainment finished above the 92% target in all three months while resolved volume grew 15%. Integrations is the only service line below target, and its response time is the main driver."),
                                             new PdfPanelStyle {
                                                 Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                                                 BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225),
@@ -57,13 +57,13 @@ namespace OfficeIMO.Examples.Pdf {
                                                 PaddingX = global::OfficeIMO.OfficeLength.Points(10),
                                                 PaddingY = global::OfficeIMO.OfficeLength.Points(8)
                                             });
-                                        column.Bullets(new[] {
+                                        column.AddList(new[] {
                                             "Resolved tickets: 2,617, up from 2,274 last quarter.",
                                             "Security and Billing answer in about an hour.",
                                             "Integrations answers in 3.1 h against a 2 h goal.",
                                             "No critical blockers are open at quarter end."
                                         }, style: new PdfListStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(4), ItemSpacing = global::OfficeIMO.OfficeLength.Points(2) });
-                                        column.Table(CreateDecisionRows(), style: DecisionTableStyle());
+                                        column.AddTable(CreateDecisionRows(), style: DecisionTableStyle());
                                     });
                             });
                         });

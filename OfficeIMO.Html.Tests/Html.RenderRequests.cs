@@ -32,7 +32,7 @@ public sealed class HtmlRenderRequestTests {
 
         using OfficeIMO.Pdf.PdfDocument changed = HtmlConversionDocument.Parse("<p>Body</p>").ToPdf();
         changed.Meta(title: "Changed after conversion");
-        changed.Compose(compose => compose.Page(page => page.Content(content => content.Paragraph(text => text.Text("Added")))));
+        changed.Compose(compose => compose.Page(page => page.Content(content => content.AddParagraph(text => text.AddText("Added")))));
 
         OfficeIMO.Pdf.PdfDocument saved = OfficeIMO.Pdf.PdfDocument.Load(new MemoryStream(changed.ToBytes()));
         Assert.Equal("Changed after conversion", saved.Inspect().Metadata.Title);

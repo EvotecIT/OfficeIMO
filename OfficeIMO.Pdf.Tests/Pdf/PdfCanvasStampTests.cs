@@ -7,7 +7,7 @@ public class PdfCanvasStampTests {
     [Fact]
     public void ContentStampsGeneralVisualCanvasWithPageContext() {
         byte[] target = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Existing page body"))
+            .Paragraph(paragraph => paragraph.AddText("Existing page body"))
             .ToBytes();
         int callbackCount = 0;
 
@@ -55,11 +55,11 @@ public class PdfCanvasStampTests {
     [Fact]
     public void ContentStampsManyPagesWithPageSpecificCanvasContent() {
         byte[] target = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Body one"))
+            .Paragraph(paragraph => paragraph.AddText("Body one"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Body two"))
+            .Paragraph(paragraph => paragraph.AddText("Body two"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Body three"))
+            .Paragraph(paragraph => paragraph.AddText("Body three"))
             .ToBytes();
         int callbackCount = 0;
 
@@ -81,7 +81,7 @@ public class PdfCanvasStampTests {
     [Fact]
     public void ContentPreservesRepeatedPageSelectorLayersInOneRewrite() {
         byte[] target = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Existing body"))
+            .Paragraph(paragraph => paragraph.AddText("Existing body"))
             .ToBytes();
         int callbackCount = 0;
 
@@ -103,7 +103,7 @@ public class PdfCanvasStampTests {
 
     [Fact]
     public void ContentRejectsInteractiveAnnotationsBecauseItIsVisualOnly() {
-        PdfDocument target = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Existing page"));
+        PdfDocument target = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Existing page"));
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
             target.Stamp.Content(canvas => canvas.Clip(global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), nested =>
@@ -114,7 +114,7 @@ public class PdfCanvasStampTests {
 
     [Fact]
     public void ContentRejectsInteractiveMetadataThatWouldNotSurviveVisualImport() {
-        PdfDocument target = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Existing page"));
+        PdfDocument target = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Existing page"));
 
         NotSupportedException linkException = Assert.Throws<NotSupportedException>(() =>
             target.Stamp.Content(canvas => canvas.Text(
@@ -137,7 +137,7 @@ public class PdfCanvasStampTests {
 
     [Fact]
     public void ContentRejectsTaggedStructureThatVisualImportCannotPreserve() {
-        PdfDocument target = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Existing page"));
+        PdfDocument target = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Existing page"));
         var taggedOptions = new PdfCanvasStampOptions().UseRenderingOptions(
             new PdfCreateOptions().SetTaggedStructureMode(PdfTaggedStructureMode.CatalogMarkers));
 
@@ -166,7 +166,7 @@ public class PdfCanvasStampTests {
         };
         var stampOptions = new PdfCanvasStampOptions().UseRenderingOptions(renderingOptions);
         PdfDocument target = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Existing body"));
+            .Paragraph(paragraph => paragraph.AddText("Existing body"));
 
         PdfDocument stamped = target.Stamp.Content(
             canvas => canvas.Text("Callback content", global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(30D)),
@@ -181,7 +181,7 @@ public class PdfCanvasStampTests {
 
     [Fact]
     public void OverlayPageReadsEncryptedSourceWithItsOwnPasswordPolicy() {
-        byte[] target = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Target page")).ToBytes();
+        byte[] target = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Target page")).ToBytes();
         byte[] source = CreateRestrictedPdf("source-open", "source-owner", "Encrypted overlay source");
         var overlayOptions = new PdfPageOverlayOptions {
             SourceReadOptions = new PdfLoadOptions {
@@ -210,7 +210,7 @@ public class PdfCanvasStampTests {
         var stampOptions = new PdfCanvasStampOptions()
             .UseRenderingOptions(renderingOptions);
         byte[] target = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Existing body"))
+            .Paragraph(paragraph => paragraph.AddText("Existing body"))
             .ToBytes();
 
         PdfDocument stamped = PdfDocument.Load(target).Stamp.Content(
@@ -235,7 +235,7 @@ public class PdfCanvasStampTests {
             AllowedPermissions = PdfStandardPermissions.None
         };
         return PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
-            .Paragraph(paragraph => paragraph.Text(text))
+            .Paragraph(paragraph => paragraph.AddText(text))
             .ToBytes();
     }
 }

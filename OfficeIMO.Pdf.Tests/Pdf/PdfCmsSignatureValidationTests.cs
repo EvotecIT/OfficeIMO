@@ -198,7 +198,7 @@ public class PdfCmsSignatureValidationTests {
     public void ExternalSignerContractCompletesAndValidatesApprovalSignature() {
         using X509Certificate2 certificate = CreateSigningCertificate();
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("External signer callback source"))
+            .Paragraph(paragraph => paragraph.AddText("External signer callback source"))
             .ToBytes();
         using var signer = new PdfCmsExternalSigner(
             OfficeSecurityProvider.Default,
@@ -288,7 +288,7 @@ public class PdfCmsSignatureValidationTests {
 
     private static PdfExternalSignaturePreparation CreateSigningPreparation() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("CMS validation source"))
+            .Paragraph(paragraph => paragraph.AddText("CMS validation source"))
             .ToBytes();
         return PdfIncrementalUpdater.PrepareExternalSignature(
             source,

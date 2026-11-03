@@ -17,7 +17,7 @@ public partial class PdfDocumentReadResultTests {
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .H1("Logical Heading")
-            .Paragraph(p => p.Text("Logical readback marker."))
+            .Paragraph(p => p.AddText("Logical readback marker."))
             .Bullets(new[] { "Detected logical bullet" })
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
@@ -141,7 +141,7 @@ public partial class PdfDocumentReadResultTests {
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .H1("Revenue Readback Diagnostics")
-            .Paragraph(paragraph => paragraph.Text("Image geometry and table confidence marker."))
+            .Paragraph(paragraph => paragraph.AddText("Image geometry and table confidence marker."))
             .Table(new[] {
                 new[] { "Metric", "Score", "Owner" },
                 new[] { "Renewal quality", "97", "Finance" },
@@ -410,8 +410,8 @@ public partial class PdfDocumentReadResultTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("# Literal heading marker"))
-            .Paragraph(p => p.Text("[not a link](https://example.test)"))
+            .Paragraph(p => p.AddText("# Literal heading marker"))
+            .Paragraph(p => p.AddText("[not a link](https://example.test)"))
             .ToBytes();
 
         string markdown = PdfDocumentReadResult.Load(pdf, new PdfTextLayoutOptions {
@@ -436,8 +436,8 @@ public partial class PdfDocumentReadResultTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("Chapter One ........ 3"));
-        if (includeSecondRow) document.Paragraph(p => p.Text("Chapter Two ........ 5"));
+            .Paragraph(p => p.AddText("Chapter One ........ 3"));
+        if (includeSecondRow) document.Paragraph(p => p.AddText("Chapter Two ........ 5"));
 
         string markdown = PdfDocumentReadResult.Load(document.ToBytes(), new PdfTextLayoutOptions {
             ForceSingleColumn = true

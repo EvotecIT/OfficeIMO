@@ -254,7 +254,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         PdfCreateOptions clone = options.Clone();
         byte[] bytes = PdfDocument.Create(options)
-            .PanelParagraph(p => p.Text("PanelSideBorders"))
+            .PanelParagraph(p => p.AddText("PanelSideBorders"))
             .ToBytes();
 
         string raw = PdfTestContentText.ReadDecoded(bytes);

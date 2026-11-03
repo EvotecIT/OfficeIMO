@@ -1318,7 +1318,7 @@ namespace OfficeIMO.Tests {
             var runs = Assert.IsAssignableFrom<IReadOnlyList<PdfTextRun>>(method.Invoke(null, new object?[] { paragraph, null }));
             PdfTextRun run = Assert.Single(runs);
 
-            Assert.Equal(PdfStandardFont.TimesRoman, run.Font);
+            Assert.Equal(PdfStandardFont.TimesRoman, run.StandardFont);
         }
 
         [Fact]

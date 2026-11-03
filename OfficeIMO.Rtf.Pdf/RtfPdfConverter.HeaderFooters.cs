@@ -77,7 +77,7 @@ internal static partial class RtfPdfConverter {
                     AppendParagraphRuns(document, paragraph, runs, options, runningState, collectNotes: false,
                         context: PdfInlineProjectionContext.RunningStory);
                     EnsureParagraphLineBoxStrut(document, paragraph, runs, runningState);
-                    pdf.Paragraph(builder => builder.Runs(runs),
+                    pdf.Paragraph(builder => builder.AddRuns(runs),
                         RtfPdfMapping.ToPdfAlign(document.GetParagraphFormatting(paragraph).Alignment),
                         style: RtfPdfMapping.ToPdfParagraphStyle(document, paragraph, runs, pageOptions));
                 }

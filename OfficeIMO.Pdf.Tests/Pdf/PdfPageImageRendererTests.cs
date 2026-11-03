@@ -180,8 +180,8 @@ public partial class PdfPageImageRendererTests {
     [Fact]
     public void RenderPage_ProjectsGeneratedPdfContentToSharedDrawingAndImages() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(p => p.Text("Managed raster page"))
-            .Image(PdfPngTestImages.CreateRgbPng(255, 0, 0), 24, 18, alternativeText: "Proof pixel")
+            .Paragraph(p => p.AddText("Managed raster page"))
+            .Image(PdfPngTestImages.CreateRgbPng(255, 0, 0), 24, 18, altText: "Proof pixel")
             .ToBytes();
 
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
@@ -4925,7 +4925,7 @@ public partial class PdfPageImageRendererTests {
 
     [Fact]
     public void RenderPage_RejectsInvalidInputs() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("Page one")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("Page one")).ToBytes();
 
         Assert.Throws<ArgumentNullException>(() => PdfPageImageRenderer.RenderPage((byte[])null!));
         Assert.Throws<ArgumentNullException>(() => PdfPageImageRenderer.RenderPage((Stream)null!));

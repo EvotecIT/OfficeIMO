@@ -7,7 +7,7 @@ public class PdfPageCropTranslateTests {
     [Fact]
     public void CropAndTranslate_ClipsContentAndTranslatesAnnotationGeometry() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Crop translation keeps source content"))
+            .Paragraph(paragraph => paragraph.AddText("Crop translation keeps source content"))
             .ToBytes();
         source = PdfAnnotationEditor.AddStampAnnotation(
             source,
@@ -52,7 +52,7 @@ public class PdfPageCropTranslateTests {
     [Fact]
     public void CropAndTranslate_RejectsRectanglesOutsideTheMediaBox() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Invalid crop"))
+            .Paragraph(paragraph => paragraph.AddText("Invalid crop"))
             .ToBytes();
 
         ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>

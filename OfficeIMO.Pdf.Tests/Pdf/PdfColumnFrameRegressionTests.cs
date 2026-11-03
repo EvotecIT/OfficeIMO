@@ -18,12 +18,12 @@ public sealed class PdfColumnFrameRegressionTests {
         var line = new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),
             SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false };
         var document = PdfDocument.Create(options).Columns(content => {
-            content.Paragraph(p => p.Text("Lead"), style: line).Spacer(global::OfficeIMO.OfficeLength.Points(378));
-            content.Panel(panel => panel.Image(image, global::OfficeIMO.OfficeLength.Points(332), global::OfficeIMO.OfficeLength.Points(400), style: imageStyle)
-                .Image(image, global::OfficeIMO.OfficeLength.Points(332), global::OfficeIMO.OfficeLength.Points(400), style: imageStyle),
+            content.AddParagraph(p => p.AddText("Lead"), style: line).Spacer(global::OfficeIMO.OfficeLength.Points(378));
+            content.Panel(panel => panel.AddImage(image, global::OfficeIMO.OfficeLength.Points(332), global::OfficeIMO.OfficeLength.Points(400), style: imageStyle)
+                .AddImage(image, global::OfficeIMO.OfficeLength.Points(332), global::OfficeIMO.OfficeLength.Points(400), style: imageStyle),
                 new PdfPanelStyle { PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(0), BorderWidth = global::OfficeIMO.OfficeLength.Points(0),
                     SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), KeepTogether = true, KeepWithNext = true });
-            content.Paragraph(p => p.Text("Caption"), style: line);
+            content.AddParagraph(p => p.AddText("Caption"), style: line);
         }, columns);
         byte[] bytes = document.ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
@@ -74,7 +74,7 @@ public sealed class PdfColumnFrameRegressionTests {
         var options = Options(); options.MaxGeneratedPages = 2;
         byte[] bytes = PdfDocument.Create(options).Columns(content => {
             content.Spacer(global::OfficeIMO.OfficeLength.Points(650));
-            content.Paragraph(p => p.Text("AfterSpacer"), style: Paragraph());
+            content.AddParagraph(p => p.AddText("AfterSpacer"), style: Paragraph());
         }, new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = false }).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         var word = Assert.Single(pdf.GetPage(pdf.NumberOfPages).GetWords());
@@ -96,8 +96,8 @@ public sealed class PdfColumnFrameRegressionTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Columns_ImageUsesFullPhysicalContinuationCapacityAfterAPrelude(bool scaleDown) {
-        byte[] bytes = PdfDocument.Create(Options()).Paragraph(p => p.Text(Lines("Prelude", 9)), style: Paragraph())
-            .Columns(content => content.Image(PdfPngTestImages.CreateRgbPng(255, 0, 0), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(120),
+        byte[] bytes = PdfDocument.Create(Options()).Paragraph(p => p.AddText(Lines("Prelude", 9)), style: Paragraph())
+            .Columns(content => content.AddImage(PdfPngTestImages.CreateRgbPng(255, 0, 0), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(120),
                 style: new PdfImageStyle { ScaleDownToFit = scaleDown, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }),
                 new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = false }).ToBytes();
         var image = Assert.Single(PdfDocument.Load(bytes).Images.Placements());
@@ -107,7 +107,7 @@ public sealed class PdfColumnFrameRegressionTests {
 
     [Fact]
     public void Columns_FixedFieldSkipsUnusedPartialColumnsUntilItFits() {
-        byte[] bytes = PdfDocument.Create(Options()).Paragraph(p => p.Text(Lines("Prelude", 9)), style: Paragraph())
+        byte[] bytes = PdfDocument.Create(Options()).Paragraph(p => p.AddText(Lines("Prelude", 9)), style: Paragraph())
             .Columns(content => content.TextField("TallField", width: global::OfficeIMO.OfficeLength.Points(100), height: global::OfficeIMO.OfficeLength.Points(120), spacingAfter: global::OfficeIMO.OfficeLength.Points(0)),
                 new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = false }).ToBytes();
         var widget = Assert.Single(PdfInspector.Inspect(bytes).FormFieldsByName["TallField"].Widgets);
@@ -119,7 +119,7 @@ public sealed class PdfColumnFrameRegressionTests {
     public void Columns_ScaledImageRecomputesItsBoxInTheNarrowerContinuation() {
         byte[] bytes = PdfDocument.Create(Options()).Columns(content => {
             content.Spacer(global::OfficeIMO.OfficeLength.Points(240));
-            content.Image(PdfPngTestImages.CreateRgbPng(255, 0, 0), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(80),
+            content.AddImage(PdfPngTestImages.CreateRgbPng(255, 0, 0), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(80),
                 style: new PdfImageStyle { ScaleDownToFit = true, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) });
         }, Unequal()).ToBytes();
         var image = Assert.Single(PdfDocument.Load(bytes).Images.Placements());
@@ -131,7 +131,7 @@ public sealed class PdfColumnFrameRegressionTests {
     [Fact]
     public void Columns_FixedFieldSkipsANarrowContinuationRatherThanOverflowingIt() {
         byte[] bytes = PdfDocument.Create(Options()).Columns(content => {
-            content.Paragraph(p => p.Text("Prelude"), style: Paragraph());
+            content.AddParagraph(p => p.AddText("Prelude"), style: Paragraph());
             content.Spacer(global::OfficeIMO.OfficeLength.Points(220));
             content.TextField("WideField", width: global::OfficeIMO.OfficeLength.Points(200), height: global::OfficeIMO.OfficeLength.Points(80), spacingAfter: global::OfficeIMO.OfficeLength.Points(0));
         }, Unequal()).ToBytes();
@@ -149,9 +149,9 @@ public sealed class PdfColumnFrameRegressionTests {
         var style = Paragraph(); style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(200);
         if (kind == "keep") style.KeepTogether = true;
         byte[] bytes = PdfDocument.Create(Options()).Columns(content => {
-            if (kind == "panel") content.Panel(panel => panel.Paragraph(p => p.Text(Lines("Line", 8)), style: style),
+            if (kind == "panel") content.Panel(panel => panel.AddParagraph(p => p.AddText(Lines("Line", 8)), style: style),
                 new PdfPanelStyle { PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) });
-            else content.Paragraph(p => p.Text(Lines("Line", 8)), style: style);
+            else content.AddParagraph(p => p.AddText(Lines("Line", 8)), style: style);
         }, new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = true, BalanceKeptParagraphLines = true }).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(1, pdf.NumberOfPages);
@@ -166,7 +166,7 @@ public sealed class PdfColumnFrameRegressionTests {
     public void Columns_ContinuedNoWrapTableTextShrinksToTheNewFrame(bool explicitSize) {
         string text = string.Join("\n", Enumerable.Range(1, 20).Select(i => $"LongMarker{i:D2}UnwrappedSuffix"));
         var cell = (explicitSize ? new PdfTableCell(new[] { new PdfTextRun(text, fontSize: global::OfficeIMO.OfficeLength.Points(12)) }) : new PdfTableCell(text)).WithNoWrap();
-        byte[] bytes = PdfDocument.Create(Options()).Columns(content => content.Table(new[] { new[] { cell } },
+        byte[] bytes = PdfDocument.Create(Options()).Columns(content => content.AddTable(new[] { new[] { cell } },
             style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0),
                 FontSize = global::OfficeIMO.OfficeLength.Points(12), LineHeight = 20D / 12D, ShrinkTextToFit = true, MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(4),
                 BorderWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }), Unequal()).ToBytes();
@@ -190,7 +190,7 @@ public sealed class PdfColumnFrameRegressionTests {
         var cell = (paragraphs
             ? new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs) })
             : new PdfTableCell(runs)).WithNoWrap().WithShrinkTextToFit();
-        byte[] bytes = PdfDocument.Create(Options()).Columns(content => content.Table(new[] { new[] { cell } },
+        byte[] bytes = PdfDocument.Create(Options()).Columns(content => content.AddTable(new[] { new[] { cell } },
             style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0),
                 FontSize = global::OfficeIMO.OfficeLength.Points(12), LineHeight = 20D / 12D, ShrinkTextToFit = false, MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(4),
                 BorderWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }), Unequal()).ToBytes();
@@ -220,15 +220,15 @@ public sealed class PdfColumnFrameRegressionTests {
         var kept = Paragraph(); kept.KeepTogether = true;
         var shape = OfficeShape.Rectangle(200, 40); shape.FillColor = OfficeColor.Red;
         var document = PdfDocument.Create(Options());
-        document.Content.Paragraph(p => p.Text(Lines("Prelude", 9)), style: Paragraph());
+        document.Content.AddParagraph(p => p.AddText(Lines("Prelude", 9)), style: Paragraph());
         document.Content.Columns(content => {
-            if (kind == "image") content.Image(PdfPngTestImages.CreateRgbPng(255, 0, 0), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(40),
+            if (kind == "image") content.AddImage(PdfPngTestImages.CreateRgbPng(255, 0, 0), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(40),
                 style: new PdfImageStyle { ScaleDownToFit = false, KeepWithNext = true, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) });
             else if (kind == "shape") content.Shape(shape,
                 style: new PdfDrawingStyle { KeepWithNext = true, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) });
             else content.Drawing(new OfficeDrawing(200, 40).AddShape(shape, 0, 0),
                 style: new PdfDrawingStyle { KeepWithNext = true, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) });
-            content.Paragraph(p => p.Text(string.Join("\n", Enumerable.Repeat("Following words for kept text", 6))), style: kept);
+            content.AddParagraph(p => p.AddText(string.Join("\n", Enumerable.Repeat("Following words for kept text", 6))), style: kept);
         }, new PdfMultiColumnOptions { BalanceLastPage = false, ColumnDefinitions = new[] {
             new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(100)), global::OfficeIMO.OfficeLength.Points(20)), new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(300)))
         }});
@@ -250,15 +250,15 @@ public sealed class PdfColumnFrameRegressionTests {
         var following = Paragraph(); following.KeepTogether = true;
         var document = PdfDocument.Create(Options());
         document.Content.Columns(content => {
-            content.Paragraph(p => p.Text("Preceding"), style: Paragraph());
-            content.Paragraph(p => p.Text("KeptLeader"), style: before);
-            content.Table(new[] { new[] { new PdfTableCell("TableLine1\nTableLine2") } }, style: new PdfTableStyle {
+            content.AddParagraph(p => p.AddText("Preceding"), style: Paragraph());
+            content.AddParagraph(p => p.AddText("KeptLeader"), style: before);
+            content.AddTable(new[] { new[] { new PdfTableCell("TableLine1\nTableLine2") } }, style: new PdfTableStyle {
                 KeepWithNext = true, HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), FontSize = global::OfficeIMO.OfficeLength.Points(12),
                 LineHeight = 20D / 12D, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), BorderWidth = global::OfficeIMO.OfficeLength.Points(0),
                 MinimumBodyRowsOnFirstPage = 0, MinimumBodyRowsOnLastPage = 0
             });
-            content.Paragraph(p => p.Text("Following"), style: Paragraph());
-            content.Paragraph(p => p.Text(Lines("Trailing", 5)), style: following);
+            content.AddParagraph(p => p.AddText("Following"), style: Paragraph());
+            content.AddParagraph(p => p.AddText(Lines("Trailing", 5)), style: following);
         }, new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = true, BalanceTableRowLines = true, BalanceParagraphLines = false });
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(1, pdf.NumberOfPages);

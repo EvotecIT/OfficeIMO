@@ -11,13 +11,10 @@ public class RtfPdfImportTests {
     [Fact]
     public void PdfToRtf_PreservesLogicalRunColorSizeAndFontStyle() {
         byte[] pdf = PdfCore.PdfDocument.Create()
-            .Paragraph(paragraph => paragraph
-                .Color(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0))
-                .FontSize(global::OfficeIMO.OfficeLength.Points(14))
-                .Bold("Bold red")
-                .Color(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255))
-                .FontSize(global::OfficeIMO.OfficeLength.Points(9))
-                .Italic(" italic blue"))
+            .Paragraph(paragraph => {
+                paragraph.AddText("Bold red").SetBold().SetColor(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0)).SetFontSize(global::OfficeIMO.OfficeLength.Points(14));
+                paragraph.AddText(" italic blue").SetItalic().SetColor(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255)).SetFontSize(global::OfficeIMO.OfficeLength.Points(9));
+            })
             .ToBytes();
 
         RtfDocument document = LoadSemanticPdf(pdf).ToRtfDocument();
@@ -48,12 +45,11 @@ public class RtfPdfImportTests {
     [Fact]
     public void PdfToRtf_PreservesStyledListRunsWithoutRepeatingMarker() {
         byte[] pdf = PdfCore.PdfDocument.Create()
-            .Paragraph(paragraph => paragraph
-                .Text("\u2022 ")
-                .Color(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0))
-                .Bold("Bold red")
-                .Color(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255))
-                .Italic(" italic blue"))
+            .Paragraph(paragraph => {
+                paragraph.AddText("\u2022 ");
+                paragraph.AddText("Bold red").SetBold().SetColor(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0));
+                paragraph.AddText(" italic blue").SetItalic().SetColor(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255));
+            })
             .ToBytes();
         PdfCore.PdfDocumentReadResult logical = LoadSemanticPdf(pdf);
         PdfCore.PdfLogicalListItem logicalItem = Assert.Single(logical.ListItems);
@@ -230,10 +226,10 @@ public class RtfPdfImportTests {
             })
             .Meta(title: "PDF Import Title", author: "OfficeIMO", subject: "PDF to RTF", keywords: "pdf,rtf")
             .H1("Clinical Summary")
-            .Paragraph(p => p.Text("This semantic paragraph should become one imported RTF paragraph."))
+            .Paragraph(p => p.AddText("This semantic paragraph should become one imported RTF paragraph."))
             .Bullets(new[] { "First bullet", "Second bullet" })
             .Numbered(new[] { "First numbered", "Second numbered" }, startNumber: 3)
             .PageBreak()
-            .Paragraph(p => p.Text("Second page body."))
+            .Paragraph(p => p.AddText("Second page body."))
             .ToBytes();
 }

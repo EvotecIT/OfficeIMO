@@ -16,10 +16,10 @@ public sealed class PdfWhitespaceFlowTests {
         options.PageWidth = global::OfficeIMO.OfficeLength.Points(300D);
         var document = PdfDocument.Create(options);
         var style = new PdfParagraphStyle { TextWhitespaceMode = PdfTextWhitespaceMode.Preformatted };
-        if (panel) document.Panel(content => content.Paragraph(p => p.Text("ROOT\n    INDENT\n\t\tTABS"), style: style));
-        else document.Paragraph(p => p.Text("ROOT\n    INDENT\n\t\tTABS"), style: style);
+        if (panel) document.Panel(content => content.AddParagraph(p => p.AddText("ROOT\n    INDENT\n\t\tTABS"), style: style));
+        else document.Paragraph(p => p.AddText("ROOT\n    INDENT\n\t\tTABS"), style: style);
         style.TextWhitespaceMode = PdfTextWhitespaceMode.Collapse;
-        document.Paragraph(p => p.Text("X  Y"));
+        document.Paragraph(p => p.AddText("X  Y"));
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         var letters = pdf.GetPage(1).Letters.Where(l => !string.IsNullOrWhiteSpace(l.Value)).ToArray();
         var root = letters.First(l => l.Value == "R");
@@ -46,7 +46,7 @@ public sealed class PdfWhitespaceFlowTests {
         var document = PdfDocument.Create(options);
         if (table) document.Table(new[] { new[] { PdfTableCell.RichTextCell(runs) } },
             style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
-        else document.Paragraph(paragraph => paragraph.Runs(runs));
+        else document.Paragraph(paragraph => paragraph.AddRuns(runs));
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
         Assert.Equal("ALPHABETA", string.Concat(letters.Select(letter => letter.Value)));
@@ -64,7 +64,7 @@ public sealed class PdfWhitespaceFlowTests {
         var runs = new[] { PdfTextRun.Normal("  ALPHA "), PdfTextRun.Normal("  BETA") };
         if (table) document.Table(new[] { new[] { PdfTableCell.RichTextCell(runs) } },
             style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0) });
-        else document.Paragraph(p => p.Runs(runs));
+        else document.Paragraph(p => p.AddRuns(runs));
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         var letters = pdf.GetPage(1).Letters.Where(l => !string.IsNullOrWhiteSpace(l.Value)).ToArray();
         Assert.Equal("ALPHABETA", string.Concat(letters.Select(l => l.Value)));
@@ -77,12 +77,12 @@ public sealed class PdfWhitespaceFlowTests {
     [InlineData(true)]
     public void FlowOverflowDiscardsExcessSpacesWithoutAdditionalBlankLines(bool leading) {
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(PdfTextWhitespaceMode.Preserve))
-            .Paragraph(p => p.Text((leading ? "" : "ALPHA") + new string(' ', 60) + "BETA")).ToBytes());
+            .Paragraph(p => p.AddText((leading ? "" : "ALPHA") + new string(' ', 60) + "BETA")).ToBytes());
         var letters = pdf.GetPage(1).Letters.Where(l => !string.IsNullOrWhiteSpace(l.Value)).ToArray();
         var beta = letters.First(l => l.Value == "B");
         Assert.InRange(Math.Abs(beta.StartBaseLine.X - 20D), 0, .02D);
         using var bare = PdfPigDocument.Open(PdfDocument.Create(Options(PdfTextWhitespaceMode.Preserve))
-            .Paragraph(p => p.Text("BETA")).ToBytes());
+            .Paragraph(p => p.AddText("BETA")).ToBytes());
         double bareBaseline = bare.GetPage(1).Letters.First(l => l.Value == "B").StartBaseLine.Y;
         Assert.InRange(Math.Abs(bareBaseline - beta.StartBaseLine.Y - 14.4D), 0, .02D);
         if (!leading) Assert.InRange(Math.Abs(letters[0].StartBaseLine.Y - beta.StartBaseLine.Y - 14.4D), 0, .02D);
@@ -93,7 +93,7 @@ public sealed class PdfWhitespaceFlowTests {
         PdfCreateOptions options = Options(PdfTextWhitespaceMode.Collapse);
         options.PreserveTextWhitespace = true;
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options)
-            .Paragraph(p => p.Text("ALPHA" + new string(' ', 60) + "BETA")).ToBytes());
+            .Paragraph(p => p.AddText("ALPHA" + new string(' ', 60) + "BETA")).ToBytes());
         var letters = pdf.GetPage(1).Letters.Where(l => !string.IsNullOrWhiteSpace(l.Value)).ToArray();
         Assert.InRange(Math.Abs(letters[0].StartBaseLine.Y - letters[5].StartBaseLine.Y - 43.2D), 0, .02D);
         Assert.InRange(Math.Abs(letters[5].StartBaseLine.X - 28.16D), 0, .02D);
@@ -104,7 +104,7 @@ public sealed class PdfWhitespaceFlowTests {
         PdfCreateOptions options = Options(PdfTextWhitespaceMode.Preserve);
         options.PageWidth = global::OfficeIMO.OfficeLength.Points(220D);
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options).Paragraph(p =>
-            p.Text("ALPHA BETA   GAMMA DELTA EPSILON ZETA"), align: OfficeAlignment.Justify).ToBytes());
+            p.AddText("ALPHA BETA   GAMMA DELTA EPSILON ZETA"), align: OfficeAlignment.Justify).ToBytes());
         var letters = pdf.GetPage(1).Letters.Where(l => !string.IsNullOrWhiteSpace(l.Value)).ToArray();
         var firstLine = letters.Where(l => Math.Abs(l.StartBaseLine.Y - letters[0].StartBaseLine.Y) < .02D).ToArray();
         Assert.Equal("ALPHABETAGAMMADELTA", string.Concat(firstLine.Select(l => l.Value)));
@@ -119,7 +119,7 @@ public sealed class PdfWhitespaceFlowTests {
         PdfCreateOptions options = Options(PdfTextWhitespaceMode.Preserve);
         options.PageHeight = global::OfficeIMO.OfficeLength.Points(82D);
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options).Paragraph(p =>
-            p.Text(string.Join(" ", Enumerable.Repeat("ALPHA   BETA", 12)))).ToBytes());
+            p.AddText(string.Join(" ", Enumerable.Repeat("ALPHA   BETA", 12)))).ToBytes());
         Assert.True(pdf.NumberOfPages > 1);
         foreach (var page in pdf.GetPages()) {
             var letters = page.Letters.Where(l => !string.IsNullOrWhiteSpace(l.Value)).ToArray();
@@ -136,14 +136,14 @@ public sealed class PdfWhitespaceFlowTests {
     [InlineData(true)]
     public void SpacesBeforeInlineVisualKeepTheirAdvanceOrWrapOnce(bool overflow) {
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(PdfTextWhitespaceMode.Preserve))
-            .Paragraph(p => p.Runs(new[] {
+            .Paragraph(p => p.AddRuns(new[] {
                 PdfTextRun.Normal(new string(' ', overflow ? 60 : 2)),
                 PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(8))), PdfTextRun.Normal("BETA")
             })).ToBytes());
         var beta = pdf.GetPage(1).Letters.First(l => l.Value == "B");
         Assert.InRange(Math.Abs(beta.StartBaseLine.X - 30D - (overflow ? 0D : 6.672D)), 0, .02D);
         using var bare = PdfPigDocument.Open(PdfDocument.Create(Options(PdfTextWhitespaceMode.Preserve))
-            .Paragraph(p => p.Text("BETA")).ToBytes());
+            .Paragraph(p => p.AddText("BETA")).ToBytes());
         double bareBaseline = bare.GetPage(1).Letters.First(l => l.Value == "B").StartBaseLine.Y;
         Assert.InRange(Math.Abs(bareBaseline - beta.StartBaseLine.Y - (overflow ? 14.4D : 0D)), 0, .02D);
     }
@@ -185,8 +185,8 @@ public sealed class PdfWhitespaceFlowTests {
     public void AFontOnAnEmptySpaceFragmentDoesNotMoveTheVisibleTextBaseline() {
         PdfCreateOptions options = Options(PdfTextWhitespaceMode.Preserve);
         options.DefaultParagraphStyle = new PdfParagraphStyle();
-        using var plain = PdfPigDocument.Open(PdfDocument.Create(options).Paragraph(p => p.Text("ALPHA BETA")).ToBytes());
-        using var mixed = PdfPigDocument.Open(PdfDocument.Create(options).Paragraph(p => p.Runs(new[] {
+        using var plain = PdfPigDocument.Open(PdfDocument.Create(options).Paragraph(p => p.AddText("ALPHA BETA")).ToBytes());
+        using var mixed = PdfPigDocument.Open(PdfDocument.Create(options).Paragraph(p => p.AddRuns(new[] {
             PdfTextRun.Normal("ALPHA ", fontSize: global::OfficeIMO.OfficeLength.Points(12D)), new PdfTextRun(" ", fontSize: global::OfficeIMO.OfficeLength.Points(20D)),
             PdfTextRun.Normal(" BETA", fontSize: global::OfficeIMO.OfficeLength.Points(12D))
         })).ToBytes());
@@ -214,7 +214,7 @@ public sealed class PdfWhitespaceFlowTests {
     [Fact]
     public void AHighlightedSpaceRunKeepsItsOwnBackgroundBetweenUnhighlightedWords() {
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(PdfTextWhitespaceMode.Preserve)).Paragraph(p =>
-            p.Runs(new[] { PdfTextRun.Normal("ALPHA"), new PdfTextRun("   ", backgroundColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 1D, 0D)),
+            p.AddRuns(new[] { PdfTextRun.Normal("ALPHA"), new PdfTextRun("   ", backgroundColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 1D, 0D)),
                 PdfTextRun.Normal("BETA") })).ToBytes());
         Assert.NotEmpty(pdf.GetPage(1).Paths);
     }
@@ -224,9 +224,9 @@ public sealed class PdfWhitespaceFlowTests {
     [InlineData(OfficeAlignment.Right)]
     public void TrailingFlowSpacesBeforeAHardBreakDoNotShiftAlignment(OfficeAlignment align) {
         using var expected = PdfPigDocument.Open(PdfDocument.Create(Options(PdfTextWhitespaceMode.Preserve))
-            .Paragraph(p => p.Text("ALPHA\nBETA"), align: align).ToBytes());
+            .Paragraph(p => p.AddText("ALPHA\nBETA"), align: align).ToBytes());
         using var actual = PdfPigDocument.Open(PdfDocument.Create(Options(PdfTextWhitespaceMode.Preserve))
-            .Paragraph(p => p.Text("ALPHA   \nBETA"), align: align).ToBytes());
+            .Paragraph(p => p.AddText("ALPHA   \nBETA"), align: align).ToBytes());
         var a = actual.GetPage(1).Letters.Where(l => !string.IsNullOrWhiteSpace(l.Value)).ToArray();
         var b = expected.GetPage(1).Letters.Where(l => !string.IsNullOrWhiteSpace(l.Value)).ToArray();
         Assert.Equal(b.Length, a.Length);
@@ -251,7 +251,7 @@ public sealed class PdfWhitespaceFlowTests {
             PdfTextRun.Normal(" ", fontSize: global::OfficeIMO.OfficeLength.Points(12D)).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(tracking)) };
         if (inline) runs.Add(PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(8D))));
         runs.Add(PdfTextRun.Normal("B", fontSize: global::OfficeIMO.OfficeLength.Points(12D)));
-        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(mode)).Paragraph(p => p.Runs(runs)).ToBytes());
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(mode)).Paragraph(p => p.AddRuns(runs)).ToBytes());
         var letters = pdf.GetPage(1).Letters.Where(l => l.Value is "A" or "B").ToArray();
         Assert.Equal("AB", string.Concat(letters.Select(l => l.Value)));
         Assert.InRange(Math.Abs(letters[1].StartBaseLine.X - letters[0].EndBaseLine.X
@@ -276,7 +276,7 @@ public sealed class PdfWhitespaceFlowTests {
             var runs = new List<PdfTextRun> { PdfTextRun.Normal("A\t" + (space ? " " : "")) };
             if (inline) runs.Add(PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(8D))));
             runs.Add(PdfTextRun.Normal("B"));
-            return PdfDocument.Create(options).Paragraph(p => p.Runs(runs), style: style).ToBytes();
+            return PdfDocument.Create(options).Paragraph(p => p.AddRuns(runs), style: style).ToBytes();
         }
         using var expected = PdfPigDocument.Open(Render(false));
         using var actual = PdfPigDocument.Open(Render(true));
@@ -330,7 +330,7 @@ public sealed class PdfWhitespaceFlowTests {
             var runs = new List<PdfTextRun> { PdfTextRun.Normal("A\t" + (space ? " " : "")) };
             if (inline) runs.Add(PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(8D))));
             runs.Add(PdfTextRun.Normal("B"));
-            return PdfDocument.Create(options).Paragraph(p => p.Runs(runs), style: style).ToBytes();
+            return PdfDocument.Create(options).Paragraph(p => p.AddRuns(runs), style: style).ToBytes();
         }
         using var expected = PdfPigDocument.Open(Render(false));
         using var actual = PdfPigDocument.Open(Render(true));
@@ -370,7 +370,7 @@ public sealed class PdfWhitespaceFlowTests {
         var style = new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0),
             BorderWidth = global::OfficeIMO.OfficeLength.Points(0), RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0), FontSize = global::OfficeIMO.OfficeLength.Points(12D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) };
         PdfDocument document = PdfDocument.Create(options);
-        if (columns) document.Columns(content => content.Table(cells, style: style), new PdfMultiColumnOptions {
+        if (columns) document.Columns(content => content.AddTable(cells, style: style), new PdfMultiColumnOptions {
             BalanceLastPage = false, ColumnDefinitions = new[] {
                 new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(96D)), global::OfficeIMO.OfficeLength.Points(20D)), new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(secondColumnWidth)), global::OfficeIMO.OfficeLength.Points(0D))
             } });

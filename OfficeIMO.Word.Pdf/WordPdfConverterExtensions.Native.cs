@@ -70,10 +70,10 @@ namespace OfficeIMO.Word.Pdf {
             void Bookmark(string name);
             void TableOfContents(PdfCore.PdfTableOfContentsOptions options);
             void HR(double? thickness = null, global::OfficeIMO.OfficeColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null);
-            void Paragraph(Action<PdfCore.PdfParagraphBuilder> build, global::OfficeIMO.OfficeAlignment align = global::OfficeIMO.OfficeAlignment.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null);
+            void Paragraph(Action<PdfCore.PdfParagraph> build, global::OfficeIMO.OfficeAlignment align = global::OfficeIMO.OfficeAlignment.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null);
             void Panel(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfPanelStyle? style = null);
-            void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, global::OfficeIMO.OfficeAlignment align = global::OfficeIMO.OfficeAlignment.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null);
-            void Heading(int level, string text, Action<PdfCore.PdfParagraphBuilder> build, global::OfficeIMO.OfficeAlignment align, global::OfficeIMO.OfficeColor? color, PdfCore.PdfHeadingStyle? style);
+            void PanelParagraph(Action<PdfCore.PdfParagraph> build, PdfCore.PdfPanelStyle? style = null, global::OfficeIMO.OfficeAlignment align = global::OfficeIMO.OfficeAlignment.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null);
+            void Heading(int level, string text, Action<PdfCore.PdfParagraph> build, global::OfficeIMO.OfficeAlignment align, global::OfficeIMO.OfficeColor? color, PdfCore.PdfHeadingStyle? style);
             void RichNumbered(IEnumerable<PdfCore.PdfListItem> items, global::OfficeIMO.OfficeAlignment align, global::OfficeIMO.OfficeColor? color, int startNumber, PdfCore.PdfListStyle? style);
             void RichBullets(IEnumerable<PdfCore.PdfListItem> items, global::OfficeIMO.OfficeAlignment align, global::OfficeIMO.OfficeColor? color, PdfCore.PdfListStyle? style);
             void TextField(string name, double width, double height, string value, global::OfficeIMO.OfficeAlignment align, double fontSize, double spacingBefore, double spacingAfter, PdfCore.PdfFormFieldStyle? style = null);
@@ -111,11 +111,11 @@ namespace OfficeIMO.Word.Pdf {
             public void Bookmark(string name) => _pdf.Bookmark(name);
             public void TableOfContents(PdfCore.PdfTableOfContentsOptions options) => _pdf.TableOfContents(options);
             public void HR(double? thickness = null, global::OfficeIMO.OfficeColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null) => _pdf.HR(thickness, color, spacingBefore, spacingAfter, style);
-            public void Paragraph(Action<PdfCore.PdfParagraphBuilder> build, global::OfficeIMO.OfficeAlignment align = global::OfficeIMO.OfficeAlignment.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null) => _pdf.Paragraph(build, align, defaultColor, style);
+            public void Paragraph(Action<PdfCore.PdfParagraph> build, global::OfficeIMO.OfficeAlignment align = global::OfficeIMO.OfficeAlignment.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null) => _pdf.Paragraph(build, align, defaultColor, style);
             public void Panel(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfPanelStyle? style = null) => _pdf.Panel(build, style);
-            public void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, global::OfficeIMO.OfficeAlignment align = global::OfficeIMO.OfficeAlignment.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null) =>
-                _pdf.Panel(content => content.Paragraph(build, align, defaultColor, CreateNativePanelParagraphStyle(paragraphStyle, style)), style);
-            public void Heading(int level, string text, Action<PdfCore.PdfParagraphBuilder> build, global::OfficeIMO.OfficeAlignment align, global::OfficeIMO.OfficeColor? color, PdfCore.PdfHeadingStyle? style) {
+            public void PanelParagraph(Action<PdfCore.PdfParagraph> build, PdfCore.PdfPanelStyle? style = null, global::OfficeIMO.OfficeAlignment align = global::OfficeIMO.OfficeAlignment.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null) =>
+                _pdf.Panel(content => content.AddParagraph(build, align, defaultColor, CreateNativePanelParagraphStyle(paragraphStyle, style)), style);
+            public void Heading(int level, string text, Action<PdfCore.PdfParagraph> build, global::OfficeIMO.OfficeAlignment align, global::OfficeIMO.OfficeColor? color, PdfCore.PdfHeadingStyle? style) {
                 _pdf.Heading(level, text, build, align, color, style);
             }
             public void RichNumbered(IEnumerable<PdfCore.PdfListItem> items, global::OfficeIMO.OfficeAlignment align, global::OfficeIMO.OfficeColor? color, int startNumber, PdfCore.PdfListStyle? style) => _pdf.RichNumbered(items, align, color, startNumber, style);
@@ -162,15 +162,15 @@ namespace OfficeIMO.Word.Pdf {
             public void Bookmark(string name) => _column.Bookmark(name);
             public void TableOfContents(PdfCore.PdfTableOfContentsOptions options) => _column.TableOfContents(options);
             public void HR(double? thickness = null, global::OfficeIMO.OfficeColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null) => _column.HR(((double?)(thickness) is double physicalLength4 ? global::OfficeIMO.OfficeLength.Points(physicalLength4) : (global::OfficeIMO.OfficeLength?)null), color, ((double?)(spacingBefore) is double physicalLength5 ? global::OfficeIMO.OfficeLength.Points(physicalLength5) : (global::OfficeIMO.OfficeLength?)null), ((double?)(spacingAfter) is double physicalLength6 ? global::OfficeIMO.OfficeLength.Points(physicalLength6) : (global::OfficeIMO.OfficeLength?)null), style);
-            public void Paragraph(Action<PdfCore.PdfParagraphBuilder> build, global::OfficeIMO.OfficeAlignment align = global::OfficeIMO.OfficeAlignment.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null) => _column.Paragraph(build, align, defaultColor, style);
+            public void Paragraph(Action<PdfCore.PdfParagraph> build, global::OfficeIMO.OfficeAlignment align = global::OfficeIMO.OfficeAlignment.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null) => _column.AddParagraph(build, align, defaultColor, style);
             public void Panel(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfPanelStyle? style = null) => _column.Panel(build, style);
-            public void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, global::OfficeIMO.OfficeAlignment align = global::OfficeIMO.OfficeAlignment.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null) =>
-                _column.Panel(content => content.Paragraph(build, align, defaultColor, CreateNativePanelParagraphStyle(paragraphStyle, style)), style);
-            public void Heading(int level, string text, Action<PdfCore.PdfParagraphBuilder> build, global::OfficeIMO.OfficeAlignment align, global::OfficeIMO.OfficeColor? color, PdfCore.PdfHeadingStyle? style) {
+            public void PanelParagraph(Action<PdfCore.PdfParagraph> build, PdfCore.PdfPanelStyle? style = null, global::OfficeIMO.OfficeAlignment align = global::OfficeIMO.OfficeAlignment.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null) =>
+                _column.Panel(content => content.AddParagraph(build, align, defaultColor, CreateNativePanelParagraphStyle(paragraphStyle, style)), style);
+            public void Heading(int level, string text, Action<PdfCore.PdfParagraph> build, global::OfficeIMO.OfficeAlignment align, global::OfficeIMO.OfficeColor? color, PdfCore.PdfHeadingStyle? style) {
                 _column.Heading(level, text, build, align, color, style);
             }
-            public void RichNumbered(IEnumerable<PdfCore.PdfListItem> items, global::OfficeIMO.OfficeAlignment align, global::OfficeIMO.OfficeColor? color, int startNumber, PdfCore.PdfListStyle? style) => _column.RichNumbered(items, align, color, startNumber, style);
-            public void RichBullets(IEnumerable<PdfCore.PdfListItem> items, global::OfficeIMO.OfficeAlignment align, global::OfficeIMO.OfficeColor? color, PdfCore.PdfListStyle? style) => _column.RichBullets(items, align, color, style);
+            public void RichNumbered(IEnumerable<PdfCore.PdfListItem> items, global::OfficeIMO.OfficeAlignment align, global::OfficeIMO.OfficeColor? color, int startNumber, PdfCore.PdfListStyle? style) => _column.AddNumberedList(items, align, color, startNumber, style);
+            public void RichBullets(IEnumerable<PdfCore.PdfListItem> items, global::OfficeIMO.OfficeAlignment align, global::OfficeIMO.OfficeColor? color, PdfCore.PdfListStyle? style) => _column.AddList(items, align, color, style);
             public void TextField(string name, double width, double height, string value, global::OfficeIMO.OfficeAlignment align, double fontSize, double spacingBefore, double spacingAfter, PdfCore.PdfFormFieldStyle? style) => _column.TextField(name, global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), value, align, global::OfficeIMO.OfficeLength.Points(fontSize), global::OfficeIMO.OfficeLength.Points(spacingBefore), global::OfficeIMO.OfficeLength.Points(spacingAfter), style);
             public void ChoiceField(string name, IEnumerable<string> options, string? value, double width, double height, global::OfficeIMO.OfficeAlignment align, double fontSize, double spacingBefore, double spacingAfter, bool isComboBox, PdfCore.PdfFormFieldStyle? style) => _column.ChoiceField(name, options, value, global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), align, global::OfficeIMO.OfficeLength.Points(fontSize), global::OfficeIMO.OfficeLength.Points(spacingBefore), global::OfficeIMO.OfficeLength.Points(spacingAfter), isComboBox, style);
             public void CheckBox(string name, bool isChecked, double size, global::OfficeIMO.OfficeAlignment align, double spacingBefore, double spacingAfter, string checkedValueName, PdfCore.PdfFormFieldStyle? style) => _column.CheckBox(name, isChecked, global::OfficeIMO.OfficeLength.Points(size), align, global::OfficeIMO.OfficeLength.Points(spacingBefore), global::OfficeIMO.OfficeLength.Points(spacingAfter), checkedValueName, style);
@@ -180,8 +180,8 @@ namespace OfficeIMO.Word.Pdf {
                 if (_page == null) _column.Canvas(build);
                 else _page.Canvas(build);
             }
-            public void Table(IEnumerable<PdfCore.PdfTableCell[]> rows, global::OfficeIMO.OfficeAlignment align, PdfCore.PdfTableStyle? style) => _column.Table(rows, align, style);
-            public void Image(byte[] bytes, double width, double height, global::OfficeIMO.OfficeAlignment? align = null, PdfCore.PdfImageStyle? style = null) => _column.Image(bytes, global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), align, style: style ?? CreateNativeImageStyle());
+            public void Table(IEnumerable<PdfCore.PdfTableCell[]> rows, global::OfficeIMO.OfficeAlignment align, PdfCore.PdfTableStyle? style) => _column.AddTable(rows, align, style);
+            public void Image(byte[] bytes, double width, double height, global::OfficeIMO.OfficeAlignment? align = null, PdfCore.PdfImageStyle? style = null) => _column.AddImage(bytes, global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), align, style: style ?? CreateNativeImageStyle());
         }
 
         /// <summary>Preserves text layout inside decorations while the surrounding panel owns paragraph spacing.</summary>

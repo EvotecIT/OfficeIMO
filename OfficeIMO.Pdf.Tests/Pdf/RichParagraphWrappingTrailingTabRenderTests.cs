@@ -21,11 +21,11 @@ public partial class RichParagraphWrappingTests {
         style.AddTabStop(global::OfficeIMO.OfficeLength.Points(leaderStop), leader: PdfTabLeaderStyle.Underscores);
         byte[] bytes = PdfDocument.Create(TrailingTabOptions())
             .Paragraph(p => {
-                p.Tab().Tab();
-                if (trailingSpace) p.Text(" ");
-                if (hardBreak) p.LineBreak().Text("AFTER");
+                p.AddTab(); p.AddTab();
+                if (trailingSpace) p.AddText(" ");
+                if (hardBreak) { p.AddLineBreak(); p.AddText("AFTER"); }
             }, style: style)
-            .Paragraph(p => p.Text("NEXT"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) })
+            .Paragraph(p => p.AddText("NEXT"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) })
             .ToBytes();
 
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
@@ -54,10 +54,10 @@ public partial class RichParagraphWrappingTests {
     [Fact]
     public void ParagraphTabs_PlainTrailingTabsDoNotPaintLeadersOrIndentFollowingContent() {
         byte[] bytes = PdfDocument.Create(TrailingTabOptions())
-            .Paragraph(p => p.Text("BEFORE").Tab().Text(" "), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) })
-            .Paragraph(p => p.Tab().Text(" ").LineBreak().Text("AFTER").Tab().Text(" "),
+            .Paragraph(p => { p.AddText("BEFORE"); p.AddTab(); p.AddText(" "); }, style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) })
+            .Paragraph(p => { p.AddTab(); p.AddText(" "); p.AddLineBreak(); p.AddText("AFTER"); p.AddTab(); p.AddText(" "); },
                 style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) })
-            .Paragraph(p => p.Text("NEXT"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) })
+            .Paragraph(p => p.AddText("NEXT"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) })
             .ToBytes();
 
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
@@ -88,8 +88,8 @@ public partial class RichParagraphWrappingTests {
         PdfCreateOptions options = TrailingTabOptions();
         options.DefaultFont = PdfStandardFont.Courier;
         byte[] bytes = PdfDocument.Create(options).Paragraph(p => {
-            p.Text("A").Tab().Text(" ").Tab();
-            if (followingText) p.Text("B");
+            p.AddText("A"); p.AddTab(); p.AddText(" "); p.AddTab();
+            if (followingText) p.AddText("B");
         }, style: style).ToBytes();
 
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
@@ -130,8 +130,8 @@ public partial class RichParagraphWrappingTests {
             ? PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), background: global::OfficeIMO.OfficeColor.Black))
             : PdfTextRun.Normal("VISIBLE", fontSize: global::OfficeIMO.OfficeLength.Points(20D));
         byte[] bytes = PdfDocument.Create(TrailingTabInkOptions())
-            .Paragraph(p => p.Runs(new[] { PdfTextRun.Normal("\t", fontSize: global::OfficeIMO.OfficeLength.Points(24D)), content }), style: style)
-            .Paragraph(p => p.Text("NEXT"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) })
+            .Paragraph(p => p.AddRuns(new[] { PdfTextRun.Normal("\t", fontSize: global::OfficeIMO.OfficeLength.Points(24D)), content }), style: style)
+            .Paragraph(p => p.AddText("NEXT"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) })
             .ToBytes();
 
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
@@ -166,15 +166,15 @@ public partial class RichParagraphWrappingTests {
         byte[] leaderBytes = PdfDocument.Create(TrailingTabInkOptions())
             .Paragraph(p => {
                 // The effective paragraph stop overrides the run's dotted leader.
-                p.Runs(new[] { new PdfTextRun("\t", fontSize: global::OfficeIMO.OfficeLength.Points(24D), tabLeader: PdfTabLeaderStyle.Dots) });
-                if (trailingSpace) p.Text(" ");
+                p.AddRuns(new[] { new PdfTextRun("\t", fontSize: global::OfficeIMO.OfficeLength.Points(24D), tabLeader: PdfTabLeaderStyle.Dots) });
+                if (trailingSpace) p.AddText(" ");
             }, style: style)
-            .Paragraph(p => p.Text("NEXT"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) })
+            .Paragraph(p => p.AddText("NEXT"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) })
             .ToBytes();
         byte[] referenceBytes = PdfDocument.Create(TrailingTabInkOptions())
-            .Paragraph(p => p.Runs(new[] { PdfTextRun.Normal("___", fontSize: global::OfficeIMO.OfficeLength.Points(24D)) }),
+            .Paragraph(p => p.AddRuns(new[] { PdfTextRun.Normal("___", fontSize: global::OfficeIMO.OfficeLength.Points(24D)) }),
                 style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) })
-            .Paragraph(p => p.Text("NEXT"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) })
+            .Paragraph(p => p.AddText("NEXT"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) })
             .ToBytes();
 
         using var leaderPdf = UglyToad.PdfPig.PdfDocument.Open(leaderBytes);
@@ -204,8 +204,8 @@ public partial class RichParagraphWrappingTests {
             // leader threshold. The selected leader therefore paints no glyphs.
             style.AddTabStop(global::OfficeIMO.OfficeLength.Points(12D), leader: leader);
             return PdfDocument.Create(TrailingTabInkOptions())
-                .Paragraph(p => p.Runs(new[] { new PdfTextRun("\t", fontSize: global::OfficeIMO.OfficeLength.Points(24D), tabLeader: leader) }), style: style)
-                .Paragraph(p => p.Text("NEXT"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) })
+                .Paragraph(p => p.AddRuns(new[] { new PdfTextRun("\t", fontSize: global::OfficeIMO.OfficeLength.Points(24D), tabLeader: leader) }), style: style)
+                .Paragraph(p => p.AddText("NEXT"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) })
                 .ToBytes();
         }
         using var leaderPdf = UglyToad.PdfPig.PdfDocument.Open(Render(PdfTabLeaderStyle.Underscores));
@@ -311,8 +311,8 @@ public partial class RichParagraphWrappingTests {
                 runs.Add(new PdfTextRun("\t", fontSize: global::OfficeIMO.OfficeLength.Points(24D)));
                 if (index + 1 < count) runs.Add(PdfTextRun.Normal("\n", fontSize: global::OfficeIMO.OfficeLength.Points(12D)));
             }
-            return document.Paragraph(p => p.Runs(runs), style: style)
-                .Paragraph(p => p.Text("NEXT"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) })
+            return document.Paragraph(p => p.AddRuns(runs), style: style)
+                .Paragraph(p => p.AddText("NEXT"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) })
                 .ToBytes();
         }
         using var carried = UglyToad.PdfPig.PdfDocument.Open(Render(12, floating: true));
@@ -341,7 +341,7 @@ public partial class RichParagraphWrappingTests {
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family,
             OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(800, -200, 200, 200,
                 Enumerable.Range(32, 95).ToArray())));
-        PdfTextRun source = new PdfTextRun("\t", fontSize: global::OfficeIMO.OfficeLength.Points(24D), font: PdfStandardFont.Helvetica,
+        PdfTextRun source = new PdfTextRun("\t", fontSize: global::OfficeIMO.OfficeLength.Points(24D), standardFont: PdfStandardFont.Helvetica,
             fontFamily: family, baseline: PdfTextBaseline.Superscript,
             tabLeader: PdfTabLeaderStyle.Underscores, tabAlignment: PdfTabAlignment.Right)
             .WithFeatureSettings(OfficeIMO.Drawing.OfficeTextFeatureSettings.Default.With("kern", 0))
@@ -352,7 +352,7 @@ public partial class RichParagraphWrappingTests {
             "BuildTextRunsFromWrappedLines", lines, 0, 1);
         PdfTextRun tab = Assert.Single(restored, run => run.Text == "\t");
         Assert.Equal((source.FontSize?.ToPoints()), (tab.FontSize?.ToPoints()));
-        Assert.Equal(source.Font, tab.Font);
+        Assert.Equal(source.StandardFont, tab.StandardFont);
         Assert.Equal(source.FontFamily, tab.FontFamily);
         Assert.Equal(source.Baseline, tab.Baseline);
         Assert.Equal(source.TabLeader, tab.TabLeader);

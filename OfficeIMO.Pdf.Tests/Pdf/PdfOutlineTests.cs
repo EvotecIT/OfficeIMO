@@ -49,12 +49,12 @@ public class PdfOutlineTests {
                 DefaultFont = PdfStandardFont.Helvetica
             })
             .H1("Executive summary")
-            .Paragraph(p => p.Text("Summary body."))
+            .Paragraph(p => p.AddText("Summary body."))
             .H2("Risk posture")
-            .Paragraph(p => p.Text("Risk body."))
+            .Paragraph(p => p.AddText("Risk body."))
             .PageBreak()
             .H1("Appendix")
-            .Paragraph(p => p.Text("Appendix body."))
+            .Paragraph(p => p.AddText("Appendix body."))
             .ToBytes();
 
         string pdfText = Encoding.ASCII.GetString(bytes);
@@ -141,7 +141,7 @@ public class PdfOutlineTests {
                 DefaultFont = PdfStandardFont.Helvetica
             })
             .H1("Heading")
-            .Paragraph(p => p.Text("Body."))
+            .Paragraph(p => p.AddText("Body."))
             .ToBytes();
 
         string pdfText = Encoding.ASCII.GetString(bytes);

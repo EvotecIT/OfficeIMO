@@ -168,10 +168,10 @@ try {
                 .Semantic(PdfSemanticRole.Article)
                 .Padding(global::OfficeIMO.OfficeLength.Points(6))
                 .Content(article => article
-                    .Paragraph(paragraph => paragraph.Text("Native workflow source"))
+                    .AddParagraph(paragraph => paragraph.AddText("Native workflow source"))
                     .Row(row => row
-                        .FixedColumn(global::OfficeIMO.OfficeLength.Points(36), cell => cell.Text("AOT"))
-                        .RelativeColumn(cell => cell.Text("layout"))))))))
+                        .FixedColumn(global::OfficeIMO.OfficeLength.Points(36), cell => cell.AddParagraph("AOT"))
+                        .RelativeColumn(cell => cell.AddParagraph("layout"))))))))
         .Save(sourcePdf);
 
     PdfTaggedContentInfo? nativeTags = PdfDocument.Load(sourcePdf).Read().TaggedContent;
@@ -199,7 +199,7 @@ try {
     }
 
     string assemblySourcePdf = System.IO.Path.Combine(workflowRoot, "assembly-source.pdf");
-    PdfDocument.Create(compose => compose.Content(content => content.Text("Native assembly source")))
+    PdfDocument.Create(compose => compose.Content(content => content.AddParagraph("Native assembly source")))
         .Save(assemblySourcePdf);
     string assembledPdf = System.IO.Path.Combine(workflowRoot, "assembled.pdf");
     PdfAssemblyResult assembly = await workflowRunner.AssemblePdfAsync(new PdfAssemblyRequest {

@@ -93,7 +93,7 @@ public static partial class MarkdownPdfConverterExtensions {
             double fontSize = heading.Level == 4 ? 13D : 11.5D;
             global::OfficeIMO.OfficeColor headingColor = ResolveManualHeadingColor(visualTheme);
             pdf.Paragraph(builder => {
-                builder.Bold(true).FontSize(global::OfficeIMO.OfficeLength.Points(fontSize));
+                builder.RunDefaults.Bold = true; builder.RunDefaults.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize);
                 AppendInlines(builder, heading.Inlines, CreateInlineStyle(visualTheme, options.Anchors).With(bold: true, color: headingColor, fontSize: fontSize));
             }, style: new PdfCore.PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(8), SpacingAfter = global::OfficeIMO.OfficeLength.Points(4), KeepWithNext = true });
         }
@@ -153,7 +153,7 @@ public static partial class MarkdownPdfConverterExtensions {
             return;
         }
 
-        pdf.Paragraph(builder => builder.Text(text));
+        pdf.Paragraph(builder => builder.AddText(text));
     }
 
     private static void RenderOrderedList(PdfCore.PdfDocument pdf, OrderedListBlock list, MarkdownDocument document, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme) {

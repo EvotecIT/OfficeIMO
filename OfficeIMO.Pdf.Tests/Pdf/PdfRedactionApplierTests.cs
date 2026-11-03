@@ -12,7 +12,7 @@ public partial class PdfRedactionApplierTests {
         const string secret = "Watermark secret";
         byte[] source = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Watermark(secret, fontSize: 36, rotationAngle: 0)
-            .Paragraph(paragraph => paragraph.Text("Public body"))
+            .Paragraph(paragraph => paragraph.AddText("Public body"))
             .ToBytes();
         PdfTextSpan span = Assert.Single(PdfReadDocument.Open(source).Pages[0].GetTextSpans(),
             value => value.Text == secret);
@@ -310,7 +310,7 @@ public partial class PdfRedactionApplierTests {
         string fontPath = Assert.IsType<string>(PdfComplianceTestFonts.FindBundledOpenTypeCffFont());
         byte[] source = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .UseFontFamily("Redaction Embedded", fontPath)
-            .Paragraph(paragraph => paragraph.Text(text))
+            .Paragraph(paragraph => paragraph.AddText(text))
             .ToBytes();
         PdfTextSpan[] spans = PdfReadDocument.Open(source).Pages[0].GetTextSpans().ToArray();
         Assert.Equal(text, string.Concat(spans.Select(span => span.Text)));
@@ -1203,9 +1203,9 @@ public partial class PdfRedactionApplierTests {
         return PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
-            .Paragraph(paragraph => paragraph.Text("Visible before"))
-            .Paragraph(paragraph => paragraph.Text("Secret account 123-45"))
-            .Paragraph(paragraph => paragraph.Text("Visible after"))
+            .Paragraph(paragraph => paragraph.AddText("Visible before"))
+            .Paragraph(paragraph => paragraph.AddText("Secret account 123-45"))
+            .Paragraph(paragraph => paragraph.AddText("Visible after"))
             .ToBytes();
     }
 

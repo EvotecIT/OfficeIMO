@@ -228,7 +228,7 @@ public class PdfParsingModeTests {
 
     [Fact]
     public void CleanDocumentHasEmptyRepairReport() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("Clean parse")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("Clean parse")).ToBytes();
 
         PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict });
 
@@ -238,7 +238,7 @@ public class PdfParsingModeTests {
 
     [Fact]
     public void InvalidStartXrefIsExplicitlyRebuiltOrRejectedByPolicy() {
-        byte[] clean = PdfDocument.Create().Paragraph(p => p.Text("Cross-reference recovery")).ToBytes();
+        byte[] clean = PdfDocument.Create().Paragraph(p => p.AddText("Cross-reference recovery")).ToBytes();
         byte[] damaged = ReplaceLastStartXrefOffset(clean, "1");
 
         PdfReadDocument lenient = PdfReadDocument.Open(damaged, new PdfLoadOptions { ParsingMode = PdfParsingMode.Lenient });
@@ -268,7 +268,7 @@ public class PdfParsingModeTests {
 
     [Fact]
     public void IncorrectPageCountDoesNotHideReachablePagesAndStrictModeRejectsIt() {
-        byte[] clean = PdfDocument.Create().Paragraph(p => p.Text("Page one")).PageBreak().Paragraph(p => p.Text("Page two")).ToBytes();
+        byte[] clean = PdfDocument.Create().Paragraph(p => p.AddText("Page one")).PageBreak().Paragraph(p => p.AddText("Page two")).ToBytes();
         string text = PdfEncoding.Latin1GetString(clean);
         Assert.Contains("/Count 2", text, StringComparison.Ordinal);
         byte[] damaged = PdfEncoding.Latin1GetBytes(text.Replace("/Count 2", "/Count 1"));

@@ -95,9 +95,9 @@ public sealed class PdfTableCellPaginationTests {
             BorderWidth = global::OfficeIMO.OfficeLength.Points(0), RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0) };
         return mode switch {
             "flow" => PdfDocument.Create(options).Table(cells, style: style).ToBytes(),
-            "columns" => PdfDocument.Create(options).Columns(content => content.Table(cells, style: style),
+            "columns" => PdfDocument.Create(options).Columns(content => content.AddTable(cells, style: style),
                 new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = false }).ToBytes(),
-            "row" => PdfDocument.Create(options).Row(row => row.PercentColumn(100, column => column.Table(cells, style: style))).ToBytes(),
+            "row" => PdfDocument.Create(options).Row(row => row.PercentColumn(100, column => column.AddTable(cells, style: style))).ToBytes(),
             _ => throw new ArgumentException(nameof(mode))
         };
     }

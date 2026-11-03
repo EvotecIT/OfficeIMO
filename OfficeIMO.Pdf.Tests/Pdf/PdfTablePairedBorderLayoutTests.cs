@@ -121,10 +121,10 @@ public partial class PdfDocumentVisualQualityTests {
         });
         document.Compose(root => root.Page(page => page.Content(content => {
         switch (surface) {
-            case "flow": content.Table(rows, style: style); break;
-            case "fragment": content.Table(rows, style: style); break;
-            case "row": content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style))); break;
-            case "columns": content.Columns(inner => inner.Table(rows, style: style), new PdfMultiColumnOptions { ColumnCount = 2, BalanceLastPage = false }); break;
+            case "flow": content.AddTable(rows, style: style); break;
+            case "fragment": content.AddTable(rows, style: style); break;
+            case "row": content.Row(row => row.PercentColumn(100, column => column.AddTable(rows, style: style))); break;
+            case "columns": content.Columns(inner => inner.AddTable(rows, style: style), new PdfMultiColumnOptions { ColumnCount = 2, BalanceLastPage = false }); break;
             case "canvas": content.Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(40), style)); break;
             default: throw new ArgumentException("Unknown surface", nameof(surface));
         }

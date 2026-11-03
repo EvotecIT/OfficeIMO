@@ -201,9 +201,9 @@ public sealed class PdfLogicalTableContinuationContractTests {
     [Fact]
     public void TableContinuations_UseOcrVisualBoundsForPageEdgeInference() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("First page"))
+            .Paragraph(paragraph => paragraph.AddText("First page"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second page"))
+            .Paragraph(paragraph => paragraph.AddText("Second page"))
             .ToBytes();
         PdfDocumentReadResult source = PdfDocumentReadResult.Load(pdf);
         PdfLogicalPage firstSource = source.Pages[0];
@@ -411,7 +411,7 @@ public sealed class PdfLogicalTableContinuationContractTests {
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         });
         for (int index = 0; index < 10; index++) {
-            document.Paragraph(paragraph => paragraph.Text("Lead-in line " + index.ToString(CultureInfo.InvariantCulture)));
+            document.Paragraph(paragraph => paragraph.AddText("Lead-in line " + index.ToString(CultureInfo.InvariantCulture)));
         }
         return document
             .Table(new[] {
@@ -458,7 +458,7 @@ public sealed class PdfLogicalTableContinuationContractTests {
             }
         });
         for (int index = 0; index < 7; index++) {
-            document.Paragraph(paragraph => paragraph.Text("Lead line " + index.ToString(CultureInfo.InvariantCulture)));
+            document.Paragraph(paragraph => paragraph.AddText("Lead line " + index.ToString(CultureInfo.InvariantCulture)));
         }
         return document
             .Table(new[] {
@@ -472,7 +472,7 @@ public sealed class PdfLogicalTableContinuationContractTests {
                 CellPaddingY = global::OfficeIMO.OfficeLength.Points(2D)
             })
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Scanned page placeholder."))
+            .Paragraph(paragraph => paragraph.AddText("Scanned page placeholder."))
             .ToBytes();
     }
 

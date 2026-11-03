@@ -175,7 +175,7 @@ internal static partial class RtfPdfConverter {
 
     private static void RenderPlainTextBlock(string text, PdfCore.PdfDocument pdf) {
         if (!string.IsNullOrEmpty(text)) {
-            pdf.Paragraph(paragraph => paragraph.Text(text));
+            pdf.Paragraph(paragraph => paragraph.AddText(text));
         }
     }
 }

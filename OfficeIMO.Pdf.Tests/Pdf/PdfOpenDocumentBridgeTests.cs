@@ -14,7 +14,7 @@ public sealed class PdfOpenDocumentBridgeTests {
     public void PdfToOdt_ReconstructsSemanticTextAndExposesBothStageReports() {
         byte[] source = PdfCore.PdfDocument.Create()
             .H1("Quarterly summary")
-            .Paragraph(paragraph => paragraph.Text("Revenue increased."))
+            .Paragraph(paragraph => paragraph.AddText("Revenue increased."))
             .ToBytes();
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Load(source);
 
@@ -48,7 +48,7 @@ public sealed class PdfOpenDocumentBridgeTests {
     [Fact]
     public void PdfToOds_ReconstructsDetectedTablesAndReportsOmittedPageContentAsLoss() {
         byte[] source = PdfCore.PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Invoice summary"))
+            .Paragraph(paragraph => paragraph.AddText("Invoice summary"))
             .KeyValueTable(new[] {
                 PdfCore.PdfKeyValueRow.Text("InvoiceId", "INV-001"),
                 PdfCore.PdfKeyValueRow.Text("Customer", "Evotec")

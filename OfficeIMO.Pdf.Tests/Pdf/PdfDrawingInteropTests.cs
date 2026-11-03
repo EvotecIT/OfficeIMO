@@ -35,7 +35,7 @@ public class PdfDrawingInteropTests {
         OfficeColor precise = OfficeColor.FromNormalizedRgb(0.12345, 0.23456, 0.34567, alpha: 77);
         var options = new PdfCreateOptions { DefaultTextColor = precise };
         using var document = PdfDocument.Create(options);
-        document.Paragraph(p => p.Text("Precise normalized color"));
+        document.Paragraph(p => p.AddText("Precise normalized color"));
         options.DefaultTextColor = OfficeColor.Red;
 
         byte[] saved = document.ToBytes();
@@ -49,7 +49,7 @@ public class PdfDrawingInteropTests {
     [Fact]
     public void PdfDocument_AcceptsByteRgbOfficeColor() {
         var doc = PdfDocument.Create();
-        doc.Paragraph(p => p.Color(OfficeColor.CornflowerBlue).Text("Drawing color reuse"));
+        doc.Paragraph(p => p.AddText("Drawing color reuse").SetColor(OfficeColor.CornflowerBlue));
 
         byte[] bytes = doc.ToBytes();
 

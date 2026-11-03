@@ -176,10 +176,10 @@ public sealed class ReaderPdfModularTests {
         byte[] pdf = PdfDocument.Create()
             .OpenAction(pageNumber: 1, destinationMode: PdfOpenActionDestinationMode.Fit)
             .H1("Reader PDF page one")
-            .Paragraph(p => p.Text("First page body."))
+            .Paragraph(p => p.AddText("First page body."))
             .PageBreak()
             .H1("Reader PDF page two")
-            .Paragraph(p => p.Text("Second page body."))
+            .Paragraph(p => p.AddText("Second page body."))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
 
@@ -473,7 +473,7 @@ public sealed class ReaderPdfModularTests {
             .OpenAction(pageNumber: 1, destinationMode: PdfOpenActionDestinationMode.Fit)
             .H1("Catalog Root")
             .Bookmark("Details")
-            .Paragraph(p => p.Text("Detail body"))
+            .Paragraph(p => p.AddText("Detail body"))
             .H2("Catalog Child")
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
@@ -529,7 +529,7 @@ public sealed class ReaderPdfModularTests {
     [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_ExposesOutputIntentMetadata() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetSrgbOutputIntent())
-            .Paragraph(p => p.Text("Output intent metadata proof."))
+            .Paragraph(p => p.AddText("Output intent metadata proof."))
             .ToBytes();
 
         OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
@@ -578,7 +578,7 @@ public sealed class ReaderPdfModularTests {
             .TaggedPdfCatalogMarkers()
             .Language("en-US")
             .H1("Reader tagged heading")
-            .Paragraph(p => p.Text("Reader tagged paragraph."))
+            .Paragraph(p => p.AddText("Reader tagged paragraph."))
             .ToBytes();
 
         OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
@@ -701,7 +701,7 @@ public sealed class ReaderPdfModularTests {
                 .SetPdfUaIdentification()
                 .SetElectronicInvoiceMetadata("EN 16931"))
             .Meta(title: "Reader XMP readback", author: "OfficeIMO", subject: "Reader metadata", keywords: "delta, epsilon")
-            .Paragraph(p => p.Text("Reader generated XMP readback."))
+            .Paragraph(p => p.AddText("Reader generated XMP readback."))
             .ToBytes();
 
         OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
@@ -836,11 +836,11 @@ public sealed class ReaderPdfModularTests {
             })
             .H1("First")
             .Bookmark("FirstDest")
-            .Paragraph(p => p.Text("First page body."))
+            .Paragraph(p => p.AddText("First page body."))
             .PageBreak()
             .H1("Second")
             .Bookmark("SecondDest")
-            .Paragraph(p => p.Text("Second page body."))
+            .Paragraph(p => p.AddText("Second page body."))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
 
@@ -868,7 +868,7 @@ public sealed class ReaderPdfModularTests {
     public void DocumentReaderPdf_ReadPdfDocument_FiltersSelectedPageFormMetadata() {
         byte[] pdf = PdfDocument.Create()
             .H1("First")
-            .Paragraph(p => p.Text("First page body."))
+            .Paragraph(p => p.AddText("First page body."))
             .PageBreak()
             .H1("Second")
             .TextField("Second.Only", value: "hidden")
@@ -901,7 +901,7 @@ public sealed class ReaderPdfModularTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("Reader PDF form metadata."))
+            .Paragraph(p => p.AddText("Reader PDF form metadata."))
             .TextField("Contact.Email", value: "info@example.com", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24))
             .ChoiceField("Contact.Country", new[] { "PL", "DE" }, value: "PL", width: 180, height: 24)
             .ToBytes();
@@ -994,7 +994,7 @@ public sealed class ReaderPdfModularTests {
         byte[] pdf = PdfDocument.Create()
             .AttachFile("invoice.xml", invoiceXml, "application/xml", PdfAssociatedFileRelationship.Data, "Structured invoice XML")
             .AttachFile("source.txt", sourceBytes, "text/plain", PdfAssociatedFileRelationship.Source)
-            .Paragraph(p => p.Text("Attachment metadata proof."))
+            .Paragraph(p => p.AddText("Attachment metadata proof."))
             .ToBytes();
 
         OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
@@ -1211,7 +1211,7 @@ public sealed class ReaderPdfModularTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("Reader PDF table marker."))
+            .Paragraph(p => p.AddText("Reader PDF table marker."))
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "A-100", "Alpha", "2" },
@@ -1282,7 +1282,7 @@ public sealed class ReaderPdfModularTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("Reader PDF table marker."))
+            .Paragraph(p => p.AddText("Reader PDF table marker."))
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "A-100", "Alpha", "2" },
@@ -1386,7 +1386,7 @@ public sealed class ReaderPdfModularTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("Reader PDF form marker."))
+            .Paragraph(p => p.AddText("Reader PDF form marker."))
             .TextField("Contact.Email", value: "info@example.com", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24))
             .ChoiceField("Contact.Country", new[] { "PL", "DE" }, value: "PL", width: 180, height: 24)
             .ToBytes();
@@ -1551,8 +1551,8 @@ public sealed class ReaderPdfModularTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("Reader PDF visual marker."))
-            .Image(PdfPngTestImages.CreateRgbPng(3, 2), 48, 32, alternativeText: "Reader visual badge")
+            .Paragraph(p => p.AddText("Reader PDF visual marker."))
+            .Image(PdfPngTestImages.CreateRgbPng(3, 2), 48, 32, altText: "Reader visual badge")
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
 
@@ -1961,7 +1961,7 @@ public sealed class ReaderPdfModularTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("Reader PDF table marker."))
+            .Paragraph(p => p.AddText("Reader PDF table marker."))
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "A-100", "Alpha", "2" },
@@ -2004,7 +2004,7 @@ public sealed class ReaderPdfModularTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("Reader PDF table marker."))
+            .Paragraph(p => p.AddText("Reader PDF table marker."))
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "A-100", "Alpha", "2" },
@@ -2128,7 +2128,7 @@ public sealed class ReaderPdfModularTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text(longText))
+            .Paragraph(p => p.AddText(longText))
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
 
@@ -2354,10 +2354,10 @@ public sealed class ReaderPdfModularTests {
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .H1("Reader PDF page one")
-            .Paragraph(p => p.Text("First page body."))
+            .Paragraph(p => p.AddText("First page body."))
             .PageBreak()
             .H1("Reader PDF page two")
-            .Paragraph(p => p.Text("Second page body."))
+            .Paragraph(p => p.AddText("Second page body."))
             .ToBytes();
     }
 

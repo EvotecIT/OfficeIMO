@@ -80,7 +80,7 @@ public partial class PdfDocumentVisualQualityTests {
             PageWidth = global::OfficeIMO.OfficeLength.Points(320), PageHeight = global::OfficeIMO.OfficeLength.Points(pageHeight), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30), MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
             CompressContentStreams = false
         });
-        document.Compose(root => root.Page(page => page.Content(content => content.TableDeferred(() => rows, batchSize, style: style))));
+        document.Compose(root => root.Page(page => page.Content(content => content.AddDeferredTable(() => rows, batchSize, style: style))));
         return document.ToBytes();
     }
 }

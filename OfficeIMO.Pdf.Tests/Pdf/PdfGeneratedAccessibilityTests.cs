@@ -12,7 +12,7 @@ public sealed class PdfGeneratedAccessibilityTests {
     public void NativeListsDeclareTheirLabelStyleInFlowAndColumns(bool columns) {
         PdfDocument document = PdfDocument.Create(TaggedOptions());
         if (columns) document.Compose(compose => compose.Page(page => page.Content(content => content.Row(row =>
-            row.PercentColumn(100, column => column.Numbered(new[] { "First", "Second" }))))));
+            row.PercentColumn(100, column => column.AddNumberedList(new[] { "First", "Second" }))))));
         else document.Numbered(new[] { "First", "Second" });
 
         PdfRawDocumentView raw = PdfReadDocument.Open(document.ToBytes()).RawStructure();
@@ -28,7 +28,7 @@ public sealed class PdfGeneratedAccessibilityTests {
         PdfDocument document = PdfDocument.Create(TaggedOptions());
         PdfListItem[] items = { new("First", marker: "i."), new("Second", marker: "ii.") };
         if (columns) document.Compose(compose => compose.Page(page => page.Content(content => content.Row(row =>
-            row.PercentColumn(100, column => column.RichNumbered(items))))));
+            row.PercentColumn(100, column => column.AddNumberedList(items))))));
         else document.RichNumbered(items);
 
         PdfRawDocumentView raw = PdfReadDocument.Open(document.ToBytes()).RawStructure();
@@ -122,8 +122,8 @@ public sealed class PdfGeneratedAccessibilityTests {
         PdfCreateOptions options = StrictOptions();
         options.SetOpenAction(pageNumber: 2, destinationTop: 100);
         byte[] bytes = PdfDocument.Create(options).Meta(title: "Opening action")
-            .Paragraph(p => p.Text("First page")).PageBreak()
-            .Paragraph(p => p.Text("Second page")).ToBytes();
+            .Paragraph(p => p.AddText("First page")).PageBreak()
+            .Paragraph(p => p.AddText("Second page")).ToBytes();
 
         PdfRawDocumentView raw = PdfReadDocument.Open(bytes).RawStructure();
         var action = raw.GetObject(raw.CatalogObjectNumber!.Value)!.Value.Entries["OpenAction"];
@@ -153,7 +153,7 @@ public sealed class PdfGeneratedAccessibilityTests {
         byte[] bytes = PdfDocument.Create(options).Meta(title: "Floating target")
             .Table(new[] { new[] { "Floating table" } }, style: style)
             .Bookmark("following")
-            .Paragraph(p => p.Text("Following paragraph").LinkToBookmark("Read again", "following"))
+            .Paragraph(p => { p.AddText("Following paragraph"); p.AddBookmarkLink("Read again", "following"); })
             .ToBytes();
 
         PdfReadDocument read = PdfReadDocument.Open(bytes);
@@ -183,17 +183,17 @@ public sealed class PdfGeneratedAccessibilityTests {
         PdfDocument document = PdfDocument.Create(StrictOptions()).Meta(title: "Non-text destination");
         if (surface == "canvas-image") {
             document.Bookmark("target").Canvas(canvas => canvas.Image(image, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), alternativeText: "Status badge"));
-            document.Paragraph(p => p.Text("Later text ").LinkToBookmark("Return to target", "target"));
+            document.Paragraph(p => { p.AddText("Later text "); p.AddBookmarkLink("Return to target", "target"); });
         } else document.Compose(compose => compose.Page(page => page.Content(content => {
             content.Bookmark("target");
-            if (surface == "column-image") content.Row(row => row.PercentColumn(100, column => column.Image(image, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), alternativeText: "Status badge")));
+            if (surface == "column-image") content.Row(row => row.PercentColumn(100, column => column.AddImage(image, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), altText: "Status badge")));
             else if (surface == "column-field") content.Row(row => row.PercentColumn(100, column => column.TextField("contact", style: fieldStyle)));
-            else if (surface == "flow-image") content.Image(image, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), "Status badge");
+            else if (surface == "flow-image") content.AddImage(image, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), "Status badge");
             else if (surface == "text-field") content.TextField("contact", style: fieldStyle);
             else if (surface == "checkbox") content.CheckBox("contact", style: fieldStyle);
             else if (surface == "choice") content.ChoiceField("contact", new[] { "Email", "Phone" }, style: fieldStyle);
             else content.RadioButtonGroup("contact", new[] { "Email", "Phone" }, style: fieldStyle);
-            content.Paragraph(p => p.Text("Later text ").LinkToBookmark("Return to target", "target"));
+            content.AddParagraph(p => { p.AddText("Later text "); p.AddBookmarkLink("Return to target", "target"); });
         })));
 
         PdfRawDocumentView raw = PdfReadDocument.Open(document.ToBytes()).RawStructure();

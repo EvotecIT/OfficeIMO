@@ -511,7 +511,7 @@ public sealed partial class PdfWorkspaceTests {
         Directory.CreateDirectory(root);
         string source = Path.Combine(root, "certified.pdf");
         byte[] unsigned = PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
-            item.Paragraph(paragraph => paragraph.Text("Certified content")))))).ToBytes();
+            item.AddParagraph(paragraph => paragraph.AddText("Certified content")))))).ToBytes();
         PdfExternalSignaturePreparation preparation = PdfDocument.Load(new System.IO.MemoryStream(unsigned)).Security.PrepareExternalSignature(new PdfExternalSignatureOptions {
             Profile = PdfSignatureProfile.Certification,
             CertificationPermission = PdfCertificationPermissionLevel.FormFillingAnnotationsAndSignatures,
@@ -546,7 +546,7 @@ public sealed partial class PdfWorkspaceTests {
         Directory.CreateDirectory(root);
         string source = Path.Combine(root, "source.pdf");
         PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
-            item.Paragraph(paragraph => paragraph.Text("Keep this marker")))))).Save(source);
+            item.AddParagraph(paragraph => paragraph.AddText("Keep this marker")))))).Save(source);
         var gesture = new PdfEditorGesture(1, 300D, 300D, 340D, 340D, Array.Empty<PdfEditorVisualPoint>());
         var properties = new PdfEditorProperties(string.Empty, "Studio", global::OfficeIMO.OfficeColor.Black, "Approved", "https://officeimo.com", 12D);
 
@@ -925,7 +925,7 @@ PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Pages.Select
         Directory.CreateDirectory(root);
         string source = Path.Combine(root, "encrypted.pdf");
         byte[] plain = PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
-            item.Paragraph(paragraph => paragraph.Text("Protected content")))))).ToBytes();
+            item.AddParagraph(paragraph => paragraph.AddText("Protected content")))))).ToBytes();
         var encryption = new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" };
         await File.WriteAllBytesAsync(source, PdfDocument.Load(new System.IO.MemoryStream(plain)).Security.Encrypt(encryption).Pdf);
 
@@ -1081,7 +1081,7 @@ PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Pages.Select
         PdfDocument.Create(compose => {
             foreach (string text in pageTexts) {
                 compose.Page(page => page.Content(content => content.Item(item =>
-                    item.Paragraph(paragraph => paragraph.Text(text)))));
+                    item.AddParagraph(paragraph => paragraph.AddText(text)))));
             }
         }).Save(path);
 

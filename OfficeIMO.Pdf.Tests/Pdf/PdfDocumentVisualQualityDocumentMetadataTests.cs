@@ -49,7 +49,7 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 IncludeStandardFontToUnicodeMaps = true
             })
-            .Paragraph(p => p.Text("Cafe é and Euro €"))
+            .Paragraph(p => p.AddText("Cafe é and Euro €"))
             .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         string raw = Encoding.ASCII.GetString(bytes);
         string text = PdfReadDocument.Open(bytes).ExtractText();
@@ -76,7 +76,7 @@ public partial class PdfDocumentVisualQualityTests {
                 author: "OfficeIMO Team",
                 subject: "Compliance & metadata",
                 keywords: "pdf/a, ua; xmp")
-            .Paragraph(p => p.Text("XMP metadata body."))
+            .Paragraph(p => p.AddText("XMP metadata body."))
             .ToBytes();
         string raw = Encoding.UTF8.GetString(bytes);
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
@@ -119,7 +119,7 @@ public partial class PdfDocumentVisualQualityTests {
         profile[36] = 0;
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("Output intent body."))
+            .Paragraph(p => p.AddText("Output intent body."))
             .ToBytes();
         string raw = Encoding.ASCII.GetString(bytes);
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
@@ -147,7 +147,7 @@ public partial class PdfDocumentVisualQualityTests {
         mutableProfileCopy[36] = 0;
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("Built-in sRGB output intent body."))
+            .Paragraph(p => p.AddText("Built-in sRGB output intent body."))
             .ToBytes();
         string raw = Encoding.ASCII.GetString(bytes);
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
@@ -212,7 +212,7 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 Language = "en-US"
             })
-            .Paragraph(p => p.Text("Language body."))
+            .Paragraph(p => p.AddText("Language body."))
             .ToBytes();
         string raw = Encoding.ASCII.GetString(bytes);
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
@@ -239,9 +239,9 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("Page label proof."))
+            .Paragraph(p => p.AddText("Page label proof."))
             .PageBreak()
-            .Paragraph(p => p.Text("Second labelled page."))
+            .Paragraph(p => p.AddText("Second labelled page."))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -283,11 +283,11 @@ public partial class PdfDocumentVisualQualityTests {
             .AddPageLabelRange(1, PdfPageNumberStyle.LowerRoman, 1, "front-");
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("Cover."))
+            .Paragraph(p => p.AddText("Cover."))
             .PageBreak()
-            .Paragraph(p => p.Text("Contents."))
+            .Paragraph(p => p.AddText("Contents."))
             .PageBreak()
-            .Paragraph(p => p.Text("Chapter one."))
+            .Paragraph(p => p.AddText("Chapter one."))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -318,7 +318,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         Assert.Throws<ArgumentException>(() => options.AddPageLabelRange(1, PdfPageNumberStyle.Arabic));
         Assert.Throws<InvalidOperationException>(() =>
-            PdfDocument.Create().PageLabelRange(2, PdfPageNumberStyle.Arabic).Paragraph(p => p.Text("Only one page.")).ToBytes());
+            PdfDocument.Create().PageLabelRange(2, PdfPageNumberStyle.Arabic).Paragraph(p => p.AddText("Only one page.")).ToBytes());
     }
 
     [Fact]
@@ -329,9 +329,9 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] bytes = PdfDocument.Create(options)
             .CatalogPageMode(PdfCatalogPageMode.UseThumbs)
             .CatalogPageLayout(PdfCatalogPageLayout.SinglePage)
-            .Paragraph(p => p.Text("Catalog view proof."))
+            .Paragraph(p => p.AddText("Catalog view proof."))
             .PageBreak()
-            .Paragraph(p => p.Text("Second page."))
+            .Paragraph(p => p.AddText("Second page."))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -362,11 +362,11 @@ public partial class PdfDocumentVisualQualityTests {
         var options = new PdfCreateOptions().SetOpenAction(pageNumber: 2, destinationTop: 700D);
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("First page."))
+            .Paragraph(p => p.AddText("First page."))
             .PageBreak()
-            .Paragraph(p => p.Text("Open here."))
+            .Paragraph(p => p.AddText("Open here."))
             .PageBreak()
-            .Paragraph(p => p.Text("Third page."))
+            .Paragraph(p => p.AddText("Third page."))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -404,13 +404,13 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfOpenActionOptions(1, double.PositiveInfinity));
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfOpenActionOptions(1, destinationMode: (PdfOpenActionDestinationMode)99));
         Assert.Throws<InvalidOperationException>(() =>
-            PdfDocument.Create().OpenAction(2).Paragraph(p => p.Text("Only one page.")).ToBytes());
+            PdfDocument.Create().OpenAction(2).Paragraph(p => p.AddText("Only one page.")).ToBytes());
     }
 
     [Fact]
     public void OpenAction_CanEmitFitAndFitHorizontalDestinations() {
         byte[] fitBytes = PdfDocument.Create(new PdfCreateOptions().SetOpenAction(destinationMode: PdfOpenActionDestinationMode.Fit))
-            .Paragraph(p => p.Text("Fit page."))
+            .Paragraph(p => p.AddText("Fit page."))
             .ToBytes();
         string fitRaw = Encoding.ASCII.GetString(fitBytes);
         PdfDocumentOpenAction fitOpenAction = Assert.IsType<PdfDocumentOpenAction>(PdfInspector.Inspect(fitBytes).OpenAction);
@@ -424,7 +424,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] fitHorizontalBytes = PdfDocument.Create()
             .OpenAction(1, 640D, PdfOpenActionDestinationMode.FitHorizontal)
-            .Paragraph(p => p.Text("Fit horizontal page."))
+            .Paragraph(p => p.AddText("Fit horizontal page."))
             .ToBytes();
         string fitHorizontalRaw = Encoding.ASCII.GetString(fitHorizontalBytes);
         PdfDocumentOpenAction fitHorizontalOpenAction = Assert.IsType<PdfDocumentOpenAction>(PdfInspector.Inspect(fitHorizontalBytes).OpenAction);
@@ -444,7 +444,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void OpenAction_CanEmitExtendedDestinationModes() {
         byte[] fitVerticalBytes = PdfDocument.Create()
             .OpenAction(1, destinationMode: PdfOpenActionDestinationMode.FitVertical, destinationLeft: 36D)
-            .Paragraph(p => p.Text("Fit vertical page."))
+            .Paragraph(p => p.AddText("Fit vertical page."))
             .ToBytes();
         string fitVerticalRaw = Encoding.ASCII.GetString(fitVerticalBytes);
         PdfDocumentOpenAction fitVerticalOpenAction = Assert.IsType<PdfDocumentOpenAction>(PdfInspector.Inspect(fitVerticalBytes).OpenAction);
@@ -458,7 +458,7 @@ public partial class PdfDocumentVisualQualityTests {
                 PageHeight = global::OfficeIMO.OfficeLength.Points(200D)
             })
             .OpenAction(1, destinationMode: PdfOpenActionDestinationMode.FitVertical, destinationLeft: 300D)
-            .Paragraph(p => p.Text("Fit vertical can use one coordinate."))
+            .Paragraph(p => p.AddText("Fit vertical can use one coordinate."))
             .ToBytes();
         PdfDocumentOpenAction wideFitVerticalOpenAction = Assert.IsType<PdfDocumentOpenAction>(PdfInspector.Inspect(wideFitVerticalBytes).OpenAction);
         Assert.Contains("/FitV 300]", Encoding.ASCII.GetString(wideFitVerticalBytes), StringComparison.Ordinal);
@@ -467,7 +467,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] fitRectangleBytes = PdfDocument.Create()
             .OpenAction(1, 640D, PdfOpenActionDestinationMode.FitRectangle, destinationLeft: 24D, destinationBottom: 48D, destinationRight: 320D)
-            .Paragraph(p => p.Text("Fit rectangle page."))
+            .Paragraph(p => p.AddText("Fit rectangle page."))
             .ToBytes();
         string fitRectangleRaw = Encoding.ASCII.GetString(fitRectangleBytes);
         PdfDocumentOpenAction fitRectangleOpenAction = Assert.IsType<PdfDocumentOpenAction>(PdfInspector.Inspect(fitRectangleBytes).OpenAction);
@@ -479,7 +479,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(640D, fitRectangleOpenAction.DestinationTop);
 
         byte[] fitBoundingBoxBytes = PdfDocument.Create(new PdfCreateOptions().SetOpenAction(destinationMode: PdfOpenActionDestinationMode.FitBoundingBox))
-            .Paragraph(p => p.Text("Fit bounding box page."))
+            .Paragraph(p => p.AddText("Fit bounding box page."))
             .ToBytes();
         string fitBoundingBoxRaw = Encoding.ASCII.GetString(fitBoundingBoxBytes);
         PdfDocumentOpenAction fitBoundingBoxOpenAction = Assert.IsType<PdfDocumentOpenAction>(PdfInspector.Inspect(fitBoundingBoxBytes).OpenAction);
@@ -488,7 +488,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] fitBoundingHorizontalBytes = PdfDocument.Create()
             .OpenAction(1, 610D, PdfOpenActionDestinationMode.FitBoundingBoxHorizontal)
-            .Paragraph(p => p.Text("Fit bounding box horizontal page."))
+            .Paragraph(p => p.AddText("Fit bounding box horizontal page."))
             .ToBytes();
         PdfDocumentOpenAction fitBoundingHorizontalOpenAction = Assert.IsType<PdfDocumentOpenAction>(PdfInspector.Inspect(fitBoundingHorizontalBytes).OpenAction);
         Assert.Contains("/FitBH 610]", Encoding.ASCII.GetString(fitBoundingHorizontalBytes), StringComparison.Ordinal);
@@ -497,7 +497,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] fitBoundingVerticalBytes = PdfDocument.Create()
             .OpenAction(1, destinationMode: PdfOpenActionDestinationMode.FitBoundingBoxVertical, destinationLeft: 42D)
-            .Paragraph(p => p.Text("Fit bounding box vertical page."))
+            .Paragraph(p => p.AddText("Fit bounding box vertical page."))
             .ToBytes();
         PdfDocumentOpenAction fitBoundingVerticalOpenAction = Assert.IsType<PdfDocumentOpenAction>(PdfInspector.Inspect(fitBoundingVerticalBytes).OpenAction);
         Assert.Contains("/FitBV 42]", Encoding.ASCII.GetString(fitBoundingVerticalBytes), StringComparison.Ordinal);
@@ -513,7 +513,7 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions()
                 .AddEmbeddedFile("invoice.xml", invoiceXml, "application/xml", PdfAssociatedFileRelationship.Data, "Structured invoice XML"))
             .AttachFile("source.txt", sourceText, "text/plain", PdfAssociatedFileRelationship.Source)
-            .Paragraph(p => p.Text("Embedded file proof."))
+            .Paragraph(p => p.AddText("Embedded file proof."))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -585,7 +585,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create()
             .FileVersion(PdfFileVersion.Pdf17)
-            .Paragraph(p => p.Text("PDF 1.7 header proof."))
+            .Paragraph(p => p.AddText("PDF 1.7 header proof."))
             .ToBytes();
 
         Assert.Equal(PdfFileVersion.Pdf17, clone.FileVersion);
@@ -630,7 +630,7 @@ public partial class PdfDocumentVisualQualityTests {
         PdfCreateOptions clone = options.Clone();
         var renderException = Assert.Throws<NotSupportedException>(() =>
             PdfDocument.Create(options)
-                .Paragraph(p => p.Text("Invalid embedded font"))
+                .Paragraph(p => p.AddText("Invalid embedded font"))
                 .ToBytes());
 
         Assert.Equal(0, embeddedFont.Data[0]);
@@ -653,13 +653,13 @@ public partial class PdfDocumentVisualQualityTests {
                 CompressEmbeddedFonts = true
             })
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMOEmbeddedArial")
-            .Paragraph(p => p.Text("Embedded font Cafe é and Euro €"))
+            .Paragraph(p => p.AddText("Embedded font Cafe é and Euro €"))
             .ToBytes();
         byte[] uncompressed = PdfDocument.Create(new PdfCreateOptions {
                 CompressEmbeddedFonts = false
             })
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMOEmbeddedArial")
-            .Paragraph(p => p.Text("Embedded font Cafe é and Euro €"))
+            .Paragraph(p => p.AddText("Embedded font Cafe é and Euro €"))
             .ToBytes();
         string raw = Encoding.ASCII.GetString(bytes);
         string rawUncompressed = Encoding.ASCII.GetString(uncompressed);
@@ -700,11 +700,11 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .UseFontFamily("OfficeIMO Pretty", fontData)
             .Header(header => header.Text("Pretty header"))
-            .Paragraph(paragraph => paragraph
-                .Text("Pretty regular ")
-                .Bold("pretty bold ")
-                .Italic()
-                .Text("pretty italic"))
+            .Paragraph(paragraph => {
+                paragraph.AddText("Pretty regular ");
+                paragraph.AddText("pretty bold ").SetBold();
+                paragraph.AddText("pretty italic").SetItalic();
+            })
             .Footer(footer => footer.Text("Pretty footer {page}/{pages}"))
             .ToBytes();
 

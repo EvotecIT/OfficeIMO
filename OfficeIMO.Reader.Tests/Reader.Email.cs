@@ -291,7 +291,7 @@ public sealed class ReaderEmailTests {
         string pdfPath = Path.Combine(Path.GetTempPath(), string.Concat(Guid.NewGuid().ToString("N"), ".pdf"));
         try {
             PdfDocument pdf = PdfDocument.Create();
-            pdf.Paragraph(paragraph => paragraph.Text("Searchable invoice content"));
+            pdf.Paragraph(paragraph => paragraph.AddText("Searchable invoice content"));
             pdf.Save(pdfPath);
             byte[] payload = File.ReadAllBytes(pdfPath);
             var document = new EmailDocument { Subject = "invoice" };

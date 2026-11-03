@@ -16,10 +16,10 @@ public class PdfTextCaseTests {
     public void RichParagraphUnderlinesSpacesUsingTheirSourceRun(bool firstUnderlined, bool secondUnderlined, int expectedLineCount) {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Paragraph(paragraph => {
-                if (firstUnderlined) paragraph.Underlined("Elite ");
-                else paragraph.Text("Elite ");
-                if (secondUnderlined) paragraph.Underlined("Performance");
-                else paragraph.Text("Performance");
+                if (firstUnderlined) paragraph.AddText("Elite ").SetUnderline();
+                else paragraph.AddText("Elite ");
+                if (secondUnderlined) paragraph.AddText("Performance").SetUnderline();
+                else paragraph.AddText("Performance");
             })
             .ToBytes();
 
@@ -41,7 +41,7 @@ public class PdfTextCaseTests {
     [Fact]
     public void RichParagraphWordsUnderlineLeavesSpacesClear() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
-            .Paragraph(paragraph => paragraph.Underlined("Elite Performance", OfficeTextDecorationStyle.Words))
+            .Paragraph(paragraph => paragraph.AddText("Elite Performance").SetUnderline(OfficeTextDecorationStyle.Words))
             .ToBytes();
         MatchCollection strokes = Regex.Matches(Encoding.ASCII.GetString(bytes), @"(?<start>\d+(?:\.\d+)?) (?<y>\d+(?:\.\d+)?) m (?<end>\d+(?:\.\d+)?) \k<y> l S");
         Assert.Equal(2, strokes.Count);
@@ -55,7 +55,7 @@ public class PdfTextCaseTests {
     [InlineData(PdfTextBaseline.Subscript)]
     public void UnderlinedScriptSpaceUsesTheSourceRunBaseline(PdfTextBaseline baseline) {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
-            .Paragraph(paragraph => paragraph.Runs(new[] {
+            .Paragraph(paragraph => paragraph.AddRuns(new[] {
                 new PdfTextRun("Elite ", underlineStyle: OfficeTextDecorationStyle.Single, baseline: baseline, fontSize: global::OfficeIMO.OfficeLength.Points(18)),
                 new PdfTextRun("Performance", fontSize: global::OfficeIMO.OfficeLength.Points(18))
             }))
@@ -122,7 +122,7 @@ public class PdfTextCaseTests {
     public void HeaderWordsUnderlineLeavesSpacesClear() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Header(header => header.Text(text => text.Run(new PdfTextRun("Elite Performance", underlineStyle: OfficeTextDecorationStyle.Words))))
-            .Paragraph(paragraph => paragraph.Text("Body"))
+            .Paragraph(paragraph => paragraph.AddText("Body"))
             .ToBytes();
         MatchCollection strokes = Regex.Matches(Encoding.ASCII.GetString(bytes), @"(?<start>\d+(?:\.\d+)?) (?<y>\d+(?:\.\d+)?) m (?<end>\d+(?:\.\d+)?) \k<y> l S");
         Assert.Equal(2, strokes.Count);
@@ -134,7 +134,7 @@ public class PdfTextCaseTests {
                 ShowHeader = true,
                 HeaderFormat = new string('\n', 100_001)
             })
-            .Paragraph(paragraph => paragraph.Text("Body"));
+            .Paragraph(paragraph => paragraph.AddText("Body"));
 
         var error = Assert.Throws<System.IO.InvalidDataException>(() => document.ToBytes());
         Assert.Contains("100,000", error.Message);
@@ -178,10 +178,7 @@ public class PdfTextCaseTests {
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Header(header => header.Text(text => text.Run(run)))
-            .Paragraph(paragraph => paragraph
-                .Underline(OfficeTextDecorationStyle.Dashed)
-                .Strike(OfficeTextDecorationStyle.Double)
-                .Text("Body"))
+            .Paragraph(paragraph => paragraph.AddText("Body").SetUnderline(OfficeTextDecorationStyle.Dashed).SetStrikethrough(OfficeTextDecorationStyle.Double))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);

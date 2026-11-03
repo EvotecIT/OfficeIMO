@@ -17,8 +17,13 @@ public sealed class PdfRunSpacingRegressionTests {
         PdfCreateOptions options = Options();
         options.DefaultParagraphStyle = new PdfParagraphStyle { DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(150D) };
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options)
-            .Paragraph(p => p.HorizontalTextScaling(scale).CharacterSpacing(global::OfficeIMO.OfficeLength.Points(tracking))
-                .Text("A").Tab(leader).Text("Z")).ToBytes());
+            .Paragraph(p => {
+                p.RunDefaults.HorizontalTextScaling = scale;
+                p.RunDefaults.CharacterSpacing = global::OfficeIMO.OfficeLength.Points(tracking);
+                p.AddText("A");
+                p.AddTab(leader);
+                p.AddText("Z");
+            }).ToBytes());
         var dots = pdf.GetPage(1).Letters.Where(letter => letter.Value == glyph).ToArray();
         Assert.True(dots.Length >= 3);
         double units = glyph == "." ? 278D : glyph == "-" ? 333D : 556D;
@@ -41,7 +46,7 @@ public sealed class PdfRunSpacingRegressionTests {
         var run = new PdfTextRun("MMMM" + new string(' ', separatorCount) + "MMMM", fontSize: global::OfficeIMO.OfficeLength.Points(12D))
             .WithHorizontalTextScaling(scaling).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(spacing));
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options)
-            .Paragraph(p => p.Runs(new[] { run, PdfTextRun.Normal("X", fontSize: global::OfficeIMO.OfficeLength.Points(12D)) })).ToBytes());
+            .Paragraph(p => p.AddRuns(new[] { run, PdfTextRun.Normal("X", fontSize: global::OfficeIMO.OfficeLength.Points(12D)) })).ToBytes());
         Assert.Equal(1, pdf.NumberOfPages);
         Letter[] letters = pdf.GetPage(1).Letters.ToArray();
         Letter[] ems = letters.Where(letter => letter.Value == "M").ToArray();
@@ -57,7 +62,7 @@ public sealed class PdfRunSpacingRegressionTests {
     [Fact]
     public void CondensedRunWithoutSpaces_DoesNotMeasureAnUnusedSpace() {
         var run = new PdfTextRun("MMMM", fontSize: global::OfficeIMO.OfficeLength.Points(12D)).WithHorizontalTextScaling(50D).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(-2D));
-        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options()).Paragraph(p => p.Runs(new[] { run })).ToBytes());
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options()).Paragraph(p => p.AddRuns(new[] { run })).ToBytes());
         Letter[] letters = pdf.GetPage(1).Letters.ToArray();
         Assert.Equal("MMMM", string.Concat(letters.Select(letter => letter.Value)));
         Assert.InRange(letters[1].StartBaseLine.X - letters[0].StartBaseLine.X, 2.99D, 3.01D);
@@ -66,8 +71,10 @@ public sealed class PdfRunSpacingRegressionTests {
     [Fact]
     public void StyledSeparatorBeforeDefaultRun_UsesItsMeasuredAdvance() {
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options())
-            .Paragraph(p => p.HorizontalTextScaling(50D).CharacterSpacing(global::OfficeIMO.OfficeLength.Points(1D)).Text("AB ")
-                .HorizontalTextScaling(100D).CharacterSpacing(global::OfficeIMO.OfficeLength.Points(0D)).Text("CD")).ToBytes());
+            .Paragraph(p => {
+                p.AddText("AB ").SetHorizontalTextScaling(50D).SetCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1D));
+                p.AddText("CD");
+            }).ToBytes());
         var letters = pdf.GetPage(1).Letters;
         double origin = letters.First(letter => letter.Value == "A").StartBaseLine.X;
         double c = letters.Single(letter => letter.Value == "C").StartBaseLine.X;
@@ -80,10 +87,16 @@ public sealed class PdfRunSpacingRegressionTests {
         PdfCreateOptions options = Options();
         options.DefaultParagraphStyle = new PdfParagraphStyle { DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(150D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) };
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options)
-            .Paragraph(p => p.Text("Tax").Tab(PdfTabLeaderStyle.None, PdfTabAlignment.DecimalSeparator)
-                .HorizontalTextScaling(50D).CharacterSpacing(global::OfficeIMO.OfficeLength.Points(1D)).Text("8.50"))
-            .Paragraph(p => p.Text("Total").Tab(PdfTabLeaderStyle.None, PdfTabAlignment.DecimalSeparator)
-                .HorizontalTextScaling(50D).CharacterSpacing(global::OfficeIMO.OfficeLength.Points(1D)).Text("12845.75")).ToBytes());
+            .Paragraph(p => {
+                p.AddText("Tax");
+                p.AddTab(PdfTabLeaderStyle.None, PdfTabAlignment.DecimalSeparator);
+                p.AddText("8.50").SetHorizontalTextScaling(50D).SetCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1D));
+            })
+            .Paragraph(p => {
+                p.AddText("Total");
+                p.AddTab(PdfTabLeaderStyle.None, PdfTabAlignment.DecimalSeparator);
+                p.AddText("12845.75").SetHorizontalTextScaling(50D).SetCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1D));
+            }).ToBytes());
         var periods = pdf.GetPage(1).Letters.Where(letter => letter.Value == ".").ToArray();
         Assert.Equal(2, periods.Length);
         Assert.InRange(Math.Abs(periods[0].StartBaseLine.X - periods[1].StartBaseLine.X), 0D, 0.02D);
@@ -102,7 +115,7 @@ public sealed class PdfRunSpacingRegressionTests {
         }
         var run = new PdfTextRun("ABCD", fontSize: global::OfficeIMO.OfficeLength.Points(12D), underlineStyle: OfficeTextDecorationStyle.Words)
             .WithHorizontalTextScaling(50D).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1D));
-        using var pdf = PdfPigDocument.Open(PdfDocument.Create(options).Paragraph(p => p.Runs(new[] { run, PdfTextRun.Normal("X", fontSize: global::OfficeIMO.OfficeLength.Points(12D)) })).ToBytes());
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(options).Paragraph(p => p.AddRuns(new[] { run, PdfTextRun.Normal("X", fontSize: global::OfficeIMO.OfficeLength.Points(12D)) })).ToBytes());
         var page = pdf.GetPage(1);
         double start = page.Letters.First(letter => letter.Value == "A").StartBaseLine.X;
         double end = page.Letters.Single(letter => letter.Value == "X").StartBaseLine.X;
@@ -130,7 +143,7 @@ public sealed class PdfRunSpacingRegressionTests {
         var document = PdfDocument.Create(options);
         if (table) document.Table(new[] { new[] { PdfTableCell.RichTextCell(new[] { first, last }) } },
             style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D) });
-        else document.Paragraph(p => p.Runs(new[] { first, last }));
+        else document.Paragraph(p => p.AddRuns(new[] { first, last }));
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         var lines = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
             .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 1)).OrderByDescending(group => group.Key)

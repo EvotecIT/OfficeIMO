@@ -141,8 +141,8 @@ public sealed class PdfOptimizerExternalProofTests {
         }
         PdfDocument document = PdfDocument.Create(options).Meta(title: "Optimizer compliance proof", author: "OfficeIMO");
         document.Content.H1("Optimizer compliance proof")
-            .Paragraph(p => p.Text("Embedded Unicode text must survive every optimizer setting."))
-            .Table(new[] { new[] { "Item", "Amount" }, new[] { "Service", "119.00 EUR" } });
+            .AddParagraph(p => p.AddText("Embedded Unicode text must survive every optimizer setting."))
+            .AddTable(new[] { new[] { "Item", "Amount" }, new[] { "Service", "119.00 EUR" } });
         return document.ToBytes();
     }
 
@@ -154,7 +154,7 @@ public sealed class PdfOptimizerExternalProofTests {
             DateTimeOffset.UtcNow.AddDays(1));
         using var signer = new PdfCmsExternalSigner(OfficeSecurityProvider.Default, certificate);
         PdfDocument document = PdfDocument.Create();
-        document.Content.Paragraph(p => p.Text("Signed optimizer input must be refused"));
+        document.Content.AddParagraph(p => p.AddText("Signed optimizer input must be refused"));
         return document.Security.SignExternal(signer, new PdfExternalSignatureOptions {
                 FieldName = "OptimizerProof", ReservedSignatureContentsBytes = 8192
             }).ToDocument().ToBytes();

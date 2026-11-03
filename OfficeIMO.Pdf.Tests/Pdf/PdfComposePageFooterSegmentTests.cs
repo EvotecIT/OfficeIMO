@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests.Pdf {
 
             var nullEntryException = Assert.Throws<ArgumentException>(() =>
                 PdfDocument.Create(nullEntryOptions)
-                    .Paragraph(p => p.Text("Invalid footer segment"))
+                    .Paragraph(p => p.AddText("Invalid footer segment"))
                     .ToBytes());
             Assert.Contains("footer segments", nullEntryException.Message, StringComparison.OrdinalIgnoreCase);
         }
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal("Page ", options.FooterSegments![0].Text);
 
             var doc = PdfDocument.Create(options)
-                .Paragraph(p => p.Text("Footer segment snapshot"));
+                .Paragraph(p => p.AddText("Footer segment snapshot"));
 
             string pdfText = Normalize(PdfPigDocument.Open(new MemoryStream(doc.ToBytes())).GetPage(1).Text);
             Assert.Contains("Page1", pdfText, StringComparison.OrdinalIgnoreCase);

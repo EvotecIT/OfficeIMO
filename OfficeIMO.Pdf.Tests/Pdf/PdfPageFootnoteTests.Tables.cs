@@ -14,10 +14,10 @@ public partial class PdfPageFootnoteTests {
         options.PageHeight = global::OfficeIMO.OfficeLength.Points(260);
         var document = PdfDocument.Create(options);
         var note = document.Content.DefineFootnote(body => {
-            body.Text("TableNoteFirst", style: Style());
-            body.Text("TableNoteLast", style: Style());
+            body.AddParagraph("TableNoteFirst", style: Style());
+            body.AddParagraph("TableNoteLast", style: Style());
         });
-        document.Content.Table(new[] { new[] { new PdfTableCell(TableReferenceLines(42, 26, "LateReference", note)) } },
+        document.Content.AddTable(new[] { new[] { new PdfTableCell(TableReferenceLines(42, 26, "LateReference", note)) } },
             style: FootnoteTableStyle());
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -38,9 +38,9 @@ public partial class PdfPageFootnoteTests {
     [Fact]
     public void SameLabelTableReferencesKeepDistinctDefinitionsAndSerializationState() {
         var document = PdfDocument.Create(Options());
-        var first = document.Content.DefineFootnote(body => body.Text("FirstDefinition", style: Style()));
-        var second = document.Content.DefineFootnote(body => body.Text("SecondDefinition", style: Style()));
-        document.Content.Table(new[] {
+        var first = document.Content.DefineFootnote(body => body.AddParagraph("FirstDefinition", style: Style()));
+        var second = document.Content.DefineFootnote(body => body.AddParagraph("SecondDefinition", style: Style()));
+        document.Content.AddTable(new[] {
             new[] { new PdfTableCell(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(first) }) },
             new[] { new PdfTableCell(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(second) }) }
         }, style: FootnoteTableStyle());
@@ -61,12 +61,12 @@ public partial class PdfPageFootnoteTests {
         options.PageHeight = global::OfficeIMO.OfficeLength.Points(260);
         var document = PdfDocument.Create(options);
         var first = document.Content.DefineFootnote(body => {
-            for (int index = 0; index < 20; index++) body.Text("LongTableNote" + index.ToString("00"), style: Style());
+            for (int index = 0; index < 20; index++) body.AddParagraph("LongTableNote" + index.ToString("00"), style: Style());
         });
-        var second = document.Content.DefineFootnote(body => body.Text("SecondTableNote", style: Style()));
+        var second = document.Content.DefineFootnote(body => body.AddParagraph("SecondTableNote", style: Style()));
         var style = FootnoteTableStyle();
         style.KeepTogether = true;
-        document.Content.Table(new[] {
+        document.Content.AddTable(new[] {
             new[] { new PdfTableCell(new[] { PdfTextRun.Normal("KeptFirst\n"), PdfTextRun.Normal("FirstReference").WithFootnoteReference(first) }) },
             new[] { new PdfTableCell(new[] { PdfTextRun.Normal("KeptSecond\n"), PdfTextRun.Normal("SecondReference").WithFootnoteReference(second) }) }
         }, style: style);
@@ -89,10 +89,10 @@ public partial class PdfPageFootnoteTests {
         options.PageHeight = global::OfficeIMO.OfficeLength.Points(260);
         var document = PdfDocument.Create(options);
         var note = document.Content.DefineFootnote(body => {
-            body.Text("MergedNoteFirst", style: Style());
-            body.Text("MergedNoteLast", style: Style());
+            body.AddParagraph("MergedNoteFirst", style: Style());
+            body.AddParagraph("MergedNoteLast", style: Style());
         });
-        document.Content.Table(new[] {
+        document.Content.AddTable(new[] {
             new[] { new PdfTableCell(TableReferenceLines(42, 26, "MergedReference", note), rowSpan: 2), new PdfTableCell("NeighbourFirst") },
             new[] { new PdfTableCell("NeighbourLast") }
         }, style: FootnoteTableStyle());
@@ -113,10 +113,10 @@ public partial class PdfPageFootnoteTests {
         var options = Options();
         options.MaxGeneratedPages = 4;
         var document = PdfDocument.Create(options);
-        var note = document.Content.DefineFootnote(body => body.Text("CannotFit", style: new PdfParagraphStyle {
+        var note = document.Content.DefineFootnote(body => body.AddParagraph("CannotFit", style: new PdfParagraphStyle {
             FontSize = global::OfficeIMO.OfficeLength.Points(8), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(110)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         }));
-        document.Content.Table(new[] { new[] {
+        document.Content.AddTable(new[] { new[] {
             new PdfTableCell(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) })
         } }, style: FootnoteTableStyle());
 

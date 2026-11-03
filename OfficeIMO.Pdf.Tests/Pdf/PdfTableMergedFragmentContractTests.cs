@@ -144,7 +144,7 @@ public partial class PdfDocumentVisualQualityTests {
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = global::OfficeIMO.OfficeLength.Points(460), PageHeight = global::OfficeIMO.OfficeLength.Points(140), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
             MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
-        }).Columns(content => content.Table(new[] {
+        }).Columns(content => content.AddTable(new[] {
             new[] { PdfTableCell.Merge(string.Join(" ", tokens), rowSpan: 3), PdfTableCell.TextCell("Ready") },
             new[] { PdfTableCell.TextCell("Next") },
             new[] { PdfTableCell.TextCell("Done") }
@@ -201,9 +201,9 @@ public partial class PdfDocumentVisualQualityTests {
         document.Compose(builder => builder.Page(page => page.Content(content => {
             if (reserveClosing) content.Element(element => element
                 .Style(new PdfPanelStyle { PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(10), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
-                .Content(inner => inner.Table(rows, style: style)));
-            else if (inRow) content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style)));
-            else content.Table(rows, style: style);
+                .Content(inner => inner.AddTable(rows, style: style)));
+            else if (inRow) content.Row(row => row.PercentColumn(100, column => column.AddTable(rows, style: style)));
+            else content.AddTable(rows, style: style);
         })));
     }
 }

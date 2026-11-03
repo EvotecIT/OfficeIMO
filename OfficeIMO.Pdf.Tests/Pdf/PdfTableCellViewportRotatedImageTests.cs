@@ -81,8 +81,8 @@ public sealed partial class PdfTableCellViewportTests {
         return PdfDocument.Create(options).Compose(document => document.Page(page => {
             if (mode == "canvas") page.Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(72), style));
             else page.Content(content => {
-                if (mode == "flow") content.Item(item => item.Table(rows, style: style));
-                else content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style)));
+                if (mode == "flow") content.Item(item => item.AddTable(rows, style: style));
+                else content.Row(row => row.PercentColumn(100, column => column.AddTable(rows, style: style)));
             });
         })).ToBytes();
     }

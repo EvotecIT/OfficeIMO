@@ -17,25 +17,28 @@ internal static class WeeklyBrief {
             .UsePdfUa(PdfComplianceProfile.PdfUa1);
         PdfDocument.Create(pdf => pdf.Content(content => content
             .Title("The week in delivery")
-            .Paragraph(p => p.FontSize(OfficeLength.Points(theme.TypeScale.Caption.ToPoints())).Text("Northwind · Week 38 · 2026"), defaultColor: muted)
-            .PanelParagraph(p => p.Bold("Decision for this week\n").Text(
-                "Approve the second pilot group after the recovery exercise is complete."))
+            .AddParagraph(p => p.AddText("Northwind · Week 38 · 2026").SetFontSize(OfficeLength.Points(theme.TypeScale.Caption.ToPoints())), color: muted)
+            .AddPanelParagraph(p => {
+                p.AddText("Decision for this week\n").SetBold();
+                p.AddText(
+                "Approve the second pilot group after the recovery exercise is complete.");
+            })
             .H2("Progress")
-            .Bullets(new[] {
+            .AddList(new[] {
                 "The first pilot group completed 48 requests.",
                 "The team reduced the oldest queue from 16 items to 5.",
                 "The receiving team completed its first supported handover."
             })
             .H2("Watch closely")
-            .Paragraph(p => p.Bold("At risk: ", warning).Text("two access issues remain open. Keep a named escalation contact available during the next pilot session."))
+            .AddParagraph(p => { p.AddText("At risk: ").SetBold().SetColor(warning); p.AddText("two access issues remain open. Keep a named escalation contact available during the next pilot session."); })
             .H2("Next actions")
-            .Table(new[] {
+            .AddTable(new[] {
                 new[] { "Action", "Owner", "Due" },
                 new[] { "Complete recovery exercise", "Operations", "Tuesday" },
                 new[] { "Close access issues", "Engineering", "Wednesday" },
                 new[] { "Review pilot expansion", "Product", "Friday" }
             })
-            .Paragraph(p => p.FontSize(OfficeLength.Points(theme.TypeScale.Caption.ToPoints())).Text("Prepared from sample data. Keep the brief focused on decisions and actions."), defaultColor: muted)),
+            .AddParagraph(p => p.AddText("Prepared from sample data. Keep the brief focused on decisions and actions.").SetFontSize(OfficeLength.Points(theme.TypeScale.Caption.ToPoints())), color: muted)),
             options)
             .Meta(title: "The week in delivery", author: "OfficeIMO")
             .Save(Path.Combine(folder, "example.pdf"));

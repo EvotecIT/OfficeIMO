@@ -55,12 +55,12 @@ internal static partial class PdfWriter {
                 pageImage.RotationCenterX = x + inlineElement.Width.ToPoints() / 2D;
                 pageImage.RotationCenterY = bottom + inlineElement.Height.ToPoints() / 2D;
             }
-            pageImage.IsInlineDecoration = string.IsNullOrWhiteSpace(inlineElement.AlternativeText);
+            pageImage.IsInlineDecoration = string.IsNullOrWhiteSpace(inlineElement.AltText);
             pageImage.SuppressAccessibilityWrapper = suppressAccessibility;
             page.Images.Add(pageImage);
             pageImage.InlineDrawToken = AllocateInlineImageDrawToken(page);
-            if (!string.IsNullOrWhiteSpace(inlineElement.AlternativeText)) {
-                pageImage.MarkedContentId = RegisterInlineFigureStructureElement(taggingPage, options, inlineElement.AlternativeText, parentElementIndex);
+            if (!string.IsNullOrWhiteSpace(inlineElement.AltText)) {
+                pageImage.MarkedContentId = RegisterInlineFigureStructureElement(taggingPage, options, inlineElement.AltText, parentElementIndex);
                 pageImage.StructElementIndex = FindStructElementIndex(taggingPage, pageImage.MarkedContentId, "Figure");
             }
 
@@ -91,11 +91,11 @@ internal static partial class PdfWriter {
 
         PdfInlineBox inlineBox = (PdfInlineBox)inlineElement;
         bool tagged = options.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers;
-        int? figureMarkedContentId = RegisterInlineFigureStructureElement(taggingPage, options, inlineElement.AlternativeText, parentElementIndex);
-        bool hasAlternativeText = !suppressAccessibility && !string.IsNullOrWhiteSpace(inlineElement.AlternativeText);
+        int? figureMarkedContentId = RegisterInlineFigureStructureElement(taggingPage, options, inlineElement.AltText, parentElementIndex);
+        bool hasAlternativeText = !suppressAccessibility && !string.IsNullOrWhiteSpace(inlineElement.AltText);
         if (hasAlternativeText) {
             sb.Append("/Figure << /Alt ")
-                .Append(PdfSyntaxEscaper.TextString(inlineElement.AlternativeText!));
+                .Append(PdfSyntaxEscaper.TextString(inlineElement.AltText!));
             if (figureMarkedContentId.HasValue) {
                 sb.Append(" /MCID ")
                     .Append(figureMarkedContentId.Value.ToString(CultureInfo.InvariantCulture));

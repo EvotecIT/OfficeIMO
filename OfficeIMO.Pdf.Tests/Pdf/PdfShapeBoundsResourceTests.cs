@@ -46,7 +46,7 @@ public sealed class PdfShapeBoundsResourceTests {
         }.ReportDiagnosticsTo(report)).Compose(c => c.Page(page => {
             if (footer) page.Footer(builder => builder.Shape(shape));
             else page.Header(builder => builder.Shape(shape));
-            page.Content(builder => builder.Paragraph(paragraph => paragraph.Text("MARKER")));
+            page.Content(builder => builder.AddParagraph(paragraph => paragraph.AddText("MARKER")));
         })).ToBytes(new PdfSaveOptions { AllowLoss = true });
 
         Assert.Contains("MARKER", PdfReadDocument.Open(bytes).ExtractText());

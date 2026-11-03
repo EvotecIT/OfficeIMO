@@ -22,9 +22,9 @@ public sealed partial class PdfTableCellViewportTests {
             new[] { new PdfTableCell("Row3"), new PdfTableCell("Last3") }
         };
         using PdfPigDocument pdf = PdfPigDocument.Open(PdfDocument.Create(options).Compose(document => document.Page(page => page.Content(content => {
-            content.Item(item => item.Paragraph(paragraph => paragraph.Text("BeforeTable")).Spacer(global::OfficeIMO.OfficeLength.Points(30)));
-            if (mode == "flow") content.Item(item => item.Table(rows, style: style));
-            else content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style)));
+            content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("BeforeTable")).Spacer(global::OfficeIMO.OfficeLength.Points(30)));
+            if (mode == "flow") content.Item(item => item.AddTable(rows, style: style));
+            else content.Row(row => row.PercentColumn(100, column => column.AddTable(rows, style: style)));
         }))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.DoesNotContain("Row1", pdf.GetPage(1).Text);
@@ -87,9 +87,9 @@ public sealed partial class PdfTableCellViewportTests {
         rows.Add(new[] { cell, new PdfTableCell("Row1") });
         rows.Add(new[] { new PdfTableCell("Row2") });
         return PdfDocument.Create(options).Compose(compose => compose.Page(page => page.Content(content => {
-            if (prefixHeight > 0) content.Item(item => item.Paragraph(paragraph => paragraph.Text("BeforeTable")).Spacer(global::OfficeIMO.OfficeLength.Points(prefixHeight)));
-            if (mode == "flow") content.Item(item => item.Table(rows, style: style));
-            else content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style)));
+            if (prefixHeight > 0) content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("BeforeTable")).Spacer(global::OfficeIMO.OfficeLength.Points(prefixHeight)));
+            if (mode == "flow") content.Item(item => item.AddTable(rows, style: style));
+            else content.Row(row => row.PercentColumn(100, column => column.AddTable(rows, style: style)));
         }))).ToBytes();
     }
 }

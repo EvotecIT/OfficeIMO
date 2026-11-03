@@ -14,10 +14,10 @@ namespace OfficeIMO.Tests.Pdf {
             byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
                 })
-                .Paragraph(p => p.Text("A B"), style: new PdfParagraphStyle {
+                .Paragraph(p => p.AddText("A B"), style: new PdfParagraphStyle {
                     SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                 })
-                .Paragraph(p => p.Text("A\tB"), style: new PdfParagraphStyle {
+                .Paragraph(p => p.AddText("A\tB"), style: new PdfParagraphStyle {
                     SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                 })
                 .ToBytes();
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests.Pdf {
                         SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                     }
                 })
-                .Paragraph(p => p.Text("A\tB"))
+                .Paragraph(p => p.AddText("A\tB"))
                 .ToBytes();
 
             using var pdf = UglyToad.PdfPig.PdfDocument.Open(new MemoryStream(bytes));
@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests.Pdf {
                         SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                     }
                 })
-                .Paragraph(p => p.Text("Revenue").Tab(PdfTabLeaderStyle.Dots).Text("12"))
+                .Paragraph(p => { p.AddText("Revenue"); p.AddTab(PdfTabLeaderStyle.Dots); p.AddText("12"); })
                 .ToBytes();
 
             using var pdf = UglyToad.PdfPig.PdfDocument.Open(new MemoryStream(bytes));
@@ -111,7 +111,7 @@ namespace OfficeIMO.Tests.Pdf {
                         SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                     }
                 })
-                .Paragraph(p => p.Text("Status").Tab(leaderStyle).Text("Ready"))
+                .Paragraph(p => { p.AddText("Status"); p.AddTab(leaderStyle); p.AddText("Ready"); })
                 .ToBytes();
 
             using var pdf = UglyToad.PdfPig.PdfDocument.Open(new MemoryStream(bytes));
@@ -135,8 +135,8 @@ namespace OfficeIMO.Tests.Pdf {
                         SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                     }
                 })
-                .Paragraph(p => p.Text("A").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right).Text("12"))
-                .Paragraph(p => p.Text("Longer").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right).Text("12345"))
+                .Paragraph(p => { p.AddText("A"); p.AddTab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right); p.AddText("12"); })
+                .Paragraph(p => { p.AddText("Longer"); p.AddTab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right); p.AddText("12345"); })
                 .ToBytes();
 
             using var pdf = UglyToad.PdfPig.PdfDocument.Open(new MemoryStream(bytes));
@@ -167,8 +167,8 @@ namespace OfficeIMO.Tests.Pdf {
                         SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                     }
                 })
-                .Paragraph(p => p.Text("Tax").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.DecimalSeparator).Text("8.50"))
-                .Paragraph(p => p.Text("Total").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.DecimalSeparator).Text("12845.75"))
+                .Paragraph(p => { p.AddText("Tax"); p.AddTab(PdfTabLeaderStyle.Dots, PdfTabAlignment.DecimalSeparator); p.AddText("8.50"); })
+                .Paragraph(p => { p.AddText("Total"); p.AddTab(PdfTabLeaderStyle.Dots, PdfTabAlignment.DecimalSeparator); p.AddText("12845.75"); })
                 .ToBytes();
 
             using var pdf = UglyToad.PdfPig.PdfDocument.Open(new MemoryStream(bytes));
@@ -209,9 +209,9 @@ namespace OfficeIMO.Tests.Pdf {
                         SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                     }
                 })
-                .Paragraph(p => p.Text("Tax").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.DecimalSeparator).Text("8.50"))
-                .Paragraph(p => p.Text("Total").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.DecimalSeparator).Text("1450.75"))
-                .Paragraph(p => p.Text("Discount").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right).Text("$1,234.50"))
+                .Paragraph(p => { p.AddText("Tax"); p.AddTab(PdfTabLeaderStyle.Dots, PdfTabAlignment.DecimalSeparator); p.AddText("8.50"); })
+                .Paragraph(p => { p.AddText("Total"); p.AddTab(PdfTabLeaderStyle.Dots, PdfTabAlignment.DecimalSeparator); p.AddText("1450.75"); })
+                .Paragraph(p => { p.AddText("Discount"); p.AddTab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right); p.AddText("$1,234.50"); })
                 .ToBytes();
 
             var structuredPage = Assert.Single(PdfTextExtractor.ExtractStructuredByPage(bytes, new PdfTextLayoutOptions {
@@ -238,9 +238,9 @@ namespace OfficeIMO.Tests.Pdf {
                         SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                     }
                 })
-                .Paragraph(p => p.Text("Milestone").Tab(PdfTabLeaderStyle.Hyphens, PdfTabAlignment.Right).Text("Q4"))
-                .Paragraph(p => p.Text("Signature count").Tab(PdfTabLeaderStyle.Underscores, PdfTabAlignment.Right).Text("12"))
-                .Paragraph(p => p.Text("Balance").Tab(PdfTabLeaderStyle.Hyphens, PdfTabAlignment.DecimalSeparator).Text("$1,234.50"))
+                .Paragraph(p => { p.AddText("Milestone"); p.AddTab(PdfTabLeaderStyle.Hyphens, PdfTabAlignment.Right); p.AddText("Q4"); })
+                .Paragraph(p => { p.AddText("Signature count"); p.AddTab(PdfTabLeaderStyle.Underscores, PdfTabAlignment.Right); p.AddText("12"); })
+                .Paragraph(p => { p.AddText("Balance"); p.AddTab(PdfTabLeaderStyle.Hyphens, PdfTabAlignment.DecimalSeparator); p.AddText("$1,234.50"); })
                 .ToBytes();
 
             var structuredPage = Assert.Single(PdfTextExtractor.ExtractStructuredByPage(bytes, new PdfTextLayoutOptions {

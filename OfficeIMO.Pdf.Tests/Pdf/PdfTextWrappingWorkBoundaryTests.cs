@@ -54,7 +54,7 @@ public sealed class PdfTextWrappingWorkBoundaryTests {
         var run = new PdfTextRun(new string('0', 4000) + new string('W', 200), fontSize: OfficeLength.Points(10D))
             .WithCharacterSpacing(OfficeLength.Points(-5D));
 
-        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Runs(new[] { run })).ToBytes();
+        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddRuns(new[] { run })).ToBytes();
 
         Assert.StartsWith("%PDF-", System.Text.Encoding.ASCII.GetString(pdf, 0, 5), StringComparison.Ordinal);
         Assert.Contains(new string('W', 20), PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);

@@ -15,9 +15,9 @@ public class PdfSequentialColumnFlowTests {
         Assert.Throws<InvalidOperationException>(() => options.ColumnCount = 3);
         Assert.Equal(2, options.ColumnCount);
         byte[] bytes = PdfDocument.Create(Options()).Columns(content => {
-            content.Paragraph(p => p.Text("First"), style: Paragraph());
+            content.AddParagraph(p => p.AddText("First"), style: Paragraph());
             content.ColumnBreak();
-            content.Paragraph(p => p.Text("Second"), style: Paragraph());
+            content.AddParagraph(p => p.AddText("Second"), style: Paragraph());
         }, options).ToBytes();
         using var read = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Equal(1, read.NumberOfPages);
@@ -26,10 +26,10 @@ public class PdfSequentialColumnFlowTests {
 
     [Fact]
     public void Columns_BalancesTheLastPageOfAContinuingParagraph() {
-        byte[] bytes = PdfDocument.Create(Options()).Columns(content => content.Paragraph(p =>
-            p.Text(string.Join("\n", Enumerable.Range(1, 42).Select(index => "Line" + index.ToString("D2")))), style: Paragraph()),
+        byte[] bytes = PdfDocument.Create(Options()).Columns(content => content.AddParagraph(p =>
+            p.AddText(string.Join("\n", Enumerable.Range(1, 42).Select(index => "Line" + index.ToString("D2")))), style: Paragraph()),
             new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = true })
-            .Paragraph(p => p.Text("AfterColumns"), style: Paragraph()).ToBytes();
+            .Paragraph(p => p.AddText("AfterColumns"), style: Paragraph()).ToBytes();
         using var read = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Equal(2, read.NumberOfPages);
         Assert.InRange(X(read, 2, "Line37"), 39.9, 40.1);
@@ -43,7 +43,7 @@ public class PdfSequentialColumnFlowTests {
         var style = Paragraph();
         style.TabStops.Add(new PdfTabStop(global::OfficeIMO.OfficeLength.Points(50)));
         string text = string.Join("\n", Enumerable.Range(1, 16).Select(index => "Prelude" + index)) + "\nLeft\tRight";
-        byte[] bytes = PdfDocument.Create(Options()).Columns(content => content.Paragraph(p => p.Text(text), style: style), Unequal()).ToBytes();
+        byte[] bytes = PdfDocument.Create(Options()).Columns(content => content.AddParagraph(p => p.AddText(text), style: style), Unequal()).ToBytes();
         using var read = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Equal(1, read.NumberOfPages);
         Assert.InRange(X(read, 1, "Right"), 209.9, 210.1);
@@ -59,7 +59,7 @@ public class PdfSequentialColumnFlowTests {
                 firstLineIndent: global::OfficeIMO.OfficeLength.Points(20), fontSize: global::OfficeIMO.OfficeLength.Points(12), lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)))
         };
         var cell = new PdfTableCell(new[] { PdfTextRun.Normal(text + "\nSecondA\nSecondB") }, paragraphs);
-        byte[] bytes = PdfDocument.Create(Options()).Columns(content => content.Table(new[] { new[] { cell } },
+        byte[] bytes = PdfDocument.Create(Options()).Columns(content => content.AddTable(new[] { new[] { cell } },
             style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), FontSize = global::OfficeIMO.OfficeLength.Points(12),
                 LineHeight = 20D / 12D, BorderWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }), Unequal()).ToBytes();
         using var read = UglyToad.PdfPig.PdfDocument.Open(bytes);
@@ -73,8 +73,8 @@ public class PdfSequentialColumnFlowTests {
 
     [Fact]
     public void Columns_BalancesOddParagraphLineCountsWithoutAnExtraPage() {
-        byte[] bytes = PdfDocument.Create(Options()).Columns(content => content.Paragraph(p =>
-            p.Text("Line1\nLine2\nLine3\nLine4\nLine5"), style: Paragraph()),
+        byte[] bytes = PdfDocument.Create(Options()).Columns(content => content.AddParagraph(p =>
+            p.AddText("Line1\nLine2\nLine3\nLine4\nLine5"), style: Paragraph()),
             new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = true }).ToBytes();
         using var read = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Equal(1, read.NumberOfPages);
@@ -95,10 +95,10 @@ public class PdfSequentialColumnFlowTests {
             if (kind == "heading") content.H1(text, style: new PdfHeadingStyle {
                 FontSize = global::OfficeIMO.OfficeLength.Points(12), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), KeepWithNext = false
             });
-            if (kind == "list") content.RichNumbered(new[] { new PdfListItem(text) }, style: new PdfListStyle {
+            if (kind == "list") content.AddNumberedList(new[] { new PdfListItem(text) }, style: new PdfListStyle {
                 LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), ItemSpacing = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             });
-            if (kind == "table") content.Table(new[] { new[] { new PdfTableCell(text) } }, style: new PdfTableStyle {
+            if (kind == "table") content.AddTable(new[] { new[] { new PdfTableCell(text) } }, style: new PdfTableStyle {
                 HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), FontSize = global::OfficeIMO.OfficeLength.Points(12), LineHeight = 20D / 12D,
                 BorderWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             });
@@ -120,7 +120,7 @@ public class PdfSequentialColumnFlowTests {
     [Fact]
     public void Columns_RewrapsTheRemainingParagraphInAnUnequalWidthFrame() {
         byte[] bytes = PdfDocument.Create(Options()).Columns(content =>
-            content.Paragraph(p => p.Text(string.Join(" ", Enumerable.Range(1, 100).Select(index => "m" + index.ToString("D3")))), style: Paragraph()),
+            content.AddParagraph(p => p.AddText(string.Join(" ", Enumerable.Range(1, 100).Select(index => "m" + index.ToString("D3")))), style: Paragraph()),
             new PdfMultiColumnOptions {
                 BalanceLastPage = false,
                 ColumnDefinitions = new[] {
@@ -137,7 +137,7 @@ public class PdfSequentialColumnFlowTests {
     [Fact]
     public void Columns_ListContinuesInTheNextColumnBeforeStartingAnotherPage() {
         byte[] bytes = PdfDocument.Create(Options()).Columns(content =>
-            content.RichNumbered(Enumerable.Range(1, 24).Select(index => new PdfListItem("List" + index.ToString("D2"))),
+            content.AddNumberedList(Enumerable.Range(1, 24).Select(index => new PdfListItem("List" + index.ToString("D2"))),
                 style: new PdfListStyle { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), ItemSpacing = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }),
             new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = false }).ToBytes();
         using var read = UglyToad.PdfPig.PdfDocument.Open(bytes);
@@ -150,10 +150,10 @@ public class PdfSequentialColumnFlowTests {
     [Fact]
     public void Columns_KeepWithNextReservesTheNextParagraphsFirstLine() {
         byte[] bytes = PdfDocument.Create(Options()).Columns(content => {
-            content.Paragraph(p => p.Text(string.Join("\n", Enumerable.Range(1, 15).Select(index => "Prelude" + index))), style: Paragraph());
+            content.AddParagraph(p => p.AddText(string.Join("\n", Enumerable.Range(1, 15).Select(index => "Prelude" + index))), style: Paragraph());
             var heading = Paragraph(); heading.KeepWithNext = true;
-            content.Paragraph(p => p.Text("KeptHeading"), style: heading);
-            content.Paragraph(p => p.Text("BodyFirst\nBodySecond\nBodyThird"), style: Paragraph());
+            content.AddParagraph(p => p.AddText("KeptHeading"), style: heading);
+            content.AddParagraph(p => p.AddText("BodyFirst\nBodySecond\nBodyThird"), style: Paragraph());
         }, new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = false }).ToBytes();
         using var read = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Equal(1, read.NumberOfPages);
@@ -164,7 +164,7 @@ public class PdfSequentialColumnFlowTests {
     [Fact]
     public void Columns_TableContinuesInTheNextColumnBeforeStartingAnotherPage() {
         byte[] bytes = PdfDocument.Create(Options()).Columns(content =>
-            content.Table(Enumerable.Range(1, 8).Select(row => new[] {
+            content.AddTable(Enumerable.Range(1, 8).Select(row => new[] {
                 new PdfTableCell(string.Join("\n", Enumerable.Range(1, 3).Select(line => "Row" + row + "Line" + line)))
             }), style: new PdfTableStyle {
                 HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0),

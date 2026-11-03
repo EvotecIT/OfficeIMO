@@ -27,7 +27,7 @@ public sealed class PdfProductionPreflightTests {
     [Fact]
     public void ProposedPageBoxesRequireSelectionAndAreReinspectedAfterRewrite() {
         PdfDocument source = PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300D), PageHeight = global::OfficeIMO.OfficeLength.Points(200D) })
-            .Paragraph(paragraph => paragraph.Text("Print proof"))
+            .Paragraph(paragraph => paragraph.AddText("Print proof"))
             .ToBytes());
         PdfProductionPreflightReport report = source.Proof.PreflightProduction(
             new PdfProductionPreflightOptions { Profile = PdfProductionPreflightProfile.PdfX4Candidate });
@@ -49,9 +49,9 @@ public sealed class PdfProductionPreflightTests {
     [Fact]
     public void SelectedPageBoxFixupsApplyAcrossPagesInOneResult() {
         PdfDocument source = PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300D), PageHeight = global::OfficeIMO.OfficeLength.Points(200D) })
-            .Paragraph(paragraph => paragraph.Text("First"))
+            .Paragraph(paragraph => paragraph.AddText("First"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second"))
+            .Paragraph(paragraph => paragraph.AddText("Second"))
             .ToBytes());
         PdfProductionPreflightReport report = source.Proof.PreflightProduction();
 
@@ -68,7 +68,7 @@ public sealed class PdfProductionPreflightTests {
     [Fact]
     public void PageBoxFixupReopensGrowthBeyondSourceInputLimit() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300D), PageHeight = global::OfficeIMO.OfficeLength.Points(200D) })
-            .Paragraph(paragraph => paragraph.Text("Trim proof")).ToBytes();
+            .Paragraph(paragraph => paragraph.AddText("Trim proof")).ToBytes();
         var limits = new PdfLoadOptions { Limits = new PdfReadLimits { MaxInputBytes = bytes.LongLength } };
         PdfProductionPreflightReport report = PdfDocument.Load(bytes, limits).Proof.PreflightProduction();
 
@@ -84,7 +84,7 @@ public sealed class PdfProductionPreflightTests {
     public void SelectedPageReportsLowImageResolutionAndDeviceColorWithPageGeometry() {
         byte[] image = PdfPngTestImages.CreateRgbPng(30, 90, 180);
         PdfDocument source = PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) })
-            .Paragraph(paragraph => paragraph.Text("First page"))
+            .Paragraph(paragraph => paragraph.AddText("First page"))
             .PageBreak()
             .Canvas(canvas => canvas.Image(image, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D)))
             .ToBytes());
@@ -144,7 +144,7 @@ public sealed class PdfProductionPreflightTests {
     [Fact]
     public void DisplayProfileDoesNotSatisfyPrintOutputIntent() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions().SetSrgbOutputIntent())
-            .Paragraph(paragraph => paragraph.Text("Screen profile"))
+            .Paragraph(paragraph => paragraph.AddText("Screen profile"))
             .ToBytes();
 
         PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction();
@@ -156,7 +156,7 @@ public sealed class PdfProductionPreflightTests {
     [Fact]
     public void PdfX4CandidateRejectsRgbPrintOutputIntent() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions().SetSrgbOutputIntent())
-            .Paragraph(paragraph => paragraph.Text("Output profile")).ToBytes();
+            .Paragraph(paragraph => paragraph.AddText("Output profile")).ToBytes();
         byte[] rgbPrintProfile = IccMabTestProfiles.CreateRgbXyz16OutputDeviceWithDistinctOutputIntents();
         byte[] rewritten = PdfDocumentObjectGraphRewriter.Rewrite(bytes, null, null, (objects, security) => {
             PdfDictionary catalog = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values,
@@ -182,7 +182,7 @@ public sealed class PdfProductionPreflightTests {
 
     [Fact]
     public void PrintableFreeTextWithoutNormalAppearanceMarksFontEvidenceIncomplete() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Page")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Page")).ToBytes();
         PdfDocument annotated = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
             Subtype = "FreeText", Contents = "Printable text", GenerateAppearance = false, Flags = 4
         }).ToDocument();
@@ -198,7 +198,7 @@ public sealed class PdfProductionPreflightTests {
     [InlineData(false)]
     [InlineData(true)]
     public void PrintableAnnotationMarksColorAndResolutionEvidenceIncomplete(bool generateAppearance) {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Page")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Page")).ToBytes();
         PdfDocument annotated = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
             Subtype = "Text", Contents = "Print note", GenerateAppearance = generateAppearance, Flags = 4
         }).ToDocument();
@@ -577,7 +577,7 @@ public sealed class PdfProductionPreflightTests {
 
     [Fact]
     public void MalformedCatalogOutputIntentIsInvalidRatherThanMissing() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Print source")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Print source")).ToBytes();
         byte[] malformed = PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
             PdfDictionary catalog = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values,
                 static item => item.Value is PdfDictionary dictionary &&
@@ -595,7 +595,7 @@ public sealed class PdfProductionPreflightTests {
     [Fact]
     public void GeneralPrintRejectsOutputIntentWithoutSubtype() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions().SetSrgbOutputIntent())
-            .Paragraph(paragraph => paragraph.Text("Print source")).ToBytes();
+            .Paragraph(paragraph => paragraph.AddText("Print source")).ToBytes();
         byte[] altered = PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
             PdfDictionary catalog = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values,
                 static item => item.Value is PdfDictionary dictionary &&

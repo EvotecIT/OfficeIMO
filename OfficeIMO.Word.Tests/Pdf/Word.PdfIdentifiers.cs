@@ -54,7 +54,7 @@ public sealed class WordPdfIdentifierTests {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = global::OfficeIMO.OfficeLength.Points(width + 40), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
-        }.UseTextFallbacks()).Paragraph(paragraph => paragraph.Link(display, uri)).ToBytes();
+        }.UseTextFallbacks()).Paragraph(paragraph => paragraph.AddLink(display, uri)).ToBytes();
         Assert.Equal(identifier, PdfReadDocument.Open(pdf).ExtractText().Trim());
         Assert.Contains(uri, PdfInspector.Inspect(pdf).LinkUris);
         string? proof = Environment.GetEnvironmentVariable("OFFICEIMO_IDENTIFIER_PROOF_DIR");

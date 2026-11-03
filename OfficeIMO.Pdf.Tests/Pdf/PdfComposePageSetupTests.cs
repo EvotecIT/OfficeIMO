@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests.Pdf {
                 page.Size(global::OfficeIMO.OfficeLength.Points(1000), global::OfficeIMO.OfficeLength.Points(1000));
                 page.Content(content =>
                     content.Column(column =>
-                        column.Item().Paragraph(p => p.Text("Large page after margins."))));
+                        column.Item().AddParagraph(p => p.AddText("Large page after margins."))));
             }));
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(doc.ToBytes()));
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests.Pdf {
                     page.Margin(global::OfficeIMO.OfficeLength.Points(100));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("Impossible frame."))));
+                            column.Item().AddParagraph(p => p.AddText("Impossible frame."))));
                 })).ToBytes());
 
             Assert.Contains("PDF margins must leave a positive content width.", exception.Message, StringComparison.Ordinal);
@@ -135,12 +135,12 @@ namespace OfficeIMO.Tests.Pdf {
                 .Size(PdfPageSizes.A5)
                 .Landscape()
                 .Margin(PdfPageMargins.Narrow)
-                .Paragraph(p => p.Text("Document default page setup."));
+                .Paragraph(p => p.AddText("Document default page setup."));
 
             doc.Compose(c => c.Page(page =>
                 page.Content(content =>
                     content.Column(column =>
-                        column.Item().Paragraph(p => p.Text("Composed page inherits setup."))))));
+                        column.Item().AddParagraph(p => p.AddText("Composed page inherits setup."))))));
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(doc.ToBytes()));
             Assert.Equal(2, pdf.NumberOfPages);
@@ -167,7 +167,7 @@ namespace OfficeIMO.Tests.Pdf {
                 page.Margin(PdfPageMargins.Narrow);
                 page.Content(content =>
                     content.Column(column =>
-                        column.Item().Paragraph(p => p.Text("Narrow margin body."))));
+                        column.Item().AddParagraph(p => p.AddText("Narrow margin body."))));
             }));
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(doc.ToBytes()));

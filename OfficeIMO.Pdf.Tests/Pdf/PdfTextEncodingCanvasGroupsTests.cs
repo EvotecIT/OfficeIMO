@@ -67,7 +67,7 @@ public sealed class PdfTextEncodingCanvasGroupsTests {
             }
         }
         PdfDocument document = PdfDocument.Create();
-        document.Compose(builder => builder.Content(content => content.TableDeferred(CreateRows, batchSize: 1)));
+        document.Compose(builder => builder.Content(content => content.AddDeferredTable(CreateRows, batchSize: 1)));
 
         OperationCanceledException exception = Assert.Throws<OperationCanceledException>(() =>
             document.AnalyzeTextEncoding(cancellation.Token));

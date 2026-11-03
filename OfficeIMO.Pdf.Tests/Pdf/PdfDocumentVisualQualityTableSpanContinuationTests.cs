@@ -76,7 +76,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { PdfTableCell.Merge("Group", rowSpan: 2), PdfTableCell.TextCell("A1"), PdfTableCell.TextCell("B1") },
                                     new[] { PdfTableCell.TextCell("A2"), PdfTableCell.TextCell("B2") },
                                     new[] { PdfTableCell.TextCell("C0"), PdfTableCell.TextCell("C1"), PdfTableCell.TextCell("C2") }
@@ -162,7 +162,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { PdfTableCell.Merge("Group", rowSpan: 2), PdfTableCell.TextCell("A1"), PdfTableCell.TextCell("B1") },
                                     new[] { PdfTableCell.TextCell("A2"), PdfTableCell.TextCell("B2") },
                                     new[] { PdfTableCell.TextCell("C0"), PdfTableCell.TextCell("C1"), PdfTableCell.TextCell("C2") }
@@ -249,7 +249,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { PdfTableCell.Span("Group", 2), PdfTableCell.TextCell("B1") },
                                     new[] { PdfTableCell.TextCell("A2"), PdfTableCell.TextCell("B2"), PdfTableCell.TextCell("C2") }
                                 }, style: style))))))
@@ -328,7 +328,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { PdfTableCell.Merge("Group", rowSpan: 2), PdfTableCell.TextCell("A1"), PdfTableCell.TextCell("B1") },
                                     new[] { PdfTableCell.TextCell("A2"), PdfTableCell.TextCell("B2") },
                                     new[] { PdfTableCell.TextCell("C0"), PdfTableCell.TextCell("C1"), PdfTableCell.TextCell("C2") }
@@ -414,7 +414,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { PdfTableCell.Merge("Group", rowSpan: 2), PdfTableCell.TextCell("A1"), PdfTableCell.TextCell("B1") },
                                     new[] { PdfTableCell.TextCell("A2"), PdfTableCell.TextCell("B2") }
                                 }, style: style))))))

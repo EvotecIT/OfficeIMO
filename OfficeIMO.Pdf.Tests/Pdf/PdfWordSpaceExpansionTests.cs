@@ -76,9 +76,9 @@ public sealed class PdfWordSpaceExpansionTests {
                 PageWidth = global::OfficeIMO.OfficeLength.Points(612D), PageHeight = global::OfficeIMO.OfficeLength.Points(792D), MarginLeft = global::OfficeIMO.OfficeLength.Points(72D), MarginRight = global::OfficeIMO.OfficeLength.Points(360D),
                 MarginTop = global::OfficeIMO.OfficeLength.Points(72D), MarginBottom = global::OfficeIMO.OfficeLength.Points(72D), DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D), CompressContentStreams = false
-            }).Compose(document => document.Content(content => content.Paragraph(paragraph => {
-                if (anchored) paragraph.Text("TAG").Tab();
-                paragraph.Runs(runs).LineBreak().Text("NEXT");
+            }).Compose(document => document.Content(content => content.AddParagraph(paragraph => {
+                if (anchored) { paragraph.AddText("TAG"); paragraph.AddTab(); }
+                paragraph.AddRuns(runs); paragraph.AddLineBreak(); paragraph.AddText("NEXT");
             }, OfficeAlignment.Justify, style: style))).ToBytes();
         }
         List<List<Letter>> Lines(byte[] bytes) {
@@ -121,7 +121,7 @@ public sealed class PdfWordSpaceExpansionTests {
         PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(width + 40D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D),
             MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D), CompressContentStreams = false })
-        .Paragraph(p => p.Runs(runs), OfficeAlignment.Justify, style: new PdfParagraphStyle {
+        .Paragraph(p => p.AddRuns(runs), OfficeAlignment.Justify, style: new PdfParagraphStyle {
             UseWordJustificationSpacing = native, JustifyLastLine = lastLine, TextWhitespaceMode = whitespace }).ToBytes();
 
     private static double Span(IReadOnlyList<Letter> letters) => letters[letters.Count - 1].EndBaseLine.X - letters[0].StartBaseLine.X;

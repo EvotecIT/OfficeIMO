@@ -99,9 +99,9 @@ public class PdfReadLimitTests {
     [Fact]
     public void OneShotExternalSignatureEnforcesStoredPageLimitBeforeCallingSigner() {
         byte[] twoPages = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("First page"))
+            .Paragraph(paragraph => paragraph.AddText("First page"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second page"))
+            .Paragraph(paragraph => paragraph.AddText("Second page"))
             .ToBytes();
         var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxPages = 1 }
@@ -258,7 +258,7 @@ public class PdfReadLimitTests {
     public void MergeAllowsItsOwnedOutputBeyondThePrimarySourceBudget() {
         byte[] first = BuildPdf();
         byte[] second = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Second merge source"))
+            .Paragraph(paragraph => paragraph.AddText("Second merge source"))
             .ToBytes();
         var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxInputBytes = first.Length }
@@ -276,7 +276,7 @@ public class PdfReadLimitTests {
     public void MergeComposesSourcePageLimitsForReadback() {
         byte[] first = BuildPdf();
         byte[] second = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Second merge source"))
+            .Paragraph(paragraph => paragraph.AddText("Second merge source"))
             .ToBytes();
         var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxPages = 1 }
@@ -291,8 +291,8 @@ public class PdfReadLimitTests {
 
     [Fact]
     public void MergeWithRetainsComposedPageAndTextSearchBudgets() {
-        byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("owned match")).ToBytes();
-        byte[] second = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("owned match")).ToBytes();
+        byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("owned match")).ToBytes();
+        byte[] second = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("owned match")).ToBytes();
         var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxPages = 1, MaxTextSearchMatches = 1 }
         };
@@ -341,9 +341,9 @@ public class PdfReadLimitTests {
     [Fact]
     public void PersistedExternalSignatureCompletionEnforcesStoredPageLimitsBeforeMutation() {
         byte[] twoPages = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("First page"))
+            .Paragraph(paragraph => paragraph.AddText("First page"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second page"))
+            .Paragraph(paragraph => paragraph.AddText("Second page"))
             .ToBytes();
         PdfExternalSignaturePreparation preparation = PdfDocument.Load(twoPages)
             .PrepareExternalSignature(new PdfExternalSignatureOptions {
@@ -1217,7 +1217,7 @@ public class PdfReadLimitTests {
         byte[] blockedSource = BuildMalformedFlatePageContentPdf();
         var area = new PdfRedactionArea(1, 0, 0, 200, 200, "fail-closed");
         PdfRedactionPlan blockedPlan = PdfRedactionPlanner.Plan(blockedSource, new[] { area });
-        byte[] readableRewrite = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Readable rewrite")).ToBytes();
+        byte[] readableRewrite = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Readable rewrite")).ToBytes();
 
         PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
             readableRewrite,
@@ -1346,9 +1346,9 @@ public class PdfReadLimitTests {
     [Fact]
     public void PageAndPageTreeBudgetsStopTraversal() {
         byte[] twoPages = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("First"))
+            .Paragraph(paragraph => paragraph.AddText("First"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second"))
+            .Paragraph(paragraph => paragraph.AddText("Second"))
             .ToBytes();
         byte[] nestedTree = BuildNestedPageTreePdf();
 
@@ -1565,7 +1565,7 @@ public class PdfReadLimitTests {
     }
 
     private static byte[] BuildPdf() => PdfDocument.Create()
-        .Paragraph(paragraph => paragraph.Text("Bounded parser source"))
+        .Paragraph(paragraph => paragraph.AddText("Bounded parser source"))
         .ToBytes();
 
     private static byte[] BuildObjectPdf(string body) => System.Text.Encoding.ASCII.GetBytes(

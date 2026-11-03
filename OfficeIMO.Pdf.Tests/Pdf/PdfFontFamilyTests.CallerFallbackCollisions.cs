@@ -25,8 +25,7 @@ public partial class PdfFontFamilyTests {
         var fallbackOptions = baselineOptions.Clone().RegisterEmbeddedFontFallbacks(fallbacks);
 
         byte[] Render(PdfCreateOptions options) => PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.FontFamily("Caller Family")
-                .Bold(bold).Italic(italic).Text("AB"))
+            .Paragraph(paragraph => paragraph.AddText("AB").SetBold(bold).SetItalic(italic).SetFontFamily("Caller Family"))
             .ToBytes();
 
         double baseline = GetCallerCollisionAdvance(Render(baselineOptions), "AB");
@@ -58,7 +57,7 @@ public partial class PdfFontFamilyTests {
         // the authored family also covers A, but has a different advance.
         foreach (PdfCreateOptions configured in new[] { options, options.Clone() }) {
             byte[] pdf = PdfDocument.Create(configured)
-                .Paragraph(paragraph => paragraph.Runs(runs))
+                .Paragraph(paragraph => paragraph.AddRuns(runs))
                 .ToBytes();
             Assert.InRange(GetCallerCollisionAdvance(pdf, "A\u03a9"), 5.999D, 6.001D);
         }
@@ -74,7 +73,7 @@ public partial class PdfFontFamilyTests {
             }));
 
         byte[] pdf = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.FontFamily("Caller Family").Bold(true).Text("A\u03a9"))
+            .Paragraph(paragraph => paragraph.AddText("A\u03a9").SetBold().SetFontFamily("Caller Family"))
             .ToBytes();
 
         // Covered A uses the authored bold face (8pt); Omega needs the fallback
@@ -103,7 +102,7 @@ public partial class PdfFontFamilyTests {
         IReadOnlyList<PdfTextRun> runs = latest!.PlanTextRuns("A\u03a9");
         Assert.Empty(PdfTextDiagnostics.AnalyzeGeneratedTextRuns(runs, options, PdfStandardFont.Helvetica));
         var document = PdfDocument.Create(options.Clone())
-            .Paragraph(paragraph => paragraph.Runs(runs));
+            .Paragraph(paragraph => paragraph.AddRuns(runs));
         Assert.Empty(document.AnalyzeTextEncoding());
         byte[] pdf = document.ToBytes();
         Assert.InRange(GetCallerCollisionAdvance(pdf, "A\u03a9"), 5.999D, 6.001D);
@@ -120,8 +119,8 @@ public partial class PdfFontFamilyTests {
         options.RegisterNamedFontFamily(CreateCallerCollisionFamily());
 
         byte[] pdf = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Runs(fallbacks.PlanTextRuns("A\u03a9")))
-            .Paragraph(paragraph => paragraph.FontFamily("Caller Family").Bold().Text("A\u03a9"))
+            .Paragraph(paragraph => paragraph.AddRuns(fallbacks.PlanTextRuns("A\u03a9")))
+            .Paragraph(paragraph => paragraph.AddText("A\u03a9").SetBold().SetFontFamily("Caller Family"))
             .ToBytes();
         IReadOnlyList<PdfTextGlyph> glyphs = ReadCallerCollisionGlyphs(pdf);
         Assert.Equal(new[] { "A", "\u03a9", "A", "\u03a9" }, glyphs.Select(glyph => glyph.Text));
@@ -146,7 +145,7 @@ public partial class PdfFontFamilyTests {
         Assert.Equal(64, options.NamedFontFamilies.Count);
         Assert.Null(options.EmbeddedFontFallbacks);
         byte[] pdf = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.FontFamily("Caller Family").Bold().Text("AB"))
+            .Paragraph(paragraph => paragraph.AddText("AB").SetBold().SetFontFamily("Caller Family"))
             .ToBytes();
         Assert.InRange(GetCallerCollisionAdvance(pdf, "AB"), 15.999D, 16.001D);
     }
@@ -163,7 +162,7 @@ public partial class PdfFontFamilyTests {
         options.ClearNamedFontFamilies().RegisterNamedFontFamily(CreateCallerCollisionFamily());
 
         byte[] pdf = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Runs(fallbacks.PlanTextRuns("A")))
+            .Paragraph(paragraph => paragraph.AddRuns(fallbacks.PlanTextRuns("A")))
             .ToBytes();
         Assert.Null(options.EmbeddedFontFallbacks);
         Assert.Single(options.NamedFontFamilies);
@@ -174,7 +173,7 @@ public partial class PdfFontFamilyTests {
             PdfTextDiagnostics.AnalyzeGeneratedTextRuns(missingRuns, options, PdfStandardFont.Helvetica));
         Assert.Equal("U+03A9", direct.CodePoint);
         var missingDocument = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Runs(missingRuns));
+            .Paragraph(paragraph => paragraph.AddRuns(missingRuns));
         Assert.Equal("U+03A9", Assert.Single(missingDocument.AnalyzeTextEncoding()).CodePoint);
         Assert.Throws<PdfTextEncodingPreflightException>(() => missingDocument.ToBytes());
         Assert.Single(options.NamedFontFamilies);
@@ -190,7 +189,7 @@ public partial class PdfFontFamilyTests {
         fallbacks.RegisterFonts(options);
 
         byte[] pdf = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.FontFamily("Caller Family").Bold().Text("A\u03a9"))
+            .Paragraph(paragraph => paragraph.AddText("A\u03a9").SetBold().SetFontFamily("Caller Family"))
             .ToBytes();
         Assert.Single(options.NamedFontFamilies);
         Assert.InRange(GetCallerCollisionAdvance(pdf, "A\u03a9"), 5.999D, 6.001D);
@@ -216,12 +215,12 @@ public partial class PdfFontFamilyTests {
             ? plan.ToNamedTextRuns(new[] { "Caller Family" }, template)
             : plan.ToTextRuns(new[] { PdfStandardFont.TimesRoman }, template);
         PdfTextRun expected = PdfTextRun.Normal("A",
-                font: namedMapping ? null : PdfStandardFont.TimesRoman,
+                standardFont: namedMapping ? null : PdfStandardFont.TimesRoman,
                 fontFamily: namedMapping ? "Caller Family" : null)
             .WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1)).WithHorizontalTextScaling(50);
 
         byte[] Render(IReadOnlyList<PdfTextRun> textRuns) => PdfDocument.Create(options.Clone())
-            .Paragraph(paragraph => paragraph.Runs(textRuns)).ToBytes();
+            .Paragraph(paragraph => paragraph.AddRuns(textRuns)).ToBytes();
         double baseline = GetCallerCollisionAdvance(Render(new[] { expected }), "A");
         Assert.InRange(GetCallerCollisionAdvance(Render(runs), "A"), baseline - 0.001D, baseline + 0.001D);
     }
@@ -258,9 +257,9 @@ public partial class PdfFontFamilyTests {
         Assert.Equal(callerData, options.NamedFontFamilies[originalFamily.FamilyName].Regular);
         Assert.Equal(callerData, Assert.Single(options.EmbeddedFontFallbacks!.Candidates).DataSnapshot);
         byte[] pdf = PdfDocument.Create(options).Compose(document => document.Content(content => content
-            .Paragraph(paragraph => paragraph.FontFamily(originalFamily.FamilyName).Text("A\u03a9"))
-            .Paragraph(paragraph => paragraph.FontFamily(originalFamily.FamilyName).Bold().Text("A\u03a9"))
-            .Paragraph(paragraph => paragraph.Runs(fallbacks.PlanTextRuns("A\u03a9")))))
+            .AddParagraph(paragraph => paragraph.AddText("A\u03a9").SetFontFamily(originalFamily.FamilyName))
+            .AddParagraph(paragraph => paragraph.AddText("A\u03a9").SetBold().SetFontFamily(originalFamily.FamilyName))
+            .AddParagraph(paragraph => paragraph.AddRuns(fallbacks.PlanTextRuns("A\u03a9")))))
             .ToBytes();
         Assert.InRange(GetCallerCollisionAdvance(pdf, "A\u03a9A\u03a9A\u03a9"), 17.999D, 18.001D);
     }
@@ -290,7 +289,7 @@ public partial class PdfFontFamilyTests {
         Assert.Equal(callerFamily.Regular, options.NamedFontFamilies["Other Family 62"].Regular);
         Assert.Equal(profileFamily, Assert.Single(options.EmbeddedFontFallbacks!.Candidates).FontName);
         byte[] pdf = PdfDocument.Create(options).Compose(document => document.Content(content => content
-            .Paragraph(paragraph => paragraph.FontFamily(profileFamily).Text("A\u03a9"))))
+            .AddParagraph(paragraph => paragraph.AddText("A\u03a9").SetFontFamily(profileFamily))))
             .ToBytes();
         Assert.InRange(GetCallerCollisionAdvance(pdf, "A\u03a9"), 5.999D, 6.001D);
     }
@@ -332,8 +331,8 @@ public partial class PdfFontFamilyTests {
         }
 
         PdfDocument document = PdfDocument.Create(options.Clone());
-        if (runs == null) document.Paragraph(paragraph => paragraph.FontFamily(familyReference).Text("AB"));
-        else document.Paragraph(paragraph => paragraph.Runs(runs));
+        if (runs == null) document.Paragraph(paragraph => paragraph.AddText("AB").SetFontFamily(familyReference));
+        else document.Paragraph(paragraph => paragraph.AddRuns(runs));
         byte[] pdf = document.ToBytes();
         Assert.InRange(GetCallerCollisionAdvance(pdf, "AB"), 17.999D, 18.001D);
         IReadOnlyList<PdfTextGlyph> glyphs = ReadCallerCollisionGlyphs(pdf);

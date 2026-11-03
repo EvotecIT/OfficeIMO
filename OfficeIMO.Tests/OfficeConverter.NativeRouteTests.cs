@@ -78,7 +78,7 @@ public sealed class OfficeConverterNativeRouteTests {
     [Fact]
     public void SourcePasswordAndInputLimitApplyToEncryptedPdfReconstruction() {
         using var pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("synthetic-open")));
-        pdf.Compose(document => document.Content(content => content.Text("Encrypted PDF input")));
+        pdf.Compose(document => document.Content(content => content.AddParagraph("Encrypted PDF input")));
         byte[] bytes = pdf.ToBytes(new PdfSaveOptions { AllowLoss = true });
         using var source = new MemoryStream(bytes);
         using var target = new MemoryStream();

@@ -91,7 +91,7 @@ public class PdfDocumentWorkflowTests {
                 new[] {
                     new PdfTableCell("Alpha"),
                     PdfTableCell.RichTextCell(new[] {
-                        PdfTextRun.Normal(longValue, fontSize: global::OfficeIMO.OfficeLength.Points(30), font: PdfStandardFont.Courier)
+                        PdfTextRun.Normal(longValue, fontSize: global::OfficeIMO.OfficeLength.Points(30), standardFont: PdfStandardFont.Courier)
                     })
                 }
             }, style: new PdfTableStyle {
@@ -124,7 +124,7 @@ public class PdfDocumentWorkflowTests {
                 new[] {
                     new PdfTableCell("Alpha"),
                     PdfTableCell.RichTextCell(new[] {
-                        PdfTextRun.Normal(longValue, fontSize: global::OfficeIMO.OfficeLength.Points(8), font: PdfStandardFont.Courier)
+                        PdfTextRun.Normal(longValue, fontSize: global::OfficeIMO.OfficeLength.Points(8), standardFont: PdfStandardFont.Courier)
                     })
                 }
             }, style: new PdfTableStyle {
@@ -160,7 +160,7 @@ public class PdfDocumentWorkflowTests {
                 new[] {
                     new PdfTableCell("Alpha"),
                     PdfTableCell.RichTextCell(new[] {
-                        PdfTextRun.Normal(longValue, fontSize: global::OfficeIMO.OfficeLength.Points(30), font: PdfStandardFont.Courier)
+                        PdfTextRun.Normal(longValue, fontSize: global::OfficeIMO.OfficeLength.Points(30), standardFont: PdfStandardFont.Courier)
                     })
                 }
             }, style: new PdfTableStyle {
@@ -195,7 +195,7 @@ public class PdfDocumentWorkflowTests {
                 new[] {
                     new PdfTableCell("Alpha"),
                     PdfTableCell.RichTextCell(new[] {
-                        PdfTextRun.Normal(tinyValue, fontSize: global::OfficeIMO.OfficeLength.Points(4), font: PdfStandardFont.Courier),
+                        PdfTextRun.Normal(tinyValue, fontSize: global::OfficeIMO.OfficeLength.Points(4), standardFont: PdfStandardFont.Courier),
                         PdfTextRun.Normal(longValue)
                     })
                 }
@@ -225,7 +225,7 @@ public class PdfDocumentWorkflowTests {
                     new PdfTableCell("Alpha"),
                     PdfTableCell.RichTextCell(new[] {
                         PdfTextRun.Normal(prefix),
-                        PdfTextRun.Normal(largeValue, fontSize: global::OfficeIMO.OfficeLength.Points(30), font: PdfStandardFont.Courier)
+                        PdfTextRun.Normal(largeValue, fontSize: global::OfficeIMO.OfficeLength.Points(30), standardFont: PdfStandardFont.Courier)
                     })
                 }
             }, style: new PdfTableStyle {
@@ -260,7 +260,7 @@ public class PdfDocumentWorkflowTests {
                     new PdfTableCell("Alpha"),
                     PdfTableCell.RichTextCell(new[] {
                         PdfTextRun.Normal(prefix),
-                        PdfTextRun.Normal(largeValue, fontSize: global::OfficeIMO.OfficeLength.Points(20), font: PdfStandardFont.Courier)
+                        PdfTextRun.Normal(largeValue, fontSize: global::OfficeIMO.OfficeLength.Points(20), standardFont: PdfStandardFont.Courier)
                     })
                 }
             }, style: new PdfTableStyle {
@@ -290,7 +290,7 @@ public class PdfDocumentWorkflowTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Name", "Value" },
                                     new[] { "Alpha", longValue }
                                 }, style: new PdfTableStyle {
@@ -365,7 +365,7 @@ public class PdfDocumentWorkflowTests {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 FileVersion = PdfFileVersion.Pdf20
             })
-            .Paragraph(paragraph => paragraph.Text("PDF 2.0"))
+            .Paragraph(paragraph => paragraph.AddText("PDF 2.0"))
             .ToBytes();
 
         Assert.StartsWith("%PDF-2.0", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
@@ -431,7 +431,7 @@ public class PdfDocumentWorkflowTests {
             .TaggedPdfCatalogMarkers()
             .Language("en-US")
             .Meta(title: "Reader catalog metadata", author: "OfficeIMO", subject: "Reader inspection", keywords: "xmp, intent")
-            .Paragraph(paragraph => paragraph.Text("Reader catalog metadata workflow"))
+            .Paragraph(paragraph => paragraph.AddText("Reader catalog metadata workflow"))
             .ToBytes();
 
         PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(source));
@@ -483,7 +483,7 @@ public class PdfDocumentWorkflowTests {
         byte[] payload = Encoding.UTF8.GetBytes("attachment metadata payload");
         PdfDocument attachmentDocument = PdfDocument.Load(new System.IO.MemoryStream(PdfDocument.Create()
             .AttachFile("payload.txt", payload, "text/plain", PdfAssociatedFileRelationship.Data, "Workflow attachment")
-            .Paragraph(paragraph => paragraph.Text("Attachment metadata workflow"))
+            .Paragraph(paragraph => paragraph.AddText("Attachment metadata workflow"))
             .ToBytes()));
 
         PdfAttachmentInfo attachment = Assert.Single(attachmentDocument.Reader.AttachmentMetadata());
@@ -507,7 +507,7 @@ public class PdfDocumentWorkflowTests {
     [Fact]
     public void Open_ExposesSignatureValidationAndAppendOnlyMutationPolicy() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("External signing workflow"))
+            .Paragraph(paragraph => paragraph.AddText("External signing workflow"))
             .ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
             source,
@@ -838,7 +838,7 @@ public class PdfDocumentWorkflowTests {
         byte[] payload = Encoding.UTF8.GetBytes("attachment payload");
         byte[] source = PdfDocument.Create()
             .AttachFile("payload.txt", payload, "text/plain", PdfAssociatedFileRelationship.Data, "Workflow attachment")
-            .Paragraph(paragraph => paragraph.Text("Attachment workflow"))
+            .Paragraph(paragraph => paragraph.AddText("Attachment workflow"))
             .ToBytes();
 
         PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(source));
@@ -867,7 +867,7 @@ public class PdfDocumentWorkflowTests {
     [Fact]
     public void FluentReader_ExposesGenericAnnotationReadback() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Annotation workflow"))
+            .Paragraph(paragraph => paragraph.AddText("Annotation workflow"))
             .TextAnnotation("Review note", width: 20, height: 20, icon: PdfTextAnnotationIcon.Note, open: true)
             .FreeTextAnnotation("Visible reviewer note", width: 140, height: 34, fontSize: 11, textAlign: OfficeAlignment.Center)
             .ToBytes();
@@ -922,7 +922,7 @@ public class PdfDocumentWorkflowTests {
             })
             .Meta(title: "Diagnostic Report")
             .H1("Diagnostic Report")
-            .Paragraph(paragraph => paragraph.Text("This paragraph should appear in structured text and redaction planning."))
+            .Paragraph(paragraph => paragraph.AddText("This paragraph should appear in structured text and redaction planning."))
             .ToBytes();
 
         PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(source));
@@ -1273,9 +1273,9 @@ public class PdfDocumentWorkflowTests {
     public void ExistingDocumentFacade_PreservesPerDocumentReadContractsAcrossReparsingOperations() {
         byte[] onePage = BuildPdf("One page", "First source");
         byte[] twoPages = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Page one"))
+            .Paragraph(paragraph => paragraph.AddText("Page one"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Page two"))
+            .Paragraph(paragraph => paragraph.AddText("Page two"))
             .ToBytes();
         var onePageLimit = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxPages = 1 }
@@ -1301,7 +1301,7 @@ public class PdfDocumentWorkflowTests {
             .TaggedPdfCatalogMarkers()
             .Language("en-US")
             .H1("Tagged append-only heading")
-            .Paragraph(paragraph => paragraph.Text("Tagged append-only body."))
+            .Paragraph(paragraph => paragraph.AddText("Tagged append-only body."))
             .ToBytes();
 
         PdfDocument tagged = PdfDocument.Load(new System.IO.MemoryStream(source));
@@ -1450,7 +1450,7 @@ public class PdfDocumentWorkflowTests {
     [Fact]
     public void SaveResult_CarriesTextEncodingDiagnosticsForGeneratedPdfFailures() {
         PdfDocument document = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Snowman \u2603"));
+            .Paragraph(paragraph => paragraph.AddText("Snowman \u2603"));
         using var stream = new MemoryStream();
 
         PdfBytesResult bytesResult = document.SerializeWithEvidence();
@@ -1514,7 +1514,7 @@ public class PdfDocumentWorkflowTests {
         };
 
         PdfDocument document = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Paragraph \u2603"))
+            .Paragraph(paragraph => paragraph.AddText("Paragraph \u2603"))
             .H1("Heading \U0001F680")
             .Bullets(new[] { "Bullet \u266b" })
             .Table(new[] { new[] { "Table \u25a0" } }, style: new PdfTableStyle {
@@ -1653,7 +1653,7 @@ public class PdfDocumentWorkflowTests {
     [Fact]
     public void ToBytes_ThrowsFullGeneratedTextPreflightBeforeRendering() {
         PdfDocument document = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Paragraph \u2603"))
+            .Paragraph(paragraph => paragraph.AddText("Paragraph \u2603"))
             .H1("Heading \U0001F680");
 
         ArgumentException exception = Assert.ThrowsAny<ArgumentException>(() => document.ToBytes());
@@ -1724,13 +1724,13 @@ public class PdfDocumentWorkflowTests {
         return PdfDocument.Create()
             .Meta(title: "Workflow source", author: "OfficeIMO")
             .H1("Page A")
-            .Paragraph(p => p.Text("First page body"))
+            .Paragraph(p => p.AddText("First page body"))
             .PageBreak()
             .H1("Page B")
-            .Paragraph(p => p.Text("Second page body"))
+            .Paragraph(p => p.AddText("Second page body"))
             .PageBreak()
             .H1("Page C")
-            .Paragraph(p => p.Text("Third page body"))
+            .Paragraph(p => p.AddText("Third page body"))
             .ToBytes();
     }
 
@@ -1739,13 +1739,13 @@ public class PdfDocumentWorkflowTests {
                 CreateOutlineFromHeadings = true
             })
             .H1("Chapter One")
-            .Paragraph(p => p.Text("First chapter body"))
+            .Paragraph(p => p.AddText("First chapter body"))
             .PageBreak()
             .H1("Chapter Two")
-            .Paragraph(p => p.Text("Second chapter body"))
+            .Paragraph(p => p.AddText("Second chapter body"))
             .PageBreak()
             .H1("Chapter Three")
-            .Paragraph(p => p.Text("Third chapter body"))
+            .Paragraph(p => p.AddText("Third chapter body"))
             .ToBytes();
     }
 
@@ -1819,9 +1819,9 @@ public class PdfDocumentWorkflowTests {
             PdfDocument.Merge(EnumerateDocuments(cancellation), cancellation.Token));
 
         static IEnumerable<PdfDocument> EnumerateDocuments(CancellationTokenSource cancellation) {
-            yield return PdfDocument.Create().Paragraph(p => p.Text("First"));
+            yield return PdfDocument.Create().Paragraph(p => p.AddText("First"));
             cancellation.Cancel();
-            yield return PdfDocument.Create().Paragraph(p => p.Text("Second"));
+            yield return PdfDocument.Create().Paragraph(p => p.AddText("Second"));
         }
     }
 
@@ -1850,7 +1850,7 @@ public class PdfDocumentWorkflowTests {
         return PdfDocument.Create()
             .Meta(title: title, author: "OfficeIMO")
             .H1(title)
-            .Paragraph(p => p.Text(text))
+            .Paragraph(p => p.AddText(text))
             .ToBytes();
     }
 

@@ -21,7 +21,7 @@ public sealed class StudioNativeStructureTests : IDisposable {
         string path = Path.Combine(_root, name);
         PdfDocument.Create(document => {
             foreach (string text in pages)
-                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300)).Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(text)))));
+                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300)).Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText(text)))));
         }).Save(path);
         return path;
     }
@@ -178,7 +178,7 @@ public sealed class StudioNativeStructureTests : IDisposable {
     public async Task Tagged_document_resize_capability_matches_the_operation() {
         string path = Path.Combine(_root, "tagged.pdf");
         PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300))
-            .Content(content => content.Column(column => column.Item().Paragraph(paragraph => paragraph.Text("Tagged page"))))),
+            .Content(content => content.Column(column => column.Item().AddParagraph(paragraph => paragraph.AddText("Tagged page"))))),
             new PdfCreateOptions().EnableTaggedPdfCatalogMarkers()).Save(path);
         Assert.True(PdfDocument.Load(path).Inspect().HasTaggedContent);
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
@@ -289,7 +289,7 @@ public sealed class StudioNativeStructureTests : IDisposable {
         // A one-pixel red PNG.
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC");
         string path = Path.Combine(_root, "images.pdf");
-        File.WriteAllBytes(path, PdfDocument.Create(document => document.Content(content => content.Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24)))).ToBytes());
+        File.WriteAllBytes(path, PdfDocument.Create(document => document.Content(content => content.AddImage(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24)))).ToBytes());
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
         string folder = Path.Combine(_root, "images");
 

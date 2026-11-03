@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests.Pdf {
                     page.Header(header => header.Offset(global::OfficeIMO.OfficeLength.Points(21)).Text("Invalid header offset"));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("Body"))));
+                            column.Item().AddParagraph(p => p.AddText("Body"))));
                 })).ToBytes());
 
             Assert.Contains("PDF header offset must not exceed the top margin when header content is enabled.", renderHeaderOffsetException.Message, StringComparison.Ordinal);
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests.Pdf {
                     page.Footer(footer => footer.Offset(global::OfficeIMO.OfficeLength.Points(21)).PageNumber());
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("Body"))));
+                            column.Item().AddParagraph(p => p.AddText("Body"))));
                 })).ToBytes());
 
             Assert.Contains("PDF footer offset must not exceed the bottom margin when footer content is enabled.", renderFooterOffsetException.Message, StringComparison.Ordinal);

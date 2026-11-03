@@ -18,7 +18,7 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] bytes = PdfDocument.Create()
             .PageBorder(global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175), width: 2, inset: 30, opacity: 0.4, dashStyle: OfficeStrokeDashStyle.Dash)
             .H1("Page border proof")
-            .Paragraph(p => p.Text("Body content stays inside the reusable page frame."))
+            .Paragraph(p => p.AddText("Body content stays inside the reusable page frame."))
             .ToBytes();
 
         string raw = PdfTestContentText.ReadDecoded(bytes);
@@ -38,11 +38,11 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] bytes = PdfDocument.Create()
             .PageBorder(inset: 36)
             .Page(page => {
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Framed page"))));
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Framed page"))));
             })
             .Page(page => {
                 page.PageBorder((PdfPageBorder?)null);
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Clean page"))));
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Clean page"))));
             })
             .ToBytes();
 
@@ -79,7 +79,7 @@ public partial class PdfDocumentVisualQualityTests {
                         Inset = global::OfficeIMO.OfficeLength.Points(400)
                     }
                 })
-                .Paragraph(p => p.Text("Invalid border frame"))
+                .Paragraph(p => p.AddText("Invalid border frame"))
                 .ToBytes());
 
         Assert.Contains("PDF page border inset must leave a positive border rectangle.", exception.Message, StringComparison.Ordinal);
@@ -90,7 +90,7 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] bytes = PdfDocument.Create()
             .BackgroundImage(CreateMinimalRgbPng(), OfficeImageFit.Stretch, opacity: 0.3)
             .H1("Background image proof")
-            .Paragraph(p => p.Text("Body content stays above the fitted page background image."))
+            .Paragraph(p => p.AddText("Body content stays above the fitted page background image."))
             .ToBytes();
 
         string raw = PdfTestContentText.ReadDecoded(bytes);
@@ -119,7 +119,7 @@ public partial class PdfDocumentVisualQualityTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
             })
             .BackgroundImage(legacyJpegLikeImage, OfficeImageFit.Cover, opacity: 0.3)
-            .Paragraph(p => p.Text("Background image proof"))
+            .Paragraph(p => p.AddText("Background image proof"))
             .ToBytes();
 
         string stream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
@@ -134,11 +134,11 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] bytes = PdfDocument.Create()
             .BackgroundImage(image, OfficeImageFit.Stretch, opacity: 0.2)
             .Page(page => {
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Background page"))));
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Background page"))));
             })
             .Page(page => {
                 page.BackgroundImage((PdfPageBackgroundImage?)null);
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Clean page"))));
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Clean page"))));
             })
             .ToBytes();
 
@@ -180,7 +180,7 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] bytes = PdfDocument.Create()
             .BackgroundShape(new PdfPageBackgroundShape(shape, global::OfficeIMO.OfficeLength.Points(36), global::OfficeIMO.OfficeLength.Points(640)))
             .H1("Background shape proof")
-            .Paragraph(p => p.Text("Body content stays above reusable vector page decoration."))
+            .Paragraph(p => p.AddText("Body content stays above reusable vector page decoration."))
             .ToBytes();
 
         string raw = PdfTestContentText.ReadDecoded(bytes);
@@ -205,7 +205,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create()
             .BackgroundShape(new PdfPageBackgroundShape(shape, global::OfficeIMO.OfficeLength.Points(36), global::OfficeIMO.OfficeLength.Points(640)))
-            .Paragraph(p => p.Text("Empty clip background proof"))
+            .Paragraph(p => p.AddText("Empty clip background proof"))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -221,11 +221,11 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] bytes = PdfDocument.Create()
             .BackgroundRectangle(36, 640, 540, 86, global::OfficeIMO.OfficeColor.FromRgb(238, 242, 255))
             .Page(page => {
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Decorated page"))));
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Decorated page"))));
             })
             .Page(page => {
                 page.ClearBackgroundShapes();
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Clean page"))));
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Clean page"))));
             })
             .ToBytes();
 
@@ -250,7 +250,7 @@ public partial class PdfDocumentVisualQualityTests {
             .BackgroundBottomBand(30, global::OfficeIMO.OfficeColor.FromRgb(240, 253, 244), insetX: 20, offsetY: 10)
             .BackgroundLeftBand(18, global::OfficeIMO.OfficeColor.FromRgb(254, 249, 195), insetY: 24, offsetX: 6)
             .BackgroundRightBand(22, global::OfficeIMO.OfficeColor.FromRgb(255, 237, 213), insetY: 30, offsetX: 9)
-            .Paragraph(p => p.Text("Anchored bands"))
+            .Paragraph(p => p.AddText("Anchored bands"))
             .ToBytes();
 
         string raw = PdfTestContentText.ReadDecoded(bytes);
@@ -279,7 +279,7 @@ public partial class PdfDocumentVisualQualityTests {
                 page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400));
                 page.Margin(global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(40));
                 page.BackgroundTopBand(global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeColor.FromRgb(238, 242, 255), insetX: global::OfficeIMO.OfficeLength.Points(12), offsetY: global::OfficeIMO.OfficeLength.Points(8));
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Scoped band"))));
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Scoped band"))));
             })
             .ToBytes();
 

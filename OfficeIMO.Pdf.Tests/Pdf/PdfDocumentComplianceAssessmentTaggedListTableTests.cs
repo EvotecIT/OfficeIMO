@@ -44,7 +44,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             .TaggedPdfCatalogMarkers()
             .H1("Checklist")
             .Bullets(new[] { "First item", "Second item" })
-            .Image(CreateMinimalRgbPng(), 24, 24, alternativeText: "Company logo")
+            .Image(CreateMinimalRgbPng(), 24, 24, altText: "Company logo")
             .ToBytes();
 
         string content = Encoding.ASCII.GetString(pdf);
@@ -102,7 +102,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Numbered(new[] { "First item", "Second item" }))))))
+                                column.AddNumberedList(new[] { "First item", "Second item" }))))))
             .ToBytes();
 
         string content = Encoding.ASCII.GetString(pdf);
@@ -223,7 +223,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { PdfTableCell.TextCell("Resource", linkUri: "https://officeimo.net/row-table", linkContents: "Linked row table resource") }
                                 }, style: style))))))
             .ToBytes();
@@ -312,7 +312,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Name", "Status" },
                                     new[] { "Alpha", "Ready" }
                                 }, style: style))))))
@@ -422,7 +422,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Name", "Status" },
                                     new[] { "Alpha", "Ready" }
                                 }, style: style))))))

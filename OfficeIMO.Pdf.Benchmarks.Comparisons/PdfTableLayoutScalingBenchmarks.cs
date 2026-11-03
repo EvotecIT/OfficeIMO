@@ -48,7 +48,7 @@ public class PdfTableLayoutScalingBenchmarks {
 
     [Benchmark]
     public byte[] ComposeTablePdf() {
-        PdfDocument document = PdfDocument.Create(pdf => pdf.Content(content => content.Table(_rows, style: _style)), new PdfCreateOptions {
+        PdfDocument document = PdfDocument.Create(pdf => pdf.Content(content => content.AddTable(_rows, style: _style)), new PdfCreateOptions {
             PageWidth = global::OfficeIMO.OfficeLength.Points(612D),
             PageHeight = global::OfficeIMO.OfficeLength.Points(792D),
             MarginLeft = global::OfficeIMO.OfficeLength.Points(54D),

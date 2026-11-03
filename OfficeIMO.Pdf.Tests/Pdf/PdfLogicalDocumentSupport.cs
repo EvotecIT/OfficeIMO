@@ -48,11 +48,11 @@ public partial class PdfDocumentReadResultTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("First logical page marker."))
+            .Paragraph(p => p.AddText("First logical page marker."))
             .PageBreak()
-            .Paragraph(p => p.Text("Second logical page marker."))
+            .Paragraph(p => p.AddText("Second logical page marker."))
             .PageBreak()
-            .Paragraph(p => p.Text("Third logical page marker."))
+            .Paragraph(p => p.AddText("Third logical page marker."))
             .ToBytes();
     }
 

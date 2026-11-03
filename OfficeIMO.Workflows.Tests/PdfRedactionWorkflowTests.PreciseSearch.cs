@@ -63,7 +63,7 @@ namespace OfficeIMO.Workflows.Tests {
             using RedactionTestDirectory scope = new RedactionTestDirectory();
             string input = scope.PathFor("source.pdf");
             string output = scope.PathFor("redacted.pdf");
-            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Alpha secret Omega")).Save(input);
+            PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Alpha secret Omega")).Save(input);
             PdfRedactionRecipe recipe = JsonSerializer.Deserialize("""
                 { "rules": [{ "name": "sensitive-word", "kind": "Literal", "value": "secret",
                               "textSelection": "MatchedGlyphs", "contentScope": "TextOnly" }] }
@@ -104,7 +104,7 @@ namespace OfficeIMO.Workflows.Tests {
             using RedactionTestDirectory scope = new RedactionTestDirectory();
             string input = scope.PathFor("source.pdf");
             string evidence = scope.PathFor("plan.json");
-            PdfDocument.Create().Paragraph(paragraph => paragraph.CharacterSpacing(global::OfficeIMO.OfficeLength.Points(-3)).Text("AB")).Save(input);
+            PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("AB").SetCharacterSpacing(global::OfficeIMO.OfficeLength.Points(-3))).Save(input);
             PdfRedactionRecipe recipe = CreateRecipe("A");
             recipe.Rules[0].TextSelection = PdfRedactionTextSelection.MatchedGlyphs;
             PdfRedactionWorkflowResult result = await new OfficeWorkflowRunner().RunRedactionAsync(new PdfRedactionWorkflowRequest {
@@ -123,7 +123,7 @@ namespace OfficeIMO.Workflows.Tests {
         public async Task PreciseRecipeRejectsUnsupportedDetectionOrRuleCombinations(PdfRedactionDetectionMode detection, PdfRedactionRuleKind kind) {
             using RedactionTestDirectory scope = new RedactionTestDirectory();
             string input = scope.PathFor("source.pdf");
-            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("secret")).Save(input);
+            PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("secret")).Save(input);
             PdfRedactionRecipe recipe = CreateRecipe("secret");
             recipe.DetectionMode = detection;
             recipe.Rules[0].Kind = kind;

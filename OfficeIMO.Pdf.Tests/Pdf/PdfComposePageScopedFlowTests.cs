@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests.Pdf {
                     page.DefaultTextStyle(style => style.Font(PdfStandardFont.Helvetica).FontSize(global::OfficeIMO.OfficeLength.Points(14)));
                     page.Content(content =>
                         content.Column(col =>
-                            col.Item().Paragraph(p => p.Text("First page body."))));
+                            col.Item().AddParagraph(p => p.AddText("First page body."))));
                 });
                 c.Page(page => {
                     page.Size(PdfPageSizes.Letter);
@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests.Pdf {
                     page.Footer(f => f.PageNumber());
                     page.Content(content =>
                         content.Column(col =>
-                            col.Item().Paragraph(p => p.Text("Second page body."))));
+                            col.Item().AddParagraph(p => p.AddText("Second page body."))));
                 });
             });
 
@@ -71,13 +71,13 @@ namespace OfficeIMO.Tests.Pdf {
                     page.Header(header => header.Text("Small page {page}/{pages}"));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("Scoped page body."))));
+                            column.Item().AddParagraph(p => p.AddText("Scoped page body."))));
                 })
                 .Page(page => {
                     page.Landscape();
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("Inherited landscape body."))));
+                            column.Item().AddParagraph(p => p.AddText("Inherited landscape body."))));
                 });
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(doc.ToBytes()));
@@ -113,7 +113,7 @@ namespace OfficeIMO.Tests.Pdf {
                         content.Column(column => {
                             for (int i = 1; i <= 18; i++) {
                                 int item = i;
-                                column.Item().Paragraph(p => p.Text("Small section item " + item.ToString("D2", System.Globalization.CultureInfo.InvariantCulture)));
+                                column.Item().AddParagraph(p => p.AddText("Small section item " + item.ToString("D2", System.Globalization.CultureInfo.InvariantCulture)));
                             }
                         }));
                 })
@@ -123,7 +123,7 @@ namespace OfficeIMO.Tests.Pdf {
                     section.Header(header => header.Text("Wide section {page}/{pages}"));
                     section.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("Wide section body."))));
+                            column.Item().AddParagraph(p => p.AddText("Wide section body."))));
                 });
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(doc.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })));
@@ -179,14 +179,14 @@ namespace OfficeIMO.Tests.Pdf {
                     page.Landscape();
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("Landscape page body."))));
+                            column.Item().AddParagraph(p => p.AddText("Landscape page body."))));
                 });
                 c.Page(page => {
                     page.Size(PdfPageSizes.A4.Landscape());
                     page.Portrait();
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("Portrait page body."))));
+                            column.Item().AddParagraph(p => p.AddText("Portrait page body."))));
                 });
             });
 

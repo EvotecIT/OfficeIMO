@@ -26,12 +26,12 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                 content.PageBreak();
                 Badge("Leon Brooks", "Participant", "Operations");
                 void Badge(string name, string role, string team) {
-                    content.Paragraph(p => p.FontSize(OfficeLength.Points(8.5)).Text("Northwind · Community workshop"), defaultColor: muted)
+                    content.AddParagraph(p => p.AddText("Northwind · Community workshop").SetFontSize(OfficeLength.Points(8.5)), color: muted)
                         .HR(OfficeLength.Points(2), accent, OfficeLength.Points(8), OfficeLength.Points(14))
                         .Title(name)
-                        .Paragraph(p => p.FontSize(OfficeLength.Points(13)).Bold(role, accent))
-                        .Paragraph(p => p.Text(team), defaultColor: muted)
-                        .PanelParagraph(p => p.Text("14 October 2026 · Copenhagen"));
+                        .AddParagraph(p => p.AddText(role).SetBold().SetColor(accent).SetFontSize(OfficeLength.Points(13)))
+                        .AddParagraph(p => p.AddText(team), color: muted)
+                        .AddPanelParagraph(p => p.AddText("14 October 2026 · Copenhagen"));
                 }
             }), new PdfCreateOptions {
                 PageWidth = OfficeLength.Points(sheetWidth), PageHeight = OfficeLength.Points(sheetHeight),

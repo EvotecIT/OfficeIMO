@@ -52,7 +52,7 @@ public sealed class PdfCrossRunKerningTests {
             MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
         };
         if (hyphenate) options.SetTextHyphenation(Points); else options.SetTextLineBreaks(Points);
-        byte[] bytes = PdfDocument.Create(options).Paragraph(p => p.Runs(new[] {
+        byte[] bytes = PdfDocument.Create(options).Paragraph(p => p.AddRuns(new[] {
             new PdfTextRun(new string('A', prefixLength), color: global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0)),
             new PdfTextRun("BBBBBBBB", color: global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255))
         })).ToBytes();
@@ -218,6 +218,6 @@ public sealed class PdfCrossRunKerningTests {
         };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName, font));
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("OtherFace", font));
-        return PdfDocument.Create(options).Paragraph(paragraph => paragraph.Runs(runs), align: align).ToBytes();
+        return PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddRuns(runs), align: align).ToBytes();
     }
 }

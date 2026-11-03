@@ -3,13 +3,13 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Invoicing.Pdf;
 
 public sealed partial class PdfInvoiceDocument {
-    private void Paragraph(PdfContentBuilder content, string text) { if (!string.IsNullOrWhiteSpace(text)) content.Paragraph(paragraph => paragraph.Text(text), style: _layout.CompactDetails ? new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(4) } : null); }
+    private void Paragraph(PdfContentBuilder content, string text) { if (!string.IsNullOrWhiteSpace(text)) content.AddParagraph(paragraph => paragraph.AddText(text), style: _layout.CompactDetails ? new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(4) } : null); }
     private void DetailGroup(PdfContentBuilder content, string title, string text, InvoicePdfTheme? theme = null) =>
         content.Flow(group => { DetailHeading(group, title, theme); Paragraph(group, text); }, new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.MoveToNextPage });
     private void TableGroup(PdfContentBuilder content, string title, IEnumerable<string[]> rows, InvoicePdfTheme? theme = null) =>
-        content.Flow(group => { DetailHeading(group, title, theme); group.Table(rows, style: DetailTableStyle(theme)); }, new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.MoveToNextPage });
+        content.Flow(group => { DetailHeading(group, title, theme); group.AddTable(rows, style: DetailTableStyle(theme)); }, new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.MoveToNextPage });
     private void DetailHeading(PdfContentBuilder content, string title, InvoicePdfTheme? theme) {
-        if (_layout.CompactDetails) content.Paragraph(paragraph => paragraph.Bold(title, theme?.Text), style: new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(4), SpacingAfter = global::OfficeIMO.OfficeLength.Points(4) });
+        if (_layout.CompactDetails) content.AddParagraph(paragraph => { PdfTextRun run = paragraph.AddText(title).SetBold(); if (theme?.Text is { } color) run.SetColor(color); }, style: new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(4), SpacingAfter = global::OfficeIMO.OfficeLength.Points(4) });
         else content.H2(title, OfficeAlignment.Left, theme?.Text, style: SectionHeadingStyle());
     }
     private void ComposeDetails(PdfContentBuilder content, InvoicePdfTheme? theme = null) {
@@ -40,7 +40,7 @@ public sealed partial class PdfInvoiceDocument {
             if (_invoice.PaymentReference != null) independent.Add(new[] { Label(InvoicePdfText.Reference), _invoice.PaymentReference });
             if (_invoice.CreditorIdentifier != null) independent.Add(new[] { Label(InvoicePdfText.Creditor), _invoice.CreditorIdentifier });
             if (_invoice.DirectDebitMandateReference != null) independent.Add(new[] { Label(InvoicePdfText.Mandate), _invoice.DirectDebitMandateReference });
-            if (independent.Count != 0) content.Table(independent, style: DetailTableStyle(theme));
+            if (independent.Count != 0) content.AddTable(independent, style: DetailTableStyle(theme));
             foreach (InvoicePayment payment in _invoice.Payments) {
                 var rows = new List<string[]> { new[] { Label(InvoicePdfText.PaymentMeans), PaymentMeans(payment) } };
                 if (payment.Reference != null) rows.Add(new[] { Label(InvoicePdfText.Reference), payment.Reference });
@@ -49,7 +49,7 @@ public sealed partial class PdfInvoiceDocument {
                 if (payment.CreditorIdentifier != null) rows.Add(new[] { Label(InvoicePdfText.Creditor), payment.CreditorIdentifier });
                 if (payment.DebitedAccount != null) rows.Add(new[] { Label(InvoicePdfText.DebitedAccount), payment.DebitedAccount });
                 if (payment.CardNumber != null) rows.Add(new[] { Label(InvoicePdfText.Card), Join(Label(InvoicePdfText.Ending) + " " + payment.CardNumber, payment.CardNetworkId, payment.CardHolder) });
-                content.Table(rows, style: DetailTableStyle(theme));
+                content.AddTable(rows, style: DetailTableStyle(theme));
             }
             // The modern layout already shows the payment terms beside the totals.
             if (_invoice.PaymentTerms != null && theme == null) Paragraph(content, _invoice.PaymentTerms);

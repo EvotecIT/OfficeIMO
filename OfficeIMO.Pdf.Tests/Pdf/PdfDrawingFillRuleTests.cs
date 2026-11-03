@@ -58,7 +58,7 @@ public sealed class PdfDrawingFillRuleTests {
         PdfDocument document = PdfDocument.Create(CreateOptions());
         document.Compose(builder => builder.Page(page => page
             .Header(header => header.Shape(CreateCompoundPath(fillRule, transformed: false)))
-            .Content(content => content.Paragraph(paragraph => paragraph.Text("Body")))));
+            .Content(content => content.AddParagraph(paragraph => paragraph.AddText("Body")))));
 
         string content = Encoding.ASCII.GetString(document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Contains(fillRule == OfficeFillRule.EvenOdd ? " f*\n" : " f\n", content, StringComparison.Ordinal);

@@ -44,11 +44,11 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content
-                            .Column(column => column.Item().Paragraph(p => p.Text("BeforeRow"), style: tightParagraph))
+                            .Column(column => column.Item().AddParagraph(p => p.AddText("BeforeRow"), style: tightParagraph))
                             .Row(row => row
-                                .PercentColumn(50, column => column.Paragraph(p => p.Text("LeftDefaultGap"), style: tightParagraph))
-                                .PercentColumn(50, column => column.Paragraph(p => p.Text("RightDefaultGap"), style: tightParagraph)))
-                            .Column(column => column.Item().Paragraph(p => p.Text("AfterRow"), style: tightParagraph)))))
+                                .PercentColumn(50, column => column.AddParagraph(p => p.AddText("LeftDefaultGap"), style: tightParagraph))
+                                .PercentColumn(50, column => column.AddParagraph(p => p.AddText("RightDefaultGap"), style: tightParagraph)))
+                            .Column(column => column.Item().AddParagraph(p => p.AddText("AfterRow"), style: tightParagraph)))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -94,12 +94,12 @@ public partial class PdfDocumentVisualQualityTests {
                         content
                             .Column(column => {
                                 for (int i = 0; i < 10; i++) {
-                                    column.Item().Paragraph(p => p.Text("IntroLine" + i.ToString(CultureInfo.InvariantCulture)), style: tightParagraph);
+                                    column.Item().AddParagraph(p => p.AddText("IntroLine" + i.ToString(CultureInfo.InvariantCulture)), style: tightParagraph);
                                 }
                             })
                             .Row(row => row
-                                .PercentColumn(50, column => column.Paragraph(p => p.Text("KeptRowLeft has enough text to wrap across several lines inside the first column."), style: tightParagraph))
-                                .PercentColumn(50, column => column.Paragraph(p => p.Text("KeptRowRight should travel with the left column instead of starting on the first page."), style: tightParagraph))))))
+                                .PercentColumn(50, column => column.AddParagraph(p => p.AddText("KeptRowLeft has enough text to wrap across several lines inside the first column."), style: tightParagraph))
+                                .PercentColumn(50, column => column.AddParagraph(p => p.AddText("KeptRowRight should travel with the left column instead of starting on the first page."), style: tightParagraph))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -133,7 +133,7 @@ public partial class PdfDocumentVisualQualityTests {
                         page.Content(content =>
                             content.Row(row =>
                                 row.PercentColumn(100, column =>
-                                    column.Paragraph(p => p.Text(longText)))))))
+                                    column.AddParagraph(p => p.AddText(longText)))))))
                 .ToBytes());
 
         Assert.Contains("Row height exceeds the available page content height.", exception.Message, StringComparison.Ordinal);
@@ -224,7 +224,7 @@ public partial class PdfDocumentVisualQualityTests {
                     MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
                     MarginRight = global::OfficeIMO.OfficeLength.Points(20)
                 })
-                .Paragraph(p => p.Text("Invalid first line width"), style: new PdfParagraphStyle {
+                .Paragraph(p => p.AddText("Invalid first line width"), style: new PdfParagraphStyle {
                     FirstLineIndent = global::OfficeIMO.OfficeLength.Points(120)
                 })
                 .ToBytes());
@@ -237,7 +237,7 @@ public partial class PdfDocumentVisualQualityTests {
                     MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
                     MarginRight = global::OfficeIMO.OfficeLength.Points(20)
                 })
-                .Paragraph(p => p.Text("Invalid text width"), style: new PdfParagraphStyle {
+                .Paragraph(p => p.AddText("Invalid text width"), style: new PdfParagraphStyle {
                     LeftIndent = global::OfficeIMO.OfficeLength.Points(50),
                     RightIndent = global::OfficeIMO.OfficeLength.Points(40)
                 })

@@ -116,7 +116,7 @@ public sealed class PdfPlainTextConverterTests {
     [Fact]
     public void PreservedWhitespaceCannotExpandIntoUnboundedBlankLines() {
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions { PreserveTextWhitespace = true });
-        document.Paragraph(paragraph => paragraph.Runs(new[] {
+        document.Paragraph(paragraph => paragraph.AddRuns(new[] {
             new PdfTextRun(new string(' ', 100) + "VISIBLE", fontSize: global::OfficeIMO.OfficeLength.Points(1_000_000_000D))
         }));
 

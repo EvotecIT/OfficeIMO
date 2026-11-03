@@ -13,10 +13,13 @@ public sealed class PdfGeneratedNavigationRegressionTests {
         } };
         var document = PdfDocument.Create(TaggedOptions());
         if (columns) document.Compose(c => c.Page(p => p.Content(content => content.Row(row =>
-            row.PercentColumn(100, column => column.RichNumbered(items))))));
+            row.PercentColumn(100, column => column.AddNumberedList(items))))));
         else document.RichNumbered(items);
-        document.Paragraph(p => p.LinkToBookmark("Read item", "item").Text(" ")
-            .LinkToBookmark("Read the same item", "item-alias"));
+        document.Paragraph(p => {
+            p.AddBookmarkLink("Read item", "item");
+            p.AddText(" ");
+            p.AddBookmarkLink("Read the same item", "item-alias");
+        });
 
         byte[] bytes = document.ToBytes();
         var raw = PdfReadDocument.Open(bytes).RawStructure();
@@ -65,7 +68,7 @@ public sealed class PdfGeneratedNavigationRegressionTests {
                 else if (kind == "radio") clipped.RadioButton("hidden", "Yes", true, global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), style: style);
                 else clipped.TextField("hidden", "", global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), style: style);
             }))
-            .Paragraph(p => p.Text("Visible target ").LinkToBookmark("Return", "target"));
+            .Paragraph(p => { p.AddText("Visible target "); p.AddBookmarkLink("Return", "target"); });
 
         var raw = PdfReadDocument.Open(document.ToBytes()).RawStructure();
         var link = Assert.Single(raw.Objects, obj => obj.Value.Entries.TryGetValue("Subtype", out var type) && type.Text == "Link");
@@ -92,7 +95,7 @@ public sealed class PdfGeneratedNavigationRegressionTests {
                 else if (visible == "image") clipped.Image(image, global::OfficeIMO.OfficeLength.Points(25), global::OfficeIMO.OfficeLength.Points(25), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), alternativeText: "Visible sibling");
                 else clipped.CheckBox("visible", false, global::OfficeIMO.OfficeLength.Points(25), global::OfficeIMO.OfficeLength.Points(25), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), style: style);
             }))
-            .Paragraph(p => p.Text("Later outside paragraph ").LinkToBookmark("Return", "target")).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+            .Paragraph(p => { p.AddText("Later outside paragraph "); p.AddBookmarkLink("Return", "target"); }).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         var raw = PdfReadDocument.Open(bytes).RawStructure();
         var link = Assert.Single(raw.Objects, obj => obj.Value.Entries.TryGetValue("Subtype", out var type) && type.Text == "Link");

@@ -13,7 +13,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
     public void AssessComplianceUsesDocumentMetadataForPdfUaTitleReadiness() {
         PdfDocument document = PdfDocument.Create(CreatePdfUaGroundworkOptions())
             .Meta(title: "Accessible title")
-            .Paragraph(paragraph => paragraph.Text("PDF/UA title readiness."));
+            .Paragraph(paragraph => paragraph.AddText("PDF/UA title readiness."));
 
         PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfUa1);
 
@@ -54,7 +54,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
         PdfDocument document = PdfDocument.Create(CreatePdfUaGroundworkOptions())
             .TaggedPdfCatalogMarkers()
             .Meta(title: "Accessible title")
-            .Paragraph(paragraph => paragraph.Text("PDF/UA marker readiness."));
+            .Paragraph(paragraph => paragraph.AddText("PDF/UA marker readiness."));
 
         PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfUa1);
 
@@ -97,7 +97,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             .TaggedPdfCatalogMarkers()
             .UseFontFamily("PDF/UA Unicode readiness font", fontPath)
             .Meta(title: "Accessible title")
-            .Paragraph(paragraph => paragraph.Text("PDF/UA embedded Unicode mapping readiness."));
+            .Paragraph(paragraph => paragraph.AddText("PDF/UA embedded Unicode mapping readiness."));
 
         PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfUa1);
 
@@ -112,7 +112,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
     [Fact]
     public void AssessComplianceReportsMissingPdfUaTitleFromDocumentMetadata() {
         PdfDocument document = PdfDocument.Create(CreatePdfUaGroundworkOptions())
-            .Paragraph(paragraph => paragraph.Text("PDF/UA title readiness without a title."));
+            .Paragraph(paragraph => paragraph.AddText("PDF/UA title readiness without a title."));
 
         PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfUa1);
 
@@ -128,7 +128,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             .Image(png, 24, 24);
         PdfDocument satisfiedDocument = PdfDocument.Create(CreatePdfUaGroundworkOptions())
             .Meta(title: "Accessible title")
-            .Image(png, 24, 24, alternativeText: "Product approval badge");
+            .Image(png, 24, 24, altText: "Product approval badge");
 
         PdfComplianceReadinessReport missingReport = missingDocument.AssessCompliance(PdfComplianceProfile.PdfUa1);
         PdfComplianceReadinessReport satisfiedReport = satisfiedDocument.AssessCompliance(PdfComplianceProfile.PdfUa1);
@@ -169,7 +169,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
         PdfDocument document = PdfDocument.Create(CreatePdfUaGroundworkOptions())
             .Meta(title: "Accessible title")
             .DefaultImageStyle(new PdfImageStyle {
-                AlternativeText = "Default product badge"
+                AltText = "Default product badge"
             })
             .Image(png, 24, 24);
 
@@ -201,13 +201,13 @@ public partial class PdfDocumentComplianceAssessmentTests {
             .TaggedPdfCatalogMarkers()
             .Meta(title: "Accessible title")
             .Header(header => header.Image(png, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(10)))
-            .Paragraph(paragraph => paragraph.Text("Header image without alt text."));
+            .Paragraph(paragraph => paragraph.AddText("Header image without alt text."));
         PdfDocument satisfiedDocument = PdfDocument.Create(CreatePdfUaGroundworkOptions())
             .TaggedPdfCatalogMarkers()
             .Meta(title: "Accessible title")
             .Header(header => header.Image(png, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(10), alternativeText: "Company logo"))
             .Footer(footer => footer.Image(png, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(10), alternativeText: "Security footer mark"))
-            .Paragraph(paragraph => paragraph.Text("Header and footer image alt text."));
+            .Paragraph(paragraph => paragraph.AddText("Header and footer image alt text."));
 
         PdfComplianceReadinessReport decorativeReport = decorativeDocument.AssessCompliance(PdfComplianceProfile.PdfUa1);
         PdfComplianceReadinessReport satisfiedReport = satisfiedDocument.AssessCompliance(PdfComplianceProfile.PdfUa1);
@@ -246,7 +246,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             .Meta(title: "Accessible title")
             .BackgroundImage(png, OfficeIMO.Drawing.OfficeImageFit.Stretch, opacity: 0.2)
             .ImageWatermark(png, 80, 40, opacity: 0.2)
-            .Paragraph(paragraph => paragraph.Text("Decorative image readiness."));
+            .Paragraph(paragraph => paragraph.AddText("Decorative image readiness."));
 
         PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfUa1);
 

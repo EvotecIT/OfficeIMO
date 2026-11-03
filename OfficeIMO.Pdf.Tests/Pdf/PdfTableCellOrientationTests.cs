@@ -26,7 +26,7 @@ public sealed class PdfTableCellOrientationTests {
             textRotation: rotation, linkUri: "https://example.com/turned-clip");
         var cells = new[] { new[] { cell } };
         var document = PdfDocument.Create(options);
-        if (inColumn) document.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style)));
+        if (inColumn) document.Row(row => row.PercentColumn(100, column => column.AddTable(cells, style: style)));
         else document.Table(cells, style: style);
         byte[] bytes = document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
@@ -62,7 +62,7 @@ public sealed class PdfTableCellOrientationTests {
             textRotation: rotation, linkUri: "https://example.com/turned-paragraphs");
         var cells = new[] { new[] { cell } };
         var document = PdfDocument.Create(options);
-        if (inColumn) document.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style)));
+        if (inColumn) document.Row(row => row.PercentColumn(100, column => column.AddTable(cells, style: style)));
         else document.Table(cells, style: style);
         byte[] bytes = document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
@@ -91,7 +91,7 @@ public sealed class PdfTableCellOrientationTests {
             paragraphs: null, textRotation: rotation, linkUri: "https://example.com/turned-width");
         var cells = new[] { new[] { cell } };
         var document = PdfDocument.Create(options);
-        if (inColumn) document.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style)));
+        if (inColumn) document.Row(row => row.PercentColumn(100, column => column.AddTable(cells, style: style)));
         else document.Table(cells, style: style);
         byte[] bytes = document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         var link = Assert.Single(PdfInspector.Inspect(bytes).GetAnnotationsBySubtype("Link"));
@@ -122,7 +122,7 @@ public sealed class PdfTableCellOrientationTests {
         var cells = new[] { new[] { turned, new PdfTableCell(string.Join("\n",
             Enumerable.Range(1, 45).Select(line => "Line" + line.ToString("D2")))) } };
         var document = PdfDocument.Create(options);
-        if (inColumn) document.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style)));
+        if (inColumn) document.Row(row => row.PercentColumn(100, column => column.AddTable(cells, style: style)));
         else document.Table(cells, style: style);
         byte[] bytes = document.ToBytes();
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
@@ -160,7 +160,7 @@ public sealed class PdfTableCellOrientationTests {
         PdfDocument document = PdfDocument.Create(options);
         byte[] bytes = surface switch {
             "flow" => document.Table(cells, style: style).ToBytes(),
-            "column" => document.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style))).ToBytes(),
+            "column" => document.Row(row => row.PercentColumn(100, column => column.AddTable(cells, style: style))).ToBytes(),
             "canvas" => document.Canvas(canvas => canvas.Table(cells, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(80), style)).ToBytes(),
             _ => throw new ArgumentOutOfRangeException(nameof(surface))
         };
@@ -192,7 +192,7 @@ public sealed class PdfTableCellOrientationTests {
         PdfDocument document = PdfDocument.Create(options);
         byte[] bytes = surface switch {
             "flow" => document.Table(cells, style: style).ToBytes(),
-            "column" => document.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style))).ToBytes(),
+            "column" => document.Row(row => row.PercentColumn(100, column => column.AddTable(cells, style: style))).ToBytes(),
             "canvas" => document.Canvas(canvas => canvas.Table(cells, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(80), style)).ToBytes(),
             _ => throw new ArgumentOutOfRangeException(nameof(surface))
         };

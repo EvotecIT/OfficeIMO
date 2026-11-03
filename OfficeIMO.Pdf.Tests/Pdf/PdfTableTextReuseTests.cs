@@ -32,7 +32,7 @@ public sealed class PdfTableTextReuseTests {
                 new PdfTableCell(new[] { Plain() })
             } };
             PdfDocument document = PdfDocument.Create(options);
-            if (rowColumn) document.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style)));
+            if (rowColumn) document.Row(row => row.PercentColumn(100, column => column.AddTable(rows, style: style)));
             else document.Table(rows, style: style);
             return document.ToBytes();
         }
@@ -74,7 +74,7 @@ public sealed class PdfTableTextReuseTests {
             }).ToArray();
             PdfDocument document = PdfDocument.Create(options);
             if (rowColumn) document.Compose(root => root.Page(page => page.Content(content =>
-                content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style))))));
+                content.Row(row => row.PercentColumn(100, column => column.AddTable(rows, style: style))))));
             else document.Table(rows, style: style);
             return document.ToBytes();
         }
@@ -114,7 +114,7 @@ public sealed class PdfTableTextReuseTests {
                 new PdfTableCell(new[] { PdfTextRun.Normal("Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau",
                     fontSize: ((double?)(explicitSize ? 10 : null) is double physicalLength5 ? global::OfficeIMO.OfficeLength.Points(physicalLength5) : (global::OfficeIMO.OfficeLength?)null)) })
             }).ToArray();
-            return PdfDocument.Create(options).Columns(content => content.Table(rows, style: style),
+            return PdfDocument.Create(options).Columns(content => content.AddTable(rows, style: style),
                 new PdfMultiColumnOptions {
                     BalanceLastPage = false,
                     ColumnDefinitions = new[] {
@@ -199,7 +199,7 @@ public sealed class PdfTableTextReuseTests {
         PdfDocument document = PdfDocument.Create(options);
         if (rowColumn) {
             document.Compose(root => root.Page(page => page.Content(content =>
-                content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style))))));
+                content.Row(row => row.PercentColumn(100, column => column.AddTable(rows, style: style))))));
         } else {
             document.Table(rows, style: style);
         }
@@ -233,7 +233,7 @@ public sealed class PdfTableTextReuseTests {
         PdfDocument document = PdfDocument.Create(options);
         if (rowColumn) {
             document.Compose(root => root.Page(page => page.Content(content =>
-                content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style))))));
+                content.Row(row => row.PercentColumn(100, column => column.AddTable(rows, style: style))))));
         } else {
             document.Table(rows, style: style);
         }

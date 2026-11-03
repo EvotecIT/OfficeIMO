@@ -17,9 +17,9 @@ public sealed class PdfReverseAttachmentLossTests {
         byte[] source = PdfDocument.Create(new PdfCreateOptions {
                 TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
             })
-            .Paragraph(paragraph => paragraph.Text("First invoice page"))
+            .Paragraph(paragraph => paragraph.AddText("First invoice page"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second invoice page"))
+            .Paragraph(paragraph => paragraph.AddText("Second invoice page"))
             .ToBytes();
         PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(source));
         PdfDocumentReadResult selected = opened.Read(new PdfLoadOptions {
@@ -92,7 +92,7 @@ public sealed class PdfReverseAttachmentLossTests {
 
         byte[] visualSource = PdfDocument.Create()
             .AttachFile("invoice.xml", Encoding.UTF8.GetBytes("<invoice />"), "application/xml")
-            .Paragraph(paragraph => paragraph.Text("Invoice"))
+            .Paragraph(paragraph => paragraph.AddText("Invoice"))
             .ToBytes();
         PdfWordConversionResult visualWord = PdfDocument.Load(new System.IO.MemoryStream(visualSource))
             .ConvertToWordWithEvidence(WordPdfImportOptions.CreateVisualPages());
@@ -108,9 +108,9 @@ public sealed class PdfReverseAttachmentLossTests {
     public void SelectedPageConversionsStillReportDocumentWideAttachmentLoss() {
         byte[] source = PdfDocument.Create()
             .AttachFile("invoice.xml", Encoding.UTF8.GetBytes("<invoice />"), "application/xml")
-            .Paragraph(paragraph => paragraph.Text("First invoice page"))
+            .Paragraph(paragraph => paragraph.AddText("First invoice page"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second invoice page"))
+            .Paragraph(paragraph => paragraph.AddText("Second invoice page"))
             .ToBytes();
         PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(source));
         PdfDocumentReadResult selected = opened.Read(new PdfLoadOptions {
@@ -195,10 +195,10 @@ public sealed class PdfReverseAttachmentLossTests {
     [Fact]
     public void VisualPageReportsOnlySelectedPageInteractionsAsOmitted() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Link("First", "https://example.com/first"))
+            .Paragraph(paragraph => paragraph.AddLink("First", "https://example.com/first"))
             .TextAnnotation("First note")
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Link("Second", "https://example.com/second"))
+            .Paragraph(paragraph => paragraph.AddLink("Second", "https://example.com/second"))
             .TextAnnotation("Second note")
             .ToBytes();
         PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(source));
@@ -238,7 +238,7 @@ public sealed class PdfReverseAttachmentLossTests {
     [Fact]
     public void VisualPageReportsUnsupportedLinkActionThatTypedLinkReaderSkips() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Link("Invoice link", "https://example.com/invoice"))
+            .Paragraph(paragraph => paragraph.AddLink("Invoice link", "https://example.com/invoice"))
             .ToBytes();
         byte[] marker = Encoding.ASCII.GetBytes("/S /URI");
         int actionOffset = -1;
@@ -287,7 +287,7 @@ public sealed class PdfReverseAttachmentLossTests {
         bool emitDocumentShell,
         int omittedFieldCount) {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Invoice"))
+            .Paragraph(paragraph => paragraph.AddText("Invoice"))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(source)).UpdateProperties(
             title: "Invoice title", author: "Invoice author", subject: "Invoice subject", keywords: "invoice");
@@ -315,7 +315,7 @@ public sealed class PdfReverseAttachmentLossTests {
     [InlineData(PdfHtmlProfile.PositionedReview)]
     public void HtmlRequireNoLossRejectsDisabledMetadata(PdfHtmlProfile profile) {
         PdfDocument source = PdfDocument.Load(new System.IO.MemoryStream(PdfDocument.Create()
-                .Paragraph(paragraph => paragraph.Text("Invoice"))
+                .Paragraph(paragraph => paragraph.AddText("Invoice"))
                 .ToBytes()))
             .UpdateProperties(author: "Invoice author");
         PdfHtmlConversionResult retained = source.ToHtmlResult(new PdfToHtmlOptions {

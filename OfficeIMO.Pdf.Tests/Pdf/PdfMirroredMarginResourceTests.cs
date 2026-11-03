@@ -50,9 +50,9 @@ public sealed class PdfMirroredMarginResourceTests {
         void AddPages(PdfContentBuilder content) {
             for (int page = 1; page <= pages; page++) {
                 if (page > 1) content.PageBreak();
-                content.Paragraph(paragraph => {
-                    if (namedFont) paragraph.FontFamily("Mirror Font");
-                    paragraph.Text("Marker" + page);
+                content.AddParagraph(paragraph => {
+                    if (namedFont) { paragraph.RunDefaults.FontFamily = "Mirror Font"; paragraph.RunDefaults.StandardFont = null; }
+                    paragraph.AddText("Marker" + page);
                 });
             }
         }

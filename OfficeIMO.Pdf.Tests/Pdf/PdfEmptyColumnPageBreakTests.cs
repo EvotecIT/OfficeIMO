@@ -59,7 +59,7 @@ public sealed class PdfEmptyColumnPageBreakTests {
                 content.Spacer(global::OfficeIMO.OfficeLength.Points(12));
                 if (nextColumn) content.ColumnBreak();
                 content.PageBreak(preserveEmptyPage: false);
-                content.Paragraph(paragraph => paragraph.Text("AFTER"));
+                content.AddParagraph(paragraph => paragraph.AddText("AFTER"));
             }
             if (columns) body.Columns(Content, new PdfMultiColumnOptions { ColumnCount = 2, BalanceLastPage = false });
             else Content(body);
@@ -76,11 +76,11 @@ public sealed class PdfEmptyColumnPageBreakTests {
             MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), CompressContentStreams = false
         });
         document.Compose(builder => builder.Page(page => {
-            if (header) page.Header(running => running.Content(content => content.Paragraph(paragraph => paragraph.Text("HEADER")), global::OfficeIMO.OfficeLength.Points(18)));
+            if (header) page.Header(running => running.Content(content => content.AddParagraph(paragraph => paragraph.AddText("HEADER")), global::OfficeIMO.OfficeLength.Points(18)));
             page.Content(body => body.Columns(content => {
                 for (int index = 0; index < breaks; index++) content.ColumnBreak();
                 content.PageBreak(preserve);
-                content.Paragraph(paragraph => paragraph.Text("AFTER"), style: new PdfParagraphStyle {
+                content.AddParagraph(paragraph => paragraph.AddText("AFTER"), style: new PdfParagraphStyle {
                     LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false
                 });
             }, new PdfMultiColumnOptions { ColumnCount = columns, Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = false }));

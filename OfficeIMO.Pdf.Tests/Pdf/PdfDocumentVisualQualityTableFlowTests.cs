@@ -141,7 +141,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "WWWWWWWW" }
                                 }, style: style))))))
             .ToBytes();
@@ -183,7 +183,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { new string('i', 20) }
                                 }, style: style))))))
             .ToBytes();
@@ -278,7 +278,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Numbered(new[] { "WWWWWWWW" }))))))
+                                column.AddNumberedList(new[] { "WWWWWWWW" }))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -317,7 +317,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Numbered(new[] { new string('i', 20) }, style: new PdfListStyle()))))))
+                                column.AddNumberedList(new[] { new string('i', 20) }, style: new PdfListStyle()))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -414,7 +414,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Name", "Value" },
                                     new[] { "Long", "Column-local table cells also get clipped to the cell content rectangle." }
                                 }, style: style))))))
@@ -576,7 +576,7 @@ public partial class PdfDocumentVisualQualityTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.PercentColumn(100, column => column.Table(rows, style: style))))))
+                            row.PercentColumn(100, column => column.AddTable(rows, style: style))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -645,7 +645,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.KeepTogether = true;
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(52)
             })
             .Table(new[] {
@@ -685,10 +685,10 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column => {
-                                column.Paragraph(p => p.Text("ColumnIntroMarker"), style: new PdfParagraphStyle {
+                                column.AddParagraph(p => p.AddText("ColumnIntroMarker"), style: new PdfParagraphStyle {
                                     SpacingAfter = global::OfficeIMO.OfficeLength.Points(52)
                                 });
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "ColumnKeepA", "Ready" },
                                     new[] { "ColumnKeepB", "Ready" },
                                     new[] { "ColumnKeepC", "Ready" }

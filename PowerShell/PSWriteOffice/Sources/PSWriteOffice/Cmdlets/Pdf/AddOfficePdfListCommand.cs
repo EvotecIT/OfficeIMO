@@ -53,11 +53,11 @@ public sealed class AddOfficePdfListCommand : PSCmdlet
         {
             if (Numbered.IsPresent)
             {
-                content.Numbered(Items, Align, startNumber: StartNumber);
+                content.AddNumberedList(Items, Align, startNumber: StartNumber);
             }
             else
             {
-                content.Bullets(Items, Align);
+                content.AddList(Items, Align);
             }
         });
 

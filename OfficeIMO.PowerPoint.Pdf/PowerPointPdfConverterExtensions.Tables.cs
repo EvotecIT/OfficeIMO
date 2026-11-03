@@ -157,7 +157,7 @@ public static partial class PowerPointPdfConverterExtensions {
             italic: cell.Italic,
             color: cell.Color is global::OfficeIMO.OfficeColor cellColor ? global::OfficeIMO.OfficeColor.FromRgb(cellColor.R, cellColor.G, cellColor.B) : null,
             fontSize: ((double?)(cell.FontSize?.ToPoints()) is double physicalLength9 ? global::OfficeIMO.OfficeLength.Points(physicalLength9) : (global::OfficeIMO.OfficeLength?)null),
-            font: MapFont(fontFamily),
+            standardFont: MapFont(fontFamily),
             fontFamily: fontFamily);
     }
 

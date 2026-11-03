@@ -32,10 +32,10 @@ public sealed class PdfColumnTerminalSpacingTests {
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(400),
             MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40), MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) })
             .Columns(content => {
-                content.Paragraph(p => p.Text("Column001\nColumn002"), style: style);
+                content.AddParagraph(p => p.AddText("Column001\nColumn002"), style: style);
                 content.ColumnBreak();
             }, new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = false, FinalColumnSpacingAfter = global::OfficeIMO.OfficeLength.Points(20) })
-            .Paragraph(p => p.Text("AfterColumns"), style: style).ToBytes());
+            .Paragraph(p => p.AddText("AfterColumns"), style: style).ToBytes());
         Assert.Equal(1, pdf.NumberOfPages);
         Assert.Equal(60D, Word(pdf, 1, "Column001").BoundingBox.Top - Word(pdf, 1, "AfterColumns").BoundingBox.Top, 2);
     }
@@ -44,8 +44,8 @@ public sealed class PdfColumnTerminalSpacingTests {
         var style = new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false };
         return PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(400), MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40),
             MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) })
-            .Columns(content => content.Paragraph(p => p.Text("Column001\nColumn002\nColumn003\nColumn004"), style: style), options)
-            .Paragraph(p => p.Text("AfterColumns"), style: style);
+            .Columns(content => content.AddParagraph(p => p.AddText("Column001\nColumn002\nColumn003\nColumn004"), style: style), options)
+            .Paragraph(p => p.AddText("AfterColumns"), style: style);
     }
     private static UglyToad.PdfPig.Content.Word Word(PdfPigDocument pdf, int page, string marker) =>
         pdf.GetPage(page).GetWords().Single(word => word.Text == marker);

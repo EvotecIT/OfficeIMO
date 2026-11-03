@@ -227,7 +227,7 @@ public partial class PdfInspectorTests {
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Bookmark("Intro")
-            .Paragraph(p => p.Text("Bookmarked paragraph."))
+            .Paragraph(p => p.AddText("Bookmarked paragraph."))
             .ToBytes();
 
         PdfDocumentPreflight report = PdfInspector.Preflight(bytes);
@@ -258,11 +258,11 @@ public partial class PdfInspectorTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.LinkToBookmark("Details", "Details", contents: "Internal jump"))
+            .Paragraph(p => p.AddBookmarkLink("Details", "Details", contents: "Internal jump"))
             .Spacer(20)
             .Bookmark("Details")
             .H2("Details")
-            .Paragraph(p => p.Text("Destination paragraph."))
+            .Paragraph(p => p.AddText("Destination paragraph."))
             .ToBytes();
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);

@@ -13,8 +13,8 @@ namespace OfficeIMO.Examples.Pdf {
 
             PdfDocument.Create(pdf => pdf.Content(content => content
                 .H1("Source A", OfficeAlignment.Left)
-                .Paragraph(p => p.Text("This page is created first, then merged with Source B through the fluent PdfDocument API."))
-                .Table(new[] {
+                .AddParagraph(p => p.AddText("This page is created first, then merged with Source B through the fluent PdfDocument API."))
+                .AddTable(new[] {
                     new[] { "Capability", "Status", "Notes" },
                     new[] { "Create", "Ready", "Dependency-free writer surface" },
                     new[] { "Inspect", "Ready", "Metadata, pages, links, outlines, blockers" },
@@ -22,8 +22,8 @@ namespace OfficeIMO.Examples.Pdf {
                 }, style: UtilityTableStyle())
                 .PageBreak()
                 .H1("Source A \u2013 details", OfficeAlignment.Left)
-                .PanelParagraph(
-                    p => p.Bold("Page two is extracted later. ").Text("This proves the example is not just visual; it also exercises read/rewrite operations."),
+                .AddPanelParagraph(
+                    p => { p.AddText("Page two is extracted later. ").SetBold(); p.AddText("This proves the example is not just visual; it also exercises read/rewrite operations."); },
                     new PdfPanelStyle {
                         Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                         BorderColor = global::OfficeIMO.OfficeColor.FromRgb(148, 163, 184),
@@ -36,13 +36,13 @@ namespace OfficeIMO.Examples.Pdf {
 
             PdfDocument.Create(pdf => pdf.Content(content => content
                 .H1("Source B", OfficeAlignment.Left)
-                .Paragraph(p => p.Text("A second input document is merged into the final pack, then a stamp is applied to the combined output."))
-                .Bullets(new[] {
+                .AddParagraph(p => p.AddText("A second input document is merged into the final pack, then a stamp is applied to the combined output."))
+                .AddList(new[] {
                     "Merge reads source pages and rewrites a new document.",
                     "Stamp adds a content stream to selected pages.",
                     "Text extraction writes a sidecar text file for PowerShell-friendly workflows."
                 })
-                .Table(new[] {
+                .AddTable(new[] {
                     new[] { "Operation", "Output" },
                     new[] { "MergeWith", Path.GetFileName(mergedPath) },
                     new[] { "Pages.Extract", Path.GetFileName(extractedPath) },

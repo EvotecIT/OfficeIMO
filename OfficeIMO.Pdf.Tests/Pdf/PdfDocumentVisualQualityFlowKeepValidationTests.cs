@@ -23,8 +23,8 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var document = PdfDocument.Create(options);
         var style = new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(200)) };
-        if (columns) document.Columns(flow => flow.Paragraph(p => p.Text("A"), style: style));
-        else document.Paragraph(p => p.Text("A"), style: style);
+        if (columns) document.Columns(flow => flow.AddParagraph(p => p.AddText("A"), style: style));
+        else document.Paragraph(p => p.AddText("A"), style: style);
         var exception = Assert.Throws<ArgumentException>(() => document.ToBytes());
         Assert.Contains("Paragraph line height exceeds the available page content height.", exception.Message, StringComparison.Ordinal);
     }
@@ -45,7 +45,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(options)
-                .Paragraph(p => p.Text(longText), style: new PdfParagraphStyle {
+                .Paragraph(p => p.AddText(longText), style: new PdfParagraphStyle {
                     KeepTogether = true
                 })
                 .ToBytes());
@@ -91,7 +91,7 @@ public partial class PdfDocumentVisualQualityTests {
         string longText = string.Join(" ", Enumerable.Range(1, 180).Select(i => "panel" + i.ToString("000")));
 
         byte[] bytes = PdfDocument.Create(options)
-            .PanelParagraph(p => p.Text(longText), new PdfPanelStyle {
+            .PanelParagraph(p => p.AddText(longText), new PdfPanelStyle {
                 KeepTogether = false,
                 PaddingY = global::OfficeIMO.OfficeLength.Points(8)
             })

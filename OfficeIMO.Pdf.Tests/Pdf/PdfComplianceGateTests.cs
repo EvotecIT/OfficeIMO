@@ -292,7 +292,7 @@ public class PdfComplianceGateTests {
         var exception = Assert.Throws<InvalidOperationException>(() =>
             PdfDocument.Create().Compliance(PdfComplianceProfile.PdfUa2)
                 .Meta(title: "Compliance profile guard")
-                .Paragraph(p => p.Text("Missing accessibility configuration must fail closed."))
+                .Paragraph(p => p.AddText("Missing accessibility configuration must fail closed."))
                 .ToBytes());
         Assert.Contains("generation requirements", exception.Message, StringComparison.Ordinal);
         Assert.Contains("pdfua-identification", exception.Message, StringComparison.Ordinal);
@@ -412,7 +412,7 @@ public class PdfComplianceGateTests {
                 "Source data",
                 modificationDate: EmbeddedFileModificationDate))
             .H1("Archival PDF with Associated Data")
-            .Paragraph(p => p.Text("This exact artifact is validated as PDF/A-3b before OfficeIMO claims conformance."));
+            .Paragraph(p => p.AddText("This exact artifact is validated as PDF/A-3b before OfficeIMO claims conformance."));
     }
 
     private static byte[] CreatePdfA2BFixture() {
@@ -424,7 +424,7 @@ public class PdfComplianceGateTests {
             .Meta(title: "OfficeIMO PDF/A-2b", author: "OfficeIMO")
             .Language("en-US")
             .H1("Archival PDF")
-            .Paragraph(p => p.Text("This exact artifact is validated as PDF/A-2b before OfficeIMO claims conformance."));
+            .Paragraph(p => p.AddText("This exact artifact is validated as PDF/A-2b before OfficeIMO claims conformance."));
     }
 
     private static PdfCreateOptions CreatePdfA3BOptions() {
@@ -480,7 +480,7 @@ public class PdfComplianceGateTests {
         return PdfDocument.Create(options)
             .Meta(title: "OfficeIMO " + (profile == PdfComplianceProfile.PdfX1A2003 ? "PDF/X-1a:2003" : "PDF/X-4"), author: "OfficeIMO")
             .H1("Print production proof")
-            .Paragraph(paragraph => paragraph.Text("This exact CMYK artifact is ready for qualified external PDF/X preflight."));
+            .Paragraph(paragraph => paragraph.AddText("This exact CMYK artifact is ready for qualified external PDF/X preflight."));
     }
 
     private static byte[] CreateElectronicInvoiceFixture(PdfComplianceProfile profile) {
@@ -496,7 +496,7 @@ public class PdfComplianceGateTests {
             .Meta(title: "OfficeIMO " + (profile == PdfComplianceProfile.FacturX ? "Factur-X" : "ZUGFeRD") + " Invoice", author: "OfficeIMO")
             .Language("en-US")
             .H1(profile == PdfComplianceProfile.FacturX ? "Factur-X Invoice" : "ZUGFeRD Invoice")
-            .Paragraph(p => p.Text("The attached EN 16931 invoice XML and its PDF/A-3 carrier are validated as one exact artifact."));
+            .Paragraph(p => p.AddText("The attached EN 16931 invoice XML and its PDF/A-3 carrier are validated as one exact artifact."));
     }
 
     private static PdfCreateOptions CreateEinvoiceOptions(PdfComplianceProfile profile, byte[] invoiceXml) {
@@ -654,9 +654,11 @@ public class PdfComplianceGateTests {
         return PdfDocument.Create(CreatePdfUa1Options())
             .Meta(title: "OfficeIMO PDF/UA-1", author: "OfficeIMO")
             .H1("Accessible PDF")
-            .Paragraph(p => p.Text("This fixture exercises reading order, Unicode text, accessible links, annotations, forms, and figures. ")
-                .Link("Visit the OfficeIMO project", "https://officeimo.net/", contents: "OfficeIMO project website"))
-            .Image(CreateOnePixelPng(), 12, 12, alternativeText: "Decorative sample pixel")
+            .Paragraph(p => {
+                p.AddText("This fixture exercises reading order, Unicode text, accessible links, annotations, forms, and figures. ");
+                p.AddLink("Visit the OfficeIMO project", "https://officeimo.net/", contents: "OfficeIMO project website");
+            })
+            .Image(CreateOnePixelPng(), 12, 12, altText: "Decorative sample pixel")
             .TextAnnotation("Accessibility review note", width: 18, height: 18)
             .TextField("Contact.Email", value: "reader@example.com", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24), style: accessibleFieldStyle)
             .CheckBox("Contact.Updates", isChecked: true, size: 16, style: accessibleCheckBoxStyle);

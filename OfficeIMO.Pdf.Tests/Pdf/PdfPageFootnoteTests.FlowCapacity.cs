@@ -17,9 +17,9 @@ public partial class PdfPageFootnoteTests {
         PdfDocument document = CreateContinuationCapacityDocument();
         var capture = new PdfLayoutPositionCapture();
         document.Content.Flow(body => {
-            for (int index = 0; index < 6; index++) body.Text("BoundedBody" + index, style: Style());
+            for (int index = 0; index < 6; index++) body.AddParagraph("BoundedBody" + index, style: Style());
         }, new PdfFlowOptions { MinimumRemainingHeight = global::OfficeIMO.OfficeLength.Points(10), OverflowBehavior = behavior }, capture);
-        document.Content.Text("AfterBoundedFlow", style: Style());
+        document.Content.AddParagraph("AfterBoundedFlow", style: Style());
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
@@ -37,7 +37,7 @@ public partial class PdfPageFootnoteTests {
         var capture = new PdfLayoutPositionCapture();
         // The last continued-note page has 40pt of body room. A 50pt minimum
         // therefore requires the next unreserved page even for one 10pt line.
-        document.Content.Flow(body => body.Text("MinimumHeightBody", style: Style()),
+        document.Content.Flow(body => body.AddParagraph("MinimumHeightBody", style: Style()),
             new PdfFlowOptions { MinimumRemainingHeight = global::OfficeIMO.OfficeLength.Points(50) }, capture);
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -57,13 +57,13 @@ public partial class PdfPageFootnoteTests {
         var capture = new PdfLayoutPositionCapture();
         document.Content.Deferred(context => {
             factories.Add(context);
-            return body => body.Text("ContextPage" + context.PageNumber + "AtTop" + context.IsAtPageTop, style: Style());
+            return body => body.AddParagraph("ContextPage" + context.PageNumber + "AtTop" + context.IsAtPageTop, style: Style());
         }, new PdfFlowOptions {
             MinimumRemainingHeight = global::OfficeIMO.OfficeLength.Points(20),
             ShowIf = context => { predicates.Add(context); return true; }
         }, capture);
         var followingContexts = new List<PdfFlowContext>();
-        document.Content.Flow(body => body.Text("AfterContextBody", style: Style()), new PdfFlowOptions {
+        document.Content.Flow(body => body.AddParagraph("AfterContextBody", style: Style()), new PdfFlowOptions {
             ShowIf = context => { followingContexts.Add(context); return !context.IsAtPageTop; }
         });
 
@@ -91,9 +91,9 @@ public partial class PdfPageFootnoteTests {
     private static PdfDocument CreateContinuationCapacityDocument() {
         PdfDocument document = PdfDocument.Create(Options());
         PdfFootnoteDefinition note = document.Content.DefineFootnote(body => {
-            for (int index = 0; index < 25; index++) body.Text("CapacityNote" + index.ToString("00"), style: Style());
+            for (int index = 0; index < 25; index++) body.AddParagraph("CapacityNote" + index.ToString("00"), style: Style());
         });
-        document.Content.Paragraph(paragraph => paragraph.Runs(new[] {
+        document.Content.AddParagraph(paragraph => paragraph.AddRuns(new[] {
             PdfTextRun.Normal("CapacityReference").WithFootnoteReference(note)
         }), style: Style());
         return document;

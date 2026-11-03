@@ -125,7 +125,7 @@ namespace OfficeIMO.Tests.Pdf {
             options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Unavailable Average",
                 ManagedTextShapingTestAssets.CreateWordCharacterAverageFont(null)));
             if (cff != null) options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Cff Average", cff));
-            return PdfDocument.Create(options).Paragraph(paragraph => paragraph.Runs(runs),
+            return PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddRuns(runs),
                 distributed ? OfficeAlignment.Justify : OfficeAlignment.Left,
                 style: new PdfParagraphStyle {
                     UseWordJustificationSpacing = true, JustificationMode = PdfJustificationMode.Characters,

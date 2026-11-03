@@ -68,7 +68,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Metric", "Status" },
                                     new[] { "Queue", "Healthy" },
                                     new[] { "Latency", "Warning" }
@@ -132,7 +132,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Group", "State" },
                                     new[] { "Metric", "Owner" },
                                     new[] { "Queue", "Healthy" },
@@ -196,7 +196,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Metric", "Status" },
                                     new[] { "Queue", "Healthy" },
                                     new[] { "Latency", "Warning" },
@@ -263,7 +263,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Metric", "Status" },
                                     new[] { "Queue", "Healthy" },
                                     new[] { "Latency", "Warning" }
@@ -338,7 +338,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Metric", "Status" },
                                     new[] { "Progress", "50" },
                                     new[] { "Done", "100" }
@@ -427,7 +427,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Metric", "Status" },
                                     new[] { "Progress", "50" },
                                     new[] { "Done", "100" }

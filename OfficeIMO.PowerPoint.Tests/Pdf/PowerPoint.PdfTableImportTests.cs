@@ -23,7 +23,7 @@ public class PowerPointPdfTableImportTests {
             })
             .H1("Visual page one")
             .PageBreak()
-            .Paragraph(p => p.Text("Visual page two"))
+            .Paragraph(p => p.AddText("Visual page two"))
             .ToBytes();
 
         PdfCore.PdfDocument opened = PdfCore.PdfDocument.Load(pdf);
@@ -62,8 +62,8 @@ public class PowerPointPdfTableImportTests {
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .H1("Quarterly report")
-            .Paragraph(p => p.Text("Editable content projection"))
-            .Image(PdfPngTestImages.CreateRgbPng(2, 2), 18, 18, alternativeText: "Status marker")
+            .Paragraph(p => p.AddText("Editable content projection"))
+            .Image(PdfPngTestImages.CreateRgbPng(2, 2), 18, 18, altText: "Status marker")
             .Table(new[] {
                 new[] { "Metric", "Value" },
                 new[] { "Ready", "Yes" },
@@ -118,7 +118,7 @@ public class PowerPointPdfTableImportTests {
                         strokeWidth: global::OfficeIMO.OfficeLength.Points(1))
                 }
             })
-            .Paragraph(p => p.Text("Editable rectangle"))
+            .Paragraph(p => p.AddText("Editable rectangle"))
             .ToBytes();
 
         PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf)
@@ -153,7 +153,7 @@ public class PowerPointPdfTableImportTests {
                         strokeWidth: global::OfficeIMO.OfficeLength.Points(1))
                 }
             })
-            .Paragraph(paragraph => paragraph.Text("Logical-only vector"))
+            .Paragraph(paragraph => paragraph.AddText("Logical-only vector"))
             .ToBytes();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
         PdfCore.PdfLogicalPage sourcePage = Assert.Single(logical.Pages);
@@ -181,9 +181,9 @@ public class PowerPointPdfTableImportTests {
     public void PdfDocument_ToPowerPointDocument_EnforcesPageLimitInEveryMode(
         PowerPointPdfImportMode mode) {
         byte[] pdf = PdfCore.PdfDocument.Create()
-            .Paragraph(p => p.Text("Page one"))
+            .Paragraph(p => p.AddText("Page one"))
             .PageBreak()
-            .Paragraph(p => p.Text("Page two"))
+            .Paragraph(p => p.AddText("Page two"))
             .ToBytes();
         var options = new PowerPointPdfImportOptions {
             Mode = mode,
@@ -202,7 +202,7 @@ public class PowerPointPdfTableImportTests {
     public void PdfDocument_ToPowerPointDocument_RejectsOversizedSelectionBeforeLogicalExtraction(
         PowerPointPdfImportMode mode) {
         byte[] pdf = PdfCore.PdfDocument.Create()
-            .Paragraph(p => p.Text("Only one source page"))
+            .Paragraph(p => p.AddText("Only one source page"))
             .ToBytes();
         var options = new PowerPointPdfImportOptions {
             Mode = mode,
@@ -223,7 +223,7 @@ public class PowerPointPdfTableImportTests {
     public void PdfDocument_ToPowerPointDocument_AllowsRaisedDestinationAndSemanticPageLimits() {
         const int selectedPageCount = 1_001;
         byte[] pdf = PdfCore.PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Repeated source page"))
+            .Paragraph(paragraph => paragraph.AddText("Repeated source page"))
             .ToBytes();
         var options = new PowerPointPdfImportOptions {
             Mode = PowerPointPdfImportMode.EditableTables,
@@ -245,9 +245,9 @@ public class PowerPointPdfTableImportTests {
     [Fact]
     public void PdfDocumentReadResult_ToPowerPointDocument_AppliesSelectionBeforeDestinationLimit() {
         byte[] pdf = PdfCore.PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Page one"))
+            .Paragraph(paragraph => paragraph.AddText("Page one"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Page two"))
+            .Paragraph(paragraph => paragraph.AddText("Page two"))
             .ToBytes();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocument.Load(pdf).Read();
         var options = PowerPointPdfImportOptions.CreateEditableContent();
@@ -267,9 +267,9 @@ public class PowerPointPdfTableImportTests {
     [Fact]
     public void PdfDocumentReadResult_ToPowerPointDocument_PreservesSelectedOrderAndDuplicates() {
         byte[] pdf = PdfCore.PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Page one"))
+            .Paragraph(paragraph => paragraph.AddText("Page one"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Page two"))
+            .Paragraph(paragraph => paragraph.AddText("Page two"))
             .ToBytes();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocument.Load(pdf).Read();
         var options = PowerPointPdfImportOptions.CreateEditableContent();
@@ -289,7 +289,7 @@ public class PowerPointPdfTableImportTests {
     public void PdfDocument_ToPowerPointDocument_EditableObjectLimitReportsTextAndTableLoss() {
         byte[] pdf = PdfCore.PdfDocument.Create()
             .H1("Limit contract")
-            .Paragraph(p => p.Text("Second editable text block"))
+            .Paragraph(p => p.AddText("Second editable text block"))
             .Table(new[] {
                 new[] { "Metric", "Value" },
                 new[] { "Ready", "Yes" },
@@ -329,7 +329,7 @@ public class PowerPointPdfTableImportTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(12),
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("Scale probe"))
+            .Paragraph(p => p.AddText("Scale probe"))
             .ToBytes();
         PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf)
             .ConvertToPowerPointWithEvidence(PowerPointPdfImportOptions.CreateEditableContent());
@@ -364,7 +364,7 @@ public class PowerPointPdfTableImportTests {
                 MarginTop = global::OfficeIMO.OfficeLength.Points(24),
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(24)
             })
-            .Paragraph(p => p.Text("Rotation probe"))
+            .Paragraph(p => p.AddText("Rotation probe"))
             .ToBytes();
         if (sourceTextRotation != 0) {
             source = PdfCore.PdfDocument.Load(source).Pages.Rotate(sourceTextRotation)
@@ -438,7 +438,7 @@ public class PowerPointPdfTableImportTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("Quarterly status"))
+            .Paragraph(p => p.AddText("Quarterly status"))
             .Table(new[] {
                 new[] { "Code", "Qty" },
                 new[] { "A-100", "2" },
@@ -743,7 +743,7 @@ public class PowerPointPdfTableImportTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
-            .Paragraph(p => p.Text("Landscape reference"))
+            .Paragraph(p => p.AddText("Landscape reference"))
             .PageBreak()
             .Table(new[] {
                 new[] { "Code", "Qty" },
@@ -968,7 +968,7 @@ public class PowerPointPdfTableImportTests {
     [Fact]
     public void PdfPowerPointConversionReport_ClassifiesOmittedEditableTableContentAsOmission() {
         byte[] pdf = PdfCore.PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Text outside a table"))
+            .Paragraph(paragraph => paragraph.AddText("Text outside a table"))
             .ToBytes();
         PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf)
             .ConvertToPowerPointWithEvidence(PowerPointPdfImportOptions.CreateEditableTables());
@@ -1088,7 +1088,7 @@ public class PowerPointPdfTableImportTests {
 
     [Fact]
     public void PdfDocument_ToPowerPointDocument_VisualReportsFailedPagePixelsAsOmitted() {
-        byte[] pdf = PdfCore.PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Invoice"))
+        byte[] pdf = PdfCore.PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Invoice"))
             .ToBytes();
         var options = PowerPointPdfImportOptions.CreateVisualPages();
         options.MaxPixelsPerPage = 10;
@@ -1107,7 +1107,7 @@ public class PowerPointPdfTableImportTests {
     [Fact]
     public void PdfDocument_ToPowerPointDocument_VisualScopesOutlineWarningsToSelectedPages() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions { CreateOutlineFromHeadings = true })
-            .Paragraph(paragraph => paragraph.Text("Selected first page"))
+            .Paragraph(paragraph => paragraph.AddText("Selected first page"))
             .PageBreak()
             .H1("Excluded second-page outline")
             .ToBytes();
@@ -1140,7 +1140,7 @@ public class PowerPointPdfTableImportTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(paragraph => paragraph.Text("Standalone marker"))
+            .Paragraph(paragraph => paragraph.AddText("Standalone marker"))
             .Table(new[] {
                 new[] { "Code", "Qty" },
                 new[] { "A-100", "2" }
@@ -1237,7 +1237,7 @@ public class PowerPointPdfTableImportTests {
                 CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .PageBreak()
-            .Paragraph(p => p.Text("No table on this page."))
+            .Paragraph(p => p.AddText("No table on this page."))
             .ToBytes();
 
         using var presentation = new MemoryStream();

@@ -52,7 +52,7 @@ public class PdfDocumentDeferredTableTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
             })
             .TableDeferred(() => Enumerable.Range(1, 12).Select(index => new[] { "DeferredRow" + index }), batchSize: 1, style: style)
-            .Paragraph(paragraph => paragraph.Text("AfterDeferredRows"))
+            .Paragraph(paragraph => paragraph.AddText("AfterDeferredRows"))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -88,7 +88,7 @@ public class PdfDocumentDeferredTableTests {
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .TableDeferred(CreateRows, batchSize: 2, style: style)
-            .Paragraph(paragraph => paragraph.Text("After table"));
+            .Paragraph(paragraph => paragraph.AddText("After table"));
 
         Assert.Equal(0, factoryCalls);
 
@@ -226,10 +226,10 @@ public class PdfDocumentDeferredTableTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(paragraph => paragraph.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
             })
-            .Paragraph(paragraph => paragraph.Text("KeepWithDeferredTable"), style: new PdfParagraphStyle {
+            .Paragraph(paragraph => paragraph.AddText("KeepWithDeferredTable"), style: new PdfParagraphStyle {
                 KeepWithNext = true
             })
             .TableDeferred(() => new[] {

@@ -8,7 +8,7 @@ public sealed class PdfHiddenContentInspectionTests {
     [Fact]
     public void ContentSafetySkipsHiddenLayerReparseWhenDocumentHasNoOptionalContent() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("VISIBLE-CONTENT"))
+            .Paragraph(paragraph => paragraph.AddText("VISIBLE-CONTENT"))
             .ToBytes();
         int hiddenInspectionCalls = 0;
         PdfReadPage.HiddenOptionalContentInspectionObserverForTesting = () => hiddenInspectionCalls++;

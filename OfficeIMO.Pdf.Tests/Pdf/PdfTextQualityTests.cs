@@ -31,7 +31,7 @@ public class PdfTextQualityTests {
         const string later = "123 - abc";
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs("אבג".Concat(later).Select(character => (int)character).Distinct().ToArray());
         byte[] Create(string text) => PdfDocument.Create(new PdfCreateOptions().UseFontFamily(new PdfEmbeddedFontFamily("Bidi", font)))
-            .Paragraph(paragraph => paragraph.Text(text)).ToBytes();
+            .Paragraph(paragraph => paragraph.AddText(text)).ToBytes();
         var combined = PdfReadDocument.Open(Create("אבג\n" + later)).Pages[0].GetTextSpans();
         var standalone = PdfReadDocument.Open(Create(later)).Pages[0].GetTextSpans();
         PdfTextSpan word = Assert.Single(combined, span => span.Text.Contains("abc", StringComparison.Ordinal));
@@ -46,7 +46,7 @@ public class PdfTextQualityTests {
         byte[] Glyphs(bool fontUnits) {
             byte[] pdf = PdfDocument.Create(new PdfCreateOptions { UseFontUnitTextLayout = fontUnits, TextShapingMode = PdfTextShapingMode.UnicodeScalar }
                     .UseFontFamily(new PdfEmbeddedFontFamily("RTL", font)))
-                .Paragraph(paragraph => paragraph.Text(text)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+                .Paragraph(paragraph => paragraph.AddText(text)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
             return PdfReadDocument.Open(pdf).Pages[0].GetTextSpans().SelectMany(span => span.GlyphBytes ?? Array.Empty<byte[]>()).SelectMany(bytes => bytes).ToArray();
         }
         byte[] expected = Glyphs(true);
@@ -58,7 +58,7 @@ public class PdfTextQualityTests {
     public void StandardFontTextUsesAfmPairKerningUnlessDisabled() {
         double Width(bool kerning) {
             byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false, TextKerning = kerning })
-                .Paragraph(p => p.Text("AVATAR")).ToBytes();
+                .Paragraph(p => p.AddText("AVATAR")).ToBytes();
             using var reader = PdfPigDocument.Open(pdf);
             var letters = reader.GetPage(1).Letters;
             return letters.Last().EndBaseLine.X - letters.First().StartBaseLine.X;
@@ -71,7 +71,7 @@ public class PdfTextQualityTests {
     public void EmbeddedFontTextUsesFontKerningInLayoutAndPaint() {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithKerning('A', 'V', -200, includeSpace: true);
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false }.EmbedStandardFont(PdfStandardFont.Helvetica, font, "Kerned"))
-            .Paragraph(p => p.Text("AV AV")).ToBytes();
+            .Paragraph(p => p.AddText("AV AV")).ToBytes();
         string content = Encoding.ASCII.GetString(pdf);
         Assert.Matches(@"\[<0001> 200<0002", content);
         using var reader = PdfPigDocument.Open(pdf);
@@ -83,7 +83,7 @@ public class PdfTextQualityTests {
     public void EmbeddedParagraphLinesUseOneShowOperatorWithoutPerGlyphTextObjects() {
         byte[] font = File.ReadAllBytes(PdfComplianceTestFonts.FindBundledTrueTypeFont()!);
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false }.UseFontFamily(new PdfEmbeddedFontFamily("Line", font)))
-            .Paragraph(p => p.Text("Office files fly: affine kerning AVATAR, To, Ty and Wo stay compact."))
+            .Paragraph(p => p.AddText("Office files fly: affine kerning AVATAR, To, Ty and Wo stay compact."))
             .ToBytes();
         string raw = Encoding.ASCII.GetString(pdf);
         string content = raw.Substring(raw.IndexOf("BT\n", StringComparison.Ordinal));
@@ -98,7 +98,7 @@ public class PdfTextQualityTests {
     public void EmbeddedTrueTypeSubsetIsRenumberedTaggedAndMappedThroughCidToGidMap() {
         byte[] font = File.ReadAllBytes(PdfComplianceTestFonts.FindBundledTrueTypeFont()!);
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressEmbeddedFonts = false }.UseFontFamily(new PdfEmbeddedFontFamily("Subset", font)))
-            .Paragraph(p => p.Text("Subset tag"))
+            .Paragraph(p => p.AddText("Subset tag"))
             .ToBytes();
         string raw = Encoding.ASCII.GetString(pdf);
         Match baseFont = Regex.Match(raw, @"/BaseFont /([A-Z]{6})\+Subset-Regular");
@@ -117,7 +117,7 @@ public class PdfTextQualityTests {
         byte[] font = File.ReadAllBytes(PdfComplianceTestFonts.FindBundledTrueTypeFont()!);
         string Tag() {
             byte[] pdf = PdfDocument.Create(new PdfCreateOptions().UseFontFamily(new PdfEmbeddedFontFamily("Stable", font)))
-                .Paragraph(p => p.Text("Deterministic output")).ToBytes();
+                .Paragraph(p => p.AddText("Deterministic output")).ToBytes();
             return Regex.Match(Encoding.ASCII.GetString(pdf), @"/BaseFont /([A-Z]{6}\+)").Groups[1].Value;
         }
         string first = Tag();
@@ -132,7 +132,7 @@ public class PdfTextQualityTests {
         const string text = "مرحبا بالعالم";
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false }
                 .UseFontFamily(new PdfEmbeddedFontFamily("Arabic", File.ReadAllBytes(fontPath!))))
-            .Paragraph(p => p.Text(text))
+            .Paragraph(p => p.AddText(text))
             .ToBytes();
 
         Assert.Equal(text, PdfReadDocument.Open(pdf).ExtractText().Trim());
@@ -162,7 +162,7 @@ public class PdfTextQualityTests {
     [Fact]
     public void WordsWrapAtLineBreakOpportunitiesWithinTheRemainingWidth() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(130), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20) })
-            .Paragraph(p => p.Text("Use a state-of-the-art approach today"))
+            .Paragraph(p => p.AddText("Use a state-of-the-art approach today"))
             .ToBytes();
         string[] lines = PdfReadDocument.Open(pdf).ExtractText().Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
         Assert.Contains(lines, static line => line.TrimEnd().EndsWith("-", StringComparison.Ordinal));
@@ -173,7 +173,7 @@ public class PdfTextQualityTests {
     public void AutomaticHyphenationSplitsWordsAtLineEnds() {
         PdfCreateOptions options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(160), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20) }.UseAutomaticHyphenation("en-US");
         byte[] pdf = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("The representation of international communication"))
+            .Paragraph(p => p.AddText("The representation of international communication"))
             .ToBytes();
         string[] lines = PdfReadDocument.Open(pdf).ExtractText().Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
         Assert.Contains(lines, static line => Regex.IsMatch(line.TrimEnd(), @"\p{L}-$"));

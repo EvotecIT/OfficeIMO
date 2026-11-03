@@ -19,8 +19,8 @@ public class PdfPanelInsetTests {
             PaddingX = OfficeLength.Points(0), PaddingY = OfficeLength.Points(0), SpacingBefore = OfficeLength.Points(0), SpacingAfter = OfficeLength.Points(0),
             BorderColor = OfficeColor.Black, BorderWidth = OfficeLength.Points(1)
         };
-        void Compose(PdfContentBuilder content) => content.Panel(panel => panel.Paragraph(
-            p => p.Text(string.Join("\n", Enumerable.Range(1, 15).Select(i => $"Marker{i:D3}"))),
+        void Compose(PdfContentBuilder content) => content.Panel(panel => panel.AddParagraph(
+            p => p.AddText(string.Join("\n", Enumerable.Range(1, 15).Select(i => $"Marker{i:D3}"))),
             style: new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exact(OfficeLength.Points(20)), SpacingAfter = OfficeLength.Points(0), WidowControl = false }), style);
         if (row) document.Row(columns => columns.RelativeColumn(Compose));
         else document.Panel(panel => Compose(panel), new PdfPanelStyle { PaddingX = OfficeLength.Points(0), PaddingY = OfficeLength.Points(0), BorderWidth = OfficeLength.Points(0) });

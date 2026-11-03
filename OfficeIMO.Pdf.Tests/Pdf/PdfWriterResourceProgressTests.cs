@@ -22,7 +22,7 @@ public sealed class PdfWriterResourceProgressTests {
     [InlineData("ordinary", -90)]
     public void CanvasTableInlineImagesRespectEnclosingAccessibilityOwnership(string group, int rotation) {
         byte[] image = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Red));
-        var runs = new[] { PdfTextRun.Inline(new PdfInlineImage(image, OfficeLength.Points(12), OfficeLength.Points(12), alternativeText: "Child image")) };
+        var runs = new[] { PdfTextRun.Inline(new PdfInlineImage(image, OfficeLength.Points(12), OfficeLength.Points(12), altText: "Child image")) };
         // Imported Office cells use the same native orientation contract.
         var cell = new PdfTableCell(runs, paragraphs: null, textRotation: rotation);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -55,7 +55,7 @@ public sealed class PdfWriterResourceProgressTests {
         table.HeaderRowCount = 0;
         table.FixedRowHeights = new List<OfficeLength?> { OfficeLength.Points(270D - bodyHeight) };
         table.ColumnWidths = new List<OfficeLength?> { OfficeLength.Points(100D) };
-        document.Header(header => header.Content(content => content.Table(new[] { new[] { "HEADER" } }, style: table), OfficeLength.Points(18)));
+        document.Header(header => header.Content(content => content.AddTable(new[] { new[] { "HEADER" } }, style: table), OfficeLength.Points(18)));
         document.Spacer(1);
 
         byte[] bytes = document.ToBytes();
@@ -80,7 +80,7 @@ public sealed class PdfWriterResourceProgressTests {
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
         }).Canvas(canvas => {
             void Paint(PdfPageCanvas child) {
-                var runs = new[] { PdfTextRun.Inline(new PdfInlineImage(image, OfficeLength.Points(12), OfficeLength.Points(12), alternativeText: "Child image")) };
+                var runs = new[] { PdfTextRun.Inline(new PdfInlineImage(image, OfficeLength.Points(12), OfficeLength.Points(12), altText: "Child image")) };
                 if (textBox) child.TextBox(runs, OfficeLength.Points(20), OfficeLength.Points(20), OfficeLength.Points(80), OfficeLength.Points(40));
                 else child.Text(runs, OfficeLength.Points(20), OfficeLength.Points(20), OfficeLength.Points(80), OfficeLength.Points(40));
             }

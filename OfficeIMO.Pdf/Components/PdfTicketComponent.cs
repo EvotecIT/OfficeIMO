@@ -47,8 +47,8 @@ public sealed class PdfTicketComponent : IPdfComponent {
             if (StartsAt.HasValue) details.Add(new[] { "Starts", StartsAt.Value.ToString("g", _culture) });
             if (!string.IsNullOrWhiteSpace(Venue)) details.Add(new[] { "Venue", Venue! });
             if (!string.IsNullOrWhiteSpace(Holder)) details.Add(new[] { "Holder", Holder! });
-            if (details.Count > 0) panel.Table(details, style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null });
-            if (!string.IsNullOrWhiteSpace(Instructions)) panel.Paragraph(paragraph => paragraph.Text(Instructions!));
+            if (details.Count > 0) panel.AddTable(details, style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null });
+            if (!string.IsNullOrWhiteSpace(Instructions)) panel.AddParagraph(paragraph => paragraph.AddText(Instructions!));
         }, new PdfPanelStyle {
             BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.15, 0.15, 0.15),
             BorderWidth = global::OfficeIMO.OfficeLength.Points(1.2),

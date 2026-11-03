@@ -123,7 +123,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         OfficeClipPath triangle = OfficeClipPath.Path(OfficePathCommand.MoveTo(0, 0), OfficePathCommand.LineTo(8, 0),
             OfficePathCommand.LineTo(0, 12), OfficePathCommand.Close());
         byte[] bytes = PdfDocument.Create(CreateOptions(report)).Canvas(canvas => canvas.Clip(global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), triangle,
-            child => child.Text(new[] { PdfTextRun.Normal("O", font: PdfStandardFont.TimesRoman) }, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(18)))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+            child => child.Text(new[] { PdfTextRun.Normal("O", standardFont: PdfStandardFont.TimesRoman) }, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(18)))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.NotEmpty(bytes);
         Assert.DoesNotContain(report.Warnings, warning => warning.Code == "canvas-text-canvas-clip-paint-clipped");
         var warning = Assert.Single(report.Warnings, warning => warning.Code == "canvas-text-paint-bounds-unmeasured");

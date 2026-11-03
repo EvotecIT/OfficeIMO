@@ -1,3 +1,4 @@
+#pragma warning disable RS0026 // Typed rows share AddTable with the text and cell row overloads.
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -10,17 +11,13 @@ using OfficeIMO.Data;
 
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfContentBuilder {
-    /// <summary>Adds a table using the shared typed projection and default PDF styling.</summary>
-    public PdfContentBuilder Table<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(
-        IEnumerable<T> rows) => Table(rows, null);
-
-    /// <summary>Adds a table from typed properties, tuples, or string-keyed dictionaries using the shared bounded projection engine.</summary>
+public sealed partial class PdfDocument {
+    /// <summary>Appends a table from typed properties, tuples, or string-keyed dictionaries using the shared bounded projection engine.</summary>
     /// <param name="rows">Source rows, enumerated once while this call snapshots the table.</param>
     /// <param name="options">Common column selection, ordering, header, formatting and alignment options.</param>
     /// <remarks><see cref="OfficeTableOptions.Caption"/> becomes the visible PDF caption. PDF tables have no native name, so a non-null <see cref="OfficeTableOptions.Name"/> throws <see cref="NotSupportedException"/>. Logical start/end align left/right; PDF table columns cannot be justified, so Justify is rejected.</remarks>
-    public PdfContentBuilder Table<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(
-        IEnumerable<T> rows, OfficeTableOptions? options) {
+    public PdfTable AddTable<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(
+        IEnumerable<T> rows, OfficeTableOptions? options = null) {
         Guard.NotNull(rows, nameof(rows));
         ObjectDataHelpers.ValidateTableAlignments(options);
         if (options?.Name != null)
@@ -54,7 +51,7 @@ public sealed partial class PdfContentBuilder {
             if (!expanded) AddRow(row, null, null);
         }
         if (output.Count == 0) throw new ArgumentException("A headerless table requires at least one row.", nameof(rows));
-        var effectiveStyle = pdfOptions?.Style?.Clone() ?? _doc.CompositionOptions.DefaultTableStyle ?? new PdfTableStyle();
+        var effectiveStyle = pdfOptions?.Style?.Clone() ?? CompositionOptions.DefaultTableStyle ?? new PdfTableStyle();
         effectiveStyle.HeaderRowCount = headers ? 1 : 0;
         effectiveStyle.RepeatHeaderRowCount = headers ? 1 : 0;
         if (options?.Caption != null) effectiveStyle.Caption = options.Caption;
@@ -67,8 +64,7 @@ public sealed partial class PdfContentBuilder {
             }
             effectiveStyle.Alignments = alignments;
         }
-        _doc.Table(output, align, effectiveStyle);
-        return this;
+        return AddTable(output, align, effectiveStyle);
 
         void AddRow(Dictionary<string, object?> row, string? expandedPath, object? expandedValue) {
             if (dataRows >= projectionOptions.MaxRows || ((long)dataRows + 1 + (headers ? 1 : 0)) * paths.Count > projectionOptions.MaxCells)

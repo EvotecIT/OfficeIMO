@@ -9,7 +9,7 @@ public sealed class PdfImageTransformTests {
     [InlineData(90)]
     [InlineData(37)]
     public void ProportionalTransformPreservesRotationAndUnselectedPlacement(double rotation) {
-        byte[] source = PdfDocument.Create().Paragraph(text => text.Text("Keep this text")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(text => text.AddText("Keep this text")).ToBytes();
         byte[] image = PdfPngTestImages.CreateRgbPng(255, 0, 0);
         source = PdfStamper.StampImage(source, image, new PdfImageStampOptions {
             PageNumbers = new[] { 1 }, X = global::OfficeIMO.OfficeLength.Points(100), Y = global::OfficeIMO.OfficeLength.Points(180), Width = global::OfficeIMO.OfficeLength.Points(80), Height = global::OfficeIMO.OfficeLength.Points(40), RotationDegrees = rotation

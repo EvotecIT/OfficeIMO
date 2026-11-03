@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests.Pdf {
                     new PdfTextRun("B", fontFamily: ManagedTextShapingTestAssets.FamilyName, underline: true,
                         backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0))
                 }).ToArray();
-            return PdfDocument.Create(options).Paragraph(p => p.Runs(runs)).ToBytes();
+            return PdfDocument.Create(options).Paragraph(p => p.AddRuns(runs)).ToBytes();
         }
     }
 }

@@ -162,7 +162,7 @@ public sealed class HtmlPdfTests {
     public async Task Pdf_SaveAsHtmlAsync_ObservesMethodCancellationAndKeepsOptionsReusable() {
         using var cancellation = new System.Threading.CancellationTokenSource();
         var options = PdfToHtmlOptions.CreateSemanticProfile();
-        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(PdfCore.PdfDocument.Create().Paragraph(p => p.Text("Reusable options")).ToBytes()));
+        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(PdfCore.PdfDocument.Create().Paragraph(p => p.AddText("Reusable options")).ToBytes()));
         cancellation.Cancel();
         using var stream = new MemoryStream();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pdf.SaveAsHtmlAsync(stream, options, cancellation.Token));
@@ -192,7 +192,7 @@ public sealed class HtmlPdfTests {
                 PageHeight = global::OfficeIMO.OfficeLength.Points(360),
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(paragraph => paragraph.Text(new string('&', 100_000)))
+            .Paragraph(paragraph => paragraph.AddText(new string('&', 100_000)))
             .ToBytes();
         PdfToHtmlOptions options = PdfToHtmlOptions.CreateSemanticProfile();
         options.MaximumOutputCharacters = 250_000;
@@ -1388,7 +1388,7 @@ public sealed class HtmlPdfTests {
             })
             .H1("Primary heading")
             .H2("Secondary heading")
-            .Paragraph(paragraph => paragraph.Text("Body text establishes the normal font tier."))
+            .Paragraph(paragraph => paragraph.AddText("Body text establishes the normal font tier."))
             .ToBytes();
         PdfToHtmlOptions options = PdfToHtmlOptions.CreatePositionedReviewProfile();
 
@@ -1813,9 +1813,9 @@ public sealed class HtmlPdfTests {
                 MarginTop = global::OfficeIMO.OfficeLength.Points(36),
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
-            .Paragraph(paragraph => paragraph.Text("First PDF page"))
+            .Paragraph(paragraph => paragraph.AddText("First PDF page"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second PDF page"))
+            .Paragraph(paragraph => paragraph.AddText("Second PDF page"))
             .ToBytes();
         var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.Semantic,
@@ -1840,7 +1840,7 @@ public sealed class HtmlPdfTests {
                 MarginTop = global::OfficeIMO.OfficeLength.Points(36),
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
-            .Paragraph(paragraph => paragraph.Text("Duplicated selected page"))
+            .Paragraph(paragraph => paragraph.AddText("Duplicated selected page"))
             .ToBytes();
         var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.Semantic,
@@ -1866,9 +1866,9 @@ public sealed class HtmlPdfTests {
                 MarginTop = global::OfficeIMO.OfficeLength.Points(36),
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
-            .Paragraph(paragraph => paragraph.Text("First logical page"))
+            .Paragraph(paragraph => paragraph.AddText("First logical page"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second logical page"))
+            .Paragraph(paragraph => paragraph.AddText("Second logical page"))
             .ToBytes();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
         var options = new PdfToHtmlOptions {
@@ -2487,7 +2487,7 @@ public sealed class HtmlPdfTests {
             })
             .Meta(title: "Logical PDF sample", author: "OfficeIMO")
             .H1("Logical Heading")
-            .Paragraph(paragraph => paragraph.Text("Logical readback marker."))
+            .Paragraph(paragraph => paragraph.AddText("Logical readback marker."))
             .Bullets(new[] { "Detected logical bullet" })
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
@@ -2514,12 +2514,12 @@ public sealed class HtmlPdfTests {
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .H1("Executive summary")
-            .Paragraph(paragraph => paragraph.Text("Summary body."))
+            .Paragraph(paragraph => paragraph.AddText("Summary body."))
             .H2("Risk posture")
-            .Paragraph(paragraph => paragraph.Text("Risk body."))
+            .Paragraph(paragraph => paragraph.AddText("Risk body."))
             .PageBreak()
             .H1("Appendix")
-            .Paragraph(paragraph => paragraph.Text("Appendix body."))
+            .Paragraph(paragraph => paragraph.AddText("Appendix body."))
             .ToBytes();
     }
 
@@ -2535,7 +2535,7 @@ public sealed class HtmlPdfTests {
             })
             .Meta(title: "PDF to HTML summary sample", author: "OfficeIMO")
             .H1("Logical Heading")
-            .Paragraph(paragraph => paragraph.Text("Logical readback marker."))
+            .Paragraph(paragraph => paragraph.AddText("Logical readback marker."))
             .Bullets(new[] { "Detected logical bullet" })
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },

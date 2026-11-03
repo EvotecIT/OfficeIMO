@@ -582,8 +582,8 @@ public sealed class StudioDocumentStructureTests {
     private static string CreateDocument(string root) {
         string path = Path.Combine(root, "structure.pdf");
         PdfDocument.Create(compose => {
-            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400D), global::OfficeIMO.OfficeLength.Points(500D)).Content(content => content.Text("First page body")));
-            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400D), global::OfficeIMO.OfficeLength.Points(500D)).Content(content => content.Text("Second page body")));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400D), global::OfficeIMO.OfficeLength.Points(500D)).Content(content => content.AddParagraph("First page body")));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400D), global::OfficeIMO.OfficeLength.Points(500D)).Content(content => content.AddParagraph("Second page body")));
         }).Save(path);
         return path;
     }

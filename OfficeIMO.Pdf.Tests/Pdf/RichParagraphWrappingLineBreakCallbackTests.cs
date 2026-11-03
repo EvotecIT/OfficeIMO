@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests.Pdf {
                     CompressContentStreams = false
                 })
                 .TextLineBreaks(callback)
-                .Paragraph(paragraph => paragraph.Text("alphaomega"))
+                .Paragraph(paragraph => paragraph.AddText("alphaomega"))
                 .ToBytes();
 
             string extracted = PdfReadDocument.Open(bytes).ExtractText();
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests.Pdf {
                 .SetTextLineBreaks(token => token == text ? new[] { 4 } : Array.Empty<int>());
 
             byte[] bytes = PdfDocument.Create(options)
-                .Paragraph(paragraph => paragraph.Text(text))
+                .Paragraph(paragraph => paragraph.AddText(text))
                 .ToBytes();
 
             string extracted = PdfReadDocument.Open(bytes).ExtractText();

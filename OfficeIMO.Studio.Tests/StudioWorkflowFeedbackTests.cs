@@ -14,7 +14,7 @@ public sealed class StudioWorkflowFeedbackTests {
             var services = ((App)Avalonia.Application.Current!).Services;
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "forms-navigation.pdf");
-            PdfDocument.Create(document => document.Page(page => page.Content(content => content.Text("Forms")))).Save(source);
+            PdfDocument.Create(document => document.Page(page => page.Content(content => content.AddParagraph("Forms")))).Save(source);
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
             await model.OpenDocumentAsync(source);
             model.DocumentMode = StudioDocumentMode.Forms;
@@ -47,7 +47,7 @@ public sealed class StudioWorkflowFeedbackTests {
             string source = Path.Combine(services.Paths.Root, "notification-source.pdf");
             string output = Path.Combine(services.Paths.Root, "notification-copy.pdf");
             PdfDocument.Create(document => document.Page(page => page.Content(content =>
-                content.Text("Operation notification proof")))).Save(source);
+                content.AddParagraph("Operation notification proof")))).Save(source);
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services,
                 pickSavePdf: _ => Task.FromResult<string?>(output), reviewPageExtraction: _ => Task.FromResult(true));
             await model.OpenDocumentAsync(source);

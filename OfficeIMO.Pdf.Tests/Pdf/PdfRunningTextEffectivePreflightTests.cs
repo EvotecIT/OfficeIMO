@@ -14,7 +14,7 @@ public sealed class PdfRunningTextEffectivePreflightTests {
         var options = new PdfCreateOptions { HeaderFormat = "Page {page}/{pages}", CompressContentStreams = false }
             .EmbedStandardFont(PdfStandardFont.Helvetica, font, "Selected running text");
         PdfDocument document = PdfDocument.Create(options).Compose(composition => composition.Page(page => {
-            page.Content(content => content.Text("x"));
+            page.Content(content => content.AddParagraph("x"));
             if (owner == "Header") page.Header(header => header.Text(text => text.Run(new PdfTextRun("xxx"))));
             else page.Footer(footer => footer.Text(text => text.Run(new PdfTextRun("xxx"))));
         }));

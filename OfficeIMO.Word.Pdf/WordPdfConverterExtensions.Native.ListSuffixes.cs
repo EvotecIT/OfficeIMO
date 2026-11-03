@@ -78,7 +78,7 @@ namespace OfficeIMO.Word.Pdf {
             string? family = nativeFontMap?.TryGetNamedFontFamily("Arial", out string? namedFamily) == true
                 ? namedFamily : null;
             return spacing.ApplyTo(new PdfCore.PdfTextRun(" ",
-                fontSize: global::OfficeIMO.OfficeLength.Points(fontSize), font: font, fontFamily: family) { ContributesLineBoxDescent = false }, fontSize);
+                fontSize: global::OfficeIMO.OfficeLength.Points(fontSize), standardFont: font, fontFamily: family) { ContributesLineBoxDescent = false }, fontSize);
         }
     }
 }

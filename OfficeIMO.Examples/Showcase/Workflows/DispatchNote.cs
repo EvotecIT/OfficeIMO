@@ -15,17 +15,20 @@ internal static class DispatchNote {
         };
         PdfDocument.Create(pdf => pdf.Content(content => content
             .Title("Dispatch note")
-            .Paragraph(p => p.Bold("DN-2026-0418").Text(" · Northwind equipment services"))
+            .AddParagraph(p => { p.AddText("DN-2026-0418").SetBold(); p.AddText(" · Northwind equipment services"); })
             .H2("Deliver to")
-            .Paragraph(p => p.Text("Northwind Delivery Centre\nReceiving desk, Building B\nScheduled delivery: 18 September 2026"))
-            .Table(items)
-            .PanelParagraph(p => p.Bold("Receiving instructions\n").Text(
-                "Check all 13 cartons against this note. Record visible damage before accepting the shipment."))
+            .AddParagraph(p => p.AddText("Northwind Delivery Centre\nReceiving desk, Building B\nScheduled delivery: 18 September 2026"))
+            .AddTable(items)
+            .AddPanelParagraph(p => {
+                p.AddText("Receiving instructions\n").SetBold();
+                p.AddText(
+                "Check all 13 cartons against this note. Record visible damage before accepting the shipment.");
+            })
             .H2("Receipt")
             .Row(row => row.Gap(OfficeLength.Points(24))
-                .RelativeColumn(column => column.Spacer(OfficeLength.Points(28)).HR(OfficeLength.Points(0.75), muted, OfficeLength.Points(0), OfficeLength.Points(3)).Paragraph(p => p.Text("Received by"), defaultColor: muted), 2)
-                .RelativeColumn(column => column.Spacer(OfficeLength.Points(28)).HR(OfficeLength.Points(0.75), muted, OfficeLength.Points(0), OfficeLength.Points(3)).Paragraph(p => p.Text("Date"), defaultColor: muted), 1))
-            .Paragraph(p => p.FontSize(OfficeLength.Points(9)).Text("Sample logistics document. Quantities and references are demonstration data."), defaultColor: muted)),
+                .RelativeColumn(column => column.Spacer(OfficeLength.Points(28)).HR(OfficeLength.Points(0.75), muted, OfficeLength.Points(0), OfficeLength.Points(3)).AddParagraph(p => p.AddText("Received by"), color: muted), 2)
+                .RelativeColumn(column => column.Spacer(OfficeLength.Points(28)).HR(OfficeLength.Points(0.75), muted, OfficeLength.Points(0), OfficeLength.Points(3)).AddParagraph(p => p.AddText("Date"), color: muted), 1))
+            .AddParagraph(p => p.AddText("Sample logistics document. Quantities and references are demonstration data.").SetFontSize(OfficeLength.Points(9)), color: muted)),
             new PdfCreateOptions { ShowPageNumbers = true })
             .Meta(title: "Dispatch note DN-2026-0418", author: "OfficeIMO")
             .Save(Path.Combine(folder, "example.pdf"));

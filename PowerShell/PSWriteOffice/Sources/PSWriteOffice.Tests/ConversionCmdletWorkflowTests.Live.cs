@@ -172,7 +172,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
                 return slides;
             case "Pdf":
                 var pdf = PdfDocument.Create();
-                pdf.Compose(compose => compose.Content(content => content.Paragraph(p => p.Text(text))));
+                pdf.Compose(compose => compose.Content(content => content.AddParagraph(p => p.AddText(text))));
                 return pdf;
             case "Markdown": return OfficeIMO.Markdown.MarkdownDocument.Create().H1(text);
             case "Html": return OfficeIMO.Html.HtmlConversionDocument.Parse("<h1>" + text + "</h1>");

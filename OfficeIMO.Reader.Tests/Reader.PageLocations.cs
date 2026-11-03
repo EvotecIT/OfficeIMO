@@ -446,9 +446,9 @@ public sealed class ReaderPageLocationTests {
                 MarginTop = global::OfficeIMO.OfficeLength.Points(36),
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
-            .Paragraph(paragraph => paragraph.Text("First page body."))
+            .Paragraph(paragraph => paragraph.AddText("First page body."))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Needle on native page two."))
+            .Paragraph(paragraph => paragraph.AddText("Needle on native page two."))
             .ToBytes();
 
         OfficeDocumentReadResult document = PdfReaderAdapter.ReadDocument(

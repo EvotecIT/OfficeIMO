@@ -62,7 +62,7 @@ public sealed class MainWindowViewModelTests {
         string path = Path.Combine(root, "editable.pdf");
         PdfDocument.Create(compose => compose.Page(page => page
             .Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D))
-            .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Sensitive review text"))))))
+            .Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Sensitive review text"))))))
             .Save(path);
 
         try {
@@ -101,7 +101,7 @@ public sealed class MainWindowViewModelTests {
         string path = Path.Combine(root, "editable.pdf");
         byte[] source = PdfDocument.Create(compose => compose.Page(page => page
             .Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D))
-            .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Sensitive review text")))))).ToBytes();
+            .Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Sensitive review text")))))).ToBytes();
         byte[] annotated = PdfDocument.Load(new System.IO.MemoryStream(source)).Annotations.Add(new PdfAnnotationCreateOptions {
             Subtype = "Text",
             Rectangle = [40D, 50D, 60D, 70D],
@@ -272,7 +272,7 @@ public sealed class MainWindowViewModelTests {
         Directory.CreateDirectory(root);
         string path = Path.Combine(root, "protected.pdf");
         byte[] plain = PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
-            item.Paragraph(paragraph => paragraph.Text("Prompted content")))))).ToBytes();
+            item.AddParagraph(paragraph => paragraph.AddText("Prompted content")))))).ToBytes();
         await File.WriteAllBytesAsync(path, PdfDocument.Load(new System.IO.MemoryStream(plain)).Security.Encrypt(
             new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" }).Pdf);
         var attempts = new List<bool>();
@@ -633,7 +633,7 @@ public sealed class MainWindowViewModelTests {
         Directory.CreateDirectory(root);
         try {
             string fixture = Path.Combine(root, "certified.pdf");
-            var preparation = PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Text("Certified page")))).Security.PrepareExternalSignature(new PdfExternalSignatureOptions {
+            var preparation = PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.AddParagraph("Certified page")))).Security.PrepareExternalSignature(new PdfExternalSignatureOptions {
                 Profile = PdfSignatureProfile.Certification,
                 CertificationPermission = PdfCertificationPermissionLevel.FormFillingAndSignatures,
                 FieldName = "Certification", ReservedSignatureContentsBytes = 512
@@ -790,7 +790,7 @@ public sealed class MainWindowViewModelTests {
         PdfDocument.Create(compose => {
             foreach (string text in pageTexts) {
                 compose.Page(page => page.Content(content => content.Item(item =>
-                    item.Paragraph(paragraph => paragraph.Text(text)))));
+                    item.AddParagraph(paragraph => paragraph.AddText(text)))));
             }
         }).Save(path);
 

@@ -20,18 +20,15 @@ public partial class PdfDocumentVisualQualityTests {
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11)
             })
             .H1("Heading link", linkUri: "https://evotec.xyz/heading", linkContents: "Heading (metadata)")
-            .Paragraph(p => p
-                .Text("Visit ")
-                .Link("paragraph link", "https://evotec.xyz/paragraph", contents: "Paragraph \\ metadata")
-                .Text(" for details."))
-            .TableWithLinks(
-                new[] {
-                    new[] { "Name", "Url" },
-                    new[] { "OfficeIMO", "Open" }
-                },
-                new Dictionary<(int Row, int Col), string> {
-                    [(1, 1)] = "https://evotec.xyz/table"
-                })
+            .Paragraph(p => {
+                p.AddText("Visit ");
+                p.AddLink("paragraph link", "https://evotec.xyz/paragraph", contents: "Paragraph \\ metadata");
+                p.AddText(" for details.");
+            })
+            .Table(new[] {
+                new[] { PdfTableCell.TextCell("Name"), PdfTableCell.TextCell("Url") },
+                new[] { PdfTableCell.TextCell("OfficeIMO"), PdfTableCell.TextCell("Open", "https://evotec.xyz/table") }
+            })
             .ToBytes();
 
         string pdf = Encoding.ASCII.GetString(bytes);
@@ -105,7 +102,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), OfficeAlignment.Right, linkUri: "https://evotec.xyz/column-image", linkContents: "Column image"))))))
+                                column.AddImage(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), OfficeAlignment.Right, linkUri: "https://evotec.xyz/column-image", linkContents: "Column image"))))))
             .ToBytes();
 
         string pdf = Encoding.ASCII.GetString(bytes);
@@ -413,7 +410,7 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
-    public void RowColumnTableWithLinks_RendersTableCellLinkAnnotations() {
+    public void RowColumnTableCellLinks_RenderTableCellLinkAnnotations() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11)
@@ -423,14 +420,10 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.TableWithLinks(
-                                    new[] {
-                                        new[] { "Name", "Url" },
-                                        new[] { "OfficeIMO", "Open" }
-                                    },
-                                    new Dictionary<(int Row, int Col), string> {
-                                        [(1, 1)] = "https://evotec.xyz/row-column-table"
-                                    }))))))
+                                column.AddTable(new[] {
+                                    new[] { PdfTableCell.TextCell("Name"), PdfTableCell.TextCell("Url") },
+                                    new[] { PdfTableCell.TextCell("OfficeIMO"), PdfTableCell.TextCell("Open", "https://evotec.xyz/row-column-table") }
+                                }))))))
             .ToBytes();
 
         string pdf = Encoding.ASCII.GetString(bytes);
@@ -462,7 +455,7 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .Table(new[] {
                 new[] {
-                    PdfTableCell.RichTextCell(new[] { PdfTextRun.Normal("Direct table Times", font: PdfStandardFont.TimesRoman) })
+                    PdfTableCell.RichTextCell(new[] { PdfTextRun.Normal("Direct table Times", standardFont: PdfStandardFont.TimesRoman) })
                 }
             }, style: PdfTableStyles.Light())
             .Compose(document =>
@@ -470,9 +463,9 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] {
-                                        PdfTableCell.RichTextCell(new[] { PdfTextRun.Normal("Column table Courier", font: PdfStandardFont.Courier) })
+                                        PdfTableCell.RichTextCell(new[] { PdfTextRun.Normal("Column table Courier", standardFont: PdfStandardFont.Courier) })
                                     }
                                 }, style: PdfTableStyles.Light()))))))
             .ToBytes();
@@ -510,9 +503,9 @@ public partial class PdfDocumentVisualQualityTests {
         var duplicateException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()
                 .Bookmark("Intro")
-                .Paragraph(p => p.Text("First target."))
+                .Paragraph(p => p.AddText("First target."))
                 .Bookmark("Intro")
-                .Paragraph(p => p.Text("Second target."))
+                .Paragraph(p => p.AddText("Second target."))
                 .ToBytes());
 
         Assert.Contains("PDF bookmark names must be unique.", duplicateException.Message, StringComparison.Ordinal);
@@ -521,20 +514,20 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void BookmarkLinks_RejectInvalidTargetsAndMissingBookmarks() {
         Assert.Throws<ArgumentNullException>(() =>
-            PdfDocument.Create().Paragraph(p => p.LinkToBookmark("Jump", null!)));
+            PdfDocument.Create().Paragraph(p => p.AddBookmarkLink("Jump", null!)));
 
         Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create().Paragraph(p => p.LinkToBookmark("Jump", " ")));
+            PdfDocument.Create().Paragraph(p => p.AddBookmarkLink("Jump", " ")));
 
         Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create().Paragraph(p => p.LinkToBookmark("", "Intro")));
+            PdfDocument.Create().Paragraph(p => p.AddBookmarkLink("", "Intro")));
 
         Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create().Paragraph(p => p.LinkToBookmark("Jump", "Intro", contents: " ")));
+            PdfDocument.Create().Paragraph(p => p.AddBookmarkLink("Jump", "Intro", contents: " ")));
 
         var missingTargetException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()
-                .Paragraph(p => p.LinkToBookmark("Jump to missing bookmark", "MissingBookmark"))
+                .Paragraph(p => p.AddBookmarkLink("Jump to missing bookmark", "MissingBookmark"))
                 .ToBytes());
 
         Assert.Contains("PDF bookmark link target 'MissingBookmark' was not found.", missingTargetException.Message, StringComparison.Ordinal);
@@ -561,9 +554,9 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .Bookmark("Intro (A)")
             .H1("Intro")
-            .Paragraph(p => p.Text("Opening text."))
+            .Paragraph(p => p.AddText("Opening text."))
             .Bookmark("Details")
-            .Paragraph(p => p.Text("Details text."))
+            .Paragraph(p => p.AddText("Details text."))
             .ToBytes();
 
         string pdf = Encoding.ASCII.GetString(bytes);
@@ -597,14 +590,15 @@ public partial class PdfDocumentVisualQualityTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p
-                .Text("See ")
-                .LinkToBookmark("details", "Details", global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180), contents: "Jump to details")
-                .Text("."))
+            .Paragraph(p => {
+                p.AddText("See ");
+                p.AddBookmarkLink("details", "Details", global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180), contents: "Jump to details");
+                p.AddText(".");
+            })
             .Spacer(20)
             .Bookmark("Details")
             .H2("Details")
-            .Paragraph(p => p.Text("Destination text."))
+            .Paragraph(p => p.AddText("Destination text."))
             .ToBytes();
 
         string pdf = Encoding.ASCII.GetString(bytes);
@@ -649,7 +643,7 @@ public partial class PdfDocumentVisualQualityTests {
                             row.PercentColumn(100, column => column
                                 .Bookmark("ColumnStart")
                                 .H3("Column heading")
-                                .Paragraph(p => p.Text("Column body.")))))))
+                                .AddParagraph(p => p.AddText("Column body.")))))))
             .ToBytes();
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
@@ -698,7 +692,7 @@ public partial class PdfDocumentVisualQualityTests {
                 content.Row(row => row.PercentColumn(100, column => {
                     for (int index = 0; index < bookmarkCount; index++)
                         column.Bookmark("Anchor-" + index.ToString(CultureInfo.InvariantCulture));
-                    column.Paragraph(paragraph => paragraph.Text("After anchors"));
+                    column.AddParagraph(paragraph => paragraph.AddText("After anchors"));
                 })))))
             .ToBytes();
 

@@ -274,7 +274,7 @@ public sealed partial class PdfStaticFormRecognizerTests {
         byte[] sourceBytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(300) })
             .Canvas(canvas => canvas.Text("Customer:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(85D), global::OfficeIMO.OfficeLength.Points(20D)).Shape(Box(140D, 20D), global::OfficeIMO.OfficeLength.Points(125D), global::OfficeIMO.OfficeLength.Points(28D)))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Existing field lives here"))
+            .Paragraph(paragraph => paragraph.AddText("Existing field lives here"))
             .ToBytes();
         PdfAcroFormEditResult withExistingField = PdfDocument.Load(sourceBytes).Forms.Edit(edit => edit.Create(
             new PdfFormFieldCreateOptions { Name = "customer.name", PageNumber = 2, X = 20D, Y = 20D, Width = 100D, Height = 20D }));

@@ -24,9 +24,9 @@ public sealed class PdfReusableContentLayoutTests {
     [Fact]
     public void IncrementalContentAndCallbackContentShareOneDocument() {
         var document = PdfDocument.Create(Options());
-        document.Content.Text("Before");
-        document.Content.Column(content => content.Text("Middle"));
-        document.Content.Text("After");
+        document.Content.AddParagraph("Before");
+        document.Content.Column(content => content.AddParagraph("Middle"));
+        document.Content.AddParagraph("After");
         string text = PdfReadDocument.Open(document.ToBytes()).ExtractText();
         Assert.True(text.IndexOf("Before", StringComparison.Ordinal) < text.IndexOf("Middle", StringComparison.Ordinal));
         Assert.True(text.IndexOf("Middle", StringComparison.Ordinal) < text.IndexOf("After", StringComparison.Ordinal));
@@ -38,12 +38,17 @@ public sealed class PdfReusableContentLayoutTests {
             var document = PdfDocument.Create(Options());
             document.Content.Row(row => row.Gap(global::OfficeIMO.OfficeLength.Points(10)).AutoColumn(column => {
                 if (separateParagraphs) {
-                    for (int i = 0; i < 3; i++) column.Text("ABCDEFGHIJKLMNO");
+                    for (int i = 0; i < 3; i++) column.AddParagraph("ABCDEFGHIJKLMNO");
                 } else {
-                    column.Paragraph(p => p.Text("ABCDEFGHIJKLMNO").LineBreak()
-                        .Text("ABCDEFGHIJKLMNO").LineBreak().Text("ABCDEFGHIJKLMNO"));
+                    column.AddParagraph(p => {
+                        p.AddText("ABCDEFGHIJKLMNO");
+                        p.AddLineBreak();
+                        p.AddText("ABCDEFGHIJKLMNO");
+                        p.AddLineBreak();
+                        p.AddText("ABCDEFGHIJKLMNO");
+                    });
                 }
-            }).RelativeColumn(column => column.Text("Relative")));
+            }).RelativeColumn(column => column.AddParagraph("Relative")));
             using var parsed = PdfPigDocument.Open(document.ToBytes());
             return parsed.GetPage(1).GetWords().Single(word => word.Text == "Relative").BoundingBox.Left;
         }
@@ -60,8 +65,8 @@ public sealed class PdfReusableContentLayoutTests {
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(familyName, font, font, font, font));
         var document = PdfDocument.Create(options);
         document.Content.Row(row => row.Gap(global::OfficeIMO.OfficeLength.Points(10))
-            .AutoColumn(column => column.Paragraph(p => p.FontFamily(familyName).Bold(boldItalic).Italic(boldItalic).Text("WWWW")))
-            .RelativeColumn(column => column.Text("Relative")));
+            .AutoColumn(column => column.AddParagraph(p => p.AddText("WWWW").SetBold(boldItalic).SetItalic(boldItalic).SetFontFamily(familyName)))
+            .RelativeColumn(column => column.AddParagraph("Relative")));
         using var parsed = PdfPigDocument.Open(document.ToBytes());
         // The fixture face has a 500-unit advance at 1000 units per em.
         Assert.Equal(50D, parsed.GetPage(1).GetWords().Single(word => word.Text == "Relative").BoundingBox.Left, 2);
@@ -73,9 +78,9 @@ public sealed class PdfReusableContentLayoutTests {
     public void PercentageColumnsUseLiteralShareWithOrWithoutRelativeColumns(bool withRelative) {
         var document = PdfDocument.Create(Options());
         document.Content.Row(row => {
-            row.Gap(global::OfficeIMO.OfficeLength.Points(0)).PercentColumn(30, column => column.Text("First"))
-                .PercentColumn(20, column => column.Text("Second"));
-            if (withRelative) row.RelativeColumn(column => column.Text("Third"));
+            row.Gap(global::OfficeIMO.OfficeLength.Points(0)).PercentColumn(30, column => column.AddParagraph("First"))
+                .PercentColumn(20, column => column.AddParagraph("Second"));
+            if (withRelative) row.RelativeColumn(column => column.AddParagraph("Third"));
         });
         using var parsed = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(98D, parsed.GetPage(1).GetWords().Single(word => word.Text == "Second").BoundingBox.Left, 2);
@@ -89,7 +94,7 @@ public sealed class PdfReusableContentLayoutTests {
             .RelativeColumn(column => column.Panel(panel => panel.Semantic(PdfSemanticRole.Section,
                 semantic => semantic.Component(new LinesComponent(), capture: capture)),
                 new PdfPanelStyle { PaddingX = global::OfficeIMO.OfficeLength.Points(8), PaddingY = global::OfficeIMO.OfficeLength.Points(5), Background = global::OfficeIMO.OfficeColor.FromRgb(240, 245, 250) }))
-            .RelativeColumn(column => column.Text("Adjacent")));
+            .RelativeColumn(column => column.AddParagraph("Adjacent")));
         byte[] bytes = document.ToBytes();
         using var parsed = PdfPigDocument.Open(bytes);
         Assert.True(parsed.NumberOfPages > 1);
@@ -107,7 +112,7 @@ public sealed class PdfReusableContentLayoutTests {
     public void RowPanelPreservesTableAndForm() {
         var document = PdfDocument.Create(Options());
         document.Content.Row(row => row.RelativeColumn(column => column.Panel(panel => panel
-            .Table(new[] { new[] { "Name", "Value" }, new[] { "Item", "42" } })
+            .AddTable(new[] { new[] { "Name", "Value" }, new[] { "Item", "42" } })
             .TextField("answer"))));
         byte[] bytes = document.ToBytes();
         Assert.Contains("answer", PdfInspector.Inspect(bytes).FormFieldsByName.Keys);
@@ -126,7 +131,7 @@ public sealed class PdfReusableContentLayoutTests {
 
     private sealed class LinesComponent : IPdfComponent {
         public void Compose(PdfContentBuilder content) {
-            for (int index = 0; index < 30; index++) content.Text("Line" + index.ToString("D2"));
+            for (int index = 0; index < 30; index++) content.AddParagraph("Line" + index.ToString("D2"));
         }
     }
 
@@ -136,7 +141,7 @@ public sealed class PdfReusableContentLayoutTests {
         for (int index = 0; index < 30; index++) rows.Add(new[] { "Entry" + index, "42" });
         var document = PdfDocument.Create(Options());
         document.Content.Row(row => row.RelativeColumn(column => column.Panel(panel =>
-            panel.Table(rows, style: new PdfTableStyle { HeaderRowCount = 1, RepeatHeaderRowCount = 1 }),
+            panel.AddTable(rows, style: new PdfTableStyle { HeaderRowCount = 1, RepeatHeaderRowCount = 1 }),
             new PdfPanelStyle { PaddingY = global::OfficeIMO.OfficeLength.Points(10) })));
         using var parsed = PdfPigDocument.Open(document.ToBytes());
         Assert.True(parsed.NumberOfPages > 1);
@@ -147,10 +152,10 @@ public sealed class PdfReusableContentLayoutTests {
     public void RowKeepTogetherIncludesFirstChildSpacingAfterPadding() {
         var document = PdfDocument.Create(Options());
         document.Content.Row(row => row.RelativeColumn(column => column.Panel(panel =>
-            panel.Paragraph(p => {
+            panel.AddParagraph(p => {
                 for (int i = 0; i < 6; i++) {
-                    if (i > 0) p.LineBreak();
-                    p.Text("Line");
+                    if (i > 0) p.AddLineBreak();
+                    p.AddText("Line");
                 }
             }, style: new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(100), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }),
             new PdfPanelStyle { PaddingY = global::OfficeIMO.OfficeLength.Points(10), KeepTogether = true })));

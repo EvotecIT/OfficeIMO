@@ -138,7 +138,7 @@ public class PdfImportedColumnPreferenceTests {
             BorderColor = null, FontSize = global::OfficeIMO.OfficeLength.Points(10D)
         };
         var document = PdfDocument.Create(ConstrainedImportedPreferenceOptions());
-        document.Content.Table(new[] { new[] { captured } }, style: outer);
+        document.Content.AddTable(new[] { new[] { captured } }, style: outer);
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         var page = Assert.Single(pdf.GetPages());
         Assert.Equal(leftText + rightText, string.Concat(page.Letters.Select(letter => letter.Value)));
@@ -179,7 +179,7 @@ public class PdfImportedColumnPreferenceTests {
         } else {
             leftText = "ABCDEFGHIJ";
             var metric = PdfDocument.Create(ConstrainedImportedPreferenceOptions());
-            metric.Content.Text(leftText, style: new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(10D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) });
+            metric.Content.AddParagraph(leftText, style: new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(10D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) });
             using var metricPdf = PdfPigDocument.Open(metric.ToBytes());
             var measured = Assert.Single(metricPdf.GetPages()).Letters;
             minimumContentWidth = measured[measured.Count - 1].EndBaseLine.X - measured[0].StartBaseLine.X;
@@ -187,7 +187,7 @@ public class PdfImportedColumnPreferenceTests {
         }
         var style = ConstrainedImportedPreferenceStyle();
         var document = PdfDocument.Create(ConstrainedImportedPreferenceOptions());
-        document.Content.Table(new[] { new[] { leftCell, new PdfTableCell(rightText) } }, style: style);
+        document.Content.AddTable(new[] { new[] { leftCell, new PdfTableCell(rightText) } }, style: style);
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         var page = Assert.Single(pdf.GetPages());
         Assert.Equal(leftText + rightText, string.Concat(page.Letters.Select(letter => letter.Value)));
@@ -216,7 +216,7 @@ public class PdfImportedColumnPreferenceTests {
         var document = PdfDocument.Create(ConstrainedImportedPreferenceOptions());
         // Row zero captures the source preferences. Row one has no absolute
         // cell entry and therefore retains the ordinary automatic-content rule.
-        document.Content.Table(new[] {
+        document.Content.AddTable(new[] {
             new[] { new PdfTableCell("R"), new PdfTableCell("S") },
             new[] { new PdfTableCell("ABCDEFGHIJ"), new PdfTableCell("B") }
         }, style: style);

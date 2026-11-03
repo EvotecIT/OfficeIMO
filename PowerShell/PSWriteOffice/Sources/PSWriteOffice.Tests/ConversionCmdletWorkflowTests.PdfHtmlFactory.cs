@@ -11,7 +11,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
     [InlineData(true, true)]
     public void PdfHtmlFactoryFeedsNativeShellAndMetadataOptions(bool fragment, bool hideMetadata) {
         using var document = PdfDocument.Create();
-        document.Compose(builder => builder.Content(content => content.Text("Quarterly report content")));
+        document.Compose(builder => builder.Content(content => content.AddParagraph("Quarterly report content")));
         document.Meta(author: "Report author");
         using var runspace = OpenRunspace();
         runspace.SessionStateProxy.SetVariable("document", document);

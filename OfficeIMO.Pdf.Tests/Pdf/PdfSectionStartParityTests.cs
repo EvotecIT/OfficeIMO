@@ -10,9 +10,9 @@ public sealed class PdfSectionStartParityTests {
     [InlineData(true, 2)]
     public void StartParityCanUsePhysicalIndexOrContinuingNumber(bool useContinuingNumber, int expectedPages) {
         var document = PdfDocument.Create(builder => builder.Section(page => page.PageNumberStart(2)
-            .Content(content => content.Text("First"))));
+            .Content(content => content.AddParagraph("First"))));
         document.Section(page => page.StartOnPageParity(PdfPageParity.Odd, useContinuingNumber)
-            .PageNumberStart(8).Content(content => content.Text("Second")));
+            .PageNumberStart(8).Content(content => content.AddParagraph("Second")));
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(expectedPages, pdf.NumberOfPages);
         Assert.Contains("Second", pdf.GetPage(expectedPages).Text);
@@ -28,10 +28,10 @@ public sealed class PdfSectionStartParityTests {
     public void ExplicitBreaksCanPreserveAnEmptyPage(bool preserveEmpty, int expectedPages, string mode) {
         var document = PdfDocument.Create(builder => builder.Content(content => {
             void AddBreaks(PdfContentBuilder flow) {
-                flow.Text("First");
+                flow.AddParagraph("First");
                 flow.PageBreak();
                 flow.PageBreak(preserveEmpty);
-                flow.Text("Last");
+                flow.AddParagraph("Last");
             }
             switch (mode) {
                 case "container": content.Element(element => element.Content(AddBreaks)); break;

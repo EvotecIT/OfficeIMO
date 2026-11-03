@@ -55,8 +55,8 @@ public sealed class ScanCleanupTests {
         try {
             string input = Path.Combine(root, "source.pdf"), output = Path.Combine(root, "cleaned.pdf");
             var document = PdfDocument.Create(compose => {
-                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)).Content(c => c.Item(i => i.Paragraph(p => p.Text("First page")))));
-                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(200)).Content(c => c.Item(i => i.Paragraph(p => p.Text("Second page")))));
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)).Content(c => c.Item(i => i.AddParagraph(p => p.AddText("First page")))));
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(200)).Content(c => c.Item(i => i.AddParagraph(p => p.AddText("Second page")))));
             });
             byte[] source = document.ToBytes(); await File.WriteAllBytesAsync(input, source);
             var settings = new OfficeScanCleanupOptions {

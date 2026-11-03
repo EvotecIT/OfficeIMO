@@ -18,7 +18,7 @@ internal static partial class PdfWriter {
             int start = index == runIndex ? textOffset : 0;
             int end = start;
             while (end < text.Length && text[end] != '\t' && text[end] != '\n') end++;
-            if (end > start) field.Add(CreateStyledTextRun(text.Substring(start, end - start), run, run.Font));
+            if (end > start) field.Add(CreateStyledTextRun(text.Substring(start, end - start), run, run.StandardFont));
             if (end < text.Length) break;
         }
 

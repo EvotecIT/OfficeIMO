@@ -45,8 +45,8 @@ namespace OfficeIMO.Tests.Pdf {
                 FrameStartPaddingTopOverride = 0D, KeepTogether = true
             };
             return PdfDocument.Create(options)
-                .Panel(panel => panel.Paragraph(p => p.Text("First"), style: paragraphStyle), firstStyle)
-                .Panel(panel => panel.Paragraph(p => p.Text("Next"), style: new PdfParagraphStyle {
+                .Panel(panel => panel.AddParagraph(p => p.AddText("First"), style: paragraphStyle), firstStyle)
+                .Panel(panel => panel.AddParagraph(p => p.AddText("Next"), style: new PdfParagraphStyle {
                     FontSize = global::OfficeIMO.OfficeLength.Points(10D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10D))
                 }), nextStyle).ToBytes();
         }

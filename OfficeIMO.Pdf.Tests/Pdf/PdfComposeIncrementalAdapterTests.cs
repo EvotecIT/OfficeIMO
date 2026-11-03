@@ -17,7 +17,7 @@ public class PdfDocumentBuilderIncrementalAdapterTests {
             settings.BackgroundColor = global::OfficeIMO.OfficeColor.FromRgb(240, 248, 255);
         }));
         document.Compose(compose => compose.Content(content => content
-            .Paragraph(paragraph => paragraph.Text("IncrementalAdapterMarker"))));
+            .AddParagraph(paragraph => paragraph.AddText("IncrementalAdapterMarker"))));
 
         byte[] bytes = document.ToBytes();
         string source = PdfTestContentText.ReadDecoded(bytes);
@@ -34,7 +34,7 @@ public class PdfDocumentBuilderIncrementalAdapterTests {
         document.Compose(compose => compose.Settings(settings =>
             settings.AddEmbeddedFile("evidence.txt", Encoding.UTF8.GetBytes("adapter evidence"), "text/plain")));
         document.Compose(compose => compose.Content(content => content
-            .Paragraph(paragraph => paragraph.Text("Attachment report"))));
+            .AddParagraph(paragraph => paragraph.AddText("Attachment report"))));
 
         byte[] bytes = document.ToBytes();
         var attachments = PdfDocument.Load(bytes).Reader.Attachments();
@@ -51,7 +51,7 @@ public class PdfDocumentBuilderIncrementalAdapterTests {
             .Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400))
             .Margin(global::OfficeIMO.OfficeLength.Points(24))
             .Content(content => content
-                .Item(item => item.Paragraph(paragraph => paragraph.Text("LateSettingsMarker"))))));
+                .Item(item => item.AddParagraph(paragraph => paragraph.AddText("LateSettingsMarker"))))));
 
         int callbackCount = 0;
         document.Compose(compose => compose.Settings(settings => {
@@ -78,11 +78,11 @@ public class PdfDocumentBuilderIncrementalAdapterTests {
                 .PrintProductionPageBoxes(new PdfPrintProductionPageBoxes(
                     PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(12)),
                     PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(4))))
-                .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Production")))))
+                .Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Production")))))
             .Page(page => page
                 .Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(120))
                 .Margin(global::OfficeIMO.OfficeLength.Points(0))
-                .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Screen"))))));
+                .Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Screen"))))));
 
         PdfDocumentInfo info = PdfInspector.Inspect(document.ToBytes());
 

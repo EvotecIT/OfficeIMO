@@ -18,16 +18,16 @@ public sealed partial class PdfReadLayoutSmokeTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("First page table."))
+            .Paragraph(p => p.AddText("First page table."))
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "A-100", "Alpha", "2" },
                 new[] { "A-200", "Atlas", "4" }
             }, style: TableStyle())
             .PageBreak()
-            .Paragraph(p => p.Text("Second page marker."))
+            .Paragraph(p => p.AddText("Second page marker."))
             .PageBreak()
-            .Paragraph(p => p.Text("Third page table."))
+            .Paragraph(p => p.AddText("Third page table."))
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "C-300", "Gamma", "5" },

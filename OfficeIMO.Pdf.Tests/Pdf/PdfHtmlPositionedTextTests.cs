@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed class PdfHtmlPositionedTextTests {
     [Fact]
     public void PositionedTextPreservesNativeBaselinesSizesAndColors() {
-        var source = PdfDocument.Create().Paragraph(p => p.Text("Original text"));
+        var source = PdfDocument.Create().Paragraph(p => p.AddText("Original text"));
         var stamped = PdfDocument.Load(source.ToBytes()).Stamp.TextWatermark("Review", new PdfTextStampOptions {
             X = global::OfficeIMO.OfficeLength.Points(210), Y = global::OfficeIMO.OfficeLength.Points(430), FontSize = global::OfficeIMO.OfficeLength.Points(22), RotationDegrees = 0, Color = global::OfficeIMO.OfficeColor.FromRgb(12, 34, 56)
         });

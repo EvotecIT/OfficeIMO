@@ -19,7 +19,7 @@ public sealed partial class PdfReadLayoutSmokeTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("Structured table readback marker."))
+            .Paragraph(p => p.AddText("Structured table readback marker."))
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "A-100", "Alpha,Inc", "2" },
@@ -120,7 +120,7 @@ public sealed partial class PdfReadLayoutSmokeTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("This structured paragraph should wrap across multiple nearby PDF text lines so wrappers can start from paragraph-like objects."))
+            .Paragraph(p => p.AddText("This structured paragraph should wrap across multiple nearby PDF text lines so wrappers can start from paragraph-like objects."))
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "P-100", "Paragraph table text", "2" }
@@ -170,7 +170,7 @@ public sealed partial class PdfReadLayoutSmokeTests {
                     SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                 }
             })
-            .Paragraph(p => p.Text("Fallback table row").Tab().Text("12345"))
+            .Paragraph(p => { p.AddText("Fallback table row"); p.AddTab(); p.AddText("12345"); })
             .ToBytes();
 
         PdfStructuredPage page = Assert.Single(PdfTextExtractor.ExtractStructuredByPage(bytes, new PdfTextLayoutOptions {
@@ -195,7 +195,7 @@ public sealed partial class PdfReadLayoutSmokeTests {
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .H1("Structured Heading")
-            .Paragraph(p => p.Text("Body copy for heading detection."))
+            .Paragraph(p => p.AddText("Body copy for heading detection."))
             .ToBytes();
 
         PdfStructuredPage page = Assert.Single(PdfTextExtractor.ExtractStructuredByPage(bytes, new PdfTextLayoutOptions {

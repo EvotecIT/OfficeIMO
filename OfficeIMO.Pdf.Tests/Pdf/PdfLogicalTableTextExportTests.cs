@@ -25,7 +25,7 @@ public class PdfLogicalTableTextExportTests {
                 CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .PageBreak()
-            .Paragraph(p => p.Text("No table on this page."))
+            .Paragraph(p => p.AddText("No table on this page."))
             .ToBytes();
 
         string markdown = PdfLogicalTableTextExportExtensions.ExtractMarkdownTables(

@@ -19,7 +19,7 @@ internal static partial class PdfWriter {
                 run.Italic,
                 run.Strike,
                 run.FontSize,
-                run.Font,
+                run.StandardFont,
                 baseline: run.Baseline,
                 tabLeader: run.TabLeader,
                 tabAlignment: run.TabAlignment,
@@ -109,7 +109,7 @@ internal static partial class PdfWriter {
                 heading.Text,
                 bold: GetHeadingBold(style),
                 color: color,
-                font: style?.Font,
+                standardFont: style?.Font,
                 fontFamily: style?.FontFamily)
         });
 

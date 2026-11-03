@@ -26,7 +26,7 @@ public sealed class HtmlBrowserPdfOfficeExtensionsTests {
     [Fact]
     public void CapturedPdfOpensIntoTheCanonicalDocumentModelWithBrowserDiagnostics() {
         byte[] bytes = PdfDocument.Create(pdf => pdf.Content(content => content
-            .Paragraph(paragraph => paragraph.Text("Browser capture bridge"))))
+            .AddParagraph(paragraph => paragraph.AddText("Browser capture bridge"))))
             .ToBytes();
         HtmlBrowserPdfResult capture = CreateCapture(bytes, tagged: false);
 
@@ -45,7 +45,7 @@ public sealed class HtmlBrowserPdfOfficeExtensionsTests {
     public void CaptureReportTreatsBlockedResourcesAndWarningsAsPotentialLoss() {
         HtmlBrowserPdfResult capture = CreateCapture(
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .Paragraph(paragraph => paragraph.Text("Incomplete capture")))).ToBytes(),
+                .AddParagraph(paragraph => paragraph.AddText("Incomplete capture")))).ToBytes(),
             tagged: true,
             blockedRequestCount: 1,
             blockedRequests: new[] { "https://blocked.example/font.woff2" },
@@ -66,7 +66,7 @@ public sealed class HtmlBrowserPdfOfficeExtensionsTests {
     public async Task CapturedPdfCanBeOpenedAsynchronouslyWithoutLosingTaggedIntent() {
         HtmlBrowserPdfResult capture = CreateCapture(
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .Paragraph(paragraph => paragraph.Text("Async bridge")))).ToBytes(),
+                .AddParagraph(paragraph => paragraph.AddText("Async bridge")))).ToBytes(),
             tagged: true);
 
         PdfDocumentConversionResult result = await capture.ToPdfDocumentResultAsync();

@@ -19,7 +19,7 @@ public sealed class PdfActualTextBaselineTests {
             MarginTop = global::OfficeIMO.OfficeLength.Points(24D), MarginBottom = global::OfficeIMO.OfficeLength.Points(24D), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(20D), Language = "ar"
         };
         options.EmbedStandardFont(PdfStandardFont.Helvetica, font, "Arabic baseline").ReportDiagnosticsTo(report);
-        byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text(source)).ToBytes();
+        byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText(source)).ToBytes();
         PdfReadDocument document = PdfReadDocument.Open(bytes);
         PdfReadPage page = Assert.Single(document.Pages);
         PdfTextSpan[] words = page.GetTextSpans().Where(span => span.HasActualText).ToArray();

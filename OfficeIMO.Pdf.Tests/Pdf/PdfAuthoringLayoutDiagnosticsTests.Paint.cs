@@ -85,7 +85,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
     [InlineData(true)]
     public void StandardGlyphOverhangIsIndependentOfAdvance(bool tight) {
         var report = new PdfConversionReport();
-        var runs = new[] { PdfTextRun.Normal("T", fontSize: global::OfficeIMO.OfficeLength.Points(9), font: PdfStandardFont.TimesItalic) };
+        var runs = new[] { PdfTextRun.Normal("T", fontSize: global::OfficeIMO.OfficeLength.Points(9), standardFont: PdfStandardFont.TimesItalic) };
         using PdfPigDocument pdf = PdfPigDocument.Open(PdfDocument.Create(CreateOptions(report)).Canvas(canvas =>
             canvas.Text(runs, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(tight ? 5.004D : 8D), global::OfficeIMO.OfficeLength.Points(18))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Contains("T", pdf.GetPage(1).Text);
@@ -168,9 +168,9 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
     public void ParagraphPaintOutsideItsHorizontalFrameIsPreserved(bool column) {
         var report = new PdfConversionReport();
         PdfDocument document = PdfDocument.Create(CreateOptions(report));
-        if (column) document.Row(row => row.PercentColumn(100, content => content.Paragraph(paragraph =>
-            paragraph.BackgroundColor(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D)).Text("Preserved"))));
-        else document.Paragraph(paragraph => paragraph.BackgroundColor(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D)).Text("Preserved"));
+        if (column) document.Row(row => row.PercentColumn(100, content => content.AddParagraph(paragraph =>
+            paragraph.AddText("Preserved").SetBackgroundColor(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D)))));
+        else document.Paragraph(paragraph => paragraph.AddText("Preserved").SetBackgroundColor(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D)));
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Contains("Preserved", pdf.GetPage(1).Text);
         var warning = Assert.Single(report.Warnings, warning => warning.Code == "paragraph-paint-overflow");
@@ -190,11 +190,11 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         var document = PdfDocument.Create(CreateOptions(report));
         var runs = inline
             ? new[] { PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(5.004D), global::OfficeIMO.OfficeLength.Points(8), borderColor: global::OfficeIMO.OfficeColor.Black, borderWidth: global::OfficeIMO.OfficeLength.Points(2))) }
-            : new[] { PdfTextRun.Normal("T", fontSize: global::OfficeIMO.OfficeLength.Points(9), font: PdfStandardFont.TimesItalic) };
+            : new[] { PdfTextRun.Normal("T", fontSize: global::OfficeIMO.OfficeLength.Points(9), standardFont: PdfStandardFont.TimesItalic) };
         var style = new PdfParagraphStyle { RightIndent = global::OfficeIMO.OfficeLength.Points(212D - 5.004D) };
         if (column) document.Row(row => row.PercentColumn(100, content =>
-            content.Paragraph(paragraph => paragraph.Runs(runs), style: style)));
-        else document.Paragraph(paragraph => paragraph.Runs(runs), style: style);
+            content.AddParagraph(paragraph => paragraph.AddRuns(runs), style: style)));
+        else document.Paragraph(paragraph => paragraph.AddRuns(runs), style: style);
         Assert.NotEmpty(document.ToBytes());
         var warning = Assert.Single(report.Warnings, warning => warning.Code == "paragraph-paint-overflow");
         Assert.Equal(PdfLayoutDiagnosticKind.Overflow, warning.LayoutDiagnostic!.Kind);
@@ -246,7 +246,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         return frame switch {
             "flow" => document.Table(rows, style: style).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
             "column" => document.Compose(compose => compose.Page(page => page.Content(content =>
-                content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style)))))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
+                content.Row(row => row.PercentColumn(100, column => column.AddTable(rows, style: style)))))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
             "canvas" => document.Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(18), style)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
             _ => throw new ArgumentOutOfRangeException(nameof(frame))
         };

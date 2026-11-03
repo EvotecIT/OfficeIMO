@@ -21,7 +21,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("This sample uses proportional Helvetica text and should not stretch spaces between every word."))
+            .Paragraph(p => p.AddText("This sample uses proportional Helvetica text and should not stretch spaces between every word."))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -57,11 +57,11 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] narrowBytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("Illii Illii"))
+            .Paragraph(p => p.AddText("Illii Illii"))
             .ToBytes();
 
         byte[] wideBytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("WWWW"))
+            .Paragraph(p => p.AddText("WWWW"))
             .ToBytes();
 
         using var narrowPdf = PdfPigDocument.Open(new MemoryStream(narrowBytes));
@@ -107,10 +107,10 @@ public partial class PdfDocumentVisualQualityTests {
             .EmbedStandardFont(PdfStandardFont.Courier, fontData, "OfficeIMOMetricsFont");
 
         byte[] standardBytes = PdfDocument.Create(standardOptions)
-            .Paragraph(p => p.Text(text))
+            .Paragraph(p => p.AddText(text))
             .ToBytes();
         byte[] embeddedBytes = PdfDocument.Create(embeddedOptions)
-            .Paragraph(p => p.Text(text))
+            .Paragraph(p => p.AddText(text))
             .ToBytes();
 
         using var standardPdf = PdfPigDocument.Open(new MemoryStream(standardBytes));
@@ -142,7 +142,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau."), OfficeAlignment.Justify)
+            .Paragraph(p => p.AddText("Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau."), OfficeAlignment.Justify)
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -199,10 +199,11 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p
-                .Text("Alpha beta gamma")
-                .LineBreak()
-                .Text("Second line continues with enough words to wrap naturally."), OfficeAlignment.Justify)
+            .Paragraph(p => {
+                p.AddText("Alpha beta gamma");
+                p.AddLineBreak();
+                p.AddText("Second line continues with enough words to wrap naturally.");
+            }, OfficeAlignment.Justify)
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -456,7 +457,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("Body"))
+            .Paragraph(p => p.AddText("Body"))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));

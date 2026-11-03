@@ -77,7 +77,7 @@ public sealed class PdfPrintRendererTests {
     [Fact]
     public void LargeSourceFittedToSmallPaperUsesTheBoundedPlacementResolution() {
         PdfDocument document = PdfDocument.Create(c => c.Page(p => p.Size(PdfPageSizes.A4).Content(content =>
-            content.Item(item => item.Paragraph(text => text.Text("This source must not disappear"))))));
+            content.Item(item => item.AddParagraph(text => text.AddText("This source must not disappear"))))));
         PdfPreparedPrintDocument prepared = PdfPrintRenderer.Prepare(document,
             new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(200),OfficeIMO.OfficeLength.Points(300)) },
             new PdfPrintRenderOptions { Dpi = 600, MaximumPixelsPerImage = 5_000_000 });
@@ -124,7 +124,7 @@ public sealed class PdfPrintRendererTests {
             OwnerPassword = "print-owner", AllowedPermissions = PdfStandardPermissions.Print
         };
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
-            .Paragraph(p => p.Text("Printable without extraction permission")).ToBytes();
+            .Paragraph(p => p.AddText("Printable without extraction permission")).ToBytes();
         var document = PdfDocument.Load(bytes, new PdfLoadOptions { Password = "print-user" });
         PdfPreparedPrintDocument prepared = PdfPrintRenderer.Prepare(document, new PdfPrintPlanRequest {
             InputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pdf"),

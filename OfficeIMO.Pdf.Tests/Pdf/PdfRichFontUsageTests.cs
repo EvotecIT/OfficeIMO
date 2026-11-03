@@ -39,7 +39,7 @@ public class PdfRichFontUsageTests {
             TableSurface.Flow => PdfDocument.Create(options)
                 .Table(rows, style: style),
             TableSurface.RowColumn => PdfDocument.Create(options)
-                .Row(row => row.PercentColumn(100D, column => column.Table(rows, style: style))),
+                .Row(row => row.PercentColumn(100D, column => column.AddTable(rows, style: style))),
             TableSurface.Canvas => PdfDocument.Create(options)
                 .Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(60D), style)),
             _ => throw new ArgumentOutOfRangeException(nameof(surface))
@@ -70,12 +70,12 @@ public class PdfRichFontUsageTests {
             ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(180D) }
         };
         IReadOnlyList<PdfTableCell[]> rows = new[] {
-            new[] { PdfTableCell.RichTextCell(new[] { new PdfTextRun("ExplicitFace", font: font) }) }
+            new[] { PdfTableCell.RichTextCell(new[] { new PdfTextRun("ExplicitFace", standardFont: font) }) }
         };
         PdfDocument document = surface switch {
             TableSurface.Flow => PdfDocument.Create(options).Table(rows, style: style),
             TableSurface.RowColumn => PdfDocument.Create(options)
-                .Row(row => row.PercentColumn(100D, column => column.Table(rows, style: style))),
+                .Row(row => row.PercentColumn(100D, column => column.AddTable(rows, style: style))),
             TableSurface.Canvas => PdfDocument.Create(options)
                 .Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(60D), style)),
             _ => throw new ArgumentOutOfRangeException(nameof(surface))

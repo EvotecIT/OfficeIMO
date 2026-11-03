@@ -16,13 +16,13 @@ internal static class StudioVisualProbe {
         if (!File.Exists(documentPath)) {
             PdfDocument.Create(compose => {
                 compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)).Content(content => {
-                    content.Item(item => item.Paragraph(paragraph => paragraph.Text("Quarterly account review")));
-                    content.Item(item => item.Paragraph(paragraph => paragraph.Text("Private account 123-456")));
-                    content.Item(item => item.Paragraph(paragraph => paragraph.Text("This public summary should remain readable.")));
+                    content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Quarterly account review")));
+                    content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Private account 123-456")));
+                    content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("This public summary should remain readable.")));
                 }));
                 compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)).Content(content => {
-                    content.Item(item => item.Paragraph(paragraph => paragraph.Text("Second account")));
-                    content.Item(item => item.Paragraph(paragraph => paragraph.Text("Private account 789-012")));
+                    content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Second account")));
+                    content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Private account 789-012")));
                 }));
             }).Save(documentPath);
         }

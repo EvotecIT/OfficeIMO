@@ -17,10 +17,10 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             PdfTableCell Text(string value) => PdfTableCell.TextCell(value);
             PdfDocument.Create(pdf => pdf.Content(content => content
                 .Title("Pilot delivery risk review")
-                .Paragraph(p => p.FontSize(OfficeLength.Points(9)).Text("Northwind · Request portal · Review 03"), defaultColor: muted)
-                .Paragraph(p => p.Text("Use likelihood and impact to prioritise discussion, then record a specific control and an owner. The ratings are illustrative judgments."))
+                .AddParagraph(p => p.AddText("Northwind · Request portal · Review 03").SetFontSize(OfficeLength.Points(9)), color: muted)
+                .AddParagraph(p => p.AddText("Use likelihood and impact to prioritise discussion, then record a specific control and an owner. The ratings are illustrative judgments."))
                 .H2("Open risks")
-                .Table(new[] {
+                .AddTable(new[] {
                     new[] { Text("Risk"), Text("Likelihood"), Text("Impact"), Text("Control"), Text("Owner") },
                     new[] { Text("Queue owner unavailable"), Rating("Medium"), Rating("Medium"), Text("Name a deputy"), Text("Operations") },
                     new[] { Text("Pilot access incomplete"), Rating("High"), Rating("Medium"), Text("Verify accounts before day one"), Text("Platform") },
@@ -28,10 +28,10 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                     new[] { Text("Success measure unclear"), Rating("Medium"), Rating("High"), Text("Agree baseline and metric"), Text("Product") }
                 })
                 .H2("Decision before expansion")
-                .PanelParagraph(p => p.Bold("Hold the next group until access and recovery are verified.").Text("\nThe sponsor records the acceptance decision; a low score alone is not approval."))
+                .AddPanelParagraph(p => { p.AddText("Hold the next group until access and recovery are verified.").SetBold(); p.AddText("\nThe sponsor records the acceptance decision; a low score alone is not approval."); })
                 .H2("Review discipline")
-                .Bullets(new[] { "Revisit ratings when evidence changes.", "Keep the control, owner and verification date together.", "Close a risk only after the control is observed." })
-                .Paragraph(p => p.FontSize(OfficeLength.Points(9)).Text("Fictional project example. This is not a workplace safety assessment or compliance certification."), defaultColor: muted)),
+                .AddList(new[] { "Revisit ratings when evidence changes.", "Keep the control, owner and verification date together.", "Close a risk only after the control is observed." })
+                .AddParagraph(p => p.AddText("Fictional project example. This is not a workplace safety assessment or compliance certification.").SetFontSize(OfficeLength.Points(9)), color: muted)),
                 new PdfCreateOptions { ShowPageNumbers = true })
                 .Meta(title: "Pilot delivery risk review", author: "OfficeIMO").Save(Path.Combine(folder, "example.pdf"));
         }

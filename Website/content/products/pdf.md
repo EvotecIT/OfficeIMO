@@ -27,7 +27,7 @@ using OfficeIMO.Pdf;
 
 PdfDocument.Create(pdf => pdf.Content(content => content
         .H1("Quarterly report")
-        .Paragraph(paragraph => paragraph.Text("Generated without Office or a browser runtime."))))
+        .AddParagraph(paragraph => paragraph.AddText("Generated without Office or a browser runtime."))))
     .Meta(title: "Quarterly report", author: "OfficeIMO")
     .Save("report.pdf");
 ```

@@ -23,7 +23,7 @@ internal static partial class RtfPdfConverter {
         pdf.HR(spacingBefore: 8D, spacingAfter: 4D);
         foreach (PdfNoteReference noteReference in state.NoteReferences) {
             if (noteReference.Note.Paragraphs.Count == 0) {
-                pdf.Paragraph(paragraph => paragraph.Runs(new[] {
+                pdf.Paragraph(paragraph => paragraph.AddRuns(new[] {
                     state.CreateDefaultRun(GetNoteLabel(noteReference), bold: true, fontSize: global::OfficeIMO.OfficeLength.Points(9D)),
                     state.CreateDefaultRun(string.Empty, fontSize: global::OfficeIMO.OfficeLength.Points(9D))
                 }));
@@ -43,7 +43,7 @@ internal static partial class RtfPdfConverter {
                 EnsureParagraphLineBoxStrut(document, source, runs, state, bodyStartIndex);
                 RtfParagraph formatting = document.GetParagraphFormatting(source);
                 pdf.Paragraph(
-                    paragraph => paragraph.Runs(runs),
+                    paragraph => paragraph.AddRuns(runs),
                     RtfPdfMapping.ToPdfAlign(formatting.Alignment),
                     style: RtfPdfMapping.ToPdfParagraphStyle(document, source, runs, state.FontOptions));
             }

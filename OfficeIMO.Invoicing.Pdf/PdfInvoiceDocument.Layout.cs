@@ -15,16 +15,16 @@ public sealed partial class PdfInvoiceDocument {
 
     private void ComposeClassic(PdfContentBuilder content) {
         content.H1(DocumentTitle);
-        content.Table(new[] { new[] { Label(InvoicePdfText.Seller), Label(InvoicePdfText.Buyer) }, new[] { Party(_invoice.Seller), Party(_invoice.Buyer) } },
+        content.AddTable(new[] { new[] { Label(InvoicePdfText.Seller), Label(InvoicePdfText.Buyer) }, new[] { Party(_invoice.Seller), Party(_invoice.Buyer) } },
             style: new PdfTableStyle { HeaderRowCount = 1, RowStripeFill = null, SpacingAfter = global::OfficeIMO.OfficeLength.Points(8), FontSize = global::OfficeIMO.OfficeLength.Points(9) });
         var identity = new List<string[]> {
             new[] { Label(InvoicePdfText.Issued), Date(_invoice.IssueDate), Label(InvoicePdfText.Due), Date(_invoice.DueDate) }
         };
         if (_invoice.BuyerReference != null) identity.Add(new[] { Label(InvoicePdfText.BuyerReference), _invoice.BuyerReference, Label(InvoicePdfText.Currency), _invoice.Currency });
-        content.Table(identity, style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null, SpacingAfter = global::OfficeIMO.OfficeLength.Points(14), FontSize = global::OfficeIMO.OfficeLength.Points(9),
+        content.AddTable(identity, style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null, SpacingAfter = global::OfficeIMO.OfficeLength.Points(14), FontSize = global::OfficeIMO.OfficeLength.Points(9),
             ColumnWidthWeights = new List<double> { 1.2, 2.8, 1, 2 } });
         if (_invoice.Lines.Count != 0)
-            content.Table(LineRows(), style: new PdfTableStyle {
+            content.AddTable(LineRows(), style: new PdfTableStyle {
                 HeaderRowCount = 1, SpacingAfter = global::OfficeIMO.OfficeLength.Points(12), FontSize = global::OfficeIMO.OfficeLength.Points(9),
                 ColumnWidthWeights = LineColumnWeights(),
                 Alignments = LineColumnAlignments()
@@ -41,7 +41,7 @@ public sealed partial class PdfInvoiceDocument {
             Money(tax.TaxableAmount), Money(tax.TaxAmount), Join(tax.ExemptionReasonCode, tax.ExemptionReason)
         }));
         if (_amounts.Taxes.Count != 0)
-            content.Table(taxes, style: new PdfTableStyle { HeaderRowCount = 1, FontSize = OfficeLength.Points(9), SpacingAfter = OfficeLength.Points(12),
+            content.AddTable(taxes, style: new PdfTableStyle { HeaderRowCount = 1, FontSize = OfficeLength.Points(9), SpacingAfter = OfficeLength.Points(12),
                 Alignments = new List<OfficeAlignment> { OfficeAlignment.Left, OfficeAlignment.Right, OfficeAlignment.Right, OfficeAlignment.Left } });
         var summaryRows = new List<string[]>();
         void AddSummary(InvoicePdfText label, decimal? value) {
@@ -58,7 +58,7 @@ public sealed partial class PdfInvoiceDocument {
             new[] { Label(InvoicePdfText.Rounding), Money(_amounts.RoundingAmount) },
             new[] { Label(InvoicePdfText.AmountDue), Money(_amounts.PayableAmount) }
         });
-        content.Flow(summary => summary.Table(summaryRows, style: new PdfTableStyle {
+        content.Flow(summary => summary.AddTable(summaryRows, style: new PdfTableStyle {
             HeaderRowCount = 0, FontSize = global::OfficeIMO.OfficeLength.Points(10), SpacingAfter = global::OfficeIMO.OfficeLength.Points(14),
             Alignments = new List<OfficeAlignment> { OfficeAlignment.Left, OfficeAlignment.Right }
         }), new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.MoveToNextPage });

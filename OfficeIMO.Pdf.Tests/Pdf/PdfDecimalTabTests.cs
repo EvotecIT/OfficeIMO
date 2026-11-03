@@ -15,8 +15,8 @@ public sealed class PdfDecimalTabTests {
         style.AddTabStop(global::OfficeIMO.OfficeLength.Points(200), PdfTabAlignment.DecimalSeparator).DecimalSeparator = separator;
         var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(300), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
             MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), TextWhitespaceMode = mode, DefaultParagraphStyle = style };
-        PdfDocument document = PdfDocument.Create(options).Paragraph(p => p.Text("Grouped\t" + grouped))
-            .Paragraph(p => p.Text("Control\t" + control));
+        PdfDocument document = PdfDocument.Create(options).Paragraph(p => p.AddText("Grouped\t" + grouped))
+            .Paragraph(p => p.AddText("Control\t" + control));
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         var anchors = pdf.GetPage(1).Letters.Where(letter => letter.Value == separator.ToString()).ToArray();
         Assert.Equal(2, anchors.Length);

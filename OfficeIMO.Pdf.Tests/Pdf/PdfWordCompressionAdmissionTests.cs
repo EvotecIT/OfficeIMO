@@ -26,7 +26,7 @@ public sealed class PdfWordCompressionAdmissionTests {
         double frame = natural - 1D;
         Assert.True(Lines(Render(runs, frame, false, whitespace), "pdf-default-" + scenario).Count > 1);
         var style = new PdfParagraphStyle { UseWordJustificationSpacing = true, TextWhitespaceMode = whitespace };
-        var document = PdfDocument.Create(Options(frame)).Paragraph(p => p.Runs(runs), OfficeAlignment.Justify, style: style);
+        var document = PdfDocument.Create(Options(frame)).Paragraph(p => p.AddRuns(runs), OfficeAlignment.Justify, style: style);
         style.UseWordJustificationSpacing = false;
         List<Letter> actual = Assert.Single(Lines(document.ToBytes(), "pdf-native-" + scenario));
         Assert.Equal("Alphabetagamma", string.Concat(actual.Select(letter => letter.Value)));
@@ -79,12 +79,14 @@ public sealed class PdfWordCompressionAdmissionTests {
         int noteCalls = 0, paragraphCalls = 0;
         PdfFootnoteDefinition note = document.Content.DefineFootnote(body => {
             noteCalls++;
-            body.Text("QualityNote", style: new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(8D), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10D)) });
+            body.AddParagraph("QualityNote", style: new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(8D), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10D)) });
         });
-        document.Content.Paragraph(paragraph => {
+        document.Content.AddParagraph(paragraph => {
             paragraphCalls++;
-            paragraph.Text(CandidateQualityPrefix + " ").Runs(new[] { PdfTextRun.Normal("it").WithFootnoteReference(note) })
-                .LineBreak().Text("tail");
+            paragraph.AddText(CandidateQualityPrefix + " ");
+            paragraph.AddRuns(new[] { PdfTextRun.Normal("it").WithFootnoteReference(note) });
+            paragraph.AddLineBreak();
+            paragraph.AddText("tail");
         }, OfficeAlignment.Justify, style: new PdfParagraphStyle {
             UseWordJustificationSpacing = true, JustificationMode = PdfJustificationMode.Words,
             TextWhitespaceMode = PdfTextWhitespaceMode.Preserve, JustifyExplicitLineBreaks = true
@@ -125,9 +127,9 @@ public sealed class PdfWordCompressionAdmissionTests {
             style.TabStops.Add(new PdfTabStop(global::OfficeIMO.OfficeLength.Points(40D)));
             style.TabStops.Add(new PdfTabStop(global::OfficeIMO.OfficeLength.Points(80D)));
         }
-        byte[] wide = PdfDocument.Create(Options(300D)).Paragraph(p => p.Text(text), OfficeAlignment.Justify, style: style).ToBytes();
+        byte[] wide = PdfDocument.Create(Options(300D)).Paragraph(p => p.AddText(text), OfficeAlignment.Justify, style: style).ToBytes();
         double natural = Span(Assert.Single(Lines(wide, "separator-wide-" + separator)));
-        byte[] narrow = PdfDocument.Create(Options(natural - 1D)).Paragraph(p => p.Text(text), OfficeAlignment.Justify, style: style).ToBytes();
+        byte[] narrow = PdfDocument.Create(Options(natural - 1D)).Paragraph(p => p.AddText(text), OfficeAlignment.Justify, style: style).ToBytes();
         Assert.True(Lines(narrow, "separator-narrow-" + separator).Count > 1);
     }
 
@@ -139,7 +141,7 @@ public sealed class PdfWordCompressionAdmissionTests {
         var options = Options(narrow + wide + 20D);
         options.PageHeight = global::OfficeIMO.OfficeLength.Points(100D);
         var document = PdfDocument.Create(options);
-        document.Content.Columns(content => content.Paragraph(p => p.Text(string.Join("\n", Enumerable.Repeat("Alpha beta gamma", 8))),
+        document.Content.Columns(content => content.AddParagraph(p => p.AddText(string.Join("\n", Enumerable.Repeat("Alpha beta gamma", 8))),
                 OfficeAlignment.Justify, style: new PdfParagraphStyle { UseWordJustificationSpacing = true,
                     TextWhitespaceMode = PdfTextWhitespaceMode.Preserve, LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(18D)) }),
             new PdfMultiColumnOptions { BalanceLastPage = false, ColumnDefinitions = new[] {
@@ -177,7 +179,7 @@ public sealed class PdfWordCompressionAdmissionTests {
 
     private static byte[] Render(PdfTextRun[] runs, double width, bool native, PdfTextWhitespaceMode whitespace = PdfTextWhitespaceMode.Preserve,
         PdfJustificationMode mode = PdfJustificationMode.Words) =>
-        PdfDocument.Create(Options(width)).Paragraph(p => p.Runs(runs), OfficeAlignment.Justify,
+        PdfDocument.Create(Options(width)).Paragraph(p => p.AddRuns(runs), OfficeAlignment.Justify,
             style: new PdfParagraphStyle { UseWordJustificationSpacing = native, TextWhitespaceMode = whitespace, JustificationMode = mode }).ToBytes();
     private static PdfCreateOptions Options(double width) => new() { PageWidth = global::OfficeIMO.OfficeLength.Points(width + 40D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D),
         MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),

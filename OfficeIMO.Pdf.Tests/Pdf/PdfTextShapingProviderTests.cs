@@ -24,7 +24,7 @@ public class PdfTextShapingProviderTests {
                 .SetTextShapingProvider(OfficeManagedTextShapingProvider.Instance);
 
             byte[] bytes = PdfDocument.Create(options)
-                .Paragraph(paragraph => paragraph.FontFamily(evidence.Family).Text(evidence.Text))
+                .Paragraph(paragraph => paragraph.AddText(evidence.Text).SetFontFamily(evidence.Family))
                 .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
             string extracted = PdfReadDocument.Open(bytes).ExtractText();
@@ -411,7 +411,7 @@ public class PdfTextShapingProviderTests {
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "Diagnosed lam-alef");
         if (explicitManaged) options.UseManagedTextShaping();
 
-        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text(text)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText(text)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.Contains(text, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-complex-script-shaping"
@@ -448,7 +448,7 @@ public class PdfTextShapingProviderTests {
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "Managed Marks");
         if (explicitManaged) options.UseManagedTextShaping();
 
-        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text(text)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText(text)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.Contains(text, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.True(report.HasLoss);
@@ -478,7 +478,7 @@ public class PdfTextShapingProviderTests {
         var options = new PdfCreateOptions().ReportDiagnosticsTo(report)
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Noto Arabic Marks", fontData));
         if (explicitManaged) options.UseManagedTextShaping();
-        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.FontFamily("Noto Arabic Marks").Text(text)).ToBytes();
+        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText(text).SetFontFamily("Noto Arabic Marks")).ToBytes();
 
         Assert.Contains(text, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(report.Warnings, warning => warning.Code is "unsupported-mark-positioning-or-joiner-shaping" or "unsupported-complex-script-shaping");
@@ -510,7 +510,7 @@ public class PdfTextShapingProviderTests {
             .SetTextShapingProvider(provider);
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text(text))
+            .Paragraph(paragraph => paragraph.AddText(text))
             .ToBytes();
 
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
@@ -542,7 +542,7 @@ public class PdfTextShapingProviderTests {
             .SetTextShapingProvider(provider);
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text(text))
+            .Paragraph(paragraph => paragraph.AddText(text))
             .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
@@ -582,7 +582,7 @@ public class PdfTextShapingProviderTests {
             .SetTextShapingProvider(provider);
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text(text))
+            .Paragraph(paragraph => paragraph.AddText(text))
             .ToBytes();
 
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
@@ -620,7 +620,7 @@ public class PdfTextShapingProviderTests {
             .SetTextShapingProvider(provider);
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text(text))
+            .Paragraph(paragraph => paragraph.AddText(text))
             .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
@@ -660,7 +660,7 @@ public class PdfTextShapingProviderTests {
             .SetTextShapingProvider(provider);
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("office"))
+            .Paragraph(paragraph => paragraph.AddText("office"))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -700,7 +700,7 @@ public class PdfTextShapingProviderTests {
             .SetTextShapingProvider(provider);
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("AB"))
+            .Paragraph(paragraph => paragraph.AddText("AB"))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -743,7 +743,7 @@ public class PdfTextShapingProviderTests {
             .SetTextShapingProvider(provider);
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Superscript("AB").Text("C"))
+            .Paragraph(paragraph => { paragraph.AddText("AB").SetSuperscript(); paragraph.AddText("C"); })
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);

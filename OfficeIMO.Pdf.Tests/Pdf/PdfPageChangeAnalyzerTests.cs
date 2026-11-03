@@ -93,7 +93,7 @@ public sealed class PdfPageChangeAnalyzerTests {
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(180)) });
         for (int index = 0; index < texts.Length; index++) {
             if (index != 0) document.PageBreak();
-            document.Paragraph(paragraph => paragraph.Text(texts[index]));
+            document.Paragraph(paragraph => paragraph.AddText(texts[index]));
         }
         return PdfDocument.Load(document.ToBytes());
     }

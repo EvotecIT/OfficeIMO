@@ -24,7 +24,7 @@ public sealed class OfficeConverterOutputSecurityTests {
             byte[] source;
             if (sourceExtension == ".pdf") {
                 using var pdf = PdfDocument.Create();
-                pdf.Compose(builder => builder.Content(content => content.Text("Protected reconstructed content")));
+                pdf.Compose(builder => builder.Content(content => content.AddParagraph("Protected reconstructed content")));
                 source = pdf.ToBytes(new PdfSaveOptions { AllowLoss = true });
             } else source = Encoding.UTF8.GetBytes(sourceExtension == ".html" ? "<p>Protected imported content</p>" : "Protected imported content");
             const string password = "synthetic-destination-password";

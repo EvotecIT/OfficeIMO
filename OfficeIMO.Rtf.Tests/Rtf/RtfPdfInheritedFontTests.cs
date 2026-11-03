@@ -55,7 +55,7 @@ public sealed class RtfPdfInheritedFontTests {
         PdfCore.PdfDocument actualDocument = inherited.ToPdf(PortableOptions());
         PdfCore.RichParagraphBlock paragraph = Assert.IsType<PdfCore.RichParagraphBlock>(actualDocument.Blocks.ElementAt(1));
         PdfCore.PdfTextRun strut = Assert.Single(paragraph.Runs, run => run.IsLineBoxStrut);
-        Assert.Equal(PdfCore.PdfStandardFont.Courier, strut.Font);
+        Assert.Equal(PdfCore.PdfStandardFont.Courier, strut.StandardFont);
         Assert.Equal(24D, strut.FontSize!.Value.ToPoints());
 
         using PdfPigDocument actual = PdfPigDocument.Open(actualDocument.ToBytes());

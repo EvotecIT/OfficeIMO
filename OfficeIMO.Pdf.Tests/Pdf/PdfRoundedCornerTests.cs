@@ -35,8 +35,8 @@ public class PdfRoundedCornerTests {
 
     [Fact]
     public void TableCornerRadius_RoundsOuterBox_ClipsCellBorder_AndKeepsInlineText() {
-        byte[] rounded = PdfDocument.Create(d => d.Content(c => c.Table(Callout(), OfficeAlignment.Left, CalloutStyle(6)))).ToBytes();
-        byte[] square = PdfDocument.Create(d => d.Content(c => c.Table(Callout(), OfficeAlignment.Left, CalloutStyle(0)))).ToBytes();
+        byte[] rounded = PdfDocument.Create(d => d.Content(c => c.AddTable(Callout(), OfficeAlignment.Left, CalloutStyle(6)))).ToBytes();
+        byte[] square = PdfDocument.Create(d => d.Content(c => c.AddTable(Callout(), OfficeAlignment.Left, CalloutStyle(0)))).ToBytes();
 
         string roundedRaw = PdfTestContentText.ReadDecoded(rounded);
         string squareRaw = PdfTestContentText.ReadDecoded(square);
@@ -62,7 +62,7 @@ public class PdfRoundedCornerTests {
         byte[] bytes = PdfDocument.Create()
             .Container(content => {
                 content.H2("Panel title");
-                content.Paragraph(p => p.Text("Panel body"));
+                content.AddParagraph(p => p.AddText("Panel body"));
             }, new PdfPanelStyle {
                 Background = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.95, 0.97, 0.99),
                 BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.3, 0.4),

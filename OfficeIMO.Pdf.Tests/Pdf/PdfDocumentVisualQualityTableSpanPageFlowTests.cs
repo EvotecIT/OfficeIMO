@@ -29,7 +29,7 @@ public partial class PdfDocumentVisualQualityTests {
         });
         if (inRowColumn)
             document.Compose(builder => builder.Page(page => page.Content(content =>
-                content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style))))));
+                content.Row(row => row.PercentColumn(100, column => column.AddTable(rows, style: style))))));
         else document.Table(rows, style: style);
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes());
         var words = pdf.GetPages().SelectMany(page => page.GetWords().Select(word => (page.Number, Word: word))).ToArray();
@@ -70,7 +70,7 @@ public partial class PdfDocumentVisualQualityTests {
         });
         if (inRowColumn)
             document.Compose(builder => builder.Page(page => page.Content(content =>
-                content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style))))));
+                content.Row(row => row.PercentColumn(100, column => column.AddTable(rows, style: style))))));
         else document.Table(rows, style: style);
         byte[] bytes = document.ToBytes();
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);

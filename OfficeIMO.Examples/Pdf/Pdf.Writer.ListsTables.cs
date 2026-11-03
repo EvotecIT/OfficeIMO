@@ -39,19 +39,19 @@ namespace OfficeIMO.Examples.Pdf {
 
             PdfDocument.Create(pdf => pdf.Content(content => content
                 .H1("Lists and Tables", OfficeAlignment.Left)
-                .Paragraph(p => p.Text("A compact report sample for list rhythm, numeric alignment, footer rows, and wrapped table notes."))
-                .Bullets(new[] {
+                .AddParagraph(p => p.AddText("A compact report sample for list rhythm, numeric alignment, footer rows, and wrapped table notes."))
+                .AddList(new[] {
                     "Report-friendly list spacing",
                     "Right-aligned quantities and amounts",
                     "Footer row that remains visually distinct"
                 }, OfficeAlignment.Left, global::OfficeIMO.OfficeColor.FromRgb(55, 65, 81))
-                .Numbered(new[] {
+                .AddNumberedList(new[] {
                     "Collect line items.",
                     "Render the table with stable column widths.",
                     "Review the saved PDF before sharing it."
                 }, OfficeAlignment.Left, OfficeColor.FromRgb(55, 65, 81))
-                .Table(rows, OfficeAlignment.Left, style)
-                .Paragraph(p => p.Text("End of lists and tables sample."), OfficeAlignment.Right, OfficeColor.FromRgb(80, 80, 80))), new PdfCreateOptions {
+                .AddTable(rows, OfficeAlignment.Left, style)
+                .AddParagraph(p => p.AddText("End of lists and tables sample."), OfficeAlignment.Right, OfficeColor.FromRgb(80, 80, 80))), new PdfCreateOptions {
                     HeaderFormat = "OfficeIMO.Pdf lists and tables",
                     HeaderAlign = OfficeAlignment.Left,
                     ShowHeader = true,

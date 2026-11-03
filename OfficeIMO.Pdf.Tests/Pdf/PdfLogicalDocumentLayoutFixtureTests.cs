@@ -51,7 +51,7 @@ public partial class PdfDocumentReadResultTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("This logical paragraph should wrap across multiple nearby PDF text lines so wrappers can start from paragraph-like objects."))
+            .Paragraph(p => p.AddText("This logical paragraph should wrap across multiple nearby PDF text lines so wrappers can start from paragraph-like objects."))
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "P-100", "Paragraph table text", "2" }
@@ -74,7 +74,7 @@ public partial class PdfDocumentReadResultTests {
     [Fact]
     public void Load_ReadsCompleteSeekableStreamAndRestoresPosition() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(p => p.Text("Logical stream marker."))
+            .Paragraph(p => p.AddText("Logical stream marker."))
             .ToBytes();
         using var stream = new MemoryStream(source);
         stream.Position = source.Length / 2;

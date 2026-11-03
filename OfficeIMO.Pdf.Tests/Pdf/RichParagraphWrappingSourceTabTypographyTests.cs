@@ -139,23 +139,23 @@ public partial class RichParagraphWrappingTests {
     [Fact]
     public void ParagraphTabs_DirectContinuationMatchesBufferedSourceStyleAndTransfersOwnershipOnce() {
         var owner = PdfDocument.Create(TrailingTabOptions());
-        PdfFootnoteDefinition note = owner.Content.DefineFootnote(body => body.Text("NOTE"));
+        PdfFootnoteDefinition note = owner.Content.DefineFootnote(body => body.AddParagraph("NOTE"));
         var fieldStyle = new PdfFormFieldStyle {
             BackgroundColor = null, BorderColor = null, BorderWidth = global::OfficeIMO.OfficeLength.Points(0D)
         };
         var field = new PdfInlineFormField(PdfCanvasFormFieldItem.Text(
             "AfterTab", "Y", "Y", 0, 0, 1, 12, 12, fieldStyle, fieldStyle));
-        PdfTextRun source = new PdfTextRun("\t", fontSize: global::OfficeIMO.OfficeLength.Points(24D), font: PdfStandardFont.Courier,
+        PdfTextRun source = new PdfTextRun("\t", fontSize: global::OfficeIMO.OfficeLength.Points(24D), standardFont: PdfStandardFont.Courier,
             tabLeader: PdfTabLeaderStyle.Underscores)
             .WithFeatureSettings(OfficeTextFeatureSettings.Default.With("kern", 0))
             .WithHorizontalTextScaling(90D).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(.3D));
         PdfTextRun linked = PdfTextRun.Link("X", "https://example.test/after-source-tab", fontSize: global::OfficeIMO.OfficeLength.Points(12D))
             .WithFootnoteReference(note);
-        PdfTextRun formText = PdfTextRun.Normal("Y", fontSize: global::OfficeIMO.OfficeLength.Points(12D), font: PdfStandardFont.Helvetica)
+        PdfTextRun formText = PdfTextRun.Normal("Y", fontSize: global::OfficeIMO.OfficeLength.Points(12D), standardFont: PdfStandardFont.Helvetica)
             .WithFormField(field);
         var direct = RestoreSourceTabTypography(new[] { source, linked, formText });
         var buffered = RestoreSourceTabTypography(new[] {
-            source, PdfTextRun.Normal(" ", fontSize: global::OfficeIMO.OfficeLength.Points(12D), font: PdfStandardFont.Helvetica), linked, formText
+            source, PdfTextRun.Normal(" ", fontSize: global::OfficeIMO.OfficeLength.Points(12D), standardFont: PdfStandardFont.Helvetica), linked, formText
         });
 
         // This contrast exercises existing private continuation machinery. The
@@ -164,7 +164,7 @@ public partial class RichParagraphWrappingTests {
         Assert.Equal(buffered.Height, direct.Height, 3);
         foreach (List<PdfTextRun> restored in new[] { direct.Runs, buffered.Runs }) {
             PdfTextRun tab = Assert.Single(restored, run => run.Text == "\t");
-            Assert.Equal(source.Font, tab.Font);
+            Assert.Equal(source.StandardFont, tab.StandardFont);
             Assert.Equal((source.FontSize?.ToPoints()), (tab.FontSize?.ToPoints()));
             Assert.Equal(source.FontFamily, tab.FontFamily);
             Assert.Equal(source.Baseline, tab.Baseline);
@@ -200,17 +200,17 @@ public partial class RichParagraphWrappingTests {
         style.AddTabStop(global::OfficeIMO.OfficeLength.Points(tabStop), leader: paragraphLeader);
         var runs = new List<PdfTextRun> {
             literal
-                ? PdfTextRun.Normal("_____", fontSize: global::OfficeIMO.OfficeLength.Points(24D), font: PdfStandardFont.Courier)
-                : new PdfTextRun("\t", fontSize: global::OfficeIMO.OfficeLength.Points(sourceSize), font: sourceFont,
+                ? PdfTextRun.Normal("_____", fontSize: global::OfficeIMO.OfficeLength.Points(24D), standardFont: PdfStandardFont.Courier)
+                : new PdfTextRun("\t", fontSize: global::OfficeIMO.OfficeLength.Points(sourceSize), standardFont: sourceFont,
                     tabLeader: PdfTabLeaderStyle.Underscores)
         };
         runs.Add(inline
             ? PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), background: global::OfficeIMO.OfficeColor.Black))
-            : PdfTextRun.Normal("X", fontSize: global::OfficeIMO.OfficeLength.Points(12D), font: PdfStandardFont.Helvetica));
+            : PdfTextRun.Normal("X", fontSize: global::OfficeIMO.OfficeLength.Points(12D), standardFont: PdfStandardFont.Helvetica));
         return PdfDocument.Create(TrailingTabOptions())
-            .Paragraph(paragraph => paragraph.Runs(runs), style: style)
-            .Paragraph(paragraph => paragraph.Runs(new[] {
-                PdfTextRun.Normal("NEXT", fontSize: global::OfficeIMO.OfficeLength.Points(12D), font: PdfStandardFont.Helvetica)
+            .Paragraph(paragraph => paragraph.AddRuns(runs), style: style)
+            .Paragraph(paragraph => paragraph.AddRuns(new[] {
+                PdfTextRun.Normal("NEXT", fontSize: global::OfficeIMO.OfficeLength.Points(12D), standardFont: PdfStandardFont.Helvetica)
             }), style: style)
             .ToBytes();
     }

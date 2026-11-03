@@ -12,13 +12,13 @@ public class PdfColumnContentBalancingTests {
     public void Columns_BalancesItemsAndRowsOnTheFinalPhysicalPage(string kind, int count) {
         string prefix = kind == "list" ? "List" : "Table";
         byte[] bytes = PdfDocument.Create(Options()).Columns(content => {
-            if (kind == "list") content.RichNumbered(Enumerable.Range(1, count)
+            if (kind == "list") content.AddNumberedList(Enumerable.Range(1, count)
                 .Select(index => new PdfListItem(prefix + index.ToString("D3"))), style: ListStyle());
-            else content.Table(Enumerable.Range(1, count).Select(index => new[] {
+            else content.AddTable(Enumerable.Range(1, count).Select(index => new[] {
                 new PdfTableCell(prefix + index.ToString("D3"))
             }), style: TableStyle());
         }, new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = true })
-            .Paragraph(p => p.Text("AfterColumns"), style: ParagraphStyle()).ToBytes();
+            .Paragraph(p => p.AddText("AfterColumns"), style: ParagraphStyle()).ToBytes();
         using var read = UglyToad.PdfPig.PdfDocument.Open(bytes);
         int pages = count == 21 ? 1 : 2;
         int leftLast = count == 21 ? 11 : 38;
@@ -47,9 +47,9 @@ public class PdfColumnContentBalancingTests {
     public void Columns_BalancesAContinuingListItemWithoutRepeatingItsMarker(int lines) {
         var item = new PdfListItem(string.Join("\n", Enumerable.Range(1, lines).Select(index => "Line" + index.ToString("D3"))),
             bookmarkName: "ListStart", marker: "OnlyMarker");
-        byte[] bytes = PdfDocument.Create(Options()).Columns(content => content.RichNumbered(new[] { item }, style: ListStyle()),
+        byte[] bytes = PdfDocument.Create(Options()).Columns(content => content.AddNumberedList(new[] { item }, style: ListStyle()),
             new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = true })
-            .Paragraph(p => p.Text("AfterColumns"), style: ParagraphStyle()).ToBytes();
+            .Paragraph(p => p.AddText("AfterColumns"), style: ParagraphStyle()).ToBytes();
         using var read = UglyToad.PdfPig.PdfDocument.Open(bytes);
         int pages = lines == 21 ? 1 : 2;
         int leftLast = lines == 21 ? 11 : 38;
@@ -72,11 +72,11 @@ public class PdfColumnContentBalancingTests {
         style.RepeatHeaderRowCount = 1;
         style.HeaderBold = false;
         style.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(12);
-        byte[] bytes = PdfDocument.Create(Options()).Columns(content => content.Table(
+        byte[] bytes = PdfDocument.Create(Options()).Columns(content => content.AddTable(
             new[] { new[] { new PdfTableCell("Header") } }.Concat(Enumerable.Range(1, bodyRows)
                 .Select(index => new[] { new PdfTableCell("Table" + index.ToString("D3")) })), style: style),
             new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = true })
-            .Paragraph(p => p.Text("AfterColumns"), style: ParagraphStyle()).ToBytes();
+            .Paragraph(p => p.AddText("AfterColumns"), style: ParagraphStyle()).ToBytes();
         using var read = UglyToad.PdfPig.PdfDocument.Open(bytes);
         int pages = bodyRows == 21 ? 1 : 2;
         int firstFinal = bodyRows == 21 ? 1 : 31;
@@ -98,13 +98,13 @@ public class PdfColumnContentBalancingTests {
     [InlineData("table")]
     public void Columns_BalancingPreservesAnAtomicKeptElement(string kind) {
         byte[] bytes = PdfDocument.Create(Options()).Columns(content => {
-            content.Paragraph(p => p.Text("Before1\nBefore2\nBefore3"), style: ParagraphStyle());
+            content.AddParagraph(p => p.AddText("Before1\nBefore2\nBefore3"), style: ParagraphStyle());
             if (kind == "list") {
                 var style = ListStyle(); style.KeepTogether = true;
-                content.RichNumbered(Enumerable.Range(1, 5).Select(index => new PdfListItem("Kept" + index)), style: style);
+                content.AddNumberedList(Enumerable.Range(1, 5).Select(index => new PdfListItem("Kept" + index)), style: style);
             } else {
                 var style = TableStyle(); style.KeepTogether = true;
-                content.Table(Enumerable.Range(1, 5).Select(index => new[] { new PdfTableCell("Kept" + index) }), style: style);
+                content.AddTable(Enumerable.Range(1, 5).Select(index => new[] { new PdfTableCell("Kept" + index) }), style: style);
             }
         }, new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = true }).ToBytes();
         using var read = UglyToad.PdfPig.PdfDocument.Open(bytes);

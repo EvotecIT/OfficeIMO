@@ -11,9 +11,9 @@ public class PdfVisualComparerTests {
     public void Gallery_DistinguishesMatchingVisualPagesFromStructuralDifferences(bool extraExpectedPage) {
         byte[] single = BuildPdf("Common page");
         byte[] multiple = PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(180)) })
-            .Paragraph(paragraph => paragraph.Text("Common page"))
+            .Paragraph(paragraph => paragraph.AddText("Common page"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Extra page"))
+            .Paragraph(paragraph => paragraph.AddText("Extra page"))
             .ToBytes();
         PdfVisualComparisonReport report = PdfVisualComparer.Compare(
             extraExpectedPage ? multiple : single, extraExpectedPage ? single : multiple);
@@ -68,12 +68,12 @@ public class PdfVisualComparerTests {
     [Fact]
     public void Compare_ReportsPageCountAndDimensionStructureWithCenterAlignment() {
         byte[] expected = PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(400)) })
-            .Paragraph(paragraph => paragraph.Text("Page one"))
+            .Paragraph(paragraph => paragraph.AddText("Page one"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Page two"))
+            .Paragraph(paragraph => paragraph.AddText("Page two"))
             .ToBytes();
         byte[] actual = PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(420)) })
-            .Paragraph(paragraph => paragraph.Text("Page one"))
+            .Paragraph(paragraph => paragraph.AddText("Page one"))
             .ToBytes();
 
         PdfVisualComparisonReport report = PdfVisualComparer.Compare(expected, actual, options: new PdfVisualComparisonOptions {
@@ -227,7 +227,7 @@ public class PdfVisualComparerTests {
     }
 
     private static byte[] BuildPdf(string text) => PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(180)) })
-        .Paragraph(paragraph => paragraph.Text(text))
+        .Paragraph(paragraph => paragraph.AddText(text))
         .ToBytes();
 
     private static byte[] UnsupportedOperatorPdf(string operation) => System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {

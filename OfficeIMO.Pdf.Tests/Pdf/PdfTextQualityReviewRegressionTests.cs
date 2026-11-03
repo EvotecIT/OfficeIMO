@@ -68,8 +68,8 @@ public sealed class PdfTextQualityReviewRegressionTests {
         var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(160), PageHeight = global::OfficeIMO.OfficeLength.Points(200), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
             MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(20), CompressContentStreams = false };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Embedded", data));
-        byte[] pdf = PdfDocument.Create(options).Paragraph(p => p.Runs(new[] {
-            new PdfTextRun("A ", font: PdfStandardFont.Helvetica),
+        byte[] pdf = PdfDocument.Create(options).Paragraph(p => p.AddRuns(new[] {
+            new PdfTextRun("A ", standardFont: PdfStandardFont.Helvetica),
             new PdfTextRun("A A A A A A A A A A A A A A A A", fontFamily: "Embedded")
         }), align: OfficeAlignment.Justify).ToBytes();
         string raw = Encoding.ASCII.GetString(pdf);

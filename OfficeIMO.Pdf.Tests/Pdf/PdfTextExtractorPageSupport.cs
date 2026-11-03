@@ -11,15 +11,15 @@ public partial class PdfTextExtractorPageTests {
         var doc = PdfDocument.Create();
         doc.Compose(compose => {
             compose.Page(page => {
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("First page marker"))));
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("First page marker"))));
             });
 
             compose.Page(page => {
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Second page marker"))));
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Second page marker"))));
             });
 
             compose.Page(page => {
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Third page marker"))));
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Third page marker"))));
             });
         });
 
@@ -42,11 +42,11 @@ public partial class PdfTextExtractorPageTests {
                         content.Row(row => row
                             .Gap(global::OfficeIMO.OfficeLength.Points(36))
                             .PercentColumn(50, column => column
-                                .Paragraph(p => p.Text("Left Start marker"))
-                                .Paragraph(p => p.Text("Left Finish marker")))
+                                .AddParagraph(p => p.AddText("Left Start marker"))
+                                .AddParagraph(p => p.AddText("Left Finish marker")))
                             .PercentColumn(50, column => column
-                                .Paragraph(p => p.Text("Right Start marker"))
-                                .Paragraph(p => p.Text("Right Finish marker")))))))
+                                .AddParagraph(p => p.AddText("Right Start marker"))
+                                .AddParagraph(p => p.AddText("Right Finish marker")))))))
             .ToBytes();
     }
 
@@ -61,7 +61,7 @@ public partial class PdfTextExtractorPageTests {
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .H1("Markdown Heading")
-            .Paragraph(p => p.Text("Markdown readback marker."))
+            .Paragraph(p => p.AddText("Markdown readback marker."))
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "A-100", "Alpha", "2" },
@@ -86,13 +86,13 @@ public partial class PdfTextExtractorPageTests {
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .H1("First Page")
-            .Paragraph(p => p.Text("First markdown marker."))
+            .Paragraph(p => p.AddText("First markdown marker."))
             .PageBreak()
             .H1("Second Page")
-            .Paragraph(p => p.Text("Second markdown marker."))
+            .Paragraph(p => p.AddText("Second markdown marker."))
             .PageBreak()
             .H1("Third Page")
-            .Paragraph(p => p.Text("Third markdown marker."))
+            .Paragraph(p => p.AddText("Third markdown marker."))
             .ToBytes();
     }
 

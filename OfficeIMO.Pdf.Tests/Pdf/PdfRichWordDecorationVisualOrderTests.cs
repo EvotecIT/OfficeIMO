@@ -24,8 +24,8 @@ public sealed class PdfRichWordDecorationVisualOrderTests {
         var run = new PdfTextRun(text, fontSize: global::OfficeIMO.OfficeLength.Points(12), underlineStyle: OfficeTextDecorationStyle.Words);
         PdfDocument document = PdfDocument.Create(options).Compose(composition => composition.Page(page => {
             page.Content(content => {
-                if (owner == "Body") content.Paragraph(paragraph => paragraph.Runs(new[] { run }));
-                else content.Paragraph(paragraph => paragraph.Text("\u05D0"));
+                if (owner == "Body") content.AddParagraph(paragraph => paragraph.AddRuns(new[] { run }));
+                else content.AddParagraph(paragraph => paragraph.AddText("\u05D0"));
             });
             if (owner == "Header") page.Header(header => header.Text(builder => builder.Run(run)));
             else if (owner == "Footer") page.Footer(footer => footer.Text(builder => builder.Run(run)));

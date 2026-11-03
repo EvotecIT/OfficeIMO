@@ -45,7 +45,7 @@ public sealed class PdfConversionOutputContracts {
     [InlineData(true)]
     public async Task PowerPointFileOutputsRetainTheirDestination(bool asyncOutput) {
         using PdfDocument generated = PdfDocument.Create();
-        generated.Content.Paragraph(p => p.Text("Presentation output"));
+        generated.Content.AddParagraph(p => p.AddText("Presentation output"));
         using PdfDocument opened = PdfDocument.Load(new MemoryStream(generated.ToBytes()));
         var options = PowerPointPdfImportOptions.CreateEditableTables();
         string path = Path.Combine(Path.GetTempPath(), "officeimo-output-contract-" + Guid.NewGuid().ToString("N") + ".pptx");
@@ -63,7 +63,7 @@ public sealed class PdfConversionOutputContracts {
     [Fact]
     public void PdfOutputPreservesOverwriteRewindAndOwnership() {
         using PdfDocument pdf = PdfDocument.Create();
-        pdf.Content.Paragraph(p => p.Text("Output contract"));
+        pdf.Content.AddParagraph(p => p.AddText("Output contract"));
         using var destination = new MemoryStream();
         destination.Write(new byte[50000], 0, 50000);
         destination.Position = 37;
@@ -96,7 +96,7 @@ public sealed class PdfConversionOutputContracts {
         Assert.ThrowsAny<InvalidOperationException>(() => failure.ThrowIfLoss());
 
         PdfDocument pdf = PdfDocument.Create();
-        pdf.Content.Paragraph(p => p.Text("HTML output"));
+        pdf.Content.AddParagraph(p => p.AddText("HTML output"));
         using var destination = new MemoryStream();
         OfficeConversionReport result = PdfDocument.Load(new System.IO.MemoryStream(pdf.ToBytes())).SaveAsHtml(destination);
         Assert.Null(result.OutputPath);
@@ -115,7 +115,7 @@ public sealed class PdfConversionOutputContracts {
         pdf.Content.Deferred(_ => {
             enteredLayout = true;
             cancellation.Cancel();
-            return content => content.Paragraph(p => p.Text("Canceled during layout"));
+            return content => content.AddParagraph(p => p.AddText("Canceled during layout"));
         });
         var conversion = new PdfDocumentConversionResult(pdf, new PdfConversionReport());
         using var destination = new MemoryStream();

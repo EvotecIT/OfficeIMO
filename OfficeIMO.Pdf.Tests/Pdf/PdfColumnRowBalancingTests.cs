@@ -70,7 +70,7 @@ public sealed class PdfColumnRowBalancingTests {
         var rows = new[] { new[] { MakeCell("Left", false), MakeCell("Right", true) } };
         using var pdf = PdfPigDocument.Open(Render(rows, TableStyle()));
         using var sequential = PdfPigDocument.Open(PdfDocument.Create(Options()).Table(rows, style: TableStyle())
-            .Paragraph(p => p.Text("AfterColumns"), style: ParagraphStyle()).ToBytes());
+            .Paragraph(p => p.AddText("AfterColumns"), style: ParagraphStyle()).ToBytes());
         Assert.Equal(1, pdf.NumberOfPages);
         Assert.InRange(X(pdf, 1, "Left007"), 39.9, 40.1);
         Assert.InRange(X(pdf, 1, "Left008"), 259.9, 260.1);
@@ -124,8 +124,8 @@ public sealed class PdfColumnRowBalancingTests {
         var tableStyle = TableStyle(); tableStyle.KeepWithNext = true;
         var paragraphStyle = ParagraphStyle(); paragraphStyle.KeepTogether = true;
         byte[] bytes = PdfDocument.Create(Options()).Columns(content => {
-            content.Table(new[] { new[] { Cell("KeptTable", 3) } }, style: tableStyle);
-            content.Paragraph(p => p.Text(string.Join("\n", Enumerable.Range(1, 5).Select(index => $"KeptAfter{index:D3}"))), style: paragraphStyle);
+            content.AddTable(new[] { new[] { Cell("KeptTable", 3) } }, style: tableStyle);
+            content.AddParagraph(p => p.AddText(string.Join("\n", Enumerable.Range(1, 5).Select(index => $"KeptAfter{index:D3}"))), style: paragraphStyle);
         }, new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceTableRowLines = true }).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(1, pdf.NumberOfPages);
@@ -161,9 +161,9 @@ public sealed class PdfColumnRowBalancingTests {
     }
 
     private static byte[] Render(PdfTableCell[][] rows, PdfTableStyle style, bool balance = true) =>
-        PdfDocument.Create(Options()).Columns(content => content.Table(rows, style: style),
+        PdfDocument.Create(Options()).Columns(content => content.AddTable(rows, style: style),
             new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceTableRowLines = balance })
-            .Paragraph(p => p.Text("AfterColumns"), style: ParagraphStyle()).ToBytes();
+            .Paragraph(p => p.AddText("AfterColumns"), style: ParagraphStyle()).ToBytes();
     private static double X(PdfPigDocument pdf, int page, string marker) =>
         pdf.GetPage(page).GetWords().Single(word => word.Text == marker).BoundingBox.Left;
     private static double Y(PdfPigDocument pdf, int page, string marker) =>

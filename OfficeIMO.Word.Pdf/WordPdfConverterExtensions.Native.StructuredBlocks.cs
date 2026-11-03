@@ -37,7 +37,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void RenderNativeStructuredBlockContent(INativePdfFlow pdf, WordDocument document, W.SdtBlock? sdtBlock, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, NativeNoteNumbering footnoteNumbersById, WordPdfExportOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth, bool skipCanvasOnlyVmlParagraphs, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
             if (TryGetNativeStructuredBlockPropertyValue(document, sdtBlock, out string? propertyValue)) {
-                pdf.Paragraph(builder => builder.Text(propertyValue!));
+                pdf.Paragraph(builder => builder.AddText(propertyValue!));
                 return;
             }
 

@@ -111,7 +111,7 @@ public partial class PdfDocumentVisualQualityTests {
                 compose.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                            row.PercentColumn(100, column => column.Table(rows, style: style))))))
+                            row.PercentColumn(100, column => column.AddTable(rows, style: style))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -262,11 +262,11 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] defaultBytes = PdfDocument.Create(options)
             .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.PercentColumn(100, column => column
-                .Table(rows, style: defaultStyle))))))
+                .AddTable(rows, style: defaultStyle))))))
             .ToBytes();
         byte[] spacedBytes = PdfDocument.Create(options)
             .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.PercentColumn(100, column => column
-                .Table(rows, style: spacedStyle))))))
+                .AddTable(rows, style: spacedStyle))))))
             .ToBytes();
 
         using var defaultPdf = PdfPigDocument.Open(new MemoryStream(defaultBytes));
@@ -346,7 +346,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Alpha", "Ready" },
                                     new[] { "Beta", "Ready" }
                                 }, style: style))))))
@@ -419,7 +419,7 @@ public partial class PdfDocumentVisualQualityTests {
                         page.Content(content =>
                             content.Row(row =>
                                 row.PercentColumn(100, column =>
-                                    column.Table(new[] {
+                                    column.AddTable(new[] {
                                         new[] { "Alpha", "Ready" },
                                         new[] { "Beta", "Ready" }
                                     }, style: style))))))
@@ -483,7 +483,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "ID", "Description", "Score" },
                                     new[] { "A1", "Longer descriptive value", "100" }
                                 }, style: style))))))
@@ -557,7 +557,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Alpha", "Beta" }
                                 }, align: OfficeAlignment.Center, style: style))))))
             .ToBytes();
@@ -630,7 +630,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Table(new[] {
+                                column.AddTable(new[] {
                                     new[] { "Alpha", "Beta" }
                                 }, align: OfficeAlignment.Left, style: style))))))
             .ToBytes();

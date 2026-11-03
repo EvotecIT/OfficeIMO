@@ -42,13 +42,13 @@ public partial class PdfDocumentVisualQualityTests {
                             row.Gap(global::OfficeIMO.OfficeLength.Points(gutter))
                                 .PercentColumn(50, column => column
                                     .H2("LeftFlow")
-                                    .Paragraph(p => p.Text("LeftAlphaOne carries enough ordinary report text to wrap inside its column without touching the neighboring frame."))
-                                    .Bullets(new[] {
+                                    .AddParagraph(p => p.AddText("LeftAlphaOne carries enough ordinary report text to wrap inside its column without touching the neighboring frame."))
+                                    .AddList(new[] {
                                         "LeftBulletOne stays inside the measure.",
                                         "LeftBulletTwo keeps a clear baseline."
                                     })
-                                    .PanelParagraph(
-                                        p => p.Bold("LeftPanel").Text(": spacing remains visible after the list."),
+                                    .AddPanelParagraph(
+                                        p => { p.AddText("LeftPanel").SetBold(); p.AddText(": spacing remains visible after the list."); },
                                         new PdfPanelStyle {
                                             BorderColor = global::OfficeIMO.OfficeColor.FromRgb(191, 191, 191),
                                             BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
@@ -58,13 +58,13 @@ public partial class PdfDocumentVisualQualityTests {
                                         }))
                                 .PercentColumn(50, column => column
                                     .H2("RightFlow")
-                                    .Paragraph(p => p.Text("RightAlphaOne uses the same generic layout primitives and should start after the explicit gutter."))
-                                    .Numbered(new[] {
+                                    .AddParagraph(p => p.AddText("RightAlphaOne uses the same generic layout primitives and should start after the explicit gutter."))
+                                    .AddNumberedList(new[] {
                                         "RightStepOne composes content.",
                                         "RightStepTwo preserves reading rhythm."
                                     })
-                                    .PanelParagraph(
-                                        p => p.Bold("RightPanel").Text(": the final note avoids cramped text."),
+                                    .AddPanelParagraph(
+                                        p => { p.AddText("RightPanel").SetBold(); p.AddText(": the final note avoids cramped text."); },
                                         new PdfPanelStyle {
                                             BorderColor = global::OfficeIMO.OfficeColor.FromRgb(191, 191, 191),
                                             BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
@@ -129,8 +129,8 @@ public partial class PdfDocumentVisualQualityTests {
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row => row
-                            .PercentColumn(50, column => column.Paragraph(p => p.Text("LeftPlainColumn wraps in the first default column frame.")))
-                            .PercentColumn(50, column => column.Paragraph(p => p.Text("RightPlainColumn starts after the built-in row gutter.")))))))
+                            .PercentColumn(50, column => column.AddParagraph(p => p.AddText("LeftPlainColumn wraps in the first default column frame.")))
+                            .PercentColumn(50, column => column.AddParagraph(p => p.AddText("RightPlainColumn starts after the built-in row gutter.")))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -221,19 +221,19 @@ public partial class PdfDocumentVisualQualityTests {
                                 FontSize = global::OfficeIMO.OfficeLength.Points(18),
                                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(12)
                             })
-                            .Paragraph(p => p.Text("LeadMarker introduces a generic report section without any invoice-specific shape."), style: paragraphStyle)
-                            .PanelParagraph(p => p.Bold("PanelMarker").Text(": boxed notes keep visible padding and downstream rhythm."), panelStyle)
-                            .Bullets(new[] {
+                            .AddParagraph(p => p.AddText("LeadMarker introduces a generic report section without any invoice-specific shape."), style: paragraphStyle)
+                            .AddPanelParagraph(p => { p.AddText("PanelMarker").SetBold(); p.AddText(": boxed notes keep visible padding and downstream rhythm."); }, panelStyle)
+                            .AddList(new[] {
                                 "BulletMarker keeps list text in the normal document flow.",
                                 "BulletSecond keeps a second readable baseline."
                             }, style: listStyle)
-                            .Table(new[] {
+                            .AddTable(new[] {
                                 new[] { "TableMarker", "Ready" },
                                 new[] { "Rhythm", "Stable" }
                             }, style: tableStyle)
-                            .Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), style: imageStyle)
+                            .AddImage(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), style: imageStyle)
                             .Shape(shape, style: drawingStyle)
-                            .Paragraph(p => p.Text("AfterVisualMarker follows image and shape blocks with deliberate breathing room."), style: paragraphStyle));
+                            .AddParagraph(p => p.AddText("AfterVisualMarker follows image and shape blocks with deliberate breathing room."), style: paragraphStyle));
 
                         content.Row(row => row
                             .Gap(global::OfficeIMO.OfficeLength.Points(gutter))
@@ -243,12 +243,12 @@ public partial class PdfDocumentVisualQualityTests {
                             })
                             .PercentColumn(50, column => column
                                 .H2("LeftMixed")
-                                .Paragraph(p => p.Text("LeftMixedMarker wraps safely inside the left column measure."), style: paragraphStyle)
-                                .Bullets(new[] { "LeftMixedBullet keeps rhythm." }, style: listStyle))
+                                .AddParagraph(p => p.AddText("LeftMixedMarker wraps safely inside the left column measure."), style: paragraphStyle)
+                                .AddList(new[] { "LeftMixedBullet keeps rhythm." }, style: listStyle))
                             .PercentColumn(50, column => column
                                 .H2("RightMixed")
-                                .Paragraph(p => p.Text("RightMixedMarker starts after the explicit row gutter."), style: paragraphStyle)
-                                .Numbered(new[] { "RightMixedStep keeps rhythm." }, style: listStyle)));
+                                .AddParagraph(p => p.AddText("RightMixedMarker starts after the explicit row gutter."), style: paragraphStyle)
+                                .AddNumberedList(new[] { "RightMixedStep keeps rhythm." }, style: listStyle)));
                     })))
             .ToBytes();
 
@@ -312,7 +312,7 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .Theme(PdfTheme.WordLike())
             .H1("LineItemGate")
-            .Paragraph(p => p.Text("A generic Word-like line item table protects table rhythm without adding invoice-specific engine APIs."))
+            .Paragraph(p => p.AddText("A generic Word-like line item table protects table rhythm without adding invoice-specific engine APIs."))
             .Table(new[] {
                 new[] { "#", "Product", "UnitPrice", "Qty", "Total" },
                 new[] { "1", "MonitoringSeats", "31.80", "2", "63.60" },
@@ -323,7 +323,7 @@ public partial class PdfDocumentVisualQualityTests {
                 new[] { "6", "CustodiPuella", "79.05", "8", "632.40" },
                 new[] { "", "TotalDue", "", "", "1499.12" }
             }, style: style)
-            .Paragraph(p => p.Text("LineItemGateEnd"), OfficeAlignment.Center)
+            .Paragraph(p => p.AddText("LineItemGateEnd"), OfficeAlignment.Center)
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));

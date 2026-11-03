@@ -237,7 +237,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 bold: visual.Font.IsBold,
                 italic: visual.Font.IsItalic,
                 fontSize: global::OfficeIMO.OfficeLength.Points(visual.Font.Size * PointsPerCssPixel),
-                font: MapFont(family, glyph, style, webFonts),
+                standardFont: MapFont(family, glyph, style, webFonts),
                 fontFamily: family).WithFeatureSettings(visual.FeatureSettings);
             try {
                 paintable = PdfCore.PdfWriter.MeasurePositionedText(run, webFonts.Options).HasValue;

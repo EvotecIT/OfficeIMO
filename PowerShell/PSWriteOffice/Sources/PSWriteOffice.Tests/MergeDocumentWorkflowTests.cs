@@ -475,7 +475,7 @@ public sealed partial class MergeDocumentWorkflowTests {
                 OwnerPassword = "owner", AllowedPermissions = permissions
             });
             using var document = PdfDocument.Create(options);
-            document.Content.Paragraph(p => p.Text(text));
+            document.Content.AddParagraph(p => p.AddText(text));
             document.Save(path);
             return path;
         }

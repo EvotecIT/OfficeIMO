@@ -27,7 +27,7 @@ public partial class PdfDocumentVisualQualityTests {
                 .Font(PdfStandardFont.Helvetica)
                 .FontSize(global::OfficeIMO.OfficeLength.Points(16))
                 .Color(global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)))
-            .Paragraph(p => p.Text("FluentTextStyle"))
+            .Paragraph(p => p.AddText("FluentTextStyle"))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -59,7 +59,7 @@ public partial class PdfDocumentVisualQualityTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
             })
             .DefaultTextStyle(style)
-            .Paragraph(p => p.Text("ObjectTextStyle"))
+            .Paragraph(p => p.AddText("ObjectTextStyle"))
             .ToBytes();
 
         style.FontSize = global::OfficeIMO.OfficeLength.Points(8);
@@ -98,7 +98,7 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .DefaultHeadingStyle(3, style)
             .H3("StyledHeading")
-            .Paragraph(p => p.Text("StyledBody"))
+            .Paragraph(p => p.AddText("StyledBody"))
             .ToBytes();
 
         style.FontSize = global::OfficeIMO.OfficeLength.Points(30);
@@ -174,14 +174,14 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] defaultBytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
+            .Paragraph(p => p.AddText("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
             .H2("HeadingMarker", style: defaultStyle)
-            .Paragraph(p => p.Text("AfterMarker"))
+            .Paragraph(p => p.AddText("AfterMarker"))
             .ToBytes();
         byte[] spacedBytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
+            .Paragraph(p => p.AddText("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
             .H2("HeadingMarker", style: spacedStyle)
-            .Paragraph(p => p.Text("AfterMarker"))
+            .Paragraph(p => p.AddText("AfterMarker"))
             .ToBytes();
 
         using var defaultPdf = PdfPigDocument.Open(new MemoryStream(defaultBytes));
@@ -308,12 +308,12 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] defaultBytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
+            .Paragraph(p => p.AddText("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
             .Spacer(80)
             .H2("PagedHeadingMarker", style: defaultStyle)
             .ToBytes();
         byte[] spacedBytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
+            .Paragraph(p => p.AddText("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
             .Spacer(80)
             .H2("PagedHeadingMarker", style: spacedStyle)
             .ToBytes();
@@ -441,8 +441,8 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .DefaultPanelStyle(style)
-            .PanelParagraph(p => p.Text("DefaultPanel"))
-            .Paragraph(p => p.Text("AfterPanel"), style: new PdfParagraphStyle {
+            .PanelParagraph(p => p.AddText("DefaultPanel"))
+            .Paragraph(p => p.AddText("AfterPanel"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
             .ToBytes();
@@ -486,7 +486,7 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .DefaultHorizontalRuleStyle(style)
             .HR()
-            .Paragraph(p => p.Text("AfterDefaultRule"))
+            .Paragraph(p => p.AddText("AfterDefaultRule"))
             .ToBytes();
 
         style.Thickness = global::OfficeIMO.OfficeLength.Points(7);
@@ -532,7 +532,7 @@ public partial class PdfDocumentVisualQualityTests {
                         content.Row(row =>
                             row.PercentColumn(100, column => column
                                 .HR()
-                                .Paragraph(p => p.Text("ColumnDefaultRule")))))))
+                                .AddParagraph(p => p.AddText("ColumnDefaultRule")))))))
             .ToBytes();
 
         string rawPdf = PdfTestContentText.ReadDecoded(bytes);
@@ -569,10 +569,11 @@ public partial class PdfDocumentVisualQualityTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
             })
             .Theme(theme)
-            .Paragraph(p => p
-                .Text("ThemeFirst")
-                .LineBreak()
-                .Text("ThemeSecond"))
+            .Paragraph(p => {
+                p.AddText("ThemeFirst");
+                p.AddLineBreak();
+                p.AddText("ThemeSecond");
+            })
             .Table(new[] {
                 new[] { "ThemeTable", "Value" },
                 new[] { "Row", "1" }
@@ -691,12 +692,12 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .Theme(PdfTheme.WordLike())
             .H1("WordLikeHeading")
-            .Paragraph(p => p.Text("WordLikeBody keeps a comfortable default paragraph rhythm."))
+            .Paragraph(p => p.AddText("WordLikeBody keeps a comfortable default paragraph rhythm."))
             .Bullets(new[] {
                 "WordLikeBulletOne",
                 "WordLikeBulletTwo"
             })
-            .PanelParagraph(p => p.Text("WordLikePanel"))
+            .PanelParagraph(p => p.AddText("WordLikePanel"))
             .HR()
             .Table(new[] {
                 new[] { "WordLikeTable", "Value" },
@@ -737,8 +738,8 @@ public partial class PdfDocumentVisualQualityTests {
             .Theme(PdfTheme.Report())
             .H1("ReportThemeHeading")
             .H2("ReportThemeSection")
-            .Paragraph(p => p.Text("ReportThemeBody keeps the body calm while tables carry the hierarchy."))
-            .PanelParagraph(p => p.Text("ReportThemePanel"))
+            .Paragraph(p => p.AddText("ReportThemeBody keeps the body calm while tables carry the hierarchy."))
+            .PanelParagraph(p => p.AddText("ReportThemePanel"))
             .Table(new[] {
                 new[] { "ReportThemeTable", "Value" },
                 new[] { "Alpha", "42" },
@@ -788,10 +789,11 @@ public partial class PdfDocumentVisualQualityTests {
             });
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p
-                .Text("OptionsThemeFirst")
-                .LineBreak()
-                .Text("OptionsThemeSecond"))
+            .Paragraph(p => {
+                p.AddText("OptionsThemeFirst");
+                p.AddLineBreak();
+                p.AddText("OptionsThemeSecond");
+            })
             .Table(new[] {
                 new[] { "OptionsTable", "Value" },
                 new[] { "Row", "1" }

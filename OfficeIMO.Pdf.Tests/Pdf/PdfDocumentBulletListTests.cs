@@ -168,7 +168,7 @@ public class PdfDocumentBulletListTests {
                 PdfListItem.Plain("Bookmarked bullet", "BulletAnchor"),
                 PdfListItem.Rich(new[] { PdfTextRun.Normal("Second bookmarked bullet") }, "SecondBulletAnchor")
             })
-            .Paragraph(p => p.LinkToBookmark("Jump to second bullet", "SecondBulletAnchor", contents: "List bookmark jump"))
+            .Paragraph(p => p.AddBookmarkLink("Jump to second bullet", "SecondBulletAnchor", contents: "List bookmark jump"))
             .ToBytes();
 
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(bytes, new PdfTextLayoutOptions {
@@ -434,12 +434,12 @@ public class PdfDocumentBulletListTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("BeforeList"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("BeforeList"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
             .DefaultListStyle(style)
             .Bullets(new[] { "StyledBullet" })
-            .Paragraph(p => p.Text("AfterList"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("AfterList"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
             .ToBytes();

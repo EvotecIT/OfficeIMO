@@ -62,7 +62,7 @@ public class RichParagraphWrappingHyphenationTests {
                 CompressContentStreams = false
             })
             .TextHyphenationDictionary(dictionary)
-            .Paragraph(paragraph => paragraph.Text("typographymilestone"))
+            .Paragraph(paragraph => paragraph.AddText("typographymilestone"))
             .ToBytes();
 
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
@@ -103,7 +103,7 @@ public class RichParagraphWrappingHyphenationTests {
                 CompressContentStreams = false
             })
             .TextHyphenation(callback)
-            .Paragraph(paragraph => paragraph.Text("typographymilestone"))
+            .Paragraph(paragraph => paragraph.AddText("typographymilestone"))
             .ToBytes();
 
         string raw = PdfTestContentText.JoinTextArrays(Encoding.ASCII.GetString(bytes));
@@ -132,7 +132,7 @@ public class RichParagraphWrappingHyphenationTests {
                 CompressContentStreams = false
             })
             .TextHyphenation(callback)
-            .Paragraph(paragraph => paragraph.Text("typographymilestone"))
+            .Paragraph(paragraph => paragraph.AddText("typographymilestone"))
             .ToBytes();
 
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
@@ -152,7 +152,7 @@ public class RichParagraphWrappingHyphenationTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
                 CompressContentStreams = false
             })
-            .Paragraph(paragraph => paragraph.Text("CASE-REVIEW-LINE-001"))
+            .Paragraph(paragraph => paragraph.AddText("CASE-REVIEW-LINE-001"))
             .ToBytes();
 
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
@@ -173,7 +173,7 @@ public class RichParagraphWrappingHyphenationTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
                 CompressContentStreams = false
             })
-            .Paragraph(paragraph => paragraph.Text("INV-DNS-LOCATOR-001"))
+            .Paragraph(paragraph => paragraph.AddText("INV-DNS-LOCATOR-001"))
             .ToBytes();
 
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
@@ -203,7 +203,7 @@ public class RichParagraphWrappingHyphenationTests {
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 CompressContentStreams = false
             })
-            .Paragraph(paragraph => paragraph.Text(@"ACME\Service_2026AlphaIdentifier"))
+            .Paragraph(paragraph => paragraph.AddText(@"ACME\Service_2026AlphaIdentifier"))
             .ToBytes();
 
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
@@ -225,7 +225,7 @@ public class RichParagraphWrappingHyphenationTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
                 CompressContentStreams = false
             })
-            .Paragraph(paragraph => paragraph.Text("CASE-RECORD-STATIC-001"))
+            .Paragraph(paragraph => paragraph.AddText("CASE-RECORD-STATIC-001"))
             .ToBytes();
 
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
@@ -245,7 +245,7 @@ public class RichParagraphWrappingHyphenationTests {
         var style = PdfTableStyles.Minimal();
         using var metric = PdfPigDocument.Open(PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
-            }).Paragraph(paragraph => paragraph.Text("RECORD")).ToBytes());
+            }).Paragraph(paragraph => paragraph.AddText("RECORD")).ToBytes());
         var measured = metric.GetPage(1).Letters;
         double wordAdvance = measured[measured.Count - 1].EndBaseLine.X - measured[0].StartBaseLine.X;
         // Keep the delimiter-carry case within a real cell frame. The former

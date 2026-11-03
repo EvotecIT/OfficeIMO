@@ -11,7 +11,7 @@ public sealed class PdfSemanticAuthoringTests {
             .Content(content => content.Semantic(PdfSemanticRole.Article, article => article
                 .Semantic(PdfSemanticRole.Division, division => division
                     .H1("Accessible report")
-                    .Text("Operational summary")))))
+                    .AddParagraph("Operational summary")))))
             .ToBytes();
 
         PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfDocument.Load(bytes).Reader.TaggedContent());
@@ -30,13 +30,13 @@ public sealed class PdfSemanticAuthoringTests {
     [Fact]
     public void FigureSemanticsRequireAndPreserveAlternateText() {
         Assert.Throws<ArgumentException>(() => PdfDocument.Create(document => document.Content(content =>
-            content.Semantic(PdfSemanticRole.Figure, figure => figure.Text("Chart")))));
+            content.Semantic(PdfSemanticRole.Figure, figure => figure.AddParagraph("Chart")))));
 
         byte[] bytes = PdfDocument.Create(document => document
             .Settings(options => options.TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers)
             .Content(content => content.Semantic(
                 PdfSemanticRole.Figure,
-                figure => figure.Text("Quarterly trend"),
+                figure => figure.AddParagraph("Quarterly trend"),
                 alternativeText: "Line chart showing a rising quarterly trend")))
             .ToBytes();
 
@@ -51,7 +51,7 @@ public sealed class PdfSemanticAuthoringTests {
     public void DocumentSectionsCreateSectionStructureAlongsideOutlineDestinations() {
         byte[] bytes = PdfDocument.Create(document => document
             .Settings(options => options.TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers)
-            .Content(content => content.Section("Results", section => section.Text("Complete"))))
+            .Content(content => content.Section("Results", section => section.AddParagraph("Complete"))))
             .ToBytes();
 
         PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfDocument.Load(bytes).Reader.TaggedContent());
@@ -75,7 +75,7 @@ public sealed class PdfSemanticAuthoringTests {
                 .Background(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.95D, 1D))
                 .Border(global::OfficeIMO.OfficeColor.FromRgb(90, 100, 115))
                 .Padding(global::OfficeIMO.OfficeLength.Points(8))
-                .Content(quote => quote.Text("Measured twice, rendered once.")))))
+                .Content(quote => quote.AddParagraph("Measured twice, rendered once.")))))
             .ToBytes();
 
         PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfDocument.Load(bytes).Reader.TaggedContent());
@@ -111,7 +111,7 @@ public sealed class PdfSemanticAuthoringTests {
             .Settings(options => options.CompressContentStreams = false)
             .Content(content => content.Element(element => element
                 .Style(style)
-                .Content(nested => nested.Text("Reusable style")))))
+                .Content(nested => nested.AddParagraph("Reusable style")))))
             .ToBytes();
         style.Background = global::OfficeIMO.OfficeColor.White;
 
@@ -124,9 +124,9 @@ public sealed class PdfSemanticAuthoringTests {
             .Content(content => content.Element(element => element
                 .Padding(global::OfficeIMO.OfficeLength.Points(6))
                 .Content(nested => nested.Row(row => row
-                    .FixedColumn(global::OfficeIMO.OfficeLength.Points(48), column => column.Text("Fixed"))
-                    .AutoColumn(column => column.Text("Automatic"))
-                    .RelativeColumn(column => column.Text("Remaining")))))))
+                    .FixedColumn(global::OfficeIMO.OfficeLength.Points(48), column => column.AddParagraph("Fixed"))
+                    .AutoColumn(column => column.AddParagraph("Automatic"))
+                    .RelativeColumn(column => column.AddParagraph("Remaining")))))))
             .ToBytes();
 
         string text = PdfDocument.Load(bytes).Read().Text;
@@ -151,12 +151,12 @@ public sealed class PdfSemanticAuthoringTests {
                 .Content(nested => nested.Row(row => row
                     .RelativeColumn(column => {
                         for (int index = 0; index < 24; index++) {
-                            column.Text("Left " + index);
+                            column.AddParagraph("Left " + index);
                         }
                     })
                     .RelativeColumn(column => {
                         for (int index = 0; index < 24; index++) {
-                            column.Text("Right " + index);
+                            column.AddParagraph("Right " + index);
                         }
                     }))))))
             .ToBytes();
@@ -184,7 +184,7 @@ public sealed class PdfSemanticAuthoringTests {
                 .KeepTogether()
                 .Content(nested => nested.Semantic(PdfSemanticRole.Article, article => {
                     for (int index = 0; index < 20; index++) {
-                        article.Text("A complete line of measured semantic content " + index);
+                        article.AddParagraph("A complete line of measured semantic content " + index);
                     }
                 })))))
             .ToBytes());
@@ -202,7 +202,7 @@ public sealed class PdfSemanticAuthoringTests {
             })
             .Content(content => content.Flow(flow => flow.Semantic(PdfSemanticRole.Article, article => {
                 for (int index = 0; index < 20; index++) {
-                    article.Text("A complete line of grouped flow content " + index);
+                    article.AddParagraph("A complete line of grouped flow content " + index);
                 }
             }), new PdfFlowOptions { KeepTogether = true })))
             .ToBytes());
@@ -221,8 +221,8 @@ public sealed class PdfSemanticAuthoringTests {
             .Content(content => content.Element(element => element
                 .KeepTogether()
                 .Content(nested => nested
-                    .PanelParagraph(paragraph => paragraph.Text("First"), new PdfPanelStyle { PaddingY = global::OfficeIMO.OfficeLength.Points(2), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
-                    .PanelParagraph(paragraph => paragraph.Text("Second"), new PdfPanelStyle { PaddingY = global::OfficeIMO.OfficeLength.Points(2), SpacingBefore = global::OfficeIMO.OfficeLength.Points(90), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })))))
+                    .AddPanelParagraph(paragraph => paragraph.AddText("First"), new PdfPanelStyle { PaddingY = global::OfficeIMO.OfficeLength.Points(2), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
+                    .AddPanelParagraph(paragraph => paragraph.AddText("Second"), new PdfPanelStyle { PaddingY = global::OfficeIMO.OfficeLength.Points(2), SpacingBefore = global::OfficeIMO.OfficeLength.Points(90), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })))))
             .ToBytes());
 
         Assert.Contains("exceeds the available page content height", exception.Message, StringComparison.Ordinal);
@@ -240,7 +240,7 @@ public sealed class PdfSemanticAuthoringTests {
                 .KeepTogether()
                 .Content(nested => nested.Element(inner => inner
                     .Spacing(before: global::OfficeIMO.OfficeLength.Points(110), after: global::OfficeIMO.OfficeLength.Points(0))
-                    .Content(body => body.Text("Top spacing is suppressed")))))))
+                    .Content(body => body.AddParagraph("Top spacing is suppressed")))))))
             .ToBytes();
 
         Assert.Equal(1, PdfInspector.Inspect(bytes).PageCount);
@@ -257,14 +257,14 @@ public sealed class PdfSemanticAuthoringTests {
                 options.DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10);
             })
             .Content(content => content
-                .Paragraph(paragraph => paragraph.Text("IntroMarker"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(48) })
+                .AddParagraph(paragraph => paragraph.AddText("IntroMarker"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(48) })
                 .H3("ElementChainHeading")
                 .Element(element => element
                     .Padding(global::OfficeIMO.OfficeLength.Points(4))
                     .Spacing(after: global::OfficeIMO.OfficeLength.Points(0))
                     .KeepWithNext()
-                    .Content(nested => nested.Text("ElementChainBody")))
-                .Text("ElementChainFollowing")))
+                    .Content(nested => nested.AddParagraph("ElementChainBody")))
+                .AddParagraph("ElementChainFollowing")))
             .ToBytes();
 
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
@@ -281,8 +281,8 @@ public sealed class PdfSemanticAuthoringTests {
             .Content(content => content
                 .Element(element => element
                     .KeepWithNext()
-                    .Content(nested => nested.Deferred(_ => deferred => deferred.Text("Page-aware element"))))
-                .Text("Following content")))
+                    .Content(nested => nested.Deferred(_ => deferred => deferred.AddParagraph("Page-aware element"))))
+                .AddParagraph("Following content")))
             .ToBytes());
 
         Assert.Contains("height can be determined before rendering", exception.Message, StringComparison.Ordinal);
@@ -299,7 +299,7 @@ public sealed class PdfSemanticAuthoringTests {
             })
             .Content(content => content.Semantic(PdfSemanticRole.Article, article => {
                 for (int index = 0; index < 24; index++) {
-                    article.Text("Cross-page semantic paragraph " + index);
+                    article.AddParagraph("Cross-page semantic paragraph " + index);
                 }
             })))
             .ToBytes();
@@ -348,7 +348,7 @@ public sealed class PdfSemanticAuthoringTests {
             })
             .Content(content => content.Semantic(PdfSemanticRole.Figure, figure => {
                 for (int index = 0; index < 24; index++) {
-                    figure.Text("Figure narrative " + index);
+                    figure.AddParagraph("Figure narrative " + index);
                 }
             }, alternativeText: "One cross-page figure")))
             .ToBytes();
@@ -371,7 +371,7 @@ public sealed class PdfSemanticAuthoringTests {
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfDocument.Create(document => document
             .Content(content => content.Element(element => element
                 .KeepTogether()
-                .Content(nested => nested.Deferred(_ => deferred => deferred.Text("Page-aware content"))))))
+                .Content(nested => nested.Deferred(_ => deferred => deferred.AddParagraph("Page-aware content"))))))
             .ToBytes());
 
         Assert.Contains("height can be determined before rendering", exception.Message, StringComparison.Ordinal);
@@ -379,7 +379,7 @@ public sealed class PdfSemanticAuthoringTests {
 
     private sealed class TestComponent : IPdfComponent {
         public void Compose(PdfContentBuilder content) {
-            content.Text("Reusable element content");
+            content.AddParagraph("Reusable element content");
         }
     }
 }

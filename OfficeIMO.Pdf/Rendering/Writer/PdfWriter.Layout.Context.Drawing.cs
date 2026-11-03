@@ -294,7 +294,7 @@ internal static partial class PdfWriter {
             var imageStyle = new PdfImageStyle {
                 Fit = OfficeImageFit.Stretch,
                 RotationAngle = -projection.RotationDegrees,
-                AlternativeText = image.AlternativeText
+                AltText = image.AlternativeText
             };
             if (projection.HasCrop) {
                 imageStyle.SourceCrop = new PdfImageSourceCrop(

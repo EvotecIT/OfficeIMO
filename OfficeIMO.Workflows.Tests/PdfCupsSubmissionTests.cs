@@ -95,7 +95,7 @@ public sealed class PdfCupsSubmissionTests {
                 return [text.Length / 2];
             }
         });
-        for (int index = 0; index < 30; index++) document.Paragraph(p => p.Text(new string('W', 600)));
+        for (int index = 0; index < 30; index++) document.Paragraph(p => p.AddText(new string('W', 600)));
         Assert.ThrowsAny<OperationCanceledException>(() => CupsPdfPrinter.SerializeSpool([document], cancellation.Token));
         Assert.InRange(callbacks, 1, 2);
     }

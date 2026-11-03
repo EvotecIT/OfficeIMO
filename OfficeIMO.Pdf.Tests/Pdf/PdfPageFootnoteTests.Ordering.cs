@@ -14,14 +14,14 @@ public partial class PdfPageFootnoteTests {
         var document = PdfDocument.Create(options);
         // Deliberately create the right-cell definition first. Source order comes from
         // the body inventory; the earlier left-cell reference is admitted in row two.
-        var laterSource = document.Content.DefineFootnote(body => body.Text("LaterSourceNote", style: Style()),
-            new PdfFootnoteOptions { Separator = body => body.Text("PageSeparator", style: Style()) });
-        var earlierSource = document.Content.DefineFootnote(body => body.Text("EarlierSourceNote", style: Style()),
-            new PdfFootnoteOptions { Separator = body => body.Text("UnusedLaterSeparator", style: Style()) });
+        var laterSource = document.Content.DefineFootnote(body => body.AddParagraph("LaterSourceNote", style: Style()),
+            new PdfFootnoteOptions { Separator = body => body.AddParagraph("PageSeparator", style: Style()) });
+        var earlierSource = document.Content.DefineFootnote(body => body.AddParagraph("EarlierSourceNote", style: Style()),
+            new PdfFootnoteOptions { Separator = body => body.AddParagraph("UnusedLaterSeparator", style: Style()) });
         var style = FootnoteTableStyle();
         style.MinimumBodyRowsOnFirstPage = 0;
         style.MinimumBodyRowsOnLastPage = 0;
-        document.Content.Table(new[] {
+        document.Content.AddTable(new[] {
             new[] {
                 new PdfTableCell(TableReferenceLines(12, 8, "LRef", earlierSource), rowSpan: 2),
                 new PdfTableCell(new[] { PdfTextRun.Normal("RRef").WithFootnoteReference(laterSource), PdfTextRun.Normal("\nRightFirstTail") })
@@ -52,12 +52,12 @@ public partial class PdfPageFootnoteTests {
     public void ExplicitPageScopeFinishesNotesBeforeChangingUsableWidth(int noteLines, int expectedPages) {
         var document = PdfDocument.Create(Options());
         var note = document.Content.DefineFootnote(body => {
-            for (int index = 0; index < noteLines; index++) body.Text("WidthNote" + index, style: Style());
+            for (int index = 0; index < noteLines; index++) body.AddParagraph("WidthNote" + index, style: Style());
         });
         document.Compose(pages => {
             pages.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(140)).Content(body =>
-                body.Paragraph(p => p.Runs(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style())));
-            pages.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(140)).Content(body => body.Text("NarrowPageBody", style: Style())));
+                body.AddParagraph(p => p.AddRuns(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style())));
+            pages.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(140)).Content(body => body.AddParagraph("NarrowPageBody", style: Style())));
         });
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(expectedPages, pdf.NumberOfPages);

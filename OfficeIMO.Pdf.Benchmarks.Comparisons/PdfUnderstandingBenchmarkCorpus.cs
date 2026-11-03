@@ -162,7 +162,7 @@ internal static class PdfUnderstandingBenchmarkCorpusFactory {
             });
         }
 
-        return PdfDocument.Create(pdf => pdf.Content(content => content.Table(rows, style: new PdfTableStyle {
+        return PdfDocument.Create(pdf => pdf.Content(content => content.AddTable(rows, style: new PdfTableStyle {
                 HeaderRowCount = 1,
                 RepeatHeaderRowCount = 1,
                 ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(82), global::OfficeIMO.OfficeLength.Points(82), global::OfficeIMO.OfficeLength.Points(82), global::OfficeIMO.OfficeLength.Points(82) },

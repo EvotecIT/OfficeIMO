@@ -89,7 +89,7 @@ internal static class DocumentDelivery {
                 var specimen = specimens[index];
                 content.H1(Heading(specimen));
                 content.AddVisualArtifact(specimen.Artifact, spacingBefore: 12D, spacingAfter: 18D);
-                content.Text(specimen.Caption);
+                content.AddParagraph(specimen.Caption);
             }
         }), options).Save(path);
     }

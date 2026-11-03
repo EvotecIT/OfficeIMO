@@ -22,12 +22,20 @@ public sealed class PdfSyntheticFontWeightTests {
         else options.UseFontFamily(family);
         OfficeColor ink = OfficeColor.FromRgb(25, 140, 77);
         using PdfDocument source = PdfDocument.Create(options).Compose(composition => composition.Content(content => content
-            .Paragraph(paragraph => {
-                if (named) paragraph.FontFamily("Weight proof");
-                paragraph.FontSize(OfficeLength.Points(24)).Text("LEFT ").Bold(true).Italic(italic).Color(ink).Text("BOLD")
-                    .Bold(false).Italic(false).ResetColor().Text(" RIGHT");
+            .AddParagraph(paragraph => {
+                if (named) { paragraph.RunDefaults.FontFamily = "Weight proof"; paragraph.RunDefaults.StandardFont = null; }
+                paragraph.RunDefaults.FontSize = OfficeLength.Points(24);
+                paragraph.AddText("LEFT ");
+                paragraph.RunDefaults.Bold = true;
+                paragraph.RunDefaults.Italic = italic;
+                paragraph.RunDefaults.Color = ink;
+                paragraph.AddText("BOLD");
+                paragraph.RunDefaults.Bold = false;
+                paragraph.RunDefaults.Italic = false;
+                paragraph.RunDefaults.Color = null;
+                paragraph.AddText(" RIGHT");
             })
-            .Paragraph(paragraph => paragraph.Text("AFTER"))));
+            .AddParagraph(paragraph => paragraph.AddText("AFTER"))));
         byte[] bytes = source.ToBytes();
         PdfReadPage page = Assert.Single(PdfReadDocument.Open(bytes).Pages);
         PdfTextSpan heavy = Assert.Single(page.GetTextSpans(), span => span.Text.Contains("BOLD", StringComparison.Ordinal));
@@ -115,7 +123,7 @@ public sealed class PdfSyntheticFontWeightTests {
             }
         }.UseFontFamily(new PdfEmbeddedFontFamily("Weight proof", Font("Regular")));
         if (tagged) options.TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers;
-        using PdfDocument document = PdfDocument.Create(options).Compose(c => c.Content(t => t.Paragraph(p => p.Color(OfficeColor.White).Text("BODY"))));
+        using PdfDocument document = PdfDocument.Create(options).Compose(c => c.Content(t => t.AddParagraph(p => p.AddText("BODY").SetColor(OfficeColor.White))));
         byte[] bytes = document.ToBytes();
         Assert.Contains("WAVE", PdfReadDocument.Open(bytes, new PdfLoadOptions { IncludeArtifactText = true }).ExtractText(), StringComparison.Ordinal);
         if (tagged) Assert.DoesNotContain("WAVE", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);

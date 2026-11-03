@@ -129,7 +129,7 @@ public sealed class PdfInlineFormTests {
         if (inline) {
             PdfInlineFormField first = CreateDescriptor("Duplicate", false, "ONE", "ONE");
             PdfInlineFormField second = CreateDescriptor("Duplicate", false, "TWO", "TWO");
-            document.Paragraph(paragraph => paragraph.Runs(new[] {
+            document.Paragraph(paragraph => paragraph.AddRuns(new[] {
                 PdfTextRun.Normal("ONE ").WithFormField(first), PdfTextRun.Normal("TWO").WithFormField(second)
             }));
         } else {
@@ -157,7 +157,7 @@ public sealed class PdfInlineFormTests {
         else split++;
         // Styled runs share one descriptor, just as one Word SDT can contain
         // multiple runs and wrap across independently editable line widgets.
-        return PdfDocument.Create(Options(pageWidth, pageHeight)).Paragraph(paragraph => paragraph.Runs(new[] {
+        return PdfDocument.Create(Options(pageWidth, pageHeight)).Paragraph(paragraph => paragraph.AddRuns(new[] {
             PdfTextRun.Normal("LEAD "),
             PdfTextRun.Normal(cached.Substring(0, split)).WithFormField(descriptor),
             new PdfTextRun(cached.Substring(split), bold: true).WithFormField(descriptor),

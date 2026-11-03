@@ -39,7 +39,7 @@ public partial class PdfDocumentVisualQualityTests {
         var document = PdfDocument.Create(options);
         if (owner == "Footnote") {
             PdfFootnoteDefinition note = document.Content.DefineFootnote(addParagraph);
-            document.Content.Paragraph(paragraph => paragraph.Runs(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }),
+            document.Content.AddParagraph(paragraph => paragraph.AddRuns(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }),
                 style: FragmentJustificationStyle());
         } else if (owner == "BodyColumns") {
             document.Content.Columns(addParagraph,
@@ -115,7 +115,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     private static void AddFragmentJustificationParagraph(PdfContentBuilder content, bool distributed) {
         string text = "Short break\n" + string.Join(" ", Enumerable.Range(0, 80).Select(index => "word" + index.ToString("D2", CultureInfo.InvariantCulture)));
-        content.Paragraph(paragraph => paragraph.Runs(new[] { new PdfTextRun(text, underline: true,
+        content.AddParagraph(paragraph => paragraph.AddRuns(new[] { new PdfTextRun(text, underline: true,
                 backgroundColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1, 1, 0), linkUri: "https://example.test/fragment") }),
             OfficeAlignment.Justify, style: FragmentJustificationStyle(distributed));
     }

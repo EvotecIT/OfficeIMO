@@ -39,7 +39,7 @@ public sealed class PdfTableHorizontalOffsetTests {
             PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(300), MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40),
             MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40)
         }).Table(new[] { new[] { "floating" } }, style: style)
-            .Paragraph(p => p.Text("alongside")).ToBytes());
+            .Paragraph(p => p.AddText("alongside")).ToBytes());
         var words = read.GetPage(1).GetWords().ToArray();
         var table = Assert.Single(words, word => word.Text == "floating");
         var alongside = Assert.Single(words, word => word.Text == "alongside");
@@ -60,10 +60,10 @@ public sealed class PdfTableHorizontalOffsetTests {
             MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         });
         string[][] rows = Enumerable.Range(1, 7).Select(index => new[] { "Left" + index, "Right" + index }).ToArray();
-        if (frame == "columns") document.Columns(content => content.Table(rows, alignment, style),
+        if (frame == "columns") document.Columns(content => content.AddTable(rows, alignment, style),
             new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = false });
         else if (frame == "row") document.Compose(builder => builder.Page(page => page.Content(content =>
-            content.Row(row => row.PercentColumn(100, column => column.Table(rows, alignment, style))))));
+            content.Row(row => row.PercentColumn(100, column => column.AddTable(rows, alignment, style))))));
         else document.Table(rows, alignment, style);
         return document.ToBytes();
     }

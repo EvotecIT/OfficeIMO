@@ -56,14 +56,14 @@ public sealed class PdfRichLineBaselineTests {
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'B', 'C')));
         var style = new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(8), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
             LineSpacing = PdfLineSpacing.Multiple(1.4) };
-        Action<PdfParagraphBuilder> text = p => {
-            if (namedFont) p.FontFamily(family);
-            if (mixed) p.FontSize(global::OfficeIMO.OfficeLength.Points(8)).Text("A\n").FontSize(global::OfficeIMO.OfficeLength.Points(24)).Text("B\n").FontSize(global::OfficeIMO.OfficeLength.Points(8)).Text("C");
-            else p.FontSize(global::OfficeIMO.OfficeLength.Points(24)).Text("A");
+        Action<PdfParagraph> text = p => {
+            if (namedFont) { p.RunDefaults.FontFamily = family; p.RunDefaults.StandardFont = null; }
+            if (mixed) { p.RunDefaults.FontSize = global::OfficeIMO.OfficeLength.Points(8); p.AddText("A\n"); p.RunDefaults.FontSize = global::OfficeIMO.OfficeLength.Points(24); p.AddText("B\n"); p.RunDefaults.FontSize = global::OfficeIMO.OfficeLength.Points(8); p.AddText("C"); }
+            else { p.RunDefaults.FontSize = global::OfficeIMO.OfficeLength.Points(24); p.AddText("A"); }
         };
         var document = PdfDocument.Create(options);
         if (frame == "flow") document.Paragraph(text, style: style);
-        else if (frame == "column") document.Content.Row(row => row.RelativeColumn(column => column.Paragraph(text, style: style)));
+        else if (frame == "column") document.Content.Row(row => row.RelativeColumn(column => column.AddParagraph(text, style: style)));
         else if (frame == "canvas") {
             var runs = mixed ? new[] { Run("A\n", 8), Run("B\n", 24), Run("C", 8) } : new[] { Run("A", 24) };
             document.Canvas(canvas => canvas.TextBox(runs, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(240), new PdfCanvasTextBoxStyle {
@@ -84,7 +84,7 @@ public sealed class PdfRichLineBaselineTests {
         }
         return document.ToBytes();
 
-        PdfTextRun Run(string value, double size) => new(value, fontSize: global::OfficeIMO.OfficeLength.Points(size), font: PdfStandardFont.Helvetica,
+        PdfTextRun Run(string value, double size) => new(value, fontSize: global::OfficeIMO.OfficeLength.Points(size), standardFont: PdfStandardFont.Helvetica,
             fontFamily: namedFont ? family : null, linkUri: frame == "linked-table" ? "https://example.com/run" : null);
     }
 }

@@ -50,7 +50,7 @@ public static partial class MarkdownPdfConverterExtensions {
         RenderBlocks(pdf, topLevelBlocks.Where(block => !(block is FootnoteDefinitionBlock)), document, options, visualTheme, promotedFrontMatterTitle);
         RenderBlocks(pdf, topLevelBlocks.OfType<FootnoteDefinitionBlock>(), document, options, visualTheme);
         if (topLevelBlocks.Count == 0) {
-            pdf.Paragraph(paragraph => paragraph.Text(string.Empty));
+            pdf.Paragraph(paragraph => paragraph.AddText(string.Empty));
         }
 
         return pdf;

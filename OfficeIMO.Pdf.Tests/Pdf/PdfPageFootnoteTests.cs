@@ -23,10 +23,10 @@ public partial class PdfPageFootnoteTests {
         var doc = PdfDocument.Create(Options());
         var content = doc.Content;
         var note = content.DefineFootnote(body => {
-            for (int index = 0; index < 3; index++) body.Text("NoteFragment" + index, style: Style());
+            for (int index = 0; index < 3; index++) body.AddParagraph("NoteFragment" + index, style: Style());
         });
-        content.Spacer(global::OfficeIMO.OfficeLength.Points(70)).Paragraph(p => p.Text("Reference").Runs(new[] { PdfTextRun.Superscript("1").WithFootnoteReference(note) }), style: Style());
-        content.Text("FollowingBody", style: Style());
+        content.Spacer(global::OfficeIMO.OfficeLength.Points(70)).AddParagraph(p => { p.AddText("Reference"); p.AddRuns(new[] { PdfTextRun.Superscript("1").WithFootnoteReference(note) }); }, style: Style());
+        content.AddParagraph("FollowingBody", style: Style());
         using var pdf = PdfPigDocument.Open(new MemoryStream(doc.ToBytes()));
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Contains("Reference", pdf.GetPage(1).Text);
@@ -43,10 +43,10 @@ public partial class PdfPageFootnoteTests {
         var doc = PdfDocument.Create(Options());
         var note = doc.Content.DefineFootnote(body => {
             for (int index = 0; index < 25; index++)
-                body.Paragraph(p => p.Bold("LongNote" + index.ToString("00")), style: Style());
+                body.AddParagraph(p => p.AddText("LongNote" + index.ToString("00")).SetBold(), style: Style());
         });
-        doc.Content.Paragraph(p => p.Runs(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style());
-        doc.Content.Text("FollowingBody", style: Style());
+        doc.Content.AddParagraph(p => p.AddRuns(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style());
+        doc.Content.AddParagraph("FollowingBody", style: Style());
         using var pdf = PdfPigDocument.Open(new MemoryStream(doc.ToBytes()));
         Assert.Equal(3, pdf.NumberOfPages);
         Assert.Contains("LongNote08", pdf.GetPage(1).Text);
@@ -63,9 +63,9 @@ public partial class PdfPageFootnoteTests {
     [Fact]
     public void ReferenceMovesWithItsNoteWhenFirstFragmentDoesNotFit() {
         var doc = PdfDocument.Create(Options());
-        var note = doc.Content.DefineFootnote(body => body.Text("FootnoteText", style: Style()));
-        doc.Content.Text("PriorBody", style: Style()).Spacer(global::OfficeIMO.OfficeLength.Points(75));
-        doc.Content.Paragraph(p => p.Runs(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style());
+        var note = doc.Content.DefineFootnote(body => body.AddParagraph("FootnoteText", style: Style()));
+        doc.Content.AddParagraph("PriorBody", style: Style()).Spacer(global::OfficeIMO.OfficeLength.Points(75));
+        doc.Content.AddParagraph(p => p.AddRuns(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style());
         using var pdf = PdfPigDocument.Open(new MemoryStream(doc.ToBytes()));
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.DoesNotContain("Reference", pdf.GetPage(1).Text);
@@ -77,8 +77,8 @@ public partial class PdfPageFootnoteTests {
     [Fact]
     public void EmptyReferencePreservesAssociationWithoutVisibleReplacementAndSerializesRepeatedly() {
         var doc = PdfDocument.Create(Options());
-        var note = doc.Content.DefineFootnote(body => body.Text("AssociatedNote", style: Style()));
-        doc.Content.Paragraph(p => p.Text("BodyText").Runs(new[] { PdfTextRun.Normal("").WithFootnoteReference(note).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1)).WithTextCase(OfficeIMO.Drawing.OfficeTextCase.Uppercase) }), style: Style());
+        var note = doc.Content.DefineFootnote(body => body.AddParagraph("AssociatedNote", style: Style()));
+        doc.Content.AddParagraph(p => { p.AddText("BodyText"); p.AddRuns(new[] { PdfTextRun.Normal("").WithFootnoteReference(note).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1)).WithTextCase(OfficeIMO.Drawing.OfficeTextCase.Uppercase) }); }, style: Style());
         foreach (byte[] bytes in new[] { doc.ToBytes(), doc.ToBytes() }) {
             using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
             Assert.Single(pdf.GetPages());
@@ -89,28 +89,28 @@ public partial class PdfPageFootnoteTests {
     [Fact]
     public void DefinitionIsDocumentBoundAndRejectsRecursiveNotes() {
         var owner = PdfDocument.Create(Options());
-        var note = owner.Content.DefineFootnote(body => body.Text("Note", style: Style()));
+        var note = owner.Content.DefineFootnote(body => body.AddParagraph("Note", style: Style()));
         var other = PdfDocument.Create(Options());
-        Assert.Throws<ArgumentException>(() => other.Content.Paragraph(p => p.Runs(new[] { PdfTextRun.Normal("1").WithFootnoteReference(note) })));
-        Assert.Throws<NotSupportedException>(() => owner.Content.DefineFootnote(body => body.Paragraph(p => p.Runs(new[] { PdfTextRun.Normal("2").WithFootnoteReference(note) }))));
+        Assert.Throws<ArgumentException>(() => other.Content.AddParagraph(p => p.AddRuns(new[] { PdfTextRun.Normal("1").WithFootnoteReference(note) })));
+        Assert.Throws<NotSupportedException>(() => owner.Content.DefineFootnote(body => body.AddParagraph(p => p.AddRuns(new[] { PdfTextRun.Normal("2").WithFootnoteReference(note) }))));
     }
 
     [Fact]
     public void ImpossibleFirstFragmentAndContinuationPageLimitFailWithoutUnboundedPagination() {
         var doc = PdfDocument.Create(Options());
-        var note = doc.Content.DefineFootnote(body => body.Text("OversizedNote", style: new PdfParagraphStyle {
+        var note = doc.Content.DefineFootnote(body => body.AddParagraph("OversizedNote", style: new PdfParagraphStyle {
             FontSize = global::OfficeIMO.OfficeLength.Points(8), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(110)), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         }));
-        doc.Content.Paragraph(p => p.Runs(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style());
+        doc.Content.AddParagraph(p => p.AddRuns(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style());
         Assert.Throws<ArgumentException>(() => doc.ToBytes());
 
         var limitedOptions = Options();
         limitedOptions.MaxGeneratedPages = 2;
         var limited = PdfDocument.Create(limitedOptions);
         var longNote = limited.Content.DefineFootnote(body => {
-            for (int index = 0; index < 25; index++) body.Text("LongNote" + index, style: Style());
+            for (int index = 0; index < 25; index++) body.AddParagraph("LongNote" + index, style: Style());
         });
-        limited.Content.Paragraph(p => p.Runs(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(longNote) }), style: Style());
+        limited.Content.AddParagraph(p => p.AddRuns(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(longNote) }), style: Style());
         Assert.Throws<InvalidDataException>(() => limited.ToBytes());
     }
 }

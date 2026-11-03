@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests.Pdf {
                     page.DefaultParagraphStyle(style);
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("PageOneFirst").LineBreak().Text("PageOneSecond"))));
+                            column.Item().AddParagraph(p => { p.AddText("PageOneFirst"); p.AddLineBreak(); p.AddText("PageOneSecond"); })));
                 });
 
                 style.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(0);
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests.Pdf {
                     page.DefaultTextStyle(text => text.Font(PdfStandardFont.Helvetica).FontSize(global::OfficeIMO.OfficeLength.Points(10)));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("PageTwoFirst").LineBreak().Text("PageTwoSecond"))));
+                            column.Item().AddParagraph(p => { p.AddText("PageTwoFirst"); p.AddLineBreak(); p.AddText("PageTwoSecond"); })));
                 });
             });
 
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests.Pdf {
                     page.DefaultTextStyle(style);
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("PageOneTextStyle"))));
+                            column.Item().AddParagraph(p => p.AddText("PageOneTextStyle"))));
                 });
 
                 style.FontSize = global::OfficeIMO.OfficeLength.Points(8);
@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests.Pdf {
                     page.DefaultTextStyle(text => text.Font(PdfStandardFont.Helvetica).FontSize(global::OfficeIMO.OfficeLength.Points(10)));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("PageTwoTextStyle"))));
+                            column.Item().AddParagraph(p => p.AddText("PageTwoTextStyle"))));
                 });
             });
 
@@ -162,7 +162,7 @@ namespace OfficeIMO.Tests.Pdf {
                     page.DefaultListStyle(style);
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Bullets(new[] { "PageOneList" })));
+                            column.Item().AddList(new[] { "PageOneList" })));
                 });
 
                 style.FontSize = global::OfficeIMO.OfficeLength.Points(30);
@@ -173,7 +173,7 @@ namespace OfficeIMO.Tests.Pdf {
                     page.Margin(global::OfficeIMO.OfficeLength.Points(30));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Bullets(new[] { "PageTwoList" })));
+                            column.Item().AddList(new[] { "PageTwoList" })));
                 });
             });
 
@@ -218,7 +218,7 @@ namespace OfficeIMO.Tests.Pdf {
                     page.DefaultPanelStyle(style);
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().PanelParagraph(p => p.Text("PageOnePanel"))));
+                            column.Item().AddPanelParagraph(p => p.AddText("PageOnePanel"))));
                 });
 
                 style.PaddingX = global::OfficeIMO.OfficeLength.Points(2);
@@ -230,7 +230,7 @@ namespace OfficeIMO.Tests.Pdf {
                     page.Margin(global::OfficeIMO.OfficeLength.Points(30));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().PanelParagraph(p => p.Text("PageTwoPanel"))));
+                            column.Item().AddPanelParagraph(p => p.AddText("PageTwoPanel"))));
                 });
             });
 
@@ -269,7 +269,7 @@ namespace OfficeIMO.Tests.Pdf {
                         content.Column(column =>
                             column.Item()
                                 .HR()
-                                .Paragraph(p => p.Text("PageOneRule"))));
+                                .AddParagraph(p => p.AddText("PageOneRule"))));
                 });
 
                 style.Thickness = global::OfficeIMO.OfficeLength.Points(6);
@@ -282,7 +282,7 @@ namespace OfficeIMO.Tests.Pdf {
                         content.Column(column =>
                             column.Item()
                                 .HR()
-                                .Paragraph(p => p.Text("PageTwoRule"))));
+                                .AddParagraph(p => p.AddText("PageTwoRule"))));
                 });
             });
 
@@ -320,8 +320,8 @@ namespace OfficeIMO.Tests.Pdf {
                     page.Content(content =>
                         content.Column(column =>
                             column.Item()
-                                .Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24))
-                                .Paragraph(p => p.Text("PageOneImage"))));
+                                .AddImage(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24))
+                                .AddParagraph(p => p.AddText("PageOneImage"))));
                 });
 
                 style.Align = OfficeAlignment.Right;
@@ -332,8 +332,8 @@ namespace OfficeIMO.Tests.Pdf {
                     page.Content(content =>
                         content.Column(column =>
                             column.Item()
-                                .Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24))
-                                .Paragraph(p => p.Text("PageTwoImage"))));
+                                .AddImage(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24))
+                                .AddParagraph(p => p.AddText("PageTwoImage"))));
                 });
             });
 
@@ -372,7 +372,7 @@ namespace OfficeIMO.Tests.Pdf {
                         content.Column(column =>
                             column.Item()
                                 .Shape(shape)
-                                .Paragraph(p => p.Text("PageOneDrawing"))));
+                                .AddParagraph(p => p.AddText("PageOneDrawing"))));
                 });
 
                 style.Align = OfficeAlignment.Right;
@@ -384,7 +384,7 @@ namespace OfficeIMO.Tests.Pdf {
                         content.Column(column =>
                             column.Item()
                                 .Shape(shape)
-                                .Paragraph(p => p.Text("PageTwoDrawing"))));
+                                .AddParagraph(p => p.AddText("PageTwoDrawing"))));
                 });
             });
 
@@ -423,8 +423,8 @@ namespace OfficeIMO.Tests.Pdf {
                     page.Theme(theme);
                     page.Content(content =>
                         content.Column(column => {
-                            column.Item().Paragraph(p => p.Text("ThemePageOne"));
-                            column.Item().Table(new[] {
+                            column.Item().AddParagraph(p => p.AddText("ThemePageOne"));
+                            column.Item().AddTable(new[] {
                                 new[] { "ThemeOneTable", "Value" },
                                 new[] { "Row", "1" }
                             });
@@ -442,8 +442,8 @@ namespace OfficeIMO.Tests.Pdf {
                     page.Margin(global::OfficeIMO.OfficeLength.Points(30));
                     page.Content(content =>
                         content.Column(column => {
-                            column.Item().Paragraph(p => p.Text("ThemePageTwo"));
-                            column.Item().Table(new[] {
+                            column.Item().AddParagraph(p => p.AddText("ThemePageTwo"));
+                            column.Item().AddTable(new[] {
                                 new[] { "ThemeTwoTable", "Value" },
                                 new[] { "Row", "2" }
                             });
@@ -481,7 +481,7 @@ namespace OfficeIMO.Tests.Pdf {
                     page.DefaultTableStyle(style);
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Table(new[] {
+                            column.Item().AddTable(new[] {
                                 new[] { "PageOnePad", "Value" },
                                 new[] { "Row", "1" }
                             })));
@@ -493,7 +493,7 @@ namespace OfficeIMO.Tests.Pdf {
                     page.Margin(global::OfficeIMO.OfficeLength.Points(30));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Table(new[] {
+                            column.Item().AddTable(new[] {
                                 new[] { "PageTwoPad", "Value" },
                                 new[] { "Row", "2" }
                             })));
@@ -528,7 +528,7 @@ namespace OfficeIMO.Tests.Pdf {
                 c.Page(page =>
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(paragraph => paragraph.Text("Owned page content."))))));
+                            column.Item().AddParagraph(paragraph => paragraph.AddText("Owned page content."))))));
 
             var pageBlock = Assert.IsType<PageBlock>(Assert.Single(doc.Blocks));
 

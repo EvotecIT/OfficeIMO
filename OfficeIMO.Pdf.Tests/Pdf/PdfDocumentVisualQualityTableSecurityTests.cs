@@ -25,12 +25,12 @@ public partial class PdfDocumentVisualQualityTests {
             if (rowColumn) {
                 document.Compose(compose => compose.Page(page => page.Content(content => content.Row(row =>
                     row.PercentColumn(100, column => {
-                        column.Table(new[] { new[] { "Floating" } }, align: OfficeAlignment.Right, style: style);
-                        column.Paragraph(paragraph => paragraph.Text("Following"));
+                        column.AddTable(new[] { new[] { "Floating" } }, align: OfficeAlignment.Right, style: style);
+                        column.AddParagraph(paragraph => paragraph.AddText("Following"));
                     })))));
             } else {
                 document.Table(new[] { new[] { "Floating" } }, align: OfficeAlignment.Right, style: style);
-                document.Paragraph(paragraph => paragraph.Text("Following"));
+                document.Paragraph(paragraph => paragraph.AddText("Following"));
             }
             using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes());
             return pdf.GetPage(1).Letters.First(letter => letter.Value == "F" && letter.BoundingBox.Left < 50).BoundingBox.Bottom;
@@ -54,10 +54,10 @@ public partial class PdfDocumentVisualQualityTests {
         });
         document.Compose(compose => compose.Page(page => page.Content(content => content.Row(row =>
             row.PercentColumn(100, column => {
-                column.Table(new[] {
+                column.AddTable(new[] {
                     new[] { "R1" }, new[] { "R2" }, new[] { "R3" }, new[] { "R4" }, new[] { "R5" }
                 }, style: style);
-                column.Paragraph(paragraph => paragraph.Text("Following"));
+                column.AddParagraph(paragraph => paragraph.AddText("Following"));
             })))));
 
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes());
@@ -104,7 +104,7 @@ public partial class PdfDocumentVisualQualityTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.PercentColumn(100, column => column.Table(rows, style: style))))));
+                            row.PercentColumn(100, column => column.AddTable(rows, style: style))))));
         } else {
             document.Table(rows, style: style);
         }
@@ -151,7 +151,7 @@ public partial class PdfDocumentVisualQualityTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.PercentColumn(100, column => column.Table(rows, style: style))))));
+                            row.PercentColumn(100, column => column.AddTable(rows, style: style))))));
         } else {
             document.Table(rows, style: style);
         }
@@ -197,7 +197,7 @@ public partial class PdfDocumentVisualQualityTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.PercentColumn(100, column => column.Table(rows, style: style))))));
+                            row.PercentColumn(100, column => column.AddTable(rows, style: style))))));
         } else {
             document.Table(rows, style: style);
         }

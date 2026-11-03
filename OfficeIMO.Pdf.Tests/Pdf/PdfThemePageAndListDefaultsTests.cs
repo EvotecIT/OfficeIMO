@@ -19,7 +19,7 @@ public sealed class PdfThemePageAndListDefaultsTests {
         Assert.Equal(OfficeTheme.Minimal.Page.MarginBottom.ToPoints(), clone.MarginBottom.ToPoints());
         Assert.Equal(9D, clone.MarginRight.ToPoints());
         Assert.Equal(23D, options.MarginLeft.ToPoints());
-        using var document = PdfDocument.Create(clone).Paragraph(paragraph => paragraph.Text("Margin anchor"));
+        using var document = PdfDocument.Create(clone).Paragraph(paragraph => paragraph.AddText("Margin anchor"));
         using var independent = UglyToad.PdfPig.PdfDocument.Open(document.ToBytes());
         Assert.Equal(clone.MarginLeft.ToPoints(), independent.GetPage(1).Letters[0].StartBaseLine.X, 2);
     }

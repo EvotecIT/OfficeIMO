@@ -126,7 +126,7 @@ public sealed class AddOfficePdfTextCommand : PSCmdlet
         }
 
         var defaultColor = PdfCommandUtilities.ParseColor(Color);
-        var document = PdfCommandUtilities.ComposeContent(this, Document, ParameterSetName, ParameterSetDocument, content => content.Paragraph(
+        var document = PdfCommandUtilities.ComposeContent(this, Document, ParameterSetName, ParameterSetDocument, content => content.AddParagraph(
             builder =>
             {
                 if (Run is { Length: > 0 })

@@ -135,9 +135,9 @@ public class PdfPageImageRendererBatchTests {
     }
 
     private static byte[] BuildTwoPagePdf() => PdfDocument.Create()
-        .Paragraph(paragraph => paragraph.Text("Batch page one"))
+        .Paragraph(paragraph => paragraph.AddText("Batch page one"))
         .PageBreak()
-        .Paragraph(paragraph => paragraph.Text("Batch page two"))
+        .Paragraph(paragraph => paragraph.AddText("Batch page two"))
         .ToBytes();
 
     private static byte[] BuildSinglePagePdf(string content) {

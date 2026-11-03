@@ -18,7 +18,7 @@ public sealed partial class DocumentAssistantTests {
             var services = TestAppBuilder.CreateTestServices();
             var connections = services.AiConnections;
             connections.ProviderIndex = 1; connections.Model = "fixture"; connections.IsConnected = true;
-            byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Content(content => content.Text("Source evidence.")))).ToBytes();
+            byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Content(content => content.AddParagraph("Source evidence.")))).ToBytes();
             int revision = 0;
             using var model = new DocumentAssistantViewModel(connections, currentPage => {
                 int captured = revision;

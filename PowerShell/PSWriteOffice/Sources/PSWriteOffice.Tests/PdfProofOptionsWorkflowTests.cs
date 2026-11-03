@@ -17,7 +17,7 @@ public sealed class PdfProofOptionsWorkflowTests {
         try {
             string source = Path.Combine(root, "original.pdf"), difference = Path.Combine(root, "changed.pdf");
             using (var document = PdfDocument.Create()) {
-                document.Compose(builder => builder.Content(content => content.Text("Preserved report content")));
+                document.Compose(builder => builder.Content(content => content.AddParagraph("Preserved report content")));
                 document.Meta(title: "Original title");
                 document.Save(source);
             }
@@ -125,7 +125,7 @@ public sealed class PdfProofOptionsWorkflowTests {
     private static string Source(string root) {
         string path = Path.Combine(root, "source.pdf");
         using var document = PdfDocument.Create();
-        document.Compose(builder => builder.Content(content => content.Text("Layout words on one line")));
+        document.Compose(builder => builder.Content(content => content.AddParagraph("Layout words on one line")));
         document.Save(path);
         return path;
     }

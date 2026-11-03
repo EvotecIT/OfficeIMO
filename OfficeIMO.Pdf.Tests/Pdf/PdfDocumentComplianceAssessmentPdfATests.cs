@@ -12,7 +12,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
     [Fact]
     public void AssessComplianceUsesGeneratedStandardFontUsageToReportMissingEmbedding() {
         PdfDocument document = CreatePdfA3GroundworkDocument()
-            .Paragraph(paragraph => paragraph.Text("Generated body text requires a standard-font resource."));
+            .Paragraph(paragraph => paragraph.AddText("Generated body text requires a standard-font resource."));
 
         PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfA3B);
 
@@ -28,7 +28,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
         PdfDocument document = CreatePdfA3GroundworkDocument()
             .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath), "HelveticaAudit")
-            .Paragraph(paragraph => paragraph.Text("Generated body text has an embedded standard-font mapping."));
+            .Paragraph(paragraph => paragraph.AddText("Generated body text has an embedded standard-font mapping."));
 
         PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfA3B);
 
@@ -47,7 +47,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
         PdfDocument document = CreatePdfA3GroundworkDocument()
             .Page(page => page
                 .UseFontFamily("Scoped Audit Font", fontPath)
-                .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Page-scoped embedded font coverage.")))));
+                .Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Page-scoped embedded font coverage.")))));
 
         PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfA3B);
 
@@ -65,9 +65,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
         var options = CreatePdfA3GroundworkOptions()
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Named Compliance", fontData));
         PdfDocument document = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph
-                .FontFamily("Named Compliance")
-                .Text("Named font coverage is included in generated evidence."));
+            .Paragraph(paragraph => paragraph.AddText("Named font coverage is included in generated evidence.").SetFontFamily("Named Compliance"));
 
         PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfA3B);
 
@@ -87,9 +85,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             "Named Compliance Only",
             File.ReadAllBytes(fontPath)));
         PdfDocument document = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph
-                .FontFamily("Named Compliance Only")
-                .Text("Only the embedded named font paints text."));
+            .Paragraph(paragraph => paragraph.AddText("Only the embedded named font paints text.").SetFontFamily("Named Compliance Only"));
 
         PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfA3B);
 
@@ -137,9 +133,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath), "HelveticaAudit")
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Broken Named Compliance", new byte[] { 1 }));
         PdfDocument document = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph
-                .FontFamily("Broken Named Compliance")
-                .Text("Invalid named font coverage."));
+            .Paragraph(paragraph => paragraph.AddText("Invalid named font coverage.").SetFontFamily("Broken Named Compliance"));
 
         PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfA3B);
 
@@ -159,7 +153,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
         PdfDocument document = PdfDocument.Create(options)
             .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath), "HelveticaAudit")
-            .Paragraph(paragraph => paragraph.Text("Configured profile readiness."));
+            .Paragraph(paragraph => paragraph.AddText("Configured profile readiness."));
 
         PdfComplianceReadinessReport report = document.AssessCompliance();
 
@@ -171,7 +165,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
     public void AssessComplianceReportsInvalidEmbeddedMappingBeforeGeneration() {
         PdfDocument document = CreatePdfA3GroundworkDocument()
             .EmbedStandardFont(PdfStandardFont.Helvetica, new byte[] { 1 }, "HelveticaAudit")
-            .Paragraph(paragraph => paragraph.Text("Invalid embedded font mapping."));
+            .Paragraph(paragraph => paragraph.AddText("Invalid embedded font mapping."));
 
         PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfA3B);
 
@@ -183,7 +177,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
     public void InvalidEmbeddedMappingStillFailsGenerationAfterComplianceAssessment() {
         PdfDocument document = CreatePdfA3GroundworkDocument()
             .EmbedStandardFont(PdfStandardFont.Helvetica, new byte[] { 1 }, "HelveticaAudit")
-            .Paragraph(paragraph => paragraph.Text("Invalid embedded font mapping."));
+            .Paragraph(paragraph => paragraph.AddText("Invalid embedded font mapping."));
 
         PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfA3B);
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.ToBytes());

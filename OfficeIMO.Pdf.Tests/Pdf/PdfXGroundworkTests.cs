@@ -31,7 +31,7 @@ public class PdfXGroundworkTests {
 
         byte[] pdf = PdfDocument.Create(options)
             .Meta(title: "PDF/X-4 groundwork", author: "OfficeIMO")
-            .Paragraph(paragraph => paragraph.Text("Neutral black-preservation proof."))
+            .Paragraph(paragraph => paragraph.AddText("Neutral black-preservation proof."))
             .Image(PdfPngTestImages.CreateRgbPng(12, 34, 56), 12, 12)
             .ToBytes();
         string raw = Encoding.UTF8.GetString(pdf);
@@ -183,7 +183,7 @@ public class PdfXGroundworkTests {
             .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath), "PDF/X audit font");
 
         PdfComplianceArtifact artifact = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Self-contained print artifact."))
+            .Paragraph(paragraph => paragraph.AddText("Self-contained print artifact."))
             .CreateComplianceArtifact(PdfComplianceProfile.PdfX4);
         PdfPrintProductionStructureEvidence structure = PdfReadDocument.Open(artifact.ToBytes())
             .InspectPrintProductionStructure();
@@ -211,7 +211,7 @@ public class PdfXGroundworkTests {
             .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath), "PDF/X CFF audit font");
 
         byte[] pdf = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Embedded CFF print artifact."))
+            .Paragraph(paragraph => paragraph.AddText("Embedded CFF print artifact."))
             .ToBytes();
         PdfPrintProductionStructureEvidence structure = PdfReadDocument.Open(pdf)
             .InspectPrintProductionStructure();
@@ -300,7 +300,7 @@ public class PdfXGroundworkTests {
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
                 "FOGRA51");
         PdfDocument document = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Link("External", "https://example.com"));
+            .Paragraph(paragraph => paragraph.AddLink("External", "https://example.com"));
 
         PdfComplianceReadinessReport generated = document.AssessCompliance(PdfComplianceProfile.PdfX4);
         PdfComplianceArtifact artifact = document.CreateComplianceArtifact(PdfComplianceProfile.PdfX4);
@@ -327,7 +327,7 @@ public class PdfXGroundworkTests {
         };
 
         Assert.Throws<InvalidOperationException>(() => PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Invalid trim geometry."))
+            .Paragraph(paragraph => paragraph.AddText("Invalid trim geometry."))
             .ToBytes());
     }
 
@@ -342,7 +342,7 @@ public class PdfXGroundworkTests {
             "FOGRA51");
 
         byte[] pdf = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Fractional print page."))
+            .Paragraph(paragraph => paragraph.AddText("Fractional print page."))
             .ToBytes();
         string raw = Encoding.ASCII.GetString(pdf);
         PdfPrintProductionStructureEvidence structure = PdfReadDocument.Open(pdf)
@@ -999,7 +999,7 @@ public class PdfXGroundworkTests {
         Assert.Contains(PdfExternalValidatorKind.PdfXValidator, proof.RequiredExternalValidators);
         Assert.False(proof.CanClaimConformance);
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-            PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("Unembedded text must fail closed.")).ToBytes());
+            PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText("Unembedded text must fail closed.")).ToBytes());
         Assert.Contains("font", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -1054,7 +1054,7 @@ public class PdfXGroundworkTests {
             .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath!), "PDF/X formal font");
 
         byte[] pdf = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Exact CMYK print production artifact."))
+            .Paragraph(paragraph => paragraph.AddText("Exact CMYK print production artifact."))
             .ToBytes();
         PdfComplianceReadinessReport readiness = PdfComplianceAnalyzer.AssessReadback(profile, pdf);
 
@@ -1087,7 +1087,7 @@ public class PdfXGroundworkTests {
             .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath!), "PDF/X metadata font");
 
         byte[] pdf = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Reconciled production metadata."))
+            .Paragraph(paragraph => paragraph.AddText("Reconciled production metadata."))
             .ToBytes();
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
 
@@ -1118,10 +1118,10 @@ public class PdfXGroundworkTests {
             .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath!), "PDF/X identity font");
 
         PdfXmpMetadataInfo first = PdfInspector.Inspect(PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("First resource."))
+            .Paragraph(paragraph => paragraph.AddText("First resource."))
             .ToBytes()).XmpMetadata!;
         PdfXmpMetadataInfo second = PdfInspector.Inspect(PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Second resource."))
+            .Paragraph(paragraph => paragraph.AddText("Second resource."))
             .ToBytes()).XmpMetadata!;
 
         Assert.NotEqual(first.DocumentId, second.DocumentId);
@@ -1254,7 +1254,7 @@ public class PdfXGroundworkTests {
         destination.Position = 0;
 
         Assert.Throws<InvalidOperationException>(() => PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Missing embedded font."))
+            .Paragraph(paragraph => paragraph.AddText("Missing embedded font."))
             .Save(destination));
 
         Assert.Equal(original, destination.ToArray());
@@ -1278,7 +1278,7 @@ public class PdfXGroundworkTests {
 
         PdfSaveResult result = await PdfDocument.Create(options)
             .Meta(title: "Committed PDF/X artifact")
-            .Paragraph(paragraph => paragraph.Text("Cancellation begins only after the staged commit starts."))
+            .Paragraph(paragraph => paragraph.AddText("Cancellation begins only after the staged commit starts."))
             .SaveWithEvidenceAsync(destination, cancellationToken: cancellation.Token);
 
         Assert.True(result.Succeeded);
@@ -1352,7 +1352,7 @@ public class PdfXGroundworkTests {
             .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath!), "PDF/X external profile font");
 
         byte[] pdf = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Externally sourced print profile."))
+            .Paragraph(paragraph => paragraph.AddText("Externally sourced print profile."))
             .ToBytes();
         PdfComplianceReadinessReport readiness = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfX4, pdf);
 
@@ -1456,7 +1456,7 @@ public class PdfXGroundworkTests {
             .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath!), "PDF/X edit font");
         return PdfDocument.Create(options)
             .Meta(title: "Original production metadata")
-            .Paragraph(paragraph => paragraph.Text("Metadata editing must retain the PDF/X production contract."))
+            .Paragraph(paragraph => paragraph.AddText("Metadata editing must retain the PDF/X production contract."))
             .ToBytes();
     }
 

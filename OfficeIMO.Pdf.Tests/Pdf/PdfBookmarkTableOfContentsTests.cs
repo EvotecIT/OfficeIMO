@@ -75,7 +75,7 @@ public sealed class PdfBookmarkTableOfContentsTests {
             });
         entries[0] = new PdfTableOfContentsEntry("Changed after composition", "changed");
         document.PageBreak().Bookmark("intro").H1("Introduction body");
-        for (int index = 0; index < 100; index++) document.Paragraph(paragraph => paragraph.Text("Content overflowing the initial page: " + index));
+        for (int index = 0; index < 100; index++) document.Paragraph(paragraph => paragraph.AddText("Content overflowing the initial page: " + index));
         document.PageBreak().Bookmark("details").H1("Details body");
         byte[] bytes = document.ToBytes();
         var pages = PdfDocument.Load(bytes).Reader.TextByPage();

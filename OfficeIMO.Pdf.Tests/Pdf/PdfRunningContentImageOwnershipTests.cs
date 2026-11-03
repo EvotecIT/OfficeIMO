@@ -40,13 +40,13 @@ public sealed class PdfRunningContentImageOwnershipTests {
             var cell = new PdfTableCell($"{context.PageNumber}/{context.DocumentPages}",
                 images: new[] { new PdfTableCellImage((byte[])bytes.Clone(), global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(12)) });
             var style = PdfTableStyles.Minimal(); style.HeaderRowCount = 0;
-            content.Table(new[] { new[] { cell } }, style: style);
+            content.AddTable(new[] { new[] { cell } }, style: style);
         };
         if (footer) document.Footer(builder => builder.Content(Compose, global::OfficeIMO.OfficeLength.Points(18)).FirstPageContent(Compose, global::OfficeIMO.OfficeLength.Points(18)).EvenPagesContent(Compose, global::OfficeIMO.OfficeLength.Points(18)));
         else document.Header(builder => builder.Content(Compose, global::OfficeIMO.OfficeLength.Points(18)).FirstPageContent(Compose, global::OfficeIMO.OfficeLength.Points(18)).EvenPagesContent(Compose, global::OfficeIMO.OfficeLength.Points(18)));
         for (int index = 0; index < 6; index++) {
             if (index > 0) document.PageBreak();
-            document.Paragraph(paragraph => paragraph.Text("BODY"));
+            document.Paragraph(paragraph => paragraph.AddText("BODY"));
         }
         const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
         var blocks = typeof(PdfDocument).GetField("_blocks", flags)!.GetValue(document);

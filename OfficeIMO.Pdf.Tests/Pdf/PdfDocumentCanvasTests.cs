@@ -701,7 +701,7 @@ public class PdfDocumentCanvasTests {
                 CompressContentStreams = false
             })
             .Canvas(canvas => canvas.Text("CanvasTitle", global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(24), fontSize: global::OfficeIMO.OfficeLength.Points(12), color: global::OfficeIMO.OfficeColor.FromRgb(20, 90, 160)))
-            .Paragraph(paragraph => paragraph.Text("FlowAfterCanvas"))
+            .Paragraph(paragraph => paragraph.AddText("FlowAfterCanvas"))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));

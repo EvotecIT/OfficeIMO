@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests.Pdf {
             };
 
             var doc = PdfDocument.Create(options)
-                .Paragraph(p => p.Text("Options snapshot"));
+                .Paragraph(p => p.AddText("Options snapshot"));
 
             options.PageWidth = global::OfficeIMO.OfficeLength.Points(612);
             options.PageHeight = global::OfficeIMO.OfficeLength.Points(792);
@@ -50,14 +50,14 @@ namespace OfficeIMO.Tests.Pdf {
                     page.Header(header => header.AlignRight().Text("Section A {page}/{pages}"));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("First page content."))));
+                            column.Item().AddParagraph(p => p.AddText("First page content."))));
                 });
                 c.Page(page => {
                     page.Header(header => header.AlignLeft().Text("Section B {page}/{pages}"));
                     page.Footer(footer => footer.PageNumberWithTotal());
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("Second page content."))));
+                            column.Item().AddParagraph(p => p.AddText("Second page content."))));
                 });
             });
 
@@ -81,15 +81,15 @@ namespace OfficeIMO.Tests.Pdf {
                 .Margin(PdfPageMargins.Narrow)
                 .Header(header => header.AlignLeft().Text("Document header {page}/{pages}"))
                 .Footer(footer => footer.AlignCenter().Text(text => text.Text("Document footer ").CurrentPage().Text("/").TotalPages()))
-                .Paragraph(p => p.Text("Top flow first."))
+                .Paragraph(p => p.AddText("Top flow first."))
                 .PageBreak()
-                .Paragraph(p => p.Text("Top flow second."));
+                .Paragraph(p => p.AddText("Top flow second."));
 
             doc.Compose(c => c.Page(page => {
                 page.Header(header => header.AlignRight().Text("Page header {page}/{pages}"));
                 page.Content(content =>
                     content.Column(column =>
-                        column.Item().Paragraph(p => p.Text("Composed body."))));
+                        column.Item().AddParagraph(p => p.AddText("Composed body."))));
             }));
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(doc.ToBytes()));
@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests.Pdf {
                         .Text(text => text.Text("Segment header ").CurrentPage().Text("/").TotalPages()));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("Segment header body."))));
+                            column.Item().AddParagraph(p => p.AddText("Segment header body."))));
                 });
             });
 
@@ -144,7 +144,7 @@ namespace OfficeIMO.Tests.Pdf {
                         .Text("Literal header {page}/{pages}"));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("Literal header body."))));
+                            column.Item().AddParagraph(p => p.AddText("Literal header body."))));
                 });
             });
 
@@ -166,7 +166,7 @@ namespace OfficeIMO.Tests.Pdf {
                         .Text("Literal footer {page}/{pages}"));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("Literal footer body."))));
+                            column.Item().AddParagraph(p => p.AddText("Literal footer body."))));
                 });
             });
 
@@ -191,7 +191,7 @@ namespace OfficeIMO.Tests.Pdf {
                         .Text(text => text.Text("Colored footer ").CurrentPage().Text("/").TotalPages()));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Color(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9, 0.1, 0.1)).Text("Colored body."))));
+                            column.Item().AddParagraph(p => p.AddText("Colored body.").SetColor(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9, 0.1, 0.1)))));
                 });
             });
 
@@ -223,7 +223,7 @@ namespace OfficeIMO.Tests.Pdf {
                         .Text(text => text.Text("Default footer ").CurrentPage().Text("/").TotalPages()));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Color(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1, 0.7, 0.2)).Text("Green body."))));
+                            column.Item().AddParagraph(p => p.AddText("Green body.").SetColor(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1, 0.7, 0.2)))));
                 });
             });
 
@@ -264,7 +264,7 @@ namespace OfficeIMO.Tests.Pdf {
                     page.Footer(footer => footer.AlignCenter().Text("FooterLineOne\nFooterLineTwo"));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("Multiline header footer body."))));
+                            column.Item().AddParagraph(p => p.AddText("Multiline header footer body."))));
                 });
             });
 
@@ -304,7 +304,7 @@ namespace OfficeIMO.Tests.Pdf {
                         .Text(text => text.Text("Typography footer ").CurrentPage().Text("/").TotalPages()));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("Typography body."))));
+                            column.Item().AddParagraph(p => p.AddText("Typography body."))));
                 });
             });
 
@@ -353,7 +353,7 @@ namespace OfficeIMO.Tests.Pdf {
                         .Text(text => text.Text("Offset footer ").CurrentPage().Text("/").TotalPages()));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("Offset body."))));
+                            column.Item().AddParagraph(p => p.AddText("Offset body."))));
                 });
             });
 
@@ -385,7 +385,7 @@ namespace OfficeIMO.Tests.Pdf {
                 .Margin(72)
                 .Header(header => header.Zones("HeaderLeft", "HeaderCenter {page}/{pages}", "HeaderRight"))
                 .Footer(footer => footer.Zones("FooterLeft", "FooterCenter {page}/{pages}", "FooterRight"))
-                .Paragraph(p => p.Text("Zone body."));
+                .Paragraph(p => p.AddText("Zone body."));
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(doc.ToBytes()));
             var page = pdf.GetPage(1);
@@ -422,7 +422,7 @@ namespace OfficeIMO.Tests.Pdf {
                 .Footer(footer => footer
                     .Zones("Ignored footer left", "Ignored footer center", "Ignored footer right")
                     .Text(text => text.Text("Final footer ").CurrentPage().Text("/").TotalPages()))
-                .Paragraph(p => p.Text("Zone override body."));
+                .Paragraph(p => p.AddText("Zone override body."));
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(doc.ToBytes()));
             string pageText = Normalize(pdf.GetPage(1).Text);
@@ -453,7 +453,7 @@ namespace OfficeIMO.Tests.Pdf {
                     "LeftFooterOverflowMarker",
                     "CenterFooterOverflowMarker",
                     "RightFooterOverflowMarker"))
-                .Paragraph(p => p.Text("Header footer overflow body."))
+                .Paragraph(p => p.AddText("Header footer overflow body."))
                 .ToBytes();
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -498,7 +498,7 @@ namespace OfficeIMO.Tests.Pdf {
                 .Margin(72)
                 .Header(header => header.AlignCenter().Text("SingleHeaderOverflowMarker"))
                 .Footer(footer => footer.AlignRight().Text(text => text.Text("SingleFooterOverflowMarker")))
-                .Paragraph(p => p.Text("Single text overflow body."))
+                .Paragraph(p => p.AddText("Single text overflow body."))
                 .ToBytes();
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -546,7 +546,7 @@ namespace OfficeIMO.Tests.Pdf {
             }
 
             byte[] bytes = document
-                .Paragraph(paragraph => paragraph.Text("Vertical clipping diagnostic body"))
+                .Paragraph(paragraph => paragraph.AddText("Vertical clipping diagnostic body"))
                 .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
             Assert.NotEmpty(bytes);
@@ -583,7 +583,7 @@ namespace OfficeIMO.Tests.Pdf {
                     "HeaderBackgroundClip",
                     fontSize: global::OfficeIMO.OfficeLength.Points(12),
                     backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0)))))
-                .Paragraph(paragraph => paragraph.Text("Header decoration diagnostic body"))
+                .Paragraph(paragraph => paragraph.AddText("Header decoration diagnostic body"))
                 .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
             var underlineReport = new PdfConversionReport();
@@ -600,7 +600,7 @@ namespace OfficeIMO.Tests.Pdf {
 
             byte[] underlineBytes = PdfDocument.Create(underlineOptions)
                 .Footer(footer => footer.Text(text => text.Run(PdfTextRun.Underlined("FooterUnderlineClip", fontSize: global::OfficeIMO.OfficeLength.Points(1)))))
-                .Paragraph(paragraph => paragraph.Text("Footer decoration diagnostic body"))
+                .Paragraph(paragraph => paragraph.AddText("Footer decoration diagnostic body"))
                 .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
             Assert.NotEmpty(backgroundBytes);
@@ -632,11 +632,11 @@ namespace OfficeIMO.Tests.Pdf {
                     .Zones("OddFooterLeft {page}/{pages}", "OddFooterCenter", "OddFooterRight")
                     .FirstPageZones("FirstFooterLeft {page}/{pages}", "FirstFooterCenter", "FirstFooterRight")
                     .EvenPagesZones("EvenFooterLeft {page}/{pages}", "EvenFooterCenter", "EvenFooterRight"))
-                .Paragraph(p => p.Text("First zone variant body."))
+                .Paragraph(p => p.AddText("First zone variant body."))
                 .PageBreak()
-                .Paragraph(p => p.Text("Even zone variant body."))
+                .Paragraph(p => p.AddText("Even zone variant body."))
                 .PageBreak()
-                .Paragraph(p => p.Text("Odd zone variant body."));
+                .Paragraph(p => p.AddText("Odd zone variant body."));
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(doc.ToBytes()));
             Assert.Equal(3, pdf.NumberOfPages);
@@ -687,11 +687,11 @@ namespace OfficeIMO.Tests.Pdf {
                     .StyledZones(null, null, right => right.Run(PdfTextRun.Bolded("OddFooter", fontSize: global::OfficeIMO.OfficeLength.Points(13))))
                     .FirstPageStyledZones(null, null, right => right.Run(PdfTextRun.Bolded("FirstFooter", fontSize: global::OfficeIMO.OfficeLength.Points(16))))
                     .EvenPagesStyledZones(null, null, right => right.Run(PdfTextRun.Italicized("EvenFooter", fontSize: global::OfficeIMO.OfficeLength.Points(12)))))
-                .Paragraph(p => p.Text("First styled-zone page."))
+                .Paragraph(p => p.AddText("First styled-zone page."))
                 .PageBreak()
-                .Paragraph(p => p.Text("Even styled-zone page."))
+                .Paragraph(p => p.AddText("Even styled-zone page."))
                 .PageBreak()
-                .Paragraph(p => p.Text("Odd styled-zone page."))
+                .Paragraph(p => p.AddText("Odd styled-zone page."))
                 .ToBytes();
 
             PdfReadDocument pdf = PdfReadDocument.Open(bytes);
@@ -737,7 +737,7 @@ namespace OfficeIMO.Tests.Pdf {
                 })
                 .Header(header => header.Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12), OfficeAlignment.Left).Text("HeaderImageText"))
                 .Footer(footer => footer.Image(png, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(10), OfficeAlignment.Center))
-                .Paragraph(paragraph => paragraph.Text("Header footer image body"));
+                .Paragraph(paragraph => paragraph.AddText("Header footer image body"));
 
             byte[] bytes = doc.ToBytes();
             string rawPdf = PdfTestContentText.ReadDecoded(bytes);
@@ -766,7 +766,7 @@ namespace OfficeIMO.Tests.Pdf {
                 .Header(header => header
                     .Zones(null, "Centered header", null)
                     .Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12), OfficeAlignment.Center))
-                .Paragraph(paragraph => paragraph.Text("Body"));
+                .Paragraph(paragraph => paragraph.AddText("Body"));
 
             byte[] bytes = doc.ToBytes();
             string rawPdf = PdfTestContentText.ReadDecoded(bytes);
@@ -809,7 +809,7 @@ namespace OfficeIMO.Tests.Pdf {
             byte[] bytes = PdfDocument.Create(options)
                 .Header(header => header.Image(png, global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(14), OfficeAlignment.Center))
                 .Footer(footer => footer.Shape(footerShape, OfficeAlignment.Right))
-                .Paragraph(paragraph => paragraph.Text("Header footer visual overflow body"))
+                .Paragraph(paragraph => paragraph.AddText("Header footer visual overflow body"))
                 .ToBytes();
 
             string rawPdf = PdfTestContentText.ReadDecoded(bytes);
@@ -846,7 +846,7 @@ namespace OfficeIMO.Tests.Pdf {
 
             byte[] bytes = PdfDocument.Create(options)
                 .Header(header => header.Shape(shape, OfficeAlignment.Left))
-                .Paragraph(paragraph => paragraph.Text("Transformed header shape diagnostic body"))
+                .Paragraph(paragraph => paragraph.AddText("Transformed header shape diagnostic body"))
                 .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
             Assert.NotEmpty(bytes);
@@ -882,7 +882,7 @@ namespace OfficeIMO.Tests.Pdf {
 
             byte[] bytes = PdfDocument.Create(options)
                 .Header(header => header.Shape(shape, OfficeAlignment.Left))
-                .Paragraph(paragraph => paragraph.Text("Header shape clip diagnostic body"))
+                .Paragraph(paragraph => paragraph.AddText("Header shape clip diagnostic body"))
                 .ToBytes();
 
             Assert.NotEmpty(bytes);
@@ -910,7 +910,7 @@ namespace OfficeIMO.Tests.Pdf {
 
             byte[] bytes = PdfDocument.Create(options)
                 .Header(header => header.Shape(shape, OfficeAlignment.Right))
-                .Paragraph(paragraph => paragraph.Text("Header shape shadow diagnostic body"))
+                .Paragraph(paragraph => paragraph.AddText("Header shape shadow diagnostic body"))
                 .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
             Assert.NotEmpty(bytes);
@@ -943,7 +943,7 @@ namespace OfficeIMO.Tests.Pdf {
 
             byte[] bytes = PdfDocument.Create(options)
                 .Header(header => header.Shape(shape, OfficeAlignment.Left))
-                .Paragraph(paragraph => paragraph.Text("Header shape stroke diagnostic body"))
+                .Paragraph(paragraph => paragraph.AddText("Header shape stroke diagnostic body"))
                 .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
             Assert.NotEmpty(bytes);
@@ -979,7 +979,7 @@ namespace OfficeIMO.Tests.Pdf {
 
             byte[] bytes = PdfDocument.Create(options)
                 .Header(header => header.Shape(shape, OfficeAlignment.Right))
-                .Paragraph(paragraph => paragraph.Text("Header miter shadow diagnostic body"))
+                .Paragraph(paragraph => paragraph.AddText("Header miter shadow diagnostic body"))
                 .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
             Assert.NotEmpty(bytes);
@@ -1013,7 +1013,7 @@ namespace OfficeIMO.Tests.Pdf {
                 .Header(header => header
                     .Shape(unpaintedLine, OfficeAlignment.Left)
                     .Shape(emptyClippedShape, OfficeAlignment.Right))
-                .Paragraph(paragraph => paragraph.Text("Header invisible shape diagnostic body"))
+                .Paragraph(paragraph => paragraph.AddText("Header invisible shape diagnostic body"))
                 .ToBytes();
 
             Assert.NotEmpty(bytes);
@@ -1039,7 +1039,7 @@ namespace OfficeIMO.Tests.Pdf {
 
             byte[] bytes = PdfDocument.Create(options)
                 .Header(header => header.Image(png, global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(14), OfficeAlignment.Center))
-                .Paragraph(paragraph => paragraph.Text("Physical page clipping diagnostic body"))
+                .Paragraph(paragraph => paragraph.AddText("Physical page clipping diagnostic body"))
                 .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
             Assert.NotEmpty(bytes);
@@ -1065,7 +1065,7 @@ namespace OfficeIMO.Tests.Pdf {
 
             byte[] bytes = PdfDocument.Create(options)
                 .Header(header => header.Image(portraitPng, global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(20), OfficeAlignment.Center, OfficeImageFit.Contain))
-                .Paragraph(paragraph => paragraph.Text("Contained header image body"))
+                .Paragraph(paragraph => paragraph.AddText("Contained header image body"))
                 .ToBytes();
 
             Assert.NotEmpty(bytes);
@@ -1091,7 +1091,7 @@ namespace OfficeIMO.Tests.Pdf {
                 .Header(header => header
                     .Zones("H", null, null)
                     .Image(portraitPng, global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(20), OfficeAlignment.Left, OfficeImageFit.Contain))
-                .Paragraph(paragraph => paragraph.Text("Contained zoned header image body"))
+                .Paragraph(paragraph => paragraph.AddText("Contained zoned header image body"))
                 .ToBytes();
 
             Assert.NotEmpty(bytes);
@@ -1116,7 +1116,7 @@ namespace OfficeIMO.Tests.Pdf {
                 .Header(header => header
                     .Image(png, global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(14), OfficeAlignment.Left)
                     .Image(png, global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(14), OfficeAlignment.Center))
-                .Paragraph(paragraph => paragraph.Text("Visual-only header overlap body"))
+                .Paragraph(paragraph => paragraph.AddText("Visual-only header overlap body"))
                 .ToBytes();
 
             Assert.NotEmpty(bytes);
@@ -1151,7 +1151,7 @@ namespace OfficeIMO.Tests.Pdf {
                 })
                 .Header(header => header.Shape(headerShape, OfficeAlignment.Center).Text("HeaderShapeText"))
                 .Footer(footer => footer.Shape(footerShape, OfficeAlignment.Right))
-                .Paragraph(paragraph => paragraph.Text("Header footer shape body"));
+                .Paragraph(paragraph => paragraph.AddText("Header footer shape body"));
 
             byte[] bytes = doc.ToBytes();
             string rawPdf = PdfTestContentText.ReadDecoded(bytes);

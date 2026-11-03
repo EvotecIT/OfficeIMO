@@ -814,7 +814,7 @@ public sealed class PdfRenderingProfileTests {
             italic: true,
             strike: true,
             fontSize: global::OfficeIMO.OfficeLength.Points(13),
-            font: PdfStandardFont.Courier,
+            standardFont: PdfStandardFont.Courier,
             baseline: PdfTextBaseline.Superscript,
             backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(40, 50, 60),
             fontFamily: "Scoped");
@@ -828,7 +828,7 @@ public sealed class PdfRenderingProfileTests {
         Assert.True(runs[0].Italic);
         Assert.True(runs[0].Strike);
         Assert.Equal(13, (runs[0].FontSize?.ToPoints()));
-        Assert.Equal(PdfStandardFont.Courier, runs[0].Font);
+        Assert.Equal(PdfStandardFont.Courier, runs[0].StandardFont);
         Assert.Equal(PdfTextBaseline.Superscript, runs[0].Baseline);
         Assert.Equal(styleTemplate.BackgroundColor, runs[0].BackgroundColor);
         Assert.Null(runs[0].FontFamily);
@@ -1054,9 +1054,7 @@ public sealed class PdfRenderingProfileTests {
             OfficeRenderingProfileApplyMode.Overlay);
 
         byte[] pdf = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph
-                .FontFamily("Caller, Profile")
-                .Text("A"))
+            .Paragraph(paragraph => paragraph.AddText("A").SetFontFamily("Caller, Profile"))
             .ToBytes();
         string raw = System.Text.Encoding.ASCII.GetString(pdf);
 
@@ -1121,9 +1119,7 @@ public sealed class PdfRenderingProfileTests {
 
         PdfTextEncodingPreflightException exception = Assert.Throws<PdfTextEncodingPreflightException>(() =>
             PdfDocument.Create(options)
-                .Paragraph(paragraph => paragraph
-                    .FontFamily("Caller")
-                    .Text("a\u0301"))
+                .Paragraph(paragraph => paragraph.AddText("a\u0301").SetFontFamily("Caller"))
                 .ToBytes());
 
         PdfTextEncodingDiagnostic writerDiagnostic = Assert.Single(exception.TextEncodingDiagnostics);

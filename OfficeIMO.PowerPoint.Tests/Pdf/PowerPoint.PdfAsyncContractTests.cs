@@ -27,7 +27,7 @@ public sealed class PowerPointPdfAsyncContractTests {
     [Fact]
     public async Task PdfImportAsyncPassesCancellationIntoSemanticReconstruction() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Cancellation probe"))
+            .Paragraph(paragraph => paragraph.AddText("Cancellation probe"))
             .ToBytes();
         using var cancellation = new CancellationTokenSource();
         var stage = new CancelingSemanticStage(cancellation);
@@ -46,7 +46,7 @@ public sealed class PowerPointPdfAsyncContractTests {
     [Fact]
     public async Task PdfImportAsyncPassesMethodCancellationIntoSaveStage() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Save cancellation probe"))
+            .Paragraph(paragraph => paragraph.AddText("Save cancellation probe"))
             .ToBytes();
         using var cancellation = new CancellationTokenSource();
         var options = PowerPointPdfImportOptions.CreateEditableContent();
@@ -61,7 +61,7 @@ public sealed class PowerPointPdfAsyncContractTests {
     [Fact]
     public void LogicalPdfImportHonorsMethodCancellation() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Logical cancellation probe"))
+            .Paragraph(paragraph => paragraph.AddText("Logical cancellation probe"))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocument.Load(pdf).Read();
         using var cancellation = new CancellationTokenSource();

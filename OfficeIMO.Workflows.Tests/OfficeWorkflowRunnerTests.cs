@@ -48,7 +48,7 @@ public sealed class OfficeWorkflowRunnerTests {
         File.WriteAllBytes(input, PdfDocument.Create(compose => compose.Page(page => {
             page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(1600));
             page.Content(content => {
-                for (int line = 0; line < 62_000; line++) content.Paragraph(paragraph => paragraph.Text("line"));
+                for (int line = 0; line < 62_000; line++) content.AddParagraph(paragraph => paragraph.AddText("line"));
             });
         })).ToBytes());
 
@@ -892,7 +892,7 @@ public sealed class OfficeWorkflowRunnerTests {
         using var scope = new TestDirectory();
         string path = System.IO.Path.Combine(scope.Path, "encrypted.pdf");
         byte[] encrypted = PdfDocument.Create(
-            compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Protected local content"))))),
+            compose => compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Protected local content"))))),
             new PdfCreateOptions().SetEncryption("open", "owner"))
             .ToBytes();
         await File.WriteAllBytesAsync(path, encrypted);
@@ -921,7 +921,7 @@ public sealed class OfficeWorkflowRunnerTests {
         using var scope = new TestDirectory();
         string path = System.IO.Path.Combine(scope.Path, "tagged.pdf");
         byte[] tagged = PdfDocument.Create(
-            compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Tagged document"))))),
+            compose => compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Tagged document"))))),
             new PdfCreateOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3A, "en-US"))
             .ToBytes();
         await File.WriteAllBytesAsync(path, tagged);
@@ -939,7 +939,7 @@ public sealed class OfficeWorkflowRunnerTests {
     public async Task SignedRewriteFailureLeavesExistingDestinationUntouched() {
         using var scope = new TestDirectory();
         string path = System.IO.Path.Combine(scope.Path, "signed.pdf");
-        byte[] unsigned = PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Signed source")))))).ToBytes();
+        byte[] unsigned = PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Signed source")))))).ToBytes();
         PdfExternalSignaturePreparation preparation = PdfDocument.Load(unsigned).Security.PrepareExternalSignature(
             new PdfExternalSignatureOptions { FieldName = "Approval", ReservedSignatureContentsBytes = 512 });
         byte[] signed = preparation.Complete([0x30, 0x01, 0x00]).ToBytes();
@@ -1027,13 +1027,13 @@ public sealed class OfficeWorkflowRunnerTests {
         await File.WriteAllBytesAsync(
             left,
             PdfDocument.Create(
-                compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Comparable content"))))),
+                compose => compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Comparable content"))))),
                 new PdfCreateOptions().SetEncryption("left-open", "left-owner"))
                 .ToBytes());
         await File.WriteAllBytesAsync(
             right,
             PdfDocument.Create(
-                compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Comparable content"))))),
+                compose => compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Comparable content"))))),
                 new PdfCreateOptions().SetEncryption("right-open", "right-owner"))
                 .ToBytes());
 
@@ -1124,7 +1124,7 @@ public sealed class OfficeWorkflowRunnerTests {
 
     private static string CreatePdf(string root, string fileName, string text = "OfficeIMO workflow PDF source") {
         string path = System.IO.Path.Combine(root, fileName);
-        PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(text)))))).Save(path);
+        PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText(text)))))).Save(path);
         return path;
     }
 

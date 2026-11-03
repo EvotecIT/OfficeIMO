@@ -113,7 +113,7 @@ public class PdfOpenTypeCffCompactEmbeddingTests {
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMO Source Serif CFF");
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Compact CFF Łódź"))
+            .Paragraph(paragraph => paragraph.AddText("Compact CFF Łódź"))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);

@@ -53,8 +53,8 @@ public sealed class PdfContinuousRunningStoryTests {
         document.BeginRunningContentSection(1, Presentation("HEADER_B"));
         document.Paragraph(paragraph => {
             for (int index = 0; index < 12; index++) {
-                if (index != 0) paragraph.LineBreak();
-                paragraph.Text("BODY" + index.ToString("D2"));
+                if (index != 0) paragraph.AddLineBreak();
+                paragraph.AddText("BODY" + index.ToString("D2"));
             }
         }, style: Style());
 
@@ -79,7 +79,7 @@ public sealed class PdfContinuousRunningStoryTests {
         var next = PdfDocument.Create(Presentation("HEADER_B"));
         next.Header(header => header.Content(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(20)), global::OfficeIMO.OfficeLength.Points(18)));
         document.BeginRunningContentSection(1, next.Options);
-        document.Paragraph(paragraph => paragraph.Text("NEXT_FRAME_BODY"), style: new PdfParagraphStyle {
+        document.Paragraph(paragraph => paragraph.AddText("NEXT_FRAME_BODY"), style: new PdfParagraphStyle {
             FontSize = global::OfficeIMO.OfficeLength.Points(12), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
             LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(80)), KeepTogether = true, WidowControl = false
         });
@@ -131,7 +131,7 @@ public sealed class PdfContinuousRunningStoryTests {
         Line(document, "FIRST");
         document.BeginRunningContentSection(1, Presentation("HEADER_B"));
         document.Page(page => page.Header(header => header.Text("HEADER_C"))
-            .Content(content => content.Paragraph(paragraph => paragraph.Text("EXPLICIT_BODY"))));
+            .Content(content => content.AddParagraph(paragraph => paragraph.AddText("EXPLICIT_BODY"))));
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(2, pdf.NumberOfPages);
@@ -175,5 +175,5 @@ public sealed class PdfContinuousRunningStoryTests {
     };
 
     private static void Line(PdfDocument document, string value) =>
-        document.Paragraph(paragraph => paragraph.Text(value), style: Style());
+        document.Paragraph(paragraph => paragraph.AddText(value), style: Style());
 }

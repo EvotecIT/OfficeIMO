@@ -96,7 +96,7 @@ public sealed class PdfPageAttributeBatchTests {
     }
 
     private static byte[] GeometrySource(int rotation) {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Page geometry")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Page geometry")).ToBytes();
         PdfReadDocument document = PdfReadDocument.Open(source);
         var (objects, trailer) = PdfSyntax.ParseObjects(source);
         int pageId = document.Pages[0].ObjectNumber;

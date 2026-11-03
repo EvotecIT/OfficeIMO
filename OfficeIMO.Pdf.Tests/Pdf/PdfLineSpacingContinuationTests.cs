@@ -17,11 +17,11 @@ public sealed class PdfLineSpacingContinuationTests {
             if (defaultStyle) options.DefaultParagraphStyle = style;
             var document = PdfDocument.Create(options);
             document.Content.Row(row => row.Gap(global::OfficeIMO.OfficeLength.Points(10))
-                .AutoColumn(column => column.Paragraph(p => {
-                    if (explicitRunSize) p.FontSize(global::OfficeIMO.OfficeLength.Points(size));
-                    p.Text("WWWW");
+                .AutoColumn(column => column.AddParagraph(p => {
+                    if (explicitRunSize) p.RunDefaults.FontSize = global::OfficeIMO.OfficeLength.Points(size);
+                    p.AddText("WWWW");
                 }, style: defaultStyle ? null : style))
-                .RelativeColumn(column => column.Text("Marker")));
+                .RelativeColumn(column => column.AddParagraph("Marker")));
             using var pdf = PdfPigDocument.Open(document.ToBytes());
             return Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "Marker").BoundingBox.Left;
         }
@@ -37,10 +37,10 @@ public sealed class PdfLineSpacingContinuationTests {
         var options = Options();
         if (atBoundary) options.PageHeight = global::OfficeIMO.OfficeLength.Points(60D + 5D * (multiple ? 8D : 20D));
         var document = PdfDocument.Create(options);
-        document.Content.Columns(columns => columns.Paragraph(p => {
-            p.FontSize(global::OfficeIMO.OfficeLength.Points(8)).Text(atBoundary ? "A\nB\nC\nD\n" : "A\n");
-            p.FontSize(global::OfficeIMO.OfficeLength.Points(32)).LineBreak();
-            p.FontSize(global::OfficeIMO.OfficeLength.Points(8)).Text(atBoundary ? "E" : "B\nC\nD\nE\nF\nG\nH\nI\nJ");
+        document.Content.Columns(columns => columns.AddParagraph(p => {
+            p.AddText(atBoundary ? "A\nB\nC\nD\n" : "A\n").SetFontSize(global::OfficeIMO.OfficeLength.Points(8));
+            p.AddLineBreak().SetFontSize(global::OfficeIMO.OfficeLength.Points(32));
+            p.AddText(atBoundary ? "E" : "B\nC\nD\nE\nF\nG\nH\nI\nJ").SetFontSize(global::OfficeIMO.OfficeLength.Points(8));
         }, style: new PdfParagraphStyle {
             FontSize = global::OfficeIMO.OfficeLength.Points(8), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
             LineSpacing = multiple ? PdfLineSpacing.Multiple(1) : PdfLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(20), 1)

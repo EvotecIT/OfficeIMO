@@ -24,11 +24,11 @@ public class PdfTableSignedIndentTests {
             new[] { "Left" + index, "Right" + index }).ToArray();
         PdfDocument document = PdfDocument.Create(options);
         if (frame == "columns") {
-            document.Columns(content => content.Table(rows, style: style),
+            document.Columns(content => content.AddTable(rows, style: style),
                 new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = false });
         } else if (frame == "row") {
             document.Compose(builder => builder.Page(page => page.Content(content =>
-                content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style))))));
+                content.Row(row => row.PercentColumn(100, column => column.AddTable(rows, style: style))))));
         } else {
             document.Table(rows, style: style);
         }

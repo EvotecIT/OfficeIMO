@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests.Pdf
                     compositionCalls++;
                     return new[] { text.Length };
                 }
-            }).Paragraph(paragraph => paragraph.Text(new string('W', 600)));
+            }).Paragraph(paragraph => paragraph.AddText(new string('W', 600)));
 
             CreateDocument().ToBytes();
             int callsForOneSerialization = compositionCalls;
