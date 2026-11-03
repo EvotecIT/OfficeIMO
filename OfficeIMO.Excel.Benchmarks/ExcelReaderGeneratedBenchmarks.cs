@@ -21,6 +21,7 @@ public partial class ExcelReaderGeneratedBenchmarks {
     private long _expected;
     private bool _validate;
     private bool _ownsInput;
+    internal string InputPath => _path;
     private static readonly ExcelParser<GeneratedRecord> Parser = ExcelParser.FromAttributes<GeneratedRecord>();
 
     [Params(ExcelFileFormat.Xlsx, ExcelFileFormat.Xlsb, ExcelFileFormat.Xls)]
@@ -79,7 +80,7 @@ public partial class ExcelReaderGeneratedBenchmarks {
         return Read(reader);
     }
 
-    private long Read(IDataReader reader) {
+    internal long Read(IDataReader reader) {
         ValidateHeaders(reader, reader is DbDataReader);
         long checksum = 0;
         int count = 0;
