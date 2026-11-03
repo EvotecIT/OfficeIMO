@@ -48,7 +48,7 @@ internal static class NativeImageResizeSmoke {
         var source = IWorkSourceDocument.Open(bytes); var projection = source.ReadKeynote(); var before = original.ReadKeynote();
         Require(projection.Diagnostics.Count == 0 && projection.SourceDeclarationIssues.Count == 0
             && projection.SourceReferenceIssues.Count == 0 && projection.Slides.Count == 3, "Resized source has incomplete declarations.");
-        using var result = source.ToPowerPointDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction(); using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var saved = PowerPointDocument.Load(output);
         Require(saved.Slides.Count == 3 && !saved.ValidateDocument().Any(), "Resized source failed saved PowerPoint reconstruction.");

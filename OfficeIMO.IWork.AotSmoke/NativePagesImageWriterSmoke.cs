@@ -29,7 +29,7 @@ internal static class NativePagesImageWriterSmoke {
         Require(unchanged.CanWrite && unchanged.ToArray().SequenceEqual(new byte[] { 9 }),
             "Pages image-budget rejection changed or closed the caller stream.");
         var only = IWorkPagesDocument.Create(); only.AddImage(Image("created-alpha.png"), 120, 80, "Image only");
-        using var imageOnly = IWorkSourceDocument.Open(only.SaveBytes()).ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var imageOnly = IWorkSourceDocument.Open(only.SaveBytes()).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         imageOnly.RequireCompleteEditableReconstruction();
         Require(imageOnly.Value.Images.Count == 1 && only.Paragraphs.Count == 0, "Image-only Pages body was not editable.");
         Console.WriteLine($"PASS | native Pages inline PNG/JPEG creation | {AcceptedHash} | deterministic bytes, PNG alpha/JPEG, body/table order, point-sized strict DOCX save/reopen, image-only body and image bounds");
@@ -44,7 +44,7 @@ internal static class NativePagesImageWriterSmoke {
         Require(projection.Images.Count == 3 && projection.Tables.Count == 1 && projection.Diagnostics.Count == 0
             && projection.SourceDeclarationIssues.Count == 0 && projection.SourceReferenceIssues.Count == 0,
             "Pages image projection lost content or native graph declarations.");
-        using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var saved = WordDocument.Load(output);

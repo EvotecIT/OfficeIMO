@@ -139,7 +139,7 @@ Describe 'PowerPointTableEditing workflows' {
             $textBox = $textBox | Set-OfficePowerPointShapeText -Content {
                 PowerPointText 'Linked' -Color Crimson -Highlight Yellow -Font Arial -Size 18 -Link 'https://example.org/ppt'
             } -PassThru
-            $textBox.Paragraphs[0].Runs[0].Color | Should -Be 'DC143C'
+            $textBox.Paragraphs[0].Runs[0].Color | Should -Be ([OfficeIMO.OfficeColor]::FromRgb(220, 20, 60))
             $textBox.Paragraphs[0].Runs[0].BackgroundColor | Should -Be ([OfficeIMO.OfficeColor]::Parse('FFFF00'))
             $textBox.Paragraphs[0].Runs[0].Hyperlink.AbsoluteUri | Should -Be 'https://example.org/ppt'
             $textBox = $textBox | Set-OfficePowerPointShapeText -Content { PowerPointText 'Plain' } -PassThru
@@ -173,10 +173,10 @@ Describe 'PowerPointTableEditing workflows' {
             $table.GetCell(0, 0).GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointTableCell'
             $table.GetCell(0, 0).Text | Should -Be 'Build Ready'
             $table.GetCell(0, 0).Runs[0].Bold | Should -BeTrue
-            $table.GetCell(0, 0).Runs[0].Color | Should -Be 'FF0000'
+            $table.GetCell(0, 0).Runs[0].Color | Should -Be ([OfficeIMO.OfficeColor]::FromRgb(255, 0, 0))
             $table.GetCell(0, 0).Runs[0].FontSize.ToPoints() | Should -Be 18
             $table.GetCell(0, 0).Runs[1].Bold | Should -BeTrue
-            $table.GetCell(0, 0).Runs[1].Color | Should -Be '2E8B57'
+            $table.GetCell(0, 0).Runs[1].Color | Should -Be ([OfficeIMO.OfficeColor]::FromRgb(46, 139, 87))
             $table.GetCell(1, 0).Text | Should -Be 'Owner'
             $table.GetCell(2, 0).Text | Should -Be 'Filled'
             $table.GetCell(2, 0).Runs[0].Bold | Should -BeTrue

@@ -50,7 +50,7 @@ internal static class NativePagesRichNumberedItemWriterSmoke {
             && items[2].Runs[0].Style.Bold == true && items[2].Runs[0].Style.Italic == true
             && items[2].Runs[0].Style.Underline == true && items[2].Runs[0].Style.Strikethrough == true,
             "Rich Pages character decorations or resets changed.");
-        using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction(); using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var saved = WordDocument.Load(new MemoryStream(output.ToArray()));
         Require(!saved.ValidateDocument().Any()

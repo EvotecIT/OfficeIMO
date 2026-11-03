@@ -32,7 +32,7 @@ internal static class NativePagesNumberedListWriterSmoke {
         onlyList.AddItem("Only parent"); onlyList.AddItem("Only child", 1);
         Require(Convert.ToHexString(SHA256.HashData(only.SaveBytes())) == "C6BA923DA791EB24BCA60D58454CEBDDD6D52B84CA7AE7EA25EF638C7A2D9D26",
             "The Apple-accepted list-only profile changed.");
-        using var onlyWord = IWorkSourceDocument.Open(only.SaveBytes()).ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var onlyWord = IWorkSourceDocument.Open(only.SaveBytes()).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         onlyWord.RequireCompleteEditableReconstruction();
         foreach (string separator in new[] { "\u2028", "\u2029" }) {
             try {
@@ -56,7 +56,7 @@ internal static class NativePagesNumberedListWriterSmoke {
             "Pages lists contain unqualified source declarations.");
         Require(projection.Body.Paragraphs.Where(item => item.ListNumber.HasValue)
             .Select(item => item.ListNumber!.Value).SequenceEqual(expected), "Pages list projection counters changed.");
-        using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var saved = WordDocument.Load(output);

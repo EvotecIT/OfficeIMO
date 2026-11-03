@@ -66,7 +66,7 @@ Describe 'OfficeIMO 3.4 PowerShell surfaces' {
 
         $pdfPath = Join-Path $TestDrive 'operations.pdf'
         $pdfEvidence = ConvertFrom-OfficeOneNote -Path $onePath -OutputPath $pdfPath -PassThruReport
-        $pdfEvidence.GetType().FullName | Should -Be 'OfficeIMO.Pdf.PdfDocumentConversionResult'
+        $pdfEvidence.GetType().FullName | Should -Be 'OfficeIMO.OfficeConversionReport'
         Get-OfficePdfText -Path $pdfPath | Should -Match 'Review backup status'
 
         # Semantic PDF projection flattens an explicitly sized OneNote canvas.

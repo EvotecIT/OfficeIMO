@@ -59,7 +59,7 @@ internal static class NativePagesTableWriterSmoke {
             && Equals(nativeProjection.Tables[0].GetCell(2, 1)?.Value, 20.75)
             && nativeProjection.Tables[1].GetPadding(2, 2)?.BottomPoints == 4,
             "Native Pages edit or empty-grid region padding was lost.");
-        using var nativeConverted = native.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var nativeConverted = native.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         nativeConverted.RequireCompleteEditableReconstruction();
         using var nativeSaved = new MemoryStream(); nativeConverted.Value.Save(nativeSaved); nativeSaved.Position = 0;
         using var nativeReopened = WordDocument.Load(nativeSaved);

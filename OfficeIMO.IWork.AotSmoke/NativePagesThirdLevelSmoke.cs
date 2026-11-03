@@ -26,7 +26,7 @@ internal static class NativePagesThirdLevelSmoke {
             "Third-level source contains unqualified declarations.");
         Require(projection.Body.Paragraphs.Where(p => p.ListNumber.HasValue).Select(p => p.ListNumber!.Value)
             .SequenceEqual(expected), "Third-level counters changed.");
-        using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var reopened = WordDocument.Load(output);

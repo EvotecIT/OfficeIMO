@@ -1424,7 +1424,7 @@ Describe 'Word DSL surface' {
 
         $document = Open-OfficeWord -Path $path -ReadOnly
         try {
-            $document.Background.Color | Should -Be 'ddeeff'
+            $document.Background.Color | Should -Be ([OfficeIMO.OfficeColor]::FromRgb(221, 238, 255))
             $mergeFieldType = Get-TestPSWriteOfficeEnumValue -AssemblyName 'OfficeIMO.Word' -TypeName 'OfficeIMO.Word.WordFieldType' -Name 'MergeField'
             $document.Fields.Where({ $_.FieldType -eq $mergeFieldType }).Count | Should -Be 0
         } finally {
