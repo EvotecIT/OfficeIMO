@@ -1082,9 +1082,10 @@ resaving do not supply a positive recovery control.
 ### Native single-master page sizes
 
 The internal source-free projection derives common physical/master page dimensions
-from `PublisherDocument.Create(width, height)`. The single-master profile requires
-one centered master explicitly applied to every physical page, with one to sixteen
-physical pages. Dimensions must have exact positive signed-EMU representations.
+from `PublisherDocument.Create(width, height)`. The single-master profile retains
+one centered definition, with one to sixteen physical pages. A page can apply that
+definition or clear its effective assignment through the qualified suppression
+profile below. Dimensions must have exact positive signed-EMU representations.
 All four object-anchor edges must also have exact signed-EMU representations
 relative to their actual page origin. Frame gaps/insets use nonnegative distances;
 table extents, individual tracks and cumulative endpoints use positive distances.
@@ -1171,16 +1172,70 @@ Generated default tabs remain 36 pt versus 28.3 pt in the controls; unused outli
 widths and style catalogs differ. These tab-free, outline-free inputs do not
 qualify those defaults. The `singleMasterPageSizes` record binds the measured
 geometry, lifecycle and appearance limits. Multiple-master dimensions beyond
-Letter, masterless and unassigned pages, broader layout/effects, repair-free
-acceptance and public source-free native saving remain unqualified.
+Letter, zero-master and absent-reference generation, null assignments with
+multiple/paired definitions, broader layout/effects, repair-free acceptance and
+public source-free native saving remain unqualified.
+
+### Unassigned pages with one retained master
+
+The single-master projection preserves a physical page's null `MasterPageId`.
+Native output retains the sole selected-master reference in Contents
+`0x0D/type0x68` and writes the zero-payload `0x07/type0x08` display token on a
+suppressed physical page. Applied pages omit that display token. Definition-owned
+content stays on its master and current asset bindings are retained; the suppressed
+page keeps its own content while omitting applied master paint. This encoding uses the existing
+`SetPageMaster(pageId, null)` meaning and the same clear representation as native
+source saving.
+
+The `unassigned-composition` specimen uses the 4×6-inch portrait mixed model with
+the master applied on page 1 and cleared on page 2. The independent
+`SizedCompositionUnassigned` control retains the same selected native master on
+both pages, with `IgnoreMaster` false/true after authoring and saving. Public
+readback exposes the definition/null as effective assignments. Actual native
+first-character `N`-to-`M` edits complete save-as and read-only reopening on both
+generated and independent inputs, retaining the complete two-frame story,
+first/final-CR typing, mixed-content ownership and populated, unlinked pictures.
+
+Public source saves also apply the master to both pages, reverse which page
+suppresses it, and restore the initial state on both producer paths. Public
+`ReplaceStoryParagraphs` restores `M` to `N` in the native-edited story while
+retaining each source's run partitions, tab profile, other stories, frame/layout
+state and assets. Assignment and story-restoration outputs complete native
+save/reopen and PSWriteOffice PDF conversion; effective and selected master states
+remain distinct throughout. Exact no-op source copies and detached earlier
+snapshots are preserved. These edits use explicit `Allow`; default strict policy
+continues to refuse the unassessed master-assignment or Quill-text operation.
+
+The six public assignment transitions preserve unrelated Contents records and
+logical streams, directory identities, ordering and metadata. Only the native
+control's first assignment removes its proven stale SummaryInformation thumbnail
+property; the other assignment transitions change Contents only. Native SaveAs
+normalization is a separate operation from this public source-save preservation.
+
+Native PDF comparison covers 58 complete page pairs at 100 dpi without alignment,
+cropping or color normalization. Forty-four pairs are exact. Twelve retain the
+known 351-pixel portrait blue-bar edge band; two page-1 pairs intentionally measure
+the `N`-to-`M` glyph/reflow change, each with 2,565 changed pixels, while their
+page-2 pairs match. No other differences occur within the recorded comparisons;
+the overall result remains nonexact. Eight managed page comparisons match the
+actual native-edited `M` state to its own expected model and restored `N` state to
+its own pristine model, with zero changed pixels. These are separate managed
+checks and do not establish native/managed pixel parity.
+
+The `singleMasterUnassignedPages` record binds this retained-definition suppression
+profile and its operation evidence. Native/managed appearance parity, zero-master
+output, source-free absent-reference generation, null assignments with multiple
+masters and broader unassigned layouts remain unqualified. Repair-free acceptance
+and public source-free native saving retain their existing limits.
 
 ### Mixed content with multiple masters
 
 The internal `ComposedContent` projection accepts one centered master, two
 centered masters, or a centered master followed by one named left/right pair.
 The single-centered-master profile uses the common dimensions described above;
-multiple-master profiles remain Letter size. Every physical page has an explicit
-assignment to a defined master, with one to sixteen physical pages. Master
+multiple-master profiles remain Letter size and require an explicit defined
+assignment on every physical page. The single-master path supports the qualified
+suppression profile above; all paths retain one to sixteen physical pages. Master
 text, rectangles and embedded pictures compose with ordinary linked stories,
 unlinked frame layouts and at most one physical-page table. Object order and
 ownership come from the same public page/master model used for rendering.
@@ -1215,8 +1270,8 @@ relaxing guarded source edits.
 
 The `pairedMixedContentCreation` and `authoredNoWrapCreation` qualification records
 separate this composed profile from general native writing. Master tables,
-multiple physical-page tables, three centered masters, unassigned pages, other
-multiple-master sizes, linked columns/insets, wrapping and broader effects remain
+multiple physical-page tables, three centered masters, multiple-master null
+assignments, other multiple-master sizes, linked columns/insets, wrapping and broader effects remain
 outside the profile. Matching pages do not establish metadata equivalence: generated
 default tabs remain 36 pt while the native control uses 28.3 pt, and base-caption
 typing/defaults differ. These tab-free specimens do not qualify that metadata or

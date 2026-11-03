@@ -78,7 +78,9 @@ function Get-NativeSizedStoryEditState {
     .SYNOPSIS
     Qualifies the two-frame sized composition and captures one-character edit evidence.
     .DESCRIPTION
-    Admits only the three existing scalar size inputs and the exact N or M body.
+    Admits the three existing sizes with the master applied on both pages, or
+    the portrait recipe with only page 2 suppressing its selected master. The
+    complete body must be the exact N or M story in both assignment profiles.
     Resolves all ten semantic roles from actual owner, type, geometry and content,
     independent of producer-specific names. Preserves each input's own native
     names, IDs, reachable formatting and object observations. Complete story
@@ -118,6 +120,18 @@ function Get-NativeSizedStoryEditState {
         throw 'Sized story editing requires exactly one qualified size, two physical pages and one centered master.'
     }
     $profile = $matches[0]
+    $firstPage = $pages.Item(1)
+    $secondPage = $pages.Item(2)
+    $Objects.Add($firstPage)
+    $Objects.Add($secondPage)
+    $firstIgnored = [bool]$firstPage.IgnoreMaster
+    $secondIgnored = [bool]$secondPage.IgnoreMaster
+    if ($firstIgnored -or ($secondIgnored -and $profile.case -cne 'SizedCompositionPortrait')) {
+        throw 'Sized story editing admits master suppression only on page 2 of the portrait recipe.'
+    }
+    if ($secondIgnored) {
+        $profile = Get-NativeSizedCompositionProfile -Case SizedCompositionUnassigned
+    }
     $original = $profile.nativeLinkedText
     $edited = 'M' + $original.Substring(1)
     if ([string]::IsNullOrEmpty($ExpectedText)) {
@@ -133,8 +147,8 @@ function Get-NativeSizedStoryEditState {
     }
     $owners = [ordered]@{
         Master = $master
-        Physical1 = $pages.Item(1)
-        Physical2 = $pages.Item(2)
+        Physical1 = $firstPage
+        Physical2 = $secondPage
     }
     $ids = [Collections.Generic.HashSet[int]]::new()
     $ownerStates = [Collections.Generic.List[object]]::new()
@@ -150,11 +164,14 @@ function Get-NativeSizedStoryEditState {
             throw ('Sized story editing requires the complete 3/4/3 object ownership profile: ' + $ownerRole)
         }
         $assignment = $null
+        $ignoreMaster = $null
         if ($ownerRole -cne 'Master') {
             $assigned = $owner.Master
             $Objects.Add($assigned)
-            if ([int]$assigned.PageID -ne [int]$master.PageID -or $owner.IgnoreMaster) {
-                throw 'Sized story editing requires the centered master applied to both physical pages.'
+            $ignoreMaster = [bool]$owner.IgnoreMaster
+            $expectedIgnore = $profile.case -ceq 'SizedCompositionUnassigned' -and $ownerRole -ceq 'Physical2'
+            if ([int]$assigned.PageID -ne [int]$master.PageID -or $ignoreMaster -ne $expectedIgnore) {
+                throw 'Sized story editing requires the centered master selection and the admitted per-page suppression pattern.'
             }
             $assignment = [int]$assigned.PageID
         }
@@ -416,6 +433,9 @@ function Get-NativeSizedStoryEditState {
             actualName = [string]$owner.Name
             pageType = [int]$owner.PageType
             masterPageId = $assignment
+            selectedMasterPageId = $assignment
+            ignoreMaster = $ignoreMaster
+            effectiveMasterPageId = if ($ignoreMaster) { $null } else { $assignment }
             shapes = $shapeStates.ToArray()
         })
     }

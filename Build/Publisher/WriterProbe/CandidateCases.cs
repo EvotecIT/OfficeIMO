@@ -8,6 +8,10 @@ internal static class CandidateCases {
 
     internal static PublisherNativeCreationPlan Create(string kind, string? value, string? secondValue = null) {
         if (kind == "sized-composition") return CandidateSizedComposition.Create(value, ReadImage(secondValue));
+        if (kind == "unassigned-composition") {
+            if (secondValue != null) throw new ArgumentException("The unassigned composition accepts one image path.");
+            return CandidateSizedComposition.CreateUnassigned(ReadImage(value));
+        }
         if (kind is "multi-paragraph" or "multi-paragraph-linked" or "multi-paragraph-linked-hyphenated") {
             if (value != null || secondValue != null) throw new ArgumentException("The multi-paragraph specimens use fixed styled text.");
             return CandidateMultiParagraph.Create(kind != "multi-paragraph", kind == "multi-paragraph-linked-hyphenated");

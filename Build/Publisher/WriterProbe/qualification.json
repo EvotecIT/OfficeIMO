@@ -39969,7 +39969,7 @@
     "scope": "Generic source-free same-size single-centered-master model projection, checked native unit admission and measured A4/4x6 composition lifecycle; no public writer promotion.",
     "modelContract": {
       "entry": "PublisherDocument.Create(width, height) and current public authoring operations; final model projected through ComposedContent.",
-      "dimensions": "Common physical/master size with exact positive signed-EMU dimensions, one explicitly applied centered master, one to sixteen physical pages.",
+      "dimensions": "The recorded sized-composition inputs have two physical pages with one centered master applied to both. The projection admits one to sixteen physical pages sharing exact positive signed-EMU dimensions with that master. Retained-master suppression is qualified separately in singleMasterUnassignedPages.",
       "coordinates": "All four final anchor edges use the same finite/range/exactness rule as source saving, relative to actual owner registration.",
       "layoutDistances": "Frame gaps/insets require exact nonnegative signed EMU; table extents, tracks and cumulative endpoints require exact positive signed EMU.",
       "sharedConversion": "PublisherNativeGeometry.Emu; extracted source conversion body is unchanged.",
@@ -40515,7 +40515,7 @@
     ],
     "limits": [
       "Native sizes beyond these measured inputs are not inferred from signed-EMU representability.",
-      "Multiple/paired-master projection remainsLetter-only; masterless/unassigned pages remain unsupported in this creation profile.",
+      "Multiple/paired-master projection remains Letter-only. The original size specimens use applied masters; retained-single-master suppression is covered separately in singleMasterUnassignedPages. Zero-master and absent-reference generation and null assignments with multiple masters remain unqualified.",
       "Broader layout/effects, general native/managed rendering parity and native metadata/default equivalence remain unqualified.",
       "Repair-free acceptance, a repair-positive control and public source-free native saving remain open."
     ],
@@ -41213,5 +41213,889 @@
     "repairPositiveControls": 0,
     "canClosePUB00": false,
     "canPromotePublicNativeCreation": false
+  },
+  "singleMasterUnassignedPages": {
+    "scope": "Template-free retained-single-centered-master suppression in the qualified4x6portrait mixed composition; native selected reference remains present, public effective assignment can be null.",
+    "baselineRecords": [
+      "singleMasterPageSizes",
+      "masterAssignmentEditing"
+    ],
+    "probe": {
+      "kind": "unassigned-composition",
+      "command": [
+        "create",
+        "unassigned-composition",
+        "output.pub",
+        "imagePath"
+      ],
+      "model": "Author the existing portrait sized-composition public model, then SetPageMaster(page2.Id,null) before ComposedContent projection."
+    },
+    "nativeEncoding": {
+      "retainedReference": "Contents field0x0D/type0x68 selects the sole master on both pages.",
+      "suppression": "Zero-payload field0x07/type0x08 bytes0708 on an actual suppressed physical page; applied pages omit it.",
+      "utilityAndMasterDescriptorsUnchanged": true,
+      "legacyOmittedAssignmentListAllAppliedUnchanged": true,
+      "definitionAndOwnedContentRetainedOnce": true,
+      "absentReferenceGenerationQualified": false
+    },
+    "profile": {
+      "widthEmu": 3657600,
+      "heightEmu": 5486400,
+      "physicalPages": 2,
+      "masterSide": "Single",
+      "effectiveAssignments": [
+        "selected",
+        null
+      ],
+      "nativeIgnoreMaster": [
+        false,
+        true
+      ],
+      "commonDimensionContentAndResourceEnvelopeRetained": true
+    },
+    "inputs": {
+      "generated": {
+        "role": "source-free unassigned composition",
+        "bytes": 13312,
+        "sha256": "c8db9121bdb1a5958f83a9118ed51302986b56675e09bc3a3570189ccdf2b5fe"
+      },
+      "independentControl": {
+        "role": "independent native control",
+        "bytes": 93696,
+        "sha256": "187bf91a4d6c5f9a7c10f56d7bef9a8ff81d970f9766ecadd666a9368b38092d"
+      },
+      "nativeControlContract": {
+        "role": "independent author/save observations",
+        "bytes": 60513,
+        "sha256": "136b9edea769df52f4f9dc15e6c2e6fe7d168fe7b109574f282b2a9bf805c845"
+      },
+      "selectedVersusEffectiveSemantics": "masterPageId and selectedMasterPageId name the retained native selection; IgnoreMaster suppresses it on page 2, whose effectiveMasterPageId is null."
+    },
+    "managedEncodingProof": {
+      "evidence": {
+        "role": "prior profiles and complete unassigned Contents proof",
+        "bytes": 78257,
+        "sha256": "2c036b15932908fe7fa22f5af295fdc14d718ff77aab1031e82c3b16ab956986"
+      },
+      "priorCreationProfilesWholeFileExact": 45,
+      "priorSizedProfilesWholeFileExact": 3,
+      "newDisplayTokenBytes": 2,
+      "completeExpectedContentsExact": true,
+      "contentsDifference": "Insert0708 into the second physical descriptor and fix its length plus all required header/directory offsets; compare complete Contents against that expected result.",
+      "allOtherPayloadAndNonContentsStreamsExact": true,
+      "utilityDrawings": {
+        "3": {
+          "offset": 112,
+          "bytes": 524,
+          "sha256": "e3700bff1ff73b9889b5c3a257b1a5873655462cc9dd640763c68a800b0e1592"
+        },
+        "2": {
+          "offset": 640,
+          "bytes": 80,
+          "sha256": "674a2a7faf8af3d515fc9b87b33edc25cd18a670487f290b52af91fa862b9bed"
+        }
+      },
+      "ownedModelAndStyleExact": true
+    },
+    "nativeLifecycle": {
+      "fullReports": 10,
+      "operations": 72,
+      "nativeFirstCharacterEditReports": 2,
+      "publicAssignmentOrRestorationReports": 8,
+      "sourceUnchanged": true,
+      "reports": [
+        {
+          "role": "fresh",
+          "bytes": 163097,
+          "sha256": "3a18a2db475ced14eb56ca5d99ca6c85e2abf7537fcb987429cca6911cd72d13",
+          "sourceSha256": "c8db9121bdb1a5958f83a9118ed51302986b56675e09bc3a3570189ccdf2b5fe",
+          "operationCount": 8,
+          "operations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSizedStoryFirstCharacterMutation",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "relationships": [
+            {
+              "stage": "initial",
+              "selectedMasterSameBothPages": true,
+              "ignoreMaster": [
+                false,
+                true
+              ],
+              "effectiveAssignments": [
+                "selected",
+                null
+              ]
+            },
+            {
+              "stage": "resaved",
+              "selectedMasterSameBothPages": true,
+              "ignoreMaster": [
+                false,
+                true
+              ],
+              "effectiveAssignments": [
+                "selected",
+                null
+              ]
+            }
+          ]
+        },
+        {
+          "role": "control",
+          "bytes": 163636,
+          "sha256": "7c27096f2218233ca7435e90682250c3b89e672851d1a4f84795b4995cdc4747",
+          "sourceSha256": "187bf91a4d6c5f9a7c10f56d7bef9a8ff81d970f9766ecadd666a9368b38092d",
+          "operationCount": 8,
+          "operations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSizedStoryFirstCharacterMutation",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "relationships": [
+            {
+              "stage": "initial",
+              "selectedMasterSameBothPages": true,
+              "ignoreMaster": [
+                false,
+                true
+              ],
+              "effectiveAssignments": [
+                "selected",
+                null
+              ]
+            },
+            {
+              "stage": "resaved",
+              "selectedMasterSameBothPages": true,
+              "ignoreMaster": [
+                false,
+                true
+              ],
+              "effectiveAssignments": [
+                "selected",
+                null
+              ]
+            }
+          ]
+        },
+        {
+          "role": "native-restored-fresh",
+          "bytes": 37523,
+          "sha256": "0d2990a833a8fcfc19ce01a6a6ca4643c04d04d8604399a2fe5a0328776ac773",
+          "sourceSha256": "723b49cd822a5df75c42eceed1604e321b7f5c111ef1d55a0d06c1918b971415",
+          "operationCount": 7,
+          "operations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "relationships": [
+            {
+              "stage": "initial",
+              "selectedMasterSameBothPages": true,
+              "ignoreMaster": [
+                false,
+                true
+              ],
+              "effectiveAssignments": [
+                "selected",
+                null
+              ]
+            },
+            {
+              "stage": "resaved",
+              "selectedMasterSameBothPages": true,
+              "ignoreMaster": [
+                false,
+                true
+              ],
+              "effectiveAssignments": [
+                "selected",
+                null
+              ]
+            }
+          ]
+        },
+        {
+          "role": "native-restored-control",
+          "bytes": 37741,
+          "sha256": "7f0709cac65f57d2bf35201fe6e8e16e7873214c30669f3e88bfee8a571e2115",
+          "sourceSha256": "a12ef07ae5d710d13b8578f26832ead226ae3e5d51ae027422050aaa70794edd",
+          "operationCount": 7,
+          "operations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "relationships": [
+            {
+              "stage": "initial",
+              "selectedMasterSameBothPages": true,
+              "ignoreMaster": [
+                false,
+                true
+              ],
+              "effectiveAssignments": [
+                "selected",
+                null
+              ]
+            },
+            {
+              "stage": "resaved",
+              "selectedMasterSameBothPages": true,
+              "ignoreMaster": [
+                false,
+                true
+              ],
+              "effectiveAssignments": [
+                "selected",
+                null
+              ]
+            }
+          ]
+        },
+        {
+          "role": "native-master-fresh-assigned",
+          "bytes": 37525,
+          "sha256": "41e5f9ccef35ea9ae3d1bf0b27e4330c640e23b7f8ea82cdc39190bc61235ceb",
+          "sourceSha256": "b08a9091a3874e302201573b8395acfed881d6b84bbf579727178ba55650da14",
+          "operationCount": 7,
+          "operations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "relationships": [
+            {
+              "stage": "initial",
+              "selectedMasterSameBothPages": true,
+              "ignoreMaster": [
+                false,
+                false
+              ],
+              "effectiveAssignments": [
+                "selected",
+                "selected"
+              ]
+            },
+            {
+              "stage": "resaved",
+              "selectedMasterSameBothPages": true,
+              "ignoreMaster": [
+                false,
+                false
+              ],
+              "effectiveAssignments": [
+                "selected",
+                "selected"
+              ]
+            }
+          ]
+        },
+        {
+          "role": "native-master-fresh-reversed",
+          "bytes": 37523,
+          "sha256": "60530f7714a70d68caa1bd1996e7aafd35f309b6e4137e5726bbdab4a45beb16",
+          "sourceSha256": "b82a7c5355391197c168950d526f019c135404890f57b36c76792646cda7aabb",
+          "operationCount": 7,
+          "operations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "relationships": [
+            {
+              "stage": "initial",
+              "selectedMasterSameBothPages": true,
+              "ignoreMaster": [
+                true,
+                false
+              ],
+              "effectiveAssignments": [
+                null,
+                "selected"
+              ]
+            },
+            {
+              "stage": "resaved",
+              "selectedMasterSameBothPages": true,
+              "ignoreMaster": [
+                true,
+                false
+              ],
+              "effectiveAssignments": [
+                null,
+                "selected"
+              ]
+            }
+          ]
+        },
+        {
+          "role": "native-master-fresh-restored",
+          "bytes": 37523,
+          "sha256": "916190448d5d35686399484135ad0ded7e8864fa4c207eb9959a09b7d1682392",
+          "sourceSha256": "c8db9121bdb1a5958f83a9118ed51302986b56675e09bc3a3570189ccdf2b5fe",
+          "operationCount": 7,
+          "operations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "relationships": [
+            {
+              "stage": "initial",
+              "selectedMasterSameBothPages": true,
+              "ignoreMaster": [
+                false,
+                true
+              ],
+              "effectiveAssignments": [
+                "selected",
+                null
+              ]
+            },
+            {
+              "stage": "resaved",
+              "selectedMasterSameBothPages": true,
+              "ignoreMaster": [
+                false,
+                true
+              ],
+              "effectiveAssignments": [
+                "selected",
+                null
+              ]
+            }
+          ]
+        },
+        {
+          "role": "native-master-control-assigned",
+          "bytes": 37743,
+          "sha256": "f8b0301fc6040317963b6a47ede10b1ab8e07b3035513e83a4a6ebd8a5292fd5",
+          "sourceSha256": "821746c182d0d09b748130a2009283979c1d3bdc591bccb3152060e95d78efdb",
+          "operationCount": 7,
+          "operations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "relationships": [
+            {
+              "stage": "initial",
+              "selectedMasterSameBothPages": true,
+              "ignoreMaster": [
+                false,
+                false
+              ],
+              "effectiveAssignments": [
+                "selected",
+                "selected"
+              ]
+            },
+            {
+              "stage": "resaved",
+              "selectedMasterSameBothPages": true,
+              "ignoreMaster": [
+                false,
+                false
+              ],
+              "effectiveAssignments": [
+                "selected",
+                "selected"
+              ]
+            }
+          ]
+        },
+        {
+          "role": "native-master-control-reversed",
+          "bytes": 37741,
+          "sha256": "9091231ad1447acad629aa78ed56dd644278b293a111d56b72dfab2b627dc212",
+          "sourceSha256": "dbc26197bd3d1aa9cadb2c295f8b30dcf947ff5e8da4e3ed42635809cdfb1281",
+          "operationCount": 7,
+          "operations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "relationships": [
+            {
+              "stage": "initial",
+              "selectedMasterSameBothPages": true,
+              "ignoreMaster": [
+                true,
+                false
+              ],
+              "effectiveAssignments": [
+                null,
+                "selected"
+              ]
+            },
+            {
+              "stage": "resaved",
+              "selectedMasterSameBothPages": true,
+              "ignoreMaster": [
+                true,
+                false
+              ],
+              "effectiveAssignments": [
+                null,
+                "selected"
+              ]
+            }
+          ]
+        },
+        {
+          "role": "native-master-control-restored",
+          "bytes": 37741,
+          "sha256": "ec299c5f01c1fc1a0209895915d902a5d614104a92e7554563baee27f3166940",
+          "sourceSha256": "2e714e4ea2c9c13013696d9b4431c2c708cd88cf27e720300735f5b32210ca36",
+          "operationCount": 7,
+          "operations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "relationships": [
+            {
+              "stage": "initial",
+              "selectedMasterSameBothPages": true,
+              "ignoreMaster": [
+                false,
+                true
+              ],
+              "effectiveAssignments": [
+                "selected",
+                null
+              ]
+            },
+            {
+              "stage": "resaved",
+              "selectedMasterSameBothPages": true,
+              "ignoreMaster": [
+                false,
+                true
+              ],
+              "effectiveAssignments": [
+                "selected",
+                null
+              ]
+            }
+          ]
+        }
+      ],
+      "repairStatus": "Unassessed",
+      "independentNativeCorpusProductions": 1
+    },
+    "nativeStoryEdit": {
+      "target": "SizedStoryFirstCharacter",
+      "edit": "N to M in the complete two-frame story on generated and independent inputs.",
+      "bothCompleteRangesAndFirstFinalCrTypingRetained": true,
+      "ownerContentPictureAndSelectedIgnoreMasterInvariantsRetained": true,
+      "nativeStorySnapshots": 6,
+      "actualStorySnapshotPictureObservations": 12,
+      "pictureIsEmptyAndIsLinkedZero": true
+    },
+    "publicAssignments": {
+      "api": "SetPageMaster",
+      "lossPolicy": "Allow",
+      "defaultStrictRefusesOnlyMasterUnassessed": true,
+      "diagnostic": "PUB_NATIVE_MASTER_ASSIGNMENT_UNQUALIFIED",
+      "originalSnapshotsOwnedContentAndNoOpPreserved": true,
+      "powerShellPdfSucceeded": true,
+      "cycles": {
+        "generated": {
+          "evidence": {
+            "role": "generated public assignment cycle",
+            "bytes": 2356,
+            "sha256": "7c3db26defebec4ce22c6c8c7c34c46a8cb6b879a232c14bc6b4853aa932108c"
+          },
+          "stages": [
+            {
+              "step": "assigned",
+              "effectiveAssignments": [
+                "selected",
+                "selected"
+              ],
+              "inputSha256": "c8db9121bdb1a5958f83a9118ed51302986b56675e09bc3a3570189ccdf2b5fe",
+              "outputSha256": "b08a9091a3874e302201573b8395acfed881d6b84bbf579727178ba55650da14"
+            },
+            {
+              "step": "reversed",
+              "effectiveAssignments": [
+                null,
+                "selected"
+              ],
+              "inputSha256": "b08a9091a3874e302201573b8395acfed881d6b84bbf579727178ba55650da14",
+              "outputSha256": "b82a7c5355391197c168950d526f019c135404890f57b36c76792646cda7aabb"
+            },
+            {
+              "step": "restored",
+              "effectiveAssignments": [
+                "selected",
+                null
+              ],
+              "inputSha256": "b82a7c5355391197c168950d526f019c135404890f57b36c76792646cda7aabb",
+              "outputSha256": "c8db9121bdb1a5958f83a9118ed51302986b56675e09bc3a3570189ccdf2b5fe"
+            }
+          ]
+        },
+        "independentControl": {
+          "evidence": {
+            "role": "independentControl public assignment cycle",
+            "bytes": 2448,
+            "sha256": "3ae7c6afb4c6c8d892341fdd4b8d520d55db5dac4e83390acb421efef9a6f7d6"
+          },
+          "stages": [
+            {
+              "step": "assigned",
+              "effectiveAssignments": [
+                "selected",
+                "selected"
+              ],
+              "inputSha256": "187bf91a4d6c5f9a7c10f56d7bef9a8ff81d970f9766ecadd666a9368b38092d",
+              "outputSha256": "821746c182d0d09b748130a2009283979c1d3bdc591bccb3152060e95d78efdb"
+            },
+            {
+              "step": "reversed",
+              "effectiveAssignments": [
+                null,
+                "selected"
+              ],
+              "inputSha256": "821746c182d0d09b748130a2009283979c1d3bdc591bccb3152060e95d78efdb",
+              "outputSha256": "dbc26197bd3d1aa9cadb2c295f8b30dcf947ff5e8da4e3ed42635809cdfb1281"
+            },
+            {
+              "step": "restored",
+              "effectiveAssignments": [
+                "selected",
+                null
+              ],
+              "inputSha256": "dbc26197bd3d1aa9cadb2c295f8b30dcf947ff5e8da4e3ed42635809cdfb1281",
+              "outputSha256": "2e714e4ea2c9c13013696d9b4431c2c708cd88cf27e720300735f5b32210ca36"
+            }
+          ]
+        }
+      },
+      "cfbPreservation": {
+        "ownContentStylesAssetsAndIdsPreserved": true,
+        "allUnrelatedStreamsExact": true,
+        "allDirectoryAndRootMetadataPreserved": true,
+        "freshStreamCount": 6,
+        "controlStreamCount": 10,
+        "freshDirectoryEntries": 14,
+        "controlDirectoryEntries": 19,
+        "thumbnail17RemovalTransitions": [
+          {
+            "producer": "control",
+            "step": "assigned"
+          }
+        ],
+        "thumbnailRule": "Only control/assigned removes proven SummaryInformation property17; header and every other raw property remain exact. Other assignment transitions change Contents only.",
+        "comparedDirectoryFields": [
+          "path",
+          "name",
+          "objectType",
+          "classId",
+          "stateBits",
+          "creationTime",
+          "modifiedTime",
+          "directoryOrder",
+          "isFallback"
+        ],
+        "byteLengthTreatment": "Every stream length/hash is recorded; Contents and proven thumbnail removal may change lengths. Root mini-stream storage length is recorded separately from preserved root metadata."
+      }
+    },
+    "publicStoryRestoration": {
+      "api": "ReplaceStoryParagraphs",
+      "edit": "Restore M to N after actual native mutation.",
+      "lossPolicy": "Allow",
+      "cases": [
+        {
+          "name": "fresh",
+          "sourceSha256": "b567671495af258d68c5fea04309fb3cc4b4e8752d1cc613efe9b95df43a85c0",
+          "outputSha256": "723b49cd822a5df75c42eceed1604e321b7f5c111ef1d55a0d06c1918b971415",
+          "storyCount": 5,
+          "runLengthsBeforeAndAfter": [
+            1,
+            146
+          ],
+          "defaultTabsPoints": 36.0,
+          "completeOwnModelPreserved": true,
+          "finalCrTypingAndRunFieldsPreserved": true,
+          "noOpExactBeforeAndAfter": true,
+          "powerShellPdfSucceeded": true
+        },
+        {
+          "name": "control",
+          "sourceSha256": "da4eb1048416c5de18a051d2c7b2a2f05d0c0f25fb43b294046abbc1a8678825",
+          "outputSha256": "a12ef07ae5d710d13b8578f26832ead226ae3e5d51ae027422050aaa70794edd",
+          "storyCount": 7,
+          "runLengthsBeforeAndAfter": [
+            1,
+            146
+          ],
+          "defaultTabsPoints": 28.3,
+          "completeOwnModelPreserved": true,
+          "finalCrTypingAndRunFieldsPreserved": true,
+          "noOpExactBeforeAndAfter": true,
+          "powerShellPdfSucceeded": true
+        }
+      ],
+      "evidence": {
+        "role": "public restoration and complete own-model proof",
+        "bytes": 20758,
+        "sha256": "8c26201b4df6bfaf91abe8de4581f0f7ae2cec4506e71f903d134373846f17ea"
+      },
+      "proofCases": {
+        "expectedPublicM": 2,
+        "actualPublicRestoreN": 2
+      }
+    },
+    "validation": {
+      "redCases": 1,
+      "focusedGreen": 31,
+      "fullNet10": 1240,
+      "fullNet8": 1240,
+      "fullNet472": 1240,
+      "failed": 0,
+      "skipped": 0,
+      "probeNetstandardModuleWarnings": 0,
+      "regression": "Creation_preserves_unassigned_physical_content_and_retained_master_suppression",
+      "review": {
+        "role": "scoped read-only review with no outstanding findings",
+        "bytes": 8393,
+        "sha256": "1b89f132e76fad4eb52a4b1d445b48cb061655bbf29416c6a251b3014f01b0c2"
+      }
+    },
+    "sourceFiles": [
+      {
+        "path": "Build/Publisher/Add-NativeSizedCompositionControl.ps1",
+        "sha256": "282330b1765ad57ec925a7c7e270b6a02fcc00c506aaeaf823f39296e70cc1fa"
+      },
+      {
+        "path": "Build/Publisher/Get-NativeSizedStoryEditState.ps1",
+        "sha256": "c0ceb0ac90c4a325c5493d724228ba24caa8de68f1d7ef76ca0b1499726dcfd1"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+        "sha256": "5de0b3ca14f51dcb7d5c40f3e9fd6a49d5585cf2bb9066cad8f4a17949902d5e"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+        "sha256": "b0985bccaefef8f65460592a58066e5162f4f8ab62d999b59755ec02c0b3c3f5"
+      },
+      {
+        "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+        "sha256": "cfd3094a375e73bf1e6cf6d405f4926d643075aeddfe5c68cd3ec3986844ecfa"
+      },
+      {
+        "path": "Build/Publisher/Set-NativeCandidateText.ps1",
+        "sha256": "dc36b68f614985bd9d3d09fd9b550a64785f59aa81ef5ebbba74dc6882bab6a5"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateCases.cs",
+        "sha256": "0a0364d104cc43e76eba083bd7caf2cffdb2f071e3eb12866b5e4453dd362799"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateSizedComposition.cs",
+        "sha256": "2d324b00de524368b03d033f83997d897b7c4eff028fc12bb6e162d4b01e1430"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/Program.cs",
+        "sha256": "1d936773b20ead7567602a87acdbe81708c51ace61b7d00323267a8b557cc8d0"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherPageSizeCreationTests.cs",
+        "sha256": "efdfd61afe53f26a90a076bf486852351e35f13fea47a13537fb68ec7c2ef491"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/NativeCreation/PublisherNativeCreationGraph.cs",
+        "sha256": "b118e3cc34a89b7d9e3c0d5762f2a173652c8c6e9a31c19d670ef931211b594a"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/NativeCreation/PublisherNativeCreationProjection.cs",
+        "sha256": "b39d9f555c6709f39eb2beb682c1c8627282009742dc8e3f69a06eb3d8d68e96"
+      }
+    ],
+    "limits": [
+      "Zero-master and absent-reference native generation remain unqualified.",
+      "Multiple/paired-master projections still require explicitly defined assignments; nullable raw plan types do not qualify that topology.",
+      "Unassigned arrangements outside the measured retained-master portrait cohort, general native/managed appearance parity and broader layouts remain unqualified.",
+      "Repair-free acceptance and public source-free native saving remain gated.",
+      "Native SaveAs normalization is separate from public managed CFB preservation.",
+      "No native BStore-sharing equivalence is established by this profile.",
+      "Owned native instances were stopped through recorded process cleanup; natural process exit and V2 normal-exit instrumentation remain unqualified."
+    ],
+    "canClosePUB00": false,
+    "canPromotePublicNativeCreation": false,
+    "nativeAppearance": {
+      "dpi": 100,
+      "pagePairs": 58,
+      "exactPairs": 44,
+      "nonexactPairs": 14,
+      "knownPortraitBlueEdgePairs": 12,
+      "knownDifferencePixels": 351,
+      "knownDifferenceBounds": [
+        238,
+        326,
+        589,
+        327
+      ],
+      "intentionalNativeNToMPagePairs": 4,
+      "intentionalNativeNToMNonexactPagePairs": 2,
+      "unexpectedDifferences": 0,
+      "allExact": false,
+      "normalization": "None",
+      "intentionalChangedPixelsPerNonexactPage": 2565,
+      "intentionalDifferenceBounds": [
+        239,
+        416,
+        571,
+        429
+      ],
+      "withinDeclaredBoundaries": true,
+      "normalizationDetails": "None; complete RGB page rasters, no alignment, cropping or color changes.",
+      "evidence": {
+        "role": "complete native page raster comparison",
+        "bytes": 42596,
+        "sha256": "8b33ab97f22ca0abc187ea776b4d5a0a34570d1a82c592fb7f699d2a2a3edc51"
+      }
+    },
+    "managedAppearance": {
+      "dpi": 100,
+      "pagePairs": 8,
+      "allExact": true,
+      "actualNativeMVersusOwnExpectedM": true,
+      "restoredNVersusOwnPristineN": true,
+      "normalization": "None",
+      "nativeManagedParityClaim": false,
+      "comparisonGroups": [
+        "actual-native-M-versus-own-expected-M",
+        "restored-N-versus-own-pristine-N"
+      ],
+      "evidence": {
+        "role": "managed expected-M and restored-pristine-N page comparison",
+        "bytes": 12181,
+        "sha256": "a7ac2c1d11ea4b0c16b17c0b4d58e5836a022c0a5947d64b8751f06277eaa4b8"
+      }
+    },
+    "analysis": {
+      "primarySummary": {
+        "role": "compact qualification summary",
+        "bytes": 5867,
+        "sha256": "41055aedc6718e4160cf7c28cb43706b0cc4bf472ba9b96116257a5ce390ddac"
+      },
+      "lifecycleProof": {
+        "role": "independent corpus, native operations, public CFB/model preservation and immutable inputs",
+        "bytes": 166803,
+        "sha256": "89497f2e6b23f9391359b875ff49cae17c98c80d8b46e3f9896f4689b1090ebf"
+      },
+      "inputFingerprints": 103,
+      "evidence": [
+        {
+          "role": "lifecycle-proof.json",
+          "bytes": 166803,
+          "sha256": "89497f2e6b23f9391359b875ff49cae17c98c80d8b46e3f9896f4689b1090ebf"
+        },
+        {
+          "role": "native-page-comparison.json",
+          "bytes": 42596,
+          "sha256": "8b33ab97f22ca0abc187ea776b4d5a0a34570d1a82c592fb7f699d2a2a3edc51"
+        },
+        {
+          "role": "comparison-proof.json",
+          "bytes": 12181,
+          "sha256": "a7ac2c1d11ea4b0c16b17c0b4d58e5836a022c0a5947d64b8751f06277eaa4b8"
+        },
+        {
+          "role": "run-manifest.json",
+          "bytes": 26969,
+          "sha256": "46e5079b2a3c8b5d944fd20a9a82588728ff911bbfd431052c74c193b79d4fbe"
+        },
+        {
+          "role": "runtime-selection-proof.json",
+          "bytes": 5158,
+          "sha256": "ad66ac44608fb9efcad95f3f741020855a8a35978d433be5144b50d706e1d4bb"
+        },
+        {
+          "role": "native-visual-inspection.json",
+          "bytes": 1266,
+          "sha256": "a108d7fc165fdb8822fea109f15b696bdafd25d8b2f29c5fe7d2da161dfcdf36"
+        },
+        {
+          "role": "native-closure-index-v2.json",
+          "bytes": 6237,
+          "sha256": "52163ad16c9ef519a8fa7641e6a6f600626286ba215621924e899e6f9a6c00bf"
+        },
+        {
+          "role": "run-receipts.json",
+          "bytes": 4243,
+          "sha256": "7f3b788c87c2ac0c613ff7e5d5d8243e458f70b9b8051135c00789a31a83ba27"
+        }
+      ]
+    },
+    "nativeInstanceClosure": {
+      "canonicalReceipts": 11,
+      "workerStopped": true,
+      "workerTeardown": "StoppedAfterCompletionReceipt",
+      "native": "StoppedRecordedProcess",
+      "errors": 0,
+      "naturalProcessExitQualified": false,
+      "v2NormalExitInstrumentationRun": false
+    }
   }
 }

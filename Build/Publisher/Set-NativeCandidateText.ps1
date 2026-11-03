@@ -10,7 +10,8 @@ function Set-NativeCandidateText {
     The sole unlinked text box, the first unmerged cell of the sole physical table,
     its first horizontal merged anchor with exactly two columns and one row,
     or one first character of a qualified linked story. SizedStoryFirstCharacter
-    admits only the three existing two-page sized compositions and changes N to M.
+    admits the three existing sizes with the master applied on both pages, or the portrait
+    recipe with only page 2 suppressing its selected master, and changes N to M.
     .PARAMETER Text
     The replacement text supplied to the controller. LinkedStoryFirstCharacter
     accepts one printable ASCII character distinct from the original M.

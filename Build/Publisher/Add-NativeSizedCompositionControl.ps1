@@ -1,7 +1,7 @@
 function Get-NativeSizedCompositionProfile {
     <#
     .SYNOPSIS
-    Returns the three opt-in sized-composition inputs without native operations.
+    Returns the opt-in sized-composition inputs without native operations.
     .PARAMETER Case
     Selects one qualification input; dimensions remain scalar EMU data.
     .EXAMPLE
@@ -10,7 +10,7 @@ function Get-NativeSizedCompositionProfile {
     Requested dimensions, exact text and the ten semantic object placements.
     #>
     param(
-        [ValidateSet('SizedCompositionA4', 'SizedCompositionPortrait', 'SizedCompositionLandscape')]
+        [ValidateSet('SizedCompositionA4', 'SizedCompositionPortrait', 'SizedCompositionLandscape', 'SizedCompositionUnassigned')]
         [string] $Case
     )
 
@@ -18,6 +18,7 @@ function Get-NativeSizedCompositionProfile {
         'SizedCompositionA4' { @(7560000, 10692000) }
         'SizedCompositionPortrait' { @(3657600, 5486400) }
         'SizedCompositionLandscape' { @(5486400, 3657600) }
+        'SizedCompositionUnassigned' { @(3657600, 5486400) }
     }
     $w = [double]$dimensions[0] / 12700
     $h = [double]$dimensions[1] / 12700
@@ -232,7 +233,12 @@ function Assert-NativeSizedCompositionControl {
             $assignedMaster = $owner.Master
             $objects.Add($assignedMaster)
             $assignmentId = [int]$assignedMaster.PageID
-            if ($assignmentId -ne [int]$master.PageID -or $owner.IgnoreMaster) {
+            if ($Profile.case -ceq 'SizedCompositionUnassigned') {
+                $expectedIgnore = $ownerName -ceq 'Physical2'
+                if ($assignmentId -ne [int]$master.PageID -or [bool]$owner.IgnoreMaster -ne $expectedIgnore) {
+                    throw ('The unassigned control requires its selected master and exact visibility state on ' + $ownerName)
+                }
+            } elseif ($assignmentId -ne [int]$master.PageID -or $owner.IgnoreMaster) {
                 throw ('The native sized-control master is not applied to ' + $ownerName)
             }
         }
@@ -262,6 +268,18 @@ function Assert-NativeSizedCompositionControl {
             $objects.Add($wrap)
             if ([int]$wrap.Type -ne 0) {
                 throw ('The sized-control shape requires wrapping disabled: ' + $name)
+            }
+            if ($Profile.case -ceq 'SizedCompositionUnassigned' -and $wanted.Type -eq 13) {
+                $picture = $shape.PictureFormat
+                $objects.Add($picture)
+                if ($picture.IsEmpty -ne 0 -or $picture.IsLinked -ne 0) {
+                    throw ('The unassigned control requires its existing embedded picture: ' + $name)
+                }
+                foreach ($crop in @('CropLeft', 'CropTop', 'CropRight', 'CropBottom')) {
+                    if ([double]$picture.$crop -ne 0) {
+                        throw ('The unassigned control requires uncropped picture geometry: ' + $name)
+                    }
+                }
             }
             $textObservation = $null
             $tableObservation = $null
@@ -400,6 +418,12 @@ function Assert-NativeSizedCompositionControl {
             shapeCount = [int]$shapes.Count
             shapes = $shapeObservations.ToArray()
         })
+        if ($Profile.case -ceq 'SizedCompositionUnassigned' -and $ownerName -cne 'Master') {
+            $observation = $ownerObservations[$ownerObservations.Count - 1]
+            $observation | Add-Member -NotePropertyName selectedMasterPageId -NotePropertyValue $assignmentId
+            $observation | Add-Member -NotePropertyName ignoreMaster -NotePropertyValue ([bool]$owner.IgnoreMaster)
+            $observation | Add-Member -NotePropertyName effectiveMasterPageId -NotePropertyValue $(if ($owner.IgnoreMaster) { $null } else { $assignmentId })
+        }
     }
     if ($linkedFrames.Count -ne 2) {
         throw 'The sized-control story requires exactly two linked frames.'
@@ -480,6 +504,11 @@ function Add-NativeSizedCompositionControl {
     $objects.Add($second)
     $FirstPage.Master = $master
     $second.Master = $master
+    if ($Profile.case -ceq 'SizedCompositionUnassigned') {
+        Set-NativePhase 'SizedComposition-SuppressSecondPageMaster'
+        $FirstPage.IgnoreMaster = $false
+        $second.IgnoreMaster = $true
+    }
     $owners = @{
         Master = $master
         Physical1 = $FirstPage
@@ -592,7 +621,7 @@ function Add-NativeSizedCompositionControl {
     $frames.LinkedLead.NextLinkedTextFrame = $frames.LinkedContinuation
     $options = $application.Options
     $objects.Add($options)
-    return [pscustomobject]@{
+    $layout = [pscustomobject]@{
         pages = 2
         panelWidthPoints = $null
         masterAssignments = @(
@@ -635,4 +664,15 @@ function Add-NativeSizedCompositionControl {
             observations = [Collections.Generic.List[object]]::new()
         }
     }
+    if ($Profile.case -ceq 'SizedCompositionUnassigned') {
+        foreach ($assignment in $layout.masterAssignments) {
+            $ignored = $assignment.pageIndex -eq 2
+            $assignment | Add-Member -NotePropertyName selectedMasterPageId -NotePropertyValue $assignment.masterPageId
+            $assignment | Add-Member -NotePropertyName ignoreMaster -NotePropertyValue $ignored
+            $assignment | Add-Member -NotePropertyName effectiveMasterPageId -NotePropertyValue $(if ($ignored) { $null } else { $assignment.masterPageId })
+        }
+        $layout.controlContract | Add-Member -NotePropertyName masterAssignmentSemantics -NotePropertyValue 'masterPageId and selectedMasterPageId name the retained native selection; IgnoreMaster suppresses it on page 2, whose effectiveMasterPageId is null.'
+        $layout.controlContract | Add-Member -NotePropertyName expectedMasterAssignments -NotePropertyValue $layout.masterAssignments
+    }
+    return $layout
 }

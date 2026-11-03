@@ -16,6 +16,12 @@ internal static class CandidateSizedComposition {
         return PublisherNativeCreationProjection.ComposedContent(Author(width, height, image));
     }
 
+    internal static PublisherNativeCreationPlan CreateUnassigned(byte[] image) {
+        PublisherDocument document = Author(3657600U, 5486400U, image);
+        document.SetPageMaster(document.Pages[1].Id, null);
+        return PublisherNativeCreationProjection.ComposedContent(document);
+    }
+
     internal static PublisherDocument Author(uint widthEmu, uint heightEmu, byte[] image) {
         double w = widthEmu / 12700D, h = heightEmu / 12700D;
         PublisherDocument document = PublisherDocument.Create(w, h);

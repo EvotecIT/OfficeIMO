@@ -117,6 +117,83 @@ public sealed class PublisherPageSizeCreationTests {
         }
     }
 
+    [Fact]
+    public void Creation_preserves_unassigned_physical_content_and_retained_master_suppression() {
+        PublisherDocument authored = Author(288, 432);
+        byte[] appliedBytes = PublisherNativeCreationCodec.Create(PublisherNativeCreationProjection.ComposedContent(authored),
+            new PublisherReadOptions(), MaximumBytes, CancellationToken.None);
+        PublisherDocument applied = PublisherDocument.Load(appliedBytes);
+        authored.SetPageMaster(authored.Pages[1].Id, null);
+        byte[] clearedBytes = PublisherNativeCreationCodec.Create(PublisherNativeCreationProjection.ComposedContent(authored),
+            new PublisherReadOptions(), MaximumBytes, CancellationToken.None);
+        PublisherDocument cleared = PublisherDocument.Load(clearedBytes);
+
+        PublisherPage master = Assert.Single(cleared.MasterPages);
+        Assert.False(authored.HasNativeSource);
+        Assert.Equal(master.Id, cleared.Pages[0].MasterPageId);
+        Assert.Null(cleared.Pages[1].MasterPageId);
+        Assert.Equal(new[] { master.Id, cleared.Pages[0].Id, cleared.Pages[1].Id },
+            applied.MasterPages.Concat(applied.Pages).Select(page => page.Id));
+        foreach (var pair in applied.MasterPages.Concat(applied.Pages).Zip(cleared.MasterPages.Concat(cleared.Pages), (before, after) => (before, after))) {
+            Assert.Equal((288D, 432D), (pair.after.Width, pair.after.Height));
+            Assert.Equal(pair.before.ObjectIds, pair.after.ObjectIds);
+        }
+        Assert.Equal(applied.TextStories.Select(story => (story.Id, story.Text)), cleared.TextStories.Select(story => (story.Id, story.Text)));
+        Assert.Equal(Assert.Single(applied.Images).GetBytes(), Assert.Single(cleared.Images).GetBytes());
+        Assert.Equal(Assert.Single(applied.Pages[1].Tables).Cells.Select(cell => cell.Text), Assert.Single(cleared.Pages[1].Tables).Cells.Select(cell => cell.Text));
+        Assert.Contains("Sized publication", PublisherAuthoringTests.PaintedText(cleared.Pages[0]));
+        Assert.DoesNotContain("Sized publication", PublisherAuthoringTests.PaintedText(cleared.Pages[1]));
+        Assert.Contains("Item", PublisherAuthoringTests.PaintedText(cleared.Pages[1]));
+        uint logoId = Assert.Single(master.Pictures).Id;
+        uint ruleId = Assert.Single(master.Shapes, shape => master.TextFrames.All(frame => frame.Id != shape.Id)).Id;
+        Assert.Contains(PublisherNativeTests.Elements(cleared.Pages[0].CreateDrawing()).OfType<OfficeDrawingImage>(),
+            image => image.SourceElementIds?.Contains("publisher-object-" + logoId) == true);
+        Assert.DoesNotContain(PublisherNativeTests.Elements(cleared.Pages[1].CreateDrawing()).OfType<OfficeDrawingImage>(),
+            image => image.SourceElementIds?.Contains("publisher-object-" + logoId) == true);
+        Assert.Contains(PublisherNativeTests.Elements(cleared.Pages[0].CreateDrawing()).OfType<OfficeDrawingShape>(),
+            shape => shape.SourceElementIds?.Contains("publisher-object-" + ruleId) == true);
+        Assert.DoesNotContain(PublisherNativeTests.Elements(cleared.Pages[1].CreateDrawing()).OfType<OfficeDrawingShape>(),
+            shape => shape.SourceElementIds?.Contains("publisher-object-" + ruleId) == true);
+        uint physicalPictureId = Assert.Single(cleared.Pages[1].Pictures).Id;
+        Assert.Contains(PublisherNativeTests.Elements(cleared.Pages[1].CreateDrawing()).OfType<OfficeDrawingImage>(),
+            image => image.SourceElementIds?.Contains("publisher-object-" + physicalPictureId) == true);
+
+        Assert.True(OfficeCompoundFileReader.TryRead(appliedBytes, out OfficeCompoundFile? appliedCompound, out string? appliedError), appliedError);
+        Assert.True(OfficeCompoundFileReader.TryRead(clearedBytes, out OfficeCompoundFile? clearedCompound, out string? clearedError), clearedError);
+        foreach (var stream in appliedCompound!.Streams.Where(stream => stream.Key != "Contents"))
+            Assert.Equal(stream.Value, clearedCompound!.Streams[stream.Key]);
+        byte[] beforeContents = appliedCompound.Streams["Contents"], afterContents = clearedCompound!.Streams["Contents"];
+        var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+        var data = new PublisherBinaryData(afterContents, "Contents");
+        PublisherContents native = new PublisherContentsReader(data, context).Read();
+        PublisherContents beforeNative = new PublisherContentsReader(new PublisherBinaryData(beforeContents, "Contents"),
+            new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None)).Read();
+        uint clearedPageId = cleared.Pages[1].Id;
+        PublisherSourcePage nativePage = native.Pages.Single(page => page.Id == clearedPageId);
+        Assert.Equal(master.Id, nativePage.Master);
+        Assert.False(nativePage.DisplayMaster);
+        PublisherContentChunk descriptor = native.Chunks[clearedPageId];
+        var fields = new PublisherBlockReader(data, context).Chunk(descriptor.Offset, descriptor.End);
+        PublisherBlock display = Assert.Single(fields, field => field.Id == 7);
+        Assert.Equal((byte)8, display.Type); Assert.Equal(0, display.Length);
+        Assert.Equal((byte)7, afterContents[display.Offset - 2]);
+        Assert.Equal((byte)8, afterContents[display.Offset - 1]);
+        PublisherBlock reference = Assert.Single(fields, field => field.Id == 0x0D);
+        Assert.Equal((byte)0x68, reference.Type); Assert.Equal(master.Id, reference.Value);
+        foreach (PublisherContentChunk before in beforeNative.Chunks.Values.Where(chunk => chunk.Id != clearedPageId)) {
+            PublisherContentChunk after = native.Chunks[before.Id];
+            Assert.Equal((before.Kind, before.Parent), (after.Kind, after.Parent));
+            Assert.Equal(beforeContents.Skip(before.Offset).Take(before.End - before.Offset).ToArray(),
+                afterContents.Skip(after.Offset).Take(after.End - after.Offset).ToArray());
+        }
+
+        cleared.SetPageMaster(clearedPageId, master.Id);
+        PublisherDocument restored = PublisherDocument.Load(cleared.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        Assert.All(restored.Pages, page => Assert.Equal(master.Id, page.MasterPageId));
+        Assert.Contains("Sized publication", PublisherAuthoringTests.PaintedText(restored.Pages[1]));
+        Assert.Equal(applied.TextStories.Select(story => (story.Id, story.Text)), restored.TextStories.Select(story => (story.Id, story.Text)));
+    }
+
     [Theory]
     [InlineData("signed-range")]
     [InlineData("fractional-EMU")]

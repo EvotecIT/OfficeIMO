@@ -51,6 +51,8 @@ dotnet $probe create newsletter ./candidate-newsletter.pub ./image.png
 
 dotnet $probe create sized-composition ./candidate-a4.pub 7560000x10692000 ./image.png
 
+dotnet $probe create unassigned-composition ./candidate-unassigned.pub ./image.png
+
 dotnet $probe source-newsletter ./candidate-newsletter.pub ./replacement.jpg ./newsletter-source-saves
 
 dotnet $probe create multiple-masters ./candidate-multiple-masters.pub
@@ -406,8 +408,9 @@ and preserves the original 18×18 table for an independent inventory comparison:
 
 ## Creation cases
 
-The fixed cases use Letter-size physical pages; `sized-composition` takes page
-dimensions as data. All use the same ordered `PublisherNativeCreationPlan`.
+The fixed cases use Letter-size physical pages except `unassigned-composition`,
+which uses 4×6-inch portrait pages; `sized-composition` takes dimensions as data.
+All use the same ordered `PublisherNativeCreationPlan`.
 Most use one master; the multiple/paired-master specimens carry their explicitly
 authored definitions. Object IDs, story keys, layout identifiers and SPIDs
 are assigned once and shared by the Contents, OfficeArt and Quill serializers.
@@ -428,6 +431,7 @@ Page, picture and image-asset counts depend on the selected case.
 | `master-content` | Projects the final public authoring model: one centered master owns a rectangle, picture and single-paragraph text frame and is applied to three Letter pages. Page-owned foreground overlaps the master; one page picture reuses the master asset. Current object order, geometry, paint, stories and referenced asset identity supply the codec inputs. One PNG path required. |
 | `newsletter` | Projects one final public model combining a recurring master heading, logo and rule with linked body text, an independent sidebar, a two-column story, a borderless 2×2 calendar and a page picture sharing the master asset. Three physical pages and six complete stories; one PNG path required. |
 | `sized-composition` | Takes `<WIDTH_EMUxHEIGHT_EMU>` and one PNG path. Authors two pages through `PublisherDocument.Create(widthEmu / 12700D, heightEmu / 12700D)`, with one populated centered master, linked text, heading, two-column frame, borderless 2×2 table, rectangles and two pictures sharing one asset. A4 and 4×6 portrait/landscape inputs qualify the same dimension-driven factory. |
+| `unassigned-composition` | Takes one PNG path. Uses the same 4×6-inch portrait public model, then clears page 2 with `SetPageMaster(pageId, null)` before projection. The sole master remains stored and selected natively; page 2 suppresses its formatting while keeping its own content. |
 | `linked-story`, `linked-story-overflow` | Projects the final public model with an empty applied master. One story flows through three frames on pages 1, 3 and 2, alongside an independent label. Fixed Arial text and 18-point line spacing; the longer specimen retains terminal overflow. |
 | `multi-paragraph` | Projects three unlabelled Arial paragraphs into one frame on a Letter page with an empty applied centered master. Mixed size/bold runs, an explicitly styled empty middle paragraph and complete overflow are retained. All runs request language 1033; automatic hyphenation is explicitly disabled. Fixed content takes no additional arguments. |
 | `multi-paragraph-linked`, `multi-paragraph-linked-hyphenated` | Uses the same complete story in three frames flowing through pages 1, 3 and 2. The first case explicitly disables automatic hyphenation; the second enables it for comparison with the independently authored native linked control. Fixed content takes no additional arguments. |
@@ -517,9 +521,9 @@ bounds and complete single-paragraph stories, retaining the existing omission
 of the default column-gap property. Unassigned physical pages, nonzero gaps,
 other frame layouts and non-text content require separate qualification.
 
-The linked, frame-layout and table adapters require an explicit empty applied
-master; this is specimen authoring, while `PublisherDocument.Create` still creates
-no master by default. Linked frames retain complete story identity and chain
+The linked, frame-layout and table adapters require an explicit empty retained
+master; their existing specimens apply it, while `PublisherDocument.Create` still
+creates no master by default. Linked frames retain complete story identity and chain
 ordinals independently of physical page and drawing order. They require the
 ordinary unwrapped single-column Top-aligned layout. The separate frame-layout
 profile accepts unlinked, unwrapped one-to-three-column frames. The table profile
@@ -534,9 +538,11 @@ remain separate qualification requirements.
 `ComposedContent` combines master text, rectangles and pictures with physical-page
 linked and unlinked layout frames and at most one qualified table. It accepts one
 centered master, two centered masters, or a centered master followed by a named
-left/right pair. Every physical page has an explicit assignment to a defined
-master, with one to sixteen physical pages. The centered single-master path uses
-the current common dimensions; multiple masters remain Letter-only. It caches
+left/right pair. Multiple-master paths require an explicit defined assignment on
+every physical page. The single-master path also preserves qualified null
+assignments through retained-master suppression, with one to sixteen physical
+pages. The centered single-master path uses the current common dimensions;
+multiple masters remain Letter-only. It caches
 linked stories by model identity and uses the existing graph, Quill and OfficeArt
 encoders for all objects, preserving each master/page's mixed object order.
 Master tables, multiple tables, three centered masters, linked columns/insets,
@@ -782,6 +788,25 @@ small native anchor/bar quantization, inactive outline widths, default tabs and
 style catalogs also differ. The [page-size support contract](../../../OfficeIMO.Publisher/SUPPORT.md#native-single-master-page-sizes)
 keeps these geometry, appearance and print-sheet boundaries separate from public
 writer promotion and repair-free acceptance.
+
+The `singleMasterUnassignedPages` record covers `unassigned-composition`, using
+the portrait model with an applied master on page 1 and effective null on page 2.
+Contents retains the same selected-master reference on both pages and writes
+zero-payload `07 08` only on the suppressed physical page. Independent native
+observations distinguish selected Master, `IgnoreMaster` and effective public
+assignment. Native `N`-to-`M` story edits, public `M`-to-`N` restoration and public
+apply/reverse/restore assignment saves retain content and the requested relationships
+through native save/reopen. Public outputs convert through PSWriteOffice with the
+existing explicit loss policy. Source assignment comparisons preserve unrelated
+Contents records/streams and directory metadata, with only the control's first
+assignment removing its proven stale thumbnail. The native page comparison retains
+58 pairs at 100 dpi: 44 exact, twelve with the known 351-pixel blue-edge band, and
+two intentional first-page `N`-to-`M` glyph/reflow differences. No unexpected pixel
+differences occur; the overall result remains nonexact. Eight separate managed
+page comparisons against each source's own expected edited or pristine state are
+exact. The [unassigned-page contract](../../../OfficeIMO.Publisher/SUPPORT.md#unassigned-pages-with-one-retained-master)
+keeps zero-master, absent-reference and multiple-master null generation, broader
+layout/appearance and public native creation outside this qualified profile.
 
 The `pairedMixedContentCreation` record extends composition to the qualified
 multiple-master topologies. The `paired-brochure` specimen uses three Letter

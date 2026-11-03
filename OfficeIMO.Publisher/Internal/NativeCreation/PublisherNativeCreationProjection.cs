@@ -211,8 +211,8 @@ internal static class PublisherNativeCreationProjection {
         PublisherPage master = document.MasterPages[0];
         if (document.Pages.Any(page => page.Width != master.Width || page.Height != master.Height))
             throw new NotSupportedException("The single-master specimen requires common page dimensions.");
-        if (document.Pages.Any(page => page.MasterPageId != master.Id))
-            throw new NotSupportedException("The single-master specimen requires that master on every physical page.");
+        if (document.Pages.Any(page => page.MasterPageId.HasValue && page.MasterPageId != master.Id))
+            throw new NotSupportedException("The single-master specimen requires that definition or no applied master on each physical page.");
         return master;
     }
 
@@ -247,6 +247,6 @@ internal static class PublisherNativeCreationProjection {
             throw new NotSupportedException("Native page dimensions require exact positive signed-EMU values.");
         return new PublisherNativeCreationPlan((uint)width, (uint)height, objects, document.Pages.Count,
             new[] { new PublisherNativeCreationMaster("A", master.Name, PublisherMasterPageSide.Single) },
-            Enumerable.Repeat<int?>(0, document.Pages.Count).ToArray());
+            document.Pages.Select(page => page.MasterPageId.HasValue ? (int?)0 : null).ToArray());
     }
 }

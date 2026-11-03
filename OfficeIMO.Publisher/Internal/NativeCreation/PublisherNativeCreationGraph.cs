@@ -100,12 +100,12 @@ internal static class PublisherNativeCreationGraph {
             if (isMaster) fields.Add(PublisherOplWriter.UInt32(3, masterGeometryId + (uint)index, 0x70));
             if (!isMaster) {
                 int physicalIndex = index - masterCount;
-                int? assigned = physicalIndex < specification.PhysicalPageCount && specification.PageMasters != null
-                    ? specification.PageMasters[physicalIndex] : 0;
-                if (assigned.HasValue) {
-                    if (assigned.Value < 0 || assigned.Value >= masterCount) throw new ArgumentException("An applied master is outside the definitions.");
-                    fields.Add(PublisherOplWriter.UInt32(0x0D, firstPageId + (uint)assigned.Value, 0x68));
-                }
+                bool isPhysical = physicalIndex < specification.PhysicalPageCount;
+                int? assigned = isPhysical && specification.PageMasters != null ? specification.PageMasters[physicalIndex] : 0;
+                if (isPhysical && !assigned.HasValue) fields.Add(new byte[] { 7, 8 });
+                int selected = assigned ?? 0; // Suppression retains the sole definition as the selected native master.
+                if (selected < 0 || selected >= masterCount) throw new ArgumentException("An applied master is outside the definitions.");
+                fields.Add(PublisherOplWriter.UInt32(0x0D, firstPageId + (uint)selected, 0x68));
             }
             fields.Add(PublisherOplWriter.Nested(0x0E, 0xC0, Encoding.Unicode.GetBytes((master?.Code ?? string.Empty) + "\0")));
             fields.Add(PublisherOplWriter.Nested(0x0F, 0xC0, Encoding.Unicode.GetBytes((master?.Name ?? string.Empty) + "\0")));
