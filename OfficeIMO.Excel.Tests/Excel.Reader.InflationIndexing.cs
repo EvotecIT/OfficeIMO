@@ -54,11 +54,15 @@ public partial class Excel {
     }
 
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(false, true)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    public void OpenReader_CompressedImplicitRowsPreserveWindowValuesAndValidateLateCells(bool boundedWindow, bool invalidTail) {
+    [InlineData(false, null)]
+    [InlineData(false, "SharedString")]
+    [InlineData(true, null)]
+    [InlineData(true, "SharedString")]
+    [InlineData(false, "Utf8")]
+    [InlineData(false, "XmlControl")]
+    [InlineData(false, "Noncharacter")]
+    [InlineData(false, "NormalizedText")]
+    public void OpenReader_CompressedImplicitRowsPreserveWindowValuesAndValidateLateCells(bool boundedWindow, string? invalidTail) {
         const int count = 6_000;
         string padding = new string('x', 320);
         string path = CreateCompactFastPathWorkbook();
@@ -72,28 +76,46 @@ public partial class Excel {
             xml.Append("</row>");
             for (int row = 1; row <= count; row++) {
                 xml.Append("<row>");
-                if (invalidTail && row == count) xml.Append("<c t=\"s\"><v>2147483647</v></c>");
-                else xml.Append("<c t=\"inlineStr\"><is><t>Label ").Append(row).Append(padding).Append("</t></is></c>");
-                if (row == 1) xml.Append("<c><f>1</f><v>1</v></c>");
+                if (invalidTail == "SharedString" && row == count) xml.Append("<c t=\"s\"><v>2147483647</v></c>");
+                else {
+                    xml.Append("<c t=\"inlineStr\"><is><t>Label ").Append(row).Append(padding);
+                    if (invalidTail == "NormalizedText" && row == count) xml.Append("β&amp;Co&#13;raw\r\nend");
+                    xml.Append("</t></is></c>");
+                }
+                if (row == 1 && boundedWindow) xml.Append("<c><f>1</f><v>1</v></c>");
                 else xml.Append("<c><v>").Append(row).Append("</v></c>");
                 xml.Append("<c s=\"1\"><v>")
                     .Append(45_000 + row % 365).Append("</v></c></row>");
             }
             xml.Append("</sheetData></worksheet>");
-            ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml.ToString()));
+            byte[] bytes = Encoding.UTF8.GetBytes(xml.ToString());
+            if (invalidTail is "Utf8" or "XmlControl" or "Noncharacter") {
+                int tail = Array.LastIndexOf(bytes, (byte)'x');
+                Assert.True(tail >= 2);
+                bytes[tail] = invalidTail == "Utf8" ? (byte)0xff : (byte)0;
+                if (invalidTail == "Noncharacter") {
+                    bytes[tail - 2] = 0xef;
+                    bytes[tail - 1] = 0xbf;
+                    bytes[tail] = 0xbe;
+                }
+            }
+            ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", bytes);
             var options = new ExcelReaderOptions { UseCachedFormulaResult = false };
             if (boundedWindow) {
                 options.MaxDataReaderBufferedCells = 12;
                 options.MaxDataReaderChunkRows = 2;
             }
             using var reader = ExcelDocument.OpenReader(path, options);
-            if (invalidTail) {
-                Assert.Throws<InvalidDataException>(() => reader.Read());
+            if (invalidTail != null && invalidTail != "NormalizedText") {
+                if (invalidTail == "SharedString") Assert.Throws<InvalidDataException>(() => reader.Read());
+                else Assert.Throws<System.Xml.XmlException>(() => reader.Read());
                 return;
             }
             for (int row = 1; row <= count; row++) {
                 Assert.True(reader.Read());
-                Assert.Equal("Label " + row + padding, reader.GetString(0));
+                string expected = "Label " + row + padding;
+                if (invalidTail == "NormalizedText" && row == count) expected += "β&Co\rraw\nend";
+                Assert.Equal(expected, reader.GetString(0));
                 Assert.Equal(row, reader.GetInt32(1));
                 double serial = 45_000 + row % 365;
                 Assert.Equal(ExcelDateSystemConverter.FromSerial(serial, ExcelDateSystem.NineteenHundred), reader.GetDateTime(2));

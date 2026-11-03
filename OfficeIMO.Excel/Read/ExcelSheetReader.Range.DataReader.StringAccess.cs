@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
 
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
@@ -7,6 +8,7 @@ namespace OfficeIMO.Excel {
             /// Loads qualified indexed text into the ordinary current-value cache
             /// without dispatching through numeric, date, or formula conversions.
             /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private bool TryGetUnloadedString(int ordinal, out string value) {
                 EnsureOpenRow();
                 if ((uint)ordinal >= (uint)_fieldCount) {
@@ -32,6 +34,7 @@ namespace OfficeIMO.Excel {
             /// Reads only qualified text cells using the existing XML normalization
             /// and shared-string decoding. Other cell kinds retain value dispatch.
             /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             internal bool TryGetString(int ordinal, out string value) {
                 EnsureNotDisposed();
                 value = string.Empty;

@@ -30,6 +30,7 @@ namespace OfficeIMO.Excel {
                                 _inflation = progress
                             };
                             candidate._length = progress.WaitForMore(0, ct);
+                            candidate.ValidateProducedCanonicalText(ct);
                             return candidate.TryPrepareUsedRange(ct, allowUnknownRows: true, out column);
                         }, out buffer, out length, out bool qualified);
                     if (!attempted) return false;
@@ -80,6 +81,7 @@ namespace OfficeIMO.Excel {
                 int available = _inflation.WaitForMore(_length, ct);
                 if (available <= _length) return false;
                 _length = available;
+                ValidateProducedCanonicalText(ct);
                 return true;
             }
 
