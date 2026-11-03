@@ -195,7 +195,8 @@ namespace OfficeIMO.PowerPoint {
             int existingColumns = Columns;
             var regions = CaptureMergeRegions();
             var templateVerticalRegions = regions
-                .Where(region => region.Column == templateColumnIndex && region.RowSpan > 1)
+                .Where(region => region.Column <= templateColumnIndex &&
+                    templateColumnIndex < region.Column + region.ColumnSpan && region.RowSpan > 1)
                 .Select(region => (region.Row, region.Column, region.RowSpan, ColumnSpan: 1))
                 .ToList();
             A.GridColumn templateColumn = grid.Elements<A.GridColumn>().ElementAt(templateColumnIndex);

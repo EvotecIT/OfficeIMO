@@ -90,10 +90,15 @@ namespace OfficeIMO.Tests {
             rectangleRows.AddRowFromTemplate(0);
             Assert.Equal("2x2 h / v hv / 1x2 h", Shape(rectangleRows));
 
-            PowerPointTable rectangleColumns = Table(document.Slides[0], 2, 2);
-            rectangleColumns.MergeCells(0, 0, 1, 1);
-            rectangleColumns.AddColumnFromTemplate(0);
-            Assert.Equal("2x2 h 2x1 / v hv v", Shape(rectangleColumns));
+            foreach (int templateColumn in new[] { 0, 1 }) {
+                PowerPointTable rectangleColumns = Table(document.Slides[0], 2, 2);
+                rectangleColumns.MergeCells(0, 0, 1, 1);
+                rectangleColumns.AddColumnFromTemplate(templateColumn);
+                Assert.Equal("2x2 h 2x1 / v hv v", Shape(rectangleColumns));
+            }
+
+            using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
+            Assert.Equal("2x2 h 2x1 / v hv v", Shape(saved.Slides[0].Tables.Last()));
         }
 
         [Fact]
