@@ -167,7 +167,7 @@ public partial class Excel {
             string xml = ImplicitQualificationWorksheet(ImplicitQualificationHeader + ImplicitQualificationRows + lateRow, footer);
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
 
-            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
         } finally {
             File.Delete(path);
         }
@@ -185,7 +185,7 @@ public partial class Excel {
             string xml = ImplicitQualificationWorksheet(ImplicitQualificationHeader + ImplicitQualificationRows + "<row>" + cell + "</row>");
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
 
-            Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+            Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
         } finally {
             File.Delete(path);
         }
@@ -202,7 +202,7 @@ public partial class Excel {
                 + "<row><c " + attributes + ">" + content + "</c></row>");
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
 
-            Assert.Throws(error, () => { using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { UseCachedFormulaResult = false }); _ = reader.FieldCount; });
+            Assert.Throws(error, () => { using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { UseCachedFormulaResult = false }); while (reader.Read()) { } });
         } finally {
             File.Delete(path);
         }
@@ -220,7 +220,7 @@ public partial class Excel {
             if (columnBudget) options.MaxDataReaderColumns = 2;
             else options.MaxDataReaderBufferedCells = 2;
 
-            var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => { using var reader = ExcelDocument.OpenReader(path, options); _ = reader.FieldCount; });
+            var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => { using var reader = ExcelDocument.OpenReader(path, options); while (reader.Read()) { } });
             Assert.Equal("excel", error.Owner); Assert.Equal(2, error.Maximum);
             Assert.Equal(columnBudget ? nameof(ExcelReaderOptions.MaxDataReaderColumns) : nameof(ExcelReaderOptions.MaxDataReaderBufferedCells), error.LimitName);
         } finally {
@@ -238,7 +238,7 @@ public partial class Excel {
             string xml = ImplicitQualificationWorksheet(row.ToString());
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
 
-            Assert.Throws<ArgumentException>(() => { using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { HasHeaderRow = false }); _ = reader.FieldCount; });
+            Assert.Throws<ArgumentException>(() => { using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { HasHeaderRow = false }); while (reader.Read()) { } });
         } finally {
             File.Delete(path);
         }
@@ -253,7 +253,7 @@ public partial class Excel {
             byte[] package = File.ReadAllBytes(path);
             OpenXmlPartLengthTests.SetDeclaredLength(package, "xl/worksheets/sheet1.xml", xml.Length + 1);
 
-            Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(package); _ = reader.FieldCount; });
+            Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(package); while (reader.Read()) { } });
         } finally {
             File.Delete(path);
         }

@@ -60,7 +60,7 @@ public partial class Excel {
         }
         Assert.Equal(expected, materialized);
         InvalidDataException error = Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(package,
-            new ExcelReaderOptions { MaxSharedStringCharacters = characters - 1 }); _ = reader.FieldCount; });
+            new ExcelReaderOptions { MaxSharedStringCharacters = characters - 1 }); while (reader.Read()) { } });
         Assert.Contains("aggregate limit", error.Message);
     }
 
@@ -137,9 +137,9 @@ public partial class Excel {
         if (failure == "ItemLimit") options.MaxSharedStringItemCharacters = 8;
         if (failure == "AggregateLimit") options.MaxSharedStringCharacters = characters + 8;
         if (failure == "Truncated") {
-            Assert.Throws<EndOfStreamException>(() => { using var reader = ExcelDocument.OpenReader(package, options); _ = reader.FieldCount; });
+            Assert.Throws<EndOfStreamException>(() => { using var reader = ExcelDocument.OpenReader(package, options); while (reader.Read()) { } });
         } else {
-            InvalidDataException error = Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(package, options); _ = reader.FieldCount; });
+            InvalidDataException error = Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(package, options); while (reader.Read()) { } });
             Assert.Contains(failure == "ItemLimit" ? "configured limit" : "aggregate limit", error.Message);
         }
     }
@@ -227,7 +227,7 @@ public partial class Excel {
             using Stream output = zip.CreateEntry("xl/styles.bin").Open();
             output.WriteByte(0x80);
         }
-        Assert.Throws<EndOfStreamException>(() => { using var reader = ExcelDocument.OpenReader(stream.ToArray(), new ExcelReaderOptions()); _ = reader.FieldCount; });
+        Assert.Throws<EndOfStreamException>(() => { using var reader = ExcelDocument.OpenReader(stream.ToArray(), new ExcelReaderOptions()); while (reader.Read()) { } });
     }
 
     private static byte[] CreateSstWorkbook(bool largeTable, bool repeatFirstValue = false) {

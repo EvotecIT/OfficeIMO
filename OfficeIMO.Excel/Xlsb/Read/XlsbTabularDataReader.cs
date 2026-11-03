@@ -49,15 +49,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private readonly string?[] _strings;
         private readonly object?[] _customValues;
         private readonly int _firstColumn;
-        private readonly int _lastDataRow;
         private readonly CancellationToken _cancellationToken;
         private CancellationToken _activeReadCancellationToken;
+        private readonly XlsbRecordReadBudget _recordBudget;
+        private readonly XlsbCellReadBudget _cellBudget;
         private readonly XlsbLogicalRowReadBudget _logicalRowBudget;
-        private readonly XlsbValidatedRowPlan? _validatedRowPlan;
         private bool _closed;
         private bool _hasPendingRow;
         private bool _hasCurrentRow;
-        private bool _reachedEndSheetData;
         private readonly bool _hasRows;
         private int _pendingRowIndex;
         private int _nextLogicalRowIndex;
@@ -106,9 +105,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _uses1904DateSystem = uses1904DateSystem;
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _limits = limits ?? throw new ArgumentNullException(nameof(limits));
-            if (cellBudget == null) {
-                throw new ArgumentNullException(nameof(cellBudget));
-            }
+            _recordBudget = recordBudget ?? throw new ArgumentNullException(nameof(recordBudget));
+            _cellBudget = cellBudget ?? throw new ArgumentNullException(nameof(cellBudget));
             _logicalRowBudget = logicalRowBudget ?? throw new ArgumentNullException(nameof(logicalRowBudget));
             _cancellationToken = cancellationToken;
             _activeReadCancellationToken = cancellationToken;
@@ -117,95 +115,50 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 throw new ArgumentNullException(nameof(worksheetPart));
             }
 
-            int actualFirstColumn = int.MaxValue;
-            int actualLastColumn = -1;
-            int actualFirstDataRow = -1;
-            int actualLastDataRow = -1;
-            try {
-                AcquireSharedStringReference();
-                DiscoverDataColumns(
-                    worksheetPart,
-                    limits,
-                    recordBudget,
-                    cellBudget,
-                    dateStyles,
-                    sharedStrings.Count,
-                    options.TreatDatesUsingNumberFormat,
-                    options.UseCachedFormulaResult,
-                    cancellationToken,
-                    out actualFirstColumn,
-                    out actualLastColumn,
-                    out actualFirstDataRow,
-                    out actualLastDataRow,
-                    out _validatedRowPlan);
-            } catch {
-                worksheetPart.Dispose();
-                ReleaseSharedStringReference();
-                throw;
-            }
-
-            // Discovery validates the complete immutable worksheet before the reader is exposed.
-            // The delivery pass can therefore decode it without repeating those same checks.
-            var records = new XlsbRecordSliceReader(
+            // Records are validated as the reader reaches them; this cursor only carries the
+            // position, and budgets are charged by the validating scan.
+            _records = new XlsbRecordSliceReader(
                 worksheetPart.Buffer,
                 limits.MaxRecordBytes,
-                recordBudget ?? throw new ArgumentNullException(nameof(recordBudget)),
+                recordBudget,
                 worksheetPart.DataLength,
                 consumeRecordBudget: false);
-            _records = records;
             _worksheetPart = worksheetPart;
-            _lastDataRow = actualLastDataRow;
             try {
-                FindSheetData(
-                    actualFirstDataRow,
-                    out int dimensionFirstColumn,
-                    out int dimensionLastColumn);
+                AcquireSharedStringReference();
+                cancellationToken.ThrowIfCancellationRequested();
+
+                // The schema is fixed before the first row: the declared dimension, widened by
+                // the header row, or without one by the first populated row.
+                LocatePendingRow();
                 Dictionary<int, string?>? headerValues = null;
+                int schemaFirstColumn = _dimensionFirstColumn;
+                int schemaLastColumn = _dimensionLastColumn;
                 if (hasHeaderRow && _hasPendingRow) {
                     _logicalRowBudget.Consume();
                     int headerRowIndex = _pendingRowIndex;
-                    headerValues = ReadHeaderRow();
-                    if (_hasPendingRow && _pendingRowIndex <= headerRowIndex) {
-                        throw new InvalidDataException(
-                            $"The XLSB worksheet contains non-increasing row index {_pendingRowIndex} after header row {headerRowIndex}.");
+                    headerValues = ReadHeaderRowCells();
+                    foreach (int column in headerValues.Keys) {
+                        schemaFirstColumn = Math.Min(schemaFirstColumn, column);
+                        schemaLastColumn = Math.Max(schemaLastColumn, column);
                     }
+
+                    LocatePendingRow();
                     _nextLogicalRowIndex = checked(headerRowIndex + 1);
                 } else if (_hasPendingRow) {
+                    PeekPendingRowColumns(out int rowFirstColumn, out int rowLastColumn);
+                    schemaFirstColumn = Math.Min(schemaFirstColumn, rowFirstColumn);
+                    schemaLastColumn = Math.Max(schemaLastColumn, rowLastColumn);
                     _nextLogicalRowIndex = _pendingRowIndex;
                 }
 
                 _hasRows = _hasPendingRow;
-                int headerFirstColumn = headerValues != null && headerValues.Count > 0
-                    ? headerValues.Keys.Min()
-                    : int.MaxValue;
-                int headerLastColumn = headerValues != null && headerValues.Count > 0
-                    ? headerValues.Keys.Max()
-                    : -1;
-                int firstColumn = dimensionLastColumn >= dimensionFirstColumn
-                    ? dimensionFirstColumn
-                    : int.MaxValue;
-                if (headerFirstColumn != int.MaxValue) {
-                    firstColumn = Math.Min(firstColumn, headerFirstColumn);
-                }
-                if (actualFirstColumn != int.MaxValue) {
-                    firstColumn = Math.Min(firstColumn, actualFirstColumn);
-                }
-                if (firstColumn == int.MaxValue) {
-                    firstColumn = 0;
-                }
-
-                int lastColumn = Math.Max(
-                    headerLastColumn,
-                    actualLastColumn);
-                if (lastColumn < 0 && dimensionLastColumn >= dimensionFirstColumn) {
-                    lastColumn = dimensionLastColumn;
-                }
+                int firstColumn = schemaFirstColumn;
+                int lastColumn = schemaLastColumn;
                 _firstColumn = firstColumn;
                 int fieldCount = lastColumn >= firstColumn
                     ? checked(lastColumn - firstColumn + 1)
-                    : headerValues == null || headerValues.Count == 0
-                        ? 0
-                        : checked(headerValues.Keys.Max() - firstColumn + 1);
+                    : 0;
                 if (fieldCount > _options.MaxDataReaderColumns) {
                     throw new InvalidDataException(
                         $"XLSB table column count {fieldCount} exceeds the configured limit of {_options.MaxDataReaderColumns}.");
@@ -289,13 +242,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         private bool ReadSourceRow() {
             ResetUtf8TextState();
+            if (!_pendingRowLocated) {
+                LocatePendingRow();
+            }
             if (!_hasPendingRow) {
-                if (_reachedEndSheetData) {
-                    return false;
-                }
-
-                throw new InvalidDataException(
-                    "The XLSB worksheet ended before the required BrtEndSheetData record.");
+                return false;
             }
 
             // Typed span clears avoid the general Array.Clear dispatch on every row.
@@ -304,31 +255,18 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             if (_options.CellValueConverter != null) {
                 _customValues.AsSpan().Clear();
             }
+            _logicalRowBudget.Consume();
             if (_nextLogicalRowIndex < _pendingRowIndex) {
-                _logicalRowBudget.Consume();
+                // A missing or empty row between populated rows.
                 _nextLogicalRowIndex++;
                 _hasCurrentRow = true;
                 return true;
             }
 
             int currentRowIndex = _pendingRowIndex;
-            _logicalRowBudget.Consume();
-            _hasPendingRow = false;
-            bool reachedRowBoundary = _options.CellValueConverter == null
-                ? TryReadValidatedRowPlan(currentRowIndex) || ReadCurrentRowRecordsFast()
-                : ReadCurrentRowRecordsConverted();
-
-            if (!reachedRowBoundary) {
-                throw new InvalidDataException(
-                    "The XLSB worksheet ended before the required BrtEndSheetData record.");
-            }
-
+            ReadPendingRowCells();
+            _pendingRowLocated = false;
             _nextLogicalRowIndex = checked(currentRowIndex + 1);
-            if (_hasPendingRow && _pendingRowIndex <= currentRowIndex) {
-                throw new InvalidDataException(
-                    $"The XLSB worksheet contains non-increasing row index {_pendingRowIndex} after row {currentRowIndex}.");
-            }
-
             _hasCurrentRow = true;
             return true;
         }
@@ -355,102 +293,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             base.Dispose(disposing);
         }
 
-        private void FindSheetData(
-            int firstDataRow,
-            out int firstColumn,
-            out int lastColumn) {
-            firstColumn = 0;
-            lastColumn = -1;
-            bool inSheetData = false;
-            bool sawDimension = false;
-            while (_records.TryReadValidated(out XlsbRecordSlice record)) {
-                CheckCancellation();
-                if (record.Type == BrtWsDim) {
-                    if (sawDimension) {
-                        throw new InvalidDataException(
-                            "The XLSB worksheet contains more than one BrtWsDim record.");
-                    }
-                    if (inSheetData) {
-                        throw new InvalidDataException(
-                            "The XLSB worksheet contains a misplaced BrtWsDim record.");
-                    }
-                    sawDimension = true;
-                    ReadWorksheetDimension(record, out firstColumn, out lastColumn);
-                } else if (record.Type == BrtBeginSheetData) {
-                    if (!sawDimension) {
-                        throw new InvalidDataException(
-                            "The XLSB worksheet is missing the required BrtWsDim record before BrtBeginSheetData.");
-                    }
-                    inSheetData = true;
-                } else if (inSheetData && record.Type == BrtRowHdr) {
-                    int rowIndex = ReadValidatedRowIndex(record);
-                    if (rowIndex == firstDataRow) {
-                        _pendingRowIndex = rowIndex;
-                        _hasPendingRow = true;
-                        return;
-                    }
-                } else if (inSheetData && record.Type == BrtEndSheetData) {
-                    _reachedEndSheetData = true;
-                    return;
-                }
-            }
-
-            if (inSheetData) {
-                throw new InvalidDataException(
-                    "The XLSB worksheet ended before the required BrtEndSheetData record.");
-            }
-            if (!sawDimension) {
-                throw new InvalidDataException(
-                    "The XLSB worksheet is missing the required BrtWsDim record.");
-            }
-        }
-
-        private Dictionary<int, string?> ReadHeaderRow() {
-            var values = new Dictionary<int, string?>();
-            _hasPendingRow = false;
-            while (_records.TryReadValidated(out XlsbRecordSlice record)) {
-                CheckCancellation();
-                if (record.Type == BrtRowHdr) {
-                    if (TrySetPendingRow(record)) {
-                        break;
-                    }
-
-                    continue;
-                }
-
-                if (record.Type == BrtEndSheetData) {
-                    _reachedEndSheetData = true;
-                    break;
-                }
-
-                if (!IsCellRecord(record.Type)) {
-                    continue;
-                }
-
-                DecodedCell cell = DecodeCell(record);
-                values[cell.Column] = CellToHeaderText(cell);
-            }
-
-            if (!_hasPendingRow && !_reachedEndSheetData) {
-                throw new InvalidDataException(
-                    "The XLSB worksheet ended before the required BrtEndSheetData record.");
-            }
-
-            return values;
-        }
-
-        private void StoreCell(XlsbRecordSlice record) {
-            if (_options.CellValueConverter == null) {
-                StoreCellFast(record);
-                return;
-            }
-
+        /// <summary>Stores a validated cell through the configured cell-value converter.</summary>
+        private void StoreCell(XlsbRecordSlice record, int ordinal) {
             DecodedCell cell = DecodeCell(record);
-            int ordinal = cell.Column - _firstColumn;
-            if (ordinal < 0 || ordinal >= FieldCount) {
-                throw new InvalidDataException(
-                    $"The XLSB row contains column {cell.Column} outside the schema established by its header or worksheet dimension.");
-            }
 
             _kinds[ordinal] = cell.Kind;
             switch (cell.Kind) {
@@ -644,20 +489,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     "XLSB formula-token projection is not supported when cached formula results are disabled.");
             }
         }
-
-        private bool TrySetPendingRow(XlsbRecordSlice record) {
-            int rowIndex = ReadValidatedRowIndex(record);
-            if (rowIndex > _lastDataRow) {
-                return false;
-            }
-
-            _pendingRowIndex = rowIndex;
-            _hasPendingRow = true;
-            return true;
-        }
-
-        private static int ReadValidatedRowIndex(XlsbRecordSlice record) =>
-            checked((int)record.CreateCursor().ReadUInt32());
 
         private void CheckCancellation() {
             if (!CanCancelCurrentRead) {

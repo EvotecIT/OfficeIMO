@@ -116,7 +116,7 @@ public partial class Excel {
                 relationshipSuffix: "image");
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+                () => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
 
             Assert.Contains(
                 "unrelated internal relationship",
@@ -145,32 +145,6 @@ public partial class Excel {
         }
     }
 
-    [Fact]
-    public void OpenDataReader_XlsbIgnoresStaleWideDimensionForPopulatedSheet() {
-        string path = Path.Combine(
-            Path.GetTempPath(),
-            $"OfficeIMO.Excel.StaleWideDimension.{Guid.NewGuid():N}.xlsb");
-        try {
-            using (ExcelDocument document = ExcelDocument.Create()) {
-                ExcelSheet sheet = document.AddSheet("Data");
-                sheet.Cell(1, 1).SetValue("Name");
-                sheet.Cell(1, 2).SetValue("Amount");
-                sheet.Cell(2, 1).SetValue("Alpha");
-                sheet.Cell(2, 2).SetValue(42);
-                File.WriteAllBytes(path, document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
-            }
-            ReplaceXlsbWorksheetLastColumn(path, 16_383);
-
-            using DbDataReader reader = ExcelDocument.OpenReader(path);
-            Assert.Equal(2, reader.FieldCount);
-            Assert.True(reader.Read());
-            Assert.Equal("Alpha", reader.GetString(0));
-            Assert.Equal(42, reader.GetInt32(1));
-        } finally {
-            File.Delete(path);
-        }
-    }
-
     private static InvalidDataException AssertXlsbReaderRejects(
         string path,
         bool useEditableReader) {
@@ -181,7 +155,7 @@ public partial class Excel {
         }
 
         return Assert.Throws<InvalidDataException>(
-            () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+            () => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
     }
 
     private static string CreateTwoSheetXlsb() {

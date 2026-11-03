@@ -88,7 +88,7 @@ public partial class Excel {
                 Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes(xml)).ToArray());
             var exception = Assert.Throws<InvalidDataException>(() => {
                 using var reader = ExcelDocument.OpenReader(path);
- _ = reader.FieldCount;             });
+ while (reader.Read()) { }             });
             Assert.Contains($"cell {expected} references a missing cell style", exception.Message);
         } finally {
             File.Delete(path);
@@ -115,7 +115,7 @@ public partial class Excel {
                 Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes(xml)).ToArray());
             var exception = Record.Exception(() => {
                 using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { UseCachedFormulaResult = false });
- _ = reader.FieldCount;             });
+ while (reader.Read()) { }             });
             if (failure == "formula") {
                 Assert.IsType<NotSupportedException>(exception);
                 Assert.Contains($"'Data'!{reference}", exception!.Message);

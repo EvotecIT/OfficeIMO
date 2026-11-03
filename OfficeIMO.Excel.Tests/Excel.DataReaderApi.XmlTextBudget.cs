@@ -235,7 +235,7 @@ namespace OfficeIMO.Excel.Tests {
                 AssertXmlTextBudgetFailure(() => {
                     using DbDataReader reader = ExcelDocument.OpenReader(path,
                         new ExcelReaderOptions { MaxXmlDataReaderBufferedCharacters = index.Length - 1 });
- _ = reader.FieldCount;                 });
+ while (reader.Read()) { }                 });
             } finally {
                 File.Delete(path);
             }
@@ -272,7 +272,7 @@ namespace OfficeIMO.Excel.Tests {
                 AssertXmlTextBudgetFailure(() => {
                     using DbDataReader reader = ExcelDocument.OpenReader(path,
                         new ExcelReaderOptions { MaxXmlDataReaderBufferedCharacters = whitespace.Length - 1 });
- _ = reader.FieldCount;                 });
+ while (reader.Read()) { }                 });
             } finally {
                 File.Delete(path);
             }
@@ -342,7 +342,7 @@ namespace OfficeIMO.Excel.Tests {
                 AssertXmlTextBudgetFailure(() => {
                     using DbDataReader reader = ExcelDocument.OpenReader(path,
                         new ExcelReaderOptions { MaxXmlDataReaderBufferedCharacters = 5 });
- _ = reader.FieldCount;                 });
+ while (reader.Read()) { }                 });
             } finally {
                 File.Delete(path);
             }
@@ -371,7 +371,7 @@ namespace OfficeIMO.Excel.Tests {
                 AssertXmlTextBudgetFailure(() => {
                     using DbDataReader reader = ExcelDocument.OpenReader(path,
                         new ExcelReaderOptions { MaxXmlDataReaderBufferedCharacters = 7 });
- _ = reader.FieldCount;                 });
+ while (reader.Read()) { }                 });
             } finally {
                 File.Delete(path);
             }

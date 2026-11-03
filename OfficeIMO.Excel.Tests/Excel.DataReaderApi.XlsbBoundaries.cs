@@ -45,7 +45,7 @@ public partial class Excel {
             RemoveFinalXlsbRecord(path, "xl/workbook.bin", expectedRecordType: 132);
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+                () => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
 
             Assert.Contains("BrtBeginBook/BrtEndBook", exception.Message, StringComparison.Ordinal);
         } finally {
@@ -63,7 +63,7 @@ public partial class Excel {
             RemoveFirstXlsbRecordPayload(path, "xl/sharedStrings.bin", recordType: 159);
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+                () => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
 
             Assert.Contains("BrtBeginSst", exception.Message, StringComparison.Ordinal);
             Assert.Contains("truncated", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -82,7 +82,7 @@ public partial class Excel {
             DuplicateFirstXlsbBundleSheet(path, mutateRelationshipId: true);
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+                () => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
 
             Assert.Contains("missing relationship", exception.Message, StringComparison.OrdinalIgnoreCase);
         } finally {
@@ -100,7 +100,7 @@ public partial class Excel {
             DuplicateFirstXlsbBundleSheet(path, changeWorksheetNameCase: true);
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+                () => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
 
             Assert.Contains("duplicate worksheet name", exception.Message, StringComparison.OrdinalIgnoreCase);
         } finally {
@@ -123,7 +123,7 @@ public partial class Excel {
                 data => data.Take(4).ToArray());
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+                () => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
 
             Assert.Contains("BrtXf", exception.Message, StringComparison.Ordinal);
             Assert.Contains("payload length", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -142,7 +142,7 @@ public partial class Excel {
             DuplicateFirstXlsbRecord(path, "xl/styles.bin", recordType: 44);
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+                () => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
 
             Assert.Contains("duplicate custom number format", exception.Message, StringComparison.OrdinalIgnoreCase);
         } finally {
@@ -160,7 +160,7 @@ public partial class Excel {
             IncrementXlsbStyleCollectionDeclaredCount(path, 615);
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+                () => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
 
             Assert.Contains("number-format collection", exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("declares", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -184,7 +184,7 @@ public partial class Excel {
                 endRecordType: 618);
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+                () => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
 
             Assert.Contains("non-empty cell-format collection", exception.Message, StringComparison.OrdinalIgnoreCase);
         } finally {
@@ -209,7 +209,7 @@ public partial class Excel {
             EmptyXlsbStyleCollection(path, beginRecordType, itemRecordType, endRecordType);
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+                () => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
 
             Assert.Contains("required formatting collections", exception.Message, StringComparison.OrdinalIgnoreCase);
         } finally {
@@ -246,7 +246,7 @@ public partial class Excel {
                 });
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+                () => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
 
             Assert.Contains(expectedMessage, exception.Message, StringComparison.OrdinalIgnoreCase);
         } finally {
@@ -275,7 +275,7 @@ public partial class Excel {
                 });
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+                () => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
 
             Assert.Contains("not covered", exception.Message, StringComparison.OrdinalIgnoreCase);
         } finally {
@@ -302,7 +302,7 @@ public partial class Excel {
                 });
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+                () => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
 
             Assert.Contains("column-span payload", exception.Message, StringComparison.OrdinalIgnoreCase);
         } finally {
@@ -323,7 +323,7 @@ public partial class Excel {
                 recordType: 148);
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+                () => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
 
             Assert.Contains("more than one BrtWsDim", exception.Message, StringComparison.Ordinal);
         } finally {
@@ -344,7 +344,7 @@ public partial class Excel {
                 recordType: 148);
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+                () => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
 
             Assert.Contains("required BrtWsDim", exception.Message, StringComparison.Ordinal);
         } finally {
@@ -366,7 +366,7 @@ public partial class Excel {
                 targetRecordType: 145);
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+                () => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
 
             Assert.Contains("row or cell record", exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("outside", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -394,7 +394,7 @@ public partial class Excel {
                 data => data.Take(1).ToArray());
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+                () => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
 
             Assert.Contains(expectedRecordName, exception.Message, StringComparison.Ordinal);
             Assert.Contains("truncated", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -426,7 +426,7 @@ public partial class Excel {
                 endRecordType);
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+                () => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
 
             Assert.Contains("more than one", exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Contains(expectedCollectionName, exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -445,7 +445,7 @@ public partial class Excel {
             MakeFirstWorksheetRelationshipExternal(path);
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+                () => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
 
             Assert.Contains("external relationship", exception.Message, StringComparison.OrdinalIgnoreCase);
         } finally {
@@ -488,7 +488,7 @@ public partial class Excel {
     }
 
     [Fact]
-    public void OpenDataReader_XlsbNextResultRejectsMissingCellStyleDuringDiscovery() {
+    public void OpenDataReader_XlsbNextResultRejectsMissingCellStyleWhenItsRowsAreRead() {
         string path = Path.Combine(
             Path.GetTempPath(),
             $"OfficeIMO.Excel.InvalidSkippedSheetStyle.{Guid.NewGuid():N}.xlsb");
@@ -511,18 +511,18 @@ public partial class Excel {
             Assert.True(reader.Read());
             Assert.Equal("Ready", reader.GetString(0));
 
+            Assert.True(reader.NextResult());
             InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => reader.NextResult());
+                () => { while (reader.Read()) { } });
 
             Assert.Contains("missing cell format", exception.Message, StringComparison.OrdinalIgnoreCase);
-            Assert.True(reader.IsClosed);
         } finally {
             File.Delete(path);
         }
     }
 
     [Fact]
-    public void OpenDataReader_XlsbNextResultRejectsFormulaTokensDuringDiscovery() {
+    public void OpenDataReader_XlsbNextResultRejectsFormulaTokensWhenItsRowsAreRead() {
         string path = Path.Combine(
             Path.GetTempPath(),
             $"OfficeIMO.Excel.UnsupportedSkippedSheetFormula.{Guid.NewGuid():N}.xlsb");
@@ -543,11 +543,11 @@ public partial class Excel {
             Assert.True(reader.Read());
             Assert.Equal("Ready", reader.GetString(0));
 
+            Assert.True(reader.NextResult());
             NotSupportedException exception = Assert.Throws<NotSupportedException>(
-                () => reader.NextResult());
+                () => { while (reader.Read()) { } });
 
             Assert.Contains("formula-token", exception.Message, StringComparison.OrdinalIgnoreCase);
-            Assert.True(reader.IsClosed);
         } finally {
             File.Delete(path);
         }

@@ -21,7 +21,7 @@ public partial class Excel {
                 """;
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
             Assert.Throws<ArgumentException>(() => { using var reader = ExcelDocument.OpenReader(
-                path, new ExcelReaderOptions { HasHeaderRow = hasHeaderRow }); _ = reader.FieldCount; });
+                path, new ExcelReaderOptions { HasHeaderRow = hasHeaderRow }); while (reader.Read()) { } });
         } finally {
             File.Delete(path);
         }
@@ -112,7 +112,7 @@ public partial class Excel {
                 </sheetData></worksheet>
                 """;
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
-            Assert.Throws(error, () => { using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { UseCachedFormulaResult = false }); _ = reader.FieldCount; });
+            Assert.Throws(error, () => { using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { UseCachedFormulaResult = false }); while (reader.Read()) { } });
         } finally {
             File.Delete(path);
         }
@@ -126,7 +126,7 @@ public partial class Excel {
                 .Replace("<dimension ref=\"A1:C3\"/>", string.Empty)
                 .Replace("</worksheet>", "<broken></worksheet>");
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
-            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
+            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
         } finally {
             File.Delete(path);
         }

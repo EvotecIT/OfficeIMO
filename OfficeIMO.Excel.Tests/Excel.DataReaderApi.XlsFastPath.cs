@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
                         InferSchema = true,
                         SchemaSampleRows = 2,
                         MaxDataReaderSchemaSampleRows = 1
-                    }); _ = reader.FieldCount; });
+                    }); while (reader.Read()) { } });
             Assert.Contains("Schema sample row count", rowLimit.Message, StringComparison.Ordinal);
 
             InvalidOperationException cellLimit = Assert.Throws<InvalidOperationException>(() =>
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
                         InferSchema = true,
                         SchemaSampleRows = 2,
                         MaxDataReaderBufferedCells = 3
-                    }); _ = reader.FieldCount; });
+                    }); while (reader.Read()) { } });
             Assert.Contains("buffer", cellLimit.Message, StringComparison.OrdinalIgnoreCase);
         }
 
@@ -152,13 +152,13 @@ namespace OfficeIMO.Tests {
 
             Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(
                 compound,
-                new ExcelReaderOptions { MaxSharedStringItems = 1 }); _ = reader.FieldCount; });
+                new ExcelReaderOptions { MaxSharedStringItems = 1 }); while (reader.Read()) { } });
             Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(
                 compound,
-                new ExcelReaderOptions { MaxSharedStringItemCharacters = 5 }); _ = reader.FieldCount; });
+                new ExcelReaderOptions { MaxSharedStringItemCharacters = 5 }); while (reader.Read()) { } });
             Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(
                 compound,
-                new ExcelReaderOptions { MaxSharedStringCharacters = 8 }); _ = reader.FieldCount; });
+                new ExcelReaderOptions { MaxSharedStringCharacters = 8 }); while (reader.Read()) { } });
         }
 
         [Fact]
@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests {
                 InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
 { using var reader = ExcelDocument.OpenReader(
                         path,
-                        new ExcelReaderOptions { MaxInputBytes = compound.LongLength - 1L }); _ = reader.FieldCount; });
+                        new ExcelReaderOptions { MaxInputBytes = compound.LongLength - 1L }); while (reader.Read()) { } });
 
                 Assert.Contains("exceeding the configured limit", exception.Message, StringComparison.OrdinalIgnoreCase);
             } finally {
@@ -191,7 +191,7 @@ namespace OfficeIMO.Tests {
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
 { using var reader = ExcelDocument.OpenReader(
                     compound,
-                    new ExcelReaderOptions { HasHeaderRow = false }); _ = reader.FieldCount; });
+                    new ExcelReaderOptions { HasHeaderRow = false }); while (reader.Read()) { } });
 
             Assert.Contains("required String record", exception.Message, StringComparison.Ordinal);
         }
