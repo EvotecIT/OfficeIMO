@@ -1,5 +1,6 @@
 using OfficeIMO.Core.Internal;
 using System.Data.Common;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Xml;
 using System.Xml.Linq;
@@ -155,7 +156,10 @@ namespace OfficeIMO.Excel {
         // retain their existing execution and callback-thread behavior.
         private static bool CanPipelineWorksheetIndex(ExcelReaderOptions options) {
 #if NET8_0_OR_GREATER
-            return !options.EnableWorksheetPrefetch && options.A1Range == null
+            // WebAssembly may schedule the worker on this same event loop and
+            // cannot synchronously join it. Keep its fully validated serial path.
+            return RuntimeInformation.ProcessArchitecture != Architecture.Wasm
+                && !options.EnableWorksheetPrefetch && options.A1Range == null
                 && options.Execution.Mode != ExcelExecutionMode.Sequential
                 && (options.Execution.MaxDegreeOfParallelism ?? 2) > 1
                 && options.Execution.OnDecision == null && options.Execution.OnTiming == null
