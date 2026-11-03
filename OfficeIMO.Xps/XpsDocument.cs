@@ -41,7 +41,7 @@ public sealed partial class XpsDocument {
         return result;
     }
     /// <summary>Loads from a file without retaining handles.</summary>
-    public static XpsDocument Load(string path, XpsReadOptions? options = null, CancellationToken cancellationToken = default) {
+    public static XpsDocument Load(string path, XpsLoadOptions? options = null, CancellationToken cancellationToken = default) {
         string fullPath = Path.GetFullPath(path);
         using var stream = File.OpenRead(fullPath);
         var document = Load(stream, options, cancellationToken);
@@ -49,15 +49,15 @@ public sealed partial class XpsDocument {
         return document;
     }
     /// <summary>Loads from bytes with bounded package and XML expansion.</summary>
-    public static XpsDocument Load(byte[] bytes, XpsReadOptions? options = null, CancellationToken cancellationToken = default) {
+    public static XpsDocument Load(byte[] bytes, XpsLoadOptions? options = null, CancellationToken cancellationToken = default) {
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
         using var stream = new MemoryStream(bytes, false);
         return Load(stream, options, cancellationToken);
     }
     /// <summary>Reads from the current position to EOF. The caller's stream remains open; non-seekable streams are supported.</summary>
-    public static XpsDocument Load(Stream stream, XpsReadOptions? options = null, CancellationToken cancellationToken = default) {
+    public static XpsDocument Load(Stream stream, XpsLoadOptions? options = null, CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
-        var limits = (options ?? new XpsReadOptions()).SnapshotLimits();
+        var limits = (options ?? new XpsLoadOptions()).SnapshotLimits();
         using var input = new MemoryStream();
         var buffer = new byte[81920];
         while (true) {

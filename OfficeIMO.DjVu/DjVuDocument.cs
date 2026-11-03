@@ -5,10 +5,10 @@ namespace OfficeIMO.DjVu;
 
 /// <summary>An owned, immutable snapshot of a DjVu document and its explicitly resolved components.</summary>
 public sealed class DjVuDocument {
-    internal readonly DjVuReadOptions ReadOptions;
+    internal readonly DjVuLoadOptions ReadOptions;
     internal readonly Dictionary<string, DjVuComponent> Components;
     private readonly Dictionary<string, IReadOnlyList<DjVuChunk>> _textChunks = new Dictionary<string, IReadOnlyList<DjVuChunk>>(StringComparer.Ordinal);
-    private DjVuDocument(byte[] source, DjVuReadOptions options, CancellationToken cancellation) {
+    private DjVuDocument(byte[] source, DjVuLoadOptions options, CancellationToken cancellation) {
         ReadOptions = options;
         SourceLengthBytes = source.LongLength;
         var budget = new DjVuReadBudget(options, cancellation);
@@ -40,37 +40,37 @@ public sealed class DjVuDocument {
     public long SourceLengthBytes { get; }
 
     /// <summary>Loads and copies a DjVu file's bytes, applying aggregate document limits.</summary>
-    public static DjVuDocument Load(byte[] bytes, DjVuReadOptions? options = null, CancellationToken cancellationToken = default) {
+    public static DjVuDocument Load(byte[] bytes, DjVuLoadOptions? options = null, CancellationToken cancellationToken = default) {
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-        var snapshot = (options ?? new DjVuReadOptions()).Snapshot();
+        var snapshot = (options ?? new DjVuLoadOptions()).Snapshot();
         cancellationToken.ThrowIfCancellationRequested();
         CheckSource(bytes.LongLength, snapshot);
         return new DjVuDocument((byte[])bytes.Clone(), snapshot, cancellationToken);
     }
 
     /// <summary>Loads from the current position of a readable stream, including non-seekable streams. Leaves the stream open.</summary>
-    public static DjVuDocument Load(Stream stream, DjVuReadOptions? options = null, CancellationToken cancellationToken = default) {
+    public static DjVuDocument Load(Stream stream, DjVuLoadOptions? options = null, CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("DjVu input stream must be readable.", nameof(stream));
-        var snapshot = (options ?? new DjVuReadOptions()).Snapshot();
+        var snapshot = (options ?? new DjVuLoadOptions()).Snapshot();
         byte[] source;
         try {
             source = OfficeStreamReader.ReadForwardBytes(stream, cancellationToken, snapshot.MaxSourceBytes);
         } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
-            throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxSourceBytes));
+            throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxSourceBytes));
         }
         return new DjVuDocument(source, snapshot, cancellationToken);
     }
 
     /// <summary>Loads a file and closes its handle before returning. Component IDs never trigger implicit file access.</summary>
-    public static DjVuDocument Load(string path, DjVuReadOptions? options = null, CancellationToken cancellationToken = default) {
+    public static DjVuDocument Load(string path, DjVuLoadOptions? options = null, CancellationToken cancellationToken = default) {
         if (path == null) throw new ArgumentNullException(nameof(path));
         using var stream = File.OpenRead(path);
         return Load(stream, options, cancellationToken);
     }
 
-    private static void CheckSource(long length, DjVuReadOptions options) {
-        if (length > options.MaxSourceBytes) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxSourceBytes));
+    private static void CheckSource(long length, DjVuLoadOptions options) {
+        if (length > options.MaxSourceBytes) throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxSourceBytes));
     }
 
     internal IEnumerable<DjVuChunk> PageChunks(DjVuComponent component, CancellationToken cancellation) {
@@ -79,11 +79,11 @@ public sealed class DjVuDocument {
         return Enumerate(component, 1);
         IEnumerable<DjVuChunk> Enumerate(DjVuComponent current, int depth) {
             cancellation.ThrowIfCancellationRequested();
-            if (depth > ReadOptions.MaxDepth) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxDepth));
+            if (depth > ReadOptions.MaxDepth) throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxDepth));
             if (!includedComponents.Add(current.Id)) yield break;
             foreach (var chunk in current.Form.Children) {
                 cancellation.ThrowIfCancellationRequested();
-                if (++visits > ReadOptions.MaxChunks) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxChunks));
+                if (++visits > ReadOptions.MaxChunks) throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxChunks));
                 if (chunk.Id == "INCL") {
                     string id = DjVuBinary.Utf8.GetString(chunk.Source, chunk.Offset, chunk.Length);
                     foreach (var included in Enumerate(Components[id], depth + 1)) yield return included;
@@ -98,7 +98,7 @@ public sealed class DjVuDocument {
         foreach (var component in Components.Values) Visit(component, 1);
         int Visit(DjVuComponent component, int depth) {
             budget.Cancellation.ThrowIfCancellationRequested();
-            if (depth > ReadOptions.MaxDepth) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxDepth));
+            if (depth > ReadOptions.MaxDepth) throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxDepth));
             if (state.TryGetValue(component.Id, out int current)) {
                 if (current == 1) throw new InvalidDataException("Cyclic DjVu component inclusion.");
                 return heights[component.Id];
@@ -110,7 +110,7 @@ public sealed class DjVuDocument {
                 string id = DjVuBinary.Utf8.GetString(chunk.Source, chunk.Offset, chunk.Length);
                 if (!Components.TryGetValue(id, out var included) || included.Kind != 0) throw new InvalidDataException("DjVu INCL does not identify a shared component.");
                 height = Math.Max(height, Visit(included, depth + 1) + 1);
-                if (height > ReadOptions.MaxDepth) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxDepth));
+                if (height > ReadOptions.MaxDepth) throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxDepth));
             }
             state[component.Id] = 2;
             return heights[component.Id] = height;

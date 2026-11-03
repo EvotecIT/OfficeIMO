@@ -39,7 +39,7 @@ public sealed class HtmlOptionalNodeTests {
 
     [Fact]
     public void InlineCallbacksAcceptMissingNodesAndStillRejectForeignSnapshots() {
-        var options = new MarkdownHtmlImportOptions();
+        var options = new HtmlMarkdownExportOptions();
         HtmlDocument other = Parse("<b>Other</b>");
         bool completed = false;
         options.InlineElementConverters.Add(new MarkdownHtmlInlineConverter("optional", "Optional nodes", context => {
@@ -59,7 +59,7 @@ public sealed class HtmlOptionalNodeTests {
 
     [Fact]
     public void BlockCallbacksSkipMissingItemsWithoutAcceptingMissingCollections() {
-        var options = new MarkdownHtmlImportOptions();
+        var options = new HtmlMarkdownExportOptions();
         HtmlDocument other = Parse("<p>Other</p>");
         bool completed = false;
         options.ElementBlockConverters.Add(new MarkdownHtmlBlockConverter("optional", "Optional nodes", context => {

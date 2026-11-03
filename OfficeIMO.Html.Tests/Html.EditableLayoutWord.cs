@@ -17,7 +17,7 @@ public sealed class HtmlEditableLayoutWordTests {
     public void PositionedRegionWithRawCommentStaysInSemanticFlow() {
         const string html = "<div style='position:absolute;width:180px;height:50px'>"
             + "Visible <!-- reviewer note -->text.</div>";
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             ImportHtmlComments = true,
             HtmlCommentAuthor = "HTML Reviewer",
             HtmlCommentInitials = "HR"
@@ -87,7 +87,7 @@ public sealed class HtmlEditableLayoutWordTests {
             response.Content.Headers.ContentType = new MediaTypeHeaderValue("image/png");
             return Task.FromResult(response);
         }));
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             HttpClient = httpClient,
             ImageProcessing = WordHtmlImageProcessingMode.Embed
         };
@@ -185,7 +185,7 @@ public sealed class HtmlEditableLayoutWordTests {
     [Fact]
     public void CallerStylesheetContentsParticipateInEditableLayoutProjection() {
         const string html = "<div class='positioned'>Caller styled anchor</div>";
-        var options = new WordHtmlImportOptions();
+        var options = new HtmlWordExportOptions();
         options.StylesheetContents.Add(
             ".positioned{position:absolute;left:24px;top:18px;width:160px;height:40px}");
 
@@ -203,7 +203,7 @@ public sealed class HtmlEditableLayoutWordTests {
         try {
             File.WriteAllText(path,
                 ".positioned{position:absolute;left:24px;top:18px;width:160px;height:40px}");
-            var options = new WordHtmlImportOptions();
+            var options = new HtmlWordExportOptions();
             options.StylesheetPaths.Add(path);
 
             HtmlToWordResult result = HtmlConversionDocument.Parse(
@@ -230,7 +230,7 @@ public sealed class HtmlEditableLayoutWordTests {
             response.Content.Headers.ContentType = new MediaTypeHeaderValue("text/css");
             return Task.FromResult(response);
         }));
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             AllowDocumentStylesheetLinks = true,
             HttpClient = httpClient
         };

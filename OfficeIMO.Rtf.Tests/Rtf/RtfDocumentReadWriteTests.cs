@@ -75,7 +75,7 @@ public partial class RtfDocumentReadWriteTests {
         paragraph.AddText("RTF").SetBold().SetUnderline().SetFontSize(14);
         paragraph.AddText(" ż").ForegroundColorIndex = red;
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.StartsWith(@"{\rtf1\ansi\deff0", rtf, StringComparison.Ordinal);
@@ -92,7 +92,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Write_Provides_Encoded_Byte_And_Stream_Output() {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("Generated ż");
-        var options = new RtfWriteOptions { IncludeGenerator = false };
+        var options = new RtfSaveOptions { IncludeGenerator = false };
 
         string expected = document.ToRtf(options);
         byte[] bytes = document.ToBytes(options);
@@ -188,7 +188,7 @@ public partial class RtfDocumentReadWriteTests {
         mixedStyled.StyleId = 2;
         mixed.AddText(" plain");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         RtfRun nextRun = Assert.Single(read.Document.Paragraphs[1].Runs);

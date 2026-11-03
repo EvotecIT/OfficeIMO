@@ -11,7 +11,7 @@ Converts an offline OneNote section or notebook to semantic Markdown, HTML, or P
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-ConvertFrom-OfficeOneNote [-Path] <string> [-OutputPath] <string> [-ReadOptions <OneNoteReaderOptions>] [-NotebookOptions <OneNoteNotebookReaderOptions>] [-ProjectionOptions <OneNoteMarkdownOptions>] [-HtmlOptions <MarkdownHtmlExportOptions>] [-PdfOptions <OneNoteToPdfOptions>] [-FailOnLoss] [-Force] [-PassThruReport] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertFrom-OfficeOneNote [-Path] <string> [-OutputPath] <string> [-ReadOptions <OneNoteReaderOptions>] [-NotebookOptions <OneNoteNotebookReaderOptions>] [-ProjectionOptions <OneNoteMarkdownOptions>] [-HtmlOptions <MarkdownHtmlExportOptions>] [-PdfOptions <OneNotePdfExportOptions>] [-FailOnLoss] [-Force] [-PassThruReport] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -144,7 +144,7 @@ Accept wildcard characters: False
 Semantic layout and PDF settings used for .pdf output.
 
 ```yaml
-Type: OneNoteToPdfOptions
+Type: OneNotePdfExportOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

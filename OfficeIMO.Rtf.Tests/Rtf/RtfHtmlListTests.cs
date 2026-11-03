@@ -43,7 +43,7 @@ public class RtfHtmlListTests {
             .SetListText("7.");
         paragraph.ListDefinitionId = 100;
 
-        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
+        string html = document.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile());
 
         Assert.Contains("<ol start=\"7\">", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-list-marker=\"true\"", html, StringComparison.Ordinal);

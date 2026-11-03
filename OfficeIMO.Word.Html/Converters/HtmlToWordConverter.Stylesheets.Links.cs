@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        private async Task LoadConfiguredStylesheetsAsync(IDocument document, WordHtmlImportOptions options, CancellationToken cancellationToken) {
+        private async Task LoadConfiguredStylesheetsAsync(IDocument document, HtmlWordExportOptions options, CancellationToken cancellationToken) {
             foreach (var path in options.StylesheetPaths) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (string.IsNullOrEmpty(path)) {

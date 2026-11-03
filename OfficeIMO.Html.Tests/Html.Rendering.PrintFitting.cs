@@ -22,7 +22,7 @@ public sealed partial class HtmlRenderingTests {
             <p id="medium">MediumViewport</p><p id="large">LargeViewport</p>
             <p id="medium-element">MediumStyleElement</p><p id="large-element">LargeStyleElement</p>
             """;
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PageSize = OfficePageSizes.A4,
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false,
@@ -50,7 +50,7 @@ public sealed partial class HtmlRenderingTests {
             </picture>
             """;
         var requested = new ConcurrentBag<string>();
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PageSize = OfficePageSizes.A4,
             HonorCssPageRules = false,
             ViewportWidth = 816D,
@@ -88,7 +88,7 @@ public sealed partial class HtmlRenderingTests {
               <p id='narrow'>NarrowFrame</p><p id='wide'>WideFrame</p>
             "></iframe>
             """;
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PageSize = OfficePageSizes.A4,
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false,
@@ -113,7 +113,7 @@ public sealed partial class HtmlRenderingTests {
               </div>
             </div>
             """;
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PageSize = OfficePageSizes.A4,
             Margins = HtmlRenderMargins.All(24D),
             HonorCssPageRules = false,
@@ -141,7 +141,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlPdf_PrintLayoutWidthRejectsNonPrintIntentAndWidthsBelowAuthoredContent() {
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PrintLayoutWidthCssPixels = 500D
         };
         HtmlConversionDocument document = HtmlConversionDocument.Parse("<p>Content</p>");
@@ -159,11 +159,11 @@ public sealed partial class HtmlRenderingTests {
             + "div { height: 25px; line-height: 25px; font-size: 20px }</style>"
             + string.Concat(Enumerable.Range(1, 35).Select(index => "<div>Row " + index + "</div>"));
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
-        byte[] regularPdf = (document.ToPdf(new HtmlToPdfOptions {
+        byte[] regularPdf = (document.ToPdf(new HtmlPdfExportOptions {
             AutoFitWidePrintContent = false
         })).ToBytes();
-        byte[] automaticPdf = (document.ToPdf(new HtmlToPdfOptions())).ToBytes();
-        byte[] fittedPdf = (document.ToPdf(new HtmlToPdfOptions {
+        byte[] automaticPdf = (document.ToPdf(new HtmlPdfExportOptions())).ToBytes();
+        byte[] fittedPdf = (document.ToPdf(new HtmlPdfExportOptions {
             PrintLayoutWidthCssPixels = 1000D
         })).ToBytes();
         PdfCore.PdfReadDocument regular = PdfCore.PdfReadDocument.Open(regularPdf);
@@ -198,11 +198,11 @@ public sealed partial class HtmlRenderingTests {
               <p>FrameHeight</p>
             "></iframe>
             """;
-        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions())).ToBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions())).ToBytes();
 
         Assert.Contains("Physical media height", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
         Assert.Contains("FrameHeight", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
-        byte[] explicitPdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
+        byte[] explicitPdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions {
             PrintLayoutWidthCssPixels = 300D
         })).ToBytes();
         Assert.Contains("Physical media height", PdfCore.PdfReadDocument.Open(explicitPdf).ExtractText(), StringComparison.Ordinal);
@@ -218,8 +218,8 @@ public sealed partial class HtmlRenderingTests {
             <p>Wide padded body</p>
             """;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
-        byte[] automatic = (document.ToPdf(new HtmlToPdfOptions())).ToBytes();
-        byte[] explicitWidth = (document.ToPdf(new HtmlToPdfOptions {
+        byte[] automatic = (document.ToPdf(new HtmlPdfExportOptions())).ToBytes();
+        byte[] explicitWidth = (document.ToPdf(new HtmlPdfExportOptions {
             PrintLayoutWidthCssPixels = 400D
         })).ToBytes();
 
@@ -238,7 +238,7 @@ public sealed partial class HtmlRenderingTests {
             </style>
             <p>Wide page</p><section>Narrow page</section>
             """;
-        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions {
             PrintLayoutWidthCssPixels = 400D
         })).ToBytes();
         PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(pdf);
@@ -260,7 +260,7 @@ public sealed partial class HtmlRenderingTests {
             """;
 
         Assert.Throws<ArgumentOutOfRangeException>(() => (HtmlConversionDocument.Parse(html).ToPdf(
-            new HtmlToPdfOptions { PrintLayoutWidthCssPixels = 20000D })).ToBytes());
+            new HtmlPdfExportOptions { PrintLayoutWidthCssPixels = 20000D })).ToBytes());
     }
 
     [Fact]
@@ -273,8 +273,8 @@ public sealed partial class HtmlRenderingTests {
             <p>Print production</p>
             """;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
-        HtmlPdfRenderResult regular = HtmlPdfRenderedConverter.Convert(document, new HtmlToPdfOptions());
-        HtmlPdfRenderResult fitted = HtmlPdfRenderedConverter.Convert(document, new HtmlToPdfOptions {
+        HtmlPdfRenderResult regular = HtmlPdfRenderedConverter.Convert(document, new HtmlPdfExportOptions());
+        HtmlPdfRenderResult fitted = HtmlPdfRenderedConverter.Convert(document, new HtmlPdfExportOptions {
             PrintLayoutWidthCssPixels = 160D
         });
         HtmlRenderPage regularPage = Assert.Single(regular.RenderResult!.Document.Pages);
@@ -300,7 +300,7 @@ public sealed partial class HtmlRenderingTests {
             + string.Concat(Enumerable.Range(1, 35).Select(index => "<div>Row " + index + "</div>"));
         var options = new HtmlRenderCapabilityGalleryOptions(
             new HtmlCapabilityGalleryScenario("authored-fit", "Authored fit", "Rendering", "Print fitting")) {
-            RenderOptions = new HtmlToPdfOptions { PrintLayoutWidthCssPixels = 1000D }
+            RenderOptions = new HtmlPdfExportOptions { PrintLayoutWidthCssPixels = 1000D }
         };
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Html.AuthoredFit." + Guid.NewGuid().ToString("N"));
         try {
@@ -322,7 +322,7 @@ public sealed partial class HtmlRenderingTests {
             <p id="target">Target</p>
             <input name="query" value="Hello" style="width:200px;height:30px">
             """;
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PageSize = OfficePageSizes.A4,
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false,

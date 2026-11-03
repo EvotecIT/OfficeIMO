@@ -10,10 +10,10 @@ using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Rtf.Pdf;
 using OfficeIMO.Word.Pdf;
-using DrawPdfOptions = OfficeIMO.OpenDocument.Odg.Pdf.OdgToPdfOptions;
-using VisioPdfOptions = OfficeIMO.Visio.Pdf.VisioToPdfOptions;
-using XpsPdfOptions = OfficeIMO.Xps.XpsToPdfOptions;
-using DjVuPdfOptions = OfficeIMO.DjVu.Pdf.DjVuToPdfOptions;
+using DrawPdfOptions = OfficeIMO.OpenDocument.Odg.Pdf.OdgPdfExportOptions;
+using VisioPdfOptions = OfficeIMO.Visio.Pdf.VisioPdfExportOptions;
+using XpsPdfOptions = OfficeIMO.Xps.XpsPdfExportOptions;
+using DjVuPdfOptions = OfficeIMO.DjVu.Pdf.DjVuPdfExportOptions;
 using OfficeIMO.Workflows;
 
 namespace PSWriteOffice.Cmdlets.Conversion;
@@ -41,7 +41,7 @@ public sealed class NewOfficeConversionOptionsCommand : PSCmdlet {
 
     /// <summary>HTML-to-PDF settings from New-OfficeHtmlPdfOptions.</summary>
     [Parameter]
-    public HtmlToPdfOptions? HtmlOptions { get; set; }
+    public HtmlPdfExportOptions? HtmlOptions { get; set; }
 
     /// <summary>Markdown-to-PDF settings from New-OfficeMarkdownPdfOptions.</summary>
     [Parameter]
@@ -49,7 +49,7 @@ public sealed class NewOfficeConversionOptionsCommand : PSCmdlet {
 
     /// <summary>RTF-to-PDF settings from New-OfficeRtfPdfOptions.</summary>
     [Parameter]
-    public RtfToPdfOptions? RtfOptions { get; set; }
+    public RtfPdfExportOptions? RtfOptions { get; set; }
 
     /// <summary>Literal-text settings from New-OfficeTextPdfOptions.</summary>
     [Parameter]
@@ -77,7 +77,7 @@ public sealed class NewOfficeConversionOptionsCommand : PSCmdlet {
 
     /// <summary>Native Publisher decoding and projection limits.</summary>
     [Parameter]
-    public OfficeIMO.Publisher.PublisherReadOptions? PublisherReadOptions { get; set; }
+    public OfficeIMO.Publisher.PublisherLoadOptions? PublisherLoadOptions { get; set; }
 
     /// <summary>Shared PDF settings for recovered Publisher pages.</summary>
     [Parameter]
@@ -127,14 +127,14 @@ public sealed class NewOfficeConversionOptionsCommand : PSCmdlet {
             Html = HtmlOptions, Markdown = MarkdownOptions, PlainText = TextOptions,
             RegisteredSettings = new OfficeWorkflowRouteSettings {
                 Rtf = RtfOptions, Draw = DrawOptions, Visio = VisioOptions, Xps = XpsOptions,
-                Chm = ChmOptions, DjVu = DjVuOptions, PublisherRead = PublisherReadOptions, PublisherPdf = PublisherPdfOptions
+                Chm = ChmOptions, DjVu = DjVuOptions, PublisherRead = PublisherLoadOptions, PublisherPdf = PublisherPdfOptions
             },
             CompressPdfOutput = CompressPdfOutput.IsPresent, FailOnLoss = FailOnLoss.IsPresent,
             WordLoad = new OfficeIMO.Word.WordLoadOptions { FailOnLoss = !AllowLegacyImportLoss.IsPresent },
             PdfLoad = PageRange == null ? null : new PdfLoadOptions { PageSelection = PdfPageSelection.Parse(PageRange) },
-            PdfWord = PdfWordMode == null && RasterDpi == null ? null : new WordPdfImportOptions { Mode = PdfWordMode ?? WordPdfImportMode.EditableContent, Dpi = RasterDpi ?? 144D },
-            PdfPowerPoint = PdfPowerPointMode == null && RasterDpi == null ? null : new PowerPointPdfImportOptions { Mode = PdfPowerPointMode ?? PowerPointPdfImportMode.Auto, Dpi = RasterDpi ?? 144D },
-            PdfHtml = PdfHtmlProfile == null ? null : new PdfToHtmlOptions { Profile = PdfHtmlProfile.Value }
+            PdfWord = PdfWordMode == null && RasterDpi == null ? null : new PdfWordExportOptions { Mode = PdfWordMode ?? WordPdfImportMode.EditableContent, Dpi = RasterDpi ?? 144D },
+            PdfPowerPoint = PdfPowerPointMode == null && RasterDpi == null ? null : new PdfPowerPointExportOptions { Mode = PdfPowerPointMode ?? PowerPointPdfImportMode.Auto, Dpi = RasterDpi ?? 144D },
+            PdfHtml = PdfHtmlProfile == null ? null : new PdfHtmlExportOptions { Profile = PdfHtmlProfile.Value }
         };
         if (WorksheetLayout is { } layout) { options.Excel ??= new ExcelPdfExportOptions(); options.Excel.WorksheetLayout = layout; }
         WriteObject(options);

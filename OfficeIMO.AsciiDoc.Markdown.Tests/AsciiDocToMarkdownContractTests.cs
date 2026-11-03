@@ -47,7 +47,7 @@ public sealed class AsciiDocToMarkdownContractTests {
     public void TableSource_ConvertsToTypedMarkdownTable() {
         AsciiDocDocument document = AsciiDocDocument.ParseResult("|===\n|a |b\n|===\n").Document;
 
-        AsciiDocToMarkdownResult result = document.ToMarkdownDocumentResult(new AsciiDocToMarkdownOptions {
+        AsciiDocToMarkdownResult result = document.ToMarkdownDocumentResult(new AsciiDocMarkdownExportOptions {
             PreserveUnsupportedAsSource = false
         });
 

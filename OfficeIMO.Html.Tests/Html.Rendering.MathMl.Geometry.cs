@@ -61,7 +61,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlMathMlPdf_ScopedCompactGlyphRetainsItsFullInkAndLogicalText() {
         const string html = "<html lang='en'><body style='margin:0;font:20px ScopedMath'>"
             + "<math aria-label='x over two' style='font-family:inherit'><mfrac><mtext>x</mtext><mn>2</mn></mfrac></math></body></html>";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(2D), global::OfficeIMO.OfficeLength.Inches(1D)), HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D), BackgroundColor = OfficeColor.Transparent,
             AllowSystemFontFallback = false
@@ -88,7 +88,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlMathMlPdf_FractionGlyphsRetainTheirSharedHorizontalCenter() {
         const string html = "<body style='margin:0;font:20px ScopedMath'><math display='block' style='font-family:inherit'>"
             + "<mfrac><mtext>x</mtext><mn>22</mn></mfrac></math></body>";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(2D), global::OfficeIMO.OfficeLength.Inches(2D)), HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D), BackgroundColor = OfficeColor.Transparent,
             AllowSystemFontFallback = false
@@ -121,7 +121,7 @@ public sealed partial class HtmlRenderingTests {
         var renderOptions = ScopedMathRenderOptions();
         renderOptions.ViewportWidth = 384D; renderOptions.ViewportHeight = 384D;
         HtmlRenderDrawing math = Assert.Single(HtmlRenderTestDriver.Render(html, renderOptions).Pages[0].Visuals.OfType<HtmlRenderDrawing>());
-        var pdfOptions = new HtmlToPdfOptions {
+        var pdfOptions = new HtmlPdfExportOptions {
             PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(4D)), HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D), BackgroundColor = OfficeColor.Transparent,
             AllowSystemFontFallback = false

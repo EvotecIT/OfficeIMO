@@ -5,7 +5,7 @@
   "extraChanges": [
     {
       "applied": "applied",
-      "note": "ToPdf/out-report, ToPdfAsync and shared-report SaveAsPdf replace the model/bytes/Result pairs. Existing RTF rendering and its private fidelity evidence are retained; RtfToPdfOptions.FailOnLoss is captured before writing. This is required by PSWriteOffice live-document export, which now receives shared reports from all source conversions."
+      "note": "ToPdf/out-report, ToPdfAsync and shared-report SaveAsPdf replace the model/bytes/Result pairs. Existing RTF rendering and its private fidelity evidence are retained; RtfPdfExportOptions.FailOnLoss is captured before writing. This is required by PSWriteOffice live-document export, which now receives shared reports from all source conversions."
     },
     {
       "category": "conversion",
@@ -31,5 +31,25 @@
     "frameworks": "No framework is dropped in 3.6. Original library TFMs and Windows net472 conditions remain; the front door and both Workflows projects support the full set. Modern-only engines stay conditional.",
     "packageDirection": "Word.Pdf and PowerPoint.Pdf export native documents. Reverse reconstruction is Pdf.Word and Pdf.PowerPoint; Excel reconstruction is Pdf.Excel. Word page images live in Word.Pdf.",
     "surface": "Markdown syntax nodes are exempt from the format prefix. OfficeColor/OfficeColorRole use the root OfficeIMO namespace. Authoring, units, image-builder consolidation, visibility baselines and AOT smoke acceptance are Phase B."
-  }
+  },
+  "changes": [
+    {
+      "old": "OfficeIMO.Rtf.Pdf.RtfToPdfOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Rtf.Pdf.RtfPdfExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Rtf.Pdf.PdfToRtfOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Rtf.Pdf.PdfRtfExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
+    }
+  ]
 }

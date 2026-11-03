@@ -24,7 +24,7 @@ public sealed class EpubWriterPackagePreservationContracts {
             File.WriteAllBytes(sourcePath, original);
             using EpubPublication book = asynchronous ? await EpubPublication.LoadAsync(sourcePath) : EpubPublication.Load(sourcePath);
             Assert.Equal(sourcePath, book.FilePath);
-            var limits = new EpubWriteOptions { MaxOutputBytes = 1 };
+            var limits = new EpubSaveOptions { MaxOutputBytes = 1 };
             if (asynchronous) await Assert.ThrowsAsync<InvalidDataException>(() => book.SaveAsync(destination, limits));
             else Assert.Throws<InvalidDataException>(() => book.Save(destination, limits));
             Assert.Equal(sourcePath, book.FilePath);
@@ -51,13 +51,13 @@ public sealed class EpubWriterPackagePreservationContracts {
             new Dictionary<string, byte[]> { ["EPUB/"] = Array.Empty<byte>(), ["META-INF/"] = Array.Empty<byte>() });
         using var archive = new ZipArchive(new MemoryStream(source));
         EpubPublication book = EpubPublication.Load(new MemoryStream(source));
-        Assert.Equal(source, book.Write(new EpubWriteOptions { MaxEntries = archive.Entries.Count }).Bytes);
-        var limits = new EpubWriteOptions { MaxEntries = archive.Entries.Count - 1 };
+        Assert.Equal(source, book.Write(new EpubSaveOptions { MaxEntries = archive.Entries.Count }).Bytes);
+        var limits = new EpubSaveOptions { MaxEntries = archive.Entries.Count - 1 };
         using var destination = new MemoryStream(new byte[] { 1, 2, 3 }, true);
         Assert.Throws<InvalidDataException>(() => book.Save(destination, limits));
         await Assert.ThrowsAsync<InvalidDataException>(() => book.SaveAsync(destination, limits));
         Assert.Equal(new byte[] { 1, 2, 3 }, destination.ToArray());
-        Assert.True(book.Write(new EpubWriteOptions { MaxEntries = archive.Entries.Count - 2, CompressEntries = false }).Bytes.Length > 0);
+        Assert.True(book.Write(new EpubSaveOptions { MaxEntries = archive.Entries.Count - 2, CompressEntries = false }).Bytes.Length > 0);
     }
 
     [Theory]
@@ -159,7 +159,7 @@ public sealed class EpubWriterPackagePreservationContracts {
         Assert.Throws<InvalidOperationException>(() => book.Save(destination));
         await Assert.ThrowsAsync<InvalidOperationException>(() => book.SaveAsync(destination));
         Assert.Equal(new byte[] { 1, 2, 3 }, destination.ToArray());
-        EpubWriteResult result = book.Write(new EpubWriteOptions { RemoveInvalidatedSignatures = true });
+        EpubWriteResult result = book.Write(new EpubSaveOptions { RemoveInvalidatedSignatures = true });
         using var archive = new ZipArchive(new MemoryStream(result.Bytes));
         Assert.Null(archive.GetEntry("META-INF/signatures.xml"));
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "EPUB_WRITE_SIGNATURE_REMOVED");

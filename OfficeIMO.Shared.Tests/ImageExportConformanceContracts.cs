@@ -1,3 +1,4 @@
+using OfficeIMO.Html.Pdf;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.Html;

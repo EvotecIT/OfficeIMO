@@ -103,7 +103,7 @@ public sealed class PageRenderTests {
         for (int i = layer.Offset; i < layer.Offset + layer.Length - 8; i++) if (jpeg[i] == 255 && jpeg[i + 1] == 192) { sof = i; break; }
         Assert.True(sof >= 0);
         jpeg[sof + 5] = jpeg[sof + 6] = jpeg[sof + 7] = jpeg[sof + 8] = 255;
-        Assert.Equal(nameof(DjVuReadOptions.MaxPagePixels), Assert.Throws<DjVuResourceLimitException>(() => DjVuDocument.Load(jpeg).Pages[0].Render()).LimitName);
+        Assert.Equal(nameof(DjVuLoadOptions.MaxPagePixels), Assert.Throws<DjVuResourceLimitException>(() => DjVuDocument.Load(jpeg).Pages[0].Render()).LimitName);
     }
 
     [Fact]

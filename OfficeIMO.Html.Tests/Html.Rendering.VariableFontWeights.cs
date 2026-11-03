@@ -42,9 +42,9 @@ public sealed class HtmlVariableFontWeightTests {
     [Fact]
     public void AutomaticCssWeightProducesTheExplicitWeightPdf() {
         HtmlConversionDocument source = CreateDocument(700);
-        var explicitOptions = new HtmlToPdfOptions();
+        var explicitOptions = new HtmlPdfExportOptions();
         explicitOptions.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["wght"] = 700F };
-        Assert.Equal((source.ToPdf(new HtmlToPdfOptions())).ToBytes(), (source.ToPdf(explicitOptions)).ToBytes());
+        Assert.Equal((source.ToPdf(new HtmlPdfExportOptions())).ToBytes(), (source.ToPdf(explicitOptions)).ToBytes());
     }
 
     private static HtmlConversionDocument CreateDocument(int weight) {

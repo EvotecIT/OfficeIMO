@@ -14,7 +14,7 @@ internal sealed class OfficeMarkupWordExporter {
         OfficeColor.DarkCyan
     };
 
-    public WordDocument Convert(OfficeMarkupDocument document, MarkupToWordOptions options) {
+    public WordDocument Convert(OfficeMarkupDocument document, MarkupWordExportOptions options) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
@@ -368,7 +368,7 @@ internal sealed class OfficeMarkupWordExporter {
         return new ChartData(categories, series);
     }
 
-    private static bool TryResolveImagePath(MarkupToWordOptions options, string source, out string path) {
+    private static bool TryResolveImagePath(MarkupWordExportOptions options, string source, out string path) {
         path = string.Empty;
         if (string.IsNullOrWhiteSpace(source) || source.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) {
             return false;
@@ -436,14 +436,14 @@ internal sealed class OfficeMarkupWordExporter {
         (value ?? string.Empty).Trim().Replace("-", string.Empty).Replace("_", string.Empty).Replace(" ", string.Empty).ToLowerInvariant();
 
     private sealed class WordExportContext {
-        public WordExportContext(WordDocument document, MarkupToWordOptions options, OfficeMarkupStyleResolver styles) {
+        public WordExportContext(WordDocument document, MarkupWordExportOptions options, OfficeMarkupStyleResolver styles) {
             Document = document;
             Options = options;
             Styles = styles;
         }
 
         public WordDocument Document { get; }
-        public MarkupToWordOptions Options { get; }
+        public MarkupWordExportOptions Options { get; }
         public OfficeMarkupStyleResolver Styles { get; }
         public WordSection? CurrentSection { get; set; }
 

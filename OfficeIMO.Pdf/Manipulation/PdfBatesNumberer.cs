@@ -43,9 +43,13 @@ public sealed class PdfBatesDocument {
 }
 
 /// <summary>Controls continuous Bates numbering across one or more PDFs.</summary>
-public sealed class PdfBatesNumberingOptions {
-    /// <summary>Cancels input enumeration, numbering, rendering, and output preservation checks.</summary>
-    public System.Threading.CancellationToken CancellationToken { get; set; }
+public sealed class PdfBatesNumberingOptions : IPdfOperationCancellation {
+    // Operation cancellation; public methods take it as a parameter and bind it to a per-call copy.
+    System.Threading.CancellationToken IPdfOperationCancellation.CancellationToken { get => CancellationToken; set => CancellationToken = value; }
+
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
+
+    object IPdfOperationCancellation.CloneForOperation() => MemberwiseClone();
 
     /// <summary>First numeric value assigned to a selected page.</summary>
     public long StartNumber { get; set; } = 1L;
@@ -165,10 +169,11 @@ public static class PdfBatesNumberer {
     }
 
     /// <summary>Numbers the supplied documents continuously and returns output and preservation evidence.</summary>
-    public static PdfBatesBatchResult Apply(IEnumerable<PdfBatesDocument> documents, PdfBatesNumberingOptions? options = null) {
+    public static PdfBatesBatchResult Apply(IEnumerable<PdfBatesDocument> documents, PdfBatesNumberingOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(documents, nameof(documents));
         PdfBatesNumberingOptions effective = options ?? new PdfBatesNumberingOptions();
-        var cancellationToken = effective.CancellationToken;
+        cancellationToken = effective.CancellationToken;
         cancellationToken.ThrowIfCancellationRequested();
         var inputList = new List<PdfBatesDocument>();
         foreach (PdfBatesDocument input in documents) {

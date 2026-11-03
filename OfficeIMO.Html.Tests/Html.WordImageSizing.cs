@@ -54,7 +54,7 @@ public partial class HtmlWordGapClosure {
             <img src="data:image/png;base64,{ValidPng}" width="200" alt="Scaled">
             <img src="data:image/png;base64,{ValidPng}" alt="Intrinsic">
             """;
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             MaxTotalImageBytes = Convert.FromBase64String(ValidPng).LongLength
         };
 

@@ -97,7 +97,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_File_Table_Metadata_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\*\filetbl{\file\fid0\frelative18\fvalidntfs C:\\Private\\Resume\\Edu\\File2.docx}{\file\fid1\fosnum42\fvalidmac\fnetwork MacHD:Docs:Linked.doc}}\pard Body\par}";
 
-        RtfReadResult result = RtfDocument.ParseResult(rtf, RtfReadOptions.CreateCompatibilityProfile());
+        RtfReadResult result = RtfDocument.ParseResult(rtf, RtfLoadOptions.CreateCompatibilityProfile());
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Collection(result.Document.FileReferences,
@@ -358,7 +358,7 @@ public partial class RtfDocumentReadWriteTests {
         Assert.Equal(700, info.NumberOfCharactersWithSpaces);
         Assert.Equal(123, info.InternalVersion);
 
-        string written = result.Document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string written = result.Document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfDocumentInfo writtenInfo = RtfDocument.ParseResult(written).Document.Properties;
 
         Assert.Contains(@"{\hlinkbase https://example.test/}", written, StringComparison.Ordinal);

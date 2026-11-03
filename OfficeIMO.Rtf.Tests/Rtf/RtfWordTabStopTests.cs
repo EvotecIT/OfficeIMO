@@ -42,7 +42,7 @@ public class RtfWordTabStopTests {
     public void DirectTabListKeepsLaterDefaultTabGeometryThroughWordConversion() {
         RtfDocument source = CreateDirectTabSource(out RtfParagraph paragraph, "body");
         paragraph.AddText("A\tB\tC").SetFontSize(12);
-        using PdfPigDocument direct = PdfPigDocument.Open((source.ToPdf(new RtfToPdfOptions {
+        using PdfPigDocument direct = PdfPigDocument.Open((source.ToPdf(new RtfPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
         })).ToBytes());
@@ -126,7 +126,7 @@ public class RtfWordTabStopTests {
         AssertWordTab(Assert.Single(cell.ParagraphProperties!.Tabs!.Elements<TabStop>()), 4320, TabStopValues.Right, TabStopLeaderCharValues.Dot);
         AssertWordTab(Assert.Single(noteBody.ParagraphProperties!.Tabs!.Elements<TabStop>()), 4320, TabStopValues.Right, TabStopLeaderCharValues.Dot);
 
-        RtfDocument returned = RtfDocument.ParseResult(reopened.ToRtf(new RtfWriteOptions { IncludeGenerator = false })).Document;
+        RtfDocument returned = RtfDocument.ParseResult(reopened.ToRtf(new RtfSaveOptions { IncludeGenerator = false })).Document;
         RtfStyle returnedParent = Assert.Single(returned.Styles, item => item.Name == "RtfP7");
         AssertRtfTab(Assert.Single(returnedParent.TabStops), 4320, RtfTabAlignment.Right, RtfTabLeader.Dots);
         RtfParagraph returnedBody = Assert.Single(returned.Paragraphs, item => item.ToPlainText() == "Styled\tBody");

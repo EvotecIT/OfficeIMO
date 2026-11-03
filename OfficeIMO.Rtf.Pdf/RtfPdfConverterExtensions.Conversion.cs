@@ -9,12 +9,12 @@ namespace OfficeIMO.Rtf.Pdf;
 
 public static partial class RtfPdfConverterExtensions {
     /// <summary>Converts the source document to a PDF model.</summary>
-    public static PdfDocument ToPdf(this RtfDocument document, RtfToPdfOptions? options = null,
+    public static PdfDocument ToPdf(this RtfDocument document, RtfPdfExportOptions? options = null,
         CancellationToken cancellationToken = default) =>
         document.ToPdf(options, out _, cancellationToken);
 
     /// <summary>Converts the source document and returns its completed conversion findings.</summary>
-    public static PdfDocument ToPdf(this RtfDocument document, RtfToPdfOptions? options,
+    public static PdfDocument ToPdf(this RtfDocument document, RtfPdfExportOptions? options,
         out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         var timer = Stopwatch.StartNew();
         PdfDocumentConversionResult converted = document.ConvertToPdfWithEvidence(options, cancellationToken);
@@ -24,7 +24,7 @@ public static partial class RtfPdfConverterExtensions {
 
     /// <summary>Converts the source document, returning the model and report together.</summary>
     public static Task<OfficeConversionResult<PdfDocument>> ToPdfAsync(this RtfDocument document,
-        RtfToPdfOptions? options = null, CancellationToken cancellationToken = default) =>
+        RtfPdfExportOptions? options = null, CancellationToken cancellationToken = default) =>
         Task.Run(() => {
             PdfDocument value = document.ToPdf(options, out OfficeConversionReport report, cancellationToken);
             return new OfficeConversionResult<PdfDocument>(value, report);
@@ -32,7 +32,7 @@ public static partial class RtfPdfConverterExtensions {
 
     /// <summary>Writes a PDF file and returns the complete conversion report.</summary>
     public static OfficeConversionReport SaveAsPdf(this RtfDocument document, string path,
-        RtfToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+        RtfPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         PdfConversionEvidence.ValidateDestination(path);
         var timer = Stopwatch.StartNew();
         PdfDocumentConversionResult converted = document.ConvertToPdfWithEvidence(options, cancellationToken);
@@ -44,7 +44,7 @@ public static partial class RtfPdfConverterExtensions {
 
     /// <summary>Writes PDF to a caller-owned stream and returns the complete conversion report.</summary>
     public static OfficeConversionReport SaveAsPdf(this RtfDocument document, Stream stream,
-        RtfToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+        RtfPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         PdfConversionEvidence.ValidateDestination(stream);
         var timer = Stopwatch.StartNew();
         PdfDocumentConversionResult converted = document.ConvertToPdfWithEvidence(options, cancellationToken);
@@ -56,7 +56,7 @@ public static partial class RtfPdfConverterExtensions {
 
     /// <summary>Asynchronously writes a PDF file and returns the complete conversion report.</summary>
     public static async Task<OfficeConversionReport> SaveAsPdfAsync(this RtfDocument document, string path,
-        RtfToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+        RtfPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         PdfConversionEvidence.ValidateDestination(path);
         var timer = Stopwatch.StartNew();
         PdfDocumentConversionResult converted = document.ConvertToPdfWithEvidence(options, cancellationToken);
@@ -69,7 +69,7 @@ public static partial class RtfPdfConverterExtensions {
 
     /// <summary>Asynchronously writes PDF to a caller-owned stream and returns its conversion report.</summary>
     public static async Task<OfficeConversionReport> SaveAsPdfAsync(this RtfDocument document, Stream stream,
-        RtfToPdfOptions? options = null, CancellationToken cancellationToken = default) {
+        RtfPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         PdfConversionEvidence.ValidateDestination(stream);
         var timer = Stopwatch.StartNew();
         PdfDocumentConversionResult converted = document.ConvertToPdfWithEvidence(options, cancellationToken);

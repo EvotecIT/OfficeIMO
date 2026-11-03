@@ -45,7 +45,7 @@ public sealed class LatexMarkdownConversionDiagnostic {
 }
 
 /// <summary>LaTeX-to-Markdown options.</summary>
-public sealed class LatexToMarkdownOptions {
+public sealed class LatexMarkdownExportOptions {
     /// <summary>Preserves unsupported source in visible <c>latex</c> code blocks.</summary>
     public bool PreserveUnsupportedAsSource { get; set; } = true;
     /// <summary>Includes preamble title, author, date, and document class as YAML front matter.</summary>
@@ -53,7 +53,7 @@ public sealed class LatexToMarkdownOptions {
 }
 
 /// <summary>Markdown-to-LaTeX options.</summary>
-public sealed class MarkdownToLatexOptions {
+public sealed class MarkdownLatexExportOptions {
     /// <summary>Generated document class.</summary>
     public string DocumentClass { get; set; } = "article";
     /// <summary>Output line ending.</summary>

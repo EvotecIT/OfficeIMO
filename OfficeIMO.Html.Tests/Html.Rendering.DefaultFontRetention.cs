@@ -16,7 +16,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlDefaultFont_ExplicitTargetBytesRemainAvailableToRetainedDrawing(string registration) {
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithVerticalMetrics('A', 1100, -200, 1050);
         var family = new PdfCore.PdfEmbeddedFontFamily("Default Fixture", data);
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             Margins = HtmlRenderMargins.All(0D), AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         };
@@ -49,7 +49,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlDefaultFont_SuppliedCssFaceKeepsOwnershipOverTargetDefault() {
         byte[] supplied = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A');
         byte[] target = ManagedTextShapingTestAssets.CreateFontWithVerticalMetrics('A', 1100, -200, 1050);
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             FontFamily = new PdfCore.PdfEmbeddedFontFamily("Other Default", target),
             Margins = HtmlRenderMargins.All(0D), AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
@@ -68,7 +68,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlDefaultFont_ExplicitRetentionHonoursDecodedResourceBudget() {
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A');
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             FontFamily = new PdfCore.PdfEmbeddedFontFamily("Default Fixture", data),
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
@@ -88,7 +88,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlDefaultFont_RejectedRetentionReportsItsOwnApproximation() {
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A');
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             FontFamily = new PdfCore.PdfEmbeddedFontFamily("Default Fixture", data),
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
@@ -107,7 +107,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlDefaultFont_RegularOnlyStandardRegistrationKeepsSynthesizedItalicPaint() {
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A');
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false, Margins = HtmlRenderMargins.All(0D),
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         };

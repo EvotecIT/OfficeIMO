@@ -11,7 +11,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         double top,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
-        HtmlToPowerPointOptions options,
+        HtmlPowerPointExportOptions options,
         HtmlSemanticBlock? semanticBlock = null,
         double? genericWidth = null,
         double? genericHeight = null,

@@ -24,7 +24,7 @@ public sealed partial class HtmlRenderingTests {
         AssertPhysicalFaces(HtmlRenderEngine.Render(source, options));
         // Target preparation must retain the same requested styles without
         // treating its library-only policy as arbitrary document-font access.
-        AssertPhysicalFaces(HtmlRenderEngine.Render(source, new HtmlToPdfOptions(options)));
+        AssertPhysicalFaces(HtmlRenderEngine.Render(source, new HtmlPdfExportOptions(options)));
 
         void AssertPhysicalFaces(HtmlRenderDocument rendered) {
             var text = rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))

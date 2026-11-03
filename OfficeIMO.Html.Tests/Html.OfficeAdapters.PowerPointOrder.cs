@@ -14,7 +14,7 @@ public class HtmlOfficeAdaptersPowerPointOrder {
         PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(0),global::OfficeIMO.OfficeLength.Points(0),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(60));
         table.GetCell(0, 0).Text = "Origin table";
 
-        string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+        string html = presentation.ToHtml(new PowerPointHtmlExportOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
         });
         HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
@@ -46,7 +46,7 @@ public class HtmlOfficeAdaptersPowerPointOrder {
         PowerPointTextBox lastText = slide.AddTextBox("Last text",global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(230),global::OfficeIMO.OfficeLength.Points(190),global::OfficeIMO.OfficeLength.Points(40));
         table.MoveToReadingOrder(0);
 
-        string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+        string html = presentation.ToHtml(new PowerPointHtmlExportOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
         });
         HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();

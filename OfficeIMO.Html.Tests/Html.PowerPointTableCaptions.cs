@@ -18,7 +18,7 @@ public sealed class HtmlPowerPointTableCaptionTests {
             + RegulatoryTableCaption + "</caption>" + rows + "</table></main>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.RequireValue();
         PowerPointSlide captionSlide = Assert.Single(presentation.Slides,
             slide => slide.TextBoxes.Any(box => box.Text == RegulatoryTableCaption));
@@ -38,7 +38,7 @@ public sealed class HtmlPowerPointTableCaptionTests {
             + "<tr><th>Term</th><th>Value</th></tr><tr><td>pH</td><td>7</td></tr></table></main>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using PowerPointDocument presentation = result.RequireValue();
         Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
         Assert.DoesNotContain(presentation.Slides.SelectMany(slide => slide.TextBoxes),
@@ -55,7 +55,7 @@ public sealed class HtmlPowerPointTableCaptionTests {
             + "<tr><th>Term</th><th>Value</th></tr><tr><td>pH</td><td>7</td></tr></table></main>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.RequireValue();
         Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
         Assert.Contains(presentation.Slides.SelectMany(slide => slide.TextBoxes),

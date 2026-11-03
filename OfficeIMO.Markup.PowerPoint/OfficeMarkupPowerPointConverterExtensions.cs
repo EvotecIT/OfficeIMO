@@ -9,7 +9,7 @@ public static class OfficeMarkupPowerPointConverterExtensions {
     /// <summary>Converts presentation-profile markup to an editable detached presentation.</summary>
     public static PowerPointDocument ToPowerPointDocument(
         this OfficeMarkupDocument document,
-        MarkupToPowerPointOptions? options = null) {
+        MarkupPowerPointExportOptions? options = null) {
         OfficeMarkupPowerPointConversionResult result = document.ToPowerPointDocumentResult(options);
         if (result.Succeeded) return result.Value;
         result.Value.Dispose();
@@ -19,9 +19,9 @@ public static class OfficeMarkupPowerPointConverterExtensions {
     /// <summary>Converts presentation-profile markup and returns the presentation with structured evidence.</summary>
     public static OfficeMarkupPowerPointConversionResult ToPowerPointDocumentResult(
         this OfficeMarkupDocument document,
-        MarkupToPowerPointOptions? options = null) {
+        MarkupPowerPointExportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        MarkupToPowerPointOptions resolved = options ?? new MarkupToPowerPointOptions();
+        MarkupPowerPointExportOptions resolved = options ?? new MarkupPowerPointExportOptions();
         IReadOnlyList<OfficeMarkupDiagnostic> diagnostics = CollectDiagnostics(document, resolved);
         return new OfficeMarkupPowerPointExporter().Build(document, resolved, diagnostics);
     }
@@ -30,7 +30,7 @@ public static class OfficeMarkupPowerPointConverterExtensions {
     public static OfficeMarkupPowerPointConversionReport SaveAsPowerPoint(
         this OfficeMarkupDocument document,
         string path,
-        MarkupToPowerPointOptions? options = null) {
+        MarkupPowerPointExportOptions? options = null) {
         OfficeMarkupPowerPointConversionResult result = document.ToPowerPointDocumentResult(options);
         using (result.Value) result.RequireValue().Save(path);
         return result.Report;
@@ -40,7 +40,7 @@ public static class OfficeMarkupPowerPointConverterExtensions {
     public static OfficeMarkupPowerPointConversionReport SaveAsPowerPoint(
         this OfficeMarkupDocument document,
         Stream stream,
-        MarkupToPowerPointOptions? options = null) {
+        MarkupPowerPointExportOptions? options = null) {
         OfficeMarkupPowerPointConversionResult result = document.ToPowerPointDocumentResult(options);
         using (result.Value) result.RequireValue().Save(stream);
         return result.Report;
@@ -50,7 +50,7 @@ public static class OfficeMarkupPowerPointConverterExtensions {
     public static async Task<OfficeMarkupPowerPointConversionReport> SaveAsPowerPointAsync(
         this OfficeMarkupDocument document,
         string path,
-        MarkupToPowerPointOptions? options = null,
+        MarkupPowerPointExportOptions? options = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeMarkupPowerPointConversionResult result = document.ToPowerPointDocumentResult(options);
@@ -62,7 +62,7 @@ public static class OfficeMarkupPowerPointConverterExtensions {
     public static async Task<OfficeMarkupPowerPointConversionReport> SaveAsPowerPointAsync(
         this OfficeMarkupDocument document,
         Stream stream,
-        MarkupToPowerPointOptions? options = null,
+        MarkupPowerPointExportOptions? options = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeMarkupPowerPointConversionResult result = document.ToPowerPointDocumentResult(options);
@@ -72,7 +72,7 @@ public static class OfficeMarkupPowerPointConverterExtensions {
 
     private static IReadOnlyList<OfficeMarkupDiagnostic> CollectDiagnostics(
         OfficeMarkupDocument document,
-        MarkupToPowerPointOptions options) {
+        MarkupPowerPointExportOptions options) {
         var diagnostics = new List<OfficeMarkupDiagnostic>(OfficeMarkupValidator.Validate(document));
         foreach (OfficeMarkupBlock block in document.DescendantsAndSelf()) {
             if (block is OfficeMarkupCodeBlock || block is OfficeMarkupRawMarkdownBlock) {

@@ -63,7 +63,7 @@ public sealed class HtmlExcelGenericContentTests {
             + "<td data-officeimo-value-kind='error' data-officeimo-value='&lt;bad&gt;'>Shown</td>"
             + "<td data-officeimo-value-kind='error' data-officeimo-value='#N/A'>NA</td>"
             + "</tr></table></section>")
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Semantic, ImportTypedCellValues = true });
+            .ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Semantic, ImportTypedCellValues = true });
         using ExcelDocument workbook = result.RequireValue();
 
         ExcelSheet sheet = workbook.Sheets[0];
@@ -84,6 +84,6 @@ public sealed class HtmlExcelGenericContentTests {
 
     private static ExcelDocument Import(string html) =>
         HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic })
+            .ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic })
             .RequireValue();
 }

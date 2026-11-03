@@ -3,7 +3,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Rtf.Pdf;
 
 internal static partial class RtfPdfConverter {
-    private static void ApplyMetadata(RtfDocument document, PdfCore.PdfDocument pdf, RtfToPdfOptions options) {
+    private static void ApplyMetadata(RtfDocument document, PdfCore.PdfDocument pdf, RtfPdfExportOptions options) {
         if (!options.IncludeMetadata) {
             return;
         }
@@ -88,7 +88,7 @@ internal static partial class RtfPdfConverter {
                 : null;
     }
 
-    private static void ApplyHeaderFooters(RtfDocument document, RtfPageSetup setup, PdfCore.PdfCreateOptions options, RtfToPdfOptions saveOptions, IReadOnlyList<RtfHeaderFooter> declarations) {
+    private static void ApplyHeaderFooters(RtfDocument document, RtfPageSetup setup, PdfCore.PdfCreateOptions options, RtfPdfExportOptions saveOptions, IReadOnlyList<RtfHeaderFooter> declarations) {
         if (document.HeaderFooters.Count == 0) {
             return;
         }
@@ -148,7 +148,7 @@ internal static partial class RtfPdfConverter {
     }
 
     private static void ApplySectionHeaderFooters(RtfDocument document, RtfSection section, PdfCore.PdfPageBuilder page,
-        PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state) {
+        PdfCore.PdfDocument pdf, RtfPdfExportOptions options, PdfRenderState state) {
         if (!options.IncludeHeaderFooters) return;
         IReadOnlyList<RtfHeaderFooter> declarations = document.GetEffectiveHeaderFooters(section);
         if (declarations.Count == 0) return;

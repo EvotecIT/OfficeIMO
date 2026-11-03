@@ -162,7 +162,7 @@ internal static class RtfPdfMapping {
         return border;
     }
 
-    internal static PdfCore.PdfTableStyle ToPdfTableStyle(RtfDocument document, RtfTable table, RtfToPdfOptions options) {
+    internal static PdfCore.PdfTableStyle ToPdfTableStyle(RtfDocument document, RtfTable table, RtfPdfExportOptions options) {
         PdfCore.PdfTableStyle? callerStyle = options.PdfOptions?.HasExplicitDefaultTableStyle == true
             ? options.PdfOptions.DefaultTableStyle
             : null;

@@ -6,7 +6,7 @@ namespace OfficeIMO.Html.Pdf;
 
 public static partial class PdfHtmlConverterExtensions {
     /// <summary>Renders an opened PDF as HTML and returns a machine-readable export summary.</summary>
-    internal static PdfHtmlConversionResult ToHtmlResult(this PdfCore.PdfDocument document, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+    internal static PdfHtmlConversionResult ToHtmlResult(this PdfCore.PdfDocument document, PdfHtmlExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
         return ReadForHtml(document, options, cancellationToken)
@@ -16,13 +16,13 @@ public static partial class PdfHtmlConverterExtensions {
     /// <summary>
     /// Renders an already loaded logical PDF model as HTML and returns a machine-readable export summary.
     /// </summary>
-    internal static PdfHtmlConversionResult ToHtmlResult(this PdfCore.PdfDocumentReadResult document, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+    internal static PdfHtmlConversionResult ToHtmlResult(this PdfCore.PdfDocumentReadResult document, PdfHtmlExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
 
-        options = (options ?? new PdfToHtmlOptions()).CloneForConversion();
+        options = (options ?? new PdfHtmlExportOptions()).CloneForConversion();
         options.CancellationToken = cancellationToken;
         options.CancellationToken.ThrowIfCancellationRequested();
         options.Validate();
@@ -49,7 +49,7 @@ public static partial class PdfHtmlConverterExtensions {
     private static void ReportProfileFidelity(
         PdfCore.PdfDocumentReadResult document,
         IReadOnlyList<PdfCore.PdfLogicalPage> pages,
-        PdfToHtmlOptions options) {
+        PdfHtmlExportOptions options) {
         ReportMetadataFidelity(document.Metadata, document.SourceFidelityFacts.HasXmpMetadata, options);
         int textBlockCount = 0;
         int tableCount = 0;
@@ -247,7 +247,7 @@ public static partial class PdfHtmlConverterExtensions {
     private static void ReportMetadataFidelity(
         PdfCore.PdfDocumentProperties metadata,
         bool hasXmpMetadata,
-        PdfToHtmlOptions options) {
+        PdfHtmlExportOptions options) {
         // The semantic body section retains all four fields even without a document shell.
         bool hasMetadataSection = options.Profile == PdfHtmlProfile.Semantic && options.IncludeMetadata;
         bool hasMetadataHead = options.EmitDocumentShell && options.IncludeMetadata;
@@ -280,7 +280,7 @@ public static partial class PdfHtmlConverterExtensions {
          string.Equals(argumentException.ParamName, "repeatCount", StringComparison.Ordinal)) &&
         argumentException.StackTrace?.IndexOf("System.Text.StringBuilder", StringComparison.Ordinal) >= 0;
 
-    private static PdfHtmlExportSummary BuildExportSummary(PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfToHtmlOptions options, int sourcePageCount) {
+    private static PdfHtmlExportSummary BuildExportSummary(PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfHtmlExportOptions options, int sourcePageCount) {
         int textBlockCount = 0;
         int headingCount = 0;
         int listItemCount = 0;
@@ -467,7 +467,7 @@ public static partial class PdfHtmlConverterExtensions {
     private static int CountOmittedAnnotationActions(
         IReadOnlyList<PdfCore.PdfLogicalPage> pages,
         ISet<int> selectedPageNumbers,
-        PdfToHtmlOptions options) {
+        PdfHtmlExportOptions options) {
         int omittedCount = 0;
         long comparisonWork = 0;
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
@@ -506,7 +506,7 @@ public static partial class PdfHtmlConverterExtensions {
         PdfCore.PdfAnnotation annotation,
         ISet<int> selectedPageNumbers,
         HashSet<int> representedLinks,
-        PdfToHtmlOptions options,
+        PdfHtmlExportOptions options,
         ref int nextLinkIndex,
         ref long comparisonWork,
         out bool hasDirectLinkDestination) {

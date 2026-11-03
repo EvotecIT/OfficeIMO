@@ -16,7 +16,7 @@ public partial class WordRtfConverterTests {
         paragraph.AddFootNote("Footnote text");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         RtfRun run = Assert.Single(rtfParagraph.Runs);
@@ -35,7 +35,7 @@ public partial class WordRtfConverterTests {
         paragraph.AddEndNote("Endnote text");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         RtfRun run = Assert.Single(rtfParagraph.Runs);
@@ -55,7 +55,7 @@ public partial class WordRtfConverterTests {
         paragraph.AddText("Body text");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Collection(rtfParagraph.Inlines,
@@ -117,7 +117,7 @@ public partial class WordRtfConverterTests {
         word.AddParagraph("Target").AddBookmark("Anchor");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
         RtfParagraph paragraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Equal("Target", paragraph.ToPlainText());
@@ -175,7 +175,7 @@ public partial class WordRtfConverterTests {
         paragraph.AddField(WordFieldType.Page, advanced: true);
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         RtfField field = Assert.IsType<RtfField>(Assert.Single(rtfParagraph.Inlines));

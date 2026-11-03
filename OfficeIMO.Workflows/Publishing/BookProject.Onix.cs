@@ -20,7 +20,7 @@ public sealed partial class BookProject {
     /// This is a complete-record notification, not a block update; commercial fields require explicit caller assertions.
     /// </summary>
     public BookOnixExportResult ExportOnix(BookOnixExportOptions options, XmlSchemaSet schemas,
-        EpubWriteOptions? epubOptions = null, CancellationToken cancellationToken = default) {
+        EpubSaveOptions? epubOptions = null, CancellationToken cancellationToken = default) {
         if (options == null) throw new ArgumentNullException(nameof(options));
         if (schemas == null) throw new ArgumentNullException(nameof(schemas));
         cancellationToken.ThrowIfCancellationRequested();
@@ -48,7 +48,7 @@ public sealed partial class BookProject {
         IReadOnlyList<XElement> collections = BuildOnixCollections(options, cancellationToken);
         IReadOnlyList<XElement> audience = BuildOnixAudience(options.Audience, cancellationToken);
         XElement? collateral = BuildOnixCollateral(options.CollateralTexts, options.SupportingResources, contributorElements, cancellationToken);
-        EpubWriteResult publication = Export(epubOptions ?? new EpubWriteOptions(), cancellationToken);
+        EpubWriteResult publication = Export(epubOptions ?? new EpubSaveOptions(), cancellationToken);
         // Inspect the actual exported metadata, including any writer normalization, without rereading chapters.
         XDocument package;
         using (var input = new MemoryStream(publication.Bytes, false))

@@ -13,7 +13,7 @@ public sealed class SharedComponentTests {
         byte[] index = File.ReadAllBytes(Path.Combine(Folder, "Indirect", "index.djvu"));
         Assert.Throws<NotSupportedException>(() => DjVuDocument.Load(index));
         var components = Components();
-        var indirect = DjVuDocument.Load(index, new DjVuReadOptions { ComponentResolver = (id, _) => components[id] });
+        var indirect = DjVuDocument.Load(index, new DjVuLoadOptions { ComponentResolver = (id, _) => components[id] });
         Assert.Equal(index.Length, indirect.SourceLengthBytes);
         foreach (byte[] bytes in components.Values) Array.Clear(bytes, 0, bytes.Length);
         Assert.Equal(2, indirect.Pages.Count);
@@ -30,23 +30,23 @@ public sealed class SharedComponentTests {
         var components = Components();
         string dictionary = components.Keys.Single(k => k.EndsWith(".iff", StringComparison.Ordinal));
         components["shared-1.djvu"] = AppendChunk(components["shared-1.djvu"], "INCL", Encoding.UTF8.GetBytes(dictionary));
-        var duplicate = DjVuDocument.Load(index, new DjVuReadOptions { ComponentResolver = (id, _) => components[id] });
+        var duplicate = DjVuDocument.Load(index, new DjVuLoadOptions { ComponentResolver = (id, _) => components[id] });
         Assert.Equal(PageRenderTests.ReadPpm(Path.Combine(Folder, "page-1-reference.ppm")).GetPixels(), duplicate.Pages[0].Render().Image.GetPixels());
         components[dictionary] = AppendChunk(components[dictionary], "INCL", Encoding.UTF8.GetBytes(dictionary));
-        Assert.Throws<InvalidDataException>(() => DjVuDocument.Load(index, new DjVuReadOptions { ComponentResolver = (id, _) => components[id] }));
+        Assert.Throws<InvalidDataException>(() => DjVuDocument.Load(index, new DjVuLoadOptions { ComponentResolver = (id, _) => components[id] }));
         components = Components();
         components["shared-1.djvu"] = components[dictionary];
-        Assert.Throws<InvalidDataException>(() => DjVuDocument.Load(index, new DjVuReadOptions { ComponentResolver = (id, _) => components[id] }));
+        Assert.Throws<InvalidDataException>(() => DjVuDocument.Load(index, new DjVuLoadOptions { ComponentResolver = (id, _) => components[id] }));
     }
 
     [Fact]
     public void ResolvedBytesAndDictionaryCodecMemoryStayBounded() {
         byte[] index = File.ReadAllBytes(Path.Combine(Folder, "Indirect", "index.djvu"));
         var components = Components();
-        Assert.Throws<DjVuResourceLimitException>(() => DjVuDocument.Load(index, new DjVuReadOptions {
+        Assert.Throws<DjVuResourceLimitException>(() => DjVuDocument.Load(index, new DjVuLoadOptions {
             MaxSourceBytes = index.Length, ComponentResolver = (id, _) => components[id]
         }));
-        var document = DjVuDocument.Load(index, new DjVuReadOptions { ComponentResolver = (id, _) => components[id] });
+        var document = DjVuDocument.Load(index, new DjVuLoadOptions { ComponentResolver = (id, _) => components[id] });
         Assert.Throws<DjVuResourceLimitException>(() => document.Pages[0].Render(new DjVuRenderOptions {
             Region = new DjVuRectangle(0, 0, 1, 1), MaxBytes = 512
         }));
@@ -67,16 +67,16 @@ public sealed class SharedComponentTests {
             components[dictionary] = WithoutChunks(components[dictionary], "Djbz");
         }
         components[dictionary] = AppendChunk(components[dictionary], maskId, mask);
-        var document = DjVuDocument.Load(index, new DjVuReadOptions { ComponentResolver = (id, _) => components[id] });
+        var document = DjVuDocument.Load(index, new DjVuLoadOptions { ComponentResolver = (id, _) => components[id] });
         string reference = maskId == "Sjbz" ? Path.Combine(Folder, "page-1-reference.ppm") : ReaderAdapterTests.Fixture("fax-reference.ppm");
         Assert.Equal(PageRenderTests.ReadPpm(reference).GetPixels(), document.Pages[0].Render().Image.GetPixels());
         var rich = document.ToReadResult(new ReaderDjVuOptions { PageNumbers = new[] { 1 }, ImageMode = ReaderDjVuImageMode.AllPages });
         Assert.Equal("image/png", Assert.Single(rich.Assets).MediaType);
-        var pdf = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdfBytes(new DjVuToPdfOptions { PageNumbers = new[] { 1 } })));
+        var pdf = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdfBytes(new DjVuPdfExportOptions { PageNumbers = new[] { 1 } })));
         Assert.Single(pdf.Pages);
 
         components["shared-1.djvu"] = AppendChunk(components["shared-1.djvu"], maskId, mask);
-        var duplicate = DjVuDocument.Load(index, new DjVuReadOptions { ComponentResolver = (id, _) => components[id] });
+        var duplicate = DjVuDocument.Load(index, new DjVuLoadOptions { ComponentResolver = (id, _) => components[id] });
         Assert.Throws<InvalidDataException>(() => duplicate.Pages[0].Render());
     }
 
@@ -102,13 +102,13 @@ public sealed class SharedComponentTests {
         byte[] nativeText = Payload(File.ReadAllBytes(ReaderAdapterTests.Fixture("unicode.djvu")), "TXTz");
         components[dictionary] = AppendChunk(components[dictionary], "TXTz", nativeText);
         components["shared-1.djvu"] = AppendChunk(components["shared-1.djvu"], "INCL", Encoding.UTF8.GetBytes(dictionary));
-        var document = DjVuDocument.Load(index, new DjVuReadOptions { ComponentResolver = (id, _) => components[id] });
+        var document = DjVuDocument.Load(index, new DjVuLoadOptions { ComponentResolver = (id, _) => components[id] });
         Assert.All(document.Pages, page => {
             Assert.Equal(DjVuTextStatus.Present, page.GetText().Status);
             Assert.Contains("Zażółć 😀", page.GetText().Text);
         });
         components["shared-1.djvu"] = AppendChunk(components["shared-1.djvu"], "TXTz", nativeText);
-        var conflict = DjVuDocument.Load(index, new DjVuReadOptions { ComponentResolver = (id, _) => components[id] });
+        var conflict = DjVuDocument.Load(index, new DjVuLoadOptions { ComponentResolver = (id, _) => components[id] });
         Assert.Equal(DjVuTextStatus.Corrupt, conflict.Pages[0].GetText().Status);
         Assert.Equal(DjVuTextStatus.Present, conflict.Pages[1].GetText().Status);
     }

@@ -44,7 +44,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(source, LegacyClipOptions());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        byte[] pdf = (source.ToPdf(new HtmlToPdfOptions(LegacyClipOptions()))).ToBytes();
+        byte[] pdf = (source.ToPdf(new HtmlPdfExportOptions(LegacyClipOptions()))).ToBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
 
         Assert.Equal(new[] { "html-fragment:target" }, info.NamedDestinationNames);
@@ -61,7 +61,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>body{margin:0}</style><a href='#target'>Go</a>"
             + "<div style='position:absolute;left:10px;top:50px;width:40px;height:30px;clip:rect(0,0,0,0)'>"
             + "<div id='target' style='position:absolute;left:0;top:0;" + targetEffect + "'>Hidden</div></div>";
-        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(LegacyClipOptions()))).ToBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions(LegacyClipOptions()))).ToBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
 
         Assert.Equal(new[] { "html-fragment:target" }, info.NamedDestinationNames);
@@ -92,7 +92,7 @@ public sealed partial class HtmlRenderingTests {
             + "px;top:50px;width:40px;height:30px;clip:rect(0,0,0,0);"
             + "transform:translateY(" + shift.ToString(System.Globalization.CultureInfo.InvariantCulture)
             + "px);transform-origin:0 0'><div id='target'>Hidden</div></div>";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(300D / 96D), global::OfficeIMO.OfficeLength.Inches(100D / 96D)),
             Margins = HtmlRenderMargins.All(0), ViewportWidth = 300, ViewportHeight = 300,
             HonorCssPageRules = false, AllowSystemFontFallback = false

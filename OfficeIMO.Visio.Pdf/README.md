@@ -10,10 +10,17 @@ using OfficeIMO.Visio;
 using OfficeIMO.Visio.Pdf;
 
 VisioDocument diagram = VisioDocument.Load("architecture.vsdx");
-diagram.SaveAsPdf("architecture.pdf");
+OfficeConversionReport report = diagram.SaveAsPdf("architecture.pdf");
 
-byte[] pdf = diagram.ToPdfBytes();
+using PdfDocument pdf = diagram.ToPdf();
+byte[] bytes = pdf.ToBytes();
 ```
+
+`ToPdf`, `ToPdfAsync`, `SaveAsPdf` and `SaveAsPdfAsync` follow the shared
+conversion contract: saving returns `OfficeConversionReport`, `ToPdf(options,
+out report)` returns the model with its report, and `ToPdfAsync` returns both
+as `OfficeConversionResult<PdfDocument>`. The async forms run the CPU-bound
+conversion on the thread pool and write the output asynchronously.
 
 The default `SemanticReport` mode produces searchable diagram text and topology
 through the shared `OfficeDocumentModel`. Its report identifies semantic
@@ -41,13 +48,12 @@ var drawingOptions = new VisioDrawingOptions {
 };
 // Supply licensed font bytes under the source family name when needed.
 drawingOptions.Fonts.Add("Arial", File.ReadAllBytes("fonts/Arial.ttf"));
-var result = diagram.ToPdfDocumentResult(new VisioToPdfOptions {
+OfficeConversionReport report = diagram.SaveAsPdf("architecture.pdf", new VisioPdfExportOptions {
     Mode = VisioPdfProjectionMode.DiagramPages,
     DrawingOptions = drawingOptions
 });
-foreach (var diagnostic in result.Diagnostics)
+foreach (var diagnostic in report.Diagnostics)
     Console.WriteLine($"{diagnostic.Location}: {diagnostic.Code}: {diagnostic.Message}");
-result.Save("architecture.pdf");
 ```
 
 The [cached page projection](../OfficeIMO.Visio/README.md#diagram-page-scenes)
@@ -73,12 +79,12 @@ including those overrides.
 them with `DiagramPages`, or supplying diagram settings in semantic mode,
 throws instead of ignoring settings.
 
-`SourceConversionReports` retains the typed `VisioDrawingConversionReport`.
-`ThrowIfLoss` on drawing options rejects reported loss before PDF composition;
-`Save(path, failOnLoss: true)` on the PDF result rejects it before writing the destination.
-`SaveAsPdfResult` and `SaveAsPdfResultAsync` retain the source report and its
-page-qualified fidelity diagnostics when strict projection fails. Their failure
-result exposes `HasLoss` and leaves the destination unchanged.
+The report carries the page-qualified diagnostics of the
+`VisioDrawingConversionReport` and of PDF composition. `FailOnLoss` on the
+drawing options rejects reported loss before PDF composition; `FailOnLoss` on
+the conversion options rejects it before the destination is written. A strict
+failure throws `OfficeConversionException`, whose `Report` keeps the source
+report and its page-qualified diagnostics, and leaves the destination unchanged.
 These checks also reject the declared text-layout approximations. Stencil
 masters need explicit instantiation on a page before diagram conversion. This
 contract does not establish Microsoft Visio open/edit/save acceptance.
@@ -90,7 +96,7 @@ raster diagram preview alongside searchable semantic content:
 
 ```csharp
 VisioDocument diagram = VisioDocument.LoadLegacyXml("architecture.vdx").Value;
-var conversion = diagram.ToPdfDocumentResult(new VisioToPdfOptions {
+OfficeConversionReport report = diagram.SaveAsPdf("architecture.pdf", new VisioPdfExportOptions {
     SourceName = "architecture.vdx",
     VisioOptions = new VisioDocumentProjectionOptions {
         IncludePngPreviewAssets = true,
@@ -100,9 +106,8 @@ var conversion = diagram.ToPdfDocumentResult(new VisioToPdfOptions {
         }
     }
 });
-conversion.Save("architecture.pdf");
 
-foreach (var diagnostic in conversion.Warnings) {
+foreach (var diagnostic in report.Diagnostics) {
     Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
 }
 ```

@@ -1,9 +1,13 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Controls fail-closed creation of normalized PDF repair artifacts.</summary>
-public sealed class PdfRepairArtifactOptions {
-    /// <summary>Cancellation observed between parsing, planning, rewriting, and verification stages.</summary>
-    public System.Threading.CancellationToken CancellationToken { get; set; }
+public sealed class PdfRepairArtifactOptions : IPdfOperationCancellation {
+    // Operation cancellation; public methods take it as a parameter and bind it to a per-call copy.
+    System.Threading.CancellationToken IPdfOperationCancellation.CancellationToken { get => CancellationToken; set => CancellationToken = value; }
+
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
+
+    object IPdfOperationCancellation.CloneForOperation() => MemberwiseClone();
 
     /// <summary>Rejects a clean source that has no recovered structural defects.</summary>
     public bool RequireRecoveredDefects { get; set; } = true;
@@ -59,10 +63,11 @@ public static class PdfRepairArtifact {
     public static PdfRepairArtifactResult Create(
         byte[] pdf,
         PdfRepairArtifactOptions? options = null,
-        PdfLoadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(pdf, nameof(pdf));
         PdfRepairArtifactOptions effective = options ?? new PdfRepairArtifactOptions();
-        System.Threading.CancellationToken cancellationToken = effective.CancellationToken;
+        cancellationToken = effective.CancellationToken;
         cancellationToken.ThrowIfCancellationRequested();
         if (effective.MaximumOutputBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(options), "Maximum repair-artifact bytes must be positive.");
 

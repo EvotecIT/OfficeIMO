@@ -56,7 +56,7 @@ public class RtfPdfTableImportDefaultsTests {
                 CellPaddingY = global::OfficeIMO.OfficeLength.Points(3D)
             }
         };
-        RtfToPdfOptions options = Options();
+        RtfPdfExportOptions options = Options();
         options.PdfOptions = caller;
         PdfCore.PdfDocument mapped = ReadTable().ToPdf(options);
         PdfCore.TableBlock table = Assert.Single(mapped.Blocks.OfType<PdfCore.TableBlock>());
@@ -79,7 +79,7 @@ public class RtfPdfTableImportDefaultsTests {
         @"\paperw12240\paperh15840\margl1440\margr1440\margt1440\margb1440" +
         @"\trowd\trgaph0\trleft0" + cellControls + @"\cellx2880\pard\intbl\f0\fs24 A\cell\row}").Document;
 
-    private static RtfToPdfOptions Options(bool includePdfOptions = true) => new RtfToPdfOptions {
+    private static RtfPdfExportOptions Options(bool includePdfOptions = true) => new RtfPdfExportOptions {
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
         TextFallbacks = PdfCore.PdfTextFallbackFeatures.None,
         PdfOptions = includePdfOptions ? new PdfCore.PdfCreateOptions {

@@ -9,7 +9,7 @@ Rich document metadata includes `RequestedChapterCount`, `SkippedChapterCount`,
 `ChaptersComplete`, and `UsedFallbackScan`. Limit and unreadable-content diagnostics
 retain their EPUB codes and source locations. The reader preserves distinct repeated
 spine positions and forwards cancellation into package reading and parsing.
-Configure `EpubReadOptions.MaxTotalTextCharacters` to bound the aggregate extracted
+Configure `EpubLoadOptions.MaxTotalTextCharacters` to bound the aggregate extracted
 text; its default is 32 Mi UTF-16 characters.
 
 ## Install
@@ -26,7 +26,7 @@ using OfficeIMO.Reader;
 using OfficeIMO.Reader.Epub;
 
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
-    .AddEpubHandler(new EpubReadOptions {
+    .AddEpubHandler(new EpubLoadOptions {
         PreferSpineOrder = true,
         IncludeRawHtml = false,
         MaxChapters = 100
@@ -63,7 +63,7 @@ using OfficeIMO.Reader;
 using OfficeIMO.Reader.Epub;
 
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
-    .AddEpubHandler(new EpubReadOptions {
+    .AddEpubHandler(new EpubLoadOptions {
         FallbackToHtmlScan = true,
         MaxChapterBytes = 2L * 1024L * 1024L
     })
@@ -81,7 +81,7 @@ foreach (string warning in chunks.SelectMany(chunk => chunk.Warnings ?? Array.Em
 
 ```csharp
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
-    .AddEpubHandler(new EpubReadOptions {
+    .AddEpubHandler(new EpubLoadOptions {
         MaxResources = 500,
         MaxResourceBytes = 4L * 1024L * 1024L,
         MaxTotalResourceBytes = 32L * 1024L * 1024L

@@ -94,7 +94,7 @@ public sealed class ReaderGoldenFixtureTests {
             readerOptions: new ReaderOptions {
                 MaxChars = 8_000
             },
-            epubOptions: new EpubReadOptions {
+            epubOptions: new EpubLoadOptions {
                 PreferSpineOrder = true
             }).ToList();
 

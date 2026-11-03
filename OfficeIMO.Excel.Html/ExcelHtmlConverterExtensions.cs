@@ -10,14 +10,14 @@ public static partial class ExcelHtmlConverterExtensions {
     /// <summary>
     /// Converts a workbook to HTML.
     /// </summary>
-    public static string ToHtml(this ExcelDocument workbook, ExcelHtmlSaveOptions? options = null) {
+    public static string ToHtml(this ExcelDocument workbook, ExcelHtmlExportOptions? options = null) {
         return workbook.ToHtmlResult(options).Value;
     }
 
     /// <summary>Converts a workbook to HTML with the shared structured result contract.</summary>
-    public static HtmlTextConversionResult ToHtmlResult(this ExcelDocument workbook, ExcelHtmlSaveOptions? options = null) {
+    public static HtmlTextConversionResult ToHtmlResult(this ExcelDocument workbook, ExcelHtmlExportOptions? options = null) {
         if (workbook == null) throw new ArgumentNullException(nameof(workbook));
-        ExcelHtmlSaveOptions operation = (options ?? new ExcelHtmlSaveOptions()).Clone();
+        ExcelHtmlExportOptions operation = (options ?? new ExcelHtmlExportOptions()).Clone();
         operation.Validate();
         var diagnostics = new List<HtmlDiagnostic>();
         if (operation.ExportProfile == ExcelHtmlExportProfile.SemanticTables) {
@@ -32,14 +32,14 @@ public static partial class ExcelHtmlConverterExtensions {
     /// <summary>
     /// Converts a worksheet to HTML.
     /// </summary>
-    public static string ToHtml(this ExcelSheet sheet, ExcelHtmlSaveOptions? options = null) {
+    public static string ToHtml(this ExcelSheet sheet, ExcelHtmlExportOptions? options = null) {
         return sheet.ToHtmlResult(options).Value;
     }
 
     /// <summary>Converts a worksheet to HTML with the shared structured result contract.</summary>
-    public static HtmlTextConversionResult ToHtmlResult(this ExcelSheet sheet, ExcelHtmlSaveOptions? options = null) {
+    public static HtmlTextConversionResult ToHtmlResult(this ExcelSheet sheet, ExcelHtmlExportOptions? options = null) {
         if (sheet == null) throw new ArgumentNullException(nameof(sheet));
-        ExcelHtmlSaveOptions operation = (options ?? new ExcelHtmlSaveOptions()).Clone();
+        ExcelHtmlExportOptions operation = (options ?? new ExcelHtmlExportOptions()).Clone();
         operation.Validate();
         var diagnostics = new List<HtmlDiagnostic>();
         ReportNamedTableLoss(sheet.GetTables(), diagnostics);
@@ -52,7 +52,7 @@ public static partial class ExcelHtmlConverterExtensions {
     /// <summary>
     /// Saves a workbook as HTML.
     /// </summary>
-    public static void SaveAsHtml(this ExcelDocument workbook, string path, ExcelHtmlSaveOptions? options = null) {
+    public static void SaveAsHtml(this ExcelDocument workbook, string path, ExcelHtmlExportOptions? options = null) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("HTML path cannot be empty.", nameof(path));
         HtmlTextIO.Write(path, workbook.ToHtml(options));
     }
@@ -60,12 +60,12 @@ public static partial class ExcelHtmlConverterExtensions {
     /// <summary>
     /// Saves a worksheet as HTML.
     /// </summary>
-    public static void SaveAsHtml(this ExcelSheet sheet, string path, ExcelHtmlSaveOptions? options = null) {
+    public static void SaveAsHtml(this ExcelSheet sheet, string path, ExcelHtmlExportOptions? options = null) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("HTML path cannot be empty.", nameof(path));
         HtmlTextIO.Write(path, sheet.ToHtml(options));
     }
 
-    private static string ConvertWorkbookSemantic(ExcelDocument workbook, ExcelHtmlSaveOptions options, IList<HtmlDiagnostic> diagnostics) {
+    private static string ConvertWorkbookSemantic(ExcelDocument workbook, ExcelHtmlExportOptions options, IList<HtmlDiagnostic> diagnostics) {
         var body = new StringBuilder();
         body.Append("<main class=\"officeimo-document\"");
         OfficeHtmlSemanticEnvelope.AppendRootAttributes(body, "excel", options.Profile.ToString());
@@ -79,7 +79,7 @@ public static partial class ExcelHtmlConverterExtensions {
         return Wrap(body.ToString(), options, GetWorkbookTitle(workbook, options, "Excel Workbook"));
     }
 
-    private static string ConvertSheetSemantic(ExcelSheet sheet, ExcelHtmlSaveOptions options, IList<HtmlDiagnostic> diagnostics) {
+    private static string ConvertSheetSemantic(ExcelSheet sheet, ExcelHtmlExportOptions options, IList<HtmlDiagnostic> diagnostics) {
         var body = new StringBuilder();
         body.Append("<main class=\"officeimo-document\"");
         OfficeHtmlSemanticEnvelope.AppendRootAttributes(body, "excel", options.Profile.ToString());
@@ -89,7 +89,7 @@ public static partial class ExcelHtmlConverterExtensions {
         return Wrap(body.ToString(), options, GetTitle(options, sheet.Name));
     }
 
-    private static string ConvertWorkbookVisual(ExcelDocument workbook, ExcelHtmlSaveOptions options, IList<HtmlDiagnostic> diagnostics) {
+    private static string ConvertWorkbookVisual(ExcelDocument workbook, ExcelHtmlExportOptions options, IList<HtmlDiagnostic> diagnostics) {
         var body = new StringBuilder();
         body.Append("<main class=\"officeimo-document\"");
         OfficeHtmlSemanticEnvelope.AppendRootAttributes(body, "excel", options.Profile.ToString());
@@ -113,7 +113,7 @@ public static partial class ExcelHtmlConverterExtensions {
         return Wrap(body.ToString(), options, GetWorkbookTitle(workbook, options, "Excel Visual Review"));
     }
 
-    private static string ConvertSheetVisual(ExcelSheet sheet, ExcelHtmlSaveOptions options, IList<HtmlDiagnostic> diagnostics) {
+    private static string ConvertSheetVisual(ExcelSheet sheet, ExcelHtmlExportOptions options, IList<HtmlDiagnostic> diagnostics) {
         var body = new StringBuilder();
         body.Append("<main class=\"officeimo-document\"");
         OfficeHtmlSemanticEnvelope.AppendRootAttributes(body, "excel", options.Profile.ToString());
@@ -126,10 +126,10 @@ public static partial class ExcelHtmlConverterExtensions {
         return Wrap(body.ToString(), options, GetTitle(options, sheet.Name));
     }
 
-    private static void AppendSheetTable(StringBuilder body, ExcelSheet sheet, ExcelHtmlSaveOptions options,
+    private static void AppendSheetTable(StringBuilder body, ExcelSheet sheet, ExcelHtmlExportOptions options,
         IList<HtmlDiagnostic> diagnostics) {
-        int rowLimit = options.MaxRowsPerSheet ?? ExcelHtmlSaveOptions.DefaultMaxRowsPerSheet;
-        int columnLimit = options.MaxColumnsPerSheet ?? ExcelHtmlSaveOptions.DefaultMaxColumnsPerSheet;
+        int rowLimit = options.MaxRowsPerSheet ?? ExcelHtmlExportOptions.DefaultMaxRowsPerSheet;
+        int columnLimit = options.MaxColumnsPerSheet ?? ExcelHtmlExportOptions.DefaultMaxColumnsPerSheet;
         IReadOnlyList<ExcelMergedRangeInfo> mergedRanges = sheet.GetMergedRanges(options.MaxMergedRangesPerSheet);
         string reportedUsedRange = sheet.UsedRange.Address;
         bool isEmptyDefaultRange = mergedRanges.Count == 0
@@ -375,7 +375,7 @@ public static partial class ExcelHtmlConverterExtensions {
     }
 
     private static void AppendSheetFeatureInventory(StringBuilder body, ExcelSheet sheet, ExportedRowWindow? rowWindow,
-        ExcelHtmlSaveOptions options, IList<HtmlDiagnostic> diagnostics) {
+        ExcelHtmlExportOptions options, IList<HtmlDiagnostic> diagnostics) {
         if (options.IncludeFormulaInventory) AppendFormulaInventory(body, FilterFormulas(sheet.GetFormulaCells(), rowWindow));
         AppendCommentInventory(body, FilterComments(sheet.GetComments(), rowWindow));
         AppendChartInventory(body, FilterCharts(sheet.Charts, rowWindow), options, diagnostics);
@@ -503,7 +503,7 @@ public static partial class ExcelHtmlConverterExtensions {
     }
 
     private static void AppendChartInventory(StringBuilder body, IEnumerable<ExcelChart> charts,
-        ExcelHtmlSaveOptions options, IList<HtmlDiagnostic> diagnostics) {
+        ExcelHtmlExportOptions options, IList<HtmlDiagnostic> diagnostics) {
         List<ExcelChart> chartList = charts.ToList();
         if (chartList.Count == 0) {
             return;
@@ -935,7 +935,7 @@ public static partial class ExcelHtmlConverterExtensions {
         return workbookOptions;
     }
 
-    private static string Wrap(string body, ExcelHtmlSaveOptions options, string title) {
+    private static string Wrap(string body, ExcelHtmlExportOptions options, string title) {
         OfficeHtmlDocumentOptions output = options.DocumentOutput.Clone();
         output.Title = title;
         output.BodyClass = OfficeHtmlDocumentShell.MergeBodyClasses(
@@ -944,7 +944,7 @@ public static partial class ExcelHtmlConverterExtensions {
         return OfficeHtmlDocumentShell.WrapBody(body, output);
     }
 
-    private static string GetWorkbookTitle(ExcelDocument workbook, ExcelHtmlSaveOptions options, string fallback) {
+    private static string GetWorkbookTitle(ExcelDocument workbook, ExcelHtmlExportOptions options, string fallback) {
         if (!string.IsNullOrWhiteSpace(options.Title)) return options.Title!;
         string? title = null;
         try {
@@ -958,7 +958,7 @@ public static partial class ExcelHtmlConverterExtensions {
         return string.IsNullOrWhiteSpace(name) ? fallback : name!;
     }
 
-    private static string GetTitle(ExcelHtmlSaveOptions options, string fallback) {
+    private static string GetTitle(ExcelHtmlExportOptions options, string fallback) {
         return string.IsNullOrWhiteSpace(options.Title) ? fallback : options.Title!;
     }
 

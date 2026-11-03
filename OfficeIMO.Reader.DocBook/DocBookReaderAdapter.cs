@@ -441,7 +441,7 @@ internal static partial class DocBookReaderAdapter {
         internal ReaderChunk[] Chunks { get; }
     }
 
-    private static void ApplyReaderLimit(DocBookReadOptions options, long? maxBytes) {
+    private static void ApplyReaderLimit(DocBookLoadOptions options, long? maxBytes) {
         if (maxBytes.HasValue) options.MaxInputBytes = Math.Min(options.MaxInputBytes, maxBytes.Value);
     }
     private static ReaderTable MapTable(OfficeDocumentModelTable table, int maxRows, string sourceName) {

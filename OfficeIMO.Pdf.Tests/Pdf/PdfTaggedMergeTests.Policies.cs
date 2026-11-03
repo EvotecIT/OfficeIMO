@@ -147,7 +147,7 @@ public sealed partial class PdfTaggedMergeTests {
             throw new InvalidOperationException("Cancelled enumeration must not continue.");
         }
         Assert.Throws<OperationCanceledException>(() => PdfPageInterleaver.Interleave(Sources(),
-            new PdfInterleaveOptions { CancellationToken = stop.Token }));
+            new PdfInterleaveOptions(), cancellationToken: stop.Token));
         Assert.Equal(cancelBeforeEnumeration ? 0 : 1, visited);
     }
 }

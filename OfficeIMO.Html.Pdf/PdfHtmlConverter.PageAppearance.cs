@@ -22,7 +22,7 @@ public static partial class PdfHtmlConverterExtensions {
     private const string PageAppearanceSuffix = "\" style=\"position:absolute;inset:0;width:100%;height:100%;user-select:none;pointer-events:none\" />\n";
 
     private static bool TryAppendPageAppearance(StringBuilder builder, PdfCore.PdfLogicalPage page,
-        int renderIndex, PdfToHtmlOptions options) {
+        int renderIndex, PdfHtmlExportOptions options) {
         if (options.VisualSource is null ||
             page.FormWidgets.Count > 0 ||
             page.Analysis.RestrictLogicalProjectionToReadingOrder ||
@@ -151,21 +151,21 @@ public static partial class PdfHtmlConverterExtensions {
         return true;
     }
 
-    private static bool ReportImageAppearanceFallback(PdfToHtmlOptions options) {
+    private static bool ReportImageAppearanceFallback(PdfHtmlExportOptions options) {
         AddWarning(options, OfficeDiagnosticCodes.PageAppearanceImageFallback,
             "The page uses positioned images and text to avoid excessive SVG image expansion. Compare its appearance with the source PDF.",
             PdfCore.PdfConversionWarningSeverity.Warning);
         return false;
     }
 
-    private static bool ReportUnsafeImageAppearanceFallback(PdfToHtmlOptions options) {
+    private static bool ReportUnsafeImageAppearanceFallback(PdfHtmlExportOptions options) {
         AddWarning(options, OfficeDiagnosticCodes.PageAppearanceUnsafeImageFallback,
             "The page appearance SVG was not emitted because it could expose image pixels hidden by PDF clipping, transparency, or paint effects. Positioned HTML fallback was used instead.",
             PdfCore.PdfConversionWarningSeverity.Information);
         return false;
     }
 
-    private static bool ReportUnaccountedImageAppearanceFallback(PdfToHtmlOptions options) {
+    private static bool ReportUnaccountedImageAppearanceFallback(PdfHtmlExportOptions options) {
         AddWarning(options, OfficeDiagnosticCodes.PageAppearanceUnaccountedImageOmitted,
             "The page appearance SVG was not emitted because it contains image payloads that cannot be correlated with safely importable logical images. Positioned HTML fallback omitted those images.",
             PdfCore.PdfConversionWarningSeverity.Warning,

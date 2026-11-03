@@ -27,7 +27,7 @@ public sealed class ConvertFromOfficeLatexMarkdownCommand : PSCmdlet
 
     /// <summary>Optional conversion settings.</summary>
     [Parameter]
-    public MarkdownToLatexOptions? Options { get; set; }
+    public MarkdownLatexExportOptions? Options { get; set; }
 
     /// <summary>Throw when a source feature cannot be mapped exactly.</summary>
     [Parameter]

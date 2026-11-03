@@ -79,7 +79,7 @@ public class RtfHtmlStylesheetTests {
         paragraph.SetStyle(heading.Id);
         paragraph.AddText("Clinical heading").SetStyle(character.Id);
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true, FragmentOnly = false, NewLine = "\n" });
 
@@ -160,7 +160,7 @@ public class RtfHtmlStylesheetTests {
         Assert.Equal(7, Assert.Single(roundTrip.Paragraphs).StyleId);
         Assert.Equal(8, Assert.Single(roundTrip.Paragraphs[0].Runs).StyleId);
 
-        string rtf = roundTrip.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = roundTrip.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"\s7", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\*\cs8", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\slink8", rtf, StringComparison.Ordinal);
@@ -218,7 +218,7 @@ public class RtfHtmlStylesheetTests {
         cell.TopLeftToBottomRightBorder.Width = 6;
         cell.TopLeftToBottomRightBorder.ColorIndex = red;
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true, FragmentOnly = false, NewLine = "\n" });
 
@@ -298,7 +298,7 @@ public class RtfHtmlStylesheetTests {
         Assert.Equal(6, roundTripCell.TopLeftToBottomRightBorder.Width);
         Assert.Equal(red, roundTripCell.TopLeftToBottomRightBorder.ColorIndex);
 
-        string rtf = roundTrip.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = roundTrip.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"\*\ts9\tsrowd", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\trhdr", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\trkeepfollow", rtf, StringComparison.Ordinal);

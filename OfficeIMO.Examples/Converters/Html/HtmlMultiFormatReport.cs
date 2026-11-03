@@ -22,7 +22,7 @@ internal static partial class Html {
         HtmlConversionDocument report = HtmlConversionDocument.Load(sourcePath);
         File.WriteAllText(stem + ".html", report.ExportSourceHtml());
 
-        var pdfOptions = new HtmlToPdfOptions {
+        var pdfOptions = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = OfficePageSizes.A4,
             Margins = HtmlRenderMargins.All(36D),
@@ -30,7 +30,7 @@ internal static partial class Html {
         };
         var pdf = report.SaveAsPdf(stem + ".pdf", pdfOptions);
 
-        using WordDocument word = report.ToWord(new WordHtmlImportOptions {
+        using WordDocument word = report.ToWord(new HtmlWordExportOptions {
             DefaultPageSize = WordPageSize.A4,
             SectionTagHandling = WordHtmlSectionTagHandling.Block
         }, out OfficeConversionReport wordReport);
@@ -38,7 +38,7 @@ internal static partial class Html {
         word.Margins.Type = WordMargin.Narrow;
         word.Save(stem + ".docx");
 
-        HtmlToExcelResult excelResult = report.ToExcelDocumentResult(new HtmlToExcelOptions {
+        HtmlToExcelResult excelResult = report.ToExcelDocumentResult(new HtmlExcelExportOptions {
             Mode = HtmlImportMode.Generic,
             ImportTypedCellValues = true
         });

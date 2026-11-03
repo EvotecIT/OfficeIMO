@@ -46,7 +46,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>@page{size:240px 160px;margin:12px}body{margin:0;font:14px/20px Arial}"
             + "a{display:" + display + "}a::after{content:' (' attr(href) ')';font-size:90%;overflow-wrap:break-word}</style>"
             + "<a href='" + destination + "'>Summary</a><p>End of contents.</p>";
-        var options = new HtmlToPdfOptions(CssTableOptions());
+        var options = new HtmlPdfExportOptions(CssTableOptions());
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
         HtmlRenderText[] text = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().ToArray();
         string joined = string.Concat(text.Select(item => item.Text));
@@ -72,7 +72,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlCssTable_GeneratedAnonymousRowsHaveDistinctSavedStructureOwners() {
         const string html = "<style>body{margin:0}table{border-spacing:0}table::before{content:'BeforeReference'}"
             + "table::after{content:'AfterReference'}</style><table><tr><td>SourceBody</td></tr></table>";
-        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(CssTableOptions()))).ToBytes();
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions(CssTableOptions()))).ToBytes();
         PdfCore.PdfDocument saved = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(bytes));
         Assert.Single(saved.TaggedContent!.StructureElements, item => item.StructureType == "Table");
         Assert.Equal(3, saved.TaggedContent.StructureElements.Count(item => item.StructureType == "TR"));

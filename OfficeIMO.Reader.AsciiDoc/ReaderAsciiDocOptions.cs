@@ -18,14 +18,14 @@ public sealed class ReaderAsciiDocOptions {
     public AsciiDocParseOptions ParseOptions { get; set; } = new AsciiDocParseOptions();
 
     /// <summary>Markdown projection options.</summary>
-    public AsciiDocToMarkdownOptions MarkdownOptions { get; set; } = new AsciiDocToMarkdownOptions();
+    public AsciiDocMarkdownExportOptions MarkdownOptions { get; set; } = new AsciiDocMarkdownExportOptions();
 }
 
 internal static class ReaderAsciiDocOptionsCloner {
     internal static ReaderAsciiDocOptions Clone(ReaderAsciiDocOptions? options) {
         ReaderAsciiDocOptions source = options ?? new ReaderAsciiDocOptions();
         AsciiDocParseOptions parse = source.ParseOptions ?? new AsciiDocParseOptions();
-        AsciiDocToMarkdownOptions markdown = source.MarkdownOptions ?? new AsciiDocToMarkdownOptions();
+        AsciiDocMarkdownExportOptions markdown = source.MarkdownOptions ?? new AsciiDocMarkdownExportOptions();
         return new ReaderAsciiDocOptions {
             ChunkByBlock = source.ChunkByBlock,
             IncludeComments = source.IncludeComments,
@@ -41,7 +41,7 @@ internal static class ReaderAsciiDocOptionsCloner {
                 MaxTableColumnCount = parse.MaxTableColumnCount,
                 MaxTableSpan = parse.MaxTableSpan
             },
-            MarkdownOptions = new AsciiDocToMarkdownOptions {
+            MarkdownOptions = new AsciiDocMarkdownExportOptions {
                 IncludeDocumentAttributesAsFrontMatter = markdown.IncludeDocumentAttributesAsFrontMatter,
                 PreserveUnsupportedAsSource = markdown.PreserveUnsupportedAsSource,
                 PreserveCommentsAsSource = markdown.PreserveCommentsAsSource,

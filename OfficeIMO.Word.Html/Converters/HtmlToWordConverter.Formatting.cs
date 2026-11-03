@@ -437,7 +437,7 @@ namespace OfficeIMO.Word.Html {
         private static readonly Regex _urlRegex = new(@"((?:https?|ftp)://[^\s]+)", RegexOptions.IgnoreCase);
         private static readonly Regex _collapseWhitespaceRegex = new(@"\s+", RegexOptions.Compiled);
 
-        private void AddTextRun(WordParagraph paragraph, string text, TextFormatting formatting, WordHtmlImportOptions options) {
+        private void AddTextRun(WordParagraph paragraph, string text, TextFormatting formatting, HtmlWordExportOptions options) {
             text = ApplyWhiteSpace(text, formatting.WhiteSpace);
             if (string.IsNullOrEmpty(text)) {
                 return;
@@ -475,7 +475,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private void AddFormattedSegment(WordParagraph paragraph, string text, TextFormatting formatting, WordHtmlImportOptions options) {
+        private void AddFormattedSegment(WordParagraph paragraph, string text, TextFormatting formatting, HtmlWordExportOptions options) {
             int start = 0;
             for (int index = 0; index < text.Length; index++) {
                 if (text[index] != '\n') continue;
@@ -543,7 +543,7 @@ namespace OfficeIMO.Word.Html {
             return collapsed;
         }
 
-        private void ApplyFormatting(WordParagraph run, TextFormatting formatting, WordHtmlImportOptions options) {
+        private void ApplyFormatting(WordParagraph run, TextFormatting formatting, HtmlWordExportOptions options) {
             if (formatting.Bold) run.SetBold();
             if (formatting.Italic) run.SetItalic();
             if (formatting.Underline) run.SetUnderline((GetUnderlineValue(formatting) ?? UnderlineValues.Single).ToOfficeEnum());

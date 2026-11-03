@@ -27,7 +27,7 @@ public sealed class ConvertFromOfficeAsciiDocMarkdownCommand : PSCmdlet
 
     /// <summary>Optional conversion settings.</summary>
     [Parameter]
-    public MarkdownToAsciiDocOptions? Options { get; set; }
+    public MarkdownAsciiDocExportOptions? Options { get; set; }
 
     /// <summary>Throw when a source feature cannot be mapped exactly.</summary>
     [Parameter]

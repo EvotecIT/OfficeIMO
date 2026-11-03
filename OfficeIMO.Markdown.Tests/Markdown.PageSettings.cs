@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void MarkdownToWord_Respects_DefaultPageSettings() {
             string md = "# Hello";
-            var options = new WordMarkdownImportOptions {
+            var options = new MarkdownWordExportOptions {
                 DefaultOrientation = OfficePageOrientation.Landscape,
                 DefaultPageSize = WordPageSize.A5
             };

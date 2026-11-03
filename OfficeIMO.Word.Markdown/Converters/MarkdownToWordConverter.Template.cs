@@ -5,18 +5,18 @@ using Omd = OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown {
     internal partial class MarkdownToWordConverter {
-        public WordDocument ConvertIntoTemplate(string markdown, WordDocument document, WordMarkdownImportOptions options) {
+        public WordDocument ConvertIntoTemplate(string markdown, WordDocument document, MarkdownWordExportOptions options) {
             if (markdown == null) {
                 throw new ArgumentNullException(nameof(markdown));
             }
 
-            options ??= new WordMarkdownImportOptions();
+            options ??= new MarkdownWordExportOptions();
             var readerOptions = CreateEffectiveReaderOptions(options);
             var markdownDocument = Omd.MarkdownDocument.Parse(markdown, readerOptions);
             return ConvertIntoTemplate(markdownDocument, document, options);
         }
 
-        public WordDocument ConvertIntoTemplate(Omd.MarkdownDocument markdown, WordDocument document, WordMarkdownImportOptions options) {
+        public WordDocument ConvertIntoTemplate(Omd.MarkdownDocument markdown, WordDocument document, MarkdownWordExportOptions options) {
             if (markdown == null) {
                 throw new ArgumentNullException(nameof(markdown));
             }
@@ -25,7 +25,7 @@ namespace OfficeIMO.Word.Markdown {
                 throw new ArgumentNullException(nameof(document));
             }
 
-            options ??= new WordMarkdownImportOptions();
+            options ??= new MarkdownWordExportOptions();
             options.ApplyDefaults(document);
 
             var insertion = ResolveTemplateInsertion(document, options);
@@ -44,7 +44,7 @@ namespace OfficeIMO.Word.Markdown {
             Omd.MarkdownDocument markdown,
             IWordBlockRenderHost host,
             WordDocument document,
-            WordMarkdownImportOptions options,
+            MarkdownWordExportOptions options,
             double pageContentWidthPixels,
             CancellationToken cancellationToken) {
             var blocks = GetRenderableBlocks(markdown, options);
@@ -86,7 +86,7 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private static TemplateInsertion ResolveTemplateInsertion(WordDocument document, WordMarkdownImportOptions options) {
+        private static TemplateInsertion ResolveTemplateInsertion(WordDocument document, MarkdownWordExportOptions options) {
             if (!string.IsNullOrWhiteSpace(options.ContentControlTag) || !string.IsNullOrWhiteSpace(options.ContentControlAlias)) {
                 var contentControl = FindBlockContentControl(document, options);
                 if (contentControl == null) {
@@ -116,7 +116,7 @@ namespace OfficeIMO.Word.Markdown {
             return new TemplateInsertion(marker, removeAfterRender: true);
         }
 
-        private static SdtBlock? FindBlockContentControl(WordDocument document, WordMarkdownImportOptions options) {
+        private static SdtBlock? FindBlockContentControl(WordDocument document, MarkdownWordExportOptions options) {
             return document.BodyRoot
                 .Descendants<SdtBlock>()
                 .FirstOrDefault(sdt =>

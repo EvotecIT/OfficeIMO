@@ -132,7 +132,7 @@ public class RtfParsedParagraphStateTests {
         RtfDocument source = RtfDocument.ParseResult(@"{\rtf1\ansi" + styleControls + @" Plain\par}").Document;
         RtfDocument cloned = source.Clone();
         AssertParsedState(cloned);
-        string html = source.ToHtml(new RtfToHtmlOptions { IncludeRoundTripMetadata = true, FragmentOnly = false });
+        string html = source.ToHtml(new RtfHtmlExportOptions { IncludeRoundTripMetadata = true, FragmentOnly = false });
         RtfDocument fromHtml = HtmlConversionDocument.Parse(html).ToRtfDocument();
         AssertParsedState(fromHtml);
         if (hasStyles) {

@@ -104,7 +104,7 @@ document.Save("from-html.docx");
 
 ```csharp
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
-var options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
+var options = HtmlWordExportOptions.CreateTrustedDocumentProfile();
 using var document = await source.ToWordDocumentAsync(options);
 document.Save("from-html.docx");
 ```
@@ -114,7 +114,7 @@ document.Save("from-html.docx");
 ```csharp
 using OfficeIMO.Word.Html;
 
-var options = new WordHtmlImportOptions {
+var options = new HtmlWordExportOptions {
     FontFamily = "Calibri",
     IncludeListStyles = true,
     BasePath = AppContext.BaseDirectory

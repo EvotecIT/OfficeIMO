@@ -21,7 +21,7 @@ public sealed partial class HtmlRenderingTests {
         var document = HtmlConversionDocument.Parse(PagedImageHtml);
         var options = new HtmlRenderOptions { AllowSystemFontFallback = false };
         var actual = document.ExportImages(format, options);
-        var expected = document.ConvertToPdfWithEvidence(new HtmlToPdfOptions(options)).ExportImages(format,
+        var expected = document.ConvertToPdfWithEvidence(new HtmlPdfExportOptions(options)).ExportImages(format,
             new PdfImageExportOptions { Scale = 96D / 72D });
 
         Assert.Equal(2, actual.Count);
@@ -40,7 +40,7 @@ public sealed partial class HtmlRenderingTests {
         var document = HtmlConversionDocument.Parse(PagedImageHtml + "<p style='break-before:page'>Third page</p>");
         var options = new HtmlRenderOptions { AllowSystemFontFallback = false, TargetDpi = dpi };
         var all = document.ExportImages(OfficeImageExportFormat.Png, options);
-        var pdfPages = document.ConvertToPdfWithEvidence(new HtmlToPdfOptions(options)).ExportImages(
+        var pdfPages = document.ConvertToPdfWithEvidence(new HtmlPdfExportOptions(options)).ExportImages(
             OfficeImageExportFormat.Png, new PdfImageExportOptions { TargetDpi = dpi });
         Assert.Equal(all.Count, pdfPages.Count);
         for (int index = 0; index < all.Count; index++) Assert.Equal(pdfPages[index].Bytes, all[index].Bytes);
@@ -51,7 +51,7 @@ public sealed partial class HtmlRenderingTests {
             streamed.Add(image);
         }, options);
         var retained = HtmlRenderEngine.Execute(document, HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged,
-            HtmlRenderEncoder.Png, options).WithPageSet(HtmlRenderPageSet.Page(1)));
+            HtmlRenderEncoder.Png, HtmlPdfExportOptions.ForImageExport(options)).WithPageSet(HtmlRenderPageSet.Page(1)));
         var selected = retained.ExportImage();
         Assert.Equal(width, selected.Width);
         Assert.Equal(height, selected.Height);
@@ -60,10 +60,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(all.Count, streamed.Count);
         for (int index = 0; index < all.Count; index++) Assert.Equal(all[index].Bytes, streamed[index].Bytes);
 
-        options.PageSelection = PdfPageSelection.From(3, 1);
+        options.PageSelection = new[] { 3, 1 };
         options.MaximumOutputCount = 2;
         HtmlRenderOptions selectedOptions = options.Clone();
-        options.PageSelection = PdfPageSelection.From(2);
+        options.PageSelection = new[] { 2 };
         var ordered = document.ExportImages(OfficeImageExportFormat.Png, selectedOptions);
         Assert.Equal(new[] { "Page 3", "Page 1" }, ordered.Select(image => image.Name));
         Assert.Equal(all[2].Bytes, ordered[0].Bytes);
@@ -80,9 +80,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(all[1].Bytes, document.ExportImage(OfficeImageExportFormat.Png, selectedOptions, pageIndex: 1).Bytes);
         Assert.Equal(all[1].Bytes, (await document.ExportImageAsync(OfficeImageExportFormat.Png, selectedOptions, pageIndex: 1)).Bytes);
         var selectedRetained = HtmlRenderEngine.Execute(document, HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged,
-            HtmlRenderEncoder.Png, selectedOptions).WithPageSet(HtmlRenderPageSet.Page(1)));
+            HtmlRenderEncoder.Png, HtmlPdfExportOptions.ForImageExport(selectedOptions)).WithPageSet(HtmlRenderPageSet.Page(1)));
         Assert.Equal(all[1].Bytes, selectedRetained.ExportImage().Bytes);
-        selectedOptions.PageSelection = PdfPageSelection.From(3, 1, 3);
+        selectedOptions.PageSelection = new[] { 3, 1, 3 };
         streamed.Clear();
         Assert.Throws<OfficeImageExportBatchLimitException>(() => document.ExportImages(
             OfficeImageExportFormat.Png, streamed.Add, selectedOptions));
@@ -95,9 +95,9 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlImages_ExplicitScreenFullPageRemainsAContinuousScreenshot() {
         var document = HtmlConversionDocument.Parse(PagedImageHtml);
         var request = HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenFullPage,
-            HtmlRenderEncoder.Png, new HtmlRenderOptions {
+            HtmlRenderEncoder.Png, HtmlPdfExportOptions.ForImageExport(new HtmlRenderOptions {
                 ViewportWidth = 240D, Margins = HtmlRenderMargins.All(0D), AllowSystemFontFallback = false
-            });
+            }));
         var actual = Assert.Single(document.RenderImages(request));
         var continuous = request.Options;
         continuous.Mode = HtmlRenderMode.Continuous;

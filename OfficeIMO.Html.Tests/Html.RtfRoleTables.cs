@@ -38,12 +38,12 @@ public class HtmlRtfRoleTables {
         const string html = "<div role='table'><div role='row'><div role='cell'></div></div></div>";
 
         HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult(
-            new HtmlToRtfOptions { MaxHtmlNodes = 6, MaxHtmlDepth = 5 });
+            new HtmlRtfExportOptions { MaxHtmlNodes = 6, MaxHtmlDepth = 5 });
 
         Assert.Single(result.RequireValue().Blocks.OfType<RtfTable>());
         HtmlRtfConversionLimitException exception = Assert.Throws<HtmlRtfConversionLimitException>(() =>
-            HtmlConversionDocument.Parse(html).ToRtfDocumentResult(new HtmlToRtfOptions { MaxHtmlDepth = 4 }));
-        Assert.Equal(nameof(HtmlToRtfOptions.MaxHtmlDepth), exception.LimitSource);
+            HtmlConversionDocument.Parse(html).ToRtfDocumentResult(new HtmlRtfExportOptions { MaxHtmlDepth = 4 }));
+        Assert.Equal(nameof(HtmlRtfExportOptions.MaxHtmlDepth), exception.LimitSource);
     }
 
     [Theory]

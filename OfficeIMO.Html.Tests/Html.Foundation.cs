@@ -267,7 +267,7 @@ public sealed class HtmlFoundationTests {
     [Fact]
     public void MarkdownFiltersReceiveStableReadOnlySnapshots() {
         HtmlElement? retained = null;
-        var options = new MarkdownHtmlImportOptions();
+        var options = new HtmlMarkdownExportOptions();
         options.ElementFilters.Add(element => {
             retained ??= element;
             Assert.True(element.Document.IsReadOnly);
@@ -291,7 +291,7 @@ public sealed class HtmlFoundationTests {
         Assert.Contains("Edited foundation", document.ToMarkdown().ToMarkdown());
         byte[] png = document.ToPng();
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Take(8).ToArray());
-        byte[] pdf = (document.ToPdf(new HtmlToPdfOptions())).ToBytes();
+        byte[] pdf = (document.ToPdf(new HtmlPdfExportOptions())).ToBytes();
         var read = OfficeIMO.Pdf.PdfReadDocument.Open(pdf);
         Assert.Contains("Edited foundation", read.ExtractText());
         Assert.Contains("Second page", read.ExtractText());

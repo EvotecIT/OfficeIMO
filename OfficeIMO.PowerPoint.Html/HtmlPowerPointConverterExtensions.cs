@@ -14,18 +14,18 @@ public static partial class HtmlPowerPointConverterExtensions {
     /// <summary>
     /// Imports a prepared shared HTML conversion document without reparsing its adapter DOM.
     /// </summary>
-    public static PptCore.PowerPointDocument ToPowerPointDocument(this HtmlConversionDocument document, HtmlToPowerPointOptions? options = null) {
+    public static PptCore.PowerPointDocument ToPowerPointDocument(this HtmlConversionDocument document, HtmlPowerPointExportOptions? options = null) {
         return GetPresentationOrThrow(ToPowerPointDocumentResult(document, options));
     }
 
     /// <summary>
     /// Imports a prepared shared HTML conversion document and returns the presentation plus structured evidence.
     /// </summary>
-    public static HtmlToPowerPointResult ToPowerPointDocumentResult(this HtmlConversionDocument document, HtmlToPowerPointOptions? options = null) {
+    public static HtmlToPowerPointResult ToPowerPointDocumentResult(this HtmlConversionDocument document, HtmlPowerPointExportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         const HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen;
         IHtmlDocument adapterDocument = document.CreateNativeDocumentForConversion(mediaContext);
-        HtmlToPowerPointOptions resolved = options?.Clone() ?? new HtmlToPowerPointOptions();
+        HtmlPowerPointExportOptions resolved = options?.Clone() ?? new HtmlPowerPointExportOptions();
         HtmlUrlPolicy adapterHyperlinkPolicy = resolved.HyperlinkUrlPolicy;
         resolved.HyperlinkUrlPolicy = HtmlUrlPolicy.Intersect(document.HyperlinkUrlPolicy, resolved.HyperlinkUrlPolicy);
         resolved.NormalizedHyperlinkUrlPolicy = resolved.HyperlinkUrlPolicy.Clone();
@@ -53,7 +53,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         IHtmlDocument document,
         HtmlSemanticDocument semanticDocument,
         HtmlInputTrust trust,
-        HtmlToPowerPointOptions options,
+        HtmlPowerPointExportOptions options,
         IEnumerable<HtmlDiagnostic>? initialDiagnostics = null,
         HtmlEditableLayoutProjection? editableLayout = null) {
         options.Limits.Validate();
@@ -131,7 +131,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         throw new HtmlConversionException(result.Report.NativeDiagnostics);
     }
 
-    private static void ImportSlide(IElement section, HtmlSemanticSection? semanticSection, PptCore.PowerPointSlide slide, HtmlToPowerPointOptions options, HtmlToPowerPointResult result, HtmlImportBudget budget) {
+    private static void ImportSlide(IElement section, HtmlSemanticSection? semanticSection, PptCore.PowerPointSlide slide, HtmlPowerPointExportOptions options, HtmlToPowerPointResult result, HtmlImportBudget budget) {
         result.Slides++;
         ImportSemanticShapes(section, semanticSection, slide, options, result, budget);
 
@@ -144,7 +144,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         string.Equals(value, "true", StringComparison.OrdinalIgnoreCase)
         || string.Equals(value, "1", StringComparison.Ordinal);
 
-    private static void ImportPicture(IElement item, PptCore.PowerPointSlide slide, HtmlToPowerPointResult result, HtmlImportBudget budget, HtmlToPowerPointOptions options, ref double fallbackTop, double fallbackLeft = 720D) {
+    private static void ImportPicture(IElement item, PptCore.PowerPointSlide slide, HtmlToPowerPointResult result, HtmlImportBudget budget, HtmlPowerPointExportOptions options, ref double fallbackTop, double fallbackLeft = 720D) {
         IElement? image = IsElement(item, "img") && item.HasAttribute("src") ? item : item.QuerySelector("img[src]");
         if (image == null || !HtmlImageDataUri.TryParse(image.GetAttribute("src"), out HtmlImageDataUri dataUri)) {
             return;

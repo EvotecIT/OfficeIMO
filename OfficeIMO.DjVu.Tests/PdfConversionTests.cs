@@ -41,7 +41,7 @@ public sealed class PdfConversionTests {
                 Spans = new[] { new OcrTextSpan { Sequence = 0, Text = "Recognized " + request.PageNumber, Level = OcrTextSpanLevel.Word,
                     CoordinateUnit = OcrCoordinateUnit.Normalized, Region = new OcrRegion { X = .1, Y = .2, Width = .6, Height = .15 }, Confidence = .99 } } });
         }, new OcrEngineCapabilities { SupportsWordSpans = true });
-        var result = await document.ToPdfDocumentResultAsync(new DjVuToPdfOptions { OcrEngine = engine, PageNumbers = new[] { 4, 2, 3, 1 } });
+        var result = await document.ToPdfDocumentResultAsync(new DjVuPdfExportOptions { OcrEngine = engine, PageNumbers = new[] { 4, 2, 3, 1 } });
         Assert.Equal(new[] { 3, 1 }, calls);
         var report = Assert.IsType<DjVuPdfConversionReport>(Assert.Single(result.SourceConversionReports));
         Assert.Equal(new[] { 4, 2, 3, 1 }, report.Pages.Select(p => p.SourcePageNumber));
@@ -57,9 +57,9 @@ public sealed class PdfConversionTests {
         Assert.Contains("Recognized 3", pdf.ExtractText());
         Assert.Contains("Recognized 1", pdf.ExtractText());
         calls.Clear();
-        await document.ToPdfDocumentResultAsync(new DjVuToPdfOptions { OcrEngine = engine, PageNumbers = new[] { 2, 4 } });
+        await document.ToPdfDocumentResultAsync(new DjVuPdfExportOptions { OcrEngine = engine, PageNumbers = new[] { 2, 4 } });
         Assert.Empty(calls);
-        Assert.Throws<InvalidOperationException>(() => document.ToPdfDocumentResult(new DjVuToPdfOptions { OcrEngine = engine }));
+        Assert.Throws<InvalidOperationException>(() => document.ToPdfDocumentResult(new DjVuPdfExportOptions { OcrEngine = engine }));
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public sealed class PdfConversionTests {
         var document = DjVuDocument.Load(ReaderAdapterTests.Fixture("palette.djvu"));
         int calls = 0;
         var engine = new DelegateOcrEngine("fixture", (request, token) => { calls++; return Task.FromResult(new OcrResult { Text = "No geometry" }); });
-        var settings = new DjVuToPdfOptions { OcrEngine = engine };
+        var settings = new DjVuPdfExportOptions { OcrEngine = engine };
         using var readOnly = new MemoryStream(Array.Empty<byte>(), false);
         await Assert.ThrowsAsync<ArgumentException>(() => document.SaveAsPdfAsync(readOnly, settings));
         await Assert.ThrowsAsync<ArgumentException>(() => document.SaveAsPdfAsync(" ", settings));
@@ -82,12 +82,12 @@ public sealed class PdfConversionTests {
     [Fact]
     public void PageTextImageAndSerializationLimitsAndCancellationStayExplicit() {
         var document = DjVuDocument.Load(ReaderAdapterTests.Fixture("reader-book.djvu"));
-        Assert.Throws<DjVuResourceLimitException>(() => document.ToPdfDocumentResult(new DjVuToPdfOptions { MaxPages = 1 }));
-        Assert.Throws<DjVuResourceLimitException>(() => document.ToPdfDocumentResult(new DjVuToPdfOptions { PageNumbers = new[] { 2 }, MaxTextCharacters = 1 }));
-        Assert.Throws<ArgumentException>(() => document.ToPdfDocumentResult(new DjVuToPdfOptions { PageNumbers = new[] { 2, 2 } }));
-        Assert.Throws<ArgumentException>(() => document.ToPdfDocumentResult(new DjVuToPdfOptions { PageNumbers = Array.Empty<int>() }));
+        Assert.Throws<DjVuResourceLimitException>(() => document.ToPdfDocumentResult(new DjVuPdfExportOptions { MaxPages = 1 }));
+        Assert.Throws<DjVuResourceLimitException>(() => document.ToPdfDocumentResult(new DjVuPdfExportOptions { PageNumbers = new[] { 2 }, MaxTextCharacters = 1 }));
+        Assert.Throws<ArgumentException>(() => document.ToPdfDocumentResult(new DjVuPdfExportOptions { PageNumbers = new[] { 2, 2 } }));
+        Assert.Throws<ArgumentException>(() => document.ToPdfDocumentResult(new DjVuPdfExportOptions { PageNumbers = Array.Empty<int>() }));
         Assert.Throws<OperationCanceledException>(() => document.ToPdfBytes(cancellationToken: new CancellationToken(true)));
-        Assert.Throws<InvalidDataException>(() => document.ToPdfBytes(new DjVuToPdfOptions { PageNumbers = new[] { 2 }, MaxPdfBytes = 128 }));
-        Assert.Throws<OfficeIMO.Drawing.OfficeImageExportBatchLimitException>(() => document.ToPdfDocumentResult(new DjVuToPdfOptions { MaxTotalImageBytes = 32 }));
+        Assert.Throws<InvalidDataException>(() => document.ToPdfBytes(new DjVuPdfExportOptions { PageNumbers = new[] { 2 }, MaxPdfBytes = 128 }));
+        Assert.Throws<OfficeIMO.Drawing.OfficeImageExportBatchLimitException>(() => document.ToPdfDocumentResult(new DjVuPdfExportOptions { MaxTotalImageBytes = 32 }));
     }
 }

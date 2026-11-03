@@ -14,7 +14,7 @@ public sealed class PdfInspectionProjectionHtmlOptionsTests {
     public void OpenedHtmlExportPreservesSkippedProjectionThroughPageSelection(bool skipImages, bool usePageRanges) {
         PdfDocument pdf = PdfDocument.Load(PdfInspectionProjectionFixture.Build(skipImages ? 32 : 1),
             skipImages ? new PdfLoadOptions { Limits = new PdfReadLimits { MaxContentOperands = 20 } } : null);
-        var options = new PdfToHtmlOptions {
+        var options = new PdfHtmlExportOptions {
             ReadOptions = new PdfLoadOptions { IncludeImages = !skipImages, IncludeFormWidgets = skipImages,
                 PageSelection = PdfPageSelection.From(1) },
             PageRanges = usePageRanges ? new[] { PdfPageRange.From(1, 1) } : null
@@ -28,7 +28,7 @@ public sealed class PdfInspectionProjectionHtmlOptionsTests {
         PdfDocument pdf = PdfDocument.Load(PdfInspectionProjectionFixture.Build(32),
             new PdfLoadOptions { Limits = new PdfReadLimits { MaxContentOperands = 20 } });
         Assert.Throws<PdfReadLimitException>(() => pdf.ToHtmlResult());
-        var options = new PdfToHtmlOptions {
+        var options = new PdfHtmlExportOptions {
             ReadOptions = new PdfLoadOptions { IncludeImages = false, IncludeFormWidgets = false },
             PageRanges = new[] { PdfPageRange.From(1, 1) }
         };
@@ -39,7 +39,7 @@ public sealed class PdfInspectionProjectionHtmlOptionsTests {
     [Fact]
     public void OpenedHtmlExportFullDefaultRetainsSelectedImagesAndWidgets() {
         PdfDocument pdf = PdfDocument.Load(PdfInspectionProjectionFixture.Build());
-        PdfHtmlConversionResult result = pdf.ToHtmlResult(new PdfToHtmlOptions {
+        PdfHtmlConversionResult result = pdf.ToHtmlResult(new PdfHtmlExportOptions {
             PageRanges = new[] { PdfPageRange.From(1, 1) }
         });
         Assert.Contains("Native page text", result.Value);

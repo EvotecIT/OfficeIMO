@@ -8,10 +8,10 @@ namespace OfficeIMO.Workflows;
 public sealed partial class OfficeWorkflowRunner {
     private static (byte[], OfficeWorkflowConversionEvidence) ConvertDjVu(ValidatedRequest request, byte[] input,
         OfficeWorkflowRenderingOptions settings, CancellationToken token) {
-        var document = DjVuDocument.Load(input, new DjVuReadOptions {
+        var document = DjVuDocument.Load(input, new DjVuLoadOptions {
             MaxSourceBytes = Math.Min(256L * 1024 * 1024, request.Limits.MaximumInputBytes)
         }, token);
-        var options = settings.DjVu?.Clone() ?? new DjVuToPdfOptions();
+        var options = settings.DjVu?.Clone() ?? new DjVuPdfExportOptions();
         options.MaxPdfBytes = Math.Min(options.MaxPdfBytes, request.Limits.MaximumOutputBytes);
         var facts = new Dictionary<string, string> {
             ["sourceFormat"] = "DjVu", ["sourcePages"] = document.Pages.Count.ToString(CultureInfo.InvariantCulture),

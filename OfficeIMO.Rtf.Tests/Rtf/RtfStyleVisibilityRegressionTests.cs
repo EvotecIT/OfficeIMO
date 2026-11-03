@@ -64,7 +64,7 @@ public class RtfStyleVisibilityRegressionTests {
     [Fact]
     public void PdfOmitsInheritedHiddenTextAndRetainsExplicitVisibleOverrides() {
         RtfDocument document = RtfDocument.ParseResult(Input).Document;
-        string text = OfficeIMO.Pdf.PdfReadDocument.Open((document.ToPdf(new RtfToPdfOptions {
+        string text = OfficeIMO.Pdf.PdfReadDocument.Open((document.ToPdf(new RtfPdfExportOptions {
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
         })).ToBytes()).ExtractText();
         Assert.DoesNotContain("Secret marker", text, StringComparison.Ordinal);
@@ -76,7 +76,7 @@ public class RtfStyleVisibilityRegressionTests {
     [Fact]
     public void HtmlMetadataRetainsVisibilityInheritanceForLaterStyleEdits() {
         RtfDocument source = RtfDocument.ParseResult(Input).Document;
-        string html = source.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
+        string html = source.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile());
         Assert.Contains("visibility:hidden", html, StringComparison.Ordinal);
         RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
         RtfParagraph paragraph = document.Paragraphs[0];

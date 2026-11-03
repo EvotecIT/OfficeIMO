@@ -37,7 +37,7 @@ public partial class WordRtfConverterTests {
             Assert.Equal(firstExpected, direct.Sections[0].BreakKind);
             Assert.Equal(expected, direct.Sections[1].BreakKind);
             Assert.Equal(lastExpected, direct.Sections[2].BreakKind);
-            RtfDocument parsed = RtfDocument.Parse(source.ToRtf(new RtfWriteOptions { IncludeGenerator = false }));
+            RtfDocument parsed = RtfDocument.Parse(source.ToRtf(new RtfSaveOptions { IncludeGenerator = false }));
             Assert.Equal(firstExpected, parsed.Sections[0].BreakKind);
             Assert.Equal(expected, parsed.Sections[1].BreakKind);
             Assert.Equal(lastExpected, parsed.Sections[2].BreakKind);

@@ -17,7 +17,7 @@ For a caller-owned output stream, use `SavePdf`. It returns the PDF engine's
 using OfficeIMO.Pdf;
 
 using var output = File.Create("report.pdf");
-PdfSaveResult saved = document.SavePdf(output, new XpsToPdfOptions {
+PdfSaveResult saved = document.SavePdf(output, new XpsPdfExportOptions {
     PdfOptions = new PdfCreateOptions().SetEncryption("document-password")
 }, cancellationToken);
 ```
@@ -31,7 +31,7 @@ provides that publication contract for `.xps` and `.oxps` through `xps-pdf`.
 PDF composition applies cumulative `MaximumSvgCharacters` (32 Mi characters)
 and `MaximumPathCommands` (200,000) limits across all page occurrences before
 retaining each projected drawing. Repeated references to one XPS page count each
-time it appears. Set these on `XpsToPdfOptions` when a host needs a different
+time it appears. Set these on `XpsPdfExportOptions` when a host needs a different
 conversion allowance; they are separate from the PDF output byte limit.
 
 Page dimensions convert from XPS's 96 units per inch to PDF's 72 points per inch.
@@ -44,7 +44,7 @@ visual brushes is excluded.
 Radial Repeat/Reflect brushes remain vector PDF shadings even when tangent
 bounds or high-frequency fields prevent finite stop expansion. Color interpolation,
 stop alpha and native outside-cone endpoint paint are retained. Print-condition
-conversion configured through `XpsToPdfOptions.PdfCreateOptions` uses the caller-supplied
+conversion configured through `XpsPdfExportOptions.PdfCreateOptions` uses the caller-supplied
 CMYK ICC profile and bounded vector color samples; alpha remains independent.
 This color conversion alone does not establish PDF/X conformance.
 

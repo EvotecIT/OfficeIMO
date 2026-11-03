@@ -74,7 +74,7 @@ public class RtfPictureLayoutRegressionTests {
     [InlineData(true, 2700d)]
     public void Html_And_Saved_Word_Preserve_Visible_Crop_Geometry(bool padding, double visibleWidth) {
         RtfDocument document = CreatePicture(padding);
-        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
+        string html = document.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile());
         AngleSharp.Dom.IElement rendered = Assert.Single(new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html).QuerySelectorAll("img"));
         Assert.Contains("overflow:hidden", rendered.ParentElement!.GetAttribute("style"), StringComparison.Ordinal);
         RtfImage htmlImage = Assert.Single(HtmlConversionDocument.Parse(html).ToRtfDocument().Paragraphs.SelectMany(paragraph => paragraph.Inlines).OfType<RtfImage>());
@@ -116,7 +116,7 @@ public class RtfPictureLayoutRegressionTests {
         }
         RtfDocument invalid = CreatePicture();
         Assert.IsType<RtfImage>(invalid.Blocks[0]).CropLeftTwips = 2000;
-        Assert.Contains(invalid.ToHtmlResult(RtfToHtmlOptions.CreateRoundTripProfile()).RtfReport.NativeDiagnostics, item => item.Code == "RtfHtmlImageLayoutInvalid" && item.Action == RtfConversionAction.Blocked);
+        Assert.Contains(invalid.ToHtmlResult(RtfHtmlExportOptions.CreateRoundTripProfile()).RtfReport.NativeDiagnostics, item => item.Code == "RtfHtmlImageLayoutInvalid" && item.Action == RtfConversionAction.Blocked);
         Assert.Contains(invalid.ConvertToPdfWithEvidence().Warnings, item => item.Code == "ImageLayoutInvalid");
         Assert.Contains(invalid.ToWordDocumentResult().Report.NativeDiagnostics, item => item.Code == "RtfWordImagesOmitted" && item.Action == RtfConversionAction.Omitted);
     }

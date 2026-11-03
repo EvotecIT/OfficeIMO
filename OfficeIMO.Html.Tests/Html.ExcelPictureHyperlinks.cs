@@ -16,7 +16,7 @@ public sealed class HtmlExcelPictureHyperlinkTests {
     public void GenericLinkedPhotoRetainsNativeTargetPayloadAndGeometry(string target) {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.SteelBlue));
         string html = "<a href='" + target.Replace("&", "&amp;") + "'><img alt='Photo' width='32' height='16' src='data:image/png;base64," + Convert.ToBase64String(png) + "'></a>";
-        var result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        var result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument document = result.RequireValue();
         Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == HtmlConversionDiagnosticCodes.ContentOmitted && item.Message.Contains("hyperlink"));
         using var artifact = new System.IO.MemoryStream(document.ToBytes());
@@ -90,7 +90,7 @@ public sealed class HtmlExcelPictureHyperlinkTests {
             Width = OfficeIMO.OfficeLength.Pixels(32),
             Height = OfficeIMO.OfficeLength.Pixels(16)
         }).HyperlinkUri = new Uri(target, UriKind.RelativeOrAbsolute);
-        var result = sheet.ToHtmlResult(new ExcelHtmlSaveOptions { ExportProfile = ExcelHtmlExportProfile.VisualReview });
+        var result = sheet.ToHtmlResult(new ExcelHtmlExportOptions { ExportProfile = ExcelHtmlExportProfile.VisualReview });
         var parsed = System.Xml.Linq.XElement.Parse(result.Value.Substring(result.Value.IndexOf("<svg"), result.Value.IndexOf("</svg>") + 6 - result.Value.IndexOf("<svg")));
         var links = parsed.Descendants().Where(element => element.Name.LocalName == "a").ToArray();
         if (interactive) {

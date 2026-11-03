@@ -140,7 +140,7 @@ public sealed class MarkdownAllSeverityBatch11SecurityTests {
     [Fact]
     public void HtmlToMarkdown_DefinitionListExpansion_EnforcesConfiguredAggregateBudget() {
         const string html = "<dl><dt>a</dt><dt>b</dt><dt>c</dt><dd>one</dd><dd>two</dd></dl>";
-        var options = new MarkdownHtmlImportOptions { MaxDefinitionListEntryExpansions = 5 };
+        var options = new HtmlMarkdownExportOptions { MaxDefinitionListEntryExpansions = 5 };
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
             OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(options));

@@ -13,7 +13,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_LibraryFontEmbeddingUsesTheSameMetricsForLayoutAndPaint(bool portable, bool optOut) {
         if (!portable && !optOut && !new[] { "Arial", "Liberation Sans", "Arimo", "Helvetica Neue", "Aptos" }
                 .Any(name => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(name, out _))) return;
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             Margins = HtmlRenderMargins.All(0),
             ResourcePolicy = portable ? PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
                 : PdfCore.PdfResourcePolicy.CreateLibraryFontDefault()

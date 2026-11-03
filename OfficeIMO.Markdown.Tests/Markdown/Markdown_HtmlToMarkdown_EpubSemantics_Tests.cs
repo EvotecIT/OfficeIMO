@@ -80,7 +80,7 @@ public sealed class MarkdownHtmlToMarkdownTestsEpubSemantics {
 <ol type="A" start="3"><li>Third</li></ol>
 <pre data-language="csharp">Console.WriteLine(3);</pre>
 """;
-        var options = new MarkdownHtmlImportOptions { BaseUri = new Uri("https://example.test/book/chapter.xhtml") };
+        var options = new HtmlMarkdownExportOptions { BaseUri = new Uri("https://example.test/book/chapter.xhtml") };
 
         MarkdownDocument document = HtmlConversionDocument.Parse(html).ToMarkdown(options);
 

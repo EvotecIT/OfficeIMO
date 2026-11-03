@@ -3,7 +3,7 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Options for preparing a dependency-free external PDF signature placeholder.</summary>
-public sealed class PdfExternalSignatureOptions {
+public sealed class PdfExternalSignatureOptions : IPdfOperationCancellation {
     /// <summary>Default maximum PDF source size accepted by one-shot signing APIs (512 MiB).</summary>
     public const long DefaultMaxInputBytes = 512L * 1024L * 1024L;
     internal const int MaximumReservedSignatureContentsBytes = 1024 * 1024;
@@ -17,8 +17,12 @@ public sealed class PdfExternalSignatureOptions {
     /// <summary>Maximum prepared PDF bytes. The default matches the limit used to complete a persisted signature (768 MiB).</summary>
     public long MaxPreparedOutputBytes { get; set; } = DefaultMaxInputBytes + 256L * 1024L * 1024L;
 
-    /// <summary>Cancellation observed while reading and preparing a one-shot external signature.</summary>
-    public CancellationToken CancellationToken { get; set; }
+    // Operation cancellation; public methods take it as a parameter and bind it to a per-call copy.
+    System.Threading.CancellationToken IPdfOperationCancellation.CancellationToken { get => CancellationToken; set => CancellationToken = value; }
+
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
+
+    object IPdfOperationCancellation.CloneForOperation() => MemberwiseClone();
 
     /// <summary>High-level signature intent. Approval is the default.</summary>
     public PdfSignatureProfile Profile { get; set; } = PdfSignatureProfile.Approval;

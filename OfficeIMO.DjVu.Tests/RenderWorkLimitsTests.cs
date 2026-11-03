@@ -7,7 +7,7 @@ public sealed class RenderWorkLimitsTests {
         source = SharedComponentTests.AppendChunk(source, "BG44", new byte[] { 0, 255, 129, 2, 0, 128, 0, 96, 0 });
         source = SharedComponentTests.AppendChunk(source, "BG44", new byte[] { 1, 2 });
         var page = DjVuDocument.Load(source).Pages[0];
-        Assert.Equal(nameof(DjVuReadOptions.MaxIw44Slices), Assert.Throws<DjVuResourceLimitException>(() => page.Render()).LimitName);
+        Assert.Equal(nameof(DjVuLoadOptions.MaxIw44Slices), Assert.Throws<DjVuResourceLimitException>(() => page.Render()).LimitName);
     }
 
     [Fact]
@@ -15,14 +15,14 @@ public sealed class RenderWorkLimitsTests {
         byte[] source = SharedComponentTests.WithoutChunks(File.ReadAllBytes(ReaderAdapterTests.Fixture("palette.djvu")), "Sjbz", "FGbz", "BG44");
         source = SharedComponentTests.AppendChunk(source, "BG44", new byte[] { 0, 1, 129, 2, 0, 128, 0, 96, 0 });
         source = SharedComponentTests.AppendChunk(source, "BG44", new byte[] { 1, 2 });
-        var page = DjVuDocument.Load(source, new DjVuReadOptions { MaxIw44CoefficientSamples = 400 }).Pages[0];
-        Assert.Equal(nameof(DjVuReadOptions.MaxIw44CoefficientSamples), Assert.Throws<DjVuResourceLimitException>(() => page.Render()).LimitName);
+        var page = DjVuDocument.Load(source, new DjVuLoadOptions { MaxIw44CoefficientSamples = 400 }).Pages[0];
+        Assert.Equal(nameof(DjVuLoadOptions.MaxIw44CoefficientSamples), Assert.Throws<DjVuResourceLimitException>(() => page.Render()).LimitName);
     }
 
     [Fact]
     public void MaskPaintBudgetCountsAllPlacementsRatherThanOnlyLargestBitmap() {
         var page = DjVuDocument.Load(ReaderAdapterTests.Fixture("palette.djvu")).Pages[0];
-        var mask = page.DecodeMask(new DjVuReadBudget(new DjVuReadOptions(), default));
+        var mask = page.DecodeMask(new DjVuReadBudget(new DjVuLoadOptions(), default));
         long largest = mask.Placements.Max(p => (long)p.Bitmap.Width * p.Bitmap.Height);
         Assert.True(mask.Placements.Sum(p => (long)p.Bitmap.Width * p.Bitmap.Height) > largest);
         Assert.Equal(nameof(DjVuRenderOptions.MaxMaskPaintSamples), Assert.Throws<DjVuResourceLimitException>(() =>
@@ -33,34 +33,34 @@ public sealed class RenderWorkLimitsTests {
     [Fact]
     public void Jb2DecodeBudgetIncludesSharedDictionariesBeforePagePainting() {
         var page = DjVuDocument.Load(ReaderAdapterTests.Fixture(Path.Combine("Shared", "shared.djvu")),
-            new DjVuReadOptions { MaxJb2DecodedSamples = 1 }).Pages[0];
-        Assert.Equal(nameof(DjVuReadOptions.MaxJb2DecodedSamples), Assert.Throws<DjVuResourceLimitException>(() => page.Render()).LimitName);
+            new DjVuLoadOptions { MaxJb2DecodedSamples = 1 }).Pages[0];
+        Assert.Equal(nameof(DjVuLoadOptions.MaxJb2DecodedSamples), Assert.Throws<DjVuResourceLimitException>(() => page.Render()).LimitName);
     }
 
     [Fact]
     public void Jb2CommentWorkAccumulatesAcrossRecordsBeforeDecodingTheirBytes() {
         string source = ReaderAdapterTests.Fixture("comments-page.djvu");
-        var limited = DjVuDocument.Load(source, new DjVuReadOptions { MaxJb2CommentBytes = 8191 });
-        Assert.Equal(nameof(DjVuReadOptions.MaxJb2CommentBytes), Assert.Throws<DjVuResourceLimitException>(() => limited.Pages[0].Render()).LimitName);
-        var accepted = DjVuDocument.Load(source, new DjVuReadOptions { MaxJb2CommentBytes = 8192 });
+        var limited = DjVuDocument.Load(source, new DjVuLoadOptions { MaxJb2CommentBytes = 8191 });
+        Assert.Equal(nameof(DjVuLoadOptions.MaxJb2CommentBytes), Assert.Throws<DjVuResourceLimitException>(() => limited.Pages[0].Render()).LimitName);
+        var accepted = DjVuDocument.Load(source, new DjVuLoadOptions { MaxJb2CommentBytes = 8192 });
         Assert.DoesNotContain(accepted.Pages[0].Render().Image.GetPixels(), value => value != 255);
     }
 
     [Fact]
     public void Jb2CommentsInInheritedDictionaryAndPageShareOneWorkBudget() {
         byte[] dictionary = File.ReadAllBytes(ReaderAdapterTests.Fixture("comments-dictionary.jb2"));
-        var budget = new DjVuReadBudget(new DjVuReadOptions { MaxJb2CommentBytes = 8192 }, default);
+        var budget = new DjVuReadBudget(new DjVuLoadOptions { MaxJb2CommentBytes = 8192 }, default);
         var chunk = new DjVuChunk(dictionary, "Djbz", null, 0, dictionary.Length, new System.Collections.Generic.List<DjVuChunk>());
         var inherited = new Jb2Decoder(chunk, budget).Decode(true).Library;
         var page = DjVuDocument.Load(ReaderAdapterTests.Fixture("comments-page.djvu")).Pages[0];
         var image = page.Document.PageChunks(page.Component, default).Single(c => c.Id == "Sjbz");
-        Assert.Equal(nameof(DjVuReadOptions.MaxJb2CommentBytes), Assert.Throws<DjVuResourceLimitException>(() =>
+        Assert.Equal(nameof(DjVuLoadOptions.MaxJb2CommentBytes), Assert.Throws<DjVuResourceLimitException>(() =>
             new Jb2Decoder(image, budget, inherited).Decode()).LimitName);
     }
 
     [Fact]
     public void EmptyJb2SymbolsPreservePlacementGeometryAndTrimToEmptyLibraryEntries() {
-        var page = DjVuDocument.Load(ReaderAdapterTests.Fixture("zero-area.djvu"), new DjVuReadOptions { MaxJb2DecodedSamples = 1 }).Pages[0];
+        var page = DjVuDocument.Load(ReaderAdapterTests.Fixture("zero-area.djvu"), new DjVuLoadOptions { MaxJb2DecodedSamples = 1 }).Pages[0];
         var mask = page.DecodeMask(new DjVuReadBudget(page.Document.ReadOptions, default));
         Assert.Equal(1000, mask.Library.Count);
         Assert.All(mask.Library, bitmap => {

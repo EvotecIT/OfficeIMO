@@ -18,7 +18,7 @@ public class PdfEncryptedSignatureTests {
         using var cancellation = new System.Threading.CancellationTokenSource();
         cancellation.Cancel();
         Assert.Throws<OperationCanceledException>(() => document.Security.SignExternal(signer,
-            new PdfExternalSignatureOptions { CancellationToken = cancellation.Token }));
+            new PdfExternalSignatureOptions(), cancellationToken: cancellation.Token));
         Assert.Equal(0, signer.Calls);
         Assert.Equal(source, document.ToBytes());
     }

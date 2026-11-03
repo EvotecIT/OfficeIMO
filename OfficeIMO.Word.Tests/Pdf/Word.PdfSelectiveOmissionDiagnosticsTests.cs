@@ -14,16 +14,16 @@ public partial class Word {
         Assert.NotEmpty(logical.ListItems);
         Assert.NotEmpty(logical.Tables);
 
-        AssertOmission(logical, new WordPdfImportOptions { ImportHeadings = false }, "pdf-headings-not-imported");
-        AssertOmission(logical, new WordPdfImportOptions { ImportParagraphs = false }, "pdf-paragraphs-not-imported");
-        AssertOmission(logical, new WordPdfImportOptions { ImportLists = false }, "pdf-lists-not-imported");
-        AssertOmission(logical, new WordPdfImportOptions { ImportTables = false }, "pdf-tables-not-imported");
+        AssertOmission(logical, new PdfWordExportOptions { ImportHeadings = false }, "pdf-headings-not-imported");
+        AssertOmission(logical, new PdfWordExportOptions { ImportParagraphs = false }, "pdf-paragraphs-not-imported");
+        AssertOmission(logical, new PdfWordExportOptions { ImportLists = false }, "pdf-lists-not-imported");
+        AssertOmission(logical, new PdfWordExportOptions { ImportTables = false }, "pdf-tables-not-imported");
     }
 
     [Fact]
     public void PdfSemanticImport_TablesOnlyReportsEveryDisabledTextFamily() {
         PdfCore.PdfDocumentReadResult logical = CreateLogicalDocumentWithAllSemanticFamilies();
-        PdfWordConversionResult result = logical.ConvertToWordWithEvidence(WordPdfImportOptions.CreateTablesOnly());
+        PdfWordConversionResult result = logical.ConvertToWordWithEvidence(PdfWordExportOptions.CreateTablesOnly());
 
         using (result.Value) {
             Assert.True(result.HasLoss);
@@ -50,7 +50,7 @@ public partial class Word {
 
     private static void AssertOmission(
         PdfCore.PdfDocumentReadResult logical,
-        WordPdfImportOptions options,
+        PdfWordExportOptions options,
         string warningCode) {
         PdfWordConversionResult result = logical.ConvertToWordWithEvidence(options);
         using (result.Value) {

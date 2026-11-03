@@ -1,0 +1,23 @@
+{
+  "package": "OfficeIMO.Rtf.Markdown",
+  "changes": [
+    {
+      "old": "OfficeIMO.Rtf.Markdown.RtfToMarkdownOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Rtf.Markdown.RtfMarkdownExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Rtf.Markdown.MarkdownToRtfOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Rtf.Markdown.MarkdownRtfExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
+    }
+  ]
+}

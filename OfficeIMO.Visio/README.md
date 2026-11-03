@@ -87,10 +87,9 @@ For diagram PDF output, select the adapter's page projection explicitly:
 ```csharp
 using OfficeIMO.Visio.Pdf;
 
-var pdf = imported.Value.ToPdfDocumentResult(new VisioToPdfOptions {
+OfficeConversionReport pdfReport = imported.Value.SaveAsPdf("floorplan.pdf", new VisioPdfExportOptions {
     Mode = VisioPdfProjectionMode.DiagramPages
 });
-pdf.Save("floorplan.pdf");
 ```
 
 Cached paint styles and transparency feed the shared model. Geometryless native

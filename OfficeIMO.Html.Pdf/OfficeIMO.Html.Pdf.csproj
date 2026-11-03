@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>PDF-to-HTML semantic and positioned-review conversion for OfficeIMO.</Description>
+    <Description>HTML-to-PDF conversion, PDF-backed HTML image export, and PDF-to-HTML semantic and positioned-review conversion for OfficeIMO.</Description>
     <PackageId>OfficeIMO.Html.Pdf</PackageId>
     <AssemblyName>OfficeIMO.Html.Pdf</AssemblyName>
     <AssemblyTitle>OfficeIMO.Html.Pdf</AssemblyTitle>
@@ -10,7 +10,7 @@
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageTags>html;pdf;converter;officeimo-pdf</PackageTags>
+    <PackageTags>html;pdf;converter;image-export;png;jpeg;tiff;svg;webp;officeimo-pdf</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
@@ -43,8 +43,17 @@
 
   <ItemGroup>
     <Using Include="System" />
+    <Using Include="System.Collections.Generic" />
     <Using Include="System.IO" />
+    <Using Include="System.Linq" />
     <Using Include="System.Text" />
+    <Using Include="System.Threading" />
+    <Using Include="System.Threading.Tasks" />
+    <Using Include="OfficeIMO.Drawing" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />

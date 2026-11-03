@@ -15,7 +15,7 @@ public static class XpsPdfExtensions {
     /// <remarks>Page-local fragments use page order when no story addresses were authored. Native figure descriptions and PDF/UA conformance are not inferred.</remarks>
     public static byte[] ToPdf(this XpsDocument document, CancellationToken cancellationToken = default, bool preserveLogicalStructure = true) {
         using var output = new MemoryStream();
-        document.SavePdf(output, new XpsToPdfOptions { PreserveLogicalStructure = preserveLogicalStructure }, cancellationToken);
+        document.SavePdf(output, new XpsPdfExportOptions { PreserveLogicalStructure = preserveLogicalStructure }, cancellationToken);
         return output.ToArray();
     }
 
@@ -25,19 +25,19 @@ public static class XpsPdfExtensions {
     /// <param name="options">Native semantic preservation and existing PDF serialization settings.</param>
     /// <param name="cancellationToken">Cancels conversion and serialization.</param>
     /// <remarks>Validation precedes writing. A serialization failure can leave partial stream output; hosts that publish files should stage and validate it first.</remarks>
-    public static PdfSaveResult SavePdf(this XpsDocument document, Stream output, XpsToPdfOptions? options = null,
+    public static PdfSaveResult SavePdf(this XpsDocument document, Stream output, XpsPdfExportOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (output == null) throw new ArgumentNullException(nameof(output));
         if (!output.CanWrite) throw new ArgumentException("PDF output must be writable.", nameof(output));
         cancellationToken.ThrowIfCancellationRequested();
-        var snapshot = (options ?? new XpsToPdfOptions()).Clone();
+        var snapshot = (options ?? new XpsPdfExportOptions()).Clone();
         if (snapshot.MaximumSvgCharacters < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumSvgCharacters must be positive.");
         if (snapshot.MaximumPathCommands < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumPathCommands must be positive.");
         return CreatePdf(document, snapshot, cancellationToken).SaveWithEvidence(output, cancellationToken);
     }
 
-    private static PdfDocument CreatePdf(XpsDocument document, XpsToPdfOptions options, CancellationToken cancellationToken) {
+    private static PdfDocument CreatePdf(XpsDocument document, XpsPdfExportOptions options, CancellationToken cancellationToken) {
         if (document.Pages.Count == 0) throw new InvalidOperationException("PDF export requires at least one page.");
         var navigation = new XpsPdfNavigation(document, cancellationToken);
         var structure = options.PreserveLogicalStructure ? new XpsPdfLogicalStructure(document, cancellationToken) : null;

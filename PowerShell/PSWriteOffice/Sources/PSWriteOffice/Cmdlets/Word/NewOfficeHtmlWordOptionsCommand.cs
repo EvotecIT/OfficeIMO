@@ -10,7 +10,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <code>$options = New-OfficeHtmlWordOptions -StylesheetPath ./report.css -RenderPreAsTable
 /// Convert-OfficeDocument -Path ./Report.html -To Word -OutputPath ./Report.docx -Options $options</code></example>
 [Cmdlet(VerbsCommon.New, "OfficeHtmlWordOptions", DefaultParameterSetName = "Default")]
-[OutputType(typeof(WordHtmlImportOptions))]
+[OutputType(typeof(HtmlWordExportOptions))]
 public sealed class NewOfficeHtmlWordOptionsCommand : OfficeCmdlet {
     /// <summary>Font family for imported text.</summary>
     [Parameter(ParameterSetName = "Default"), ValidateNotNullOrEmpty]
@@ -45,7 +45,7 @@ public sealed class NewOfficeHtmlWordOptionsCommand : OfficeCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var options = new WordHtmlImportOptions();
+        var options = new HtmlWordExportOptions();
         if (Font != null) options.FontFamily = Font;
         if (BasePath != null) options.BasePath = ResolveOutputDirectory(BasePath);
         foreach (string path in StylesheetPath ?? Array.Empty<string>())

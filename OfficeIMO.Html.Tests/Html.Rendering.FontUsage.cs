@@ -100,7 +100,7 @@ public sealed class HtmlFontUsageTests {
     [InlineData("Good,Missing", false)]
     [InlineData("Missing,Good", true)]
     public async Task PdfReportPreservesFontUseAttribution(string families, bool expectedLoss) {
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             ResourceResolver = CreateOptions().ResourceResolver,
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreateTrustedHost()
         };

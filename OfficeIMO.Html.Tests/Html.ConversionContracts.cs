@@ -194,7 +194,7 @@ public partial class Html {
                 typeof(ExcelHtmlConverterExtensions), "ToHtml", "ToHtmlResult"),
             [HtmlConversionTarget.PowerPoint] = new(
                 typeof(HtmlPowerPointConverterExtensions), "ToPowerPointDocument", "ToPowerPointDocumentResult",
-                typeof(PowerPointHtmlConverterExtensions), "ToHtml", "ToHtmlResult"),
+                typeof(PowerPointHtmlConverterExtensions), "ToHtml", "ToHtml"),
             [HtmlConversionTarget.OneNote] = new(
                 typeof(HtmlOneNoteConverterExtensions), "ToOneNoteSection", "ToOneNoteSectionResult",
                 typeof(OneNoteHtmlConverterExtensions), "ToHtmlDocument", "ToHtmlDocumentResult"),

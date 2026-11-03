@@ -17,7 +17,7 @@ public partial class Word {
                 new[] { "B", "2" }
             }, style: new PdfCore.PdfTableStyle { HeaderRowCount = 1 })
             .ToBytes();
-        using var imported = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(new WordPdfImportOptions {
+        using var imported = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(new PdfWordExportOptions {
             TableStyle = WordTableStyle.OfficeIMOModern, RepeatHeaderRows = repeat
         }).Value;
         var table = Assert.Single(imported.Tables);

@@ -27,7 +27,7 @@ Use the explicit visual profile when a page image is the intended result. Each i
 
 ```csharp
 using OfficeIMO;
-var visual = PowerPointPdfImportOptions.CreateVisualPages();
+var visual = PdfPowerPointExportOptions.CreateVisualPages();
 OfficeConversionReport visualReport = pdf.SaveAsPowerPoint(
     "handout-visual.pptx",
     visual);
@@ -43,7 +43,7 @@ Use hybrid mode when the original page must remain visible while detected tables
 
 ```csharp
 using OfficeIMO;
-var hybrid = PowerPointPdfImportOptions.CreateHybrid();
+var hybrid = PdfPowerPointExportOptions.CreateHybrid();
 hybrid.MaxRowsPerSlide = 18;
 hybrid.MaxColumnsPerSlide = 6;
 
@@ -59,7 +59,7 @@ Use editable-table mode when detected data is more important than page appearanc
 
 ```csharp
 using OfficeIMO;
-var options = PowerPointPdfImportOptions.CreateEditableTables();
+var options = PdfPowerPointExportOptions.CreateEditableTables();
 options.ReadOptions = new PdfLoadOptions {
     Profile = PdfReadProfile.Structured,
     PageSelection = PdfPageSelection.Parse("1-3")

@@ -39,7 +39,7 @@ public class RtfColorSlotRegressionTests {
         RtfDocument saved = RtfDocument.ParseResult(source.ToRtf()).Document;
         Assert.Equal("#0000FF", saved.GetColor(4)!.ToString());
         Assert.True(saved.Colors[2].IsAutomatic);
-        RtfDocument htmlRoundTrip = HtmlConversionDocument.Parse(source.ToHtml(new RtfToHtmlOptions { IncludeRoundTripMetadata = true, FragmentOnly = false })).ToRtfDocument();
+        RtfDocument htmlRoundTrip = HtmlConversionDocument.Parse(source.ToHtml(new RtfHtmlExportOptions { IncludeRoundTripMetadata = true, FragmentOnly = false })).ToRtfDocument();
         Assert.True(htmlRoundTrip.Colors[1].IsAutomatic);
         Assert.Equal("#0000FF", htmlRoundTrip.GetColor(4)!.ToString());
 

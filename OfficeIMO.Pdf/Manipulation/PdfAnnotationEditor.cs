@@ -34,14 +34,18 @@ internal static partial class PdfAnnotationEditor {
     };
 
     /// <summary>Removes annotations matching the supplied filters and returns rewritten PDF bytes.</summary>
-    public static PdfAnnotationEditResult RemoveAnnotations(byte[] pdf, PdfAnnotationRemovalOptions? options = null) => RemoveAnnotations(pdf, options, readOptions: null);
+    public static PdfAnnotationEditResult RemoveAnnotations(byte[] pdf, PdfAnnotationRemovalOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return RemoveAnnotations(pdf, options, readOptions: null, cancellationToken: cancellationToken);
+    }
 
     /// <summary>Removes annotations using explicit read limits or credentials and returns rewritten PDF bytes.</summary>
-    public static PdfAnnotationEditResult RemoveAnnotations(byte[] pdf, PdfAnnotationRemovalOptions? options, PdfLoadOptions? readOptions) {
+    public static PdfAnnotationEditResult RemoveAnnotations(byte[] pdf, PdfAnnotationRemovalOptions? options, PdfLoadOptions? readOptions, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(pdf, nameof(pdf));
 
         PdfAnnotationRemovalOptions effectiveOptions = options ?? new PdfAnnotationRemovalOptions();
-        var cancellationToken = effectiveOptions.CancellationToken;
+        cancellationToken = effectiveOptions.CancellationToken;
         cancellationToken.ThrowIfCancellationRequested();
         ValidateRemovalOptions(effectiveOptions);
         PdfMutationPlan mutationPlan = PdfMutationPlanner.Require(
@@ -134,11 +138,16 @@ internal static partial class PdfAnnotationEditor {
     }
 
     /// <summary>Updates a single indirect annotation and returns rewritten PDF bytes.</summary>
-    public static PdfAnnotationEditResult UpdateAnnotation(byte[] pdf, int objectNumber, PdfAnnotationUpdateOptions options) => UpdateAnnotation(pdf, objectNumber, options, readOptions: null);
+    public static PdfAnnotationEditResult UpdateAnnotation(byte[] pdf, int objectNumber, PdfAnnotationUpdateOptions options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
+        return UpdateAnnotation(pdf, objectNumber, options, readOptions: null, cancellationToken: cancellationToken);
+    }
 
     /// <summary>Updates one indirect annotation using explicit read limits or credentials.</summary>
-    public static PdfAnnotationEditResult UpdateAnnotation(byte[] pdf, int objectNumber, PdfAnnotationUpdateOptions options, PdfLoadOptions? readOptions) =>
-        UpdateAnnotation(pdf, objectNumber, options, mutationPlan: null, readOptions);
+    public static PdfAnnotationEditResult UpdateAnnotation(byte[] pdf, int objectNumber, PdfAnnotationUpdateOptions options, PdfLoadOptions? readOptions, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
+        return UpdateAnnotation(pdf, objectNumber, options, mutationPlan: null, readOptions);
+    }
 
     private static PdfAnnotationEditResult UpdateAnnotation(
         byte[] pdf,
@@ -212,25 +221,33 @@ internal static partial class PdfAnnotationEditor {
         ?? throw new InvalidOperationException("PDF annotation metadata could not be read.");
 
     /// <summary>Removes annotations from a PDF file and writes the result to another file.</summary>
-    public static PdfAnnotationEditResult RemoveAnnotations(string inputPath, string outputPath, PdfAnnotationRemovalOptions? options = null) => RemoveAnnotations(inputPath, outputPath, options, readOptions: null);
+    public static PdfAnnotationEditResult RemoveAnnotations(string inputPath, string outputPath, PdfAnnotationRemovalOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return RemoveAnnotations(inputPath, outputPath, options, readOptions: null, cancellationToken: cancellationToken);
+    }
 
     /// <summary>Removes annotations from a PDF file using explicit read limits or credentials and writes the result to another file.</summary>
-    public static PdfAnnotationEditResult RemoveAnnotations(string inputPath, string outputPath, PdfAnnotationRemovalOptions? options, PdfLoadOptions? readOptions) {
+    public static PdfAnnotationEditResult RemoveAnnotations(string inputPath, string outputPath, PdfAnnotationRemovalOptions? options, PdfLoadOptions? readOptions, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
         PdfAnnotationEditResult result = RemoveAnnotations(
             PdfDocumentSource.FromPath(inputPath, readOptions, options?.CancellationToken ?? default).Bytes,
             options,
-            readOptions);
+            readOptions, cancellationToken: cancellationToken);
         WriteFile(fullOutputPath, result.Bytes, options?.CancellationToken ?? default);
         return result;
     }
 
     /// <summary>Updates a single annotation in a PDF file and writes the result to another file.</summary>
-    public static PdfAnnotationEditResult UpdateAnnotation(string inputPath, string outputPath, int objectNumber, PdfAnnotationUpdateOptions options) => UpdateAnnotation(inputPath, outputPath, objectNumber, options, readOptions: null);
+    public static PdfAnnotationEditResult UpdateAnnotation(string inputPath, string outputPath, int objectNumber, PdfAnnotationUpdateOptions options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
+        return UpdateAnnotation(inputPath, outputPath, objectNumber, options, readOptions: null, cancellationToken: cancellationToken);
+    }
 
     /// <summary>Updates one annotation in a PDF file using explicit read limits or credentials and writes the result to another file.</summary>
-    public static PdfAnnotationEditResult UpdateAnnotation(string inputPath, string outputPath, int objectNumber, PdfAnnotationUpdateOptions options, PdfLoadOptions? readOptions) {
+    public static PdfAnnotationEditResult UpdateAnnotation(string inputPath, string outputPath, int objectNumber, PdfAnnotationUpdateOptions options, PdfLoadOptions? readOptions, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNull(options, nameof(options));
         string fullOutputPath = ValidateOutputPath(outputPath);
@@ -238,7 +255,7 @@ internal static partial class PdfAnnotationEditor {
             PdfDocumentSource.FromPath(inputPath, readOptions, options.CancellationToken).Bytes,
             objectNumber,
             options,
-            readOptions);
+            readOptions, cancellationToken: cancellationToken);
         WriteFile(fullOutputPath, result.Bytes, options?.CancellationToken ?? default);
         return result;
     }

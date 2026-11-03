@@ -165,7 +165,7 @@ public sealed class PdfConversionScenarioManifestTests {
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf, new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
-        var options = new PdfToHtmlOptions {
+        var options = new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true
         };
@@ -173,12 +173,12 @@ public sealed class PdfConversionScenarioManifestTests {
         PdfHtmlConversionResult result = PdfHtmlConverterExtensions.ToHtmlResult(logical, options);
         string html = result.Value;
         byte[] activeContentPdf = CreatePdfToHtmlActiveContentProofPdf();
-        PdfHtmlConversionResult activeContentResult = PdfHtmlConverterExtensions.ToHtmlResult(PdfCore.PdfDocumentReadResult.Load(activeContentPdf), new PdfToHtmlOptions {
+        PdfHtmlConversionResult activeContentResult = PdfHtmlConverterExtensions.ToHtmlResult(PdfCore.PdfDocumentReadResult.Load(activeContentPdf), new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true
         });
         byte[] xfaPdf = CreateReaderXfaFormCorpusPdf();
-        PdfHtmlConversionResult xfaResult = PdfHtmlConverterExtensions.ToHtmlResult(PdfCore.PdfDocumentReadResult.Load(xfaPdf), new PdfToHtmlOptions {
+        PdfHtmlConversionResult xfaResult = PdfHtmlConverterExtensions.ToHtmlResult(PdfCore.PdfDocumentReadResult.Load(xfaPdf), new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.PositionedReview
         });
 
@@ -326,8 +326,8 @@ public sealed class PdfConversionScenarioManifestTests {
         };
         PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(pdf);
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf, layoutOptions);
-        RtfDocument imported = logical.ToRtfDocument(new PdfToRtfOptions());
-        string importedRtf = imported.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        RtfDocument imported = logical.ToRtfDocument(new PdfRtfExportOptions());
+        string importedRtf = imported.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         string importedText = string.Join("\n", imported.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
 
         Assert.StartsWith("%PDF-", Encoding.ASCII.GetString(pdf, 0, 5), StringComparison.Ordinal);
@@ -794,7 +794,7 @@ public sealed class PdfConversionScenarioManifestTests {
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf, new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
-        var options = new PdfToHtmlOptions {
+        var options = new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true
         };
@@ -1075,7 +1075,7 @@ public sealed class PdfConversionScenarioManifestTests {
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf, new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
-        var htmlOptions = new PdfToHtmlOptions {
+        var htmlOptions = new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true
         };
@@ -1671,7 +1671,7 @@ public sealed class PdfConversionScenarioManifestTests {
     [Fact]
     public void HtmlCssResourcePolicy_ProducesManifestedReviewProof() {
         const string stylesheetUri = "https://allowed.example.test/policy.css";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             MaxResourceBytes = 8192,
             MaxTotalResourceBytes = 16384,
             ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
@@ -1708,7 +1708,7 @@ public sealed class PdfConversionScenarioManifestTests {
     [Fact]
     public void Html_ToPdfResult_ReturnsPdfDocumentAndReportSnapshot() {
         const string stylesheetUri = "https://allowed.example.test/policy.css";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(
                 request.Uri.AbsoluteUri == stylesheetUri
                     ? new HtmlResolvedResource(Encoding.UTF8.GetBytes("p.policy-note { color:#123456; }"), "text/css")
@@ -1791,17 +1791,17 @@ public sealed class PdfConversionScenarioManifestTests {
     [Fact]
     public void HtmlPdfRoundTripProfiles_ProduceManifestedReviewProof() {
         const string linkUri = "https://example.com/html-pdf-roundtrip";
-        var htmlOptions = new HtmlToPdfOptions();
+        var htmlOptions = new HtmlPdfExportOptions();
         PdfCore.PdfDocumentConversionResult htmlResult = HtmlConversionDocument.Parse(CreatePracticalHtmlSample(linkUri)).ConvertToPdfWithEvidence(htmlOptions);
         byte[] pdf = htmlResult.ToBytes();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf, new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
-        var semanticOptions = new PdfToHtmlOptions {
+        var semanticOptions = new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.Semantic,
             IncludeLinkAnnotations = true
         };
-        var positionedOptions = new PdfToHtmlOptions {
+        var positionedOptions = new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true
         };
@@ -1871,7 +1871,7 @@ public sealed class PdfConversionScenarioManifestTests {
     public void PdfToHtmlResult_PreservesUnsafeLinksAsInertReviewMetadata() {
         byte[] pdf = CreateLinkAnnotationPdf("javascript:alert(1)");
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
-        var options = new PdfToHtmlOptions {
+        var options = new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true
         };
@@ -1898,7 +1898,7 @@ public sealed class PdfConversionScenarioManifestTests {
         byte[] pdf = CreateOpenActionDictionaryPdf();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
 
-        PdfHtmlConversionResult result = PdfHtmlConverterExtensions.ToHtmlResult(logical, new PdfToHtmlOptions());
+        PdfHtmlConversionResult result = PdfHtmlConverterExtensions.ToHtmlResult(logical, new PdfHtmlExportOptions());
 
         Assert.True(result.Summary.HasOpenAction);
         Assert.Equal(1, result.Summary.CatalogActionCount);
@@ -1911,7 +1911,7 @@ public sealed class PdfConversionScenarioManifestTests {
     public void PdfToHtmlResult_ReportsCatalogActionsWhenOnlySomePagesAreSelected() {
         byte[] pdf = CreateCatalogAdditionalActionMultiPagePdf();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
-        var options = new PdfToHtmlOptions {
+        var options = new PdfHtmlExportOptions {
             PageRanges = new[] { PdfCore.PdfPageRange.From(1, 1) }
         };
 
@@ -1937,7 +1937,7 @@ public sealed class PdfConversionScenarioManifestTests {
             .Paragraph(paragraph => paragraph.Text("Second page"))
             .ToBytes();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
-        var options = new PdfToHtmlOptions {
+        var options = new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeOutlines = true,
             PageRanges = new[] { PdfCore.PdfPageRange.From(2, 2) }
@@ -1960,7 +1960,7 @@ public sealed class PdfConversionScenarioManifestTests {
     public void PdfToHtmlResult_PreservesDirectDestinationLinksAsReviewMetadata() {
         byte[] pdf = CreateDirectDestinationLinkPdf();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
-        var options = new PdfToHtmlOptions {
+        var options = new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true
         };
@@ -1990,7 +1990,7 @@ public sealed class PdfConversionScenarioManifestTests {
         byte[] pdf = CreateDirectDestinationLinkPdf();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
         Assert.False(Assert.Single(logical.Pages[0].Annotations).HasAction);
-        var options = new PdfToHtmlOptions {
+        var options = new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true,
             PageRanges = new[] { PdfCore.PdfPageRange.From(1, 1) }
@@ -2016,20 +2016,20 @@ public sealed class PdfConversionScenarioManifestTests {
         PdfCore.PdfDocumentReadResult logicalDocument = PdfCore.PdfDocumentReadResult.Load(pdf, layoutOptions);
 
         using var semanticWordStream = new MemoryStream();
-        var semanticWordOptions = new WordPdfImportOptions();
+        var semanticWordOptions = new PdfWordExportOptions();
         PdfWordConversionResult semanticWordResult = logicalDocument.ConvertToWordWithEvidence(semanticWordOptions);
         using (OfficeIMO.Word.WordDocument semanticWordDocument = semanticWordResult.Value) {
             semanticWordDocument.Save(semanticWordStream);
         }
 
         using var excelStream = new MemoryStream();
-        var excelConversion = logicalDocument.ConvertToExcelWithEvidence(new ExcelPdfImportOptions { AutoFitColumns = false });
+        var excelConversion = logicalDocument.ConvertToExcelWithEvidence(new PdfExcelExportOptions { AutoFitColumns = false });
         using var excelDocument = excelConversion.Value;
         excelDocument.Save(excelStream);
         PdfExcelTableImportReport excelReport = excelConversion.Report;
 
         using var powerPointStream = new MemoryStream();
-        var powerPointConversion = logicalDocument.ConvertToPowerPointWithEvidence(PowerPointPdfImportOptions.CreateEditableTables());
+        var powerPointConversion = logicalDocument.ConvertToPowerPointWithEvidence(PdfPowerPointExportOptions.CreateEditableTables());
         using var powerPointDocument = powerPointConversion.Value;
         powerPointDocument.Save(powerPointStream);
         PdfPowerPointConversionReport powerPointReport = powerPointConversion.Report;

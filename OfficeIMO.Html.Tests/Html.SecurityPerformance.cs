@@ -25,7 +25,7 @@ public partial class Html {
             html.Append("<p style=\"background-color:rgba(255,0,0,0.5)\">Text</p>");
         }
         html.Append("</div>");
-        WordHtmlImportOptions options = WordHtmlImportOptions.UntrustedDefaults;
+        HtmlWordExportOptions options = HtmlWordExportOptions.UntrustedDefaults;
         var converter = new HtmlToWordConverter();
 
         using WordDocument document = await converter.ConvertAsync(
@@ -58,7 +58,7 @@ public partial class Html {
             html.Append("<td>Cell</td>");
         }
         html.Append("</tr></table></div>");
-        WordHtmlImportOptions options = WordHtmlImportOptions.UntrustedDefaults;
+        HtmlWordExportOptions options = HtmlWordExportOptions.UntrustedDefaults;
         var converter = new HtmlToWordConverter();
 
         using WordDocument document = await converter.ConvertAsync(
@@ -111,7 +111,7 @@ public partial class Html {
 
         using WordDocument document = await converter.ConvertAsync(
             HtmlConversionDocument.Parse(html).CreateNativeDocumentForConversion(),
-            WordHtmlImportOptions.UntrustedDefaults);
+            HtmlWordExportOptions.UntrustedDefaults);
 
         Assert.Equal(3, document.Images.Count);
         var field = typeof(HtmlToWordConverter).GetField(

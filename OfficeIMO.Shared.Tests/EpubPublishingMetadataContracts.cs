@@ -64,7 +64,7 @@ public sealed class EpubPublishingMetadataContracts {
         Assert.Contains(reopened.Metadata, entry => entry.Name == "creator" && entry.Value == "Existing author");
         Assert.Contains(reopened.Metadata, entry => entry.Property == "custom:editorial-status" && entry.Value == "reviewed");
         int creatorIndex = reopened.Metadata.ToList().FindIndex(entry => entry.Id == "alice");
-        var limited = EpubDocument.Load(new MemoryStream(book.Write().Bytes), new EpubReadOptions { MaxMetadataItems = creatorIndex + 1 });
+        var limited = EpubDocument.Load(new MemoryStream(book.Write().Bytes), new EpubLoadOptions { MaxMetadataItems = creatorIndex + 1 });
         var limitedCreator = Assert.Single(limited.Metadata, entry => entry.Id == "alice");
         Assert.Null(limitedCreator.Role);
         Assert.Null(limitedCreator.FileAs);

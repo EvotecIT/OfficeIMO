@@ -5,7 +5,7 @@ namespace OfficeIMO.Rtf.Pdf;
 internal static partial class RtfPdfConverter {
     /// <summary>Reports the selected projection's bar fidelity once per source paragraph.</summary>
     private static void RecordParagraphBarTabDiagnostic(RtfDocument document, RtfParagraph paragraph,
-        RtfToPdfOptions options, string? omittedSource = null) {
+        RtfPdfExportOptions options, string? omittedSource = null) {
         if (!document.GetParagraphFormatting(paragraph).TabStops.Any(stop => stop.Alignment == RtfTabAlignment.Bar) ||
             !options.DiagnosedBarTabParagraphs.Add(paragraph)) return;
         if (omittedSource != null) {

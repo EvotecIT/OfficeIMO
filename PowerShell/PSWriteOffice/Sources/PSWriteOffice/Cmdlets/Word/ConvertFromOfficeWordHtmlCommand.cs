@@ -111,7 +111,7 @@ public sealed class ConvertFromOfficeWordHtmlCommand : PSCmdlet {
                 return;
             }
 
-            var options = new WordHtmlImportOptions {
+            var options = new HtmlWordExportOptions {
                 IncludeListStyles = IncludeListStyles.IsPresent,
                 ContinueNumbering = ContinueNumbering.IsPresent,
                 SupportsHeadingNumbering = SupportsHeadingNumbering.IsPresent,

@@ -3,7 +3,7 @@ using System.Globalization;
 namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlWriter {
-    internal static string Write(RtfDocument document, RtfToHtmlOptions options) {
+    internal static string Write(RtfDocument document, RtfHtmlExportOptions options) {
         RtfTableTraversalGuard.ValidateDocument(document);
         string newline = options.GetNewLine();
         var builder = new StringBuilder();
@@ -28,7 +28,7 @@ internal static partial class RtfHtmlWriter {
         return builder.ToString();
     }
 
-    private static void AppendBlocks(StringBuilder builder, IReadOnlyList<IRtfBlock> blocks, RtfToHtmlOptions options, RtfDocument document, string newline, RtfListNumbering? numbering = null) {
+    private static void AppendBlocks(StringBuilder builder, IReadOnlyList<IRtfBlock> blocks, RtfHtmlExportOptions options, RtfDocument document, string newline, RtfListNumbering? numbering = null) {
         var lists = new List<HtmlListFrame>();
         numbering ??= new RtfListNumbering(document);
         for (int i = 0; i < blocks.Count; i++) {
@@ -49,7 +49,7 @@ internal static partial class RtfHtmlWriter {
         CloseLists(builder, lists);
     }
 
-    private static void AppendDocumentStart(StringBuilder builder, RtfDocument document, RtfToHtmlOptions options, string newline) {
+    private static void AppendDocumentStart(StringBuilder builder, RtfDocument document, RtfHtmlExportOptions options, string newline) {
         builder.Append("<!doctype html>");
         builder.Append(newline);
         builder.Append("<html");
@@ -115,7 +115,7 @@ internal static partial class RtfHtmlWriter {
         builder.Append(newline);
     }
 
-    private static void AppendBlock(StringBuilder builder, IRtfBlock block, RtfToHtmlOptions options, RtfDocument document, RtfListNumbering numbering) {
+    private static void AppendBlock(StringBuilder builder, IRtfBlock block, RtfHtmlExportOptions options, RtfDocument document, RtfListNumbering numbering) {
         switch (block) {
             case RtfParagraph paragraph:
                 AppendParagraph(builder, paragraph, options, document);
@@ -137,7 +137,7 @@ internal static partial class RtfHtmlWriter {
         }
     }
 
-    private static void AppendParagraph(StringBuilder builder, RtfParagraph paragraph, RtfToHtmlOptions options, RtfDocument document, RtfListMarker? marker = null, bool closeListItem = true) {
+    private static void AppendParagraph(StringBuilder builder, RtfParagraph paragraph, RtfHtmlExportOptions options, RtfDocument document, RtfListMarker? marker = null, bool closeListItem = true) {
         RtfParagraph effective = document.GetParagraphFormatting(paragraph);
         if (paragraph.UseParsedParagraphDefaults && !paragraph.LineSpacingTwips.HasValue) {
             // Let the browser choose its natural line box when the source has no \sl control.
@@ -283,7 +283,7 @@ internal static partial class RtfHtmlWriter {
         builder.Append(';');
     }
 
-    private static void AppendInlines(StringBuilder builder, IReadOnlyList<IRtfInline> inlines, RtfToHtmlOptions options, RtfDocument document, RtfParagraph? paragraph = null) {
+    private static void AppendInlines(StringBuilder builder, IReadOnlyList<IRtfInline> inlines, RtfHtmlExportOptions options, RtfDocument document, RtfParagraph? paragraph = null) {
         for (int index = 0; index < inlines.Count; index++) {
             IRtfInline inline = inlines[index];
             switch (inline) {
@@ -321,7 +321,7 @@ internal static partial class RtfHtmlWriter {
         RtfRun run,
         IReadOnlyList<IRtfInline> inlines,
         ref int index,
-        RtfToHtmlOptions options,
+        RtfHtmlExportOptions options,
         RtfDocument document,
         RtfParagraph? paragraph) {
         RtfRun authored = run;
@@ -398,7 +398,7 @@ internal static partial class RtfHtmlWriter {
         builder.Append('>');
     }
 
-    private static void AppendImage(StringBuilder builder, RtfImage image, RtfToHtmlOptions options) {
+    private static void AppendImage(StringBuilder builder, RtfImage image, RtfHtmlExportOptions options) {
         string? source = ResolveImageSource(image, options);
         if (source == null) {
             return;
@@ -439,7 +439,7 @@ internal static partial class RtfHtmlWriter {
         if (crop) builder.Append("</span>");
     }
 
-    private static string? ResolveImageSource(RtfImage image, RtfToHtmlOptions options) {
+    private static string? ResolveImageSource(RtfImage image, RtfHtmlExportOptions options) {
         if (options.ImageSourceResolver != null) {
             string? resolved;
             try {
@@ -711,7 +711,7 @@ internal static partial class RtfHtmlWriter {
 
     private static string EncodeAttribute(string value) => WebUtility.HtmlEncode(value);
 
-    private static string? ResolveHtmlUrl(string? rawUrl, RtfToHtmlOptions options, string diagnosticCode, string source) {
+    private static string? ResolveHtmlUrl(string? rawUrl, RtfHtmlExportOptions options, string diagnosticCode, string source) {
         if (string.IsNullOrWhiteSpace(rawUrl)) {
             return null;
         }

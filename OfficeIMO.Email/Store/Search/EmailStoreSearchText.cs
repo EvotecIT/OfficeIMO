@@ -81,7 +81,7 @@ internal static class EmailStoreSearchText {
         CancellationToken cancellationToken) {
         if (string.IsNullOrEmpty(rtf) || maximumCharacters <= 0) return string.Empty;
         try {
-            RtfReadOptions options = RtfReadOptions.UntrustedDefaults;
+            RtfLoadOptions options = RtfLoadOptions.UntrustedDefaults;
             options.Limits.MaxInputCharacters = rtf!.Length;
             RtfDocument document = RtfDocument.ParseResult(rtf, options, cancellationToken).Document;
             var builder = new StringBuilder(Math.Min(rtf.Length, maximumCharacters));

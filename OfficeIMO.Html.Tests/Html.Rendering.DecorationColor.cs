@@ -24,7 +24,7 @@ public sealed partial class HtmlRenderingTests {
             visual => visual.Text == "DecoratedPdf");
         string svg = Encoding.UTF8.GetString(
             HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, renderOptions).Bytes);
-        var pdfOptions = new HtmlToPdfOptions(renderOptions) {
+        var pdfOptions = new HtmlPdfExportOptions(renderOptions) {
             PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions { CompressContentStreams = false }
         };
         string pdf = Encoding.ASCII.GetString((HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes());

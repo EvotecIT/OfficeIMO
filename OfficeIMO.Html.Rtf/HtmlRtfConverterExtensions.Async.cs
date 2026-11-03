@@ -7,7 +7,7 @@ namespace OfficeIMO.Html;
 /// </content>
 public static partial class HtmlRtfConverterExtensions {
     /// <summary>Saves an RTF document as semantic HTML at the specified path.</summary>
-    public static async Task SaveAsHtmlAsync(this RtfDocument document, string path, RtfToHtmlOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
+    public static async Task SaveAsHtmlAsync(this RtfDocument document, string path, RtfHtmlExportOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
@@ -22,7 +22,7 @@ public static partial class HtmlRtfConverterExtensions {
     }
 
     /// <summary>Saves an RTF document as semantic HTML to a writable stream.</summary>
-    public static async Task SaveAsHtmlAsync(this RtfDocument document, Stream stream, RtfToHtmlOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
+    public static async Task SaveAsHtmlAsync(this RtfDocument document, Stream stream, RtfHtmlExportOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
@@ -36,7 +36,7 @@ public static partial class HtmlRtfConverterExtensions {
     }
 
     /// <summary>Saves semantic HTML as an RTF file at the specified path.</summary>
-    public static async Task SaveAsRtfAsync(this HtmlConversionDocument document, string path, HtmlToRtfOptions? readOptions = null, RtfWriteOptions? writeOptions = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
+    public static async Task SaveAsRtfAsync(this HtmlConversionDocument document, string path, HtmlRtfExportOptions? readOptions = null, RtfSaveOptions? writeOptions = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (path == null) {
             throw new ArgumentNullException(nameof(path));
         }
@@ -46,7 +46,7 @@ public static partial class HtmlRtfConverterExtensions {
     }
 
     /// <summary>Saves semantic HTML as RTF to a writable stream without closing or rewinding the stream.</summary>
-    public static async Task SaveAsRtfAsync(this HtmlConversionDocument document, Stream stream, HtmlToRtfOptions? readOptions = null, RtfWriteOptions? writeOptions = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
+    public static async Task SaveAsRtfAsync(this HtmlConversionDocument document, Stream stream, HtmlRtfExportOptions? readOptions = null, RtfSaveOptions? writeOptions = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (stream == null) {
             throw new ArgumentNullException(nameof(stream));
         }

@@ -9,7 +9,7 @@ internal static partial class EpubReader {
     private static List<ChapterCandidate> BuildChapterCandidates(
         Dictionary<string, ZipArchiveEntry> entryIndex,
         EpubPackage? package,
-        EpubReadOptions options,
+        EpubLoadOptions options,
         EpubDiagnosticCollector diagnostics,
         CancellationToken cancellationToken,
         out EpubReadSummary readSummary) {

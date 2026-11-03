@@ -9,11 +9,11 @@ namespace OfficeIMO;
 /// <summary>Converts accepted recognition content through the native reconstruction owners.</summary>
 public static partial class OfficeOcrConversionExtensions {
     /// <summary>Reconstructs PowerPoint content from accepted OCR words and detected tables.</summary>
-    public static PowerPointDocument ToPowerPoint(this PdfOcrMergeResult source, PowerPointPdfImportOptions? options = null,
+    public static PowerPointDocument ToPowerPoint(this PdfOcrMergeResult source, PdfPowerPointExportOptions? options = null,
         CancellationToken cancellationToken = default) => source.ToPowerPoint(options, out _, cancellationToken);
 
     /// <summary>Reconstructs PowerPoint content with its completed fidelity report.</summary>
-    public static PowerPointDocument ToPowerPoint(this PdfOcrMergeResult source, PowerPointPdfImportOptions? options,
+    public static PowerPointDocument ToPowerPoint(this PdfOcrMergeResult source, PdfPowerPointExportOptions? options,
         out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         cancellationToken.ThrowIfCancellationRequested();
@@ -31,8 +31,8 @@ public static partial class OfficeOcrConversionExtensions {
 
     /// <summary>Asynchronously reconstructs PowerPoint content and returns the model with its report.</summary>
     public static async Task<OfficeConversionResult<PowerPointDocument>> ToPowerPointAsync(this PdfOcrMergeResult source,
-        PowerPointPdfImportOptions? options = null, CancellationToken cancellationToken = default) {
-        options = (options ?? new PowerPointPdfImportOptions()).Snapshot();
+        PdfPowerPointExportOptions? options = null, CancellationToken cancellationToken = default) {
+        options = (options ?? new PdfPowerPointExportOptions()).Snapshot();
         return await Task.Run(() => {
             PowerPointDocument value = source.ToPowerPoint(options, out OfficeConversionReport report, cancellationToken);
             try { cancellationToken.ThrowIfCancellationRequested(); }
@@ -43,8 +43,8 @@ public static partial class OfficeOcrConversionExtensions {
 
     /// <summary>Saves accepted OCR content as PowerPoint, retaining reconstruction findings.</summary>
     public static OfficeConversionReport SaveAsPowerPoint(this PdfOcrMergeResult source, string path,
-        PowerPointPdfImportOptions? options = null, CancellationToken cancellationToken = default) {
-        options = (options ?? new PowerPointPdfImportOptions()).Snapshot();
+        PdfPowerPointExportOptions? options = null, CancellationToken cancellationToken = default) {
+        options = (options ?? new PdfPowerPointExportOptions()).Snapshot();
         var timer = Stopwatch.StartNew();
         using PowerPointDocument value = source.ToPowerPoint(options, out OfficeConversionReport report, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -54,7 +54,7 @@ public static partial class OfficeOcrConversionExtensions {
 
     /// <summary>Writes accepted OCR content as PowerPoint to a caller-owned stream.</summary>
     public static OfficeConversionReport SaveAsPowerPoint(this PdfOcrMergeResult source, Stream stream,
-        PowerPointPdfImportOptions? options = null, CancellationToken cancellationToken = default) {
+        PdfPowerPointExportOptions? options = null, CancellationToken cancellationToken = default) {
         var timer = Stopwatch.StartNew();
         using PowerPointDocument value = source.ToPowerPoint(options, out OfficeConversionReport report, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -64,8 +64,8 @@ public static partial class OfficeOcrConversionExtensions {
 
     /// <summary>Asynchronously saves accepted OCR content as PowerPoint.</summary>
     public static async Task<OfficeConversionReport> SaveAsPowerPointAsync(this PdfOcrMergeResult source, string path,
-        PowerPointPdfImportOptions? options = null, CancellationToken cancellationToken = default) {
-        options = (options ?? new PowerPointPdfImportOptions()).Snapshot();
+        PdfPowerPointExportOptions? options = null, CancellationToken cancellationToken = default) {
+        options = (options ?? new PdfPowerPointExportOptions()).Snapshot();
         var timer = Stopwatch.StartNew();
         using PowerPointDocument value = source.ToPowerPoint(options, out OfficeConversionReport report, cancellationToken);
         await global::OfficeIMO.Core.Internal.OfficeConversionFailures.RunAsync(report, () => value.SaveAsync(path, cancellationToken: cancellationToken)).ConfigureAwait(false);
@@ -74,8 +74,8 @@ public static partial class OfficeOcrConversionExtensions {
 
     /// <summary>Asynchronously writes accepted OCR content as PowerPoint to a caller-owned stream.</summary>
     public static async Task<OfficeConversionReport> SaveAsPowerPointAsync(this PdfOcrMergeResult source, Stream stream,
-        PowerPointPdfImportOptions? options = null, CancellationToken cancellationToken = default) {
-        options = (options ?? new PowerPointPdfImportOptions()).Snapshot();
+        PdfPowerPointExportOptions? options = null, CancellationToken cancellationToken = default) {
+        options = (options ?? new PdfPowerPointExportOptions()).Snapshot();
         var timer = Stopwatch.StartNew();
         using PowerPointDocument value = source.ToPowerPoint(options, out OfficeConversionReport report, cancellationToken);
         await global::OfficeIMO.Core.Internal.OfficeConversionFailures.RunAsync(report, () => value.SaveAsync(stream, cancellationToken: cancellationToken)).ConfigureAwait(false);

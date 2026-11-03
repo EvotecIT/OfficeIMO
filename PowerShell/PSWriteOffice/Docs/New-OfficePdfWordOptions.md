@@ -412,7 +412,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Pdf.Word.WordPdfImportOptions`
+- `OfficeIMO.Pdf.Word.PdfWordExportOptions`
 
 ## RELATED LINKS
 

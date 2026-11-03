@@ -198,7 +198,7 @@ public class PdfAdapterSecurityComplianceTests {
         "docx" => ConvertDocx(pdfOptions),
         "xlsx" => ConvertXlsx(pdfOptions),
         "pptx" => ConvertPptx(pdfOptions),
-        "html" => (HtmlConversionDocument.Parse("<h1>" + Marker(route) + "</h1><p>Adapter proof</p>").ToPdf(new HtmlToPdfOptions {
+        "html" => (HtmlConversionDocument.Parse("<h1>" + Marker(route) + "</h1><p>Adapter proof</p>").ToPdf(new HtmlPdfExportOptions {
             PdfOptions = pdfOptions,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
         })).ToBytes(),
@@ -206,23 +206,23 @@ public class PdfAdapterSecurityComplianceTests {
             PdfOptions = pdfOptions,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
         })).ToBytes(),
-        "rtf" => (CreateRtf(route).ToPdf(new RtfToPdfOptions {
+        "rtf" => (CreateRtf(route).ToPdf(new RtfPdfExportOptions {
             PdfOptions = pdfOptions
         })).ToBytes(),
         "asciidoc" => AsciiDocDocument.ParseResult("= " + Marker(route) + "\n\nAdapter proof").Document.ToPdfBytes(
-            new AsciiDocToPdfOptions {
+            new AsciiDocPdfExportOptions {
                 MarkdownOptions = CreateMarkdownOptions(pdfOptions)
             }),
         "latex" => LatexDocument.ParseResult(
                 "\\documentclass{article}\\begin{document}\\section{" + Marker(route) + "}Adapter proof\\end{document}")
-            .Document.ToPdfBytes(new LatexToPdfOptions {
+            .Document.ToPdfBytes(new LatexPdfExportOptions {
                 MarkdownOptions = CreateMarkdownOptions(pdfOptions)
             }),
         "mhtml" => new MhtmlDocument(
                 "<h1>" + Marker(route) + "</h1><p>Adapter proof</p>",
                 contentLocation: "https://proof.officeimo.test/report.html")
             .ToPdfBytes(CreateHtmlOptions(pdfOptions)),
-        "onenote" => CreateOneNote(route).ToPdfBytes(new OneNoteToPdfOptions {
+        "onenote" => CreateOneNote(route).ToPdfBytes(new OneNotePdfExportOptions {
             MarkdownOptions = CreateMarkdownOptions(pdfOptions)
         }),
         "odt" => CreateOdt(route).ToPdfBytes(pdfOptions: new WordPdfExportOptions {
@@ -237,13 +237,17 @@ public class PdfAdapterSecurityComplianceTests {
             PdfOptions = pdfOptions,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
         }),
-        "visio" => CreateVisio(route).ToPdfBytes(new VisioToPdfOptions {
+        "visio" => Serialize(CreateVisio(route).ToPdf(new VisioPdfExportOptions {
             ProjectionOptions = new PdfCore.PdfProjectionOptions { PdfOptions = pdfOptions }
-        }),
+        })),
         _ => throw new ArgumentOutOfRangeException(nameof(route))
     };
 
-    private static HtmlToPdfOptions CreateHtmlOptions(PdfCore.PdfCreateOptions pdfOptions) => new HtmlToPdfOptions {
+    private static byte[] Serialize(PdfCore.PdfDocument pdf) {
+        using (pdf) return pdf.ToBytes();
+    }
+
+    private static HtmlPdfExportOptions CreateHtmlOptions(PdfCore.PdfCreateOptions pdfOptions) => new HtmlPdfExportOptions {
         PdfOptions = pdfOptions,
         TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
     };

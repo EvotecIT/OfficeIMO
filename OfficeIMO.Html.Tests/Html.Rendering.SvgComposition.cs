@@ -49,7 +49,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
         Assert.True(OfficeSvgDrawingReader.TryRead(svg.Bytes, out OfficeDrawing? svgDrawing, out int unsupported));
         Assert.Equal(0, unsupported);
-        byte[] pdf = (document.ToPdf(new HtmlToPdfOptions(options))).ToBytes();
+        byte[] pdf = (document.ToPdf(new HtmlPdfExportOptions(options))).ToBytes();
         Assert.Empty(OfficeIMO.Pdf.PdfImageExtractor.ExtractImages(pdf));
         OfficeDrawing pdfDrawing = OfficeIMO.Pdf.PdfReadDocument.Open(pdf).Pages[0].ToDrawing();
 
@@ -72,7 +72,7 @@ public sealed partial class HtmlRenderingTests {
             "<use href='#paint' x='20' width='20' height='20' clip-path='url(#c)'/></svg>";
         string html = "<style>@page{size:40px 20px;margin:0}body{margin:0}img{display:block;width:40px;height:20px}</style>" +
             "<img src='data:image/svg+xml;base64," + Convert.ToBase64String(Encoding.UTF8.GetBytes(svg)) + "'>";
-        var options = new HtmlToPdfOptions { ResourceUrlPolicy = HtmlUrlPolicy.CreateEmbeddedResourceProfile() };
+        var options = new HtmlPdfExportOptions { ResourceUrlPolicy = HtmlUrlPolicy.CreateEmbeddedResourceProfile() };
         byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
         OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(OfficeIMO.Pdf.PdfPageImageRenderer.RenderPage(pdf));
         Assert.Equal(OfficeColor.Red, image.GetPixel(18, 8));
@@ -108,7 +108,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>@page{size:400px 240px;margin:0}body{margin:0}img{display:block}</style>" +
             "<img width='400' height='240' src='data:image/svg+xml;base64," + Convert.ToBase64String(sourceBytes) + "'>";
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
-        var options = new HtmlToPdfOptions { ResourceUrlPolicy = HtmlUrlPolicy.CreateEmbeddedResourceProfile() };
+        var options = new HtmlPdfExportOptions { ResourceUrlPolicy = HtmlUrlPolicy.CreateEmbeddedResourceProfile() };
         OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
         Assert.True(OfficeRasterImageDecoder.TryDecode(png.Bytes, out OfficeRasterImage? reference));
         Assert.Equal(400, reference!.Width);

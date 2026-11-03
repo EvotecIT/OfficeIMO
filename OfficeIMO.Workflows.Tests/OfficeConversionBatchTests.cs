@@ -26,9 +26,9 @@ public sealed class OfficeConversionBatchTests {
                 Word = new OfficeIMO.Word.Pdf.WordPdfExportOptions { Title = "Batch Word" },
                 Excel = new OfficeIMO.Excel.Pdf.ExcelPdfExportOptions { PdfOptions = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) } },
                 PowerPoint = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfExportOptions { PdfOptions = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) } },
-                Html = new OfficeIMO.Html.Pdf.HtmlToPdfOptions(),
+                Html = new OfficeIMO.Html.Pdf.HtmlPdfExportOptions(),
                 Markdown = new OfficeIMO.Markdown.Pdf.MarkdownPdfExportOptions { Title = "Batch Markdown" },
-                RegisteredSettings = new OfficeWorkflowRouteSettings { Rtf = new OfficeIMO.Rtf.Pdf.RtfToPdfOptions() }
+                RegisteredSettings = new OfficeWorkflowRouteSettings { Rtf = new OfficeIMO.Rtf.Pdf.RtfPdfExportOptions() }
             }.Clone()
         });
         var first = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), builder, progress: items);

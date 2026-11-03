@@ -8,7 +8,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        private void ProcessTable(IHtmlTableElement tableElem, WordDocument doc, WordSection section, WordHtmlImportOptions options,
+        private void ProcessTable(IHtmlTableElement tableElem, WordDocument doc, WordSection section, HtmlWordExportOptions options,
             Stack<WordList> listStack, WordTableCell? cell, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter,
             TextFormatting inheritedFormatting) {
             int headRows = tableElem.Head?.Rows.Length ?? 0;

@@ -1,4 +1,3 @@
-using OfficeIMO.Html;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Html;
 
@@ -7,20 +6,12 @@ namespace OfficeIMO;
 public static partial class OfficeConverter {
     private static async Task<OfficeConversionReport> ConvertPowerPointHtmlAsync(PowerPointDocument document,
         Stream output, OfficeConversionOptions options, CancellationToken token) {
-        token.ThrowIfCancellationRequested();
-        var converted = document.ToHtmlResult(options.PowerPointHtml);
+        string html = document.ToHtml(options.PowerPointHtml, out OfficeConversionReport stage, token);
         long slides = options.PowerPointHtml?.IncludeHiddenSlides == true ? document.Slides.Count : document.Slides.Count(slide => !slide.Hidden);
-        var report = new OfficeConversionReport(options.SourceName!, "Html", itemsWritten: slides,
-            diagnostics: converted.Report.NativeDiagnostics.Select(diagnostic => new OfficeDiagnostic(diagnostic.Code,
-                diagnostic.Severity switch {
-                    HtmlDiagnosticSeverity.Error => OfficeDiagnosticSeverity.Error,
-                    HtmlDiagnosticSeverity.Warning => OfficeDiagnosticSeverity.Warning,
-                    _ => OfficeDiagnosticSeverity.Information
-                }, diagnostic.Message, diagnostic.Provenance.SourceAddress, diagnostic.Component, diagnostic.LossKind)));
-        if (!converted.Succeeded) throw new OfficeConversionException("PowerPoint HTML conversion failed.", report);
+        var report = new OfficeConversionReport(options.SourceName!, "Html", itemsWritten: slides, diagnostics: stage.Diagnostics);
         if (options.FailOnLoss) report.ThrowIfLoss();
         await OfficeIMO.Core.Internal.OfficeConversionFailures.RunAsync(report,
-            () => WriteTextAsync(output, converted.Value, token)).ConfigureAwait(false);
+            () => WriteTextAsync(output, html, token)).ConfigureAwait(false);
         return report;
     }
 }

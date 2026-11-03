@@ -15,7 +15,7 @@ public partial class RtfDocumentRichFeatureTests {
         linked.LinkedValue = "Sheet1!A1";
         document.AddParagraph("Body");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\*\userprops{\propname Client}\proptype30{\staticval Contoso}{\propname Approved}\proptype11{\staticval 1}{\propname Score}\proptype5{\staticval 98.5}{\propname External}{\linkval Sheet1!A1}}", rtf, StringComparison.Ordinal);
@@ -48,7 +48,7 @@ public partial class RtfDocumentRichFeatureTests {
         document.Properties.Generator = "Contoso RTF Writer";
         document.AddParagraph("Body");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = true });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = true });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\*\generator Contoso RTF Writer;}", rtf, StringComparison.Ordinal);
@@ -63,7 +63,7 @@ public partial class RtfDocumentRichFeatureTests {
         document.AddDocumentVariable("Region", "EMEA");
         document.AddParagraph("Body");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\*\docvar {Client}{Contoso}}{\*\docvar {Region}{EMEA}}", rtf, StringComparison.Ordinal);

@@ -418,7 +418,7 @@ public sealed partial class HtmlRenderingTests {
 
         OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, imageOptions);
         string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, imageOptions).Bytes);
-        HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
+        HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
         string pdfText = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream((OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes())).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
@@ -466,7 +466,7 @@ public sealed partial class HtmlRenderingTests {
             """;
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        string pdfText = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream((HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions())).ToBytes()))
+        string pdfText = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream((HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions())).ToBytes()))
             .ExtractText()
             .Where(character => !char.IsWhiteSpace(character)));
 

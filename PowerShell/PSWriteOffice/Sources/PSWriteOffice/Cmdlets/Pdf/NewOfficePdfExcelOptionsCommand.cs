@@ -15,7 +15,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// <code>$options = New-OfficePdfExcelOptions -NoNumericConversion -NoDateTimeConversion -NoAutoFit
 /// Convert-OfficeDocument -Path ./Tables.pdf -To Excel -OutputPath ./Text.xlsx -Options $options</code></example>
 [Cmdlet(VerbsCommon.New, "OfficePdfExcelOptions", DefaultParameterSetName = "Default")]
-[OutputType(typeof(ExcelPdfImportOptions))]
+[OutputType(typeof(PdfExcelExportOptions))]
 public sealed class NewOfficePdfExcelOptionsCommand : OfficeCmdlet {
     /// <summary>Maximum body rows imported per detected table; zero means unlimited.</summary>
     [Parameter(ParameterSetName = "Default")] [ValidateRange(0, int.MaxValue)] public int? MaxRows { get; set; }
@@ -52,7 +52,7 @@ public sealed class NewOfficePdfExcelOptionsCommand : OfficeCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var options = new ExcelPdfImportOptions();
+        var options = new PdfExcelExportOptions();
         Apply(nameof(NoAutoFilter), value => options.IncludeAutoFilter = !value);
         Apply(nameof(NoAutoFit), value => options.AutoFitColumns = !value);
         Apply(nameof(NoNumericConversion), value => options.ConvertNumericColumns = !value);

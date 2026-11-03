@@ -10,7 +10,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData(false)]
     [InlineData(true)]
     public void HtmlPdf_SourceClippingDoesNotExemptAdditionalPdfContentFromLossChecks(bool nestedUnderSourceClip) {
-        var result = HtmlConversionDocument.Parse("<p>Source content</p>").ConvertToPdfWithEvidence(new HtmlToPdfOptions {
+        var result = HtmlConversionDocument.Parse("<p>Source content</p>").ConvertToPdfWithEvidence(new HtmlPdfExportOptions {
             FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         });
         void AddTargetClip(PdfCore.PdfPageCanvas canvas) => canvas.Clip(global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(1D), global::OfficeIMO.OfficeLength.Points(1D), clipped =>
@@ -31,7 +31,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlPdf_SourceClipDoesNotExemptAdditionalTargetTextFrameLoss() {
-        var result = HtmlConversionDocument.Parse("<p>Source content</p>").ConvertToPdfWithEvidence(new HtmlToPdfOptions {
+        var result = HtmlConversionDocument.Parse("<p>Source content</p>").ConvertToPdfWithEvidence(new HtmlPdfExportOptions {
             FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         });
         result.Value.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D)).Margin(global::OfficeIMO.OfficeLength.Points(0D)).Canvas(canvas =>

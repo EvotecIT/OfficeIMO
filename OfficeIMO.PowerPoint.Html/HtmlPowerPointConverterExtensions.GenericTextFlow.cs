@@ -27,7 +27,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         ref double contentTop,
         ref double pictureTop,
         double slideBottom,
-        HtmlToPowerPointOptions options) {
+        HtmlPowerPointExportOptions options) {
         string text = block.Text;
         if (text.Length == 0) return true;
         if (!budget.IsMetadataWithinLimit(text, out string metadataLimit)) {

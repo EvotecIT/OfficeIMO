@@ -272,7 +272,7 @@ public sealed partial class HtmlRenderingTests {
             && diagnostic.Source == "input#child"
             && diagnostic.Detail!.StartsWith("ancestor-clip-path=", StringComparison.Ordinal));
 
-        PdfCore.PdfDocumentConversionResult pdfResult = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(new HtmlToPdfOptions());
+        PdfCore.PdfDocumentConversionResult pdfResult = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(new HtmlPdfExportOptions());
         Assert.Empty(pdfResult.Value.Inspect().FormFields);
         Assert.Contains(pdfResult.Report.Warnings, warning =>
             warning.Code == HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback
@@ -354,7 +354,7 @@ public sealed partial class HtmlRenderingTests {
             <button>Archive record</button>
             """;
 
-        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions())).ToBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions())).ToBytes();
         string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Contains("Grace Hopper", text, StringComparison.Ordinal);

@@ -45,7 +45,7 @@ public sealed class ConvertToOfficePdfExcelCommand : PSCmdlet
 
     /// <summary>Advanced OfficeIMO PDF-table-to-Excel options.</summary>
     [Parameter]
-    public ExcelPdfImportOptions? Options { get; set; }
+    public PdfExcelExportOptions? Options { get; set; }
 
     /// <summary>Overwrite an existing output file.</summary>
     [Parameter]

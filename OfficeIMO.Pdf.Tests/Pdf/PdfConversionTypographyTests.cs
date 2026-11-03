@@ -301,7 +301,7 @@ Zażółć gęślą jaźń
     }
 
     private static byte[] CreateHtmlPdf(string fontPath) {
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             FontFamily = PdfCore.PdfEmbeddedFontFamily.FromFiles(FamilyName, fontPath)
         };
 

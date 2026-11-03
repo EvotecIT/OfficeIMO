@@ -10,11 +10,11 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
     public int PageIndex { get; set; }
 
     /// <summary>
-    /// Caller-ordered one-based selection within the retained surfaces for batch image export.
+    /// Caller-ordered one-based page numbers within the retained surfaces for batch image export.
     /// Null exports all retained surfaces. Single-image operations use their selected page instead.
     /// This does not change HTML layout, PDF output, or the request's page set.
     /// </summary>
-    public global::OfficeIMO.Pdf.PdfPageSelection? PageSelection { get; set; }
+    public IReadOnlyList<int>? PageSelection { get; set; }
 
     private readonly List<string> _additionalStylesheets = new List<string>();
 
@@ -325,7 +325,7 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxSurfaceHeight = MaxSurfaceHeight;
         target.MaxPageCount = MaxPageCount;
         target.PageIndex = PageIndex;
-        target.PageSelection = PageSelection;
+        target.PageSelection = PageSelection?.ToArray();
         target.MaxProjectedVisuals = MaxProjectedVisuals;
         target.MaxLayoutDepth = MaxLayoutDepth;
         target.MaxInputCharacters = MaxInputCharacters;

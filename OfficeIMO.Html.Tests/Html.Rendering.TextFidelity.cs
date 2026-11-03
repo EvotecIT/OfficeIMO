@@ -73,7 +73,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain("pt\"", svg, StringComparison.Ordinal);
         // No caller font is registered for this default-font workflow. The
         // serialized PDF owns its selected fallback program and glyphs.
-        byte[] savedPdf = (document.ToPdf(new HtmlToPdfOptions(options) {
+        byte[] savedPdf = (document.ToPdf(new HtmlPdfExportOptions(options) {
             Mode = options.Mode,
             PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(rendered.Pages[0].Width / HtmlRenderOptions.CssPixelsPerInch),
                 global::OfficeIMO.OfficeLength.Inches(rendered.Pages[0].Height / HtmlRenderOptions.CssPixelsPerInch)),

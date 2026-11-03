@@ -247,7 +247,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("[TOC min=2 max=5 title=\"Contents\" titleLevel=2]", markdown, StringComparison.Ordinal);
             Assert.DoesNotContain("- [Region]", markdown, StringComparison.Ordinal);
 
-            using var restored = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord(new WordMarkdownImportOptions());
+            using var restored = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord(new MarkdownWordExportOptions());
             Assert.NotNull(restored.TableOfContent);
             Assert.Equal(2, restored.TableOfContent!.MinLevel);
             Assert.Equal(5, restored.TableOfContent.MaxLevel);
@@ -889,7 +889,7 @@ namespace OfficeIMO.Tests {
                     - Second
                     """;
 
-                var options = new WordMarkdownImportOptions { BookmarkName = "MainContent" };
+                var options = new MarkdownWordExportOptions { BookmarkName = "MainContent" };
                 MarkdownDocument source = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options.CreateReaderOptions());
                 WordDocument templateDocument = WordDocument.Load(templatePath);
                 options.Template = templateDocument;
@@ -931,7 +931,7 @@ namespace OfficeIMO.Tests {
                     ## Details
                     """;
 
-                var options = new WordMarkdownImportOptions { BookmarkName = "MainContent" };
+                var options = new MarkdownWordExportOptions { BookmarkName = "MainContent" };
                 MarkdownDocument source = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options.CreateReaderOptions());
                 WordDocument templateDocument = WordDocument.Load(templatePath);
                 options.Template = templateDocument;

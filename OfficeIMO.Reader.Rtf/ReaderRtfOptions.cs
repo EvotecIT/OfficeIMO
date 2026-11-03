@@ -14,13 +14,13 @@ public sealed class ReaderRtfOptions {
 
     /// <summary>Creates an explicitly trusted compatibility profile without core resource ceilings.</summary>
     public static ReaderRtfOptions CreateTrustedProfile() => new ReaderRtfOptions {
-        RtfReadOptions = new OfficeIMO.Rtf.RtfReadOptions()
+        RtfLoadOptions = new OfficeIMO.Rtf.RtfLoadOptions()
     };
 
     /// <summary>
     /// Options passed to the shared RTF parser and semantic binder.
     /// </summary>
-    public RtfReadOptions? RtfReadOptions { get; set; } = OfficeIMO.Rtf.RtfReadOptions.UntrustedDefaults;
+    public RtfLoadOptions? RtfLoadOptions { get; set; } = OfficeIMO.Rtf.RtfLoadOptions.UntrustedDefaults;
 
     /// <summary>
     /// When true, emits one or more chunks per top-level RTF block. Default: true.
@@ -59,7 +59,7 @@ public sealed class ReaderRtfOptions {
     /// Creates a defensive copy for handler registration reuse.
     /// </summary>
     public ReaderRtfOptions Clone() => new ReaderRtfOptions {
-        RtfReadOptions = CloneReadOptions(RtfReadOptions),
+        RtfLoadOptions = CloneReadOptions(RtfLoadOptions),
         ChunkByBlock = ChunkByBlock,
         IncludeHeadersAndFooters = IncludeHeadersAndFooters,
         IncludeNotes = IncludeNotes,
@@ -68,10 +68,10 @@ public sealed class ReaderRtfOptions {
         IncludePageLocations = IncludePageLocations
     };
 
-    internal static RtfReadOptions? CloneReadOptions(RtfReadOptions? options) {
-        if (options is null) return OfficeIMO.Rtf.RtfReadOptions.UntrustedDefaults;
+    internal static RtfLoadOptions? CloneReadOptions(RtfLoadOptions? options) {
+        if (options is null) return OfficeIMO.Rtf.RtfLoadOptions.UntrustedDefaults;
 
-        return new RtfReadOptions {
+        return new RtfLoadOptions {
             DeferBinaryPayloads = options.DeferBinaryPayloads,
             Limits = (options.Limits ?? throw new ArgumentNullException(nameof(options.Limits))).Clone(),
             ReadEmbeddedObjects = options.ReadEmbeddedObjects,

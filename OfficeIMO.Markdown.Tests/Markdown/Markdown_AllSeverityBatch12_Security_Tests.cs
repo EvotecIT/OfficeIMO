@@ -98,7 +98,7 @@ public sealed class MarkdownAllSeverityBatch12SecurityTests {
     public void MarkdownToWord_RejectsDeepBlockAndInlineTrees() {
         var blockDocument = MarkdownDocument.Create();
         blockDocument.Add(CreateNestedDetailsBlock(8));
-        var options = new WordMarkdownImportOptions { MaxNestingDepth = 4 };
+        var options = new MarkdownWordExportOptions { MaxNestingDepth = 4 };
 
         InvalidDataException blockException = Assert.Throws<InvalidDataException>(
             () => blockDocument.ToWord(options));

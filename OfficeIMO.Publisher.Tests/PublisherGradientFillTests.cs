@@ -149,7 +149,7 @@ public sealed class PublisherGradientFillTests {
     public void Projected_gradient_expansion_honors_the_existing_item_work_limit() {
         byte[] table = Stops(Enumerable.Range(0, 64).Select(index => (0x000000FFU, (uint)(65536L * index / 63))).ToArray());
         byte[] input = Input(7, focus: 80, complex: table);
-        var options = new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = 100 } };
+        var options = new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = 100 } };
         InvalidDataException error = Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(input, options));
         Assert.Contains("gradient stop work limit", error.Message);
     }

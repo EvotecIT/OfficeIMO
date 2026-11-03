@@ -20,7 +20,7 @@ PDF export distinguishes minimum, exact, and multiple line spacing using the [RT
 
 Bar tab stops draw vertical rules at their declared positions without moving the text cursor, including paragraphs with no tab character and supported rich running stories. The shared PDF engine supplies their default appearance; `BarTabAppearanceApproximated` records `Approximation` loss because native RTF pen widths and line extents are not independently qualified. Bar rules in nested tables or caller-selected plain running text are omitted and reported as `BarTabOmitted` with `Omission` loss. `ThrowIfLoss()` rejects both diagnostics.
 
-RTF export defaults to `PdfTextWhitespaceMode.Preserve`: it retains repeated source spaces and moves a whole hyphenated token to the next line when it fits there. An explicit `TextWhitespaceMode` in `RtfToPdfOptions.PdfCreateOptions` overrides that default. Use `Collapse` for collapsed spaces or `Preformatted` for literal-space overflow behavior. Conversion leaves the caller's options unchanged.
+RTF export defaults to `PdfTextWhitespaceMode.Preserve`: it retains repeated source spaces and moves a whole hyphenated token to the next line when it fits there. An explicit `TextWhitespaceMode` in `RtfPdfExportOptions.PdfCreateOptions` overrides that default. Use `Collapse` for collapsed spaces or `Preformatted` for literal-space overflow behavior. Conversion leaves the caller's options unchanged.
 
 By default, borderless zero-gap RTF tables do not acquire a PDF grid or convenience cell padding. A nonnegative row half-gap supplies left/right cell padding when no explicit cell or row padding applies. Explicit cell padding, including zero, overrides row padding and the half-gap. A caller-selected `PdfCreateOptions.DefaultTableStyle` supplies fallback padding instead of the half-gap; explicit source padding and borders still apply.
 
@@ -28,7 +28,7 @@ When the selected font programs and resolved run sizes provide usable line metri
 
 Font admission uses effective character formatting from paragraph and character styles, including inherited styles, table cells, field results and referenced notes. Empty and control-only paragraphs retain their effective font for line-box measurement. Notes attached directly through the authoring APIs do not need a second entry in the document's note collection for their fonts to be available.
 
-Caller-supplied named fonts and planned substitutions in `RtfToPdfOptions.PdfOptions` apply to supported rich text and its empty-line metrics. A named document-default font also supplies unformatted generated text, list markers and the existing appended note labels. Explicit PDF default-font assignments retain precedence. Use the same [font files and mappings](../Docs/officeimo.pdf-guide.md#supply-document-font-families) on Windows and Linux when consistent typography matters; fonts available only on one host can change widths, line heights and pagination.
+Caller-supplied named fonts and planned substitutions in `RtfPdfExportOptions.PdfOptions` apply to supported rich text and its empty-line metrics. A named document-default font also supplies unformatted generated text, list markers and the existing appended note labels. Explicit PDF default-font assignments retain precedence. Use the same [font files and mappings](../Docs/officeimo.pdf-guide.md#supply-document-font-families) on Windows and Linux when consistent typography matters; fonts available only on one host can change widths, line heights and pagination.
 
 Footnotes, endnotes, and annotations are appended after the body with a label on each note's first paragraph. Their paragraph formatting is retained within that flow; this route does not place footnotes beside their reference pages or reproduce native endnote continuation. Nested tables remain delimited text with `NestedTableFlattened` diagnostics.
 
@@ -57,7 +57,7 @@ using OfficeIMO.Pdf;
 using OfficeIMO.Rtf.Pdf;
 
 PdfDocument pdf = PdfDocument.Load("source.pdf");
-PdfRtfConversionResult result = pdf.ToRtfDocumentResult(new PdfToRtfOptions {
+PdfRtfConversionResult result = pdf.ToRtfDocumentResult(new PdfRtfExportOptions {
     ReadOptions = new PdfLoadOptions {
         PageSelection = PdfPageSelection.Parse("1-10"),
         Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = 10 }
@@ -82,18 +82,18 @@ using OfficeIMO.Rtf.Pdf;
 using OfficeIMO.Pdf;
 
 RtfDocument rtf = RtfDocument.Load("input.rtf");
-var options = new RtfToPdfOptions();
+var options = new RtfPdfExportOptions();
 OfficeIMO.OfficeConversionReport report = rtf.SaveAsPdf("output.pdf", options);
 report.ThrowIfLoss();
 ```
 
-`RtfToPdfOptions.TextFallbacks` defaults to `PdfTextFallbackFeatures.Default`, including installed multilingual fonts. Fallback faces supply characters missing from authored fonts. Set it to `None` for exact document-font output.
+`RtfPdfExportOptions.TextFallbacks` defaults to `PdfTextFallbackFeatures.Default`, including installed multilingual fonts. Fallback faces supply characters missing from authored fonts. Set it to `None` for exact document-font output.
 
 All PDF adapters expose the same `PdfResourcePolicy`. RTF conversion uses the balanced default: it may discover and embed installed fonts, but it does not allow arbitrary local-file or remote-resource reads. Use `PdfResourcePolicy.CreatePortableDeterministic()` when conversion must not inspect host fonts. RTF reads document content only from the typed model, so `CreateTrustedHost()` adds no access unless a format-specific resolver is explicitly configured.
 
 Load or parse raw RTF with `RtfDocument` first, then use `ToPdf()` or destination-only `SaveAsPdf()` on that source document.
 
-PNG, JPEG, and supported DIB images use the shared managed drawing layer. Set `RtfToPdfOptions.ImageConverter` when WMF/EMF content must be rasterized; a null or invalid callback result is reported rather than silently treated as an image.
+PNG, JPEG, and supported DIB images use the shared managed drawing layer. Set `RtfPdfExportOptions.ImageConverter` when WMF/EMF content must be rasterized; a null or invalid callback result is reported rather than silently treated as an image.
 
 ## Dependency footprint
 

@@ -54,7 +54,7 @@ public sealed class MermaidDocumentTests {
         var image = Assert.Single(document.DescendantObjectsOfType<ImageBlock>());
         var png = Convert.FromBase64String(image.Path.Substring(image.Path.IndexOf(',') + 1));
 
-        using var word = document.ToWord(new WordMarkdownImportOptions { FitImagesToContextWidth = true });
+        using var word = document.ToWord(new MarkdownWordExportOptions { FitImagesToContextWidth = true });
         AssertWordImageFitsContent(word);
         using var stream = new MemoryStream();
         word.Save(stream);
@@ -89,7 +89,7 @@ public sealed class MermaidDocumentTests {
             Profile = OfficeMarkupProfile.Document,
             MarkdownOptions = reader
         });
-        using var word = parsed.Document.ToWordDocument(new MarkupToWordOptions {
+        using var word = parsed.Document.ToWordDocument(new MarkupWordExportOptions {
             AllowDataUriImages = allowed,
             MaximumDataUriImageBytes = oversized ? 1 : 16L * 1024 * 1024
         });
@@ -188,7 +188,7 @@ public sealed class MermaidDocumentTests {
         var markup = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
         markup.Blocks.Add(new OfficeMarkupImageBlock(mismatched
             ? rendered.Path.Replace("image/png", "image/jpeg") : rendered.Path, "Diagram"));
-        using var presentation = markup.ToPowerPointDocument(new MarkupToPowerPointOptions {
+        using var presentation = markup.ToPowerPointDocument(new MarkupPowerPointExportOptions {
             AllowDataUriImages = allowed,
             MaximumDataUriImageBytes = oversized ? 1 : 16L * 1024 * 1024
         });
@@ -236,7 +236,7 @@ public sealed class MermaidDocumentTests {
     public void PowerPointSourceFallbackRetainsTheAuthoredDiagram() {
         var markup = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
         markup.Blocks.Add(new OfficeMarkupDiagramBlock("mermaid", "flowchart LR\nA --> B"));
-        using var presentation = markup.ToPowerPointDocument(new MarkupToPowerPointOptions { RenderMermaidDiagrams = false });
+        using var presentation = markup.ToPowerPointDocument(new MarkupPowerPointExportOptions { RenderMermaidDiagrams = false });
         using var stream = new MemoryStream();
         presentation.Save(stream);
         stream.Position = 0;

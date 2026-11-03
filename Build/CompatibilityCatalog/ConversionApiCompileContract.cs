@@ -79,16 +79,16 @@ internal static class ConversionApiCompileContract {
             Language = "en",
             NewLine = "\n"
         };
-        _ = DjVuDocument.Load(stream).SaveAsPdf(stream, new DjVuToPdfOptions());
+        _ = DjVuDocument.Load(stream).SaveAsPdf(stream, new DjVuPdfExportOptions());
         WordHtmlExportOptions wordOptions = WordHtmlExportOptions.CreateDocumentRoundTripProfile();
         wordOptions.DocumentOutput = output.Clone();
-        ExcelHtmlSaveOptions excelOptions = ExcelHtmlSaveOptions.CreateVisualReviewProfile();
+        ExcelHtmlExportOptions excelOptions = ExcelHtmlExportOptions.CreateVisualReviewProfile();
         excelOptions.DocumentOutput = output.Clone();
-        PowerPointHtmlSaveOptions powerPointOptions = PowerPointHtmlSaveOptions.CreateVisualReviewProfile();
+        PowerPointHtmlExportOptions powerPointOptions = PowerPointHtmlExportOptions.CreateVisualReviewProfile();
         powerPointOptions.DocumentOutput = output.Clone();
-        RtfToHtmlOptions rtfOptions = RtfToHtmlOptions.CreatePrintReviewProfile();
+        RtfHtmlExportOptions rtfOptions = RtfHtmlExportOptions.CreatePrintReviewProfile();
         rtfOptions.DocumentOutput = output.Clone();
-        PdfToHtmlOptions pdfOptions = PdfToHtmlOptions.CreatePositionedReviewProfile();
+        PdfHtmlExportOptions pdfOptions = PdfHtmlExportOptions.CreatePositionedReviewProfile();
         pdfOptions.DocumentOutput = output.Clone();
         HtmlConversionProfile wordSharedProfile = wordOptions.SharedProfile;
         HtmlConversionProfile excelSharedProfile = excelOptions.SharedProfile;
@@ -124,7 +124,7 @@ internal static class ConversionApiCompileContract {
         _ = OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionExtensions.ToExcelDocumentResult(ods);
         _ = OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToHtml(word);
         _ = OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToWord(html);
-        _ = OfficeIMO.PowerPoint.Html.PowerPointHtmlConverterExtensions.ToHtmlResult(powerPoint);
+        _ = OfficeIMO.PowerPoint.Html.PowerPointHtmlConverterExtensions.ToHtml(powerPoint, null, out OfficeConversionReport powerPointHtmlReport);
         _ = OfficeIMO.PowerPoint.Html.HtmlPowerPointConverterExtensions.ToPowerPointDocumentResult(html);
         _ = OfficeIMO.PowerPoint.OpenDocument.PowerPointOpenDocumentConversionExtensions.ToOpenDocumentResult(powerPoint);
         _ = OfficeIMO.PowerPoint.OpenDocument.PowerPointOpenDocumentConversionExtensions.ToPowerPointDocumentResult(odp);
@@ -175,10 +175,10 @@ internal static class ConversionApiCompileContract {
         OfficeConversionResult<VisioDocument, OfficeLegacyImportReport> binaryPageSource = VisioDocument.LoadLegacyBinary(source);
         OfficeLegacyImportReport pageSourceImportReport = binaryPageSource.Report;
         string binarySvg = binaryPageSource.Value.Pages[0].ToSvg();
-        PdfDocumentConversionResult binaryPdf = OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.ToPdfDocumentResult(binaryPageSource.Value,
-            new OfficeIMO.Visio.Pdf.VisioToPdfOptions { Mode = OfficeIMO.Visio.Pdf.VisioPdfProjectionMode.DiagramPages });
-        _ = OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.ToPdfDocumentResult(visio);
-        _ = OfficeIMO.Publisher.Pdf.PublisherPdfConversionExtensions.ToPdfDocumentResult(publisher);
+        PdfDocument binaryPdf = OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.ToPdf(binaryPageSource.Value,
+            new OfficeIMO.Visio.Pdf.VisioPdfExportOptions { Mode = OfficeIMO.Visio.Pdf.VisioPdfProjectionMode.DiagramPages }, out OfficeConversionReport binaryPdfReport);
+        _ = OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.ToPdf(visio);
+        _ = OfficeIMO.Publisher.Pdf.PublisherPdfConversionExtensions.ToPdf(publisher);
         _ = WordGoogleDocsExtensions.ExportToGoogleDocsAsync(word, session);
         _ = WordGoogleDocsExtensions.ImportGoogleDocAsync(session, "document-id");
         _ = ExcelGoogleSheetsExtensions.ExportToGoogleSheetsAsync(excel, session);
@@ -224,7 +224,7 @@ internal static class ConversionApiCompileContract {
         _ = word.ExportImages(imageFormat);
         _ = excel.ExportImages(imageFormat);
         _ = powerPoint.ExportImages(imageFormat);
-        _ = OfficeIMO.Html.HtmlImageExportExtensions.ExportImages(html, imageFormat);
+        _ = OfficeIMO.Html.Pdf.HtmlImageExportExtensions.ExportImages(html, imageFormat);
         _ = OfficeIMO.OneNote.OneNoteImageExportExtensions.ExportImages(oneNote, imageFormat);
         _ = OfficeIMO.Visio.VisioImageExportExtensions.ExportImages(visio, imageFormat);
         _ = OfficeIMO.Email.EmailImageExportExtensions.ExportImages(email, imageFormat);

@@ -1,0 +1,14 @@
+{
+  "package": "OfficeIMO.OpenDocument.Odg.Pdf",
+  "changes": [
+    {
+      "old": "OfficeIMO.OpenDocument.Odg.Pdf.OdgToPdfOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.OpenDocument.Odg.Pdf.OdgPdfExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
+    }
+  ]
+}

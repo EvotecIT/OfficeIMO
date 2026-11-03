@@ -136,7 +136,7 @@ var html = await OfficeConverter.ConvertAsync(
 
 Draw conversion uses original page sizes and print-visible layers, including blank pages. `OfficeWorkflowRouteSettings.Draw` accepts the [owning converter settings](../OfficeIMO.OpenDocument.Odg.Pdf/README.md). Its `ConversionEvidence` contains page-qualified source projection losses and PDF save-time diagnostics; successful publication does not mean lossless drawing fidelity. Set `OfficeConversionOptions.FailOnLoss` to reject source and PDF-stage losses before publication. Rejections retain both stages' diagnostics and preserve existing destinations.
 
-VSDX, VDX and VTX inputs select `visio-pdf` and produce one physical PDF page per source page, including blank pages. The route uses cached diagram geometry and printable layers by default. `OfficeWorkflowRouteSettings.Visio` accepts [VisioToPdfOptions](../OfficeIMO.Visio.Pdf/README.md) with `Mode = VisioPdfProjectionMode.DiagramPages`; the direct adapter also offers a semantic report, which is outside the workflow's diagram-page contract. Legacy XML import, drawing projection and PDF serialization losses remain in `ConversionEvidence`. `FailOnLoss` rejects losses across all three stages before replacing a destination. Cached formula results and successful publication do not establish native Visio appearance or formula recalculation.
+VSDX, VDX and VTX inputs select `visio-pdf` and produce one physical PDF page per source page, including blank pages. The route uses cached diagram geometry and printable layers by default. `OfficeWorkflowRouteSettings.Visio` accepts [VisioPdfExportOptions](../OfficeIMO.Visio.Pdf/README.md) with `Mode = VisioPdfProjectionMode.DiagramPages`; the direct adapter also offers a semantic report, which is outside the workflow's diagram-page contract. Legacy XML import, drawing projection and PDF serialization losses remain in `ConversionEvidence`. `FailOnLoss` rejects losses across all three stages before replacing a destination. Cached formula results and successful publication do not establish native Visio appearance or formula recalculation.
 
 ```csharp
 using OfficeIMO;
@@ -147,7 +147,7 @@ OfficeWorkflow.RegisterConversions();
 OfficeConversionReport diagram = await OfficeConverter.ConvertAsync("drawing.vdx", "drawing.pdf",
     new OfficeConversionOptions {
         RegisteredSettings = new OfficeWorkflowRouteSettings {
-            Visio = new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages }
+            Visio = new VisioPdfExportOptions { Mode = VisioPdfProjectionMode.DiagramPages }
         }
     });
 ```
@@ -172,7 +172,7 @@ OfficeWorkflow.RegisterConversions();
 OfficeConversionReport converted = await OfficeConverter.ConvertAsync("report.oxps", "report.pdf",
     new OfficeConversionOptions {
         RegisteredSettings = new OfficeWorkflowRouteSettings {
-            Xps = new XpsToPdfOptions { PreserveLogicalStructure = false }
+            Xps = new XpsPdfExportOptions { PreserveLogicalStructure = false }
         }
     }, cancellationToken);
 ```
@@ -295,7 +295,7 @@ exported; named revisions and review records stay in the source project. Each st
 EPUB is reopened and checked by its owner before publication. This native check does
 not replace EPUBCheck, accessibility review or independent-reader qualification.
 
-For an individual in-memory project, `Export(EpubWriteOptions, cancellationToken)`
+For an individual in-memory project, `Export(EpubSaveOptions, cancellationToken)`
 applies explicit writer limits while enforcing the same import-review gate.
 
 ## Book delivery bundles
@@ -304,7 +304,7 @@ applies explicit writer limits while enforcing the same import-review gate.
 
 ```csharp
 byte[] delivery = project.ToDeliveryBytes(
-    new EpubWriteOptions { ModifiedAt = new DateTimeOffset(2026, 10, 5, 12, 0, 0, TimeSpan.Zero) },
+    new EpubSaveOptions { ModifiedAt = new DateTimeOffset(2026, 10, 5, 12, 0, 0, TimeSpan.Zero) },
     cancellationToken: cancellationToken);
 // The host owns destination permissions, conflict handling and safe file publication.
 ```
@@ -2004,7 +2004,7 @@ using OfficeIMO.Pdf.Word;
 OfficeConversionReport result = await OfficeConverter.ConvertAsync("source.pdf", "visual-pages.docx",
     new OfficeConversionOptions {
         PdfLoad = new PdfLoadOptions { PageSelection = PdfPageSelection.Parse("1-3,5") },
-        PdfWord = new WordPdfImportOptions { Mode = WordPdfImportMode.VisualPages, Dpi = 144 }
+        PdfWord = new PdfWordExportOptions { Mode = WordPdfImportMode.VisualPages, Dpi = 144 }
     }, cancellationToken);
 ```
 

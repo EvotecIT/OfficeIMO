@@ -12,7 +12,7 @@ public sealed class ReaderTextProjectionLimitsTests {
     public void OverlappingWordZonesRespectTheAggregateTextLimit(string entryPoint) {
         byte[] source = PageWithText();
         var options = new ReaderDjVuOptions {
-            ReadOptions = new DjVuReadOptions { MaxTextCharacters = 9 }
+            ReadOptions = new DjVuLoadOptions { MaxTextCharacters = 9 }
         };
         var document = DjVuDocument.Load(source);
         Assert.Equal(DjVuTextStatus.Present, document.Pages[0].GetText().Status);
@@ -26,7 +26,7 @@ public sealed class ReaderTextProjectionLimitsTests {
             else if (entryPoint == "document") reader.ReadDocument(source, "words.djvu");
             else reader.Enumerate(source, "words.djvu").ToArray();
         });
-        Assert.Equal(nameof(DjVuReadOptions.MaxTextCharacters), error.LimitName);
+        Assert.Equal(nameof(DjVuLoadOptions.MaxTextCharacters), error.LimitName);
         Assert.Equal(8, error.Maximum);
     }
 
@@ -40,16 +40,16 @@ public sealed class ReaderTextProjectionLimitsTests {
             string id = "shared-" + page + ".djvu";
             components[id] = SharedComponentTests.AppendChunk(components[id], "TXTa", TextPayload(wordZones));
         }
-        var document = DjVuDocument.Load(index, new DjVuReadOptions {
+        var document = DjVuDocument.Load(index, new DjVuLoadOptions {
             ComponentResolver = (id, _) => components[id]
         });
         var options = new ReaderDjVuOptions {
-            ReadOptions = new DjVuReadOptions { MaxTextCharacters = acceptedCharacters }
+            ReadOptions = new DjVuLoadOptions { MaxTextCharacters = acceptedCharacters }
         };
         Assert.Equal(acceptedCharacters, document.ToReadResult(options).Blocks.Sum(block => block.Text!.Length));
         options.ReadOptions.MaxTextCharacters--;
         var error = Assert.Throws<ReaderResourceLimitException>(() => document.ToReadResult(options));
-        Assert.Equal(nameof(DjVuReadOptions.MaxTextCharacters), error.LimitName);
+        Assert.Equal(nameof(DjVuLoadOptions.MaxTextCharacters), error.LimitName);
         Assert.Equal(acceptedCharacters - 1, error.Maximum);
     }
 

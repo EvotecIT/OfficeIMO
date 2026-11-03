@@ -9,7 +9,7 @@ public sealed partial class EpubPublication {
     /// identifiers, root and descendant language declarations, image alternatives and EPUB 3 metadata-link relationships.
     /// Schema conformance, comprehensive accessibility and reader presentation remain explicitly unchecked. No file is written and no external process is invoked.
     /// </summary>
-    public EpubPreflightReport Preflight(EpubWriteOptions? options = null, CancellationToken cancellationToken = default) {
+    public EpubPreflightReport Preflight(EpubSaveOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         var checks = new List<EpubPreflightCheck>();
         var package = new List<EpubDiagnostic>();

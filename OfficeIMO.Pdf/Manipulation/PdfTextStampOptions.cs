@@ -3,9 +3,13 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Options used when adding a simple text stamp or watermark to parsed PDF pages.
 /// </summary>
-public sealed class PdfTextStampOptions {
-    /// <summary>Cancels input reading, PDF processing, and output publication for this operation.</summary>
-    public System.Threading.CancellationToken CancellationToken { get; set; }
+public sealed class PdfTextStampOptions : IPdfOperationCancellation {
+    // Operation cancellation; public methods take it as a parameter and bind it to a per-call copy.
+    System.Threading.CancellationToken IPdfOperationCancellation.CancellationToken { get => CancellationToken; set => CancellationToken = value; }
+
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
+
+    object IPdfOperationCancellation.CloneForOperation() => MemberwiseClone();
 
     private int[]? _pageNumbers;
     private OfficeAlignment _align = OfficeAlignment.Left;

@@ -51,7 +51,7 @@ public class HtmlExcelSemanticPresentation {
     [Fact]
     public void SemanticTablesCanKeepRawCellText() {
         using ExcelDocument workbook = CreateReportWorkbook();
-        string html = workbook.ToHtml(new ExcelHtmlSaveOptions { ApplyCellPresentation = false });
+        string html = workbook.ToHtml(new ExcelHtmlExportOptions { ApplyCellPresentation = false });
 
         Assert.DoesNotContain("background-color:#17365D", html, StringComparison.Ordinal);
         Assert.DoesNotContain(">37.6%<", html, StringComparison.Ordinal);

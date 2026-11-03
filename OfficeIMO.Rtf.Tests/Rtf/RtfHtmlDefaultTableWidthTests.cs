@@ -33,7 +33,7 @@ public class RtfHtmlDefaultTableWidthTests {
         RtfDocument original = RtfDocument.Create();
         RtfTable table = original.AddTable(1, 5);
         for (int i = 0; i < 5; i++) table.Rows[0].Cells[i].AddParagraph("Column " + i);
-        string html = original.ToHtml(new RtfToHtmlOptions { IncludeRoundTripMetadata = true });
+        string html = original.ToHtml(new RtfHtmlExportOptions { IncludeRoundTripMetadata = true });
         RtfDocument reopened = HtmlConversionDocument.Parse(html).ToRtfDocument();
         RtfTable restored = Assert.IsType<RtfTable>(Assert.Single(reopened.Blocks));
         Assert.Equal(12000, restored.Rows[0].Cells.Last().RightBoundaryTwips);

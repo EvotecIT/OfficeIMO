@@ -30,7 +30,7 @@ public sealed class DrawPdfTextFittingFontTests {
         else shape.Paragraphs[0].LineHeight = OdfLength.Points(4);
         string[] before = XmlState(source); var result = source.ToPdfDocumentResult();
         Assert.True(IsClipped(Assert.IsType<OdfConversionReport>(Assert.Single(result.SourceConversionReports))));
-        Assert.Throws<OdfConversionLossException>(() => source.ToPdfBytes(new OdgToPdfOptions {
+        Assert.Throws<OdfConversionLossException>(() => source.ToPdfBytes(new OdgPdfExportOptions {
             LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
         }));
         Assert.Equal(before, XmlState(source));
@@ -46,7 +46,7 @@ public sealed class DrawPdfTextFittingFontTests {
         Assert.Equal(!wide, IsClipped(opposite.Report));
         var pdfOptions = new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
             OdfTextFittingTestFonts.Family, OdfTextFittingTestFonts.Create(wide)));
-        var options = new OdgToPdfOptions { PdfOptions = pdfOptions };
+        var options = new OdgPdfExportOptions { PdfOptions = pdfOptions };
         string[] before = XmlState(source); var result = source.ToPdfDocumentResult(options);
         var report = Assert.IsType<OdfConversionReport>(Assert.Single(result.SourceConversionReports));
         Assert.Equal(wide, IsClipped(report));
@@ -71,7 +71,7 @@ public sealed class DrawPdfTextFittingFontTests {
             TextShapingProvider = provider
         }.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(OdfTextFittingTestFonts.Family, OdfTextFittingTestFonts.Create(false)));
         string[] before = XmlState(source);
-        Assert.ThrowsAny<OperationCanceledException>(() => source.ToPdfDocumentResult(new OdgToPdfOptions { PdfOptions = pdfOptions }, cancellation.Token));
+        Assert.ThrowsAny<OperationCanceledException>(() => source.ToPdfDocumentResult(new OdgPdfExportOptions { PdfOptions = pdfOptions }, cancellation.Token));
         Assert.Equal(cancellation.Token, provider.ObservedToken); Assert.Equal(before, XmlState(source));
     }
 
@@ -86,7 +86,7 @@ public sealed class DrawPdfTextFittingFontTests {
         double narrowWidth = Width(false), wideWidth = Width(true); Assert.True(wideWidth > narrowWidth);
         shape.TextBoxMinimumWidth = OdfLength.Points(40); shape.TextBoxMaximumWidth = OdfLength.Points((narrowWidth + wideWidth) / 2);
         Assert.Equal(!wide, IsClipped(source.ToDrawings(OdfTextFittingTestFonts.Profile(!wide)).Report));
-        var options = new OdgToPdfOptions { PdfOptions = new PdfCreateOptions().RegisterNamedFontFamily(
+        var options = new OdgPdfExportOptions { PdfOptions = new PdfCreateOptions().RegisterNamedFontFamily(
             new PdfEmbeddedFontFamily(OdfTextFittingTestFonts.Family, OdfTextFittingTestFonts.Create(wide))) };
         string[] before = XmlState(source); var result = source.ToPdfDocumentResult(options);
         Assert.Equal(wide, IsClipped(Assert.IsType<OdfConversionReport>(Assert.Single(result.SourceConversionReports))));
@@ -103,7 +103,7 @@ public sealed class DrawPdfTextFittingFontTests {
         var source = CreateDocument(); var shape = source.Pages[0].Shapes[0];
         shape.AutoGrowHeight = true; shape.AutoGrowWidth = false;
         shape.FillColor = OdfColor.Parse("#e0f0ff"); shape.StrokeColor = OdfColor.Parse("#204060");
-        var options = new OdgToPdfOptions {
+        var options = new OdgPdfExportOptions {
             LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported,
             PdfOptions = new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
                 OdfTextFittingTestFonts.Family, OdfTextFittingTestFonts.Create(wide)))
@@ -131,7 +131,7 @@ public sealed class DrawPdfTextFittingFontTests {
         Assert.True(wideHeight > narrowHeight);
         shape.TextBoxMaximumHeight = OdfLength.Points((narrowHeight + wideHeight) / 2);
         Assert.Equal(!wide, IsClipped(source.ToDrawings(OdfTextFittingTestFonts.Profile(!wide)).Report));
-        var options = new OdgToPdfOptions {
+        var options = new OdgPdfExportOptions {
             PdfOptions = new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
                 OdfTextFittingTestFonts.Family, OdfTextFittingTestFonts.Create(wide)))
         };

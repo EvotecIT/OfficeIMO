@@ -41,7 +41,7 @@ public sealed class PdfInspectionProjectionConversionScopeTests {
     [InlineData(PowerPointPdfImportMode.HybridVisualAndEditableTables)]
     public void OpenedPdfCannotBuildConversionFromUninspectedLogicalContent(PowerPointPdfImportMode mode) {
         PdfDocument pdf = PdfDocument.Load(PdfInspectionProjectionFixture.Build());
-        var options = new PowerPointPdfImportOptions { Mode = mode,
+        var options = new PdfPowerPointExportOptions { Mode = mode,
             ReadOptions = new PdfLoadOptions { IncludeImages = false } };
         InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => pdf.ConvertToPowerPointWithEvidence(options));
         Assert.Contains("unrequested projection", error.Message);
@@ -64,7 +64,7 @@ public sealed class PdfInspectionProjectionConversionScopeTests {
         PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) Assert.NotEmpty(word.Report.Diagnostics);
         Assert.Contains("Native page text", logical.ToHtmlResult().Value);
-        Assert.Contains("Native page text", logical.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile()).Value);
+        Assert.Contains("Native page text", logical.ToHtmlResult(PdfHtmlExportOptions.CreatePositionedReviewProfile()).Value);
         PdfRtfConversionResult rtf = logical.ToRtfDocumentResult();
         Assert.Contains(rtf.Report.Warnings, warning => warning.Code == "IMAGES_NOT_IMPORTED");
     }
@@ -73,14 +73,14 @@ public sealed class PdfInspectionProjectionConversionScopeTests {
         switch (converter) {
             case "word": using (logical.ConvertToWordWithEvidence().Value) { } break;
             case "excel": using (logical.ConvertToExcelWithEvidence().Value) { } break;
-            case "powerpoint-tables": using (logical.ConvertToPowerPointWithEvidence(new PowerPointPdfImportOptions {
+            case "powerpoint-tables": using (logical.ConvertToPowerPointWithEvidence(new PdfPowerPointExportOptions {
                 Mode = PowerPointPdfImportMode.EditableTables, ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(1, 1) }
             }).Value) { } break;
-            case "powerpoint-editable": using (logical.ConvertToPowerPointWithEvidence(new PowerPointPdfImportOptions {
+            case "powerpoint-editable": using (logical.ConvertToPowerPointWithEvidence(new PdfPowerPointExportOptions {
                 Mode = PowerPointPdfImportMode.EditableContent, ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(1, 1) }
             }).Value) { } break;
             case "html-semantic": logical.ToHtmlResult(); break;
-            case "html-positioned": logical.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile()); break;
+            case "html-positioned": logical.ToHtmlResult(PdfHtmlExportOptions.CreatePositionedReviewProfile()); break;
             case "rtf": logical.ToRtfDocumentResult(); break;
             default: throw new ArgumentOutOfRangeException(nameof(converter));
         }

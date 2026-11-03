@@ -111,7 +111,7 @@ namespace OfficeIMO.Tests {
             string text = new string('\u200B', 30000) + new string('W', 100);
             using var document = HtmlConversionDocument.Parse(
                 "<table><caption>" + text + "</caption><tr><td>" + text + "</td><td>Definition</td></tr></table>")
-                .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic }).RequireValue();
+                .ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic }).RequireValue();
             var sheet = Assert.Single(document.Sheets);
             Assert.Equal(text, sheet.Cell(1, 1).GetValue().Value);
             Assert.Equal(text, sheet.Cell(3, 1).GetValue().Value);

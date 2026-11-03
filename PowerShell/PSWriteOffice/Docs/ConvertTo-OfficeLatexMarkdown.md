@@ -11,12 +11,12 @@ Converts LaTeX to Markdown with fidelity diagnostics.
 ## SYNTAX
 ### Path (Default)
 ```powershell
-ConvertTo-OfficeLatexMarkdown [-Path] <string> [-OutputPath <string>] [-Options <LatexToMarkdownOptions>] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficeLatexMarkdown [-Path] <string> [-OutputPath <string>] [-Options <LatexMarkdownExportOptions>] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-ConvertTo-OfficeLatexMarkdown -Document <LatexDocument> [-OutputPath <string>] [-Options <LatexToMarkdownOptions>] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficeLatexMarkdown -Document <LatexDocument> [-OutputPath <string>] [-Options <LatexMarkdownExportOptions>] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -74,7 +74,7 @@ Accept wildcard characters: False
 Optional conversion settings.
 
 ```yaml
-Type: LatexToMarkdownOptions
+Type: LatexMarkdownExportOptions
 Parameter Sets: Path, Document
 Aliases: None
 Possible values:

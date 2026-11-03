@@ -18,7 +18,7 @@ public sealed partial class HtmlRenderingTests {
             : mark;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             PageMarginShapingSource("top-center", string.Empty, "width:auto", content));
-        HtmlToPdfOptions options = PageMarginShapingOptions(cff: true);
+        HtmlPdfExportOptions options = PageMarginShapingOptions(cff: true);
         // SVG's authored italic style uses outlines when only the regular face is registered.
         OfficeFontFace face = Assert.Single(options.Fonts.Faces);
         Assert.Equal(OfficeFontStyle.Regular, face.Style);

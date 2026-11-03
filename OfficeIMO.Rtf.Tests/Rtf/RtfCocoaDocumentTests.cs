@@ -79,7 +79,7 @@ public class RtfCocoaDocumentTests {
 
     [Fact]
     public void PdfKeepsParagraphsOutsideTheTableAndAddsNoTableFills() {
-        var options = new RtfToPdfOptions();
+        var options = new RtfPdfExportOptions();
         using var pdf = PdfPigDocument.Open(RtfDocument.Parse(Report).ConvertToPdfWithEvidence(options).ToBytes());
         var page = pdf.GetPage(1);
         double Baseline(string word) => page.GetWords().Single(candidate => candidate.Text == word).BoundingBox.Bottom;
@@ -95,7 +95,7 @@ public class RtfCocoaDocumentTests {
 
     [Fact]
     public void ReadingThePdfKeepsAHangingBulletWithItsText() {
-        byte[] bytes = RtfDocument.Parse(Report).ConvertToPdfWithEvidence(new RtfToPdfOptions()).ToBytes();
+        byte[] bytes = RtfDocument.Parse(Report).ConvertToPdfWithEvidence(new RtfPdfExportOptions()).ToBytes();
 
         PdfCore.PdfLogicalListItem item = Assert.Single(PdfCore.PdfDocument.Load(bytes).Read(new PdfCore.PdfLoadOptions()).Pages[0].ListItems);
 
@@ -109,7 +109,7 @@ public class RtfCocoaDocumentTests {
                 "\\clvertalc \\clshdrawnil \\clwWidth693\\clftsWidth3 \\clbrdrt\\brdrs\\brdrw20\\brdrcf2 \\clbrdrl\\brdrs\\brdrw20\\brdrcf2 \\clbrdrb\\brdrs\\brdrw20\\brdrcf2 \\clbrdrr\\brdrs\\brdrw20\\brdrcf2 \\gaph\\cellx4320")
             .Replace("\\clvertalc \\clshdrawnil \\clwWidth506\\clftsWidth3 \\gaph\\cellx8640",
                 "\\clvertalc \\clshdrawnil \\clwWidth506\\clftsWidth3 \\clbrdrt\\brdrs\\brdrw20\\brdrcf2 \\clbrdrl\\brdrs\\brdrw20\\brdrcf2 \\clbrdrb\\brdrs\\brdrw20\\brdrcf2 \\clbrdrr\\brdrs\\brdrw20\\brdrcf2 \\gaph\\cellx8640"))
-            .ConvertToPdfWithEvidence(new RtfToPdfOptions()).ToBytes();
+            .ConvertToPdfWithEvidence(new RtfPdfExportOptions()).ToBytes();
 
         PdfCore.PdfLogicalPage page = PdfCore.PdfDocument.Load(bytes).Read(new PdfCore.PdfLoadOptions()).Pages[0];
 
@@ -121,7 +121,7 @@ public class RtfCocoaDocumentTests {
     public void ShortLinesAfterAnIndentedListStayAfterIt() {
         byte[] bytes = RtfDocument.Parse("{\\rtf1\\ansi\\margl1440\\pard\\sa240 A full width introduction that reaches across most of the page body.\\par" +
             "\\pard\\li2880 First item\\par Second item\\par\\pard Region\\par Sales\\par North\\par}")
-            .ConvertToPdfWithEvidence(new RtfToPdfOptions()).ToBytes();
+            .ConvertToPdfWithEvidence(new RtfPdfExportOptions()).ToBytes();
 
         PdfCore.PdfLogicalPage page = PdfCore.PdfDocument.Load(bytes).Read(new PdfCore.PdfLoadOptions()).Pages[0];
         string text = string.Join("|", page.TextBlocks.Select(block => block.Text));
@@ -131,7 +131,7 @@ public class RtfCocoaDocumentTests {
 
     [Fact]
     public void CocoaListMarkerSitsAtItsTabStop() {
-        using var pdf = PdfPigDocument.Open(RtfDocument.Parse(Report).ConvertToPdfWithEvidence(new RtfToPdfOptions()).ToBytes());
+        using var pdf = PdfPigDocument.Open(RtfDocument.Parse(Report).ConvertToPdfWithEvidence(new RtfPdfExportOptions()).ToBytes());
         var letters = pdf.GetPage(1).Letters;
 
         Assert.Equal(83D, letters.Single(letter => letter.Value == "\u2022").StartBaseLine.X, 0);
@@ -150,7 +150,7 @@ public class RtfCocoaDocumentTests {
     [Fact]
     public void ColumnNarrowerThanItsPaddingStillConverts() {
         byte[] bytes = RtfDocument.Parse("{\\rtf1\\ansi\\trowd\\trgaph108\\cellx14\\cellx3000\\pard\\intbl\\cell Wide\\cell\\row}")
-            .ConvertToPdfWithEvidence(new RtfToPdfOptions()).ToBytes();
+            .ConvertToPdfWithEvidence(new RtfPdfExportOptions()).ToBytes();
 
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Contains("Wide", pdf.GetPage(1).Text, StringComparison.Ordinal);
@@ -160,7 +160,7 @@ public class RtfCocoaDocumentTests {
     public void BorderWidthIsReadAsTwips() {
         RtfTable table = Assert.Single(RtfDocument.Parse(Report).Blocks.OfType<RtfTable>());
 
-        PdfCore.PdfCellBorder border = RtfPdfMapping.ToPdfTableStyle(RtfDocument.Parse(Report), table, new RtfToPdfOptions()).CellBorders![(0, 0)];
+        PdfCore.PdfCellBorder border = RtfPdfMapping.ToPdfTableStyle(RtfDocument.Parse(Report), table, new RtfPdfExportOptions()).CellBorders![(0, 0)];
 
         Assert.Equal(1D, border.TopBorder!.Width.ToPoints(), 6);
     }
@@ -171,7 +171,7 @@ public class RtfCocoaDocumentTests {
             "{\\rtf1\\ansi{\\fonttbl{\\f0\\froman Times New Roman;}}" +
             "{\\*\\listtable{\\list\\listtemplateid1{\\listlevel\\levelnfc23\\leveljc0\\levelfollow0\\levelstartat1{\\leveltext\\'01\\u8226 ?;}{\\levelnumbers;}\\fi-360\\li720}\\listid1}}" +
             "{\\*\\listoverridetable{\\listoverride\\listid1\\listoverridecount0\\ls1}}" +
-            "\\pard\\li720\\fi-360\\ls1\\f0\\fs24 Alpha\\par\\pard\\li720\\fi-360\\ls1\\f0\\fs24 Beta\\par}").ConvertToPdfWithEvidence(new RtfToPdfOptions()).ToBytes());
+            "\\pard\\li720\\fi-360\\ls1\\f0\\fs24 Alpha\\par\\pard\\li720\\fi-360\\ls1\\f0\\fs24 Beta\\par}").ConvertToPdfWithEvidence(new RtfPdfExportOptions()).ToBytes());
         var words = pdf.GetPage(1).GetWords().ToArray();
 
         double advance = words.Single(word => word.Text.EndsWith("Alpha", StringComparison.Ordinal)).BoundingBox.Bottom -
@@ -182,7 +182,7 @@ public class RtfCocoaDocumentTests {
     [Fact]
     public void TabStopsAreMeasuredFromTheMarginInsideALeftIndent() {
         using var pdf = PdfPigDocument.Open(RtfDocument.Parse(
-            "{\\rtf1\\ansi\\margl1440\\pard\\li720\\tx2880 A\\tab B\\par}").ConvertToPdfWithEvidence(new RtfToPdfOptions()).ToBytes());
+            "{\\rtf1\\ansi\\margl1440\\pard\\li720\\tx2880 A\\tab B\\par}").ConvertToPdfWithEvidence(new RtfPdfExportOptions()).ToBytes());
         var letters = pdf.GetPage(1).Letters;
 
         Assert.Equal(216D, letters.Single(letter => letter.Value == "B").StartBaseLine.X, 0);
@@ -191,7 +191,7 @@ public class RtfCocoaDocumentTests {
     [Fact]
     public void HangingMarkerTabReachesTheLeftIndent() {
         using var pdf = PdfPigDocument.Open(RtfDocument.Parse(
-            "{\\rtf1\\ansi\\margl1440\\pard\\tx220\\tx720\\li720\\fi-720 A\\tab B\\par}").ConvertToPdfWithEvidence(new RtfToPdfOptions()).ToBytes());
+            "{\\rtf1\\ansi\\margl1440\\pard\\tx220\\tx720\\li720\\fi-720 A\\tab B\\par}").ConvertToPdfWithEvidence(new RtfPdfExportOptions()).ToBytes());
         var letters = pdf.GetPage(1).Letters;
 
         Assert.Equal(108D, letters.Single(letter => letter.Value == "B").StartBaseLine.X, 0);

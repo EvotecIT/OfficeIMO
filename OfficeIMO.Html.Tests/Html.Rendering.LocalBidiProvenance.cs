@@ -15,7 +15,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("<bdi dir='rtl'>אבג 123</bdi>", "אבג 123")]
     public void HtmlLocalBidi_ResolvedPaintKeepsItsOwnershipThroughPdfAndImages(string content, string logicalText) {
         HtmlConversionDocument document = LocalBidiDocument(content);
-        HtmlToPdfOptions options = LocalBidiOptions();
+        HtmlPdfExportOptions options = LocalBidiOptions();
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, options);
         HtmlRenderText[] directionalPaint = LocalBidiText(rendered)
             .Where(text => OfficeTextElements.ContainsRightToLeft(text.Text)).ToArray();
@@ -39,7 +39,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlLocalBidi_ConfiguredProviderStillReceivesLogicalDirectionalText() {
         var provider = new ManagedTextShapingTestAssets.RecordingProvider();
-        HtmlToPdfOptions options = LocalBidiOptions();
+        HtmlPdfExportOptions options = LocalBidiOptions();
         options.TextShapingProvider = provider;
 
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(LocalBidiDocument("\u2067אבג\u2069"), options);
@@ -55,11 +55,11 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(provider.Requests, request => request.Text == "גבא");
     }
 
-    private static HtmlToPdfOptions LocalBidiOptions() {
+    private static HtmlPdfExportOptions LocalBidiOptions() {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithScalarAdvances(
             " LEFTאבג123١٢٣".Select(character => (int)character).Distinct()
                 .ToDictionary(scalar => scalar, _ => (ushort)500), new[] { 32 });
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss,

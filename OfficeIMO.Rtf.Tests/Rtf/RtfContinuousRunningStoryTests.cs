@@ -328,7 +328,7 @@ public class RtfContinuousRunningStoryTests {
             paragraph.SpaceAfterTwips = 0;
         }
         Assert.Empty(empty.Blocks);
-        string serialized = source.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string serialized = source.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         byte[] original = System.Text.Encoding.ASCII.GetBytes(serialized);
         RtfReadResult read = RtfDocument.LoadResult(original);
         RtfParagraph implicitParagraph = Assert.IsType<RtfParagraph>(Assert.Single(read.Document.Sections[emptyIndex].Blocks));
@@ -363,7 +363,7 @@ public class RtfContinuousRunningStoryTests {
         double reloadedAdvance = Baseline(reloadedPdf, "FOLLOWINGPAGE") - Baseline(reloadedPdf, "BEFOREBREAK");
         Assert.Equal(reloadedAdvance, directAdvance, 3);
         Assert.Empty(empty.Blocks);
-        Assert.Equal(serialized, source.ToRtf(new RtfWriteOptions { IncludeGenerator = false }));
+        Assert.Equal(serialized, source.ToRtf(new RtfSaveOptions { IncludeGenerator = false }));
         Assert.Equal(original, read.ToBytesLossless());
 
         static RtfParagraph Body(RtfSection section, string text) {
@@ -417,7 +417,7 @@ public class RtfContinuousRunningStoryTests {
             paragraph.SpaceAfterTwips = 0;
         }
         Assert.Empty(empty.Blocks);
-        string serialized = source.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string serialized = source.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         byte[] original = System.Text.Encoding.ASCII.GetBytes(serialized);
         RtfReadResult read = RtfDocument.LoadResult(original);
         RtfParagraph implicitParagraph = Assert.IsType<RtfParagraph>(Assert.Single(read.Document.Sections[emptyIndex].Blocks));
@@ -449,7 +449,7 @@ public class RtfContinuousRunningStoryTests {
         double reloadedAdvance = Baseline(reloadedPdf, "FOLLOWINGPAGE") - Baseline(reloadedPdf, "BEFOREBREAK");
         Assert.Equal(reloadedAdvance, directAdvance, 3);
         Assert.Empty(empty.Blocks);
-        Assert.Equal(serialized, source.ToRtf(new RtfWriteOptions { IncludeGenerator = false }));
+        Assert.Equal(serialized, source.ToRtf(new RtfSaveOptions { IncludeGenerator = false }));
         Assert.Equal(original, read.ToBytesLossless());
 
         static RtfParagraph Body(RtfSection section, string text) {
@@ -486,12 +486,12 @@ public class RtfContinuousRunningStoryTests {
         (bodyPageBreak ? @"\pagebb " : " ") + @"FOLLOWINGPAGE\par}";
 
     private static Converted Convert(RtfDocument source, string artifactName) {
-        string before = source.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(new RtfToPdfOptions {
+        string before = source.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(new RtfPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         });
         byte[] bytes = result.ToBytes();
-        Assert.Equal(before, source.ToRtf(new RtfWriteOptions { IncludeGenerator = false }));
+        Assert.Equal(before, source.ToRtf(new RtfSaveOptions { IncludeGenerator = false }));
         string[] pages = PdfCore.PdfReadDocument.Open(bytes,
             new PdfCore.PdfLoadOptions { IncludeArtifactText = true }).Pages
             .Select(page => new string(page.ExtractText().Where(character => !char.IsWhiteSpace(character)).ToArray())).ToArray();

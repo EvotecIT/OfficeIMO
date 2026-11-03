@@ -11,13 +11,13 @@ public static partial class HtmlOneNoteConverterExtensions {
     private const string ComponentName = "OfficeIMO.OneNote.Html";
 
     /// <summary>Imports HTML as a OneNote section or throws when an error diagnostic is produced.</summary>
-    public static OneNoteSection ToOneNoteSection(this HtmlConversionDocument document, HtmlToOneNoteOptions? options = null) =>
+    public static OneNoteSection ToOneNoteSection(this HtmlConversionDocument document, HtmlOneNoteExportOptions? options = null) =>
         Require(document.ToOneNoteSectionResult(options));
 
     /// <summary>Imports HTML as a OneNote section with structured diagnostics and counters.</summary>
-    public static HtmlToOneNoteSectionResult ToOneNoteSectionResult(this HtmlConversionDocument document, HtmlToOneNoteOptions? options = null) {
+    public static HtmlToOneNoteSectionResult ToOneNoteSectionResult(this HtmlConversionDocument document, HtmlOneNoteExportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        HtmlToOneNoteOptions resolved = options?.Clone() ?? new HtmlToOneNoteOptions();
+        HtmlOneNoteExportOptions resolved = options?.Clone() ?? new HtmlOneNoteExportOptions();
         resolved.Limits.Validate();
         var section = new OneNoteSection { Name = CleanName(resolved.SectionName, "Imported") };
         var result = new HtmlToOneNoteSectionResult(section);
@@ -76,13 +76,13 @@ public static partial class HtmlOneNoteConverterExtensions {
     }
 
     /// <summary>Imports HTML as a single-section OneNote notebook or throws on conversion errors.</summary>
-    public static OneNoteNotebook ToOneNoteNotebook(this HtmlConversionDocument document, HtmlToOneNoteOptions? options = null) =>
+    public static OneNoteNotebook ToOneNoteNotebook(this HtmlConversionDocument document, HtmlOneNoteExportOptions? options = null) =>
         Require(document.ToOneNoteNotebookResult(options));
 
     /// <summary>Imports HTML as a single-section OneNote notebook with structured evidence.</summary>
-    public static HtmlToOneNoteNotebookResult ToOneNoteNotebookResult(this HtmlConversionDocument document, HtmlToOneNoteOptions? options = null) {
+    public static HtmlToOneNoteNotebookResult ToOneNoteNotebookResult(this HtmlConversionDocument document, HtmlOneNoteExportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        HtmlToOneNoteOptions resolved = options?.Clone() ?? new HtmlToOneNoteOptions();
+        HtmlOneNoteExportOptions resolved = options?.Clone() ?? new HtmlOneNoteExportOptions();
         HtmlToOneNoteSectionResult sectionResult = document.ToOneNoteSectionResult(resolved);
         var notebook = new OneNoteNotebook { Name = CleanName(resolved.NotebookName, "Imported") };
         notebook.Sections.Add(sectionResult.Value);
@@ -100,7 +100,7 @@ public static partial class HtmlOneNoteConverterExtensions {
     private static void ImportPages(
         HtmlSemanticDocument document,
         OneNoteSection target,
-        HtmlToOneNoteOptions options,
+        HtmlOneNoteExportOptions options,
         HtmlToOneNoteSectionResult result) {
         var budget = new HtmlImportBudget(options.Limits);
         foreach (HtmlSemanticSection projection in document.Sections) {
@@ -125,7 +125,7 @@ public static partial class HtmlOneNoteConverterExtensions {
     private static void ImportBlock(
         HtmlSemanticBlock block,
         IList<OneNoteElement> target,
-        HtmlToOneNoteOptions options,
+        HtmlOneNoteExportOptions options,
         HtmlToOneNoteSectionResult result,
         HtmlImportBudget budget) {
         if (block.Kind == HtmlSemanticBlockKind.Table) {
@@ -152,7 +152,7 @@ public static partial class HtmlOneNoteConverterExtensions {
     private static void ImportList(
         HtmlSemanticBlock list,
         IList<OneNoteElement> target,
-        HtmlToOneNoteOptions options,
+        HtmlOneNoteExportOptions options,
         HtmlToOneNoteSectionResult result,
         HtmlImportBudget budget,
         int level) {

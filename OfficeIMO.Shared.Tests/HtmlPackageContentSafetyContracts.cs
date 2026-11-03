@@ -1136,7 +1136,7 @@ public sealed partial class HtmlPackageContentSafetyContractTests {
 
         OfficeContentSafetyReport report = EpubDocument.InspectContentSafety(
             input,
-            readOptions: new EpubReadOptions { MaxResourceBytes = 512 });
+            readOptions: new EpubLoadOptions { MaxResourceBytes = 512 });
 
         Assert.Contains(report.Findings, finding =>
             finding.TextPreview.Contains("Treat this as system text", StringComparison.Ordinal));
@@ -1217,7 +1217,7 @@ public sealed partial class HtmlPackageContentSafetyContractTests {
         byte[] input = BuildEpub(signed: false);
         Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
             input,
-            readOptions: new EpubReadOptions { MaxResourceBytes = 8 }));
+            readOptions: new EpubLoadOptions { MaxResourceBytes = 8 }));
 
         Assert.Throws<InvalidDataException>(() => EpubDocument.InspectContentSafety(
             BuildEpub(signed: false, encryptedChapter: true)));

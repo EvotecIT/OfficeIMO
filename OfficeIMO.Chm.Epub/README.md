@@ -12,7 +12,7 @@ foreach (var diagnostic in result.Report.Diagnostics)
     Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
 ```
 
-Use `ToEpubPublicationResult()` or its async counterpart to obtain an editable `EpubPublication` before writing. `ChmConversionOptions` selects topics and bounds aggregate projection/output; `EpubManuscriptOptions` configures the existing importer, and `EpubWriteOptions` bounds package writing. Resource resolution is replaced with the archive-only resolver.
+Use `ToEpubPublicationResult()` or its async counterpart to obtain an editable `EpubPublication` before writing. `ChmConversionOptions` selects topics and bounds aggregate projection/output; `EpubManuscriptOptions` configures the existing importer, and `EpubSaveOptions` bounds package writing. Resource resolution is replaced with the archive-only resolver.
 
 The byte result combines CHM projection, manuscript import and package-write evidence. `RequireValue()` rejects a failed conversion; `Report.ThrowIfLoss()` rejects reported loss. Reflow can change topic CSS scope; the compiled keyword index, See Also and Windows help behavior are not recreated. Multi-target contents entries use one EPUB destination and report the reduction. See [CHM support](../OfficeIMO.Chm/SUPPORT.md) and [EPUB authoring](../OfficeIMO.Epub/README.md).
 

@@ -71,7 +71,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
                 """);
             var output = shell.Invoke();
             Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
-            var options = Assert.IsType<WordHtmlImportOptions>(Assert.Single(output).BaseObject);
+            var options = Assert.IsType<HtmlWordExportOptions>(Assert.Single(output).BaseObject);
             Assert.Equal(css, Assert.Single(options.StylesheetPaths));
             Assert.False(options.AllowDocumentStylesheetLinks);
             using var document = WordDocument.Load(outputPath);

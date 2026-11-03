@@ -85,7 +85,7 @@ public class RtfSectionHeaderFooterRegressionTests {
     [Fact]
     public void Html_Metadata_RoundTrip_Preserves_Section_Ownership_And_Empty_Overrides() {
         RtfDocument document = RtfDocument.ParseResult(Input).Document;
-        string html = document.ToHtml(new RtfToHtmlOptions { IncludeRoundTripMetadata = true, FragmentOnly = false });
+        string html = document.ToHtml(new RtfHtmlExportOptions { IncludeRoundTripMetadata = true, FragmentOnly = false });
         AssertSections(HtmlConversionDocument.Parse(html).ToRtfDocument());
     }
 

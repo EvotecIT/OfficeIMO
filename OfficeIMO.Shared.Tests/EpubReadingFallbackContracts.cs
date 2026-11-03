@@ -16,7 +16,7 @@ public sealed class EpubReadingFallbackContracts {
     [InlineData("image/svg+xml", false)]
     public async Task Load_FollowsForeignChainsAndPreservesRepeatedPositionPolicy(string mediaType, bool spineOrder) {
         byte[] package = CreatePackage(mediaType);
-        var options = new EpubReadOptions { PreferSpineOrder = spineOrder, IncludeNonLinearSpineItems = false, IncludeRawHtml = true };
+        var options = new EpubLoadOptions { PreferSpineOrder = spineOrder, IncludeNonLinearSpineItems = false, IncludeRawHtml = true };
         EpubDocument document = EpubDocument.Load(new MemoryStream(package), options);
         Assert.Equal(new int?[] { 1, 3 }, document.Chapters.Select(chapter => chapter.SpineIndex));
         Assert.All(document.Chapters, chapter => {
@@ -55,7 +55,7 @@ public sealed class EpubReadingFallbackContracts {
     [InlineData("bytes", "epub.chapter.size-limit", 0)]
     [InlineData("text", "epub.chapter.text-total-limit", 0)]
     public void Load_FallbacksUseExistingChapterBudgets(string budget, string code, int chapters) {
-        var options = new EpubReadOptions {
+        var options = new EpubLoadOptions {
             IncludeNonLinearSpineItems = false,
             MaxChapters = budget == "count" ? 1 : 500,
             MaxChapterBytes = budget == "bytes" ? 1 : 4096,

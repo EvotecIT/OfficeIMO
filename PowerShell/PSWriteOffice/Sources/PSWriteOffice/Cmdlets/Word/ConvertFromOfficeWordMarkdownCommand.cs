@@ -241,7 +241,7 @@ public sealed class ConvertFromOfficeWordMarkdownCommand : AsyncPSCmdlet {
         }
     }
 
-    private WordMarkdownImportOptions BuildOptions() {
+    private MarkdownWordExportOptions BuildOptions() {
         if (ReaderOptions != null && Profile.HasValue) {
             throw new PSArgumentException("Specify either -ReaderOptions or -Profile, not both.");
         }
@@ -315,16 +315,16 @@ public sealed class ConvertFromOfficeWordMarkdownCommand : AsyncPSCmdlet {
         return options;
     }
 
-    private WordMarkdownImportOptions CreateOptions() {
-        return new WordMarkdownImportOptions();
+    private MarkdownWordExportOptions CreateOptions() {
+        return new MarkdownWordExportOptions();
     }
 
-    private Task<WordDocument> ConvertMarkdownTextAsync(string markdown, WordMarkdownImportOptions options) {
+    private Task<WordDocument> ConvertMarkdownTextAsync(string markdown, MarkdownWordExportOptions options) {
         var markdownDocument = MarkdownDocument.Parse(markdown, options.CreateReaderOptions());
         return ConvertMarkdownDocumentAsync(markdownDocument, options);
     }
 
-    private async Task<WordDocument> ConvertMarkdownDocumentAsync(MarkdownDocument markdownDocument, WordMarkdownImportOptions options) {
+    private async Task<WordDocument> ConvertMarkdownDocumentAsync(MarkdownDocument markdownDocument, MarkdownWordExportOptions options) {
         if (AllowRemoteImages.IsPresent) {
             await MarkdownRemoteImageService.ConfigureResolverAsync(markdownDocument, options, CancelToken).ConfigureAwait(false);
         }

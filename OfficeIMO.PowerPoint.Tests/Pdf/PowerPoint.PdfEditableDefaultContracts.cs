@@ -214,7 +214,7 @@ public sealed class PowerPointPdfEditableDefaultContracts {
 
         PdfPowerPointConversionResult implicitResult = logical.ConvertToPowerPointWithEvidence();
         PdfPowerPointConversionResult explicitDefaultResult = logical.ConvertToPowerPointWithEvidence(
-            new PowerPointPdfImportOptions());
+            new PdfPowerPointExportOptions());
 
         Assert.Equal(PowerPointPdfImportMode.EditableTables, implicitResult.Report.Mode);
         Assert.Equal(PowerPointPdfImportMode.EditableTables, explicitDefaultResult.Report.Mode);

@@ -40,7 +40,7 @@ public sealed class PdfSpreadsheetColumnGeometryTests {
             sourceGridRecoveryQualified = false
         }));
 
-        Artifact artifact = RoundTrip(source, route, new ExcelPdfImportOptions {
+        Artifact artifact = RoundTrip(source, route, new PdfExcelExportOptions {
             UseFirstRowAsHeader = true,
             AutoFitColumns = false,
             PreserveColumnProportions = true
@@ -67,7 +67,7 @@ public sealed class PdfSpreadsheetColumnGeometryTests {
             Assert.Equal(table.Columns[0].To, column.To, 6);
         });
 
-        Artifact artifact = RoundTrip(source, route, new ExcelPdfImportOptions {
+        Artifact artifact = RoundTrip(source, route, new PdfExcelExportOptions {
             UseFirstRowAsHeader = true,
             AutoFitColumns = false,
             PreserveColumnProportions = true
@@ -84,8 +84,8 @@ public sealed class PdfSpreadsheetColumnGeometryTests {
     public void AutoFitSuppliesTotalBudgetBeforeDetectedProportionsDetermineWidths(string route) {
         Fixture fixture = ReadFixture("ruled-ledger-0");
         PdfDocumentReadResult source = Read(fixture);
-        Artifact fitted = RoundTrip(source, route, new ExcelPdfImportOptions { UseFirstRowAsHeader = true });
-        Artifact mapped = RoundTrip(source, route, new ExcelPdfImportOptions {
+        Artifact fitted = RoundTrip(source, route, new PdfExcelExportOptions { UseFirstRowAsHeader = true });
+        Artifact mapped = RoundTrip(source, route, new PdfExcelExportOptions {
             UseFirstRowAsHeader = true,
             PreserveColumnProportions = true
         });
@@ -106,10 +106,10 @@ public sealed class PdfSpreadsheetColumnGeometryTests {
     public void DefaultOptionRetainsExistingAutoFitAndDefaultWidthPolicies(string route, bool autoFit) {
         Fixture fixture = ReadFixture("ruled-ledger-0");
         PdfDocumentReadResult source = Read(fixture);
-        Artifact defaults = RoundTrip(source, route, new ExcelPdfImportOptions {
+        Artifact defaults = RoundTrip(source, route, new PdfExcelExportOptions {
             UseFirstRowAsHeader = true, AutoFitColumns = autoFit
         });
-        Artifact disabled = RoundTrip(source, route, new ExcelPdfImportOptions {
+        Artifact disabled = RoundTrip(source, route, new PdfExcelExportOptions {
             UseFirstRowAsHeader = true, AutoFitColumns = autoFit, PreserveColumnProportions = false
         });
 
@@ -134,10 +134,10 @@ public sealed class PdfSpreadsheetColumnGeometryTests {
             Profile = PdfReadProfile.Structured, Pipeline = pipeline
         });
         Assert.Equal(0D, Assert.Single(source.Tables).Columns[1].To - source.Tables[0].Columns[1].From);
-        Artifact baseline = RoundTrip(source, route, new ExcelPdfImportOptions {
+        Artifact baseline = RoundTrip(source, route, new PdfExcelExportOptions {
             UseFirstRowAsHeader = true, AutoFitColumns = autoFit
         });
-        Artifact fallback = RoundTrip(source, route, new ExcelPdfImportOptions {
+        Artifact fallback = RoundTrip(source, route, new PdfExcelExportOptions {
             UseFirstRowAsHeader = true, AutoFitColumns = autoFit, PreserveColumnProportions = true
         });
 
@@ -198,10 +198,10 @@ public sealed class PdfSpreadsheetColumnGeometryTests {
     private static double MaximumError(double[] expected, double[] actual) =>
         expected.Zip(actual, (left, right) => Math.Abs(left - right)).Max();
 
-    private static Artifact RoundTrip(PdfDocumentReadResult source, string route, ExcelPdfImportOptions options) =>
+    private static Artifact RoundTrip(PdfDocumentReadResult source, string route, PdfExcelExportOptions options) =>
         route == "xlsx" ? RoundTripXlsx(source, options) : RoundTripOds(source, options);
 
-    private static Artifact RoundTripXlsx(PdfDocumentReadResult source, ExcelPdfImportOptions options) {
+    private static Artifact RoundTripXlsx(PdfDocumentReadResult source, PdfExcelExportOptions options) {
         using var bytes = new MemoryStream();
         var conversion = source.ConvertToExcelWithEvidence(options);
         using var convertedWorkbook = conversion.Value;
@@ -228,7 +228,7 @@ public sealed class PdfSpreadsheetColumnGeometryTests {
         return new Artifact(widths, entry, text, numbers);
     }
 
-    private static Artifact RoundTripOds(PdfDocumentReadResult source, ExcelPdfImportOptions options) {
+    private static Artifact RoundTripOds(PdfDocumentReadResult source, PdfExcelExportOptions options) {
         PdfOdsConversionResult result = source.ToOdsDocumentResult(options);
         PdfExcelTableImportEntry entry = Assert.Single(result.Report.PdfReport.Entries);
         using var bytes = new MemoryStream(result.Value.ToBytes());

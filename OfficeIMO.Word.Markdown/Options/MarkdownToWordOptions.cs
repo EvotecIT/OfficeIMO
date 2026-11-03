@@ -4,10 +4,10 @@ namespace OfficeIMO.Word.Markdown {
     /// <summary>
     /// Options controlling Markdown to Word conversion.
     /// </summary>
-    public partial class WordMarkdownImportOptions {
+    public partial class MarkdownWordExportOptions {
         private bool? _renderFrontMatter;
-        internal WordMarkdownImportOptions CloneForConversion() {
-            var copy = (WordMarkdownImportOptions)MemberwiseClone();
+        internal MarkdownWordExportOptions CloneForConversion() {
+            var copy = (MarkdownWordExportOptions)MemberwiseClone();
             copy._theme = _theme?.Clone();
             copy.ReaderOptions = ReaderOptions?.Clone();
             copy.AllowedImageDirectories = new System.Collections.Generic.HashSet<string>(AllowedImageDirectories, AllowedImageDirectories.Comparer);

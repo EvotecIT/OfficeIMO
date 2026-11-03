@@ -20,7 +20,7 @@ public sealed partial class HtmlRenderingTests {
             + "' style='font-family:Typography;font-size:24px;line-height:1.5;font-weight:"
             + (bold ? "700" : "400") + "'>" + text + "</p>");
         byte[] fontBytes = File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(), fontPath));
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             FontFamily = new PdfCore.PdfEmbeddedFontFamily("Typography", fontBytes)

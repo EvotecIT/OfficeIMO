@@ -31,7 +31,7 @@ public partial class HtmlOfficeAdapters {
         Assert.Equal("Basic water service level", table.Rows[1].Cells[0].Text);
         Assert.Equal("Collection time is at most 30 minutes.", table.Rows[1].Cells[1].Text);
 
-        HtmlToExcelResult result = document.ToExcelDocumentResult(new HtmlToExcelOptions {
+        HtmlToExcelResult result = document.ToExcelDocumentResult(new HtmlExcelExportOptions {
             Mode = HtmlImportMode.Generic
         });
         using ExcelDocument workbook = result.RequireValue();
@@ -50,7 +50,7 @@ public partial class HtmlOfficeAdapters {
             + "<div role='cell'>Drinking water from an improved source accessible on premises, available when needed, and free from fecal and priority chemical contamination.</div></div>"
             + "</div>";
 
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(new HtmlToExcelOptions {
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(new HtmlExcelExportOptions {
             Mode = HtmlImportMode.Generic
         });
         using ExcelDocument workbook = result.RequireValue();
@@ -83,7 +83,7 @@ public partial class HtmlOfficeAdapters {
             + "<td>Drinking water from an improved source accessible on premises, available when needed.</td></tr></table>";
 
         using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcelDocument(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         using SpreadsheetDocument package = SpreadsheetDocument.Open(artifact, false);
         WorksheetPart worksheet = Assert.Single(package.WorkbookPart!.WorksheetParts);
@@ -101,7 +101,7 @@ public partial class HtmlOfficeAdapters {
             + "<tr><td>Safely managed water service level</td><td>Omitted definition</td></tr></table>";
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, MaxTableCells = 3 });
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic, MaxTableCells = 3 });
         using ExcelDocument workbook = result.RequireValue();
         using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         using SpreadsheetDocument package = SpreadsheetDocument.Open(artifact, false);
@@ -129,7 +129,7 @@ public partial class HtmlOfficeAdapters {
         Assert.Equal(2, table.Rows[0].Cells[0].ColumnSpan);
         Assert.Equal(2, table.Rows[1].Cells[0].RowSpan);
 
-        HtmlToExcelResult result = document.ToExcelDocumentResult(new HtmlToExcelOptions {
+        HtmlToExcelResult result = document.ToExcelDocumentResult(new HtmlExcelExportOptions {
             Mode = HtmlImportMode.Generic
         });
         using ExcelDocument workbook = result.RequireValue();

@@ -153,7 +153,7 @@ public partial class PdfDocumentReadResultTests {
         PdfDocumentReadResult full = PdfDocumentReadResult.Load(BuildThreePageLabelPdf(labelOnlyThirdPage: true));
         Assert.Equal(2, Assert.Single(full.PageLabels).StartPageIndex);
 
-        PowerPointPdfImportOptions firstOptions = PowerPointPdfImportOptions.CreateEditableTables();
+        PdfPowerPointExportOptions firstOptions = PdfPowerPointExportOptions.CreateEditableTables();
         firstOptions.ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(1) };
         PdfPowerPointConversionResult first = full.ConvertToPowerPointWithEvidence(firstOptions);
         using (first.Value) {
@@ -161,7 +161,7 @@ public partial class PdfDocumentReadResultTests {
             Assert.DoesNotContain(first.Warnings, static warning => warning.Code == "pdf-page-labels-not-reconstructed");
         }
 
-        PowerPointPdfImportOptions thirdOptions = PowerPointPdfImportOptions.CreateEditableTables();
+        PdfPowerPointExportOptions thirdOptions = PdfPowerPointExportOptions.CreateEditableTables();
         thirdOptions.ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(3) };
         PdfPowerPointConversionResult third = full.ConvertToPowerPointWithEvidence(thirdOptions);
         using (third.Value) {

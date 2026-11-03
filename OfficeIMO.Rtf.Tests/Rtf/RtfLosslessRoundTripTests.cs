@@ -125,11 +125,11 @@ public class RtfLosslessRoundTripTests {
         using var output = new MemoryStream();
         output.WriteByte(0x2A);
 
-        await document.SaveAsync(output, new RtfWriteOptions { IncludeGenerator = false });
+        await document.SaveAsync(output, new RtfSaveOptions { IncludeGenerator = false });
         byte[] saved = output.ToArray();
 
         Assert.Equal(0, output.Position);
-        Assert.Equal(document.ToRtf(new RtfWriteOptions { IncludeGenerator = false }), Encoding.UTF8.GetString(saved));
+        Assert.Equal(document.ToRtf(new RtfSaveOptions { IncludeGenerator = false }), Encoding.UTF8.GetString(saved));
     }
 
     [Fact]

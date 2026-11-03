@@ -104,19 +104,19 @@ public static partial class OfficeConverter {
             case "pdf-html": {
                 using PdfDocument document = PdfDocument.Load(input, (settings.PdfLoad ?? new()).Clone(settings.MaximumInputBytes, settings.PdfLoad?.Password ?? settings.SourcePassword), token);
                 if (id == "pdf-docx") {
-                    WordPdfImportOptions options = settings.PdfWord ?? new(); options.ReadOptions ??= settings.PdfLoad; options.FailOnLoss |= settings.FailOnLoss;
+                    PdfWordExportOptions options = settings.PdfWord ?? new(); options.ReadOptions ??= settings.PdfLoad; options.FailOnLoss |= settings.FailOnLoss;
                     result = await SaveConvertedAsync(await document.ToWordAsync(options, token).ConfigureAwait(false),
                         model => model.SaveAsync(output, settings.WordSave, token)).ConfigureAwait(false);
                 } else if (id == "pdf-xlsx") {
-                    ExcelPdfImportOptions options = settings.PdfExcel ?? new(); options.ReadOptions ??= settings.PdfLoad; options.FailOnLoss |= settings.FailOnLoss;
+                    PdfExcelExportOptions options = settings.PdfExcel ?? new(); options.ReadOptions ??= settings.PdfLoad; options.FailOnLoss |= settings.FailOnLoss;
                     result = await SaveConvertedAsync(await document.ToExcelAsync(options, token).ConfigureAwait(false),
                         model => model.SaveAsync(output, settings.ExcelSave, token)).ConfigureAwait(false);
                 } else if (id == "pdf-pptx") {
-                    PowerPointPdfImportOptions options = settings.PdfPowerPoint ?? new(); options.ReadOptions ??= settings.PdfLoad; options.FailOnLoss |= settings.FailOnLoss;
+                    PdfPowerPointExportOptions options = settings.PdfPowerPoint ?? new(); options.ReadOptions ??= settings.PdfLoad; options.FailOnLoss |= settings.FailOnLoss;
                     result = await SaveConvertedAsync(await document.ToPowerPointAsync(options, token).ConfigureAwait(false),
                         model => model.SaveAsync(output, settings.PowerPointSave, token)).ConfigureAwait(false);
                 } else {
-                    PdfToHtmlOptions options = settings.PdfHtml ?? new(); options.ReadOptions ??= settings.PdfLoad; options.FailOnLoss |= settings.FailOnLoss;
+                    PdfHtmlExportOptions options = settings.PdfHtml ?? new(); options.ReadOptions ??= settings.PdfLoad; options.FailOnLoss |= settings.FailOnLoss;
                     options.MaximumOutputCharacters = (int)Math.Min(options.MaximumOutputCharacters ?? int.MaxValue, settings.MaximumOutputBytes);
                     result = await document.SaveAsHtmlAsync(output, options, token).ConfigureAwait(false);
                 }
@@ -131,7 +131,7 @@ public static partial class OfficeConverter {
                     options.BaseDirectory ??= settings.ResourceDirectory;
                     result = await document.SaveAsPdfAsync(output, options, token).ConfigureAwait(false);
                 } else if (id == "markdown-docx") {
-                    WordMarkdownImportOptions options = ConfigureMarkdownHtml(settings.MarkdownWord, token); options.FailOnLoss |= settings.FailOnLoss;
+                    MarkdownWordExportOptions options = ConfigureMarkdownHtml(settings.MarkdownWord, token); options.FailOnLoss |= settings.FailOnLoss;
                     result = await SaveConvertedAsync(await document.ToWordAsync(options, token).ConfigureAwait(false),
                         model => model.SaveAsync(output, settings.WordSave, token), options.Template).ConfigureAwait(false);
                 } else {
@@ -149,14 +149,14 @@ public static partial class OfficeConverter {
                 if (settings.ResourceDirectory != null && settings.HtmlLoad == null) sourceOptions.ResourceUrlPolicy = OfficeHtmlResourceResolver.CreateResourcePolicy();
                 var document = await HtmlConversionDocument.LoadAsync(input, sourceOptions, cancellationToken: token).ConfigureAwait(false);
                 if (id == "html-docx") {
-                    WordHtmlImportOptions options = settings.HtmlWord ?? new(); options.FailOnLoss |= settings.FailOnLoss;
+                    HtmlWordExportOptions options = settings.HtmlWord ?? new(); options.FailOnLoss |= settings.FailOnLoss;
                     result = await SaveConvertedAsync(await document.ToWordAsync(options, token).ConfigureAwait(false),
                         model => model.SaveAsync(output, settings.WordSave, token)).ConfigureAwait(false);
                 } else if (id == "html-markdown") {
-                    MarkdownHtmlImportOptions options = settings.HtmlMarkdown ?? new(); options.FailOnLoss |= settings.FailOnLoss;
+                    HtmlMarkdownExportOptions options = settings.HtmlMarkdown ?? new(); options.FailOnLoss |= settings.FailOnLoss;
                     result = await document.SaveAsMarkdownAsync(output, options, token).ConfigureAwait(false);
                 } else {
-                    HtmlToPdfOptions? rendering = settings.ResourceDirectory == null ? settings.Html
+                    HtmlPdfExportOptions? rendering = settings.ResourceDirectory == null ? settings.Html
                         : OfficeHtmlResourceResolver.CreateOptions(settings.ResourceSourcePath ?? Path.Combine(settings.ResourceDirectory, settings.SourceName!),
                             Math.Max(0L, settings.MaximumInputBytes - input.Length), settings.ResourceSnapshots, settings.Html);
                     PdfDocumentConversionResult converted = await document.ConvertToPdfWithEvidenceAsync(rendering, token).ConfigureAwait(false);

@@ -49,7 +49,7 @@ public sealed class AsciiDocReferencesAndCellsTests {
         var attributes = document.GetBlockContexts().First(context => context.Block == paragraph).Attributes;
         var converted = paragraph.ToMarkdownDocumentResult(attributes);
         Assert.Contains("inherited", converted.Value.ToMarkdown());
-        converted = paragraph.ToMarkdownDocumentResult(attributes, new AsciiDocToMarkdownOptions { References = AsciiDocReferenceCatalog.Create(document) });
+        converted = paragraph.ToMarkdownDocumentResult(attributes, new AsciiDocMarkdownExportOptions { References = AsciiDocReferenceCatalog.Create(document) });
         Assert.Single(converted.Value.Blocks.OfType<FootnoteDefinitionBlock>());
         Assert.DoesNotContain("Elsewhere", converted.Value.ToMarkdown());
     }

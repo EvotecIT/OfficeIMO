@@ -91,7 +91,7 @@ public class RtfHtmlParagraphFormatTests {
             .SetDirection(RtfTextDirection.LeftToRight);
         document.AddParagraph("Default");
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true, FragmentOnly = false });
 

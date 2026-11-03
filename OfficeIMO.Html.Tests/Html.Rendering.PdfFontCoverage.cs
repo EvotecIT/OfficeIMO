@@ -16,7 +16,7 @@ public sealed class HtmlPdfFontCoverageTests {
         HtmlRenderIntentProfile profile) {
         const string html = "<p>A−B</p>";
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
-        var request = HtmlRenderRequest.Create(profile, HtmlRenderEncoder.Pdf, new HtmlToPdfOptions {
+        var request = HtmlRenderRequest.Create(profile, HtmlRenderEncoder.Pdf, new HtmlPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         });
 
@@ -32,7 +32,7 @@ public sealed class HtmlPdfFontCoverageTests {
 
     [Fact]
     public void HtmlPdf_UncoveredUnicodeStillFailsWhenLossIsNotAllowed() {
-        var request = HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, new HtmlToPdfOptions {
+        var request = HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, new HtmlPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         });
@@ -61,7 +61,7 @@ public sealed class HtmlPdfFontCoverageTests {
                 + Convert.ToBase64String(regular) + ");font-weight:normal}@font-face{font-family:Scoped;src:url(data:font/ttf;base64,"
                 + Convert.ToBase64String(bold) + ");font-weight:bold}</style>" + paragraph
             : paragraph;
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         };
         if (!sourceFont) options.PdfOptions.RegisterNamedFontFamily(
@@ -130,7 +130,7 @@ public sealed class HtmlPdfFontCoverageTests {
         const string html = "<style>@page{@bottom-center{content:'Page ' counter(page)}}body{font:12px Helvetica,sans-serif}</style><h1>Heading</h1><p>Body</p>";
 
         HtmlPdfRenderRequestResult result = HtmlConversionDocument.Parse(html).RenderToPdfResult(
-            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, new HtmlToPdfOptions()));
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, new HtmlPdfExportOptions()));
 
         result.ToBytes();
         string[] sources = result.Output.Report.Warnings.Where(item => item.Code == "font-embedding-cost")
@@ -142,6 +142,6 @@ public sealed class HtmlPdfFontCoverageTests {
         string html = "<style>@font-face{font-family:Scoped;src:url(data:font/ttf;base64," + Convert.ToBase64String(font)
             + ")}</style><p style='font-family:Scoped;font-size:40px'>" + text + "</p>";
         return HtmlConversionDocument.Parse(html).RenderToPdfResult(
-            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, new HtmlToPdfOptions()));
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, new HtmlPdfExportOptions()));
     }
 }

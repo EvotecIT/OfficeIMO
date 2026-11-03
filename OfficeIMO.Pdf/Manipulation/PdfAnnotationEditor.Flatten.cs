@@ -2,13 +2,16 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfAnnotationEditor {
     /// <summary>Flattens selected supported visual annotations through a proven full rewrite.</summary>
-    public static PdfAnnotationEditResult FlattenAnnotations(byte[] pdf, PdfAnnotationFlattenOptions? options = null) =>
-        FlattenAnnotations(pdf, options, readOptions: null);
+    public static PdfAnnotationEditResult FlattenAnnotations(byte[] pdf, PdfAnnotationFlattenOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return FlattenAnnotations(pdf, options, readOptions: null, cancellationToken: cancellationToken);
+    }
 
     /// <summary>Flattens selected supported visual annotations using explicit read limits or credentials.</summary>
-    public static PdfAnnotationEditResult FlattenAnnotations(byte[] pdf, PdfAnnotationFlattenOptions? options, PdfLoadOptions? readOptions) {
+    public static PdfAnnotationEditResult FlattenAnnotations(byte[] pdf, PdfAnnotationFlattenOptions? options, PdfLoadOptions? readOptions, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(pdf, nameof(pdf));
-        var cancellationToken = options?.CancellationToken ?? default;
+        cancellationToken = options?.CancellationToken ?? default;
         cancellationToken.ThrowIfCancellationRequested();
         PdfMutationPlan plan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyAnnotations, readOptions, cancellationToken: cancellationToken);
         byte[] output = PdfAnnotationFlattener.FlattenVisualAnnotations(

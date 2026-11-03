@@ -146,7 +146,7 @@ MarkdownDocument document = MarkdownDocument.Parse(markdown);
 document.SaveAsHtml("report.html", new MarkdownHtmlExportOptions { Theme = theme });
 document.SaveAsPdf("report.pdf", new MarkdownPdfExportOptions { Theme = theme });
 
-using var word = document.ToWord(new WordMarkdownImportOptions { Theme = theme });
+using var word = document.ToWord(new MarkdownWordExportOptions { Theme = theme });
 word.Save("report.docx");
 ```
 

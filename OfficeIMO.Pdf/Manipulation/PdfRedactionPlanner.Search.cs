@@ -5,7 +5,8 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfRedactionPlanner {
     /// <summary>Derives reviewable redaction rectangles from literal text, bounded regex, logical element kinds, and AcroForm field names.</summary>
-    public static PdfRedactionPlan Search(byte[] pdf, PdfRedactionSearchOptions search, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? readOptions = null) {
+    public static PdfRedactionPlan Search(byte[] pdf, PdfRedactionSearchOptions search, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        search = PdfOperationCancellation.Bind(search, createWhenNull: false, cancellationToken)!;
         try {
             return SearchCore(pdf, search, layoutOptions, readOptions);
         } catch (PdfUnsupportedTextMappingException error) {

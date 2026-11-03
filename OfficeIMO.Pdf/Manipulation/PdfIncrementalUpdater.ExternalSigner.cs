@@ -6,8 +6,10 @@ internal static partial class PdfIncrementalUpdater {
     public static PdfExternalSignatureCompletion SignExternal(
         byte[] pdf,
         IPdfExternalSigner signer,
-        PdfExternalSignatureOptions? options = null) =>
-        SignExternal(pdf, signer, options, readOptions: null);
+        PdfExternalSignatureOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return SignExternal(pdf, signer, options, readOptions: null);
+    }
 
     internal static PdfExternalSignatureCompletion SignExternal(
         byte[] pdf,
@@ -43,12 +45,13 @@ internal static partial class PdfIncrementalUpdater {
     public static PdfExternalSignatureCompletion SignExternal(
         Stream input,
         IPdfExternalSigner signer,
-        PdfExternalSignatureOptions? options = null) {
+        PdfExternalSignatureOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(input, nameof(input));
         if (!input.CanRead) throw new ArgumentException("Stream must be readable.", nameof(input));
         PdfExternalSignatureOptions effectiveOptions = options ?? new PdfExternalSignatureOptions();
         byte[] pdf = ReadSigningInput(input, effectiveOptions);
-        return SignExternal(pdf, signer, effectiveOptions);
+        return SignExternal(pdf, signer, effectiveOptions, cancellationToken: cancellationToken);
     }
 
     private static byte[] ReadSigningInput(Stream input, PdfExternalSignatureOptions effectiveOptions) {
@@ -72,13 +75,14 @@ internal static partial class PdfIncrementalUpdater {
         string inputPath,
         string outputPath,
         IPdfExternalSigner signer,
-        PdfExternalSignatureOptions? options = null) {
+        PdfExternalSignatureOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
         PdfExternalSignatureOptions effectiveOptions = options ?? new PdfExternalSignatureOptions();
         PdfExternalSignatureCompletion completion;
         using (var input = new FileStream(inputPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-            completion = SignExternal(input, signer, effectiveOptions);
+            completion = SignExternal(input, signer, effectiveOptions, cancellationToken: cancellationToken);
         }
         OfficeFileCommit.WriteAllBytes(outputPath, completion.Pdf);
         return completion;

@@ -19,7 +19,7 @@ public class RtfHtmlObjectsAndShapesTests {
         rtfObject.Result.AddText("Display").SetBold();
         paragraph.AddText(" after");
 
-        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
+        string html = document.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile());
 
         Assert.Contains("data-officeimo-rtf-object=\"embedded\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-object-class=\"Package\"", html, StringComparison.Ordinal);
@@ -56,7 +56,7 @@ public class RtfHtmlObjectsAndShapesTests {
         Assert.Equal(100, rtfObject.Width);
         Assert.Equal(200, rtfObject.Height);
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"{\object\objlink\objw100\objh200{\*\objclass Package}{\*\objname Attachment}{\*\objdata 010203}}", rtf, StringComparison.Ordinal);
     }
 
@@ -73,7 +73,7 @@ public class RtfHtmlObjectsAndShapesTests {
         RtfParagraph textBox = shape.AddTextBoxParagraph("Text ");
         textBox.AddText("box").SetItalic();
 
-        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
+        string html = document.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile());
 
         Assert.Contains("data-officeimo-rtf-shape=\"true\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-shape-instructions=\"", html, StringComparison.Ordinal);
@@ -111,7 +111,7 @@ public class RtfHtmlObjectsAndShapesTests {
         string encodedShapeText = Convert.ToBase64String(Encoding.UTF8.GetBytes("<p><a href=\"file:///C:/secret-shape\">Shape link</a></p>"));
         string html = "<div data-officeimo-rtf-object=\"embedded\" data-officeimo-rtf-object-result=\"" + encodedObjectResult + "\"></div>" +
             "<div data-officeimo-rtf-shape=\"true\" data-officeimo-rtf-shape-text=\"" + encodedShapeText + "\"></div>";
-        var options = HtmlToRtfOptions.UntrustedDefaults;
+        var options = HtmlRtfExportOptions.UntrustedDefaults;
         options.UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile();
 
         HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult(options);
@@ -141,7 +141,7 @@ public class RtfHtmlObjectsAndShapesTests {
         string nestedHtml = "<p>" + string.Concat(Enumerable.Repeat("<span>x</span>", 16)) + "</p>";
         string encodedObjectResult = Convert.ToBase64String(Encoding.UTF8.GetBytes(nestedHtml));
         string html = "<div data-officeimo-rtf-object=\"embedded\" data-officeimo-rtf-object-result=\"" + encodedObjectResult + "\"></div>";
-        var options = new HtmlToRtfOptions { MaxHtmlNodes = 10 };
+        var options = new HtmlRtfExportOptions { MaxHtmlNodes = 10 };
 
         HtmlRtfConversionLimitException exception = Assert.Throws<HtmlRtfConversionLimitException>(() => HtmlConversionDocument.Parse(html).ToRtfDocument(options));
 

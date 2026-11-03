@@ -231,9 +231,9 @@ public sealed partial class HtmlRenderingTests {
             + string.Concat(item.ChildElementObjectNumbers.Select(id => OwnedText(elements[id])));
     }
 
-    private static HtmlToPdfOptions SourceOrderOptions() {
+    private static HtmlPdfExportOptions SourceOrderOptions() {
         byte[] hebrew = ManagedTextShapingTestAssets.CreateFont(0x05D0);
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AutoFitWidePrintContent = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         };

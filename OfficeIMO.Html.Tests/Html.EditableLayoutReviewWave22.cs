@@ -50,7 +50,7 @@ public sealed class HtmlEditableLayoutReviewWave22Tests {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<div style='position:absolute;width:180px;height:50px'>" + children + "</div>",
             new HtmlConversionDocumentOptions { Trust = HtmlInputTrust.Trusted });
-        WordHtmlImportOptions options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
+        HtmlWordExportOptions options = HtmlWordExportOptions.CreateTrustedDocumentProfile();
         options.MaxHtmlNodes = 12;
 
         HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
@@ -68,7 +68,7 @@ public sealed class HtmlEditableLayoutReviewWave22Tests {
             "<div style='position:absolute;width:180px;height:50px'>"
             + "<span><span><span><span>Deep</span></span></span></span></div>",
             new HtmlConversionDocumentOptions { Trust = HtmlInputTrust.Trusted });
-        WordHtmlImportOptions options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
+        HtmlWordExportOptions options = HtmlWordExportOptions.CreateTrustedDocumentProfile();
         options.MaxHtmlDepth = 5;
 
         HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
@@ -86,7 +86,7 @@ public sealed class HtmlEditableLayoutReviewWave22Tests {
             "<style>.bounded { position:absolute; width:180px; height:50px }</style>"
             + "<div class='bounded'>Bounded</div>",
             new HtmlConversionDocumentOptions { Trust = HtmlInputTrust.Trusted });
-        WordHtmlImportOptions options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
+        HtmlWordExportOptions options = HtmlWordExportOptions.CreateTrustedDocumentProfile();
         options.Limits.MaxCssDeclarations = 1;
 
         HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(

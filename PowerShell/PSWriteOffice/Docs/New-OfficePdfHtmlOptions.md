@@ -204,7 +204,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Html.Pdf.PdfToHtmlOptions`
+- `OfficeIMO.Html.Pdf.PdfHtmlExportOptions`
 
 ## RELATED LINKS
 

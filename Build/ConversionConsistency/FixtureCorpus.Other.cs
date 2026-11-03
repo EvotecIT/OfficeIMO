@@ -57,7 +57,7 @@ internal static partial class FixtureCorpus {
             DefaultFontFamily = family, Margins = HtmlRenderMargins.All(0), BackgroundColor = OfficeColor.White
         };
         rendering.UseRenderingProfile(profile);
-        HtmlConversionDocument.Parse(html).SaveAsPdf(Path.Combine(output, "service-review.pdf"), new HtmlToPdfOptions(rendering));
+        HtmlConversionDocument.Parse(html).SaveAsPdf(Path.Combine(output, "service-review.pdf"), new HtmlPdfExportOptions(rendering));
         var visio = VisioDocument.Create(Path.Combine(output, "service-review.vsdx"));
         for (int number = 1; number <= 2; number++) {
             var page = visio.AddPage("Review " + number).Size(OfficeLength.Inches(5), OfficeLength.Inches(320D / 96));

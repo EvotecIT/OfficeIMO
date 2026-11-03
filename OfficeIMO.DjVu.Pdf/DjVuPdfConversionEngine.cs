@@ -6,18 +6,18 @@ using OfficeIMO.Reader.DjVu;
 namespace OfficeIMO.DjVu.Pdf;
 
 internal static class DjVuPdfConversionEngine {
-    internal static PdfDocumentConversionResult Convert(DjVuDocument document, DjVuToPdfOptions? options, CancellationToken token) {
+    internal static PdfDocumentConversionResult Convert(DjVuDocument document, DjVuPdfExportOptions? options, CancellationToken token) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         token.ThrowIfCancellationRequested();
-        var settings = (options ?? new DjVuToPdfOptions()).Clone();
+        var settings = (options ?? new DjVuPdfExportOptions()).Clone();
         if (settings.OcrEngine != null) throw new InvalidOperationException("An explicit OCR engine requires ToPdfDocumentResultAsync or another asynchronous conversion entrypoint.");
         return Build(document, settings, Select(document, settings, token), null, token);
     }
 
-    internal static async Task<PdfDocumentConversionResult> ConvertAsync(DjVuDocument document, DjVuToPdfOptions? options, CancellationToken token) {
+    internal static async Task<PdfDocumentConversionResult> ConvertAsync(DjVuDocument document, DjVuPdfExportOptions? options, CancellationToken token) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         token.ThrowIfCancellationRequested();
-        var settings = (options ?? new DjVuToPdfOptions()).Clone();
+        var settings = (options ?? new DjVuPdfExportOptions()).Clone();
         var pages = Select(document, settings, token);
         OfficeDocumentOcrExecutionResult? ocr = null;
         if (settings.OcrEngine != null) {
@@ -36,13 +36,13 @@ internal static class DjVuPdfConversionEngine {
         return Build(document, settings, pages, ocr, token);
     }
 
-    private static DjVuPage[] Select(DjVuDocument document, DjVuToPdfOptions settings, CancellationToken token) {
+    private static DjVuPage[] Select(DjVuDocument document, DjVuPdfExportOptions settings, CancellationToken token) {
         var pages = DjVuPageSelection.Select(document, settings.PageNumbers, Math.Min(settings.MaxPages, settings.PdfOptions!.MaxGeneratedPages!.Value), token);
         if (pages.Length == 0) throw new ArgumentException("PDF conversion requires at least one selected page.", nameof(settings.PageNumbers));
         return pages;
     }
 
-    private static PdfDocumentConversionResult Build(DjVuDocument document, DjVuToPdfOptions settings, DjVuPage[] pages,
+    private static PdfDocumentConversionResult Build(DjVuDocument document, DjVuPdfExportOptions settings, DjVuPage[] pages,
         OfficeDocumentOcrExecutionResult? ocr, CancellationToken token) {
         var pdfReport = new PdfConversionReport();
         settings.PdfOptions!.UseContentStreamCompressionByDefault();
@@ -68,7 +68,7 @@ internal static class DjVuPdfConversionEngine {
                         ? OfficeConversionLossKind.Omission : OfficeConversionLossKind.Approximation, page.Number);
             } else {
                 long remaining = settings.MaxTotalImageBytes - imageBytes;
-                if (remaining <= 0) throw new DjVuResourceLimitException(nameof(DjVuToPdfOptions.MaxTotalImageBytes));
+                if (remaining <= 0) throw new DjVuResourceLimitException(nameof(DjVuPdfExportOptions.MaxTotalImageBytes));
                 var rendered = page.Render(settings.RenderOptions, token);
                 payload = OfficeRasterImageEncoder.Encode(rendered.Image, OfficeImageExportFormat.Png, null,
                     Math.Min(settings.MaxImageBytesPerPage, remaining), token);
@@ -76,7 +76,7 @@ internal static class DjVuPdfConversionEngine {
                 diagnostics.AddRange(rendered.Diagnostics);
             }
             if (payload.LongLength > settings.MaxTotalImageBytes - imageBytes)
-                throw new DjVuResourceLimitException(nameof(DjVuToPdfOptions.MaxTotalImageBytes));
+                throw new DjVuResourceLimitException(nameof(DjVuPdfExportOptions.MaxTotalImageBytes));
             imageBytes += payload.LongLength;
             if (settings.RenderOptions.Dpi.HasValue && settings.RenderOptions.Dpi.Value < page.Dpi)
                 Add(diagnostics, "djvu.pdf.image-downsampled", "The page image uses a lower resolution than the source.", OfficeConversionLossKind.Approximation, page.Number);

@@ -1,3 +1,4 @@
+#pragma warning disable RS0026 // Existing optional-parameter overload families keep their shape.
 using System.Threading;
 
 namespace OfficeIMO.Pdf;
@@ -9,7 +10,8 @@ public sealed partial class PdfDocumentRedactions {
     internal PdfDocumentRedactions(PdfDocument document) => _document = document;
 
     /// <summary>Adds standard PDF /Redact review annotations for every canonical area in a region.</summary>
-    public PdfDocument AddAnnotation(PdfRedactionAnnotationOptions options) {
+    public PdfDocument AddAnnotation(PdfRedactionAnnotationOptions options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, cancellationToken)!;
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(options.Region, nameof(options.Region));
         options.CancellationToken.ThrowIfCancellationRequested();
@@ -36,7 +38,7 @@ public sealed partial class PdfDocumentRedactions {
                 GenerateAppearance = false,
                 ExecutionPreference = PdfMutationExecutionPreference.RequireFullRewrite
             };
-            current = current.Annotations.Add(create).ToDocument();
+            current = current.Annotations.Add(create, cancellationToken: cancellationToken).ToDocument();
         }
         options.CancellationToken.ThrowIfCancellationRequested();
         return current;
@@ -74,17 +76,23 @@ public sealed partial class PdfDocumentRedactions {
         _document.PlanRedactions(areas, layoutOptions, options, cancellationToken);
 
     /// <summary>Searches literal text, regex, logical kinds, and form-field names into a reviewable plan.</summary>
-    public PdfRedactionPlan Search(PdfRedactionSearchOptions search, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) =>
-        _document.SearchRedactions(search, layoutOptions, options);
+    public PdfRedactionPlan Search(PdfRedactionSearchOptions search, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        search = PdfOperationCancellation.Bind(search, createWhenNull: false, cancellationToken)!;
+        return _document.SearchRedactions(search, layoutOptions, options);
+    }
 
     /// <summary>Creates a new PDF with intersecting content and annotations removed from the supplied areas.</summary>
     /// <remarks>Text-show operations are rewritten at glyph granularity when the encoded mapping is safe; otherwise the complete PDF text object is removed.</remarks>
-    public PdfDocument Apply(IEnumerable<PdfRedactionArea> areas, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) =>
-        _document.ApplyRedactions(areas, applyOptions, layoutOptions, options);
+    public PdfDocument Apply(IEnumerable<PdfRedactionArea> areas, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        applyOptions = PdfOperationCancellation.Bind(applyOptions, createWhenNull: true, cancellationToken);
+        return _document.ApplyRedactions(areas, applyOptions, layoutOptions, options);
+    }
 
     /// <summary>Applies a reviewed redaction plan, including exact field removal.</summary>
-    public PdfDocument Apply(PdfRedactionPlan plan, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) =>
-        _document.ApplyRedactions(plan, applyOptions, layoutOptions, options);
+    public PdfDocument Apply(PdfRedactionPlan plan, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        applyOptions = PdfOperationCancellation.Bind(applyOptions, createWhenNull: true, cancellationToken);
+        return _document.ApplyRedactions(plan, applyOptions, layoutOptions, options);
+    }
 
     /// <summary>
     /// Applies a source-bound reviewed plan and returns the rewritten PDF, selected mutation path,
@@ -96,8 +104,11 @@ public sealed partial class PdfDocumentRedactions {
         PdfRedactionApplyOptions? applyOptions = null,
         PdfRedactionVerificationOptions? verificationOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfLoadOptions? options = null) =>
-        _document.ApplyRedactionsWithEvidence(plan, applyOptions, verificationOptions, layoutOptions, options);
+        PdfLoadOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        applyOptions = PdfOperationCancellation.Bind(applyOptions, createWhenNull: true, cancellationToken);
+        verificationOptions = PdfOperationCancellation.Bind(verificationOptions, createWhenNull: true, cancellationToken);
+        return _document.ApplyRedactionsWithEvidence(plan, applyOptions, verificationOptions, layoutOptions, options);
+    }
 
     /// <summary>Attempts to apply redactions and returns preflight diagnostics when blocked.</summary>
     internal PdfOperationResult<PdfDocument> ApplyResult(IEnumerable<PdfRedactionArea> areas, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) =>
@@ -113,18 +124,28 @@ public sealed partial class PdfDocumentRedactions {
         _document.TryApplyRedactionsWithEvidence(plan, applyOptions, verificationOptions, layoutOptions, options);
 
     /// <summary>Verifies configured removed and retained markers in the rewritten PDF.</summary>
-    public PdfRedactionVerificationReport Verify(PdfRedactionVerificationOptions options) => _document.VerifyRedactions(options);
+    public PdfRedactionVerificationReport Verify(PdfRedactionVerificationOptions options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
+        return _document.VerifyRedactions(options);
+    }
 
     /// <summary>Verifies configured markers and throws when redaction proof fails.</summary>
-    public PdfRedactionVerificationReport AssertVerified(PdfRedactionVerificationOptions options) => _document.AssertRedactionsVerified(options);
+    public PdfRedactionVerificationReport AssertVerified(PdfRedactionVerificationOptions options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
+        return _document.AssertRedactionsVerified(options);
+    }
 
     /// <summary>Verifies configured markers and reports any content still intersecting the reviewed plan areas.</summary>
     /// <remarks>The plan is source-bound when applied; this residual check does not independently prove rewrite lineage.</remarks>
-    public PdfRedactionVerificationReport VerifyAppliedPlan(PdfRedactionPlan reviewedPlan, PdfRedactionVerificationOptions options) =>
-        PdfRedactionVerification.VerifyAppliedPlan(_document.ToBytes(), reviewedPlan, options, _document.ReadOptions);
+    public PdfRedactionVerificationReport VerifyAppliedPlan(PdfRedactionPlan reviewedPlan, PdfRedactionVerificationOptions options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
+        return PdfRedactionVerification.VerifyAppliedPlan(_document.ToBytes(cancellationToken: cancellationToken), reviewedPlan, options, _document.ReadOptions, cancellationToken: cancellationToken);
+    }
 
     /// <summary>Verifies a reviewed plan and throws when planned content remains in its areas.</summary>
     /// <remarks>The plan is source-bound when applied; this residual check does not independently prove rewrite lineage.</remarks>
-    public PdfRedactionVerificationReport AssertAppliedPlan(PdfRedactionPlan reviewedPlan, PdfRedactionVerificationOptions options) =>
-        PdfRedactionVerification.AssertAppliedPlan(_document.ToBytes(), reviewedPlan, options, _document.ReadOptions);
+    public PdfRedactionVerificationReport AssertAppliedPlan(PdfRedactionPlan reviewedPlan, PdfRedactionVerificationOptions options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
+        return PdfRedactionVerification.AssertAppliedPlan(_document.ToBytes(cancellationToken: cancellationToken), reviewedPlan, options, _document.ReadOptions, cancellationToken: cancellationToken);
+    }
 }

@@ -4,7 +4,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Rtf.Pdf;
 
 internal static partial class RtfPdfConverter {
-    private static void RenderTable(RtfDocument document, RtfTable table, PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state) {
+    private static void RenderTable(RtfDocument document, RtfTable table, PdfCore.PdfDocument pdf, RtfPdfExportOptions options, PdfRenderState state) {
         List<PdfCore.PdfTableCell[]> rows = new List<PdfCore.PdfTableCell[]>();
         for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
             RtfTableRow row = table.Rows[rowIndex];
@@ -68,7 +68,7 @@ internal static partial class RtfPdfConverter {
         return span;
     }
 
-    private static void RenderImage(RtfImage image, PdfCore.PdfDocument pdf, RtfToPdfOptions options) {
+    private static void RenderImage(RtfImage image, PdfCore.PdfDocument pdf, RtfPdfExportOptions options) {
         if (!TryGetRenderableImage(image, options, "Image", out byte[] imageBytes)) {
             return;
         }
@@ -78,14 +78,14 @@ internal static partial class RtfPdfConverter {
     }
 
     /// <summary>Uses the common payload/crop owner while keeping an RTF picture in its source paragraph's inline order.</summary>
-    private static void AppendInlineImage(RtfImage image, List<PdfCore.PdfTextRun> runs, RtfToPdfOptions options,
+    private static void AppendInlineImage(RtfImage image, List<PdfCore.PdfTextRun> runs, RtfPdfExportOptions options,
         RtfParagraph paragraph, int inlineIndex) {
         PdfCore.PdfTextRun? prepared = PrepareRunningInlineImage(image, options, paragraph, inlineIndex);
         if (prepared != null) runs.Add(prepared);
     }
 
     /// <summary>Shares the actual inline element with admission without invoking an image converter twice.</summary>
-    private static PdfCore.PdfTextRun? PrepareRunningInlineImage(RtfImage image, RtfToPdfOptions options,
+    private static PdfCore.PdfTextRun? PrepareRunningInlineImage(RtfImage image, RtfPdfExportOptions options,
         RtfParagraph paragraph, int inlineIndex) {
         if (!options.PreparedRunningImages.TryGetValue(paragraph, out var occurrences)) {
             occurrences = new Dictionary<int, PdfCore.PdfTextRun?>();
@@ -107,7 +107,7 @@ internal static partial class RtfPdfConverter {
     }
 
     /// <summary>Retains each cell paragraph's layout while collecting its runs and note references only once.</summary>
-    private static List<PdfCore.PdfTableCellParagraph> BuildCellParagraphs(RtfDocument document, RtfTableCell cell, RtfToPdfOptions options, PdfRenderState state, out List<PdfCore.PdfTextRun> runs) {
+    private static List<PdfCore.PdfTableCellParagraph> BuildCellParagraphs(RtfDocument document, RtfTableCell cell, RtfPdfExportOptions options, PdfRenderState state, out List<PdfCore.PdfTextRun> runs) {
         runs = new List<PdfCore.PdfTextRun>();
         var paragraphs = new List<PdfCore.PdfTableCellParagraph>();
         foreach (IRtfBlock block in cell.Blocks) {
@@ -167,7 +167,7 @@ internal static partial class RtfPdfConverter {
             keepWithNext: style?.KeepWithNext ?? false);
     }
 
-    private static string FlattenNestedTableText(RtfDocument document, RtfTable table, RtfToPdfOptions options) {
+    private static string FlattenNestedTableText(RtfDocument document, RtfTable table, RtfPdfExportOptions options) {
         return string.Join(" / ", table.Rows.Select(row =>
             string.Join(" | ", row.Cells.Select(cell =>
                 string.Join(" ", cell.Blocks.Select(block => {
@@ -181,7 +181,7 @@ internal static partial class RtfPdfConverter {
                     .Where(text => !string.IsNullOrWhiteSpace(text)))))));
     }
 
-    private static List<PdfCore.PdfTableCellImage> BuildCellImages(RtfTableCell cell, RtfToPdfOptions options) {
+    private static List<PdfCore.PdfTableCellImage> BuildCellImages(RtfTableCell cell, RtfPdfExportOptions options) {
         List<PdfCore.PdfTableCellImage> images = new List<PdfCore.PdfTableCellImage>();
         foreach (RtfParagraph paragraph in cell.Paragraphs) {
             foreach (IRtfInline inline in paragraph.Inlines) {
@@ -195,7 +195,7 @@ internal static partial class RtfPdfConverter {
         return images;
     }
 
-    private static bool TryGetRenderableImage(RtfImage image, RtfToPdfOptions options, string source, out byte[] imageBytes) {
+    private static bool TryGetRenderableImage(RtfImage image, RtfPdfExportOptions options, string source, out byte[] imageBytes) {
         if (!TryGetImagePayload(image, options, source, out imageBytes)) return false;
         try {
             RtfImageLayout layout = image.ResolveLayout(options.DefaultImageWidth * 20d, options.DefaultImageHeight * 20d);
@@ -229,7 +229,7 @@ internal static partial class RtfPdfConverter {
 
     private static bool HasNegativeImageCrop(RtfImage image) => image.CropLeftTwips < 0 || image.CropTopTwips < 0 || image.CropRightTwips < 0 || image.CropBottomTwips < 0;
 
-    private static bool TryGetImagePayload(RtfImage image, RtfToPdfOptions options, string source, out byte[] imageBytes) {
+    private static bool TryGetImagePayload(RtfImage image, RtfPdfExportOptions options, string source, out byte[] imageBytes) {
         imageBytes = Array.Empty<byte>();
         if (!options.IncludeImages) {
             AddConversionWarning(
@@ -300,7 +300,7 @@ internal static partial class RtfPdfConverter {
         return false;
     }
 
-    private static void ReportImageSubstitution(RtfToPdfOptions options, string source, RtfImageFormat sourceFormat, string targetFormat, string message) {
+    private static void ReportImageSubstitution(RtfPdfExportOptions options, string source, RtfImageFormat sourceFormat, string targetFormat, string message) {
         var details = new Dictionary<string, string> {
             ["SourceFormat"] = sourceFormat.ToString(),
             ["TargetFormat"] = targetFormat

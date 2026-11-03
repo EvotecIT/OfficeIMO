@@ -17,17 +17,17 @@ foreach (var diagnostic in conversion.Diagnostics)
 ```
 
 Each source page produces one PDF page, including blank pages, with its original
-dimensions and order. Supported text, including image captions, remains searchable. Dynamic page-number/count fields use the current drawing page context; fixed numbers and date/time fields default to reported display snapshots. `OdgToPdfOptions.DateTimeFields` opts into the shared saved-value formatter or dynamic refresh from a supplied timestamp. See the [Draw field profile](../OfficeIMO.OpenDocument/README.md#draw-fields) for formatting and native qualification limits.
+dimensions and order. Supported text, including image captions, remains searchable. Dynamic page-number/count fields use the current drawing page context; fixed numbers and date/time fields default to reported display snapshots. `OdgPdfExportOptions.DateTimeFields` opts into the shared saved-value formatter or dynamic refresh from a supplied timestamp. See the [Draw field profile](../OfficeIMO.OpenDocument/README.md#draw-fields) for formatting and native qualification limits.
 Image crop and mirror settings affect the pixels; captions retain the original
 frame's text area. PDF output uses
-print-visible layers by default; set `OdgToPdfOptions.ForPrint = false` for the
+print-visible layers by default; set `OdgPdfExportOptions.ForPrint = false` for the
 screen-visible view. The converter leaves the source document and its associated
 destination unchanged. It uses no external application at runtime.
 
 `ToPdfBytes`, path and caller-owned stream `SaveAsPdf` overloads, asynchronous
 save methods, and structured `SaveAsPdfResult` methods use the same engine.
 Cancellation is checked between pages and shapes and during PDF saving.
-Loading uses `OdfLoadOptions`; `OdgToPdfOptions.MaximumPages` bounds conversion
+Loading uses `OdfLoadOptions`; `OdgPdfExportOptions.MaximumPages` bounds conversion
 to 1,000 pages by default. An empty drawing is rejected.
 
 ## Fidelity and acceptance

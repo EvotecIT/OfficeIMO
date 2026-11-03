@@ -484,7 +484,7 @@ internal static class HtmlPdfEvidenceRunner {
 
     private static string AssemblyVersion(HtmlPdfComparisonEngine engine) {
         Assembly assembly = engine switch {
-            HtmlPdfComparisonEngine.OfficeIMO => typeof(OfficeIMO.Html.Pdf.HtmlToPdfOptions).Assembly,
+            HtmlPdfComparisonEngine.OfficeIMO => typeof(OfficeIMO.Html.Pdf.HtmlPdfExportOptions).Assembly,
             HtmlPdfComparisonEngine.PeachPDF => typeof(PeachPDF.PdfGenerator).Assembly,
             HtmlPdfComparisonEngine.PdfPecker => typeof(global::PdfPecker.HtmlToPdf).Assembly,
             HtmlPdfComparisonEngine.ITextPdfHtml => typeof(iText.Html2pdf.HtmlConverter).Assembly,
@@ -567,7 +567,7 @@ internal static class HtmlPdfEvidenceRunner {
         using var cancellation = new CancellationTokenSource();
         PdfResourcePolicy resourcePolicy = PdfResourcePolicy.CreateDefault();
         resourcePolicy.AllowRemoteResourceResolution = true;
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             ResourcePolicy = resourcePolicy,
             ResourceResolver = async (_, cancellationToken) => {
                 started.TrySetResult(true);

@@ -17,7 +17,7 @@ using OfficeIMO.Epub;
 using OfficeIMO.Epub.Image;
 using OfficeIMO.Html;
 
-EpubDocument book = EpubDocument.Load(path, new EpubReadOptions {
+EpubDocument book = EpubDocument.Load(path, new EpubLoadOptions {
     IncludeRawHtml = true,
     IncludeResourceData = true
 });

@@ -17,7 +17,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='right-margin' style='position:absolute;top:30px;left:310px'>RightMarginMarker</div>"
             + "<div id='bottom-margin' style='position:absolute;top:320px;left:0'>BottomMarginMarker</div>"
             + "<main style='padding-top:80px'>MainFlowMarker</main>";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(400D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(400D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
@@ -42,7 +42,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='position:absolute;top:-50px;left:0;height:10px'>OffParentMarker"
             + "<div style='position:relative;top:70px'>VisibleChildMarker</div></div>"
             + "<main style='padding-top:80px'>MainFlowMarker</main>";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(400D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(400D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,

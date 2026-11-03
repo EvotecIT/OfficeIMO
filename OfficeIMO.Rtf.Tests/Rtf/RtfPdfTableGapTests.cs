@@ -65,7 +65,7 @@ public class RtfPdfTableGapTests {
                 CellPaddingY = global::OfficeIMO.OfficeLength.Points(3D)
             }
         };
-        RtfToPdfOptions options = Options();
+        RtfPdfExportOptions options = Options();
         options.PdfOptions = caller;
         PdfCore.PdfDocument mapped = ReadTable(gapTwips: gapTwips).ToPdf(options);
         PdfCore.TableBlock table = Assert.Single(mapped.Blocks.OfType<PdfCore.TableBlock>());
@@ -111,7 +111,7 @@ public class RtfPdfTableGapTests {
 
     private static string WithoutWhiteSpace(string value) => new string(value.Where(character => !char.IsWhiteSpace(character)).ToArray());
 
-    private static RtfToPdfOptions Options(bool includePdfOptions = true) => new RtfToPdfOptions {
+    private static RtfPdfExportOptions Options(bool includePdfOptions = true) => new RtfPdfExportOptions {
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
         TextFallbacks = PdfCore.PdfTextFallbackFeatures.None,
         PdfOptions = includePdfOptions ? new PdfCore.PdfCreateOptions {

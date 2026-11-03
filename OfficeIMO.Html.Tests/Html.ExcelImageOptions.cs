@@ -12,7 +12,7 @@ public sealed class ExcelImageOptionsTests {
         var sheet = document.AddSheet("Data");
         sheet.Cell(1, 1).SetValue("One");
         sheet.Cell(1, 2).SetValue("Two");
-        var options = new ExcelHtmlSaveOptions {
+        var options = new ExcelHtmlExportOptions {
             ExportProfile = ExcelHtmlExportProfile.VisualReview,
             VisualOptions = new ExcelImageExportOptions { MaximumRenderedCells = 1 }
         };

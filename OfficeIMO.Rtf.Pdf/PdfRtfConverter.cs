@@ -7,12 +7,12 @@ internal static class PdfRtfConverter {
     private const int BulletListId = 1;
     private const int DecimalListId = 2;
 
-    public static RtfDocument Convert(PdfCore.PdfDocumentReadResult source, PdfToRtfOptions? options) {
+    public static RtfDocument Convert(PdfCore.PdfDocumentReadResult source, PdfRtfExportOptions? options) {
         if (source == null) {
             throw new ArgumentNullException(nameof(source));
         }
 
-        PdfToRtfOptions readOptions = options ?? new PdfToRtfOptions();
+        PdfRtfExportOptions readOptions = options ?? new PdfRtfExportOptions();
         readOptions.CancellationToken.ThrowIfCancellationRequested();
         PdfCore.PdfLogicalContentProjection.RequireComplete(source, readOptions.CancellationToken);
         RtfDocument document = RtfDocument.Create();
@@ -41,7 +41,7 @@ internal static class PdfRtfConverter {
 
     private static void AddUnsupportedContentDiagnostics(
         PdfCore.PdfDocumentReadResult source,
-        PdfToRtfOptions options) {
+        PdfRtfExportOptions options) {
         AddOmissionWarning(options, "TABLES_NOT_IMPORTED", "Table", source.Tables.Count,
             "Detected PDF tables are not reconstructed by the semantic RTF importer.");
         AddOmissionWarning(options, "IMAGES_NOT_IMPORTED", "Image", source.Images.Count,
@@ -53,7 +53,7 @@ internal static class PdfRtfConverter {
     }
 
     private static void AddOmissionWarning(
-        PdfToRtfOptions options,
+        PdfRtfExportOptions options,
         string code,
         string source,
         int count,
@@ -77,7 +77,7 @@ internal static class PdfRtfConverter {
     private static void ImportPage(
         PdfCore.PdfLogicalPage page,
         RtfDocument document,
-        PdfToRtfOptions options,
+        PdfRtfExportOptions options,
         RunStyleCatalog runStyles,
         bool pageBreakBeforeFirstParagraph) {
         var consumed = new HashSet<PdfCore.PdfLogicalTextBlock>();

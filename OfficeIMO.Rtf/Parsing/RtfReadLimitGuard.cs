@@ -1,7 +1,7 @@
 namespace OfficeIMO.Rtf;
 
 internal sealed class RtfReadLimitGuard {
-    private readonly RtfReadOptions _options;
+    private readonly RtfLoadOptions _options;
     private readonly CancellationToken _cancellationToken;
     private long _tokenCount;
     private long _groupCount;
@@ -14,7 +14,7 @@ internal sealed class RtfReadLimitGuard {
     private long _semanticBlockCount;
     private int _operationCount;
 
-    public RtfReadLimitGuard(RtfReadOptions options, CancellationToken cancellationToken) {
+    public RtfReadLimitGuard(RtfLoadOptions options, CancellationToken cancellationToken) {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         if (options.Limits == null) throw new ArgumentNullException(nameof(options), "RTF read limits are required.");
         _cancellationToken = cancellationToken;

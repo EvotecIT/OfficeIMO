@@ -84,7 +84,7 @@ internal static class HtmlMhtmlEvidenceRunner {
                     break;
                 case "print-zero-margin":
                     await RunConversionAsync("officeimo-print-zero-margin", () => {
-                        HtmlToPdfOptions options = CreatePdfOptions(userAgent);
+                        HtmlPdfExportOptions options = CreatePdfOptions(userAgent);
                         options.Margins = HtmlRenderMargins.All(0);
                         return document.ToPdfDocumentResultAsync(options);
                     }, output, results, failures).ConfigureAwait(false);
@@ -97,7 +97,7 @@ internal static class HtmlMhtmlEvidenceRunner {
                     break;
             }
         }
-        HtmlToPdfOptions selectedDefaults = CreatePdfOptions(userAgent);
+        HtmlPdfExportOptions selectedDefaults = CreatePdfOptions(userAgent);
         var report = new {
             schemaVersion = 3,
             sourceUrl = document?.BaseUri.ToString(),
@@ -114,7 +114,7 @@ internal static class HtmlMhtmlEvidenceRunner {
             defaultFontFamily = selectedDefaults.DefaultFontFamily,
             maxSelectorEvaluations = HtmlConversionLimits.UntrustedDefaults.MaxSelectorEvaluations,
             ownerVersions,
-            ownerBoundary = "HTML PDF option and render APIs are owned by OfficeIMO.Html; no separate forwarder assembly is attributed.",
+            ownerBoundary = "HTML PDF option and render APIs are owned by OfficeIMO.Html.Pdf over the OfficeIMO.Html layout engine.",
             conversionScope = "layout and PDF conversion of preloaded MHTML; PDF serialization included, archive load and saved-artifact inspection excluded",
             viewport = new { width = ViewportWidth, height = ViewportHeight },
             archive = new { path = "source.mhtml", bytes = archive.Length, sha256 = Sha256(archive) },
@@ -163,14 +163,14 @@ internal static class HtmlMhtmlEvidenceRunner {
         return intent != null;
     }
 
-    private static HtmlToPdfOptions CreatePdfOptions(string userAgent) {
-        var options = new HtmlToPdfOptions();
+    private static HtmlPdfExportOptions CreatePdfOptions(string userAgent) {
+        var options = new HtmlPdfExportOptions();
         if (userAgent == "browser") options.UseBrowserUserAgentStyles();
         return options;
     }
 
     private static Task<PdfCore.PdfDocumentConversionResult> RenderScreenPdfAsync(MhtmlDocument document, HtmlRenderIntentProfile profile, string userAgent, bool allowDocumentFontEmbedding = false) {
-        HtmlToPdfOptions options = CreatePdfOptions(userAgent);
+        HtmlPdfExportOptions options = CreatePdfOptions(userAgent);
         options.ViewportWidth = ViewportWidth;
         options.ViewportHeight = ViewportHeight;
         options.Margins = HtmlRenderMargins.All(0);

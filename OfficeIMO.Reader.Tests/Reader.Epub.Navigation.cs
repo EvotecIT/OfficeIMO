@@ -83,7 +83,7 @@ public sealed partial class ReaderEpubModularTests {
         try {
             BuildEpubWithNavigationMetadata(epubPath);
             OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
-                .AddEpubHandler(new EpubReadOptions {
+                .AddEpubHandler(new EpubLoadOptions {
                     MaxMetadataItems = 2,
                     MaxNavigationItems = 2,
                     MaxNavigationDepth = 1

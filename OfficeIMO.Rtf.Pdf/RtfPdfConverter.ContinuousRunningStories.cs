@@ -4,7 +4,7 @@ namespace OfficeIMO.Rtf.Pdf;
 
 internal static partial class RtfPdfConverter {
     private static void RenderContinuousSectionBlocks(RtfDocument document, RtfSection section, int sectionIndex,
-        PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state, PdfCore.PdfCreateOptions defaults,
+        PdfCore.PdfDocument pdf, RtfPdfExportOptions options, PdfRenderState state, PdfCore.PdfCreateOptions defaults,
         bool canContinueRunningStories, ref RtfSection currentPageSection, ref PdfCore.PdfCreateOptions currentPageOptions) {
         if (canContinueRunningStories && TryPrepareContinuousRunningStoryOptions(document, section,
             currentPageSection, currentPageOptions, defaults, options, out PdfCore.PdfCreateOptions? nextPageOptions)) {
@@ -44,7 +44,7 @@ internal static partial class RtfPdfConverter {
 
     private static bool TryPrepareContinuousRunningStoryOptions(RtfDocument document, RtfSection section,
         RtfSection previousSection, PdfCore.PdfCreateOptions previousOptions, PdfCore.PdfCreateOptions defaults,
-        RtfToPdfOptions options, out PdfCore.PdfCreateOptions? nextPageOptions) {
+        RtfPdfExportOptions options, out PdfCore.PdfCreateOptions? nextPageOptions) {
         nextPageOptions = null;
         if (!options.IncludeHeaderFooters ||
             HasRunningStoryPresentationOverrides(options.PdfOptions, isFooter: false) ||

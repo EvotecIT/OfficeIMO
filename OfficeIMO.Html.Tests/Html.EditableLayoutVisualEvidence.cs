@@ -43,7 +43,7 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
         RtfReadResult reopenedRtf = RtfDocument.ParseResult(Encoding.ASCII.GetString(rtf));
 
         HtmlToExcelResult excelResult = source.ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         byte[] xlsx = SaveExcel(excelResult.Value);
         using ExcelDocument excel = ExcelDocument.Load(
             new MemoryStream(xlsx),
@@ -52,7 +52,7 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
             new ExcelImageExportOptions { Range = "A1:E16" });
 
         HtmlToPowerPointResult powerPointResult = source.ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         byte[] pptx = SavePowerPoint(powerPointResult.Value);
         using PowerPointDocument powerPoint = PowerPointDocument.Load(
             new MemoryStream(pptx),

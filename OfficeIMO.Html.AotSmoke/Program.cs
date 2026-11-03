@@ -14,7 +14,7 @@ var imageOptions = new HtmlRenderOptions {
 
 string svg = source.ToSvg(imageOptions);
 byte[] png = source.ToPng(imageOptions);
-using PdfDocument renderedPdf = source.ToPdf(new HtmlToPdfOptions(imageOptions));
+using PdfDocument renderedPdf = source.ToPdf(new HtmlPdfExportOptions(imageOptions));
 using var pdfBytes = new MemoryStream(renderedPdf.ToBytes(), writable: false);
 using PdfDocument reopenedPdf = PdfDocument.Load(pdfBytes);
 string extractedText = reopenedPdf.ExtractText();
@@ -47,7 +47,7 @@ var standardsOptions = new HtmlRenderOptions {
     FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
 };
 string secondPageSvg = standardsSource.ToSvg(standardsOptions, pageIndex: 1);
-using PdfDocument standardsPdf = standardsSource.ToPdf(new HtmlToPdfOptions(standardsOptions));
+using PdfDocument standardsPdf = standardsSource.ToPdf(new HtmlPdfExportOptions(standardsOptions));
 using var standardsBytes = new MemoryStream(standardsPdf.ToBytes(), writable: false);
 using PdfDocument standardsReadDocument = PdfDocument.Load(standardsBytes);
 string standardsText = standardsReadDocument.ExtractText();
@@ -93,7 +93,7 @@ if (advancedRender.Diagnostics.Any(diagnostic =>
         + string.Join(", ", advancedRender.Diagnostics.Select(diagnostic => diagnostic.Code)));
 }
 string advancedSvg = advancedSource.ToSvg(advancedOptions);
-using PdfDocument advancedPdf = advancedSource.ToPdf(new HtmlToPdfOptions(advancedOptions));
+using PdfDocument advancedPdf = advancedSource.ToPdf(new HtmlPdfExportOptions(advancedOptions));
 using var advancedBytes = new MemoryStream(advancedPdf.ToBytes(), writable: false);
 using PdfDocument advancedReadDocument = PdfDocument.Load(advancedBytes);
 string advancedText = advancedReadDocument.ExtractText();

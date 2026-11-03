@@ -15,7 +15,8 @@ public sealed partial class PdfDocumentStamper {
     /// requested pages and removes its previous occurrences on other pages. An unchanged foreground
     /// or background setting preserves its position relative to other page content.
     /// </summary>
-    public PdfDocument Watermark(PdfWatermarkOptions options, PdfLoadOptions? readOptions = null) {
+    public PdfDocument Watermark(PdfWatermarkOptions options, PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
         Guard.NotNull(options, nameof(options));
         options.CancellationToken.ThrowIfCancellationRequested();
         PdfWatermarkOptions snapshot = options.Clone();
@@ -39,6 +40,6 @@ public sealed partial class PdfDocumentStamper {
             ContentIdentifier = snapshot.Id,
             WatermarkSettings = snapshot,
             TargetPages = snapshot.TargetPages, Opacity = snapshot.Opacity, BehindContent = snapshot.BehindContent
-        }, readOptions);
+        }, readOptions, cancellationToken: cancellationToken);
     }
 }

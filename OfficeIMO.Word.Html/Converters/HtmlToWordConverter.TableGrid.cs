@@ -4,7 +4,7 @@ using OfficeIMO.Html;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        private int DetermineTableColumnCount(IHtmlTableElement tableElem, int rows, WordHtmlImportOptions options) {
+        private int DetermineTableColumnCount(IHtmlTableElement tableElem, int rows, HtmlWordExportOptions options) {
             var occupied = new HashSet<long>();
             int columns = 0;
             int rowIndex = 0;

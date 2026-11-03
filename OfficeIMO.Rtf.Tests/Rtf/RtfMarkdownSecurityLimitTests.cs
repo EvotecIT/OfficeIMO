@@ -15,7 +15,7 @@ public class RtfMarkdownSecurityLimitTests {
         markdown.Add(table);
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-            markdown.ToRtfDocument(new MarkdownToRtfOptions { MaxTableCells = 3 }));
+            markdown.ToRtfDocument(new MarkdownRtfExportOptions { MaxTableCells = 3 }));
 
         Assert.Contains("exceeding the configured limit of 3", exception.Message, StringComparison.Ordinal);
     }
@@ -31,7 +31,7 @@ public class RtfMarkdownSecurityLimitTests {
         markdown.Add(new UnorderedListBlock { Items = { item } });
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-            markdown.ToRtfDocument(new MarkdownToRtfOptions { MaxTableCells = 3 }));
+            markdown.ToRtfDocument(new MarkdownRtfExportOptions { MaxTableCells = 3 }));
 
         Assert.Contains("exceeding the configured limit of 3", exception.Message, StringComparison.Ordinal);
     }
@@ -40,7 +40,7 @@ public class RtfMarkdownSecurityLimitTests {
     public void MarkdownListConversionCapsAuthoredRtfLevels() {
         string markdownText = "- zero\n  - one\n    - two\n      - three\n        - four\n";
         RtfConversionResult<OfficeIMO.Rtf.RtfDocument> result = MarkdownDocument.Parse(markdownText).ToRtfDocumentResult(
-            new MarkdownToRtfOptions { MaxListNestingDepth = 3 });
+            new MarkdownRtfExportOptions { MaxListNestingDepth = 3 });
 
         Assert.All(result.Value.ListDefinitions, definition => Assert.InRange(definition.Levels.Count, 1, 3));
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "MDRTF018");
@@ -57,7 +57,7 @@ public class RtfMarkdownSecurityLimitTests {
         MarkdownDocument markdown = MarkdownDocument.Create();
         markdown.Add(new UnorderedListBlock { Items = { root } });
 
-        string roundTrip = markdown.ToRtfDocument(new MarkdownToRtfOptions { MaxListNestingDepth = 1 }).ToMarkdown();
+        string roundTrip = markdown.ToRtfDocument(new MarkdownRtfExportOptions { MaxListNestingDepth = 1 }).ToMarkdown();
 
         int firstIndex = roundTrip.IndexOf("AlphaParent", StringComparison.Ordinal);
         int childIndex = roundTrip.IndexOf("AlphaChild", StringComparison.Ordinal);
@@ -77,7 +77,7 @@ public class RtfMarkdownSecurityLimitTests {
         MarkdownDocument markdown = MarkdownDocument.Create();
         markdown.Add(new UnorderedListBlock { Items = { root } });
 
-        RtfDocument rtf = markdown.ToRtfDocument(new MarkdownToRtfOptions { MaxListNestingDepth = 1 });
+        RtfDocument rtf = markdown.ToRtfDocument(new MarkdownRtfExportOptions { MaxListNestingDepth = 1 });
         string plainText = string.Join("\n", rtf.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
         string roundTrip = rtf.ToMarkdown();
 
@@ -100,7 +100,7 @@ public class RtfMarkdownSecurityLimitTests {
         MarkdownDocument markdown = MarkdownDocument.Create();
         markdown.Add(new UnorderedListBlock { Items = { root } });
 
-        RtfDocument rtf = markdown.ToRtfDocument(new MarkdownToRtfOptions { MaxListNestingDepth = 1 });
+        RtfDocument rtf = markdown.ToRtfDocument(new MarkdownRtfExportOptions { MaxListNestingDepth = 1 });
         string plainText = string.Join("\n", rtf.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
 
         Assert.Contains("3. Third", plainText, StringComparison.Ordinal);
@@ -119,7 +119,7 @@ public class RtfMarkdownSecurityLimitTests {
         MarkdownDocument markdown = MarkdownDocument.Create();
         markdown.Add(new UnorderedListBlock { Items = { root } });
 
-        RtfDocument rtf = markdown.ToRtfDocument(new MarkdownToRtfOptions { MaxListNestingDepth = 1 });
+        RtfDocument rtf = markdown.ToRtfDocument(new MarkdownRtfExportOptions { MaxListNestingDepth = 1 });
         string plainText = string.Join("\n", rtf.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
 
         Assert.Contains("- First child", plainText, StringComparison.Ordinal);
@@ -142,7 +142,7 @@ public class RtfMarkdownSecurityLimitTests {
     [InlineData(0, 1)]
     [InlineData(1, 0)]
     public void MarkdownConversionRejectsNonPositiveResourceLimits(int maxDepth, int maxCells) {
-        var options = new MarkdownToRtfOptions {
+        var options = new MarkdownRtfExportOptions {
             MaxListNestingDepth = maxDepth,
             MaxTableCells = maxCells
         };

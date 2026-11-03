@@ -253,11 +253,18 @@ public static class HtmlRenderEngine {
     internal static HtmlRenderOptions PrepareOptions(HtmlConversionDocument document, HtmlRenderRequest request) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (request == null) throw new ArgumentNullException(nameof(request));
-        HtmlRenderOptions resolved = request.Encoder is HtmlRenderEncoder.Png or HtmlRenderEncoder.Jpeg
-            or HtmlRenderEncoder.Tiff or HtmlRenderEncoder.Webp or HtmlRenderEncoder.Svg
-            || request.Encoder == HtmlRenderEncoder.DisplayList && request.Options is Pdf.HtmlToPdfOptions
-            ? Pdf.HtmlPdfRenderedConverter.PrepareNonPdfOptions(request)
-            : request.ResolveOptions();
+        HtmlRenderOptions resolved;
+        if (request.Encoder is HtmlRenderEncoder.Png or HtmlRenderEncoder.Jpeg
+            or HtmlRenderEncoder.Tiff or HtmlRenderEncoder.Webp or HtmlRenderEncoder.Svg) {
+            // Image encoders measure and paint text through the PDF engine.
+            resolved = request.Options is IHtmlPrintRenderOptions print
+                ? print.PrepareRenderOptions(request)
+                : throw new ArgumentException("Image encoders measure and paint text through the PDF engine. Reference OfficeIMO.Html.Pdf and pass HtmlPdfExportOptions, or HtmlPdfExportOptions.ForImageExport(options) to keep these options' resource policy.", nameof(request));
+        } else {
+            resolved = request.Encoder == HtmlRenderEncoder.DisplayList && request.Options is IHtmlPrintRenderOptions print
+                ? print.PrepareRenderOptions(request)
+                : request.ResolveOptions();
+        }
         resolved.BaseUri ??= document.BaseUri;
         ApplyDocumentPolicies(document, resolved);
         resolved.Validate();

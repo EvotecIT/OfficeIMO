@@ -20,7 +20,7 @@ public sealed partial class HtmlRenderingTests {
             + "<p style=\"font-family:'" + installedFamily + "',math\">PARENT</p>"
             + "<iframe style='width:200px;height:80px' srcdoc=\""
             + System.Net.WebUtility.HtmlEncode(child) + "\"></iframe>");
-        var options = new HtmlToPdfOptions { DefaultFontFamily = "Policy Default" };
+        var options = new HtmlPdfExportOptions { DefaultFontFamily = "Policy Default" };
         options.Fonts.Add("Policy Default", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
             Enumerable.Range(32, 95).ToArray()));
         options.ResourcePolicy.AllowDocumentFontEmbedding = false;
@@ -43,7 +43,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData(false, false)]
     [InlineData(true, false)]
     public void HtmlMathMlPdf_DisabledSystemEmbeddingOrFallbackDoesNotLoadMath(bool systemFonts, bool fallback) {
-        var options = new HtmlToPdfOptions { AllowSystemFontFallback = fallback };
+        var options = new HtmlPdfExportOptions { AllowSystemFontFallback = fallback };
         options.ResourcePolicy.AllowSystemFontEmbedding = systemFonts;
         HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(
             HtmlConversionDocument.Parse("<math><mtext>MATH-POLICY</mtext></math>"), options);
@@ -55,7 +55,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlMathMlPdf_PortablePolicyRetainsExplicitInMemoryMathematicalFace() {
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
         };
         options.Fonts.Add("math", ManagedTextShapingTestAssets.CreateFont('x'));
@@ -70,7 +70,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlMathMlPdf_BalancedInstalledMathLoadingPreservesSourceByteLimit() {
         if (!HasInstalledMathematicalFace()) return;
-        var options = new HtmlToPdfOptions { MaxResourceBytes = 1 };
+        var options = new HtmlPdfExportOptions { MaxResourceBytes = 1 };
         HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(
             HtmlConversionDocument.Parse("<math><mtext>x</mtext></math>"), options);
 
@@ -82,7 +82,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlMathMlPdf_SvgForeignObjectsShareTheParentInstalledFontBudget() {
         HtmlRenderDocument probe = HtmlPdfRenderedConverter.Convert(
-            HtmlConversionDocument.Parse("<math><mtext>PARENT</mtext></math>"), new HtmlToPdfOptions())
+            HtmlConversionDocument.Parse("<math><mtext>PARENT</mtext></math>"), new HtmlPdfExportOptions())
             .RenderResult!.Document;
         if (!probe.Fonts.TryResolveFaceForText("x", "math", OfficeFontStyle.Regular, out OfficeFontFace? face)) return;
         HtmlDiagnostic loaded = Assert.Single(probe.NativeDiagnostics, item => item.Code == "InstalledFontResolved");
@@ -99,7 +99,7 @@ public sealed partial class HtmlRenderingTests {
         string image = "<img src='data:image/svg+xml;base64,"
             + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)) + "'>";
         long resourceBudget = fontBudget + System.Text.Encoding.UTF8.GetByteCount(svg) * 2L + 1L;
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             MaxResourceBytes = resourceBudget,
             MaxTotalResourceBytes = resourceBudget
         };

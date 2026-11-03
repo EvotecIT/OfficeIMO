@@ -8,12 +8,12 @@ namespace OfficeIMO.Tests;
 public class HtmlOfficeAdaptersExcelMergedCells {
     [Fact]
     public void ExcelHtml_DefaultSemanticExportLimitsAreBounded() {
-        var options = new ExcelHtmlSaveOptions();
+        var options = new ExcelHtmlExportOptions();
 
-        Assert.Equal(ExcelHtmlSaveOptions.DefaultMaxRowsPerSheet, options.MaxRowsPerSheet);
-        Assert.Equal(ExcelHtmlSaveOptions.DefaultMaxColumnsPerSheet, options.MaxColumnsPerSheet);
-        Assert.Equal(ExcelHtmlSaveOptions.DefaultMaxCellsPerSheet, options.MaxCellsPerSheet);
-        Assert.Equal(ExcelHtmlSaveOptions.DefaultMaxMergedRangesPerSheet, options.MaxMergedRangesPerSheet);
+        Assert.Equal(ExcelHtmlExportOptions.DefaultMaxRowsPerSheet, options.MaxRowsPerSheet);
+        Assert.Equal(ExcelHtmlExportOptions.DefaultMaxColumnsPerSheet, options.MaxColumnsPerSheet);
+        Assert.Equal(ExcelHtmlExportOptions.DefaultMaxCellsPerSheet, options.MaxCellsPerSheet);
+        Assert.Equal(ExcelHtmlExportOptions.DefaultMaxMergedRangesPerSheet, options.MaxMergedRangesPerSheet);
     }
 
     [Fact]
@@ -26,7 +26,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
         sheet.Range("A1:C2").Merge();
         sheet.Range("B4:C4").Merge();
 
-        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+        string html = workbook.ToHtml(new ExcelHtmlExportOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
         });
 
@@ -79,7 +79,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
         const string html = "<table><tr><td><strong>Bold</strong> <em>italic</em> <u>under</u> <s>strike</s> <sup>2</sup><sub>3</sub></td></tr></table>";
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.RequireValue();
         IReadOnlyList<ExcelRichTextRun> runs = Assert.Single(workbook.Sheets).Cell(1, 1).GetRichText();
 
@@ -99,7 +99,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
         workbook.AddSheet("Fonts").Cell(1, 1).SetRichText(
             new ExcelRichTextRun("Styled") { FontName = "A;B", Bold = true });
 
-        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+        string html = workbook.ToHtml(new ExcelHtmlExportOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
         });
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
@@ -118,7 +118,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
         sheet.Cell(1, 1).SetValue("Visible");
         sheet.Range("A1:B3").Merge();
 
-        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+        string html = workbook.ToHtml(new ExcelHtmlExportOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
             MaxRowsPerSheet = 2
         });
@@ -136,7 +136,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
         sheet.Cell(1, 1).SetValue("Visible");
         sheet.Range("A1:XFD1048576").Merge();
 
-        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+        string html = workbook.ToHtml(new ExcelHtmlExportOptions {
             MaxRowsPerSheet = 2,
             MaxColumnsPerSheet = 3,
             MaxCellsPerSheet = 6
@@ -154,7 +154,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
         sheet.Cell(1, 1).SetValue("Visible");
         sheet.Cell(1, 4).SetValue("Truncated");
 
-        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+        string html = workbook.ToHtml(new ExcelHtmlExportOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
             MaxColumnsPerSheet = 2
         });
@@ -169,7 +169,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
         ExcelSheet sheet = workbook.AddSheet("EmptyBounded");
         sheet.Range("A1:XFD1048576").Merge();
 
-        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+        string html = workbook.ToHtml(new ExcelHtmlExportOptions {
             MaxRowsPerSheet = 2,
             MaxColumnsPerSheet = 3,
             MaxCellsPerSheet = 4
@@ -186,7 +186,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
         sheet.Range("A1:B1").Merge();
         sheet.Range("A2:B2").Merge();
 
-        Assert.Throws<InvalidOperationException>(() => workbook.ToHtml(new ExcelHtmlSaveOptions {
+        Assert.Throws<InvalidOperationException>(() => workbook.ToHtml(new ExcelHtmlExportOptions {
             MaxMergedRangesPerSheet = 1
         }));
     }

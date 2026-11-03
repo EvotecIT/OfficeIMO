@@ -137,7 +137,7 @@ public static class DocBookSchemaProfiles {
 }
 
 /// <summary>Controls secure DocBook parsing limits.</summary>
-public sealed class DocBookReadOptions {
+public sealed class DocBookLoadOptions {
     /// <summary>Maximum encoded input size. Defaults to 32 MiB.</summary>
     public long MaxInputBytes { get; set; } = 32L * 1024L * 1024L;
     /// <summary>Maximum XML characters.</summary>
@@ -162,7 +162,7 @@ public sealed class DocBookReadOptions {
 }
 
 /// <summary>Controls DocBook serialization.</summary>
-public sealed class DocBookWriteOptions {
+public sealed class DocBookSaveOptions {
     /// <summary>Pretty-prints changed XML.</summary>
     public bool Indent { get; set; } = true;
     /// <summary>Emits an unchanged parsed document byte-for-byte.</summary>

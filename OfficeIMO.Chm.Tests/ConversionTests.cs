@@ -52,7 +52,7 @@ public sealed class ConversionTests {
         ChmDocument book = ChmDocument.Load(ChmFixture.Book());
         EpubManuscriptResult imported = await book.ToEpubPublicationResultAsync();
         Assert.True(imported.Succeeded, string.Join("\n", imported.Report.Diagnostics.Select(item => item.Code + ": " + item.Message)));
-        var result = book.ToEpubBytesResult(writeOptions: new EpubWriteOptions { ModifiedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero) });
+        var result = book.ToEpubBytesResult(writeOptions: new EpubSaveOptions { ModifiedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero) });
         using var stream = new MemoryStream(result.Value); EpubDocument reopened = EpubDocument.Load(stream);
         Assert.Contains(reopened.Chapters, chapter => chapter.Text.Contains("Café"));
         Assert.Contains(reopened.Chapters, chapter => chapter.Text.Contains("42"));
@@ -81,7 +81,7 @@ public sealed class ConversionTests {
             ["/pixel.png"] = original.FindEntry("/pixel.png")!.GetBytes()
         }));
         int delegated = 0;
-        var rendering = new HtmlToPdfOptions { ResourceResolver = (request, token) => { delegated++; return Task.FromResult<HtmlResolvedResource?>(null); } };
+        var rendering = new HtmlPdfExportOptions { ResourceResolver = (request, token) => { delegated++; return Task.FromResult<HtmlResolvedResource?>(null); } };
         rendering.ResourcePolicy.AllowRemoteResourceResolution = true;
         var result = await book.ToPdfDocumentResultAsync(pdfOptions: rendering);
         Assert.Equal(0, delegated); Assert.NotEmpty(result.ToBytes());

@@ -14,10 +14,10 @@ namespace OfficeIMO.OneNote.Tests;
 public sealed class ConverterTests {
     [Fact]
     public void PdfOptionsNameTheMarkdownProjectionStageExplicitly() {
-        PropertyInfo? markdownOptions = typeof(OneNoteToPdfOptions).GetProperty("MarkdownOptions");
+        PropertyInfo? markdownOptions = typeof(OneNotePdfExportOptions).GetProperty("MarkdownOptions");
 
         Assert.Equal(typeof(MarkdownPdfExportOptions), markdownOptions?.PropertyType);
-        Assert.Null(typeof(OneNoteToPdfOptions).GetProperty("PdfOptions"));
+        Assert.Null(typeof(OneNotePdfExportOptions).GetProperty("PdfOptions"));
     }
 
     [Fact]
@@ -175,7 +175,7 @@ public sealed class ConverterTests {
         var options = new OneNoteMarkdownOptions { AssetUriResolver = _ => null };
 
         OneNoteMarkdownConversionResult markdown = section.ToMarkdownDocumentResult(options);
-        PdfDocumentConversionResult pdf = section.ToPdfDocumentResult(new OneNoteToPdfOptions {
+        PdfDocumentConversionResult pdf = section.ToPdfDocumentResult(new OneNotePdfExportOptions {
             ProjectionOptions = options
         });
 

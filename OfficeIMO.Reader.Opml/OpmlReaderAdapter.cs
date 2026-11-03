@@ -179,7 +179,7 @@ internal static partial class OpmlReaderAdapter {
         internal string Markdown { get; }
     }
 
-    private static void ApplyReaderLimit(OpmlReadOptions options, long? maxBytes) {
+    private static void ApplyReaderLimit(OpmlLoadOptions options, long? maxBytes) {
         if (maxBytes.HasValue) options.MaxInputBytes = Math.Min(options.MaxInputBytes, maxBytes.Value);
     }
 

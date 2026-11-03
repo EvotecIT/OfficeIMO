@@ -15,7 +15,7 @@ public partial class WordRtfConverterTests {
     public async Task Word_Rtf_Async_IO_Provides_Byte_Stream_And_File_Loading_Surface() {
         using WordDocument word = WordDocument.Create();
         word.AddParagraph("Async clinical ż");
-        var options = new RtfWriteOptions { IncludeGenerator = false };
+        var options = new RtfSaveOptions { IncludeGenerator = false };
 
         string rtf = word.ToRtf(options);
         byte[] bytes = word.ToRtfBytes(options);

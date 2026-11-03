@@ -141,7 +141,7 @@ public partial class WordRtfConverterTests {
         second.ColumnCount = 1;
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
         Assert.Equal(2, rtfDocument.Sections.Count);
         Assert.Equal(RtfSectionBreakKind.Continuous, rtfDocument.Sections[1].BreakKind);
@@ -229,7 +229,7 @@ public partial class WordRtfConverterTests {
         word.Sections[0].AddParagraph("Single section");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
         RtfSection section = Assert.Single(rtfDocument.Sections);
         Assert.Equal(RtfSectionVerticalAlignment.Bottom, section.VerticalAlignment);

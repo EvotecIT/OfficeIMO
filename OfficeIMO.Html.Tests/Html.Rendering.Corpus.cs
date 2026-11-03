@@ -426,8 +426,8 @@ public sealed partial class HtmlRenderingTests {
                 $"Expected SVG paint text to retain '{word}' either in one text node or across positioned grapheme nodes.");
         }
 
-        HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
-        pdfOptions = new HtmlToPdfOptions(options);
+        HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
+        pdfOptions = new HtmlPdfExportOptions(options);
         byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(scenario.Html).ToPdf(pdfOptions)).ToBytes();
         PdfCore.PdfDocumentInfo pdfInfo = PdfCore.PdfInspector.Inspect(pdf);
         string pdfText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();

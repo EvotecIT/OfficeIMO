@@ -7,7 +7,7 @@ using Omd = OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown {
     internal partial class MarkdownToWordConverter {
-        private static string? ResolveDefaultFontFamily(WordMarkdownImportOptions options) {
+        private static string? ResolveDefaultFontFamily(MarkdownWordExportOptions options) {
             if (options == null) {
                 return null;
             }
@@ -97,10 +97,10 @@ namespace OfficeIMO.Word.Markdown {
             ApplyAlignment(alignment, paragraph);
         }
 
-        private static Omd.MarkdownVisualTheme? ResolveTheme(WordMarkdownImportOptions options) =>
+        private static Omd.MarkdownVisualTheme? ResolveTheme(MarkdownWordExportOptions options) =>
             Omd.MarkdownVisualTheme.ResolveOrDefault(options.ThemeSnapshot, options.ApplyDefaultTheme);
 
-        private static void ApplyHeadingTheme(WordParagraph paragraph, WordMarkdownImportOptions options) {
+        private static void ApplyHeadingTheme(WordParagraph paragraph, MarkdownWordExportOptions options) {
             Omd.MarkdownVisualTheme? theme = ResolveTheme(options);
             if (theme == null) {
                 return;
@@ -116,7 +116,7 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private static void ApplyCodeTheme(WordParagraph paragraph, WordMarkdownImportOptions options) {
+        private static void ApplyCodeTheme(WordParagraph paragraph, MarkdownWordExportOptions options) {
             Omd.MarkdownVisualTheme? theme = ResolveTheme(options);
             if (theme == null) {
                 return;
@@ -139,7 +139,7 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private static void ApplyBodyTextTheme(WordParagraph paragraph, WordMarkdownImportOptions options) {
+        private static void ApplyBodyTextTheme(WordParagraph paragraph, MarkdownWordExportOptions options) {
             Omd.MarkdownVisualTheme? theme = ResolveTheme(options);
             if (theme == null) {
                 return;
@@ -151,7 +151,7 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private static void ApplyCalloutTitleTheme(WordParagraph paragraph, WordMarkdownImportOptions options) {
+        private static void ApplyCalloutTitleTheme(WordParagraph paragraph, MarkdownWordExportOptions options) {
             Omd.MarkdownVisualTheme? theme = ResolveTheme(options);
             if (theme == null) {
                 return;
@@ -171,7 +171,7 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private static void ApplyTableTheme(WordTable table, WordMarkdownImportOptions options, bool hasHeaderRow) {
+        private static void ApplyTableTheme(WordTable table, MarkdownWordExportOptions options, bool hasHeaderRow) {
             Omd.MarkdownVisualTheme? theme = ResolveTheme(options);
             if (theme == null) {
                 return;

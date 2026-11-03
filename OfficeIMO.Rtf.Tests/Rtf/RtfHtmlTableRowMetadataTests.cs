@@ -24,7 +24,7 @@ public class RtfHtmlTableRowMetadataTests {
         var row = source.AddTable(1, 1).Rows[0];
         row.Cells[0].RightBoundaryTwips = 3000;
         row.Cells[0].AddParagraph("Legacy cell");
-        string html = source.ToHtml(new RtfToHtmlOptions { IncludeRoundTripMetadata = true, FragmentOnly = true });
+        string html = source.ToHtml(new RtfHtmlExportOptions { IncludeRoundTripMetadata = true, FragmentOnly = true });
         html = System.Text.RegularExpressions.Regex.Replace(html, " data-officeimo-rtf-row=\"[^\"]*\"", "");
         Assert.Contains("data-officeimo-rtf-cell", html);
         var imported = HtmlConversionDocument.Parse(html).ToRtfDocument();
@@ -35,7 +35,7 @@ public class RtfHtmlTableRowMetadataTests {
     public void LegacyRoundTripWithoutRowAttributePreservesSplittableRows() {
         var source = RtfDocument.Create();
         source.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("Legacy splittable");
-        string html = source.ToHtml(new RtfToHtmlOptions { IncludeRoundTripMetadata = true, FragmentOnly = false });
+        string html = source.ToHtml(new RtfHtmlExportOptions { IncludeRoundTripMetadata = true, FragmentOnly = false });
         html = System.Text.RegularExpressions.Regex.Replace(html, " data-officeimo-rtf-row=\"[^\"]*\"", "");
         var imported = HtmlConversionDocument.Parse(html).ToRtfDocument();
         Assert.False(Assert.Single(Assert.IsType<RtfTable>(Assert.Single(imported.Blocks)).Rows).KeepTogether);
@@ -50,11 +50,11 @@ public class RtfHtmlTableRowMetadataTests {
 
         Assert.All(table.Rows, row => Assert.True(row.KeepTogether));
         Assert.Equal(2, System.Text.RegularExpressions.Regex.Matches(
-            imported.ToRtf(new RtfWriteOptions { IncludeGenerator = false }), @"\\trkeep(?!follow)").Count);
+            imported.ToRtf(new RtfSaveOptions { IncludeGenerator = false }), @"\\trkeep(?!follow)").Count);
 
         RtfDocument source = RtfDocument.Create();
         source.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("Splittable");
-        string html = source.ToHtml(new RtfToHtmlOptions { IncludeRoundTripMetadata = true });
+        string html = source.ToHtml(new RtfHtmlExportOptions { IncludeRoundTripMetadata = true });
         RtfTable roundTrip = Assert.IsType<RtfTable>(Assert.Single(HtmlConversionDocument.Parse(html).ToRtfDocument().Blocks));
         Assert.False(Assert.Single(roundTrip.Rows).KeepTogether);
     }
@@ -97,7 +97,7 @@ public class RtfHtmlTableRowMetadataTests {
         row.VerticalBorder.ColorIndex = blue;
         row.Cells[0].AddParagraph("Floating");
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true, NewLine = "\n" });
 
@@ -133,7 +133,7 @@ public class RtfHtmlTableRowMetadataTests {
         Assert.Equal(8, roundTripRow.VerticalBorder.Width);
         Assert.Equal(blue, roundTripRow.VerticalBorder.ColorIndex);
 
-        string rtf = roundTrip.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = roundTrip.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"\trowd\trgaph240\trkeep\trkeepfollow\trautofit0", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\trspdt10\trspdft3\trspdl20\trspdfl3\trspdb30\trspdfb3\trspdr40\trspdfr3", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\tabsnoovrlp\tphmrg\tpvpg\tposxc\tposyb\tdfrmtxtLeft187\tdfrmtxtRight188\tdfrmtxtTop189\tdfrmtxtBottom190", rtf, StringComparison.Ordinal);

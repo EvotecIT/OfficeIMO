@@ -21,7 +21,8 @@ public sealed class PublisherLineStyleTests {
         Assert.NotNull(Artwork(publication).StrokeEndMarker);
         Assert.Contains(publication.ReadReport.Diagnostics, item => item.Code == "PUB_LINE_MARKER_SHADOW_OMITTED"
             && item.LossKind == OfficeConversionLossKind.Omission && item.Location == "Contents/object/293");
-        Assert.Contains(publication.ReadReport, publication.ToPdfDocumentResult().SourceConversionReports);
+        publication.ToPdf(null, out OfficeConversionReport pdfReport).Dispose();
+        Assert.All(publication.ReadReport.Diagnostics, source => Assert.Contains(pdfReport.Diagnostics, item => item.Code == source.Code));
     }
 
     [Fact]
@@ -96,7 +97,7 @@ public sealed class PublisherLineStyleTests {
         Assert.Equal(svg, OfficeDrawingSvgExporter.ToSvg(publication.Pages[0].Drawing.Clone()));
         Assert.Contains(publication.ReadReport.Diagnostics, item => item.Code == "PUB_LINE_MARKER_APPROXIMATED"
             && item.LossKind == OfficeConversionLossKind.Approximation && item.Location == "Contents/object/293");
-        var result = publication.ToPdfDocumentResult();
+        var result = publication.ToPdf(null, out OfficeConversionReport resultReport);
         OfficeShape[] painted = PublisherNativeTests.Elements(PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).Pages[0].ToDrawing())
             .OfType<OfficeDrawingShape>().Select(item => item.Shape).ToArray();
         if (kind == OfficeLineMarkerKind.Arrow) {
@@ -106,7 +107,7 @@ public sealed class PublisherLineStyleTests {
         } else {
             Assert.Equal(2, painted.Count(item => item.FillColor == Ink));
         }
-        Assert.Contains(publication.ReadReport, result.SourceConversionReports);
+        Assert.All(publication.ReadReport.Diagnostics, source => Assert.Contains(resultReport.Diagnostics, item => item.Code == source.Code));
     }
 
     [Fact]
