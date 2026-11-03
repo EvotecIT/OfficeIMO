@@ -6,7 +6,7 @@ namespace OfficeIMO.Html;
 /// <summary>Serializes CSS quoted strings without exposing CSS or HTML raw-text delimiters.</summary>
 internal static class HtmlCssStringEncoder {
     internal static string Quote(string value) {
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
         var result = new StringBuilder(value.Length + 2).Append('"');
         for (int index = 0; index < value.Length; index++) {
             int scalar = char.ConvertToUtf32(value, index);

@@ -3,7 +3,7 @@ namespace OfficeIMO.Excel;
 public sealed partial class ExcelRange {
     /// <summary>Writes a rectangular matrix whose dimensions exactly match this range.</summary>
     public ExcelRange SetValues(object?[,] values) {
-        if (values == null) throw new ArgumentNullException(nameof(values));
+        ArgumentNullException.ThrowIfNull(values);
         SingleArea(nameof(SetValues));
         int rows = LastRow - FirstRow + 1, columns = LastColumn - FirstColumn + 1;
         if (values.GetLength(0) != rows || values.GetLength(1) != columns)
@@ -19,8 +19,10 @@ public sealed partial class ExcelRange {
     /// <summary>Gets an editable cell using one-based offsets from this range's top-left cell.</summary>
     public ExcelCell Cell(int rowOffset, int columnOffset) {
         SingleArea(nameof(Cell));
-        if (rowOffset < 1 || rowOffset > LastRow - FirstRow + 1) throw new ArgumentOutOfRangeException(nameof(rowOffset));
-        if (columnOffset < 1 || columnOffset > LastColumn - FirstColumn + 1) throw new ArgumentOutOfRangeException(nameof(columnOffset));
+        ArgumentOutOfRangeException.ThrowIfLessThan(rowOffset, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(rowOffset, LastRow - FirstRow + 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(columnOffset, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(columnOffset, LastColumn - FirstColumn + 1);
         return new ExcelCell(Sheet, FirstRow + rowOffset - 1, FirstColumn + columnOffset - 1);
     }
 }

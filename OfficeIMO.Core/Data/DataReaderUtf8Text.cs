@@ -40,9 +40,7 @@ public static partial class DataReaderUtf8TextExtensions {
     /// <exception cref="ArgumentNullException">The record is null.</exception>
     /// <exception cref="IndexOutOfRangeException">The ordinal is outside the record's fields.</exception>
     public static bool TryGetUtf8Text(this IDataRecord record, int ordinal, out ReadOnlySpan<byte> text) {
-        if (record == null) {
-            throw new ArgumentNullException(nameof(record));
-        }
+        ArgumentNullException.ThrowIfNull(record);
         if (record is IDataReaderUtf8TextSource source) {
             return source.TryGetUtf8Text(ordinal, out text);
         }

@@ -12,7 +12,7 @@ namespace OfficeIMO.Visio {
         /// Initializes a new showcase validation report.
         /// </summary>
         public VisioShowcaseValidationReport(IEnumerable<VisioShowcaseValidationIssue> issues) {
-            if (issues == null) throw new ArgumentNullException(nameof(issues));
+            ArgumentNullException.ThrowIfNull(issues);
             Issues = issues.ToList().AsReadOnly();
         }
 

@@ -23,7 +23,7 @@ public static partial class OfficeDocument {
     /// <remarks>Counts describe the current in-memory model, including unsaved edits. Optional native details are detached snapshots.</remarks>
     public static OfficeDocumentInfo Inspect(object document, OfficeInspectOptions? options,
         CancellationToken cancellationToken) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         OfficeInspectOptions settings = options ?? new();
         if (settings.Reader == null || settings.Formats == null) throw new ArgumentException("Reader and format settings are required.", nameof(options));
         if (settings.ContentSafety != null || settings.Provenance != null || settings.PackageSignatures != null ||

@@ -49,8 +49,8 @@ public sealed partial class OdgShapes : IReadOnlyList<OdgShape> {
     }
     /// <summary>Adds a straight connector attached to two explicit glue points on this page or master.</summary>
     public OdgShape AddConnector(OdgGluePoint start, OdgGluePoint end, string? name = null) {
-        if (start == null) throw new ArgumentNullException(nameof(start));
-        if (end == null) throw new ArgumentNullException(nameof(end));
+        ArgumentNullException.ThrowIfNull(start);
+        ArgumentNullException.ThrowIfNull(end);
         XElement? page = DrawingContext;
         foreach (OdgGluePoint point in new[] { start, end }) {
             if (!ReferenceEquals(_document, point.Shape.Document) || page == null || !ReferenceEquals(page, point.Shape.PageElement) || point.Element.Parent != point.Shape.Element)
@@ -99,8 +99,10 @@ public sealed partial class OdgShapes : IReadOnlyList<OdgShape> {
     /// <summary>Changes a shape's paint-order position.</summary>
     public void Move(int sourceIndex, int destinationIndex) {
         var elements = Elements.ToList();
-        if (sourceIndex < 0 || sourceIndex >= elements.Count) throw new ArgumentOutOfRangeException(nameof(sourceIndex));
-        if (destinationIndex < 0 || destinationIndex >= elements.Count) throw new ArgumentOutOfRangeException(nameof(destinationIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(sourceIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(sourceIndex, elements.Count);
+        ArgumentOutOfRangeException.ThrowIfNegative(destinationIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(destinationIndex, elements.Count);
         bool indexed = elements.Any(element => element.Attribute(OdfNamespaces.Draw + "z-index") != null);
         XElement element = elements[sourceIndex]; element.Remove(); elements.RemoveAt(sourceIndex);
         if (destinationIndex == elements.Count) _parent.Add(element); else elements[destinationIndex].AddBeforeSelf(element);

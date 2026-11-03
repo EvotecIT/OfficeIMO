@@ -42,8 +42,8 @@ namespace OfficeIMO.Excel {
             Stream source,
             long maximumBytes,
             string description) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (maximumBytes < 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentOutOfRangeException.ThrowIfNegative(maximumBytes);
             if (string.IsNullOrWhiteSpace(description)) throw new ArgumentException("Metadata description cannot be empty.", nameof(description));
 
             if (source.CanSeek) {
@@ -87,7 +87,7 @@ namespace OfficeIMO.Excel {
             long maximumImageBytes = 32_000_000) {
             if (row < 1 || row > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(row));
             if (column < 1 || column > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(column));
-            if (imageBytes == null) throw new ArgumentNullException(nameof(imageBytes));
+            ArgumentNullException.ThrowIfNull(imageBytes);
             if (imageBytes.LongLength == 0 || imageBytes.LongLength > maximumImageBytes) throw new ArgumentOutOfRangeException(nameof(imageBytes));
             if (!IsSupportedImageContentType(contentType)) throw new NotSupportedException($"Image content type '{contentType}' is not supported.");
             string text = altText ?? string.Empty;
@@ -178,7 +178,7 @@ namespace OfficeIMO.Excel {
                     SaveExtendedRoot(relationshipPart, relationships);
                 }
             } else {
-                if (imageStream == null) throw new ArgumentNullException(nameof(imageStream));
+                ArgumentNullException.ThrowIfNull(imageStream);
                 ExtendedPart imagePart = relationshipPart.AddExtendedPart(ImageRelationshipType, contentType, GetImageExtension(contentType));
                 imagePart.FeedData(imageStream);
                 resolvedImagePart = imagePart;
@@ -286,7 +286,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Reads native in-cell images with a deterministic aggregate payload budget.</summary>
         public IReadOnlyList<ExcelInCellImage> GetInCellImages(long maximumTotalImageBytes = 64_000_000) {
-            if (maximumTotalImageBytes < 1) throw new ArgumentOutOfRangeException(nameof(maximumTotalImageBytes));
+            ArgumentOutOfRangeException.ThrowIfLessThan(maximumTotalImageBytes, 1);
             return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
                 var result = new List<ExcelInCellImage>();
                 if (!TryCreateInCellImageLookup(out InCellImageLookup? lookup)) {

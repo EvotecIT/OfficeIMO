@@ -14,7 +14,7 @@ namespace OfficeIMO.Word {
         /// <summary>Parses OMML with a hard nesting-depth limit.</summary>
         public static OfficeMathExpression FromOmml(string omml, int maximumDepth) {
             if (string.IsNullOrWhiteSpace(omml)) throw new ArgumentException("OMML cannot be empty.", nameof(omml));
-            if (maximumDepth < 1) throw new ArgumentOutOfRangeException(nameof(maximumDepth));
+            ArgumentOutOfRangeException.ThrowIfLessThan(maximumDepth, 1);
             OfficeMathMarkup.ValidateXmlDepth(omml, maximumDepth);
             XElement root = XElement.Parse(omml, LoadOptions.PreserveWhitespace);
             if (root.Name.LocalName == "oMath") return WordMath.ToExpression(new M.OfficeMath(omml));

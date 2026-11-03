@@ -17,7 +17,7 @@ public sealed partial class XpsDocument {
     }
     /// <summary>Inserts another reference to a fixed document owned by this package, including a removed document.</summary>
     public void InsertDocument(int index, XpsFixedDocument document) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         if (document.Owner != this) throw new ArgumentException("The fixed document belongs to another package.", nameof(document));
         CheckIndex(index, _documents.Count, true);
         InsertDocumentCore(index, document);

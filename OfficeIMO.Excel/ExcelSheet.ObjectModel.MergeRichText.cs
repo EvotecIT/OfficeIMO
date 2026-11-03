@@ -93,7 +93,7 @@ namespace OfficeIMO.Excel {
         /// Writes rich inline text runs into a cell.
         /// </summary>
         internal void SetRichText(int row, int column, IEnumerable<ExcelRichTextRun> runs) {
-            if (runs == null) throw new ArgumentNullException(nameof(runs));
+            ArgumentNullException.ThrowIfNull(runs);
             if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
                 MaterializeDeferredDataSetImportIfNeeded();
             }

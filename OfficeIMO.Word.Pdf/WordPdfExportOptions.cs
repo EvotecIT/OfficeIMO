@@ -165,9 +165,7 @@ namespace OfficeIMO.Word.Pdf {
         public WordPdfExportOptions UseRenderingProfile(
             DrawingCore.OfficeRenderingProfile profile,
             DrawingCore.OfficeRenderingProfileApplyMode mode = DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
-            if (profile == null) {
-                throw new ArgumentNullException(nameof(profile));
-            }
+            ArgumentNullException.ThrowIfNull(profile);
             if (mode != DrawingCore.OfficeRenderingProfileApplyMode.Replace
                 && mode != DrawingCore.OfficeRenderingProfileApplyMode.Overlay) {
                 throw new ArgumentOutOfRangeException(nameof(mode));

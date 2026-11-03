@@ -48,7 +48,7 @@ public sealed partial class OfflineAddressBookSession : IDisposable {
     public static OfflineAddressBookSession Open(string path,
         OfflineAddressBookReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         OfflineAddressBookReaderOptions effective = options ?? OfflineAddressBookReaderOptions.Default;
         bool isSingleFile = File.Exists(Path.GetFullPath(path));
         OabDiscoveryResult discovery = OabFileDiscovery.Discover(path, effective, cancellationToken);
@@ -128,7 +128,7 @@ public sealed partial class OfflineAddressBookSession : IDisposable {
     public OfflineAddressBookEntry ReadEntry(OfflineAddressBookEntryReference reference,
         CancellationToken cancellationToken = default) {
         ThrowIfDisposed();
-        if (reference == null) throw new ArgumentNullException(nameof(reference));
+        ArgumentNullException.ThrowIfNull(reference);
         cancellationToken.ThrowIfCancellationRequested();
         OabAddressListSource selected = ValidateReference(reference);
         using (OabStreamLease lease = selected.Source.OpenRead()) {

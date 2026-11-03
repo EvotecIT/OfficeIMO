@@ -64,13 +64,9 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
     }
 
     internal void AddParsedEntry(DefinitionListEntry entry, MarkdownSyntaxNode syntaxItem) {
-        if (entry == null) {
-            throw new ArgumentNullException(nameof(entry));
-        }
+        ArgumentNullException.ThrowIfNull(entry);
 
-        if (syntaxItem == null) {
-            throw new ArgumentNullException(nameof(syntaxItem));
-        }
+        ArgumentNullException.ThrowIfNull(syntaxItem);
 
         AddParsedGroup(
             new DefinitionListGroup(
@@ -80,13 +76,9 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
     }
 
     internal void AddParsedGroup(DefinitionListGroup group, MarkdownSyntaxNode syntaxItem) {
-        if (group == null) {
-            throw new ArgumentNullException(nameof(group));
-        }
+        ArgumentNullException.ThrowIfNull(group);
 
-        if (syntaxItem == null) {
-            throw new ArgumentNullException(nameof(syntaxItem));
-        }
+        ArgumentNullException.ThrowIfNull(syntaxItem);
 
         AddGroupCore(group);
         SyntaxItems.Add(syntaxItem);

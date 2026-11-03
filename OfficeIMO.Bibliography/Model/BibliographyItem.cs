@@ -61,7 +61,7 @@ public sealed class BibliographyItem {
 
     /// <summary>Gets the first identifier matching a scheme, ignoring case.</summary>
     public string? GetIdentifier(string scheme) {
-        if (scheme == null) throw new ArgumentNullException(nameof(scheme));
+        ArgumentNullException.ThrowIfNull(scheme);
         return Identifiers.FirstOrDefault(identifier => string.Equals(identifier.Scheme, scheme, StringComparison.OrdinalIgnoreCase))?.Value;
     }
 

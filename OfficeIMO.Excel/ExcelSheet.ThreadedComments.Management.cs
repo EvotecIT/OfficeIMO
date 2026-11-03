@@ -76,7 +76,7 @@ namespace OfficeIMO.Excel {
         /// Updates the text, author, timestamp, or resolved state of an existing threaded comment.
         /// </summary>
         public ExcelThreadedCommentResult UpdateThreadedComment(ExcelThreadedCommentUpdateOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             string id = NormalizeThreadedId(options.Id, nameof(options.Id), generateIfMissing: false);
             if (options.Text != null && string.IsNullOrWhiteSpace(options.Text)) {
                 throw new ArgumentException("Threaded comment text cannot be empty.", nameof(options));

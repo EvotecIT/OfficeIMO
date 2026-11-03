@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             DocumentFormat.OpenXml.Spreadsheet.WorkbookProtection? workbookProtection,
             DocumentFormat.OpenXml.Spreadsheet.DefinedNames? definedNames,
             DocumentFormat.OpenXml.Spreadsheet.CalculationProperties? calculationProperties) {
-            if (sheets == null) throw new ArgumentNullException(nameof(sheets));
+            ArgumentNullException.ThrowIfNull(sheets);
             if (sheets.Count == 0) throw new NotSupportedException("Native XLSB generation requires at least one worksheet.");
 
             using var output = new MemoryStream(Math.Max(256, sheets.Count * 64));

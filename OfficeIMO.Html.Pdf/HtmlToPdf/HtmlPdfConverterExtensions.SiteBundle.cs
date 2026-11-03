@@ -9,8 +9,8 @@ public static class HtmlSiteBundlePdfExtensions {
     /// Embedded resources require AllowEmbeddedPackageResources; host reads remain separately controlled.</summary>
     public static HtmlPdfRenderRequestResult RenderToPdfResult(this HtmlSiteBundle bundle,
         HtmlRenderRequest request, CancellationToken cancellationToken = default) {
-        if (bundle == null) throw new ArgumentNullException(nameof(bundle));
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(bundle);
+        ArgumentNullException.ThrowIfNull(request);
         return bundle.HtmlDocument.RenderToPdfResult(Prepare(bundle, request), cancellationToken);
     }
 
@@ -18,8 +18,8 @@ public static class HtmlSiteBundlePdfExtensions {
     /// implicitly enabling local or remote resource access.</summary>
     public static Task<HtmlPdfRenderRequestResult> RenderToPdfResultAsync(this HtmlSiteBundle bundle,
         HtmlRenderRequest request, CancellationToken cancellationToken = default) {
-        if (bundle == null) throw new ArgumentNullException(nameof(bundle));
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(bundle);
+        ArgumentNullException.ThrowIfNull(request);
         return bundle.HtmlDocument.RenderToPdfResultAsync(Prepare(bundle, request), cancellationToken);
     }
 

@@ -4,7 +4,7 @@ namespace OfficeIMO.OneNote;
 public static class OneNotePackageReader {
     /// <summary>Reads a <c>.onepkg</c> archive from a file path.</summary>
     public static OneNoteNotebook Read(string packagePath, OneNoteNotebookReaderOptions? options = null) {
-        if (packagePath == null) throw new ArgumentNullException(nameof(packagePath));
+        ArgumentNullException.ThrowIfNull(packagePath);
         string fullPath = Path.GetFullPath(packagePath);
         if (!File.Exists(fullPath)) throw new FileNotFoundException("OneNote package does not exist.", fullPath);
         var effective = options ?? new OneNoteNotebookReaderOptions();
@@ -19,7 +19,7 @@ public static class OneNotePackageReader {
         Stream packageStream,
         string sourceName = "notebook.onepkg",
         OneNoteNotebookReaderOptions? options = null) {
-        if (packageStream == null) throw new ArgumentNullException(nameof(packageStream));
+        ArgumentNullException.ThrowIfNull(packageStream);
         if (!packageStream.CanRead || !packageStream.CanSeek) throw new ArgumentException("The OneNote package stream must be readable and seekable.", nameof(packageStream));
         var effective = options ?? new OneNoteNotebookReaderOptions();
         ValidateOptions(effective);

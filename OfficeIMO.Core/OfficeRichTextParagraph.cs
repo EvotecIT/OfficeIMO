@@ -18,7 +18,7 @@ public sealed class OfficeRichTextParagraph {
     public OfficeRichTextParagraph(IReadOnlyList<OfficeRichTextRun> runs,
         OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null,
         OfficeTextPadding? margins = null, OfficeTextParagraphIndent? indent = null, double? lineHeightFactor = null) {
-        if (runs == null) throw new ArgumentNullException(nameof(runs));
+        ArgumentNullException.ThrowIfNull(runs);
         if (!Enum.IsDefined(typeof(OfficeTextAlignment), alignment)) throw new ArgumentOutOfRangeException(nameof(alignment));
         if (lineHeight.HasValue && (lineHeight.Value <= 0 || double.IsNaN(lineHeight.Value) || double.IsInfinity(lineHeight.Value)))
             throw new ArgumentOutOfRangeException(nameof(lineHeight));
@@ -46,7 +46,7 @@ public sealed class OfficeRichTextParagraph {
         OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null,
         OfficeTextPadding? margins = null, OfficeTextParagraphIndent? indent = null, double? lineHeightFactor = null)
         : this(runs, alignment, lineHeight, margins, indent, lineHeightFactor) {
-        if (label == null) throw new ArgumentNullException(nameof(label));
+        ArgumentNullException.ThrowIfNull(label);
         int characters = label.Run.Text.Length;
         foreach (OfficeRichTextRun run in Runs) characters = checked(characters + run.Text.Length);
         if (characters > OfficeTextLayoutEngine.MaximumLayoutTextCharacters || Runs.Count >= OfficeTextLayoutEngine.MaximumLayoutTextRuns)

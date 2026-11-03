@@ -111,7 +111,7 @@ public sealed partial class AsciiDocDocument {
 
     internal IEnumerable<AsciiDocBlockContext> GetBlockContextsFromSnapshot(AsciiDocDocumentAttributes attributes,
         bool expandAssignmentValues, int maximumNestingDepth, System.Threading.CancellationToken cancellationToken = default) {
-        if (maximumNestingDepth < 1) throw new ArgumentOutOfRangeException(nameof(maximumNestingDepth));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumNestingDepth, 1);
         foreach (AsciiDocBlock block in Blocks) {
             cancellationToken.ThrowIfCancellationRequested();
             if (block is AsciiDocAttributeEntry entry) attributes = attributes.Apply(entry, expandAssignmentValues);
@@ -125,7 +125,7 @@ public sealed partial class AsciiDocDocument {
 
     /// <summary>Enumerates attribute entries in source order, including compound bodies, with a bounded traversal depth.</summary>
     public IEnumerable<AsciiDocAttributeEntry> GetAttributeEntries(int maximumNestingDepth = 64, System.Threading.CancellationToken cancellationToken = default) {
-        if (maximumNestingDepth < 1) throw new ArgumentOutOfRangeException(nameof(maximumNestingDepth));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumNestingDepth, 1);
         return EnumerateAttributeEntries(this, maximumNestingDepth, 0, cancellationToken);
     }
 

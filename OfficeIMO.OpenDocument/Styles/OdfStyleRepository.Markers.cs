@@ -13,7 +13,7 @@ public sealed partial class OdfStyleRepository {
     /// <summary>Creates reusable native marker geometry in common styles.</summary>
     public OdfMarker CreateMarker(string name, OdfMarkerGeometry geometry) {
         ValidateStyleName(name);
-        if (geometry == null) throw new ArgumentNullException(nameof(geometry));
+        ArgumentNullException.ThrowIfNull(geometry);
         if (FindMarker(name) != null) throw new InvalidOperationException("A marker named '" + name + "' already exists.");
         var element = new XElement(OdfNamespaces.Draw + "marker", new XAttribute(OdfNamespaces.Draw + "name", name));
         OdfMarker.WriteGeometry(element, geometry); GetContainer("styles.xml", OdfNamespaces.Office + "styles").Add(element);

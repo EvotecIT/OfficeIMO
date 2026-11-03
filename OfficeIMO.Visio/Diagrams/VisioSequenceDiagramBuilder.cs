@@ -252,9 +252,7 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private void AddFragment(string text, int startRowIndex, int endRowIndex, IEnumerable<string> participantIds, string? id, string? parentFragmentId) {
-            if (participantIds == null) {
-                throw new ArgumentNullException(nameof(participantIds));
-            }
+            ArgumentNullException.ThrowIfNull(participantIds);
 
             if (startRowIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(startRowIndex), "Start row index must be zero or greater.");
@@ -325,9 +323,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Imports participant records into the sequence diagram.</summary>
         public VisioSequenceDiagramBuilder Participants(IEnumerable<VisioSequenceParticipantRecord> participants) {
-            if (participants == null) {
-                throw new ArgumentNullException(nameof(participants));
-            }
+            ArgumentNullException.ThrowIfNull(participants);
 
             foreach (VisioSequenceParticipantRecord participant in participants) {
                 Participant(participant.Id, participant.Text, participant.Kind);
@@ -338,9 +334,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Imports message records into the sequence diagram.</summary>
         public VisioSequenceDiagramBuilder Messages(IEnumerable<VisioSequenceMessageRecord> messages) {
-            if (messages == null) {
-                throw new ArgumentNullException(nameof(messages));
-            }
+            ArgumentNullException.ThrowIfNull(messages);
 
             foreach (VisioSequenceMessageRecord message in messages) {
                 if (message.SelfMessage || string.Equals(message.FromId, message.ToId, StringComparison.Ordinal)) {
@@ -355,9 +349,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Imports activation records into the sequence diagram.</summary>
         public VisioSequenceDiagramBuilder Activations(IEnumerable<VisioSequenceActivationRecord> activations) {
-            if (activations == null) {
-                throw new ArgumentNullException(nameof(activations));
-            }
+            ArgumentNullException.ThrowIfNull(activations);
 
             foreach (VisioSequenceActivationRecord activation in activations) {
                 Activation(activation.ParticipantId, activation.StartRowIndex, activation.EndRowIndex, activation.Id);
@@ -368,9 +360,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Imports combined-fragment records into the sequence diagram.</summary>
         public VisioSequenceDiagramBuilder Fragments(IEnumerable<VisioSequenceFragmentRecord> fragments) {
-            if (fragments == null) {
-                throw new ArgumentNullException(nameof(fragments));
-            }
+            ArgumentNullException.ThrowIfNull(fragments);
 
             foreach (VisioSequenceFragmentRecord fragment in fragments) {
                 if (string.IsNullOrWhiteSpace(fragment.ParentFragmentId)) {
@@ -385,9 +375,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Imports fragment guard and partition records into the sequence diagram.</summary>
         public VisioSequenceDiagramBuilder FragmentOperands(IEnumerable<VisioSequenceFragmentOperandRecord> operands) {
-            if (operands == null) {
-                throw new ArgumentNullException(nameof(operands));
-            }
+            ArgumentNullException.ThrowIfNull(operands);
 
             foreach (VisioSequenceFragmentOperandRecord operand in operands) {
                 if (operand.Divider) {
@@ -402,9 +390,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Imports semantic note records into the sequence diagram.</summary>
         public VisioSequenceDiagramBuilder Notes(IEnumerable<VisioSequenceNoteRecord> notes) {
-            if (notes == null) {
-                throw new ArgumentNullException(nameof(notes));
-            }
+            ArgumentNullException.ThrowIfNull(notes);
 
             foreach (VisioSequenceNoteRecord note in notes) {
                 Note(note.ParticipantId, note.Text, note.RowIndex, note.Placement, note.Id);

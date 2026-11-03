@@ -366,10 +366,7 @@ public sealed partial class ExportOfficeCsvCommand : PSCmdlet
         bool allowAdditionalAppend = false,
         IReadOnlyList<string>? activeAppendColumns = null)
     {
-        if (sourceColumns == null)
-        {
-            throw new ArgumentNullException(nameof(sourceColumns));
-        }
+        ArgumentNullException.ThrowIfNull(sourceColumns);
 
         if (_streamingWriter != null)
         {

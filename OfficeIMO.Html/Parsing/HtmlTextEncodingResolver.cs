@@ -17,7 +17,7 @@ internal sealed class HtmlTextEncodingResolver {
     internal HtmlTextEncodingResolver(IHtmlEncodingProvider provider) => _provider = provider ?? throw new ArgumentNullException(nameof(provider));
 
     internal Encoding ResolveHtmlEncoding(Stream stream, Encoding? explicitEncoding = null, Encoding? fallbackEncoding = null) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (explicitEncoding != null) return explicitEncoding;
         if (!stream.CanSeek) return fallbackEncoding ?? Utf8;
 
@@ -33,7 +33,7 @@ internal sealed class HtmlTextEncodingResolver {
     }
 
     internal Encoding ResolveHtmlTransportEncoding(Stream stream, string transportCharset) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (string.IsNullOrWhiteSpace(transportCharset)) {
             throw new ArgumentException("A transport charset is required.", nameof(transportCharset));
         }
@@ -52,7 +52,7 @@ internal sealed class HtmlTextEncodingResolver {
     }
 
     internal Stream PrepareHtmlStream(Stream stream, Encoding? explicitEncoding, out Encoding encoding) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (explicitEncoding != null || stream.CanSeek) {
             encoding = ResolveHtmlEncoding(stream, explicitEncoding);
             return stream;
@@ -68,7 +68,7 @@ internal sealed class HtmlTextEncodingResolver {
         Stream stream,
         Encoding? explicitEncoding,
         CancellationToken cancellationToken) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (explicitEncoding != null) return (stream, explicitEncoding);
         if (stream.CanSeek) {
             long position = stream.Position;
@@ -96,7 +96,7 @@ internal sealed class HtmlTextEncodingResolver {
     internal bool HasDataUriCharset(string metadata) => ReadContentTypeCharset(metadata) != null;
 
     internal bool TryDecodeCss(byte[] bytes, string? contentType, out string css) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         try {
             Encoding encoding = ResolveBomEncoding(bytes)
                 ?? ResolveContentTypeCharsetEncoding(contentType)
@@ -514,9 +514,9 @@ internal sealed class HtmlTextEncodingResolver {
         }
 
         private static void ValidateReadArguments(byte[] buffer, int offset, int count) {
-            if (buffer == null) throw new ArgumentNullException(nameof(buffer));
-            if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset));
-            if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+            ArgumentNullException.ThrowIfNull(buffer);
+            ArgumentOutOfRangeException.ThrowIfNegative(offset);
+            ArgumentOutOfRangeException.ThrowIfNegative(count);
             if (buffer.Length - offset < count) throw new ArgumentException("The offset and count exceed the buffer length.");
         }
     }

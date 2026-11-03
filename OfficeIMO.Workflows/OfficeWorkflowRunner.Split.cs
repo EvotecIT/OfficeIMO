@@ -7,7 +7,7 @@ public sealed partial class OfficeWorkflowRunner {
     /// <summary>Splits consecutive pages through the PDF engine and publishes reopened, bounded outputs.</summary>
     public async Task<PdfSplitWorkflowResult> SplitPdfAsync(PdfSplitWorkflowRequest request,
         IProgress<OfficeWorkflowProgress>? progress = null, CancellationToken cancellationToken = default) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         string id = request.Id;
         var diagnostics = new List<OfficeWorkflowDiagnostic>();
         var inputs = new WorkflowInputSnapshots();

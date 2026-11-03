@@ -9,7 +9,7 @@ namespace OfficeIMO.Word {
         public WordHeader? GetHeaderForSection(int sectionIndex, WordHeaderFooterType type) {
             if (this.Sections.Count == 0) throw new InvalidOperationException("Document has no sections.");
             if (sectionIndex < 0) sectionIndex = this.Sections.Count - 1;
-            if (sectionIndex >= this.Sections.Count) throw new ArgumentOutOfRangeException(nameof(sectionIndex));
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(sectionIndex, this.Sections.Count);
             return this.Sections[sectionIndex].PageSetup.GetHeader(type);
         }
         /// <summary>
@@ -24,7 +24,7 @@ namespace OfficeIMO.Word {
         public WordFooter? GetFooterForSection(int sectionIndex, WordHeaderFooterType type) {
             if (this.Sections.Count == 0) throw new InvalidOperationException("Document has no sections.");
             if (sectionIndex < 0) sectionIndex = this.Sections.Count - 1;
-            if (sectionIndex >= this.Sections.Count) throw new ArgumentOutOfRangeException(nameof(sectionIndex));
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(sectionIndex, this.Sections.Count);
             return this.Sections[sectionIndex].PageSetup.GetFooter(type);
         }
         /// <summary>

@@ -8,7 +8,7 @@ namespace OfficeIMO.Core.Internal;
 /// <summary>Escapes Unicode scalar values that a strict legacy text encoding cannot represent.</summary>
 internal static class OfficeCharacterReferenceEncoding {
     internal static Encoding WithCharacterReferenceFallback(Encoding encoding) {
-        if (encoding == null) throw new ArgumentNullException(nameof(encoding));
+        ArgumentNullException.ThrowIfNull(encoding);
         Encoding copy = (Encoding)encoding.Clone();
         copy.EncoderFallback = new CharacterReferenceFallback();
         return copy;
@@ -19,8 +19,8 @@ internal static class OfficeCharacterReferenceEncoding {
     /// The supplied encoding must use <see cref="EncoderFallback.ExceptionFallback"/>.
     /// </summary>
     internal static string EscapeUnrepresentableCharacters(string value, Encoding encoding) {
-        if (value == null) throw new ArgumentNullException(nameof(value));
-        if (encoding == null) throw new ArgumentNullException(nameof(encoding));
+        ArgumentNullException.ThrowIfNull(value);
+        ArgumentNullException.ThrowIfNull(encoding);
 
         StringBuilder? escaped = null;
         var scalarBuffer = new char[2];

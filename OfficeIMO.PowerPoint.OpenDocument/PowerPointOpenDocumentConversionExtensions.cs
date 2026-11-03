@@ -12,7 +12,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     private const int MaximumOdpSlideNameLength = 128;
     internal static OdfConversionResult<OdpPresentation> ConvertToOpenDocumentWithEvidence(this PowerPointDocument source,
         PowerPointOpenDocumentConversionOptions? options = null) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         PowerPointOpenDocumentConversionOptions effective = NormalizeOptions(options);
         OdpPresentation target = OdpPresentation.Create();
         var report = new OdfConversionReport("PPTX", "ODP");
@@ -293,7 +293,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
 
     internal static OdfConversionResult<PowerPointDocument> ConvertToPowerPointWithEvidence(this OdpPresentation source,
         PowerPointOpenDocumentConversionOptions? options = null) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         PowerPointOpenDocumentConversionOptions effective = NormalizeOptions(options);
         PowerPointDocument target = PowerPointDocument.CreateForImport();
         var report = new OdfConversionReport("ODP", "PPTX");

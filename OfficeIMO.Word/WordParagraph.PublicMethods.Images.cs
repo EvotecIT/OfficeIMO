@@ -4,7 +4,7 @@ public partial class WordParagraph {
     /// <summary>Embeds an image file and returns its editable occurrence.</summary>
     public WordImage AddImage(string path, OfficeLength? width = null, OfficeLength? height = null,
         WordImageOptions? options = null) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         var resolved = options ?? new WordImageOptions();
         if (resolved.Vml) {
             using var stream = File.OpenRead(path);
@@ -16,7 +16,7 @@ public partial class WordParagraph {
     /// <summary>Embeds an image stream without disposing the caller's stream.</summary>
     public WordImage AddImage(Stream stream, string fileName, OfficeLength? width = null, OfficeLength? height = null,
         WordImageOptions? options = null) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         var resolved = options ?? new WordImageOptions();
         if (resolved.Vml) return resolved.Apply(InsertImageVml(stream, fileName, width?.ToPoints(), height?.ToPoints(), resolved.AltText));
         return AttachImage(new WordImage(_document, this, stream, fileName, width?.ToPixels(), height?.ToPixels(), resolved.Wrapping, resolved.AltText), resolved);
@@ -36,7 +36,7 @@ public partial class WordParagraph {
 
     internal WordParagraph AddTrustedExternalImage(Uri uri, double width, double height,
         WordImageTextWrapping wrapping = WordImageTextWrapping.InLineWithText, string description = "") {
-        if (uri == null) throw new ArgumentNullException(nameof(uri));
+        ArgumentNullException.ThrowIfNull(uri);
         if (!uri.IsFile) throw new ArgumentException("Trusted local external images must use the file scheme.", nameof(uri));
         var image = new WordImage(_document, this, uri, width, height, wrapping, description, shape: null, compressionQuality: null, allowFileUri: true);
         VerifyRun().Append(image._Image);

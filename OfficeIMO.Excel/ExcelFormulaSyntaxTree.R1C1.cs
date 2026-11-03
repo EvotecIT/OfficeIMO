@@ -11,7 +11,7 @@ public sealed partial class ExcelFormulaSyntaxTree {
     public static ExcelFormulaSyntaxTree Parse(string formula, ExcelReferenceStyle inputStyle, int anchorRow = 1, int anchorColumn = 1) {
         if (inputStyle == ExcelReferenceStyle.A1) return Parse(formula);
         if (inputStyle != ExcelReferenceStyle.R1C1) throw new ArgumentOutOfRangeException(nameof(inputStyle));
-        if (formula == null) throw new ArgumentNullException(nameof(formula));
+        ArgumentNullException.ThrowIfNull(formula);
         if (anchorRow < 1 || anchorRow > 1048576) throw new ArgumentOutOfRangeException(nameof(anchorRow));
         if (anchorColumn < 1 || anchorColumn > 16384) throw new ArgumentOutOfRangeException(nameof(anchorColumn));
         var nodes = new List<ExcelFormulaSyntaxNode>();

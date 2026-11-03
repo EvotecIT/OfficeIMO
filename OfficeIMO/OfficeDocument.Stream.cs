@@ -14,7 +14,7 @@ public static partial class OfficeDocument {
     /// <summary>Inspects bounded encoded content without filesystem access. A seekable source is read from the beginning and its position is restored; the caller retains ownership.</summary>
     public static OfficeDocumentInfo Inspect(Stream source, string sourceName, OfficeInspectOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         if (string.IsNullOrWhiteSpace(sourceName)) throw new ArgumentException("A source filename is required.", nameof(sourceName));
         OfficeInspectOptions settings = options ?? new();
         if (settings.Formats == null || ((settings.IncludeContent || settings.IncludeSummary) && settings.Reader == null)) throw new ArgumentException("Reader and format settings are required.", nameof(options));

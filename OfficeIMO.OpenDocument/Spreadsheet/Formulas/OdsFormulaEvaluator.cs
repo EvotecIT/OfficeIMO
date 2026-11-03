@@ -5,10 +5,10 @@ public static class OdsFormulaEvaluator {
     /// <summary>Evaluates a formula cell without changing its cached value.</summary>
     public static OdsFormulaEvaluationResult EvaluateCell(OdsDocument document, string sheetName, long row, long column,
         OdsFormulaEvaluationOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         if (string.IsNullOrWhiteSpace(sheetName)) throw new ArgumentException("Sheet name cannot be empty.", nameof(sheetName));
-        if (row < 0) throw new ArgumentOutOfRangeException(nameof(row));
-        if (column < 0) throw new ArgumentOutOfRangeException(nameof(column));
+        ArgumentOutOfRangeException.ThrowIfNegative(row);
+        ArgumentOutOfRangeException.ThrowIfNegative(column);
         var context = new OdsFormulaEvaluationContext(document, options);
         OdsFormulaValue value = EvaluateCell(context, sheetName, row, column, 0);
         return new OdsFormulaEvaluationResult(value, context.Operations);
@@ -17,9 +17,9 @@ public static class OdsFormulaEvaluator {
     /// <summary>Evaluates an OpenFormula expression in the context of a worksheet.</summary>
     public static OdsFormulaEvaluationResult EvaluateExpression(OdsDocument document, string sheetName, string formula,
         OdsFormulaEvaluationOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         if (string.IsNullOrWhiteSpace(sheetName)) throw new ArgumentException("Sheet name cannot be empty.", nameof(sheetName));
-        if (formula == null) throw new ArgumentNullException(nameof(formula));
+        ArgumentNullException.ThrowIfNull(formula);
         var context = new OdsFormulaEvaluationContext(document, options);
         OdsFormulaValue value;
         try {

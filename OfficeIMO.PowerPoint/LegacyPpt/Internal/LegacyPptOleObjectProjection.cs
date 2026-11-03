@@ -16,9 +16,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         private LegacyPptOleObjectProjection(
             LegacyPptEmbeddedOleObject source, PowerPointOleObject projected) {
             Source = source ?? throw new ArgumentNullException(nameof(source));
-            if (projected == null) {
-                throw new ArgumentNullException(nameof(projected));
-            }
+            ArgumentNullException.ThrowIfNull(projected);
             EmbeddedPartUri = projected.EmbeddedPart.Uri.ToString();
             EmbeddedContentType = projected.EmbeddedPart.ContentType;
             _storageBytes = source.GetBytes();

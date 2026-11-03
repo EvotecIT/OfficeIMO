@@ -12,17 +12,11 @@ internal static class OfficeCalloutRenderer {
     /// Draws a callout to a raster canvas.
     /// </summary>
     public static void DrawRaster(OfficeRasterCanvas canvas, OfficeCallout callout, OfficeCalloutStyle style, double scale = 1D) {
-        if (canvas == null) {
-            throw new ArgumentNullException(nameof(canvas));
-        }
+        ArgumentNullException.ThrowIfNull(canvas);
 
-        if (callout == null) {
-            throw new ArgumentNullException(nameof(callout));
-        }
+        ArgumentNullException.ThrowIfNull(callout);
 
-        if (style == null) {
-            throw new ArgumentNullException(nameof(style));
-        }
+        ArgumentNullException.ThrowIfNull(style);
 
         if (scale <= 0D || callout.Width <= 0D || callout.Height <= 0D) {
             return;
@@ -60,21 +54,13 @@ internal static class OfficeCalloutRenderer {
         Func<string?, double, string?, double> measureText,
         double scale = 1D,
         string idPrefix = "office-callout") {
-        if (builder == null) {
-            throw new ArgumentNullException(nameof(builder));
-        }
+        ArgumentNullException.ThrowIfNull(builder);
 
-        if (callout == null) {
-            throw new ArgumentNullException(nameof(callout));
-        }
+        ArgumentNullException.ThrowIfNull(callout);
 
-        if (style == null) {
-            throw new ArgumentNullException(nameof(style));
-        }
+        ArgumentNullException.ThrowIfNull(style);
 
-        if (measureText == null) {
-            throw new ArgumentNullException(nameof(measureText));
-        }
+        ArgumentNullException.ThrowIfNull(measureText);
 
         if (scale <= 0D || callout.Width <= 0D || callout.Height <= 0D) {
             return builder;

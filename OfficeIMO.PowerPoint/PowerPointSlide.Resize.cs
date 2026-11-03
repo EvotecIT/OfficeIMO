@@ -9,9 +9,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void ResizeShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeSizeDimension dimension,
             PowerPointShapeSizeReference reference = PowerPointShapeSizeReference.First) {
-            if (shapes == null) {
-                throw new ArgumentNullException(nameof(shapes));
-            }
+            ArgumentNullException.ThrowIfNull(shapes);
 
             List<PowerPointShape> list = NormalizeShapes(shapes);
             if (list.Count == 0) {
@@ -50,9 +48,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="height">Nonnegative height, or null to retain each shape's current height. Zero is permitted.</param>
         /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void ResizeShapes(IEnumerable<PowerPointShape> shapes, OfficeLength? width, OfficeLength? height) {
-            if (shapes == null) {
-                throw new ArgumentNullException(nameof(shapes));
-            }
+            ArgumentNullException.ThrowIfNull(shapes);
 
             if (width.HasValue && width.Value < OfficeLength.Zero) {
                 throw new ArgumentOutOfRangeException(nameof(width));

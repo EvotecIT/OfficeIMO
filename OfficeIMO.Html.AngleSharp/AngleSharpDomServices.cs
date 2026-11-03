@@ -11,7 +11,7 @@ public sealed class AngleSharpDomServices : IHtmlDomServices {
     public static AngleSharpDomServices Instance { get; } = new AngleSharpDomServices();
     /// <inheritdoc />
     public string Serialize(HtmlNode node, bool childrenOnly = false) {
-        if (node == null) throw new ArgumentNullException(nameof(node));
+        ArgumentNullException.ThrowIfNull(node);
         try {
             INode native = NativeDomBridge.GetNative(node);
             if (childrenOnly && native is AngleSharp.Html.Dom.IHtmlTemplateElement template) native = template.Content;
@@ -22,8 +22,8 @@ public sealed class AngleSharpDomServices : IHtmlDomServices {
     }
     /// <inheritdoc />
     public IReadOnlyList<HtmlElement> QuerySelectorAll(HtmlNode scope, string selector) {
-        if (scope == null) throw new ArgumentNullException(nameof(scope));
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(scope);
+        ArgumentNullException.ThrowIfNull(selector);
         HtmlCssSelectorList? owned = TryParseOwnedSelector(selector);
         if (owned != null) {
             var context = new HtmlCssSelectorMatchContext(null, default);
@@ -41,8 +41,8 @@ public sealed class AngleSharpDomServices : IHtmlDomServices {
     }
     /// <inheritdoc />
     public bool Matches(HtmlElement element, string selector) {
-        if (element == null) throw new ArgumentNullException(nameof(element));
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(element);
+        ArgumentNullException.ThrowIfNull(selector);
         HtmlCssSelectorList? owned = TryParseOwnedSelector(selector);
         if (owned != null) return owned.Matches(element);
         try { return ((IElement)NativeDomBridge.GetNative(element)).Matches(selector); }

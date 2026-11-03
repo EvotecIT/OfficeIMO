@@ -112,9 +112,7 @@ public sealed class OfficeTextBlockRenderPlan {
         OfficeTextVerticalAlignment verticalAlignment = OfficeTextVerticalAlignment.Top,
         double lineHeightFactor = 1.2D,
         double minimumFontSize = 5D) {
-        if (measure == null) {
-            throw new ArgumentNullException(nameof(measure));
-        }
+        ArgumentNullException.ThrowIfNull(measure);
 
         double resolvedWidth = NormalizePositive(width, double.PositiveInfinity);
         double resolvedHeight = NormalizePositive(height, double.PositiveInfinity);
@@ -212,9 +210,7 @@ public sealed class OfficeTextBlockRenderPlan {
         bool forceSingleLine,
         bool shrinkToFit,
         OfficeTextOverflowBehavior overflowBehavior) {
-        if (measure == null) {
-            throw new ArgumentNullException(nameof(measure));
-        }
+        ArgumentNullException.ThrowIfNull(measure);
 
         double resolvedWidth = NormalizePositive(width, 1D);
         double resolvedHeight = NormalizePositive(height, 1D);
@@ -249,9 +245,7 @@ public sealed class OfficeTextBlockRenderPlan {
         double lineHeightFactor = 1.2D,
         double minimumFontSize = 5D,
         bool shrinkToFit = false) {
-        if (measure == null) {
-            throw new ArgumentNullException(nameof(measure));
-        }
+        ArgumentNullException.ThrowIfNull(measure);
 
         double resolvedWidth = NormalizePositive(width, 1D);
         double resolvedHeight = NormalizePositive(height, 1D);

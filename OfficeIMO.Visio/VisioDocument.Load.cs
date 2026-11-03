@@ -16,7 +16,7 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Loads an existing .vsdx file with explicit input limits.</summary>
         public static VisioDocument Load(string filePath, VisioLoadOptions? options) {
-            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            ArgumentNullException.ThrowIfNull(filePath);
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             string fullPath = Path.GetFullPath(filePath);
             if (!File.Exists(fullPath)) throw new FileNotFoundException($"File '{fullPath}' doesn't exist.", fullPath);
@@ -38,7 +38,7 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Loads an existing .vsdx document from a stream with explicit input limits.</summary>
         public static VisioDocument Load(Stream stream, VisioLoadOptions? options) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
             VisioLoadOptions resolved = options ?? new VisioLoadOptions();
@@ -57,7 +57,7 @@ namespace OfficeIMO.Visio {
             string filePath,
             VisioLoadOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            ArgumentNullException.ThrowIfNull(filePath);
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             string fullPath = Path.GetFullPath(filePath);
             if (!File.Exists(fullPath)) throw new FileNotFoundException($"File '{fullPath}' doesn't exist.", fullPath);
@@ -72,7 +72,7 @@ namespace OfficeIMO.Visio {
             Stream stream,
             VisioLoadOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
             VisioLoadOptions resolved = options ?? new VisioLoadOptions();
             byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken, ResolveInputLimit(resolved)).ConfigureAwait(false);

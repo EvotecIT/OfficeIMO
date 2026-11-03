@@ -7,9 +7,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Creates preserve-only metadata for a nested OfficeArt record.
         /// </summary>
         public LegacyXlsDrawingOfficeArtRecord(ushort recordType, ushort recordInstance, byte recordVersion, uint payloadLength, int depth) {
-            if (depth < 0) {
-                throw new ArgumentOutOfRangeException(nameof(depth));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(depth);
 
             RecordType = recordType;
             RecordTypeKind = LegacyXlsDrawingEscherRecordTypeDecoder.TryGetKind(recordType);

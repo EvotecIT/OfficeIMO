@@ -69,8 +69,8 @@ namespace OfficeIMO.GoogleWorkspace.Sync {
         /// <remarks>The operation policy is retained by reference. Item objects are immutable after construction.</remarks>
         public static GoogleWorkspaceSyncPlan Create(IEnumerable<GoogleWorkspaceSyncItem> items,
             GoogleWorkspaceOperationPolicy policy, TranslationReport? report = null) {
-            if (items == null) throw new ArgumentNullException(nameof(items));
-            if (policy == null) throw new ArgumentNullException(nameof(policy));
+            ArgumentNullException.ThrowIfNull(items);
+            ArgumentNullException.ThrowIfNull(policy);
             GoogleWorkspaceSyncItem[] materialized = items.ToArray();
             string? duplicate = materialized.GroupBy(item => item.Id, StringComparer.Ordinal).Where(group => group.Count() > 1).Select(group => group.Key).FirstOrDefault();
             if (duplicate != null) throw new ArgumentException($"Synchronization plan item id '{duplicate}' is duplicated.", nameof(items));

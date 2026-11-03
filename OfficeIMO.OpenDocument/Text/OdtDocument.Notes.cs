@@ -63,7 +63,7 @@ public sealed partial class OdtDocument {
     }
 
     internal void ValidateNoteInsertion(OdtNoteKind kind, string text) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(text);
         NoteIndex index = GetNoteIndex();
         if (index.HasConfiguration(kind)) {
             throw new NotSupportedException("Adding notes to an ODT document with configured note numbering is not supported.");

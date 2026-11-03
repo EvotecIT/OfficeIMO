@@ -55,6 +55,16 @@
              Link="System.Runtime.CompilerServices/IsExternalInit.cs" />
   </ItemGroup>
 
+  <!-- Keep the upstream license with packages and legacy assemblies that contain
+       the vendored argument guards, including loose PowerShell module payloads. -->
+  <ItemGroup Condition="'$(MSBuildProjectExtension)' == '.csproj'">
+    <None Include="$(OfficeIMOSharedSourceDir)/Compatibility/ArgumentExceptions/LICENSE.txt"
+          Pack="true" PackagePath="Licenses/Polyfill-LICENSE.txt" />
+    <EmbeddedResource Include="$(OfficeIMOSharedSourceDir)/Compatibility/ArgumentExceptions/LICENSE.txt"
+                      LogicalName="OfficeIMO.ThirdParty.Polyfill.LICENSE.txt"
+                      Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework' Or '$(TargetFrameworkIdentifier)' == '.NETStandard'" />
+  </ItemGroup>
+
   <!-- Validate every newly produced public package across compatible frameworks. -->
   <PropertyGroup Condition="
       '$(PackageId)' != ''

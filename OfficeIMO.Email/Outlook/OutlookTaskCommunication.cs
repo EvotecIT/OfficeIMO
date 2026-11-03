@@ -82,7 +82,7 @@ public sealed class OutlookTaskCommunication {
     /// <summary>Creates a communication and ensures that its embedded task has a correlation identifier.</summary>
     public static OutlookTaskCommunication Create(OutlookTaskCommunicationKind kind, EmailDocument embeddedTask) {
         if (kind == OutlookTaskCommunicationKind.None) throw new ArgumentOutOfRangeException(nameof(kind));
-        if (embeddedTask == null) throw new ArgumentNullException(nameof(embeddedTask));
+        ArgumentNullException.ThrowIfNull(embeddedTask);
         if (embeddedTask.Task == null) throw new ArgumentException("The embedded document must contain an Outlook task.", nameof(embeddedTask));
         embeddedTask.OutlookItemKind = OutlookItemKind.Task;
         embeddedTask.MessageClass = embeddedTask.MessageClass ?? "IPM.Task";

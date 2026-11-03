@@ -21,7 +21,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Maps a semantic kind by resolving a template layout name.</summary>
         public PowerPointTemplateLayoutMap Map(PowerPointDeckPlanSlideKind kind,
             PowerPointTemplateInventory inventory, string layoutName) {
-            if (inventory == null) throw new ArgumentNullException(nameof(inventory));
+            ArgumentNullException.ThrowIfNull(inventory);
             return Map(kind, inventory.ResolveLayout(layoutName));
         }
 

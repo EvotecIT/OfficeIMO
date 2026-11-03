@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public static GoogleSheetsTranslationPlan BuildGoogleSheetsPlan(
             this ExcelDocument document,
             GoogleSheetsSaveOptions? options = null) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             return DefaultExporter.BuildPlan(document, options);
         }
 
@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public static GoogleSheetsBatch BuildGoogleSheetsBatch(
             this ExcelDocument document,
             GoogleSheetsSaveOptions? options = null) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             return DefaultExporter.BuildBatch(document, options);
         }
 
@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             GoogleWorkspace.GoogleWorkspaceSession session,
             GoogleSheetsSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             return DefaultExporter.ExportAsync(document, session, options, cancellationToken);
         }
 
@@ -38,7 +38,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             string spreadsheetId,
             GoogleSheetsImportOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (session == null) throw new ArgumentNullException(nameof(session));
+            ArgumentNullException.ThrowIfNull(session);
             return DefaultImporter.ImportAsync(spreadsheetId, session, options, cancellationToken);
         }
     }

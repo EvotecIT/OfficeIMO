@@ -830,9 +830,7 @@ public static partial class OfficeSvgFormatting {
     /// <param name="closePath">When true, appends a close-path command after at least one point.</param>
     /// <returns>The supplied builder for call chaining.</returns>
     public static StringBuilder AppendMoveLinePathData(this StringBuilder builder, IReadOnlyList<OfficePoint> points, bool closePath = false) {
-        if (points == null) {
-            throw new ArgumentNullException(nameof(points));
-        }
+        ArgumentNullException.ThrowIfNull(points);
 
         for (int i = 0; i < points.Count; i++) {
             builder.Append(i == 0 ? "M " : " L ");

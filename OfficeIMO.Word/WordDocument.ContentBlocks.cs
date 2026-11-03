@@ -6,8 +6,8 @@ namespace OfficeIMO.Word;
 public partial class WordDocument {
     /// <summary>Adds a shaded callout title and body, returning its title paragraph.</summary>
     public WordParagraph AddCallout(OfficeCalloutKind kind, string title, string body, OfficeTheme? theme = null) {
-        if (title == null) throw new ArgumentNullException(nameof(title));
-        if (body == null) throw new ArgumentNullException(nameof(body));
+        ArgumentNullException.ThrowIfNull(title);
+        ArgumentNullException.ThrowIfNull(body);
         OfficeColor color = kind switch {
             OfficeCalloutKind.Info => OfficeColor.Accent1,
             OfficeCalloutKind.Success => OfficeColor.Success,
@@ -26,7 +26,7 @@ public partial class WordDocument {
 
     /// <summary>Adds a code paragraph using a named monospace paragraph style. The language is a descriptive hint.</summary>
     public WordParagraph AddCodeBlock(string code, string? language = null) {
-        if (code == null) throw new ArgumentNullException(nameof(code));
+        ArgumentNullException.ThrowIfNull(code);
         const string styleId = "OfficeIMOCodeBlock";
         var font = WordFontResolver.Resolve("monospace") ?? "Consolas";
         EnsureStyleDefinitionsInitialized();

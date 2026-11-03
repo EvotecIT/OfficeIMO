@@ -27,7 +27,7 @@ public sealed class WordCellComment {
     /// <summary>Determines whether Word's plain-text paragraph owner preserves the text without normalization.</summary>
     /// <remarks>Carriage returns and U+2028 have structural meanings in the paragraph API. Invalid XML characters are rejected.</remarks>
     public static bool CanPreserveText(string text) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(text);
         if (text.IndexOf('\r') >= 0 || text.IndexOf('\u2028') >= 0) return false;
         try { XmlConvert.VerifyXmlChars(text); return true; }
         catch (XmlException) { return false; }

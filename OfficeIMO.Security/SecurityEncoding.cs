@@ -14,7 +14,7 @@ public static class SecurityEncoding {
         bool allowTrailingZeroPadding = false,
         long maxEncodedBytes = 512L * 1024 * 1024) {
 #if NETSTANDARD2_0 || NET472
-        if (encoded == null) throw new ArgumentNullException(nameof(encoded));
+        ArgumentNullException.ThrowIfNull(encoded);
 #else
         ArgumentNullException.ThrowIfNull(encoded);
 #endif

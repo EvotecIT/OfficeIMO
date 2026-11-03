@@ -25,7 +25,7 @@ namespace OfficeIMO.Word {
         /// <param name="source">The document to append.</param>
         /// <param name="options">Controls style and section handling. When null, defaults are used.</param>
         public void AppendDocument(WordDocument source, WordDocumentMergeOptions? options) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(source);
             if (ReferenceEquals(source, this)) throw new ArgumentException("A document cannot be appended to itself.", nameof(source));
 
             var sourceMain = source._wordprocessingDocument.MainDocumentPart;

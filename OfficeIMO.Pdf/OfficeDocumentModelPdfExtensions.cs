@@ -16,11 +16,7 @@ internal static partial class OfficeDocumentModelPdfExtensions {
         this OfficeDocumentModel source,
         PdfProjectionOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-#if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(source);
-#else
-        if (source == null) throw new ArgumentNullException(nameof(source));
-#endif
         options ??= new PdfProjectionOptions();
         options.Validate();
 

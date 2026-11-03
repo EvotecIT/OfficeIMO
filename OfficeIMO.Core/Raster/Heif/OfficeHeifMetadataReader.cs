@@ -144,9 +144,7 @@ public static partial class OfficeHeifMetadataReader {
     }
 
     private static bool TryRun(byte[] data, CancellationToken token, Func<Parser, bool> operation, long additionallyRetainedBytes = 0L) {
-        if (data == null) {
-            throw new ArgumentNullException(nameof(data));
-        }
+        ArgumentNullException.ThrowIfNull(data);
         token.ThrowIfCancellationRequested();
         if (!OfficeRasterGuards.IsEncodedPayloadWithinLimits(data.Length)) {
             return false;

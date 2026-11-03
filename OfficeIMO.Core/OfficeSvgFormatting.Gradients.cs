@@ -19,9 +19,7 @@ public static partial class OfficeSvgFormatting {
 
     private static StringBuilder AppendLinearGradientDefinitionCore(StringBuilder builder, string id, OfficeLinearGradient gradient,
         OfficeTransform? coordinates) {
-        if (gradient == null) {
-            throw new ArgumentNullException(nameof(gradient));
-        }
+        ArgumentNullException.ThrowIfNull(gradient);
 
         double multiplier = coordinates.HasValue ? 1D : 100D;
         string unit = coordinates.HasValue ? "" : "%";
@@ -83,9 +81,7 @@ public static partial class OfficeSvgFormatting {
         AppendRadialGradientDefinitionCore(builder, id, gradient, true);
 
     private static StringBuilder AppendRadialGradientDefinitionCore(StringBuilder builder, string id, OfficeRadialGradient gradient, bool userSpace) {
-        if (gradient == null) {
-            throw new ArgumentNullException(nameof(gradient));
-        }
+        ArgumentNullException.ThrowIfNull(gradient);
 
         if (gradient.OutsideColor != null && !userSpace) {
             throw new NotSupportedException("Native radial boundary/exterior Pad fields cannot be represented by ordinary SVG without loss.");

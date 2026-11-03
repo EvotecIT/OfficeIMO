@@ -22,14 +22,14 @@ public sealed partial class PublisherDocument {
     public PublisherReadReport ReadReport { get; }
     /// <summary>Loads a publication from a file without retaining file handles.</summary>
     public static PublisherDocument Load(string path, PublisherLoadOptions? options = null, CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         cancellationToken.ThrowIfCancellationRequested();
         using var stream = File.OpenRead(path);
         return Load(stream, options, cancellationToken);
     }
     /// <summary>Loads bounded native publication bytes. Unsupported generations and malformed records are rejected.</summary>
     public static PublisherDocument Load(byte[] bytes, PublisherLoadOptions? options = null, CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         PublisherLoadOptions operation = (options ?? new PublisherLoadOptions()).Clone();
         cancellationToken.ThrowIfCancellationRequested();
         if (bytes.Length > operation.Limits.MaxInputBytes) throw new InvalidDataException("Publisher input byte limit exceeded.");

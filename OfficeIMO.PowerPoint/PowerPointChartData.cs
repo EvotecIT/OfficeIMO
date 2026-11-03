@@ -263,9 +263,7 @@ namespace OfficeIMO.PowerPoint {
         /// Initializes a new scatter chart data container with series.
         /// </summary>
         public PowerPointScatterChartData(IEnumerable<PowerPointScatterChartSeries> series) {
-            if (series == null) {
-                throw new ArgumentNullException(nameof(series));
-            }
+            ArgumentNullException.ThrowIfNull(series);
 
             Series = series.ToList();
             if (Series.Count == 0) {
@@ -283,12 +281,8 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public static PowerPointScatterChartData From<T>(IEnumerable<T> items, Func<T, double> xSelector,
             params PowerPointScatterChartSeriesDefinition<T>[] seriesDefinitions) {
-            if (items == null) {
-                throw new ArgumentNullException(nameof(items));
-            }
-            if (xSelector == null) {
-                throw new ArgumentNullException(nameof(xSelector));
-            }
+            ArgumentNullException.ThrowIfNull(items);
+            ArgumentNullException.ThrowIfNull(xSelector);
             if (seriesDefinitions == null || seriesDefinitions.Length == 0) {
                 throw new ArgumentException("At least one series definition is required.", nameof(seriesDefinitions));
             }
@@ -310,15 +304,9 @@ namespace OfficeIMO.PowerPoint {
         /// Initializes a new scatter chart series with a name and X/Y values.
         /// </summary>
         public PowerPointScatterChartSeries(string name, IEnumerable<double> xValues, IEnumerable<double> yValues) {
-            if (name == null) {
-                throw new ArgumentNullException(nameof(name));
-            }
-            if (xValues == null) {
-                throw new ArgumentNullException(nameof(xValues));
-            }
-            if (yValues == null) {
-                throw new ArgumentNullException(nameof(yValues));
-            }
+            ArgumentNullException.ThrowIfNull(name);
+            ArgumentNullException.ThrowIfNull(xValues);
+            ArgumentNullException.ThrowIfNull(yValues);
 
             Name = name;
             XValues = xValues.ToList();

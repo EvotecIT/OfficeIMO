@@ -9,7 +9,7 @@ internal sealed class EmailBodyResourceIdentityIndex {
     private readonly Entry[] _entries;
 
     internal EmailBodyResourceIdentityIndex(IReadOnlyList<EmailBodyResource> resources) {
-        if (resources == null) throw new ArgumentNullException(nameof(resources));
+        ArgumentNullException.ThrowIfNull(resources);
         string?[] contentIds = resources
             .Select(resource => resource.ContentId)
             .ToArray();
@@ -62,7 +62,7 @@ internal sealed class EmailBodyResourceIdentityIndex {
         Uri? baseUri,
         string? reference,
         Uri? resolvedUri) {
-        if (resources == null) throw new ArgumentNullException(nameof(resources));
+        ArgumentNullException.ThrowIfNull(resources);
         if (string.IsNullOrWhiteSpace(reference) && resolvedUri == null) return null;
         string value = (reference ?? resolvedUri!.OriginalString).Trim();
         int index;

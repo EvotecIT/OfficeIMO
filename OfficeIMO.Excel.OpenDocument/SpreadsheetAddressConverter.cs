@@ -32,8 +32,8 @@ internal static class SpreadsheetAddressConverter {
             : string.Empty;
 
     internal static string ToA1(int row, int column) {
-        if (row < 1) throw new ArgumentOutOfRangeException(nameof(row));
-        if (column < 1) throw new ArgumentOutOfRangeException(nameof(column));
+        ArgumentOutOfRangeException.ThrowIfLessThan(row, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(column, 1);
         int value = column;
         var letters = new StringBuilder();
         while (value > 0) {

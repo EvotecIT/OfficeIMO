@@ -11,7 +11,7 @@ namespace OfficeIMO.Word {
         /// <param name="paragraph">Paragraph to convert.</param>
         /// <returns>Outer XML of the underlying Open XML element.</returns>
         public static string ToXml(this WordParagraph paragraph) {
-            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
+            ArgumentNullException.ThrowIfNull(paragraph);
             return paragraph._paragraph?.OuterXml ?? string.Empty;
         }
 
@@ -22,7 +22,7 @@ namespace OfficeIMO.Word {
         /// <param name="xml">XML string representing a paragraph.</param>
         /// <returns>The inserted <see cref="WordParagraph"/>.</returns>
         public static WordParagraph AddParagraphFromXml(this WordDocument document, string xml) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             if (string.IsNullOrWhiteSpace(xml)) throw new ArgumentException("Value cannot be null or empty.", nameof(xml));
             var paragraph = new Paragraph(xml);
             var wordParagraph = new WordParagraph(document, paragraph);

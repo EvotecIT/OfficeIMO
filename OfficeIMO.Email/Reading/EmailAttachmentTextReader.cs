@@ -9,8 +9,8 @@ public static class EmailAttachmentTextReader {
     /// </summary>
     public static EmailAttachmentTextResult Read(EmailAttachment attachment,
         long maxBytes = 16L * 1024L * 1024L, CancellationToken cancellationToken = default) {
-        if (attachment == null) throw new ArgumentNullException(nameof(attachment));
-        if (maxBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxBytes));
+        ArgumentNullException.ThrowIfNull(attachment);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxBytes);
         cancellationToken.ThrowIfCancellationRequested();
         using Stream source = attachment.OpenContentStream();
         using var output = new MemoryStream();

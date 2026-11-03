@@ -13,7 +13,7 @@ public static class PowerPointDocumentReaderExtensions {
     /// <remarks>Input and package admission options cannot retroactively bound the model's earlier load. Source byte hashes, lengths and timestamps are not inferred from the logical name. Keep the model open to request subsequent native payload reads.</remarks>
     public static OfficeDocumentReadResult ReadDocument(this PowerPointDocument presentation, string? sourceName = null,
         ReaderOptions? options = null, ReaderPowerPointOptions? formatOptions = null, CancellationToken cancellationToken = default) {
-        if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+        ArgumentNullException.ThrowIfNull(presentation);
         cancellationToken.ThrowIfCancellationRequested();
         ReaderOptions effective = DocumentReaderEngine.NormalizeOptions(options);
         ReaderPowerPointOptions configured = PowerPointReaderAdapter.Clone(formatOptions);

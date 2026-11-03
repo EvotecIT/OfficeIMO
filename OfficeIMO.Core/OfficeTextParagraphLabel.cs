@@ -18,7 +18,7 @@ public enum OfficeTextParagraphLabelFollowedBy {
 public sealed class OfficeTextParagraphLabel {
     private OfficeTextParagraphLabel(OfficeRichTextRun run, double position, OfficeTextAlignment alignment,
         double? minimumWidth, double minimumDistance, OfficeTextParagraphLabelFollowedBy followedBy, double? textPosition) {
-        if (run == null) throw new ArgumentNullException(nameof(run));
+        ArgumentNullException.ThrowIfNull(run);
         if (run.Text.Length == 0 || run.Text.Length > 4096 || run.Text.IndexOfAny(new[] { '\r', '\n', '\t' }) >= 0)
             throw new ArgumentException("A paragraph label requires single-line text of at most 4,096 characters.", nameof(run));
         Validate(position, nameof(position)); Validate(minimumDistance, nameof(minimumDistance));

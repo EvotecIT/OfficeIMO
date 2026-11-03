@@ -12,7 +12,7 @@ internal static partial class DocumentReaderEngine {
         CancellationToken cancellationToken,
         long? maximumInputBytes = null,
         Func<string, FileStream>? openFile = null) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (!File.Exists(path)) throw new FileNotFoundException("File '" + path + "' does not exist.", path);
         long? maxInputBytes = BoundAdapterInputBytes(ResolveInitialMaxInputBytes(path, options), maximumInputBytes);
         ReaderInputLimits.EnforceFileSize(path, maxInputBytes);
@@ -44,7 +44,7 @@ internal static partial class DocumentReaderEngine {
         ReaderOptions options,
         CancellationToken cancellationToken,
         long? maximumInputBytes = null) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
         string logicalName = string.IsNullOrWhiteSpace(sourceName) ? "memory" : sourceName!.Trim();
         return CaptureAdapterInput(
@@ -127,8 +127,8 @@ internal static partial class DocumentReaderEngine {
         ReaderChunk chunk,
         ReaderAdapterInputSnapshot input,
         bool computeHashes) {
-        if (chunk == null) throw new ArgumentNullException(nameof(chunk));
-        if (input == null) throw new ArgumentNullException(nameof(input));
+        ArgumentNullException.ThrowIfNull(chunk);
+        ArgumentNullException.ThrowIfNull(input);
         chunk.Location ??= new ReaderLocation();
         chunk.Location.Path ??= input.Source.Path;
         chunk.SourceId = input.Source.SourceId;

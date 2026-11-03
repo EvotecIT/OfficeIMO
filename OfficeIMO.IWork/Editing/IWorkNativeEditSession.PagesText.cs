@@ -13,9 +13,9 @@ public sealed partial class IWorkNativeEditSession {
     public void SetPagesBodyParagraphText(IWorkObjectIdentity bodyIdentity, int paragraph, string text,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (bodyIdentity == null) throw new ArgumentNullException(nameof(bodyIdentity));
-        if (text == null) throw new ArgumentNullException(nameof(text));
-        if (paragraph < 1) throw new ArgumentOutOfRangeException(nameof(paragraph));
+        ArgumentNullException.ThrowIfNull(bodyIdentity);
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentOutOfRangeException.ThrowIfLessThan(paragraph, 1);
         if (_source.Kind != IWorkDocumentKind.Pages) throw new InvalidOperationException("Paragraph editing requires a Pages source.");
         if (_source.ContainerEntries.Any(entry => entry.Path == "Index.zip"))
             throw new NotSupportedException("Edits to nested Index.zip sources are not supported.");

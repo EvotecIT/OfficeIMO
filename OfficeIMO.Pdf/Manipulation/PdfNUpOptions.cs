@@ -35,8 +35,8 @@ public sealed class PdfNUpOptions {
     internal (double CellWidth, double CellHeight) Validate() {
         if (Columns < 1 || Columns > 8) throw new ArgumentOutOfRangeException(nameof(Columns));
         if (Rows < 1 || Rows > 8) throw new ArgumentOutOfRangeException(nameof(Rows));
-        if (MaxSheets < 1) throw new ArgumentOutOfRangeException(nameof(MaxSheets));
-        if (MaxSourcePages < 1) throw new ArgumentOutOfRangeException(nameof(MaxSourcePages));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxSheets, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxSourcePages, 1);
         if (MaxOutputBytes < 1L || MaxOutputBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(MaxOutputBytes));
         if (SignaturePolicy != PdfImpositionSignaturePolicy.Reject && SignaturePolicy != PdfImpositionSignaturePolicy.CreateUnsignedDerivative)
             throw new ArgumentOutOfRangeException(nameof(SignaturePolicy));

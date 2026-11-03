@@ -21,8 +21,8 @@ public sealed class HtmlRenderArchiveOptions {
     };
 
     internal void Validate() {
-        if (MaximumArchiveBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaximumArchiveBytes));
-        if (MaximumManifestBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaximumManifestBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumArchiveBytes, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumManifestBytes, 1);
     }
 }
 
@@ -189,7 +189,7 @@ public sealed class HtmlRenderArchiveResult {
 
     /// <summary>Writes the ZIP payload to a caller-owned stream without closing it.</summary>
     public HtmlRenderArchiveResult Save(Stream stream) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         stream.Write(_bytes, 0, _bytes.Length);
         return this;
     }
@@ -197,7 +197,7 @@ public sealed class HtmlRenderArchiveResult {
     /// <summary>Writes the ZIP payload asynchronously without closing the caller-owned stream.</summary>
     public async Task<HtmlRenderArchiveResult> SaveAsync(Stream stream,
         CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         await stream.WriteAsync(_bytes, 0, _bytes.Length, cancellationToken).ConfigureAwait(false);
         return this;
     }

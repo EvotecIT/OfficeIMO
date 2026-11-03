@@ -74,7 +74,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         internal static string CreateThemeFingerprint(NotesSlidePart part) {
-            if (part == null) throw new ArgumentNullException(nameof(part));
+            ArgumentNullException.ThrowIfNull(part);
             string theme = part.ThemeOverridePart?.ThemeOverride?.OuterXml
                 ?? string.Empty;
             string colorMap = part.NotesSlide?.ColorMapOverride?.OuterXml
@@ -84,7 +84,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal static IReadOnlyList<string>
             CreateClassicColorFingerprints(NotesSlidePart part) {
-            if (part == null) throw new ArgumentNullException(nameof(part));
+            ArgumentNullException.ThrowIfNull(part);
             A.ColorScheme? colors = part.ThemeOverridePart?.ThemeOverride?
                 .ColorScheme
                 ?? part.NotesMasterPart?.ThemePart?.Theme?.ThemeElements?
@@ -105,7 +105,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal static string CreateBackgroundFingerprint(
             NotesSlidePart part) {
-            if (part == null) throw new ArgumentNullException(nameof(part));
+            ArgumentNullException.ThrowIfNull(part);
             return LegacyPptBackgroundProjectionFingerprint.Create(part,
                 part.NotesSlide?.CommonSlideData?.Background);
         }

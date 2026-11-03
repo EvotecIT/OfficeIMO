@@ -21,21 +21,13 @@ public sealed class Rfc3161TimestampClient {
         CertificateValidationOptions? certificateValidation = null, int maximumResponseBytes = 1024 * 1024) {
         _transport = transport ?? throw new ArgumentNullException(nameof(transport));
         _validation = certificateValidation ?? new CertificateValidationOptions();
-#if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumResponseBytes);
-#else
-        if (maximumResponseBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumResponseBytes));
-#endif
         _maximumResponseBytes = maximumResponseBytes;
     }
 
     /// <summary>Requests a SHA-256 timestamp over the supplied bytes, returning a verified DER token.</summary>
     public async Task<byte[]> GetTimestampAsync(byte[] timestampedData, CancellationToken cancellationToken = default) {
-#if NET8_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(timestampedData);
-#else
-        if (timestampedData is null) throw new ArgumentNullException(nameof(timestampedData));
-#endif
         cancellationToken.ThrowIfCancellationRequested();
 #if NET8_0_OR_GREATER
         byte[] digest = SHA256.HashData(timestampedData);

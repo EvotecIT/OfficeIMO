@@ -4,7 +4,7 @@ public sealed partial class ProjectDocument {
     /// <summary>Captures a portable report from a current schedule without changing stored dates or native presentation data.</summary>
     public ProjectView CreateView(ProjectScheduleResult schedule, ProjectViewOptions? options = null, CancellationToken cancellationToken = default) {
         EnsureNotDisposed();
-        if (schedule == null) throw new ArgumentNullException(nameof(schedule));
+        ArgumentNullException.ThrowIfNull(schedule);
         CheckViewSchedule(schedule);
         var input = options ?? new ProjectViewOptions();
         var layout = ProjectViewBuilder.CopyOptions(input);

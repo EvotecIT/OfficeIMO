@@ -35,9 +35,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyXlsDrawingTextObject? textObject = null,
             LegacyXlsHeaderFooterPicture? headerFooterPicture = null,
             bool officeArtPayloadFullyTraversed = false) {
-            if (payloadLength < 0) {
-                throw new ArgumentOutOfRangeException(nameof(payloadLength));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(payloadLength);
 
             Kind = kind;
             RecordName = recordName ?? throw new ArgumentNullException(nameof(recordName));
@@ -325,9 +323,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Creates a copy of this record with updated TxO text-object metadata.
         /// </summary>
         internal LegacyXlsDrawingRecord WithTextObject(LegacyXlsDrawingTextObject textObject) {
-            if (textObject == null) {
-                throw new ArgumentNullException(nameof(textObject));
-            }
+            ArgumentNullException.ThrowIfNull(textObject);
 
             return new LegacyXlsDrawingRecord(
                 Kind,

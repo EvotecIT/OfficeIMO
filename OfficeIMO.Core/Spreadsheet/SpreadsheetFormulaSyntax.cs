@@ -181,7 +181,7 @@ public sealed class SpreadsheetFormulaSyntaxTree {
 
     /// <summary>Parses a formula using the requested grammar.</summary>
     public static SpreadsheetFormulaSyntaxTree Parse(string text, SpreadsheetFormulaDialect dialect) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(text);
         return SpreadsheetFormulaParser.Parse(text, dialect);
     }
 

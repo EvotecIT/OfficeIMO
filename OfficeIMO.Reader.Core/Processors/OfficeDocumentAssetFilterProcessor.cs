@@ -20,7 +20,7 @@ public sealed class OfficeDocumentAssetFilterProcessor : OfficeDocumentProcessor
     public override OfficeDocumentReadResult Process(
         OfficeDocumentReadResult document,
         OfficeDocumentProcessorContext context) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         var removedIds = new HashSet<string>(StringComparer.Ordinal);
         var keptIds = new HashSet<string>(StringComparer.Ordinal);
         document.Assets = FilterAssets(document.Assets, removedIds, keptIds, context.CancellationToken);

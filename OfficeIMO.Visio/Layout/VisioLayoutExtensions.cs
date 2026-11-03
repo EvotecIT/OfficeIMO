@@ -17,9 +17,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="shape">Shape to inspect.</param>
         public static VisioShapeBounds GetShapeBounds(this VisioShape shape) {
-            if (shape == null) {
-                throw new ArgumentNullException(nameof(shape));
-            }
+            ArgumentNullException.ThrowIfNull(shape);
 
             (double left, double bottom, double right, double top) = shape.GetBoundsInches();
             return new VisioShapeBounds(left, bottom, right, top);
@@ -38,9 +36,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="shapes">Shapes to inspect.</param>
         public static VisioShapeBounds GetShapeBounds(this IEnumerable<VisioShape> shapes) {
-            if (shapes == null) {
-                throw new ArgumentNullException(nameof(shapes));
-            }
+            ArgumentNullException.ThrowIfNull(shapes);
 
             bool any = false;
             double left = 0;
@@ -75,9 +71,7 @@ namespace OfficeIMO.Visio {
         /// <param name="includeGroupChildren">Whether nested group children should be included using their stored coordinates.</param>
         /// <param name="includeConnectors">Whether connector waypoints and label boxes should be included.</param>
         public static VisioShapeBounds GetContentBounds(this VisioPage page, bool includeGroupChildren = false, bool includeConnectors = true) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             VisioShapeBounds bounds = page.Shapes.GetShapeBounds();
             if (includeGroupChildren) {
@@ -111,8 +105,8 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public static VisioPage FitToContent(this VisioPage page,
             VisioFitToContentOptions options) {
-            if (page == null) throw new ArgumentNullException(nameof(page));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(page);
+            ArgumentNullException.ThrowIfNull(options);
             if (options.HorizontalMargin < 0D || double.IsNaN(options.HorizontalMargin) || double.IsInfinity(options.HorizontalMargin))
                 throw new ArgumentOutOfRangeException(nameof(options), "Horizontal margin must be non-negative and finite.");
             if (options.VerticalMargin < 0D || double.IsNaN(options.VerticalMargin) || double.IsInfinity(options.VerticalMargin))
@@ -145,9 +139,7 @@ namespace OfficeIMO.Visio {
         /// <param name="verticalMargin">Vertical margin in inches.</param>
         /// <param name="resizePage">Whether to resize the page around the content.</param>
         public static VisioPage FitToContent(this VisioPage page, double horizontalMargin, double verticalMargin, bool resizePage = true) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             if (horizontalMargin < 0) {
                 throw new ArgumentOutOfRangeException(nameof(horizontalMargin), "Margin cannot be negative.");
@@ -180,9 +172,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="page">Page to update.</param>
         public static VisioPage CenterContent(this VisioPage page) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             VisioShapeBounds bounds = page.GetContentBounds();
             if (bounds.IsEmpty) {
@@ -202,9 +192,7 @@ namespace OfficeIMO.Visio {
         /// <param name="maxAttempts">Number of search rings to try around each overlapping shape.</param>
         /// <param name="includeContainers">Whether container and background surface shapes should be moved and treated as obstacles.</param>
         public static VisioPage ResolveShapeOverlaps(this VisioPage page, double step = 0.25D, int maxAttempts = 24, bool includeContainers = false) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             if (step <= 0D || double.IsNaN(step) || double.IsInfinity(step)) {
                 throw new ArgumentOutOfRangeException(nameof(step), "Step must be a positive finite value.");

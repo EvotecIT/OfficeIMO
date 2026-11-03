@@ -93,9 +93,7 @@ if (validateExcelReaderWrite) {
     int rowCount = args.Length > 1 && int.TryParse(args[1], out int parsedRowCount)
         ? parsedRowCount
         : 1_000_000;
-    if (rowCount <= 0) {
-        throw new ArgumentOutOfRangeException(nameof(rowCount));
-    }
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowCount);
 
     var benchmark = new ExcelGeneratedRowStreamingBenchmarks { RowCount = rowCount };
     benchmark.Setup();
@@ -108,9 +106,7 @@ if (profileOfficeIMOXlsx || profileExcelReaderXlsx) {
     int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
         ? parsedIterations
         : 100;
-    if (iterations <= 0) {
-        throw new ArgumentOutOfRangeException(nameof(iterations));
-    }
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(iterations);
     ApplyProcessAffinity(args, argumentIndex: 2);
     ApplyProcessPriority(args, argumentIndex: 3);
 
@@ -144,12 +140,8 @@ if (profileOfficeIMOXlsxWrite || profileExcelReaderXlsxWrite) {
     int rowCount = args.Length > 2 && int.TryParse(args[2], out int parsedRowCount)
         ? parsedRowCount
         : 25_000;
-    if (iterations <= 0) {
-        throw new ArgumentOutOfRangeException(nameof(iterations));
-    }
-    if (rowCount <= 0) {
-        throw new ArgumentOutOfRangeException(nameof(rowCount));
-    }
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(iterations);
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowCount);
     ApplyProcessAffinity(args, argumentIndex: 3);
     ApplyProcessPriority(args, argumentIndex: 4);
 
@@ -180,9 +172,7 @@ if (comparePairedDataReaderWrite) {
     int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
         ? parsedIterations
         : 40;
-    if (iterations <= 0) {
-        throw new ArgumentOutOfRangeException(nameof(iterations));
-    }
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(iterations);
     string affinity = ApplyProcessAffinity(args, argumentIndex: 2);
     string priority = ApplyProcessPriority(args, argumentIndex: 3);
     const int warmupIterations = 12;
@@ -234,9 +224,7 @@ if (profileOfficeIMODataReaderWrite || profileLargeXlsxDataReaderWrite || profil
     int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
         ? parsedIterations
         : 100;
-    if (iterations <= 0) {
-        throw new ArgumentOutOfRangeException(nameof(iterations));
-    }
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(iterations);
     ApplyProcessAffinity(args, argumentIndex: 2);
 
     var benchmark = new ExcelDataReaderWriteBenchmarks { RowCount = 25_000 };
@@ -274,9 +262,7 @@ if (profileOfficeIMOXlsb || profileSylvanXlsb || profileOfficeIMOXls || profileS
     int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
         ? parsedIterations
         : 100;
-    if (iterations <= 0) {
-        throw new ArgumentOutOfRangeException(nameof(iterations));
-    }
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(iterations);
     ApplyProcessAffinity(args, argumentIndex: 2);
 
     bool isXlsb = profileOfficeIMOXlsb || profileSylvanXlsb;

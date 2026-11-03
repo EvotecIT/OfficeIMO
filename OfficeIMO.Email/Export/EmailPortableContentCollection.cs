@@ -37,7 +37,7 @@ public static class EmailPortableContentCollection {
     private static bool Collect(IEnumerable<EmailDocument> documents, EmailPortableContentExportOptions policy, int maxItems,
         List<EmailDiagnostic> diagnostics, CancellationToken cancellationToken,
         Func<EmailDocument, EmailPortableContentExportOptions, (long Bytes, bool Retained, IReadOnlyList<EmailDiagnostic> Diagnostics)> project) {
-        if (documents == null) throw new ArgumentNullException(nameof(documents));
+        ArgumentNullException.ThrowIfNull(documents);
         if (maxItems <= 0 || maxItems > 10000) throw new ArgumentOutOfRangeException(nameof(maxItems));
         int count = 0; long bytes = 0; bool retained = true;
         foreach (EmailDocument document in documents) {

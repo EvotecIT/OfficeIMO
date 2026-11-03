@@ -32,15 +32,15 @@ public sealed class AsciiDocReferenceCatalog {
     /// <summary>Gets the catalog's explicit or generated ID for a block, or null when it has none.</summary>
     /// <remarks>Rebuild the catalog after editing titles, IDs, attributes, or document order.</remarks>
     public string? GetBlockId(AsciiDocBlock block) {
-        if (block == null) throw new ArgumentNullException(nameof(block));
+        ArgumentNullException.ThrowIfNull(block);
         return _blockIds.TryGetValue(block, out string? id) ? id : null;
     }
     internal (AsciiDocBlock Owner, AsciiDocDocumentAttributes Attributes) GetFootnoteContext(AsciiDocFootnoteInline footnote) => _contexts[footnote];
 
     /// <summary>Builds a bounded snapshot without preprocessing includes or fetching resources.</summary>
     public static AsciiDocReferenceCatalog Create(AsciiDocDocument document, int maximumNestingDepth = 64, System.Threading.CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (maximumNestingDepth < 1) throw new ArgumentOutOfRangeException(nameof(maximumNestingDepth));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumNestingDepth, 1);
         cancellationToken.ThrowIfCancellationRequested();
         var result = new AsciiDocReferenceCatalog();
         var references = new List<(string Target, AsciiDocSourceSpan Span)>();

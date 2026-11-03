@@ -34,9 +34,7 @@ public sealed class HtmlCapabilityGalleryArtifact {
     /// <param name="mediaType">Artifact media type.</param>
     /// <returns>A descriptor containing file length and SHA-256 hash.</returns>
     public static HtmlCapabilityGalleryArtifact FromFile(string id, string kind, string path, string mediaType) {
-        if (path == null) {
-            throw new ArgumentNullException(nameof(path));
-        }
+        ArgumentNullException.ThrowIfNull(path);
 
         var info = new FileInfo(path);
         using FileStream stream = File.OpenRead(path);
@@ -55,9 +53,7 @@ public sealed class HtmlCapabilityGalleryArtifact {
     /// <param name="content">Text content to write.</param>
     /// <returns>A descriptor containing file length and SHA-256 hash.</returns>
     public static HtmlCapabilityGalleryArtifact WriteTextFile(string id, string kind, string path, string mediaType, string content) {
-        if (path == null) {
-            throw new ArgumentNullException(nameof(path));
-        }
+        ArgumentNullException.ThrowIfNull(path);
 
         string? directory = System.IO.Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(directory)) {

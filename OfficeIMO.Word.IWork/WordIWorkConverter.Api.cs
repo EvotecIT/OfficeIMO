@@ -13,7 +13,7 @@ public static partial class WordIWorkConverter {
     /// Use <see cref="PagesToWordResult.RequireCompleteEditableReconstruction"/> to reject visual fallbacks and incomplete reconstruction.</remarks>
     public static PagesToWordResult ToWordResult(this IWorkSourceDocument package, IWorkConversionOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (package == null) throw new ArgumentNullException(nameof(package));
+        ArgumentNullException.ThrowIfNull(package);
         cancellationToken.ThrowIfCancellationRequested();
         return ProjectPages(package, options);
     }
@@ -25,7 +25,7 @@ public static partial class WordIWorkConverter {
     /// <summary>Converts a Pages document into the editable Word model and returns the completed conversion report.</summary>
     public static WordDocument ToWord(this IWorkSourceDocument package, PagesWordExportOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (package == null) throw new ArgumentNullException(nameof(package));
+        ArgumentNullException.ThrowIfNull(package);
         cancellationToken.ThrowIfCancellationRequested();
         PagesToWordResult result = package.ToWordResult(options?.ConversionOptions, cancellationToken);
         WordDocument value = result.Value;

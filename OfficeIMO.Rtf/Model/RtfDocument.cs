@@ -131,7 +131,7 @@ public sealed partial class RtfDocument {
 
     /// <summary>Parses RTF text and returns the semantic document, lossless syntax, and diagnostics.</summary>
     public static RtfReadResult ParseResult(string rtf, RtfLoadOptions? options = null, CancellationToken cancellationToken = default) {
-        if (rtf == null) throw new ArgumentNullException(nameof(rtf));
+        ArgumentNullException.ThrowIfNull(rtf);
         RtfLoadOptions readOptions = options ?? new RtfLoadOptions();
         RtfSyntaxTree tree = RtfSyntaxTree.Parse(rtf, readOptions, cancellationToken);
         return RtfSemanticReader.Read(tree, readOptions, cancellationToken);
@@ -155,7 +155,7 @@ public sealed partial class RtfDocument {
 
     /// <summary>Loads RTF from source bytes using the byte-preserving lossless representation.</summary>
     public static RtfReadResult LoadResult(byte[] bytes, RtfLoadOptions? options = null, CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         RtfLoadOptions readOptions = options ?? new RtfLoadOptions();
         new RtfReadLimitGuard(readOptions, cancellationToken).CheckInputBytes(bytes.LongLength);
         return ParseResult(RtfBytePreservingEncoding.GetString(bytes), readOptions, cancellationToken).AttachOriginalBytes(bytes);
@@ -167,7 +167,7 @@ public sealed partial class RtfDocument {
 
     /// <summary>Loads RTF from a stream with lossless syntax and diagnostics.</summary>
     public static RtfReadResult LoadResult(Stream stream, RtfLoadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         RtfLoadOptions readOptions = options ?? new RtfLoadOptions();
         byte[] bytes = RtfBytePreservingEncoding.ReadBytesToEnd(stream, readOptions.Limits.MaxInputBytes, cancellationToken);
         string rtf = DecodeInput(bytes, encoding);
@@ -344,7 +344,7 @@ public sealed partial class RtfDocument {
 
     /// <summary>Adds an existing custom document property.</summary>
     public RtfUserProperty AddUserProperty(RtfUserProperty property) {
-        if (property == null) throw new ArgumentNullException(nameof(property));
+        ArgumentNullException.ThrowIfNull(property);
         _userProperties.Add(property);
         return property;
     }
@@ -378,7 +378,7 @@ public sealed partial class RtfDocument {
 
     /// <summary>Adds a file table reference and returns it.</summary>
     public RtfFileReference AddFileReference(string path, RtfFileSource sources = RtfFileSource.Ntfs) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
 
         int id = _fileReferences.Count == 0 ? 0 : _fileReferences.Max(file => file.Id) + 1;
         var reference = new RtfFileReference(id, path) {
@@ -448,7 +448,7 @@ public sealed partial class RtfDocument {
     }
 
     internal void AddParsedBlock(IRtfBlock block) {
-        if (block == null) throw new ArgumentNullException(nameof(block));
+        ArgumentNullException.ThrowIfNull(block);
         _blocks.Add(block);
         if (block is RtfParagraph paragraph) {
             _paragraphs.Add(paragraph);
@@ -456,7 +456,7 @@ public sealed partial class RtfDocument {
     }
 
     internal void AddParsedSection(RtfSection section) {
-        if (section == null) throw new ArgumentNullException(nameof(section));
+        ArgumentNullException.ThrowIfNull(section);
         section.Attach(this);
         _sections.Add(section);
     }

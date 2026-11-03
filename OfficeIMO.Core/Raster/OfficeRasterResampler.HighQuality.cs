@@ -56,7 +56,7 @@ public static partial class OfficeRasterResampler {
     }
 
     internal static float[] AllocateExactHighQualityScratch(int length) {
-        if (length <= 0) throw new ArgumentOutOfRangeException(nameof(length));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(length);
 #if NET8_0_OR_GREATER
         return GC.AllocateUninitializedArray<float>(length);
 #else

@@ -8,7 +8,7 @@ public static class OneNoteNotebookReader {
 
     /// <summary>Reads a notebook from a local <c>.onetoc2</c> file.</summary>
     public static OneNoteNotebook Read(string tableOfContentsPath, OneNoteNotebookReaderOptions? options = null) {
-        if (tableOfContentsPath == null) throw new ArgumentNullException(nameof(tableOfContentsPath));
+        ArgumentNullException.ThrowIfNull(tableOfContentsPath);
         string fullPath = Path.GetFullPath(tableOfContentsPath);
         if (!File.Exists(fullPath)) throw new FileNotFoundException("OneNote table-of-contents file does not exist.", fullPath);
         var effective = options ?? new OneNoteNotebookReaderOptions();
@@ -32,9 +32,9 @@ public static class OneNoteNotebookReader {
         Stream tableOfContentsStream,
         string sourceName = "Open Notebook.onetoc2",
         OneNoteNotebookReaderOptions? options = null) {
-        if (tableOfContentsStream == null) throw new ArgumentNullException(nameof(tableOfContentsStream));
+        ArgumentNullException.ThrowIfNull(tableOfContentsStream);
         if (!tableOfContentsStream.CanRead || !tableOfContentsStream.CanSeek) throw new ArgumentException("The OneNote table-of-contents stream must be readable and seekable.", nameof(tableOfContentsStream));
-        if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
+        ArgumentNullException.ThrowIfNull(sourceName);
         var effective = options ?? new OneNoteNotebookReaderOptions();
         ValidateOptions(effective);
 

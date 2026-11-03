@@ -35,7 +35,7 @@ public sealed class EmailStoreTableRow {
     /// <summary>Gets a projected value by canonical field.</summary>
     public object? this[EmailStoreField field] {
         get {
-            if (field == null) throw new ArgumentNullException(nameof(field));
+            ArgumentNullException.ThrowIfNull(field);
             if (!_indexes.TryGetValue(field.Key, out int index)) {
                 throw new KeyNotFoundException(string.Concat("Field '", field.Key, "' is not in this projection."));
             }

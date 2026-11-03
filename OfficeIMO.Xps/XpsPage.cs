@@ -21,7 +21,7 @@ public sealed partial class XpsPage {
     public XElement GetMarkup() => new(_markup);
     /// <summary>Replaces page markup in the same dialect; native unsupported features remain available for preservation.</summary>
     public void ReplaceMarkup(XElement markup) {
-        if (markup == null) throw new ArgumentNullException(nameof(markup));
+        ArgumentNullException.ThrowIfNull(markup);
         if (markup.Name != _markup.Name) throw new ArgumentException("Expected FixedPage in the document dialect.", nameof(markup));
         ValidatePageDimension(XpsPackage.Number((string?)markup.Attribute("Width"))); ValidatePageDimension(XpsPackage.Number((string?)markup.Attribute("Height")));
         // Reapply XML bounds before taking a caller-owned tree into the document.
@@ -40,7 +40,7 @@ public sealed partial class XpsPage {
     }
     /// <summary>Appends Unicode glyph text using an embedded font. Origin is the baseline in XPS units.</summary>
     public XpsPage AddText(string text, string fontUri, double fontSize, double originX, double originY, string fill = "#FF000000") {
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(text);
         ValidateDimension(fontSize); _ = XpsPackage.Number(XpsPackage.N(originX)); _ = XpsPackage.Number(XpsPackage.N(originY));
         _ = Document.GetPartBytes(XpsPackage.Resolve(PartName, fontUri));
         _markup.Add(new XElement(_markup.Name.Namespace + "Glyphs", new XAttribute("FontUri", fontUri), new XAttribute("FontRenderingEmSize", XpsPackage.N(fontSize)),

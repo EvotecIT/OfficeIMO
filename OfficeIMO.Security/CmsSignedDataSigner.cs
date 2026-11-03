@@ -34,8 +34,8 @@ public static class CmsSignedDataSigner {
         CmsSigningOptions? options,
         IEnumerable<X509Certificate2>? certificateChain) {
 #if NETSTANDARD2_0 || NET472
-        if (content == null) throw new ArgumentNullException(nameof(content));
-        if (signingCertificate == null) throw new ArgumentNullException(nameof(signingCertificate));
+        ArgumentNullException.ThrowIfNull(content);
+        ArgumentNullException.ThrowIfNull(signingCertificate);
 #else
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(signingCertificate);

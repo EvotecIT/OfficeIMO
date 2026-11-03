@@ -5,7 +5,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
     /// <summary>Projects and compares the common XLSB worksheet AutoFilter subset.</summary>
     internal static class XlsbWorksheetAutoFilterProjector {
         internal static void Apply(ExcelSheet sheet, XlsbAutoFilter? source) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             if (source == null) return;
 
             Worksheet worksheet = sheet.WorksheetPart.Worksheet

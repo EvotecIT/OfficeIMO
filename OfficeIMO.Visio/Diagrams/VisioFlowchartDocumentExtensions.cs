@@ -9,7 +9,7 @@ namespace OfficeIMO.Visio.Diagrams {
         /// Adds a semantic flowchart page and returns the document for chaining.
         /// </summary>
         public static VisioDocument Flowchart(this VisioDocument document, string pageName, Action<VisioFlowchartBuilder> configure) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             VisioFlowchartBuilder builder = new VisioFlowchartBuilder(document, pageName);
             configure?.Invoke(builder);
             builder.Build();

@@ -22,7 +22,7 @@ public static class WordMarkdownExtractionExtensions {
         WordMarkdownChunkingOptions? chunking = null,
         string? sourcePath = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         markdownOptions ??= new WordMarkdownExportOptions();
         chunking ??= new WordMarkdownChunkingOptions();
 

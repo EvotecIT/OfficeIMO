@@ -49,8 +49,8 @@ public static class HtmlCssPropertyParser {
         string value,
         HtmlCssTokenizationOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (propertyName == null) throw new ArgumentNullException(nameof(propertyName));
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(propertyName);
+        ArgumentNullException.ThrowIfNull(value);
         ValidateInputLength(value, options);
         string authoredValue = value.Trim();
         IReadOnlyList<HtmlCssToken> tokens = HtmlCssTokenizer.Tokenize(authoredValue, options, cancellationToken);
@@ -66,7 +66,7 @@ public static class HtmlCssPropertyParser {
         HtmlCssDeclaration declaration,
         HtmlCssTokenizationOptions? options,
         CancellationToken cancellationToken = default) {
-        if (declaration == null) throw new ArgumentNullException(nameof(declaration));
+        ArgumentNullException.ThrowIfNull(declaration);
         cancellationToken.ThrowIfCancellationRequested();
         string value = declaration.ValueText;
         ValidateInputLength(value, options);

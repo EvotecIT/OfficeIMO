@@ -18,8 +18,8 @@ public sealed class PdfCmsExternalSigner : IPdfExternalSigner, IDisposable {
         CmsSigningOptions? signingOptions = null,
         IEnumerable<X509Certificate2>? certificateChain = null) {
 #if NETSTANDARD2_0 || NET472
-        if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
-        if (certificate == null) throw new ArgumentNullException(nameof(certificate));
+        ArgumentNullException.ThrowIfNull(securityProvider);
+        ArgumentNullException.ThrowIfNull(certificate);
 #else
         ArgumentNullException.ThrowIfNull(securityProvider);
         ArgumentNullException.ThrowIfNull(certificate);
@@ -44,7 +44,7 @@ public sealed class PdfCmsExternalSigner : IPdfExternalSigner, IDisposable {
     /// <inheritdoc />
     public byte[] Sign(PdfExternalSignatureRequest request) {
 #if NETSTANDARD2_0 || NET472
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
 #else
         ArgumentNullException.ThrowIfNull(request);
 #endif

@@ -41,7 +41,7 @@ public sealed class IcsRecurrenceRule {
 
     /// <summary>Parses an RRULE value without discarding unknown parts.</summary>
     public static IcsRecurrenceRule Parse(string value) {
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
         var rule = new IcsRecurrenceRule();
         foreach (string segment in value.Split(';')) {
             int equals = segment.IndexOf('=');

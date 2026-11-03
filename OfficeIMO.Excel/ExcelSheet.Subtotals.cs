@@ -4,7 +4,7 @@ using OfficeIMO.Excel.Reports;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         internal ExcelSubtotalResult AddSubtotalSummaryCore(ExcelSubtotalOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             ValidateSubtotalOptions(options);
 
             _excelDocument.MaterializeDeferredDataSetImport();

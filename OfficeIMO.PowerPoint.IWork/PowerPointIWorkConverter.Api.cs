@@ -13,7 +13,7 @@ public static partial class PowerPointIWorkConverter {
     /// Use <see cref="KeynoteToPowerPointResult.RequireCompleteEditableReconstruction"/> to reject visual fallbacks and incomplete reconstruction.</remarks>
     public static KeynoteToPowerPointResult ToPowerPointResult(this IWorkSourceDocument package, IWorkConversionOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (package == null) throw new ArgumentNullException(nameof(package));
+        ArgumentNullException.ThrowIfNull(package);
         cancellationToken.ThrowIfCancellationRequested();
         return ProjectKeynote(package, options);
     }
@@ -25,7 +25,7 @@ public static partial class PowerPointIWorkConverter {
     /// <summary>Converts a Keynote presentation into the editable PowerPoint model and returns the completed conversion report.</summary>
     public static PowerPointDocument ToPowerPoint(this IWorkSourceDocument package, KeynotePowerPointExportOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (package == null) throw new ArgumentNullException(nameof(package));
+        ArgumentNullException.ThrowIfNull(package);
         cancellationToken.ThrowIfCancellationRequested();
         KeynoteToPowerPointResult result = package.ToPowerPointResult(options?.ConversionOptions, cancellationToken);
         PowerPointDocument value = result.Value;

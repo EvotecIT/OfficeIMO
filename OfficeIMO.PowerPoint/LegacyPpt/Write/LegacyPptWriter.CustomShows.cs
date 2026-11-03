@@ -15,7 +15,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static bool TryReadCustomShows(PowerPointDocument presentation,
             out LegacyPptWriterCustomShowCatalog catalog, out string? reason) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+            ArgumentNullException.ThrowIfNull(presentation);
             catalog = new LegacyPptWriterCustomShowCatalog();
             reason = null;
             PresentationPart? presentationPart = presentation.OpenXmlDocument
@@ -85,8 +85,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static bool TryBuildNamedShowsRecord(
             LegacyPptWriterCustomShowCatalog catalog,
             Func<string, uint?> resolveSlideId, out byte[] bytes) {
-            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
-            if (resolveSlideId == null) throw new ArgumentNullException(nameof(resolveSlideId));
+            ArgumentNullException.ThrowIfNull(catalog);
+            ArgumentNullException.ThrowIfNull(resolveSlideId);
             if (catalog.Shows.Count == 0) {
                 bytes = Array.Empty<byte>();
                 return true;

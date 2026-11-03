@@ -121,7 +121,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         internal void WriteWideString(string value) {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
             WriteUInt32(checked((uint)value.Length));
 
             byte[] buffer = GetBuffer();

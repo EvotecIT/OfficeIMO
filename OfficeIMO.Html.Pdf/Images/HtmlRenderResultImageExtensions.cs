@@ -9,7 +9,7 @@ public static class HtmlRenderResultImageExtensions {
     public static IReadOnlyList<OfficeImageExportResult> ExportImages(
         this HtmlRenderResult result,
         CancellationToken cancellationToken = default) {
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(result);
         cancellationToken.ThrowIfCancellationRequested();
         OfficeImageExportFormat format = ResolveFormat(result.Request.Encoder);
         HtmlRenderOptions options = result.ResolvedOptions.Clone();
@@ -25,7 +25,7 @@ public static class HtmlRenderResultImageExtensions {
     public static OfficeImageExportResult ExportImage(
         this HtmlRenderResult result,
         CancellationToken cancellationToken = default) {
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(result);
         if (result.Document.Pages.Count != 1) {
             throw new InvalidOperationException("Single-image export requires a selected, viewport, continuous, or stitched one-surface request.");
         }

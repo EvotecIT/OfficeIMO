@@ -79,7 +79,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Adds a property and returns the value attached to this workbook.</summary>
         public ExcelCustomProperty Add(string key, ExcelCustomProperty value) {
             string normalizedKey = NormalizeKey(key);
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
             _properties.Add(normalizedKey, value);
             Attach(value);
             MarkChanged();

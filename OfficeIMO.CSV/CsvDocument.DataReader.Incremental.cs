@@ -34,7 +34,7 @@ public sealed partial class CsvDocument
         CsvReaderOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        if (stream is null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
         return CreateIncrementalReaderAsync(
             parsing => CsvFile.OpenTextReader(stream, parsing, leaveOpen: true, CsvLineReader.DefaultBufferSize),

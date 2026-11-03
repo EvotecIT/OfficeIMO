@@ -78,7 +78,7 @@ public static class TesseractOcr {
     }
 
     internal static string ResolveLanguageExpression(TesseractOcrSessionOptions options) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         if (options.Engine == null) throw new ArgumentException("Tesseract engine options cannot be null.", nameof(options));
         string? custom = string.IsNullOrWhiteSpace(options.CustomLanguageExpression) ? null : options.CustomLanguageExpression!.Trim();
         string? engineDefault = string.IsNullOrWhiteSpace(options.Engine.Language) ? null : options.Engine.Language!.Trim();

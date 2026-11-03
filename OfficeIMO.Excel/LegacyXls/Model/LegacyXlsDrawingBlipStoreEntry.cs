@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly byte[] _embeddedBlipPayloadBytes;
 
         internal LegacyXlsDrawingBlipStoreEntry(OfficeArtBlipStoreEntry source) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(source);
             RecordInstance = source.RecordInstance;
             RecordInstanceBlipTypeKind = ToLegacyType(source.RecordInstanceBlipType);
             RecordInstanceBlipTypeName = source.RecordInstanceBlipTypeName;

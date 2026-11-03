@@ -53,10 +53,7 @@ internal sealed class VisioDslContext : IDisposable
 
     internal IDisposable Push(VisioPage page)
     {
-        if (page == null)
-        {
-            throw new ArgumentNullException(nameof(page));
-        }
+        ArgumentNullException.ThrowIfNull(page);
 
         _pages.Push(page);
         return new PopToken(this, page);
@@ -64,15 +61,9 @@ internal sealed class VisioDslContext : IDisposable
 
     internal void RegisterShape(VisioPage page, string? key, VisioShape shape)
     {
-        if (page == null)
-        {
-            throw new ArgumentNullException(nameof(page));
-        }
+        ArgumentNullException.ThrowIfNull(page);
 
-        if (shape == null)
-        {
-            throw new ArgumentNullException(nameof(shape));
-        }
+        ArgumentNullException.ThrowIfNull(shape);
 
         if (!_shapesByPage.TryGetValue(page, out var shapesByKey))
         {
@@ -98,10 +89,7 @@ internal sealed class VisioDslContext : IDisposable
 
     internal VisioShape ResolveShape(VisioPage page, string value)
     {
-        if (page == null)
-        {
-            throw new ArgumentNullException(nameof(page));
-        }
+        ArgumentNullException.ThrowIfNull(page);
 
         if (string.IsNullOrWhiteSpace(value))
         {
@@ -130,10 +118,7 @@ internal sealed class VisioDslContext : IDisposable
 
     internal void RegisterStencilCatalog(string? key, VisioStencilCatalog catalog, bool makeDefault)
     {
-        if (catalog == null)
-        {
-            throw new ArgumentNullException(nameof(catalog));
-        }
+        ArgumentNullException.ThrowIfNull(catalog);
 
         if (!string.IsNullOrWhiteSpace(key))
         {

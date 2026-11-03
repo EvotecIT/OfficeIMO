@@ -28,7 +28,7 @@ public static partial class OfficeTextHyphenationPatterns {
     /// <param name="token">One token; embedded whitespace, digits and internal punctuation suppress automatic breaks.</param>
     /// <param name="language">A supported language tag. An empty or unsupported tag produces no breaks.</param>
     public static IReadOnlyList<int> GetBreakpoints(string token, string? language) {
-        if (token == null) throw new ArgumentNullException(nameof(token));
+        ArgumentNullException.ThrowIfNull(token);
         Lazy<PatternDictionary>? selected = SelectLanguage(language);
         if (selected == null || token.Length == 0 || token.Length > 512) return Array.Empty<int>();
 

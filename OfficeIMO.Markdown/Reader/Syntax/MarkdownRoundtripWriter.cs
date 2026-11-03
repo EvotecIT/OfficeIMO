@@ -17,9 +17,7 @@ internal static class MarkdownRoundtripWriter {
     /// result retained the original input and no document transforms reported changes.
     /// </remarks>
     public static MarkdownRoundtripResult WriteUnchanged(MarkdownParseInfo result) {
-        if (result == null) {
-            throw new ArgumentNullException(nameof(result));
-        }
+        ArgumentNullException.ThrowIfNull(result);
 
         if (!result.PreservesOriginalMarkdown) {
             return GeneratedWithDiagnostic(
@@ -45,9 +43,7 @@ internal static class MarkdownRoundtripWriter {
     /// Applies one source edit and preserves original source bytes around it when the parse result can be mapped safely.
     /// </summary>
     public static MarkdownRoundtripResult WriteWithSourceEdit(MarkdownParseInfo result, MarkdownNativeSourceEdit edit) {
-        if (edit == null) {
-            throw new ArgumentNullException(nameof(edit));
-        }
+        ArgumentNullException.ThrowIfNull(edit);
 
         return WriteWithSourceEdits(result, new[] { edit });
     }
@@ -58,13 +54,9 @@ internal static class MarkdownRoundtripWriter {
     public static MarkdownRoundtripResult WriteWithSourceEdits(
         MarkdownParseInfo result,
         IEnumerable<MarkdownNativeSourceEdit> edits) {
-        if (result == null) {
-            throw new ArgumentNullException(nameof(result));
-        }
+        ArgumentNullException.ThrowIfNull(result);
 
-        if (edits == null) {
-            throw new ArgumentNullException(nameof(edits));
-        }
+        ArgumentNullException.ThrowIfNull(edits);
 
         var editList = edits.Where(edit => edit != null).ToArray();
         if (editList.Length == 0) {

@@ -34,8 +34,8 @@ internal static class OfficeRasterScaleLimiter {
         ValidatePositive(width, nameof(width));
         ValidatePositive(height, nameof(height));
         ValidatePositive(requestedScale, nameof(requestedScale));
-        if (maximumPixels < 1L) throw new ArgumentOutOfRangeException(nameof(maximumPixels));
-        if (maximumDimension < 1) throw new ArgumentOutOfRangeException(nameof(maximumDimension));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumPixels, 1L);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumDimension, 1);
 
         if (Fits(width, height, requestedScale, maximumPixels, maximumDimension, toleratesNoise: true, out int requestedWidth, out int requestedHeight)) {
             return new OfficeRasterScaleLimit(requestedScale, requestedWidth, requestedHeight, false);

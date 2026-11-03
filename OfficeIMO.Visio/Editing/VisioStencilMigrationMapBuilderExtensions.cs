@@ -73,15 +73,11 @@ namespace OfficeIMO.Visio {
         }
 
         private static void RequireBuilder(VisioStencilMigrationMapBuilder builder) {
-            if (builder == null) {
-                throw new ArgumentNullException(nameof(builder));
-            }
+            ArgumentNullException.ThrowIfNull(builder);
         }
 
         internal static VisioStencilShape Resolve(VisioStencilCatalog catalog, IEnumerable<string> replacementQueries, string parameterName) {
-            if (catalog == null) {
-                throw new ArgumentNullException(nameof(catalog));
-            }
+            ArgumentNullException.ThrowIfNull(catalog);
 
             if (replacementQueries == null) {
                 throw new ArgumentNullException(parameterName);

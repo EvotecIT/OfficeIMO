@@ -16,7 +16,7 @@ public static partial class OcrEngineRunner {
 
     /// <summary>Reads and validates the stable identifier exposed by an OCR engine.</summary>
     public static string GetValidatedEngineId(IOcrEngine engine) {
-        if (engine == null) throw new ArgumentNullException(nameof(engine));
+        ArgumentNullException.ThrowIfNull(engine);
         return ValidateEngineId(engine.Id, nameof(engine));
     }
 
@@ -47,7 +47,7 @@ public static partial class OcrEngineRunner {
 
     /// <summary>Captures one validated identity and capability snapshot for a logical OCR operation.</summary>
     public static OcrEngineExecution CreateExecution(IOcrEngine engine) {
-        if (engine == null) throw new ArgumentNullException(nameof(engine));
+        ArgumentNullException.ThrowIfNull(engine);
         string engineId = GetValidatedEngineId(engine);
         OcrEngineCapabilities capabilities = (engine.Capabilities ?? new OcrEngineCapabilities()).Clone();
         return new OcrEngineExecution(engine, engineId, capabilities);
@@ -75,8 +75,8 @@ public static partial class OcrEngineRunner {
         CancellationToken cancellationToken,
         OcrResultCaptureLimits? captureLimits = null,
         bool awaitProviderSettlement = false) {
-        if (execution == null) throw new ArgumentNullException(nameof(execution));
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(execution);
+        ArgumentNullException.ThrowIfNull(request);
         if (request.Operation != OcrOperation.RecognizeText && request.Operation != OcrOperation.DetectOrientation)
             throw new ArgumentOutOfRangeException(nameof(request.Operation));
         if (request.Operation == OcrOperation.DetectOrientation && !execution.Capabilities.SupportsOrientationDetection)

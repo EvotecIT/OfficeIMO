@@ -28,16 +28,16 @@ public sealed class EmailStorePstMergeOptions {
         if (!Enum.IsDefined(typeof(EmailStoreMergeFolderMode), folderMode)) {
             throw new ArgumentOutOfRangeException(nameof(folderMode));
         }
-        if (maxItems <= 0) throw new ArgumentOutOfRangeException(nameof(maxItems));
-        if (maxFolderCount <= 0) throw new ArgumentOutOfRangeException(nameof(maxFolderCount));
-        if (maxNestedMessageDepth < 0) throw new ArgumentOutOfRangeException(nameof(maxNestedMessageDepth));
-        if (maxRetries < 0) throw new ArgumentOutOfRangeException(nameof(maxRetries));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxItems);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxFolderCount);
+        ArgumentOutOfRangeException.ThrowIfNegative(maxNestedMessageDepth);
+        ArgumentOutOfRangeException.ThrowIfNegative(maxRetries);
         TimeSpan delay = retryDelay ?? TimeSpan.FromMilliseconds(100);
         if (delay < TimeSpan.Zero || delay > TimeSpan.FromMinutes(1)) {
             throw new ArgumentOutOfRangeException(nameof(retryDelay));
         }
-        if (maxIndexRecordsInMemory <= 0) throw new ArgumentOutOfRangeException(nameof(maxIndexRecordsInMemory));
-        if (maxDiagnostics <= 0) throw new ArgumentOutOfRangeException(nameof(maxDiagnostics));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxIndexRecordsInMemory);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDiagnostics);
 
         OverwriteExisting = overwriteExisting;
         DisplayName = string.IsNullOrWhiteSpace(displayName) ? "OfficeIMO Merged Stores" : displayName!.Trim();

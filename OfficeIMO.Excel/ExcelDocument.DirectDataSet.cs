@@ -60,8 +60,8 @@ namespace OfficeIMO.Excel {
             bool includeAutoFilter = false,
             bool autoFit = false,
             bool copyTable = true) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
-            if (table == null) throw new ArgumentNullException(nameof(table));
+            ArgumentNullException.ThrowIfNull(sheet);
+            ArgumentNullException.ThrowIfNull(table);
             if (!ReferenceEquals(sheet.Document, this)) {
                 return;
             }
@@ -134,8 +134,8 @@ namespace OfficeIMO.Excel {
             bool copyTable = false,
             CancellationToken cancellationToken = default,
             bool eagerValueSnapshot = false) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
-            if (table == null) throw new ArgumentNullException(nameof(table));
+            ArgumentNullException.ThrowIfNull(sheet);
+            ArgumentNullException.ThrowIfNull(table);
             if (!ReferenceEquals(sheet.Document, this)) {
                 return false;
             }
@@ -241,10 +241,10 @@ namespace OfficeIMO.Excel {
             bool preserveMissingValues = true,
             CancellationToken cancellationToken = default) {
             result = null;
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
-            if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
-            if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
-            if (rows == null) throw new ArgumentNullException(nameof(rows));
+            ArgumentNullException.ThrowIfNull(sheet);
+            ArgumentNullException.ThrowIfNull(columnNames);
+            ArgumentNullException.ThrowIfNull(columnTypes);
+            ArgumentNullException.ThrowIfNull(rows);
             cancellationToken.ThrowIfCancellationRequested();
             if (!ReferenceEquals(sheet.Document, this)) {
                 return false;
@@ -346,10 +346,10 @@ namespace OfficeIMO.Excel {
             bool replacingPendingDirectCellValues = false,
             bool includeCellReferences = true,
             bool preserveMissingValues = false) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
-            if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
-            if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
-            if (values == null) throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(sheet);
+            ArgumentNullException.ThrowIfNull(columnNames);
+            ArgumentNullException.ThrowIfNull(columnTypes);
+            ArgumentNullException.ThrowIfNull(values);
             if (!ReferenceEquals(sheet.Document, this)) {
                 return false;
             }
@@ -406,10 +406,10 @@ namespace OfficeIMO.Excel {
             bool includeCellReferences = true,
             bool preserveMissingValues = true,
             CancellationToken cancellationToken = default) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
-            if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
-            if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
-            if (rows == null) throw new ArgumentNullException(nameof(rows));
+            ArgumentNullException.ThrowIfNull(sheet);
+            ArgumentNullException.ThrowIfNull(columnNames);
+            ArgumentNullException.ThrowIfNull(columnTypes);
+            ArgumentNullException.ThrowIfNull(rows);
             cancellationToken.ThrowIfCancellationRequested();
             if (!ReferenceEquals(sheet.Document, this)) {
                 return;
@@ -463,10 +463,10 @@ namespace OfficeIMO.Excel {
             bool autoFit = false,
             bool includeCellReferences = true,
             bool preserveMissingValues = false) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
-            if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
-            if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
-            if (values == null) throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(sheet);
+            ArgumentNullException.ThrowIfNull(columnNames);
+            ArgumentNullException.ThrowIfNull(columnTypes);
+            ArgumentNullException.ThrowIfNull(values);
             if (!ReferenceEquals(sheet.Document, this)) {
                 return;
             }
@@ -507,7 +507,7 @@ namespace OfficeIMO.Excel {
             ExcelTableStyle tableStyle,
             bool includeAutoFilter,
             IReadOnlyList<string> columnNames) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             if (!ReferenceEquals(sheet.Document, this)) {
                 return false;
             }
@@ -552,7 +552,7 @@ namespace OfficeIMO.Excel {
             bool includeHeaders,
             out IReadOnlyList<string>? headers) {
             headers = null;
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             if (!ReferenceEquals(sheet.Document, this)) {
                 return false;
             }

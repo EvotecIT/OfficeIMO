@@ -87,7 +87,7 @@ public sealed partial class DocBookDocument {
 
     /// <summary>Parses DocBook text using secure, bounded XML settings.</summary>
     public static DocBookDocument Parse(string text, DocBookLoadOptions? options = null, CancellationToken cancellationToken = default) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(text);
         options ??= new DocBookLoadOptions(); options.Validate();
         if (text.Length > options.MaxCharacters) throw new InvalidDataException("DocBook input exceeds MaxCharacters.");
         cancellationToken.ThrowIfCancellationRequested();

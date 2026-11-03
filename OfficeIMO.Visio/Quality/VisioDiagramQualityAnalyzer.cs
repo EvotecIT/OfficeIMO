@@ -25,9 +25,7 @@ namespace OfficeIMO.Visio {
         /// <param name="document">Document to analyze.</param>
         /// <param name="options">Analysis options.</param>
         public static IReadOnlyList<VisioDiagramQualityIssue> AnalyzeVisualQuality(this VisioDocument document, VisioDiagramQualityOptions? options = null) {
-            if (document == null) {
-                throw new ArgumentNullException(nameof(document));
-            }
+            ArgumentNullException.ThrowIfNull(document);
 
             VisioDiagramQualityOptions resolvedOptions = options?.Clone() ?? new VisioDiagramQualityOptions();
             List<VisioDiagramQualityIssue> issues = new();
@@ -52,9 +50,7 @@ namespace OfficeIMO.Visio {
             this VisioDocument document,
             VisioDiagramQualityOptions? options = null,
             VisioDiagramQualityIssueSeverity minimumSeverity = VisioDiagramQualityIssueSeverity.Warning) {
-            if (document == null) {
-                throw new ArgumentNullException(nameof(document));
-            }
+            ArgumentNullException.ThrowIfNull(document);
 
             document.GetVisualQualityReport(options).EnsureClean(minimumSeverity);
             return document;
@@ -66,9 +62,7 @@ namespace OfficeIMO.Visio {
         /// <param name="page">Page to analyze.</param>
         /// <param name="options">Analysis options.</param>
         public static IReadOnlyList<VisioDiagramQualityIssue> AnalyzeVisualQuality(this VisioPage page, VisioDiagramQualityOptions? options = null) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             VisioDiagramQualityOptions resolvedOptions = options?.Clone() ?? new VisioDiagramQualityOptions();
             List<VisioDiagramQualityIssue> issues = new();
@@ -104,9 +98,7 @@ namespace OfficeIMO.Visio {
             this VisioPage page,
             VisioDiagramQualityOptions? options = null,
             VisioDiagramQualityIssueSeverity minimumSeverity = VisioDiagramQualityIssueSeverity.Warning) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             page.GetVisualQualityReport(options).EnsureClean(minimumSeverity);
             return page;

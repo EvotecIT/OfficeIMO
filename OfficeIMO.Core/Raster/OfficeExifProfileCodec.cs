@@ -34,7 +34,7 @@ internal static class OfficeExifProfileCodec {
     internal static Profile Parse(byte[] bytes, bool imageTiff = false, CancellationToken cancellationToken = default, long additionallyRetainedBytes = 0L,
         List<OfficeExifFieldEvidence>? inspectionFields = null, OfficeImageMetadataInspectionOptions? inspectionOptions = null, string inspectionSource = "Exif") {
         cancellationToken.ThrowIfCancellationRequested();
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         if (bytes.Length > (imageTiff ? OfficeRasterGuards.MaximumEncodedBytes : MaximumProfileBytes)) throw new FormatException("Exif metadata exceeds the profile-size limit.");
         if (additionallyRetainedBytes < 0L || checked(additionallyRetainedBytes + bytes.LongLength * (imageTiff ? 1L : 2L) + 24L) > OfficeRasterGuards.MaximumDecodedBytes) throw new FormatException("Exif metadata exceeds the managed working-set limit.");
         int skip = bytes.Length >= 6 && bytes[0] == 69 && bytes[1] == 120 && bytes[2] == 105 && bytes[3] == 102 && bytes[4] == 0 && bytes[5] == 0 ? 6 : 0;
@@ -289,7 +289,7 @@ internal static class OfficeExifProfileCodec {
     }
     internal static byte[] EncodeValue(OfficeExifDataType type, object value, bool little, out uint count, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
         if (type == OfficeExifDataType.Ascii) {
             if (!(value is string text) || text.IndexOf('\0') >= 0) throw new ArgumentException("An ASCII Exif field requires text without embedded NUL characters.", nameof(value));
             foreach (char ch in text) if (ch > 127) throw new ArgumentException("An ASCII Exif field cannot contain non-ASCII text.", nameof(value));

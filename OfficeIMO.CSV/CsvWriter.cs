@@ -176,10 +176,7 @@ internal static partial class CsvWriter
         bool useUtc = false,
         string? nullValue = null)
     {
-        if (buffer == null)
-        {
-            throw new ArgumentNullException(nameof(buffer));
-        }
+        ArgumentNullException.ThrowIfNull(buffer);
 
         buffer.Clear();
         for (var i = 0; i < values.Count; i++)
@@ -210,10 +207,7 @@ internal static partial class CsvWriter
         bool useUtc = false,
         string? nullValue = null)
     {
-        if (buffer == null)
-        {
-            throw new ArgumentNullException(nameof(buffer));
-        }
+        ArgumentNullException.ThrowIfNull(buffer);
 
         buffer.Clear();
         for (var i = 0; i < values.Count; i++)
@@ -244,10 +238,7 @@ internal static partial class CsvWriter
         bool useUtc = false,
         string? nullValue = null)
     {
-        if (buffer == null)
-        {
-            throw new ArgumentNullException(nameof(buffer));
-        }
+        ArgumentNullException.ThrowIfNull(buffer);
 
         buffer.Clear();
         for (var i = 0; i < values.Length; i++)
@@ -271,10 +262,7 @@ internal static partial class CsvWriter
         string newLine,
         CultureInfo culture)
     {
-        if (buffer == null)
-        {
-            throw new ArgumentNullException(nameof(buffer));
-        }
+        ArgumentNullException.ThrowIfNull(buffer);
 
         buffer.Clear();
         for (var i = 0; i < values.Length; i++)
@@ -317,10 +305,7 @@ internal static partial class CsvWriter
         char delimiter,
         string newLine)
     {
-        if (buffer == null)
-        {
-            throw new ArgumentNullException(nameof(buffer));
-        }
+        ArgumentNullException.ThrowIfNull(buffer);
 
         buffer.Clear();
         for (var i = 0; i < values.Length; i++)
@@ -365,15 +350,9 @@ internal static partial class CsvWriter
         string newLine,
         CultureInfo culture)
     {
-        if (buffer == null)
-        {
-            throw new ArgumentNullException(nameof(buffer));
-        }
+        ArgumentNullException.ThrowIfNull(buffer);
 
-        if (valueAccessor == null)
-        {
-            throw new ArgumentNullException(nameof(valueAccessor));
-        }
+        ArgumentNullException.ThrowIfNull(valueAccessor);
 
         buffer.Clear();
         for (var i = 0; i < valueCount; i++)
@@ -398,15 +377,9 @@ internal static partial class CsvWriter
         char delimiter,
         string newLine)
     {
-        if (buffer == null)
-        {
-            throw new ArgumentNullException(nameof(buffer));
-        }
+        ArgumentNullException.ThrowIfNull(buffer);
 
-        if (valueAccessor == null)
-        {
-            throw new ArgumentNullException(nameof(valueAccessor));
-        }
+        ArgumentNullException.ThrowIfNull(valueAccessor);
 
         buffer.Clear();
         for (var i = 0; i < valueCount; i++)
@@ -465,10 +438,7 @@ internal static partial class CsvWriter
         string newLine,
         CultureInfo culture)
     {
-        if (buffer == null)
-        {
-            throw new ArgumentNullException(nameof(buffer));
-        }
+        ArgumentNullException.ThrowIfNull(buffer);
 
         buffer.Clear();
         for (var i = 0; i < values.Length; i++)
@@ -491,10 +461,7 @@ internal static partial class CsvWriter
         char delimiter,
         string newLine)
     {
-        if (buffer == null)
-        {
-            throw new ArgumentNullException(nameof(buffer));
-        }
+        ArgumentNullException.ThrowIfNull(buffer);
 
         buffer.Clear();
         for (var i = 0; i < values.Length; i++)
@@ -519,15 +486,9 @@ internal static partial class CsvWriter
         char delimiter,
         string newLine)
     {
-        if (buffer == null)
-        {
-            throw new ArgumentNullException(nameof(buffer));
-        }
+        ArgumentNullException.ThrowIfNull(buffer);
 
-        if (valueAccessor == null)
-        {
-            throw new ArgumentNullException(nameof(valueAccessor));
-        }
+        ArgumentNullException.ThrowIfNull(valueAccessor);
 
         buffer.Clear();
         for (var i = 0; i < valueCount; i++)
@@ -551,10 +512,7 @@ internal static partial class CsvWriter
         string newLine,
         CultureInfo culture)
     {
-        if (buffer == null)
-        {
-            throw new ArgumentNullException(nameof(buffer));
-        }
+        ArgumentNullException.ThrowIfNull(buffer);
 
         buffer.Clear();
         for (var i = 0; i < values.Count; i++)
@@ -587,10 +545,7 @@ internal static partial class CsvWriter
         bool useUtc = false,
         string? nullValue = null)
     {
-        if (valueAccessor == null)
-        {
-            throw new ArgumentNullException(nameof(valueAccessor));
-        }
+        ArgumentNullException.ThrowIfNull(valueAccessor);
 
         for (var i = 0; i < valueCount; i++)
         {
@@ -629,15 +584,9 @@ internal static partial class CsvWriter
         bool useUtc = false,
         string? nullValue = null)
     {
-        if (buffer == null)
-        {
-            throw new ArgumentNullException(nameof(buffer));
-        }
+        ArgumentNullException.ThrowIfNull(buffer);
 
-        if (valueAccessor == null)
-        {
-            throw new ArgumentNullException(nameof(valueAccessor));
-        }
+        ArgumentNullException.ThrowIfNull(valueAccessor);
 
         buffer.Clear();
         for (var i = 0; i < valueCount; i++)
@@ -670,15 +619,9 @@ internal static partial class CsvWriter
         bool useUtc = false,
         string? nullValue = null)
     {
-        if (buffer == null)
-        {
-            throw new ArgumentNullException(nameof(buffer));
-        }
+        ArgumentNullException.ThrowIfNull(buffer);
 
-        if (valueAccessor == null)
-        {
-            throw new ArgumentNullException(nameof(valueAccessor));
-        }
+        ArgumentNullException.ThrowIfNull(valueAccessor);
 
         buffer.Clear();
         for (var i = 0; i < valueCount; i++)
@@ -711,15 +654,9 @@ internal static partial class CsvWriter
         bool useUtc = false,
         string? nullValue = null)
     {
-        if (buffer == null)
-        {
-            throw new ArgumentNullException(nameof(buffer));
-        }
+        ArgumentNullException.ThrowIfNull(buffer);
 
-        if (valueAccessor == null)
-        {
-            throw new ArgumentNullException(nameof(valueAccessor));
-        }
+        ArgumentNullException.ThrowIfNull(valueAccessor);
 
         buffer.Clear();
         for (var i = 0; i < valueCount; i++)
@@ -752,15 +689,9 @@ internal static partial class CsvWriter
         bool useUtc = false,
         string? nullValue = null)
     {
-        if (buffer == null)
-        {
-            throw new ArgumentNullException(nameof(buffer));
-        }
+        ArgumentNullException.ThrowIfNull(buffer);
 
-        if (valueAccessor == null)
-        {
-            throw new ArgumentNullException(nameof(valueAccessor));
-        }
+        ArgumentNullException.ThrowIfNull(valueAccessor);
 
         buffer.Clear();
         for (var i = 0; i < valueCount; i++)

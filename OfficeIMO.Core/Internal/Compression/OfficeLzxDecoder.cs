@@ -48,7 +48,7 @@ internal sealed class OfficeLzxDecoder {
 
     /// <summary>Keeps untranslated history in a circular window, independently of the reusable output frame.</summary>
     internal OfficeLzxDecoder(int outputLength, int windowBits, CancellationToken cancellationToken) {
-        if (outputLength < 0) throw new ArgumentOutOfRangeException(nameof(outputLength));
+        ArgumentOutOfRangeException.ThrowIfNegative(outputLength);
         if (windowBits < 15 || windowBits > 21) {
             throw Error("LZX_WINDOW", "The CAB uses an unsupported LZX window size.");
         }
@@ -68,10 +68,10 @@ internal sealed class OfficeLzxDecoder {
     /// CHM reset groups can end inside an LZX block; CAB callers require complete final blocks instead.</summary>
     internal static byte[] Decompress(IReadOnlyList<byte[]> chunks, IReadOnlyList<int> sizes, int windowBits,
         long maxOutputBytes, CancellationToken cancellationToken = default, bool requireCompleteBlocks = true) {
-        if (chunks == null) throw new ArgumentNullException(nameof(chunks));
-        if (sizes == null) throw new ArgumentNullException(nameof(sizes));
+        ArgumentNullException.ThrowIfNull(chunks);
+        ArgumentNullException.ThrowIfNull(sizes);
         if (chunks.Count != sizes.Count) throw Error("LZX_BLOCKS", "LZX block metadata is inconsistent.");
-        if (maxOutputBytes < 1) throw new ArgumentOutOfRangeException(nameof(maxOutputBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxOutputBytes, 1);
         long total = 0;
         for (int index = 0; index < sizes.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -105,7 +105,8 @@ internal sealed class OfficeLzxDecoder {
     /// <summary>Decodes one complete CFDATA frame. The returned buffer is valid only until the next call.
     /// E8 reversal affects output only; later dictionary matches see untranslated history.</summary>
     internal byte[] DecodeFrame(byte[] data, int offset, int count, int expandedSize) {
-        if (expandedSize < 0 || expandedSize > _frame.Length) throw new ArgumentOutOfRangeException(nameof(expandedSize));
+        ArgumentOutOfRangeException.ThrowIfNegative(expandedSize);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(expandedSize, _frame.Length);
         _cancellationToken.ThrowIfCancellationRequested();
         _frameStart = _outputOffset;
         int frameEnd = checked(_outputOffset + expandedSize);

@@ -42,8 +42,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             string path,
             ExcelReaderOptions options,
             CancellationToken cancellationToken = default) {
-            if (path == null) throw new ArgumentNullException(nameof(path));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(path);
+            ArgumentNullException.ThrowIfNull(options);
             cancellationToken.ThrowIfCancellationRequested();
             var stream = new FileStream(
                 path,
@@ -59,8 +59,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             byte[] bytes,
             ExcelReaderOptions options,
             CancellationToken cancellationToken = default) {
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(bytes);
+            ArgumentNullException.ThrowIfNull(options);
             cancellationToken.ThrowIfCancellationRequested();
             var stream = new MemoryStream(bytes, writable: false);
             return Open(stream, options, cancellationToken);
@@ -73,7 +73,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             if (string.IsNullOrWhiteSpace(path)) {
                 throw new ArgumentException("File path cannot be empty.", nameof(path));
             }
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
 
             cancellationToken.ThrowIfCancellationRequested();
             using var source = new FileStream(

@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel {
             if (!inner.CanSeek || !inner.CanWrite) {
                 throw new ArgumentException("The staging stream must be seekable and writable.", nameof(inner));
             }
-            if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
             _maximumBytes = maximumBytes;
             _leaveOpen = leaveOpen;
             _cancellationToken = cancellationToken;
@@ -109,7 +109,7 @@ namespace OfficeIMO.Excel {
 
         private void EnsureWriteWithinLimit(int count) {
             _cancellationToken.ThrowIfCancellationRequested();
-            if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+            ArgumentOutOfRangeException.ThrowIfNegative(count);
             EnsureWithinLimit(checked(_inner.Position + count));
         }
 

@@ -14,7 +14,7 @@ internal sealed class PdfPageContentStore : IDisposable {
 
     internal PdfPageContentStore(long memoryLimitBytes = DefaultMemoryLimitBytes) {
 #pragma warning disable CA1512 // Cross-target guard supports netstandard2.0 and net472.
-        if (memoryLimitBytes < 0L) throw new ArgumentOutOfRangeException(nameof(memoryLimitBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(memoryLimitBytes, 0L);
 #pragma warning restore CA1512
         _memoryLimitBytes = memoryLimitBytes;
     }

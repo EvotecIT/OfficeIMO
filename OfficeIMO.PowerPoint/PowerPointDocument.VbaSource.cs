@@ -14,7 +14,7 @@ public sealed partial class PowerPointDocument {
     /// <summary>Applies a native source project, preserving non-signature child parts and requiring explicit signature removal.</summary>
     public void SetVbaProject(OfficeVbaProject project, OfficeVbaWriteOptions? options = null) {
         ThrowIfDisposed();
-        if (project == null) throw new ArgumentNullException(nameof(project));
+        ArgumentNullException.ThrowIfNull(project);
         options ??= new OfficeVbaWriteOptions();
         if (project.Modules.Any(module => module.Kind == OfficeVbaModuleKind.Document)) {
             throw new ArgumentException("PowerPoint source projects cannot contain document modules bound to another Office host.", nameof(project));

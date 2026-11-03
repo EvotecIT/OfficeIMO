@@ -49,9 +49,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             bool hasUnprojectedFormatting,
             bool matchedRule,
             int? inlineFormattingByteCount) {
-            if (payloadLength < 0) {
-                throw new ArgumentOutOfRangeException(nameof(payloadLength));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(payloadLength);
 
             if (inlineFormattingByteCount < 0) {
                 throw new ArgumentOutOfRangeException(nameof(inlineFormattingByteCount));

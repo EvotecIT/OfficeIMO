@@ -6,7 +6,7 @@ internal static class MarkdownToAsciiDocConverter {
     internal static MarkdownToAsciiDocResult Convert(
         MarkdownDocument document,
         MarkdownAsciiDocExportOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         options ??= new MarkdownAsciiDocExportOptions();
         ValidateOptions(options);
 

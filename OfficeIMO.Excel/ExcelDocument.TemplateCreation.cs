@@ -95,7 +95,7 @@ namespace OfficeIMO.Excel {
         /// <param name="destinationPath">Destination workbook path.</param>
         /// <param name="overwrite">When true, replaces an existing destination file.</param>
         internal static void CopyPackage(Stream sourceStream, string destinationPath, bool overwrite = true) {
-            if (sourceStream == null) throw new ArgumentNullException(nameof(sourceStream));
+            ArgumentNullException.ThrowIfNull(sourceStream);
             if (!sourceStream.CanRead) throw new ArgumentException("Workbook package stream must be readable.", nameof(sourceStream));
             if (string.IsNullOrWhiteSpace(destinationPath)) throw new ArgumentNullException(nameof(destinationPath));
 

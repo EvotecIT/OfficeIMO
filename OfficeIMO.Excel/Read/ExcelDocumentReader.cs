@@ -71,7 +71,7 @@ namespace OfficeIMO.Excel {
         /// Opens an Excel file for read-only access.
         /// </summary>
         public static ExcelDocumentReader Open(string path, ExcelReaderOptions? options = null) {
-            if (path == null) throw new ArgumentNullException(nameof(path));
+            ArgumentNullException.ThrowIfNull(path);
             if (!File.Exists(path)) {
                 throw new FileNotFoundException($"File '{path}' doesn't exist.", path);
             }
@@ -143,7 +143,7 @@ namespace OfficeIMO.Excel {
         /// Opens an Excel workbook from the provided stream for read-only access.
         /// </summary>
         public static ExcelDocumentReader Open(Stream stream, ExcelReaderOptions? options = null) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
             var effectiveOptions = options ?? new ExcelReaderOptions();
@@ -162,7 +162,7 @@ namespace OfficeIMO.Excel {
         /// The byte array is used directly; callers should not modify it while the reader is alive.
         /// </summary>
         public static ExcelDocumentReader Open(byte[] bytes, ExcelReaderOptions? options = null) {
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            ArgumentNullException.ThrowIfNull(bytes);
 
             var effectiveOptions = options ?? new ExcelReaderOptions();
             effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
@@ -182,7 +182,7 @@ namespace OfficeIMO.Excel {
         /// The returned reader must be disposed, but it will not close the underlying document.
         /// </summary>
         public static ExcelDocumentReader Wrap(SpreadsheetDocument document, ExcelReaderOptions? options = null) {
-            if (document is null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             return new ExcelDocumentReader(document, options ?? new ExcelReaderOptions(), owns: false);
         }
 

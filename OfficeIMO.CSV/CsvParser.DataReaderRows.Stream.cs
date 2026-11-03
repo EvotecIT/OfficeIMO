@@ -331,10 +331,7 @@ internal static partial class CsvParser
 
         internal void SetSourceColumnCount(int sourceColumnCount)
         {
-            if (sourceColumnCount < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(sourceColumnCount));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(sourceColumnCount);
 
             EnsureCapacity(sourceColumnCount);
             SourceColumnCount = sourceColumnCount;

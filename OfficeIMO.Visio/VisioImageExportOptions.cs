@@ -60,7 +60,7 @@ public sealed class VisioImageExportOptions : OfficeImageExportOptions {
     internal void Validate() {
         ValidateImageExportOptions();
         if (!Enum.IsDefined(typeof(VisioLayerRenderMode), LayerMode)) throw new ArgumentOutOfRangeException(nameof(LayerMode));
-        if (PageIndex < 0) throw new ArgumentOutOfRangeException(nameof(PageIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(PageIndex);
         if (PageCount.HasValue && PageCount.Value < 1) throw new ArgumentOutOfRangeException(nameof(PageCount));
         if (Supersampling < 1 || Supersampling > 4) {
             throw new ArgumentOutOfRangeException(nameof(Supersampling), "Supersampling must be between 1 and 4.");

@@ -39,7 +39,7 @@ namespace OfficeIMO.Word {
         /// <param name="paragraph">Paragraph that scopes the operation.</param>
         /// <param name="filter">Optional additional filter.</param>
         public WordRevisionOperationReport AcceptRevisionsInParagraph(WordParagraph paragraph, WordRevisionFilter? filter = null) {
-            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
+            ArgumentNullException.ThrowIfNull(paragraph);
             return ApplyRevisionOperation(WordRevisionOperationKind.Accept, filter ?? WordRevisionFilter.All(), paragraph._paragraph);
         }
 
@@ -116,12 +116,12 @@ namespace OfficeIMO.Word {
         /// <param name="paragraph">Paragraph that scopes the operation.</param>
         /// <param name="filter">Optional additional filter.</param>
         public WordRevisionOperationReport RejectRevisionsInParagraph(WordParagraph paragraph, WordRevisionFilter? filter = null) {
-            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
+            ArgumentNullException.ThrowIfNull(paragraph);
             return ApplyRevisionOperation(WordRevisionOperationKind.Reject, filter ?? WordRevisionFilter.All(), paragraph._paragraph);
         }
 
         private WordRevisionOperationReport ApplyRevisionOperation(WordRevisionOperationKind operation, WordRevisionFilter filter, OpenXmlElement? scope) {
-            if (filter == null) throw new ArgumentNullException(nameof(filter));
+            ArgumentNullException.ThrowIfNull(filter);
 
             List<RevisionCandidate> matches = CollectRevisionCandidates()
                 .Where(candidate => MatchesFilter(candidate, filter))

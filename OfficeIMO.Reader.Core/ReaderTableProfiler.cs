@@ -15,7 +15,7 @@ public static class ReaderTableProfiler {
     /// <param name="rows">Body rows aligned to <paramref name="columns"/>.</param>
     /// <returns>Profiles describing empty, numeric, text, or mixed body values for each column.</returns>
     public static IReadOnlyList<ReaderTableColumnProfile> CreateProfiles(IReadOnlyList<string> columns, IReadOnlyList<IReadOnlyList<string>> rows) {
-        if (columns == null) throw new ArgumentNullException(nameof(columns));
+        ArgumentNullException.ThrowIfNull(columns);
 
         if (columns.Count == 0) {
             return Array.Empty<ReaderTableColumnProfile>();

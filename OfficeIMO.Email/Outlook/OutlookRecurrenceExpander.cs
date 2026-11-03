@@ -44,19 +44,19 @@ public sealed class OutlookRecurrenceOccurrence {
     /// <summary>Resolves the local start using embedded Outlook rules and an explicit ambiguity policy.</summary>
     public DateTimeOffset ResolveStart(OutlookTimeZoneDefinition timeZone,
         OutlookAmbiguousTimePolicy policy = OutlookAmbiguousTimePolicy.EarlierUtc) {
-        if (timeZone == null) throw new ArgumentNullException(nameof(timeZone));
+        ArgumentNullException.ThrowIfNull(timeZone);
         return timeZone.ResolveLocal(Start, policy);
     }
 
     /// <summary>Resolves the local end using embedded Outlook rules and an explicit ambiguity policy.</summary>
     public DateTimeOffset ResolveEnd(OutlookTimeZoneDefinition timeZone,
         OutlookAmbiguousTimePolicy policy = OutlookAmbiguousTimePolicy.EarlierUtc) {
-        if (timeZone == null) throw new ArgumentNullException(nameof(timeZone));
+        ArgumentNullException.ThrowIfNull(timeZone);
         return timeZone.ResolveLocal(End, policy);
     }
 
     private static DateTimeOffset Resolve(DateTime value, TimeZoneInfo timeZone) {
-        if (timeZone == null) throw new ArgumentNullException(nameof(timeZone));
+        ArgumentNullException.ThrowIfNull(timeZone);
         DateTime local = DateTime.SpecifyKind(value, DateTimeKind.Unspecified);
         if (timeZone.IsInvalidTime(local)) {
             throw new ArgumentException("The occurrence falls in an invalid local time for the supplied time zone.",
@@ -101,7 +101,7 @@ public static class OutlookRecurrenceExpander {
     /// <summary>Expands a recurrence in local-clock space without silently choosing a host time zone.</summary>
     public static OutlookRecurrenceExpansionResult Expand(OutlookRecurrence recurrence,
         OutlookRecurrenceExpansionOptions? options = null) {
-        if (recurrence == null) throw new ArgumentNullException(nameof(recurrence));
+        ArgumentNullException.ThrowIfNull(recurrence);
         OutlookRecurrenceExpansionOptions effective = options ?? new OutlookRecurrenceExpansionOptions();
         Validate(recurrence, effective);
 
@@ -168,8 +168,8 @@ public static class OutlookRecurrenceExpander {
 
     internal static HashSet<DateTime> FindBaseOccurrenceDates(OutlookRecurrence recurrence,
         IEnumerable<DateTime> requestedDates) {
-        if (recurrence == null) throw new ArgumentNullException(nameof(recurrence));
-        if (requestedDates == null) throw new ArgumentNullException(nameof(requestedDates));
+        ArgumentNullException.ThrowIfNull(recurrence);
+        ArgumentNullException.ThrowIfNull(requestedDates);
         Validate(recurrence, new OutlookRecurrenceExpansionOptions());
         var requested = new HashSet<DateTime>(requestedDates.Select(value => AsLocal(value).Date));
         var matches = new HashSet<DateTime>();
@@ -196,8 +196,8 @@ public static class OutlookRecurrenceExpander {
 
     internal static Dictionary<DateTime, OutlookRecurrenceNeighborBounds> FindExceptionNeighborBounds(
         OutlookRecurrence recurrence, IEnumerable<DateTime> requestedDates) {
-        if (recurrence == null) throw new ArgumentNullException(nameof(recurrence));
-        if (requestedDates == null) throw new ArgumentNullException(nameof(requestedDates));
+        ArgumentNullException.ThrowIfNull(recurrence);
+        ArgumentNullException.ThrowIfNull(requestedDates);
         Validate(recurrence, new OutlookRecurrenceExpansionOptions());
         var requested = new HashSet<DateTime>(requestedDates.Select(value => AsLocal(value).Date));
         var bounds = new Dictionary<DateTime, OutlookRecurrenceNeighborBounds>();

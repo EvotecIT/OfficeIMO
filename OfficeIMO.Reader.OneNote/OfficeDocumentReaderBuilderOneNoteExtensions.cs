@@ -10,7 +10,7 @@ public static class OfficeDocumentReaderBuilderOneNoteExtensions {
         this OfficeDocumentReaderBuilder builder,
         ReaderOneNoteOptions? oneNoteOptions = null,
         bool replaceExisting = false) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderOneNoteOptions? registered = ReaderOneNoteOptionsCloner.CloneNullable(oneNoteOptions);
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,

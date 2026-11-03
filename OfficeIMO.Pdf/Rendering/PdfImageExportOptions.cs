@@ -51,7 +51,7 @@ public sealed class PdfImageExportOptions : OfficeImageExportOptions {
         if (ThumbnailMaxDimension.HasValue && ThumbnailMaxDimension.Value < 1) {
             throw new ArgumentOutOfRangeException(nameof(ThumbnailMaxDimension));
         }
-        if (MaxDiagnosticsPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxDiagnosticsPerPage));
-        if (MaxDiagnosticCharactersPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxDiagnosticCharactersPerPage));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxDiagnosticsPerPage);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxDiagnosticCharactersPerPage);
     }
 }

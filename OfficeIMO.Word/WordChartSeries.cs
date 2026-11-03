@@ -22,7 +22,7 @@ public sealed class WordChartSeries {
         get => _snapshot?.Name ?? RequireAttached().GetFirstChild<C.SeriesText>()?
             .Descendants<C.NumericValue>().FirstOrDefault()?.Text ?? string.Empty;
         set {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
             var element = RequireAttached();
             var text = element.GetFirstChild<C.SeriesText>()
                 ?? throw new InvalidOperationException("The series has no native title.");

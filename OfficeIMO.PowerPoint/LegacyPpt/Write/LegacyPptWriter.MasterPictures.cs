@@ -39,7 +39,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             out LegacyPptFeature failureFeature, out string? reason) {
             if (catalog == null) throw new ArgumentNullException(
                 nameof(catalog));
-            if (shapes == null) throw new ArgumentNullException(nameof(shapes));
+            ArgumentNullException.ThrowIfNull(shapes);
             IReadOnlyList<PowerPointShape> flattened =
                 FlattenShapeTreeForWrite(shapes, out reason);
             if (reason != null) {

@@ -10,7 +10,7 @@ public static class OfficeDocumentReaderBuilderLatexExtensions {
         this OfficeDocumentReaderBuilder builder,
         ReaderLatexOptions? latexOptions = null,
         bool replaceExisting = true) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderLatexOptions registered = ReaderLatexOptionsCloner.Clone(latexOptions);
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,

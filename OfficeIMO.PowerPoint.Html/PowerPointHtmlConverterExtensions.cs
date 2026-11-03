@@ -38,7 +38,7 @@ public static partial class PowerPointHtmlConverterExtensions {
 
     internal static PowerPointToHtmlResult ConvertToHtmlWithEvidence(this PptCore.PowerPointDocument presentation,
         PowerPointHtmlExportOptions? options, CancellationToken cancellationToken) {
-        if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+        ArgumentNullException.ThrowIfNull(presentation);
         cancellationToken.ThrowIfCancellationRequested();
         PowerPointHtmlExportOptions operation = (options ?? new PowerPointHtmlExportOptions()).Clone();
         operation.Validate();

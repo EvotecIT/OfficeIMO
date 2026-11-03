@@ -6,7 +6,8 @@ internal sealed class PdfLinearizationBitWriter {
     private int _bitOffset;
 
     internal void Write(uint value, int bitCount) {
-        if (bitCount < 0 || bitCount > 32) throw new ArgumentOutOfRangeException(nameof(bitCount));
+        ArgumentOutOfRangeException.ThrowIfNegative(bitCount);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(bitCount, 32);
         if (bitCount < 32 && bitCount > 0 && value >= (1U << bitCount)) {
             throw new ArgumentOutOfRangeException(nameof(value), value, "Value does not fit in the requested linearization hint width.");
         }

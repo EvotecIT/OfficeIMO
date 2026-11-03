@@ -95,7 +95,7 @@ public static class PublisherPdfConversionExtensions {
 
     internal static PdfDocumentConversionResult ConvertToPdfWithEvidence(this PublisherDocument document,
         PublisherPdfExportOptions? options, CancellationToken cancellationToken) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         var report = new PdfConversionReport();
         PdfCreateOptions operation = options?.PdfOptions?.Clone() ?? new PdfCreateOptions();

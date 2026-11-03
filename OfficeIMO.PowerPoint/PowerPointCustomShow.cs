@@ -160,9 +160,8 @@ namespace OfficeIMO.PowerPoint {
                 new[] { slide })[0];
             IReadOnlyList<(P.SlideListEntry Entry, PowerPointSlide Slide)>
                 entries = ResolveCustomShowEntries(customShow);
-            if (index < 0 || index > entries.Count) {
-                throw new ArgumentOutOfRangeException(nameof(index));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(index, entries.Count);
             P.SlideList slideList = customShow.SlideList
                 ?? new P.SlideList();
             var entry = new P.SlideListEntry {
@@ -178,7 +177,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointSlide slide) {
             ThrowIfDisposed();
             RequireOwnedCustomShow(customShow);
-            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            ArgumentNullException.ThrowIfNull(slide);
             IReadOnlyList<(P.SlideListEntry Entry, PowerPointSlide Slide)>
                 entries = ResolveCustomShowEntries(customShow);
             (P.SlideListEntry Entry, PowerPointSlide Slide) match = entries
@@ -198,12 +197,10 @@ namespace OfficeIMO.PowerPoint {
             RequireOwnedCustomShow(customShow);
             IReadOnlyList<(P.SlideListEntry Entry, PowerPointSlide Slide)>
                 entries = ResolveCustomShowEntries(customShow);
-            if (sourceIndex < 0 || sourceIndex >= entries.Count) {
-                throw new ArgumentOutOfRangeException(nameof(sourceIndex));
-            }
-            if (destinationIndex < 0 || destinationIndex >= entries.Count) {
-                throw new ArgumentOutOfRangeException(nameof(destinationIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(sourceIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(sourceIndex, entries.Count);
+            ArgumentOutOfRangeException.ThrowIfNegative(destinationIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(destinationIndex, entries.Count);
             if (sourceIndex == destinationIndex) return;
             P.SlideListEntry moved = entries[sourceIndex].Entry;
             moved.Remove();
@@ -282,7 +279,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private P.CustomShow RequireOwnedCustomShow(PowerPointCustomShow customShow) {
-            if (customShow == null) throw new ArgumentNullException(nameof(customShow));
+            ArgumentNullException.ThrowIfNull(customShow);
             return RequireOwnedCustomShow(customShow.OpenXmlElement);
         }
 
@@ -316,7 +313,7 @@ namespace OfficeIMO.PowerPoint {
 
         private PowerPointSlide[] ValidateCustomShowSlides(
             IEnumerable<PowerPointSlide> slides) {
-            if (slides == null) throw new ArgumentNullException(nameof(slides));
+            ArgumentNullException.ThrowIfNull(slides);
             PowerPointSlide[] resolved = slides.ToArray();
             if (resolved.Length == 0) {
                 throw new ArgumentException(

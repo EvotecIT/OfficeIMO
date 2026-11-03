@@ -82,7 +82,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             TranslationReport? report = null,
             CancellationToken cancellationToken = default) {
             ValidateResourceId(fileId, nameof(fileId));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             if (string.IsNullOrWhiteSpace(options.Type)) throw new ArgumentException("Permission type is required.", nameof(options));
             if (string.IsNullOrWhiteSpace(options.Role)) throw new ArgumentException("Permission role is required.", nameof(options));
             report ??= new TranslationReport();

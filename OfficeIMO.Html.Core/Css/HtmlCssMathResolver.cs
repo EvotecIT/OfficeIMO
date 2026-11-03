@@ -15,8 +15,8 @@ public static partial class HtmlCssMathResolver {
         HtmlCssMathExpression expression,
         HtmlCssLengthResolutionContext context,
         CancellationToken cancellationToken = default) {
-        if (expression == null) throw new ArgumentNullException(nameof(expression));
-        if (context == null) throw new ArgumentNullException(nameof(context));
+        ArgumentNullException.ThrowIfNull(expression);
+        ArgumentNullException.ThrowIfNull(context);
         cancellationToken.ThrowIfCancellationRequested();
         if (expression.Type != HtmlCssNumericType.Length
             && expression.Type != HtmlCssNumericType.Percentage

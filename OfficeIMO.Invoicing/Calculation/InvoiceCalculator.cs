@@ -9,7 +9,7 @@ public static partial class InvoiceCalculator {
     /// <param name="invoice">Invoice to update after editing.</param>
     /// <param name="taxExchangeRate">Accounting-currency units per invoice-currency unit, chosen by the caller for the applicable tax point.</param>
     public static InvoiceCalculation UpdateDeclaredAmounts(Invoice invoice, decimal? taxExchangeRate) {
-        if (invoice == null) throw new ArgumentNullException(nameof(invoice));
+        ArgumentNullException.ThrowIfNull(invoice);
         if (taxExchangeRate.HasValue && (taxExchangeRate <= 0m || string.IsNullOrWhiteSpace(invoice.TaxCurrency)))
             throw new ArgumentException("An accounting-currency exchange rate requires a positive rate and an explicit tax currency.", nameof(taxExchangeRate));
         decimal? previousVat = invoice.DeclaredTotals?.TaxTotal;
@@ -52,7 +52,7 @@ public static partial class InvoiceCalculator {
 
     /// <summary>Calculates line totals, category-level VAT and the amount due, or returns retained declared values for an aggregate-only invoice.</summary>
     public static InvoiceCalculation Calculate(Invoice invoice) {
-        if (invoice == null) throw new ArgumentNullException(nameof(invoice));
+        ArgumentNullException.ThrowIfNull(invoice);
         return invoice.Lines.Count == 0 ? FromDeclaredAggregate(invoice) : Calculate(invoice, true);
     }
 
@@ -79,7 +79,7 @@ public static partial class InvoiceCalculator {
     }
 
     private static InvoiceCalculation Calculate(Invoice invoice, bool preserveDeclaredAmounts) {
-        if (invoice == null) throw new ArgumentNullException(nameof(invoice));
+        ArgumentNullException.ThrowIfNull(invoice);
         var lines = new List<InvoiceCalculatedLine>();
         var groups = new Dictionary<(string Code, decimal? Rate), TaxGroup>();
         foreach (InvoiceLine line in invoice.Lines) {

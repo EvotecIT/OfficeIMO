@@ -42,7 +42,7 @@ public sealed class ProjectResourceCollection : IReadOnlyList<ProjectResource> {
     /// <summary>Creates a cost resource.</summary>
     public ProjectResource AddCost(string name) => Add(name, ProjectResourceType.Cost);
     private ProjectResource Add(string name, ProjectResourceType type) {
-        if (name == null) throw new ArgumentNullException(nameof(name));
+        ArgumentNullException.ThrowIfNull(name);
         _document.EnsureMutable();
         var result = new ProjectResource(_document, _document.NextResourceUid()) { Name = name, Type = type };
         Items.Add(result); _document.ResourceIndex.Add(result.Uid, result);
@@ -68,7 +68,7 @@ public sealed class ProjectCalendarCollection : IReadOnlyList<ProjectCalendar> {
     public ProjectCalendar this[int index] => Items[index];
     /// <summary>Creates a calendar with no explicit working days.</summary>
     public ProjectCalendar Add(string name, ProjectCalendar? baseCalendar = null) {
-        if (name == null) throw new ArgumentNullException(nameof(name));
+        ArgumentNullException.ThrowIfNull(name);
         _document.CheckMember(baseCalendar);
         _document.EnsureMutable();
         var result = new ProjectCalendar(_document, _document.NextCalendarUid()) { Name = name, BaseCalendar = baseCalendar, IsBaseCalendar = baseCalendar == null };

@@ -10,8 +10,9 @@ public sealed partial class RtfDocument {
 
     /// <summary>Inserts an existing semantic block at the specified document block index.</summary>
     public void InsertBlock(int index, IRtfBlock block) {
-        if (block == null) throw new ArgumentNullException(nameof(block));
-        if (index < 0 || index > _blocks.Count) throw new ArgumentOutOfRangeException(nameof(index));
+        ArgumentNullException.ThrowIfNull(block);
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(index, _blocks.Count);
         ValidateEditableBlock(block);
         if (_blocks.Contains(block)) throw new InvalidOperationException("The block already belongs to this document.");
 
@@ -34,8 +35,8 @@ public sealed partial class RtfDocument {
 
     /// <summary>Creates and inserts a table at the specified document block index.</summary>
     public RtfTable InsertTable(int index, int rows, int columns) {
-        if (rows < 0) throw new ArgumentOutOfRangeException(nameof(rows));
-        if (columns <= 0) throw new ArgumentOutOfRangeException(nameof(columns));
+        ArgumentOutOfRangeException.ThrowIfNegative(rows);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(columns);
         var table = new RtfTable();
         for (int rowIndex = 0; rowIndex < rows; rowIndex++) {
             RtfTableRow row = table.AddRow();
@@ -55,7 +56,8 @@ public sealed partial class RtfDocument {
 
     /// <summary>Removes and returns the block at the specified index.</summary>
     public IRtfBlock RemoveBlockAt(int index) {
-        if (index < 0 || index >= _blocks.Count) throw new ArgumentOutOfRangeException(nameof(index));
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, _blocks.Count);
         IRtfBlock block = _blocks[index];
         _blocks.RemoveAt(index);
         foreach (RtfSection section in _sections) section.RemoveBlock(block);
@@ -65,7 +67,7 @@ public sealed partial class RtfDocument {
 
     /// <summary>Removes a block when it belongs to this document.</summary>
     public bool RemoveBlock(IRtfBlock block) {
-        if (block == null) throw new ArgumentNullException(nameof(block));
+        ArgumentNullException.ThrowIfNull(block);
         int index = _blocks.IndexOf(block);
         if (index < 0) return false;
         RemoveBlockAt(index);
@@ -74,8 +76,10 @@ public sealed partial class RtfDocument {
 
     /// <summary>Moves a document block to its final zero-based index.</summary>
     public void MoveBlock(int fromIndex, int toIndex) {
-        if (fromIndex < 0 || fromIndex >= _blocks.Count) throw new ArgumentOutOfRangeException(nameof(fromIndex));
-        if (toIndex < 0 || toIndex >= _blocks.Count) throw new ArgumentOutOfRangeException(nameof(toIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(fromIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(fromIndex, _blocks.Count);
+        ArgumentOutOfRangeException.ThrowIfNegative(toIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(toIndex, _blocks.Count);
         if (fromIndex == toIndex) return;
 
         IRtfBlock block = _blocks[fromIndex];
@@ -98,7 +102,7 @@ public sealed partial class RtfDocument {
     /// <summary>Replaces all inline content inside the first matching named bookmark range.</summary>
     public bool ReplaceBookmarkText(string name, string replacement) {
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Bookmark name cannot be empty.", nameof(name));
-        if (replacement == null) throw new ArgumentNullException(nameof(replacement));
+        ArgumentNullException.ThrowIfNull(replacement);
         var paragraphs = new List<RtfParagraph>();
         CollectParagraphsInOrder(_blocks, paragraphs);
 

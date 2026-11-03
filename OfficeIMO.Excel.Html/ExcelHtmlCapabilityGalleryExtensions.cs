@@ -14,7 +14,7 @@ public static class ExcelHtmlCapabilityGalleryExtensions {
     /// <param name="options">Optional gallery options.</param>
     /// <returns>Shared gallery manifest describing the generated artifacts and rich-content expectations.</returns>
     public static HtmlCapabilityGalleryManifest SaveHtmlCapabilityGallery(this ExcelDocument workbook, string directoryPath, ExcelHtmlCapabilityGalleryOptions? options = null) {
-        if (workbook == null) throw new ArgumentNullException(nameof(workbook));
+        ArgumentNullException.ThrowIfNull(workbook);
         if (string.IsNullOrWhiteSpace(directoryPath)) throw new ArgumentException("Artifact directory cannot be empty.", nameof(directoryPath));
 
         options ??= new ExcelHtmlCapabilityGalleryOptions();

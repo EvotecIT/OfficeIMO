@@ -32,10 +32,7 @@ public sealed partial class CsvDocument
             throw new ArgumentException("File path cannot be empty.", nameof(path));
         }
 
-        if (rowAction == null)
-        {
-            throw new ArgumentNullException(nameof(rowAction));
-        }
+        ArgumentNullException.ThrowIfNull(rowAction);
 
         var fileOptions = options?.Clone() ?? new CsvReaderOptions();
         var readerFactory = () => CsvFile.OpenTextReader(path, fileOptions, FileBufferSize);
@@ -57,10 +54,7 @@ public sealed partial class CsvDocument
             throw new ArgumentException("File path cannot be empty.", nameof(path));
         }
 
-        if (rowAction == null)
-        {
-            throw new ArgumentNullException(nameof(rowAction));
-        }
+        ArgumentNullException.ThrowIfNull(rowAction);
 
         var fileOptions = options?.Clone() ?? new CsvReaderOptions();
         var readerFactory = () => CsvFile.OpenTextReader(path, fileOptions, FileBufferSize);
@@ -77,15 +71,9 @@ public sealed partial class CsvDocument
     /// <param name="options">Optional load settings.</param>
     internal static void ReadRows(TextReader reader, Action<IReadOnlyList<string>, IReadOnlyList<string>> rowAction, CsvReaderOptions? options = null)
     {
-        if (reader == null)
-        {
-            throw new ArgumentNullException(nameof(reader));
-        }
+        ArgumentNullException.ThrowIfNull(reader);
 
-        if (rowAction == null)
-        {
-            throw new ArgumentNullException(nameof(rowAction));
-        }
+        ArgumentNullException.ThrowIfNull(rowAction);
 
         options ??= new CsvReaderOptions();
         if (options.DetectDelimiter)
@@ -159,15 +147,9 @@ public sealed partial class CsvDocument
     /// <param name="options">Optional load settings.</param>
     internal static void ReadRowsReusable(TextReader reader, Action<IReadOnlyList<string>, IReadOnlyList<string>> rowAction, CsvReaderOptions? options = null)
     {
-        if (reader == null)
-        {
-            throw new ArgumentNullException(nameof(reader));
-        }
+        ArgumentNullException.ThrowIfNull(reader);
 
-        if (rowAction == null)
-        {
-            throw new ArgumentNullException(nameof(rowAction));
-        }
+        ArgumentNullException.ThrowIfNull(rowAction);
 
         options ??= new CsvReaderOptions();
         if (options.DetectDelimiter)
@@ -272,10 +254,7 @@ public sealed partial class CsvDocument
 
     private static CsvDocument LoadFromStream(Stream stream, CsvParsingSettings options)
     {
-        if (stream == null)
-        {
-            throw new ArgumentNullException(nameof(stream));
-        }
+        ArgumentNullException.ThrowIfNull(stream);
 
         if (!stream.CanRead)
         {
@@ -316,7 +295,7 @@ public sealed partial class CsvDocument
     /// <summary>Asynchronously loads a CSV document from a caller-owned stream.</summary>
     public static async Task<CsvDocument> LoadAsync(Stream stream, CsvLoadOptions? options = null, CancellationToken cancellationToken = default)
     {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
         CsvParsingSettings resolved = options?.Parsing.Clone() ?? new CsvParsingSettings();
         using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(

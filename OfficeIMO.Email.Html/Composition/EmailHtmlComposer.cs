@@ -107,7 +107,7 @@ public static class EmailHtmlComposer {
         }
     }
     private static string TextHtml(string text, int maximum) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(text);
         EnsureProjectionLength(text.Length, maximum);
         string normalized = text.Replace("\r\n", "\n").Replace('\r', '\n');
         var output = new System.Text.StringBuilder("<div>");

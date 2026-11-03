@@ -85,7 +85,7 @@ namespace OfficeIMO.Word {
 
         /// <summary>Creates a picture value from image bytes.</summary>
         public static WordContentControlPictureValue FromBytes(byte[] bytes, string fileName) {
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            ArgumentNullException.ThrowIfNull(bytes);
             if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentNullException(nameof(fileName));
             return new WordContentControlPictureValue(null, bytes.ToArray(), fileName, null, null);
         }
@@ -210,7 +210,7 @@ namespace OfficeIMO.Word {
             WordContentControlFormKey keyMode = WordContentControlFormKey.TagThenAlias,
             bool requireAllControls = true,
             bool allowUnusedValues = false) {
-            if (values == null) throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(values);
 
             var issues = GetFormControlLockIssues(values, keyMode).ToList();
             var expectedKeys = new List<string>();

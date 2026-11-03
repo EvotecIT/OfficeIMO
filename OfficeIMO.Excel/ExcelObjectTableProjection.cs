@@ -35,7 +35,7 @@ internal sealed partial class ExcelObjectTableProjection {
         ExcelA1.CellReference(startRow, _startColumn) + ":" + ExcelA1.CellReference(endRow, _startColumn + columns - 1);
         internal string? WriteRows<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> data, ObjectFlattenerOptions? projectionOptions = null, OfficeTableOptions? tableOptions = null) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
-            if (data == null) throw new ArgumentNullException(nameof(data));
+            ArgumentNullException.ThrowIfNull(data);
 
             var options = projectionOptions?.CreateProjectionSnapshot() ?? new ObjectFlattenerOptions();
             OfficeIMO.Core.Internal.ObjectDataHelpers.ConfigureTableProjection(options, tableOptions);

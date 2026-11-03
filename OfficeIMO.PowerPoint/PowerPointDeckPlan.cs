@@ -96,9 +96,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a prebuilt semantic slide request.
         /// </summary>
         public PowerPointDeckPlan Add(PowerPointDeckPlanSlide slide) {
-            if (slide == null) {
-                throw new ArgumentNullException(nameof(slide));
-            }
+            ArgumentNullException.ThrowIfNull(slide);
 
             _slides.Add(slide);
             return this;
@@ -199,9 +197,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> DescribeSlides(PowerPointDeckDesign design,
             int slideIndexOffset) {
-            if (design == null) {
-                throw new ArgumentNullException(nameof(design));
-            }
+            ArgumentNullException.ThrowIfNull(design);
             if (slideIndexOffset < 0) {
                 throw new ArgumentOutOfRangeException(nameof(slideIndexOffset),
                     "Slide index offset cannot be negative.");

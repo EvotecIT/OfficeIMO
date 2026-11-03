@@ -81,7 +81,7 @@ public static partial class VisioImageExportExtensions {
 
     private static OfficeImageExportOperation<VisioImageExportOptions> CreateImageExportOperation(
         VisioPage document, VisioImageExportOptions options) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return new OfficeImageExportOperation<VisioImageExportOptions>(options, options.Format, options.FileConflictPolicy,
             (encoding, effective) => document.ExportImage(encoding, effective),
             exportWithCancellation: (encoding, effective, token) => document.ExportImage(encoding, effective, token));

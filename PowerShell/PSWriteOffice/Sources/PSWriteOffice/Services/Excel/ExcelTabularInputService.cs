@@ -15,10 +15,7 @@ internal static class ExcelTabularInputService
         bool copyExistingTables = true,
         PowerShellObjectNormalizerOptions? normalizerOptions = null)
     {
-        if (input == null)
-        {
-            throw new ArgumentNullException(nameof(input));
-        }
+        ArgumentNullException.ThrowIfNull(input);
 
         normalizerOptions ??= PowerShellObjectNormalizerOptions.Default;
 
@@ -183,10 +180,7 @@ internal static class ExcelTabularInputService
 
     public static DataSet? TryGetSingleDataSet(IEnumerable<object?> input)
     {
-        if (input == null)
-        {
-            throw new ArgumentNullException(nameof(input));
-        }
+        ArgumentNullException.ThrowIfNull(input);
 
         DataSet? dataSet = null;
         var count = 0;
@@ -211,10 +205,7 @@ internal static class ExcelTabularInputService
 
     public static IDataReader? TryGetSingleDataReader(IEnumerable<object?> input)
     {
-        if (input == null)
-        {
-            throw new ArgumentNullException(nameof(input));
-        }
+        ArgumentNullException.ThrowIfNull(input);
 
         IDataReader? reader = null;
         var count = 0;

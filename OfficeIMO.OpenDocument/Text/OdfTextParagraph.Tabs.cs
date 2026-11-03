@@ -6,7 +6,7 @@ public sealed partial class OdfTextParagraph {
     /// <summary>Replaces the paragraph's explicit tab set. An empty set overrides all inherited explicit stops.</summary>
     /// <remarks>At most 256 unique absolute positions are accepted. Existing leader definitions in this paragraph's overridden tab set are replaced. Default spacing belongs to the document's default paragraph style.</remarks>
     public void SetTabStops(IReadOnlyList<OdfTabStop> stops) {
-        if (stops == null) throw new ArgumentNullException(nameof(stops));
+        ArgumentNullException.ThrowIfNull(stops);
         if (stops.Count > 256) throw new ArgumentException("At most 256 stops are supported.", nameof(stops));
         var positions = new HashSet<double>();
         var container = new XElement(OdfNamespaces.Style + "tab-stops");

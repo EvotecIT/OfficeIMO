@@ -99,9 +99,9 @@ public sealed partial class OfficeSeries {
         IEnumerable<OfficeColor?>? pointColors = null, bool showInLegend = true,
         OfficeColor? markerOutlineColor = null, OfficeLength? markerOutlineWidth = null,
         bool showMarkerOutline = true) {
-        if (xValues == null) throw new ArgumentNullException(nameof(xValues));
-        if (yValues == null) throw new ArgumentNullException(nameof(yValues));
-        if (bubbleSizes == null) throw new ArgumentNullException(nameof(bubbleSizes));
+        ArgumentNullException.ThrowIfNull(xValues);
+        ArgumentNullException.ThrowIfNull(yValues);
+        ArgumentNullException.ThrowIfNull(bubbleSizes);
 
         return new(name, yValues, xValues, bubbleSizes, color, pointColors, showMarkers: true,
             showInLegend, connectLine: false, markerSize: null, markerShape: OfficeChartMarkerShape.Circle,
@@ -118,9 +118,7 @@ public sealed partial class OfficeSeries {
         OfficeLength? markerOutlineWidth, OfficeLength? strokeWidth, OfficeStrokeDashStyle? strokeDashStyle,
         OfficeChartType? renderKind, OfficeChartAxisGroup axisGroup,
         bool showMarkerOutline = true) {
-        if (values == null) {
-            throw new ArgumentNullException(nameof(values));
-        }
+        ArgumentNullException.ThrowIfNull(values);
         if (markerSize.HasValue && markerSize.Value <= OfficeLength.Zero) {
             throw new ArgumentOutOfRangeException(nameof(markerSize), "Marker size must be greater than zero.");
         }

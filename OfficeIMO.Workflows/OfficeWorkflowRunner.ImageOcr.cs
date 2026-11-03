@@ -13,8 +13,8 @@ public sealed partial class OfficeWorkflowRunner {
     /// provider outputs use the same explicit direct-write and recovery contract as document workflows.</remarks>
     public async Task<ImageOcrWorkflowResult> RecognizeImageAsync(ImageOcrWorkflowRequest request,
         IOcrEngine engine, CancellationToken cancellationToken = default) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
-        if (engine == null) throw new ArgumentNullException(nameof(engine));
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(engine);
         var diagnostics = new List<OfficeWorkflowDiagnostic>();
         var inputs = new WorkflowInputSnapshots();
         string? staging = null;

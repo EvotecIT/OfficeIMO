@@ -56,7 +56,7 @@ public sealed class OfficeIccProfileInspection {
 public static class OfficeIccProfileInspector {
     /// <summary>Returns bounded header and tag-table evidence using the shared ICC validator and conversion parser.</summary>
     public static OfficeIccProfileInspection Inspect(byte[] profile, OfficeImageMetadataInspectionOptions? options = null, CancellationToken cancellationToken = default) {
-        if (profile == null) throw new ArgumentNullException(nameof(profile));
+        ArgumentNullException.ThrowIfNull(profile);
         OfficeImageMetadataInspectionOptions policy = (options ?? new OfficeImageMetadataInspectionOptions()).Snapshot();
         cancellationToken.ThrowIfCancellationRequested();
         var tags = new List<OfficeIccTagEvidence>(); var issues = new List<string>();

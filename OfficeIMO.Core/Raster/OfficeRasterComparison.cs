@@ -24,8 +24,8 @@ public sealed class OfficeRasterComparisonResult {
 public static class OfficeRasterComparison {
     /// <summary>Compares premultiplied RGB and alpha, ignoring invisible RGB in completely transparent pixels.</summary>
     public static OfficeRasterComparisonResult Compare(OfficeRasterImage left, OfficeRasterImage right, CancellationToken cancellationToken = default) {
-        if (left == null) throw new ArgumentNullException(nameof(left));
-        if (right == null) throw new ArgumentNullException(nameof(right));
+        ArgumentNullException.ThrowIfNull(left);
+        ArgumentNullException.ThrowIfNull(right);
         cancellationToken.ThrowIfCancellationRequested();
         if (left.Width != right.Width || left.Height != right.Height) throw new ArgumentException("Compared raster dimensions must match.", nameof(right));
         long count = OfficeRasterGuards.EnsureOutputPixels(left.Width, left.Height, "Raster comparison dimensions exceed the managed image limit.");

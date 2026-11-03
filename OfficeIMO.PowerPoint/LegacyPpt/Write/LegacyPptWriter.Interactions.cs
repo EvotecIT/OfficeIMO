@@ -18,7 +18,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static bool TryReadInteractions(PowerPointDocument presentation,
             out LegacyPptWriterInteractionCatalog catalog, out string? reason) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+            ArgumentNullException.ThrowIfNull(presentation);
             return TryReadInteractions(presentation.Slides,
                 new LegacyPptWriterSoundCatalog(), out catalog, out reason);
         }
@@ -394,8 +394,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterSoundCatalog soundCatalog,
             out uint customShowId, out bool returnsToSlide,
             out LegacyPptWriterSound? sound, out string? reason) {
-            if (ownerPart == null) throw new ArgumentNullException(nameof(ownerPart));
-            if (soundCatalog == null) throw new ArgumentNullException(nameof(soundCatalog));
+            ArgumentNullException.ThrowIfNull(ownerPart);
+            ArgumentNullException.ThrowIfNull(soundCatalog);
             sound = null;
             if (!PowerPointCustomShowAction.TryValidateSupportedHyperlink(
                     hyperlink, out customShowId, out returnsToSlide,
@@ -410,9 +410,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             SlidePart ownerPart, A.HyperlinkType hyperlink,
             LegacyPptWriterSoundCatalog soundCatalog,
             out LegacyPptWriterSound? sound, out string? reason) {
-            if (ownerPart == null) throw new ArgumentNullException(nameof(ownerPart));
-            if (hyperlink == null) throw new ArgumentNullException(nameof(hyperlink));
-            if (soundCatalog == null) throw new ArgumentNullException(nameof(soundCatalog));
+            ArgumentNullException.ThrowIfNull(ownerPart);
+            ArgumentNullException.ThrowIfNull(hyperlink);
+            ArgumentNullException.ThrowIfNull(soundCatalog);
             sound = null;
             reason = null;
             A.HyperlinkSound[] sounds = hyperlink.Elements<A.HyperlinkSound>()
@@ -487,9 +487,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterInteractionCatalog catalog,
             LegacyPptWriterMediaCatalog mediaCatalog,
             LegacyPptWriterOleObjectCatalog oleCatalog) {
-            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
-            if (mediaCatalog == null) throw new ArgumentNullException(nameof(mediaCatalog));
-            if (oleCatalog == null) throw new ArgumentNullException(nameof(oleCatalog));
+            ArgumentNullException.ThrowIfNull(catalog);
+            ArgumentNullException.ThrowIfNull(mediaCatalog);
+            ArgumentNullException.ThrowIfNull(oleCatalog);
             if (catalog.Hyperlinks.Count == 0
                 && mediaCatalog.Media.Count == 0
                 && oleCatalog.Objects.Count == 0) return Array.Empty<byte>();
@@ -711,9 +711,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal LegacyPptWriterHyperlink(uint id, string targetSlidePartUri,
                 uint targetSlideId, int targetSlideNumber, string? targetSlideName,
                 string? screenTip = null, uint extensionFlags = 0) {
-                if (targetSlideNumber <= 0) {
-                    throw new ArgumentOutOfRangeException(nameof(targetSlideNumber));
-                }
+                ArgumentOutOfRangeException.ThrowIfNegativeOrZero(targetSlideNumber);
                 Id = id;
                 TargetSlidePartUri = targetSlidePartUri
                     ?? throw new ArgumentNullException(nameof(targetSlidePartUri));

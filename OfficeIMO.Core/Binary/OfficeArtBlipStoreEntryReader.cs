@@ -42,10 +42,11 @@ internal static class OfficeArtBlipStoreEntryReader {
         ushort recordInstance, byte[]? delayStream,
         out OfficeArtBlipStoreEntry? entry, int maximumDecodedImageBytes,
         DelayedBlipPayloadHashCache? delayedPayloadHashCache, DelayedBlipReadCache? delayedReadCache) {
-        if (payload == null) throw new ArgumentNullException(nameof(payload));
-        if (offset < 0 || offset > payload.Length) throw new ArgumentOutOfRangeException(nameof(offset));
+        ArgumentNullException.ThrowIfNull(payload);
+        ArgumentOutOfRangeException.ThrowIfNegative(offset);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(offset, payload.Length);
         if (length < 0 || length > payload.Length - offset) throw new ArgumentOutOfRangeException(nameof(length));
-        if (maximumDecodedImageBytes < 0) throw new ArgumentOutOfRangeException(nameof(maximumDecodedImageBytes));
+        ArgumentOutOfRangeException.ThrowIfNegative(maximumDecodedImageBytes);
 
         entry = null;
         if (length < FixedFbseLength) return false;
@@ -99,7 +100,7 @@ internal static class OfficeArtBlipStoreEntryReader {
     /// <summary>Attempts to decode a complete FBSE payload without an associated delay stream.</summary>
     public static bool TryRead(byte[] payload, ushort recordInstance,
         out OfficeArtBlipStoreEntry? entry, int maximumDecodedImageBytes = DefaultMaximumDecodedImageBytes) {
-        if (payload == null) throw new ArgumentNullException(nameof(payload));
+        ArgumentNullException.ThrowIfNull(payload);
         return TryRead(payload, 0, payload.Length, recordInstance, null, out entry,
             maximumDecodedImageBytes);
     }
@@ -107,10 +108,9 @@ internal static class OfficeArtBlipStoreEntryReader {
     internal static bool TryReadBlipRecord(byte[] source, int offset,
         int length, out OfficeArtBlipRecordData data,
         int maximumDecodedImageBytes = DefaultMaximumDecodedImageBytes) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
-        if (offset < 0 || offset > source.Length) {
-            throw new ArgumentOutOfRangeException(nameof(offset));
-        }
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentOutOfRangeException.ThrowIfNegative(offset);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(offset, source.Length);
         if (length < 0 || length > source.Length - offset) {
             throw new ArgumentOutOfRangeException(nameof(length));
         }
@@ -141,10 +141,9 @@ internal static class OfficeArtBlipStoreEntryReader {
     internal static bool TryReadBlipStoreFileBlock(byte[] source, int offset,
         int length, out OfficeArtBlipRecordData data,
         int maximumDecodedImageBytes = DefaultMaximumDecodedImageBytes) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
-        if (offset < 0 || offset > source.Length) {
-            throw new ArgumentOutOfRangeException(nameof(offset));
-        }
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentOutOfRangeException.ThrowIfNegative(offset);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(offset, source.Length);
         if (length < 0 || length > source.Length - offset) {
             throw new ArgumentOutOfRangeException(nameof(length));
         }

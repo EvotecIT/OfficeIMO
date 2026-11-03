@@ -35,7 +35,7 @@ internal sealed class ReaderToolArguments {
     private bool RecursionSpecified { get; set; }
 
     internal static ReaderToolArguments Parse(string[] args) {
-        if (args == null) throw new ArgumentNullException(nameof(args));
+        ArgumentNullException.ThrowIfNull(args);
         if (args.Length == 0 || IsHelp(args[0])) {
             return new ReaderToolArguments { Command = ReaderToolCommand.Help };
         }

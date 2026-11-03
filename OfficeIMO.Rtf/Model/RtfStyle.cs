@@ -217,14 +217,14 @@ public sealed partial class RtfStyle {
 
     /// <summary>Configures absolute positioning frame metadata for this stylesheet entry.</summary>
     public RtfStyle SetFrame(Action<RtfParagraphFrame> configure) {
-        if (configure == null) throw new ArgumentNullException(nameof(configure));
+        ArgumentNullException.ThrowIfNull(configure);
         configure(Frame);
         return this;
     }
 
     /// <summary>Configures Word 6/95 legacy paragraph numbering metadata for this style.</summary>
     public RtfStyle SetLegacyNumbering(Action<RtfLegacyNumbering> configure) {
-        if (configure == null) throw new ArgumentNullException(nameof(configure));
+        ArgumentNullException.ThrowIfNull(configure);
         LegacyNumbering.Enabled = true;
         configure(LegacyNumbering);
         return this;

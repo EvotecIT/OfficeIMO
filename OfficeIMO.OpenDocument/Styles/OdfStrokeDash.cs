@@ -20,7 +20,7 @@ public sealed class OdfStrokeDash {
             } catch (ArgumentException exception) { throw new InvalidDataException("Unsupported stroke-dash definition '" + Name + "'.", exception); }
         }
         set {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
             WritePattern(_element, value); _document.MarkPartDirty("styles.xml");
         }
     }

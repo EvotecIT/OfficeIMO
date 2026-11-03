@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write;
 
 internal static partial class LegacyXlsWriter {
     internal static void ValidateEncryptionPassword(string password) {
-        if (password == null) throw new ArgumentNullException(nameof(password));
+        ArgumentNullException.ThrowIfNull(password);
         if (password.Length < 1 || password.Length > 15) throw new ArgumentException("Classic XLS encryption requires 1–15 UTF-16 password code units.", nameof(password));
     }
 

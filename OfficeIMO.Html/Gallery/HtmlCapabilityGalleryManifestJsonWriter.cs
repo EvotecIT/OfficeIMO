@@ -15,9 +15,7 @@ public static partial class HtmlCapabilityGalleryManifestJsonWriter {
     /// <param name="manifest">Manifest to serialize.</param>
     /// <returns>Indented JSON containing scenario, profile contract, artifacts, expectations, score, resources, and diagnostics.</returns>
     public static string ToJson(HtmlCapabilityGalleryManifest manifest) {
-        if (manifest == null) {
-            throw new ArgumentNullException(nameof(manifest));
-        }
+        ArgumentNullException.ThrowIfNull(manifest);
 
         HtmlConversionProfileContract contract = HtmlConversionProfileContracts.Get(manifest.Profile);
         var builder = new StringBuilder();

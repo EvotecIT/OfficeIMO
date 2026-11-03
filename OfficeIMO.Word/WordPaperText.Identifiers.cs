@@ -12,7 +12,7 @@ public static partial class WordPaperText {
     /// <param name="value">The exact source identifier.</param>
     /// <returns>Display text containing optional breaks. Use <see cref="RemoveOptionalBreaks"/> for plain-text targets.</returns>
     public static string WithIdentifierBreaks(string value) {
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
         return Regex.Replace(value, IdentifierBoundaries, "\u200C");
     }
 
@@ -22,8 +22,8 @@ public static partial class WordPaperText {
     /// <returns>Display text with no visible spaces added. Repeated application is idempotent. Use <see cref="RemoveOptionalBreaks"/> for plain text.</returns>
     /// <remarks>This overload does not insert breaks at case or digit boundaries inside labels.</remarks>
     public static string WithIdentifierBreaks(string value, params char[] separators) {
-        if (value == null) { throw new ArgumentNullException(nameof(value)); }
-        if (separators == null) { throw new ArgumentNullException(nameof(separators)); }
+        ArgumentNullException.ThrowIfNull(value);
+        ArgumentNullException.ThrowIfNull(separators);
         if (value.Length == 0 || separators.Length == 0) { return value; }
         var text = new StringBuilder(value.Length);
         for (int index = 0; index < value.Length; index++) {
@@ -40,7 +40,7 @@ public static partial class WordPaperText {
     /// <param name="value">Extracted text, optionally containing invisible breaks.</param>
     /// <returns>The original text without optional break markers; visible spacing and linguistic join controls outside the authored Latin case/digit boundaries are preserved.</returns>
     public static string RemoveOptionalBreaks(string value) {
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
         return Regex.Replace(value, WordIdentifierBreaks, string.Empty).Replace("\u200B", string.Empty);
     }
 

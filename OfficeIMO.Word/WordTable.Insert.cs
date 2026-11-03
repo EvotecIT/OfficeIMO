@@ -10,9 +10,10 @@ public partial class WordTable {
     /// value is added to the merged cell.
     /// </summary>
     public WordTableRow InsertRow(int index, params object?[] values) {
-        if (values == null) throw new ArgumentNullException(nameof(values));
+        ArgumentNullException.ThrowIfNull(values);
         var existing = WordTableContent.Rows(_table).ToList();
-        if (index < 0 || index > existing.Count) throw new ArgumentOutOfRangeException(nameof(index));
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(index, existing.Count);
         int columns = existing.Count > 0 ? WordTableContent.GridColumnCount(existing[0]) : values.Length;
         if (values.Length > columns) throw new ArgumentException("The inserted row has more values than the table has columns.", nameof(values));
         var row = AddRow(columns);
@@ -36,7 +37,7 @@ public partial class WordTable {
     /// cell the column widens that cell, which is the cell returned for the row and receives its value.
     /// </summary>
     public IReadOnlyList<WordTableCell> InsertColumn(int index, params object?[] values) {
-        if (values == null) throw new ArgumentNullException(nameof(values));
+        ArgumentNullException.ThrowIfNull(values);
         var rows = Rows;
         if (index < 0 || rows.Any(row => index > WordTableContent.GridColumnCount(row._tableRow))) throw new ArgumentOutOfRangeException(nameof(index));
         if (values.Length > rows.Count) throw new ArgumentException("The inserted column has more values than the table has rows.", nameof(values));

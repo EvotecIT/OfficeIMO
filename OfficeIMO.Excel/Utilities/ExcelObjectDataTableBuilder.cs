@@ -18,9 +18,7 @@ namespace OfficeIMO.Excel {
         /// <returns>Populated DataTable.</returns>
         [RequiresUnreferencedCode("Uses reflection over arbitrary object graphs. For AOT-safe usage, map values explicitly or pre-flatten items.")]
         public static DataTable FromObjects(IEnumerable<object?> items, string tableName = "Data", ExcelObjectDataTableBuilderOptions? options = null) {
-            if (items == null) {
-                throw new ArgumentNullException(nameof(items));
-            }
+            ArgumentNullException.ThrowIfNull(items);
 
             options ??= new ExcelObjectDataTableBuilderOptions();
             IReadOnlyList<object?> rows = items as IReadOnlyList<object?> ?? items.ToList();

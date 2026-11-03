@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private const int BrtWsProp = 147;
 
         internal static void Write(Stream output, SheetProperties? properties, string sheetName) {
-            if (output == null) throw new ArgumentNullException(nameof(output));
+            ArgumentNullException.ThrowIfNull(output);
             if (properties == null) return;
             XlsbRecordWriter.Write(output, BrtWsProp, CreatePayload(properties, sheetName));
         }

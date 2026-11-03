@@ -10,7 +10,7 @@ public partial class WordDocument {
     public async Task<WordImage> AddImageAsync(Uri uri, OfficeLength? width = null, OfficeLength? height = null,
         WordImageOptions? options = null, OfficeRemoteImageLoadOptions? remoteImageOptions = null,
         CancellationToken cancellationToken = default) {
-        if (uri == null) throw new ArgumentNullException(nameof(uri));
+        ArgumentNullException.ThrowIfNull(uri);
         var resolved = options?.Clone() ?? new WordImageOptions();
         OfficeRemoteImage image = await OfficeRemoteImageLoader.LoadAsync(uri.AbsoluteUri, remoteImageOptions, cancellationToken).ConfigureAwait(false);
         using var stream = new MemoryStream(image.ToBytes());

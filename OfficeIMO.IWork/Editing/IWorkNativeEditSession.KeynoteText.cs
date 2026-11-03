@@ -13,9 +13,9 @@ public sealed partial class IWorkNativeEditSession {
     public void SetKeynoteTextBoxParagraphText(IWorkObjectIdentity textBoxIdentity, int paragraph, string text,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (textBoxIdentity == null) throw new ArgumentNullException(nameof(textBoxIdentity));
-        if (text == null) throw new ArgumentNullException(nameof(text));
-        if (paragraph < 1) throw new ArgumentOutOfRangeException(nameof(paragraph));
+        ArgumentNullException.ThrowIfNull(textBoxIdentity);
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentOutOfRangeException.ThrowIfLessThan(paragraph, 1);
         if (_source.Kind != IWorkDocumentKind.Keynote) throw new InvalidOperationException("Text-box editing requires a Keynote source.");
         if (_source.ContainerEntries.Any(entry => entry.Path == "Index.zip"))
             throw new NotSupportedException("Edits to nested Index.zip sources are not supported.");

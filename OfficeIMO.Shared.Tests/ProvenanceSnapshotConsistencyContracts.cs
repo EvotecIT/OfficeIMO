@@ -43,7 +43,8 @@ public sealed class ProvenanceSnapshotConsistencyContracts {
         public override long Position {
             get => _position;
             set {
-                if (value < 0 || value > Length) throw new ArgumentOutOfRangeException(nameof(value));
+                ArgumentOutOfRangeException.ThrowIfNegative(value);
+                ArgumentOutOfRangeException.ThrowIfGreaterThan(value, Length);
                 if (value == 0 && _hasRead) _useSecond = true;
                 _position = value;
             }

@@ -32,8 +32,8 @@ internal static partial class OneNoteReaderAdapter {
         ReaderOptions? readerOptions = null,
         ReaderOneNoteOptions? oneNoteOptions = null,
         CancellationToken cancellationToken = default) {
-        if (section == null) throw new ArgumentNullException(nameof(section));
-        if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
+        ArgumentNullException.ThrowIfNull(section);
+        ArgumentNullException.ThrowIfNull(sourceName);
         ReaderOptions reader = readerOptions ?? new ReaderOptions();
         ReaderOneNoteOptions native = ReaderOneNoteOptionsCloner.CloneOrDefault(oneNoteOptions);
         SourceInfo source = SourceInfo.ForLogicalName(NormalizeSourceName(sourceName));
@@ -47,8 +47,8 @@ internal static partial class OneNoteReaderAdapter {
         ReaderOptions? readerOptions = null,
         ReaderOneNoteOptions? oneNoteOptions = null,
         CancellationToken cancellationToken = default) {
-        if (notebook == null) throw new ArgumentNullException(nameof(notebook));
-        if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
+        ArgumentNullException.ThrowIfNull(notebook);
+        ArgumentNullException.ThrowIfNull(sourceName);
         ReaderOptions reader = readerOptions ?? new ReaderOptions();
         ReaderOneNoteOptions native = ReaderOneNoteOptionsCloner.CloneOrDefault(oneNoteOptions);
         SourceInfo source = SourceInfo.ForLogicalName(NormalizeSourceName(sourceName));

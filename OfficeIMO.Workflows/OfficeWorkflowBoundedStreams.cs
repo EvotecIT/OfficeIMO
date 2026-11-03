@@ -7,7 +7,7 @@ internal sealed class OfficeWorkflowBoundedCountingStream : Stream {
     private long _position;
 
     internal OfficeWorkflowBoundedCountingStream(long maximumBytes) {
-        if (maximumBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maximumBytes, 0L);
         _maximumBytes = maximumBytes;
     }
 
@@ -47,7 +47,7 @@ internal sealed class OfficeWorkflowBoundedCountingStream : Stream {
     }
 
     public override void Write(byte[] buffer, int offset, int count) {
-        if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+        ArgumentNullException.ThrowIfNull(buffer);
         if (offset < 0 || count < 0 || offset > buffer.Length - count) throw new ArgumentOutOfRangeException(nameof(count));
         Advance(count);
     }
@@ -87,7 +87,7 @@ internal sealed class OfficeWorkflowBoundedCountingStream : Stream {
     }
 
     private void EnsureWithinLimit(long value) {
-        if (value < 0L) throw new ArgumentOutOfRangeException(nameof(value));
+        ArgumentOutOfRangeException.ThrowIfLessThan(value, 0L);
         if (value > _maximumBytes) throw CreateLimitException();
     }
 
@@ -102,9 +102,9 @@ internal sealed class OfficeWorkflowBoundedWriteStream : Stream {
     private readonly bool _leaveOpen;
 
     internal OfficeWorkflowBoundedWriteStream(Stream inner, long maximumBytes, bool leaveOpen = false) {
-        if (inner == null) throw new ArgumentNullException(nameof(inner));
+        ArgumentNullException.ThrowIfNull(inner);
         if (!inner.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(inner));
-        if (maximumBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maximumBytes, 0L);
         _inner = inner;
         _maximumBytes = maximumBytes;
         _leaveOpen = leaveOpen;
@@ -195,7 +195,7 @@ internal sealed class OfficeWorkflowBoundedWriteStream : Stream {
     }
 
     private void EnsureWithinLimit(long value) {
-        if (value < 0L) throw new ArgumentOutOfRangeException(nameof(value));
+        ArgumentOutOfRangeException.ThrowIfLessThan(value, 0L);
         if (value > _maximumBytes) throw CreateLimitException();
     }
 

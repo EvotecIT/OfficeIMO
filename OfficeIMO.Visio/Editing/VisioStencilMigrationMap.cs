@@ -41,9 +41,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="configure">Builder configuration.</param>
         public static VisioStencilMigrationMap Create(Action<VisioStencilMigrationMapBuilder> configure) {
-            if (configure == null) {
-                throw new ArgumentNullException(nameof(configure));
-            }
+            ArgumentNullException.ThrowIfNull(configure);
 
             VisioStencilMigrationMapBuilder builder = new();
             configure(builder);
@@ -168,9 +166,7 @@ namespace OfficeIMO.Visio {
         /// Creates a rule matching by caller-provided predicate.
         /// </summary>
         public static VisioStencilMigrationRule ForPredicate(Func<VisioShape, bool> predicate, VisioStencilShape replacement, bool resizeToStencil = false) {
-            if (predicate == null) {
-                throw new ArgumentNullException(nameof(predicate));
-            }
+            ArgumentNullException.ThrowIfNull(predicate);
 
             return new VisioStencilMigrationRule(VisioStencilMigrationMatchKind.Predicate, null, predicate, replacement, resizeToStencil, StringComparison.OrdinalIgnoreCase);
         }

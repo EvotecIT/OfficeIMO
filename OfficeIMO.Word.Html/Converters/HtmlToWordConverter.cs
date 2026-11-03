@@ -79,7 +79,7 @@ namespace OfficeIMO.Word.Html {
             "h1", "h2", "h3", "h4", "h5", "h6", "address", "hr", "dd", "dt"
         };
         internal async Task<WordDocument> ConvertAsync(IHtmlDocument document, HtmlWordExportOptions options, CancellationToken cancellationToken = default) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             options ??= new HtmlWordExportOptions();
             await PrepareImportAsync(document, options, cancellationToken).ConfigureAwait(false);
 
@@ -116,7 +116,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         internal async Task<IReadOnlyList<WordElement>> AddHtmlToBodyAsync(WordDocument doc, WordSection section, IHtmlDocument document, HtmlWordExportOptions options, CancellationToken cancellationToken = default) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             options ??= new HtmlWordExportOptions();
             await PrepareImportAsync(document, options, cancellationToken).ConfigureAwait(false);
             Body body = doc._wordprocessingDocument?.MainDocumentPart?.Document?.Body
@@ -144,7 +144,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private async Task<IReadOnlyList<WordElement>> AddHtmlToHeaderFooterAsync(WordDocument doc, WordSection section, WordHeaderFooter headerFooter, IHtmlDocument document, HtmlWordExportOptions options, CancellationToken cancellationToken) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             options ??= new HtmlWordExportOptions();
             await PrepareImportAsync(document, options, cancellationToken).ConfigureAwait(false);
             var existingBlocks = new HashSet<OpenXmlElement>(headerFooter.ChildElements, OfficeReferenceEqualityComparer<OpenXmlElement>.Instance);
@@ -165,8 +165,8 @@ namespace OfficeIMO.Word.Html {
             IHtmlDocument document,
             HtmlWordExportOptions options,
             CancellationToken cancellationToken = default) {
-            if (cell == null) throw new ArgumentNullException(nameof(cell));
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(cell);
+            ArgumentNullException.ThrowIfNull(document);
             options ??= new HtmlWordExportOptions();
             await PrepareImportAsync(document, options, cancellationToken).ConfigureAwait(false);
 

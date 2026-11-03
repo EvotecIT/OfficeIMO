@@ -9,9 +9,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<PowerPointParagraph> AddBullets(IEnumerable<string> bullets, int level = 0,
             char bulletChar = '\u2022', Action<PowerPointParagraph>? configure = null) {
-            if (bullets == null) {
-                throw new ArgumentNullException(nameof(bullets));
-            }
+            ArgumentNullException.ThrowIfNull(bullets);
 
             var results = new List<PowerPointParagraph>();
             foreach (string bullet in bullets) {
@@ -33,9 +31,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<PowerPointParagraph> SetBullets(IEnumerable<string> bullets, int level = 0,
             char bulletChar = '\u2022', Action<PowerPointParagraph>? configure = null) {
-            if (bullets == null) {
-                throw new ArgumentNullException(nameof(bullets));
-            }
+            ArgumentNullException.ThrowIfNull(bullets);
 
             return ReplaceParagraphs(bullets, (bullet, templateParagraph) => {
                 PowerPointParagraph paragraph = AppendParagraph(EnsureTextBody(), bullet ?? string.Empty, templateParagraph);
@@ -55,9 +51,7 @@ namespace OfficeIMO.PowerPoint {
         public IReadOnlyList<PowerPointParagraph> AddNumberedList(IEnumerable<string> items,
             PowerPointNumberingScheme style, int startAt = 1,
             int level = 0, Action<PowerPointParagraph>? configure = null) {
-            if (items == null) {
-                throw new ArgumentNullException(nameof(items));
-            }
+            ArgumentNullException.ThrowIfNull(items);
 
             var results = new List<PowerPointParagraph>();
             bool first = true;
@@ -94,9 +88,7 @@ namespace OfficeIMO.PowerPoint {
         public IReadOnlyList<PowerPointParagraph> SetNumberedList(IEnumerable<string> items,
             PowerPointNumberingScheme style, int startAt = 1,
             int level = 0, Action<PowerPointParagraph>? configure = null) {
-            if (items == null) {
-                throw new ArgumentNullException(nameof(items));
-            }
+            ArgumentNullException.ThrowIfNull(items);
 
             bool first = true;
             return ReplaceParagraphs(items, (item, templateParagraph) => {

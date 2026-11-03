@@ -66,7 +66,7 @@ public sealed class EmailMessage {
     /// <summary>Runs an owner operation with a full document and releases its source immediately afterward.</summary>
     /// <remarks>Do not return content streams or the document from the callback. Keep the source unchanged between reading and exporting.</remarks>
     public T UseDocument<T>(Func<EmailDocument, T> operation, CancellationToken cancellationToken = default) {
-        if (operation == null) throw new ArgumentNullException(nameof(operation));
+        ArgumentNullException.ThrowIfNull(operation);
         _source.Validate();
         using var data = _source.Open(true, cancellationToken);
         EmailDocument document = _reference == null

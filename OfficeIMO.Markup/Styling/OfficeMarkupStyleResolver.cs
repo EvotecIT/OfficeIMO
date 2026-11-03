@@ -13,9 +13,7 @@ public sealed class OfficeMarkupStyleResolver {
     /// <summary>Creates a resolver using the document's current <c>theme</c> metadata value.</summary>
     /// <remarks>The palette is selected at creation; later metadata changes do not update this resolver.</remarks>
     public static OfficeMarkupStyleResolver Create(OfficeMarkupDocument document) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
         var styles = CreateBaseStyles(document.Metadata.TryGetValue("theme", out var theme) ? theme : null);
         return new OfficeMarkupStyleResolver(styles);

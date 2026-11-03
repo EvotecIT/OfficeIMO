@@ -9,14 +9,8 @@ internal static class WordObjectSearch
 {
     public static bool MatchesTable(WordTable table, Func<string, bool> matches)
     {
-        if (table == null)
-        {
-            throw new ArgumentNullException(nameof(table));
-        }
-        if (matches == null)
-        {
-            throw new ArgumentNullException(nameof(matches));
-        }
+        ArgumentNullException.ThrowIfNull(table);
+        ArgumentNullException.ThrowIfNull(matches);
 
         return table.Rows
             .SelectMany(row => row.Cells)
@@ -26,14 +20,8 @@ internal static class WordObjectSearch
 
     public static bool MatchesList(WordList list, Func<string, bool> matches)
     {
-        if (list == null)
-        {
-            throw new ArgumentNullException(nameof(list));
-        }
-        if (matches == null)
-        {
-            throw new ArgumentNullException(nameof(matches));
-        }
+        ArgumentNullException.ThrowIfNull(list);
+        ArgumentNullException.ThrowIfNull(matches);
 
         return list.ListItems.Any(item => matches(item.Text ?? string.Empty));
     }

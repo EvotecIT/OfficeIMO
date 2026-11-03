@@ -12,7 +12,7 @@ public sealed partial class OfficeManagedTextShapingProvider {
     internal bool TryShapeDefaultLatinTokens(OfficeTextShapingRequest request,
         out List<OfficeOpenTypeSubstitution.GlyphToken> tokens, out OfficeTextDirection direction,
         out OfficeOpenTypeGlyphPositioning[]? positions) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         tokens = null!;
         positions = null;
         direction = request.Direction;
@@ -27,9 +27,9 @@ public sealed partial class OfficeManagedTextShapingProvider {
     // units with the same rounding its drawing path uses.
     internal bool TryMeasureDefaultLatinText(OfficeTextShapingRequest request, Func<int, string, int> measureGlyph,
         Func<int, int> scaleAdjustment, out int advance) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
-        if (measureGlyph == null) throw new ArgumentNullException(nameof(measureGlyph));
-        if (scaleAdjustment == null) throw new ArgumentNullException(nameof(scaleAdjustment));
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(measureGlyph);
+        ArgumentNullException.ThrowIfNull(scaleAdjustment);
         advance = 0;
         if (!TryShapeDefaultLatinTokens(request, out List<OfficeOpenTypeSubstitution.GlyphToken> tokens, out _,
             out OfficeOpenTypeGlyphPositioning[]? positions)) return false;
@@ -61,7 +61,7 @@ public sealed partial class OfficeManagedTextShapingProvider {
     private bool TryShapeTokens(OfficeTextShapingRequest request, out IOfficeFontProgram font,
         out List<OfficeOpenTypeSubstitution.GlyphToken> tokens, out OfficeTextDirection resolvedDirection,
         bool allowDiagnosedFallback = false) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         font = null!;
         tokens = null!;
         resolvedDirection = request.Direction;

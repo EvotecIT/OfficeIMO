@@ -25,9 +25,7 @@ namespace OfficeIMO.Examples.Word {
         }
 
         private static WordHeader RequireDefaultSectionHeader(WordSection section, string description) {
-            if (section == null) {
-                throw new ArgumentNullException(nameof(section));
-            }
+            ArgumentNullException.ThrowIfNull(section);
 
             var header = section.PageSetup.GetHeader(WordHeaderFooterType.Default);
             if (header == null) {

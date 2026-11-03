@@ -36,7 +36,7 @@ public sealed class OfficeExifTimestamp {
     /// <summary>Parses Exif date, offset and subseconds without assigning an absent timezone.</summary>
     /// <remarks>Fractions beyond seven digits retain their raw text and are truncated to .NET ticks with an explicit diagnostic.</remarks>
     public static OfficeExifTimestamp Parse(string rawValue, string? rawOffset = null, string? rawSubseconds = null) {
-        if (rawValue == null) throw new ArgumentNullException(nameof(rawValue));
+        ArgumentNullException.ThrowIfNull(rawValue);
         if (rawValue.Length == 19 && Unknown(rawValue)) return new OfficeExifTimestamp(rawValue, rawOffset, rawSubseconds, null, null, "exif:timestamp-unknown");
         if (rawValue.Length != 19 || !DateTime.TryParseExact(rawValue, "yyyy:MM:dd HH:mm:ss", CultureInfo.InvariantCulture,
                 DateTimeStyles.None, out DateTime local)) return new OfficeExifTimestamp(rawValue, rawOffset, rawSubseconds, null, null, "exif:invalid-timestamp");

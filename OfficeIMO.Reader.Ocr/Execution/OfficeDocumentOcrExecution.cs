@@ -18,8 +18,8 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         IOcrEngine engine,
         OfficeDocumentOcrExecutionOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (engine == null) throw new ArgumentNullException(nameof(engine));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(engine);
 
         ExecutionOptionsSnapshot effective = ExecutionOptionsSnapshot.Create(options);
         return await ApplyOcrDocumentAsync(document, OcrEngineRunner.CreateExecution(engine), effective,

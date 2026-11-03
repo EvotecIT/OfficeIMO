@@ -71,9 +71,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="field">Field to add.</param>
         public VisioShapeDataSchema Add(VisioShapeDataField field) {
-            if (field == null) {
-                throw new ArgumentNullException(nameof(field));
-            }
+            ArgumentNullException.ThrowIfNull(field);
 
             if (_fields.Any(existing => string.Equals(existing.Name, field.Name, StringComparison.OrdinalIgnoreCase))) {
                 throw new InvalidOperationException("The schema already contains a Shape Data field named '" + field.Name + "'.");
@@ -89,9 +87,7 @@ namespace OfficeIMO.Visio {
         /// <param name="shape">Shape to update.</param>
         /// <param name="overwriteValues">Whether schema defaults should replace existing values.</param>
         public VisioShape ApplyTo(VisioShape shape, bool overwriteValues = false) {
-            if (shape == null) {
-                throw new ArgumentNullException(nameof(shape));
-            }
+            ArgumentNullException.ThrowIfNull(shape);
 
             foreach (VisioShapeDataField field in _fields) {
                 ApplyField(shape, field, overwriteValues);
@@ -106,9 +102,7 @@ namespace OfficeIMO.Visio {
         /// <param name="connector">Connector to update.</param>
         /// <param name="overwriteValues">Whether schema defaults should replace existing values.</param>
         public VisioConnector ApplyTo(VisioConnector connector, bool overwriteValues = false) {
-            if (connector == null) {
-                throw new ArgumentNullException(nameof(connector));
-            }
+            ArgumentNullException.ThrowIfNull(connector);
 
             foreach (VisioShapeDataField field in _fields) {
                 ApplyField(connector, field, overwriteValues);
@@ -123,9 +117,7 @@ namespace OfficeIMO.Visio {
         /// <param name="shapes">Shapes to update.</param>
         /// <param name="overwriteValues">Whether schema defaults should replace existing values.</param>
         public IReadOnlyList<VisioShape> ApplyTo(IEnumerable<VisioShape> shapes, bool overwriteValues = false) {
-            if (shapes == null) {
-                throw new ArgumentNullException(nameof(shapes));
-            }
+            ArgumentNullException.ThrowIfNull(shapes);
 
             List<VisioShape> updated = new();
             foreach (VisioShape shape in shapes) {
@@ -141,9 +133,7 @@ namespace OfficeIMO.Visio {
         /// <param name="connectors">Connectors to update.</param>
         /// <param name="overwriteValues">Whether schema defaults should replace existing values.</param>
         public IReadOnlyList<VisioConnector> ApplyToConnectors(IEnumerable<VisioConnector> connectors, bool overwriteValues = false) {
-            if (connectors == null) {
-                throw new ArgumentNullException(nameof(connectors));
-            }
+            ArgumentNullException.ThrowIfNull(connectors);
 
             List<VisioConnector> updated = new();
             foreach (VisioConnector connector in connectors) {
@@ -158,9 +148,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="shape">Shape to validate.</param>
         public IReadOnlyList<VisioShapeDataSchemaIssue> Validate(VisioShape shape) {
-            if (shape == null) {
-                throw new ArgumentNullException(nameof(shape));
-            }
+            ArgumentNullException.ThrowIfNull(shape);
 
             return Validate(
                 "Shape",
@@ -175,9 +163,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="connector">Connector to validate.</param>
         public IReadOnlyList<VisioShapeDataSchemaIssue> Validate(VisioConnector connector) {
-            if (connector == null) {
-                throw new ArgumentNullException(nameof(connector));
-            }
+            ArgumentNullException.ThrowIfNull(connector);
 
             return Validate(
                 "Connector",

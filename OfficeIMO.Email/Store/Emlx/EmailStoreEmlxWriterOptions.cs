@@ -11,9 +11,9 @@ public sealed class EmailStoreEmlxWriterOptions {
     public EmailStoreEmlxWriterOptions(EmailWriterOptions? messageOptions = null,
         bool includeMetadata = true, long maxOutputBytes = 512L * 1024L * 1024L,
         int maxMetadataDepth = 32, int maxMetadataProperties = 16_384) {
-        if (maxOutputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxOutputBytes));
-        if (maxMetadataDepth <= 0) throw new ArgumentOutOfRangeException(nameof(maxMetadataDepth));
-        if (maxMetadataProperties <= 0) throw new ArgumentOutOfRangeException(nameof(maxMetadataProperties));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxOutputBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxMetadataDepth);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxMetadataProperties);
         MessageOptions = messageOptions ?? EmailWriterOptions.Default;
         IncludeMetadata = includeMetadata;
         MaxOutputBytes = maxOutputBytes;

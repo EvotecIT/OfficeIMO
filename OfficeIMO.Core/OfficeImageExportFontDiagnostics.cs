@@ -18,7 +18,7 @@ internal static class OfficeImageExportFontDiagnostics {
         string? familyNames,
         OfficeFontStyle style = OfficeFontStyle.Regular,
         string? source = null) {
-        if (fonts == null) throw new ArgumentNullException(nameof(fonts));
+        ArgumentNullException.ThrowIfNull(fonts);
         if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(familyNames)) return null;
 
         List<string> families = ParseFamilies(familyNames!);
@@ -71,8 +71,8 @@ internal static class OfficeImageExportFontDiagnostics {
         this OfficeDrawing drawing,
         ICollection<OfficeImageExportDiagnostic> diagnostics,
         string? source = null) {
-        if (drawing == null) throw new ArgumentNullException(nameof(drawing));
-        if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
+        ArgumentNullException.ThrowIfNull(drawing);
+        ArgumentNullException.ThrowIfNull(diagnostics);
 
         var seen = new HashSet<string>(StringComparer.Ordinal);
         int remainingLookups = MaximumDiagnosticLookups;

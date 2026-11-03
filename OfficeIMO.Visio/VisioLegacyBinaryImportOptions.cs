@@ -11,9 +11,9 @@ namespace OfficeIMO.Visio {
         public int MaxDepth { get; set; } = 64;
 
         internal VisioLegacyBinaryImportOptions Snapshot() {
-            if (Limits == null) throw new ArgumentNullException(nameof(Limits));
+            ArgumentNullException.ThrowIfNull(Limits);
             Limits.Validate();
-            if (MaxDecompressedBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaxDecompressedBytes));
+            ArgumentOutOfRangeException.ThrowIfLessThan(MaxDecompressedBytes, 1);
             if (MaxDepth is < 1 or > 100) throw new ArgumentOutOfRangeException(nameof(MaxDepth), "Depth must be between 1 and 100.");
             return new VisioLegacyBinaryImportOptions {
                 Limits = Limits.Clone(), MaxDecompressedBytes = MaxDecompressedBytes, MaxDepth = MaxDepth

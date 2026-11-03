@@ -24,9 +24,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(pivotTableName));
             }
 
-            if (sourceSheet == null) {
-                throw new ArgumentNullException(nameof(sourceSheet));
-            }
+            ArgumentNullException.ThrowIfNull(sourceSheet);
 
             if (!ReferenceEquals(_excelDocument, sourceSheet._excelDocument)) {
                 throw new ArgumentException("The pivot source worksheet must belong to the same workbook.", nameof(sourceSheet));

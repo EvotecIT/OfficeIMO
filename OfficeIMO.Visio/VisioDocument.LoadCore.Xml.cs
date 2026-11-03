@@ -13,7 +13,7 @@ namespace OfficeIMO.Visio {
 
         private static XDocument LoadPackageXml(PackagePart part, string description, CancellationToken cancellationToken = default,
             long maxCharacters = MaxPackageXmlCharacters) {
-            if (maxCharacters < 1) throw new ArgumentOutOfRangeException(nameof(maxCharacters));
+            ArgumentOutOfRangeException.ThrowIfLessThan(maxCharacters, 1);
             cancellationToken.ThrowIfCancellationRequested();
             using Stream stream = part.GetStream();
             using Stream boundedStream = new BoundedReadStream(stream, MaxPackageXmlPartBytes, description);

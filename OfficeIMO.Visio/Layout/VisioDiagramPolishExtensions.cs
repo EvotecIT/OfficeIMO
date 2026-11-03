@@ -11,9 +11,7 @@ namespace OfficeIMO.Visio {
         /// <param name="document">Document whose pages should be polished.</param>
         /// <param name="options">Optional polish settings.</param>
         public static VisioDocument PolishDiagrams(this VisioDocument document, VisioDiagramPolishOptions? options = null) {
-            if (document == null) {
-                throw new ArgumentNullException(nameof(document));
-            }
+            ArgumentNullException.ThrowIfNull(document);
 
             VisioDiagramPolishOptions resolvedOptions = options ?? new VisioDiagramPolishOptions();
             foreach (VisioPage page in document.Pages) {
@@ -33,9 +31,7 @@ namespace OfficeIMO.Visio {
         /// <param name="page">Page to polish.</param>
         /// <param name="options">Optional polish settings.</param>
         public static VisioPage PolishDiagram(this VisioPage page, VisioDiagramPolishOptions? options = null) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             VisioDiagramPolishOptions resolvedOptions = options ?? new VisioDiagramPolishOptions();
             ValidateOptions(resolvedOptions);

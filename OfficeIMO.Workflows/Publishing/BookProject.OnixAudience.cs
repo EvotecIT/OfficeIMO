@@ -22,7 +22,7 @@ public sealed partial class BookProject {
         bool hasMain = false;
         foreach (var category in audience.Categories) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (category == null) throw new ArgumentNullException(nameof(category));
+            ArgumentNullException.ThrowIfNull(category);
             if (!categories.Add(category.Type) || (category.IsMain && hasMain))
                 throw new ArgumentException("Audience categories must be distinct, with at most one main category.", nameof(audience));
             hasMain |= category.IsMain;
@@ -44,7 +44,7 @@ public sealed partial class BookProject {
         var rangeTypes = new HashSet<BookOnixAgeRangeType>();
         foreach (var range in audience.AgeRanges) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (range == null) throw new ArgumentNullException(nameof(range));
+            ArgumentNullException.ThrowIfNull(range);
             if (!rangeTypes.Add(range.Type)) throw new ArgumentException("Age range types must be distinct.", nameof(audience));
             result.Add(BuildOnixAgeRange(range));
         }
@@ -53,14 +53,14 @@ public sealed partial class BookProject {
         var gradeSystems = new HashSet<BookOnixGradeSystem>();
         foreach (var range in audience.GradeRanges) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (range == null) throw new ArgumentNullException(nameof(range));
+            ArgumentNullException.ThrowIfNull(range);
             if (!gradeSystems.Add(range.System)) throw new ArgumentException("Grade systems must be distinct.", nameof(audience));
             result.Add(BuildOnixGradeRange(range));
         }
         var languages = new HashSet<string>(StringComparer.Ordinal);
         foreach (var description in audience.Descriptions) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (description == null) throw new ArgumentNullException(nameof(description));
+            ArgumentNullException.ThrowIfNull(description);
             RequireOnixText(description.Text, nameof(description.Text));
             RequireOnixTranslationLanguage(description.LanguageCode, audience.Descriptions.Count, nameof(audience.Descriptions));
             if (!languages.Add(description.LanguageCode ?? ""))

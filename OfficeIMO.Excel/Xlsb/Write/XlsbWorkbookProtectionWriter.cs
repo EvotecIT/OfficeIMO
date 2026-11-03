@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private const int BrtBookProtection = 534;
 
         internal static void Write(Stream output, WorkbookProtection? protection) {
-            if (output == null) throw new ArgumentNullException(nameof(output));
+            ArgumentNullException.ThrowIfNull(output);
             if (protection == null) return;
             XlsbRecordWriter.Write(output, BrtBookProtection, CreatePayload(protection));
         }

@@ -14,7 +14,7 @@ public static partial class OdtPdfConversionExtensions {
         WordOpenDocumentConversionOptions? conversionOptions = null,
         WordPdf.WordPdfExportOptions? pdfOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         OdfConversionResult<OfficeIMO.Word.WordDocument> conversion =
             source.ConvertToWordWithEvidence(conversionOptions);
         // The PDF model renders headers and footers from the intermediate Word
@@ -31,7 +31,7 @@ public static partial class OdtPdfConversionExtensions {
         PdfWord.PdfWordExportOptions? pdfOptions = null,
         WordOpenDocumentConversionOptions? openDocumentOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         PdfWord.PdfWordConversionResult pdf =
             PdfWord.PdfWordConverterExtensions.ConvertToWordWithEvidence(source, pdfOptions, cancellationToken);
         using (pdf.Value) {
@@ -49,7 +49,7 @@ public static partial class OdtPdfConversionExtensions {
         PdfWord.PdfWordExportOptions? pdfOptions = null,
         WordOpenDocumentConversionOptions? openDocumentOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         PdfWord.PdfWordConversionResult pdf =
             PdfWord.PdfWordConverterExtensions.ConvertToWordWithEvidence(source, pdfOptions, cancellationToken);
         using (pdf.Value) {

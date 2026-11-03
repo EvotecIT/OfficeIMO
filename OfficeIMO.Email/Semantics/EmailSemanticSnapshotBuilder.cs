@@ -49,7 +49,7 @@ internal sealed partial class EmailSemanticSnapshotBuilder {
     }
 
     internal EmailSemanticSnapshot Build(EmailDocument document, CancellationToken cancellationToken) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         AddDocument(document, "document", 0, useAsync: false, cancellationToken)
             .GetAwaiter().GetResult();
         return Complete();
@@ -57,7 +57,7 @@ internal sealed partial class EmailSemanticSnapshotBuilder {
 
     internal async Task<EmailSemanticSnapshot> BuildAsync(EmailDocument document,
         CancellationToken cancellationToken) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         await AddDocument(document, "document", 0, useAsync: true, cancellationToken)
             .ConfigureAwait(false);
         return Complete();

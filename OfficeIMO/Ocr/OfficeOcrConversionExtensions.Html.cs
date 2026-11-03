@@ -35,7 +35,7 @@ public static partial class OfficeOcrConversionExtensions {
     }
 
     private static PdfHtmlConversionResult ReadOcrHtml(PdfOcrMergeResult source, PdfHtmlExportOptions? options, CancellationToken token) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         token.ThrowIfCancellationRequested();
         source.RequireAcceptedOcrContent();
         return source.Document.ToHtmlResult(options, token);

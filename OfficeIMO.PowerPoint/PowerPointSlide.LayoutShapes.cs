@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint {
         ///     generated one, and returns its tracked wrapper.
         /// </summary>
         internal PowerPointShape AppendLayoutShape(Shape shape, bool textBox) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
             NonVisualDrawingProperties? properties = shape.NonVisualShapeProperties?.NonVisualDrawingProperties;
             if (properties != null) {
                 properties.Id = AllocateShapeId();

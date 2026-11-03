@@ -32,7 +32,7 @@ public sealed partial class OfficeDrawing {
         double x, double y, double width, double height, OfficeTextVerticalAlignment verticalAlignment,
         bool wrapText, OfficeTextPadding? padding, bool shrinkToFit,
         OfficeTextAreaAlignment areaAlignment) {
-        if (paragraphs == null) throw new ArgumentNullException(nameof(paragraphs));
+        ArgumentNullException.ThrowIfNull(paragraphs);
         if (!Enum.IsDefined(typeof(OfficeTextAreaAlignment), areaAlignment)) throw new ArgumentOutOfRangeException(nameof(areaAlignment));
         if (paragraphs.Count > OfficeTextLayoutEngine.MaximumLayoutLines) throw new ArgumentException("Paragraph count exceeds the shared line limit.", nameof(paragraphs));
         var runs = new List<OfficeRichTextRun>();

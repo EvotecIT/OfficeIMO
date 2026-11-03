@@ -12,9 +12,9 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
         private const string UnsupportedCustomPropertyCode = "xls-ole-custom-document-property-unsupported";
 
         internal static void AddDocumentProperties(OfficeCompoundFile compoundFile, LegacyXlsWorkbook workbook, LegacyXlsImportOptions options) {
-            if (compoundFile == null) throw new ArgumentNullException(nameof(compoundFile));
-            if (workbook == null) throw new ArgumentNullException(nameof(workbook));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(compoundFile);
+            ArgumentNullException.ThrowIfNull(workbook);
+            ArgumentNullException.ThrowIfNull(options);
 
             var properties = new LegacyXlsDocumentProperties();
             bool parsedAny = false;

@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
         internal static ExcelDocument ToExcelDocument(
             LegacyXlsWorkbook workbook,
             CancellationToken cancellationToken) {
-            if (workbook == null) throw new ArgumentNullException(nameof(workbook));
+            ArgumentNullException.ThrowIfNull(workbook);
             cancellationToken.ThrowIfCancellationRequested();
 
             ExcelDocument document = ExcelDocument.Create();

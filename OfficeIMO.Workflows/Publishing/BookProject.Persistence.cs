@@ -36,7 +36,7 @@ public sealed partial class BookProject {
     }
     /// <summary>Loads an .oibook project after physical ZIP, byte, schema and entry validation. No files are extracted.</summary>
     public static BookProject LoadProject(byte[] bytes, CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         if (bytes.LongLength > MaximumProjectBytes) throw new InvalidDataException("The project exceeds its input-byte bound.");
         cancellationToken.ThrowIfCancellationRequested();
         OfficeProvenanceZip.ValidateForOwningPackageMutation(bytes, new OfficeProvenanceOptions {

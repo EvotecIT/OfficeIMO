@@ -14,7 +14,7 @@ public sealed partial class EpubPublication {
         cancellationToken.ThrowIfCancellationRequested();
         if (PackageVersion != "3.0") throw new NotSupportedException("Semantic index authoring requires EPUB 3.");
         RequireText(listId, nameof(listId)); RequireText(term, nameof(term)); XmlConvert.VerifyNCName(entryId);
-        if (locators == null) throw new ArgumentNullException(nameof(locators));
+        ArgumentNullException.ThrowIfNull(locators);
         if (locators.Count > 1024) throw new ArgumentOutOfRangeException(nameof(locators), "An index entry supports at most 1024 locators.");
         if (subentriesId != null) XmlConvert.VerifyNCName(subentriesId);
         if (locators.Count == 0 && subentriesId == null) throw new ArgumentException("An index entry requires locators or a subentry list.", nameof(locators));

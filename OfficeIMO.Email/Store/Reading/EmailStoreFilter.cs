@@ -106,7 +106,7 @@ public abstract class EmailStoreFilter {
         new InFilter(field, values.Cast<object?>().ToArray());
 
     private static EmailStoreFilter Combine(EmailStoreFilterKind kind, EmailStoreFilter[] filters) {
-        if (filters == null) throw new ArgumentNullException(nameof(filters));
+        ArgumentNullException.ThrowIfNull(filters);
         if (filters.Length == 0) return All;
         if (filters.Any(filter => filter == null)) throw new ArgumentException("A filter collection cannot contain null.", nameof(filters));
         return filters.Length == 1 ? filters[0] : new CompositeFilter(kind, filters.ToArray());

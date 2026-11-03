@@ -13,7 +13,7 @@ namespace OfficeIMO.Visio {
         /// Initializes a new visual quality report.
         /// </summary>
         public VisioDiagramQualityReport(IEnumerable<VisioDiagramQualityIssue> issues) {
-            if (issues == null) throw new ArgumentNullException(nameof(issues));
+            ArgumentNullException.ThrowIfNull(issues);
 
             Issues = issues.ToList().AsReadOnly();
             InformationCount = Issues.Count(issue => issue.Severity == VisioDiagramQualityIssueSeverity.Information);

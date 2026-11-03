@@ -5,8 +5,8 @@ namespace OfficeIMO.PowerPoint {
     internal static class PowerPointEmbeddedSound {
         internal static string Add(OpenXmlPart ownerPart, Stream audio,
             string contentType, string extension) {
-            if (ownerPart == null) throw new ArgumentNullException(nameof(ownerPart));
-            if (audio == null) throw new ArgumentNullException(nameof(audio));
+            ArgumentNullException.ThrowIfNull(ownerPart);
+            ArgumentNullException.ThrowIfNull(audio);
             if (!audio.CanRead) {
                 throw new ArgumentException("Audio stream must be readable.",
                     nameof(audio));
@@ -80,9 +80,7 @@ namespace OfficeIMO.PowerPoint {
 
         internal static void RemoveIfUnused(OpenXmlPart ownerPart,
             string? relationshipId) {
-            if (ownerPart == null) {
-                throw new ArgumentNullException(nameof(ownerPart));
-            }
+            ArgumentNullException.ThrowIfNull(ownerPart);
             string id = relationshipId ?? string.Empty;
             if (id.Length == 0) return;
             if (ReferencesRelationship(ownerPart.RootElement,
@@ -105,9 +103,7 @@ namespace OfficeIMO.PowerPoint {
 
         internal static string[] GetRelationshipIds(
             DocumentFormat.OpenXml.OpenXmlElement container) {
-            if (container == null) {
-                throw new ArgumentNullException(nameof(container));
-            }
+            ArgumentNullException.ThrowIfNull(container);
             return container.Descendants<A.HyperlinkSound>()
                 .Select(sound => sound.Embed?.Value)
                 .Where(id => !string.IsNullOrEmpty(id))
@@ -119,9 +115,7 @@ namespace OfficeIMO.PowerPoint {
         internal static void RemoveIfUnused(OpenXmlPart? ownerPart,
             IEnumerable<string> relationshipIds) {
             if (ownerPart == null) return;
-            if (relationshipIds == null) {
-                throw new ArgumentNullException(nameof(relationshipIds));
-            }
+            ArgumentNullException.ThrowIfNull(relationshipIds);
             foreach (string relationshipId in relationshipIds.Distinct(
                          StringComparer.Ordinal)) {
                 RemoveIfUnused(ownerPart, relationshipId);
@@ -134,9 +128,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         internal static MediaDataPart[] GetReferencedMediaDataParts(
             OpenXmlPart rootPart) {
-            if (rootPart == null) {
-                throw new ArgumentNullException(nameof(rootPart));
-            }
+            ArgumentNullException.ThrowIfNull(rootPart);
             var mediaParts = new HashSet<MediaDataPart>();
             var visited = new HashSet<OpenXmlPart>();
             var pending = new Stack<OpenXmlPart>();
@@ -164,12 +156,8 @@ namespace OfficeIMO.PowerPoint {
         internal static void RemoveUnreferencedMediaDataParts(
             PresentationDocument document,
             IEnumerable<MediaDataPart> mediaParts) {
-            if (document == null) {
-                throw new ArgumentNullException(nameof(document));
-            }
-            if (mediaParts == null) {
-                throw new ArgumentNullException(nameof(mediaParts));
-            }
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(mediaParts);
             foreach (MediaDataPart mediaPart in mediaParts.Distinct()) {
                 if (mediaPart.GetDataPartReferenceRelationships().Any()) {
                     continue;

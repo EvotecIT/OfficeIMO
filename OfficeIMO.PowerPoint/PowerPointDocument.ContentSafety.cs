@@ -28,7 +28,7 @@ public sealed partial class PowerPointDocument {
         byte[] presentationBytes,
         string fileName = "presentation.pptx",
         OfficeContentSafetyOptions? options = null) {
-        if (presentationBytes == null) throw new ArgumentNullException(nameof(presentationBytes));
+        ArgumentNullException.ThrowIfNull(presentationBytes);
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         OfficeContentSafetyInputGuard.ValidateBytes(presentationBytes, effective, inspectZipPackage: true);
         using PowerPointDocument presentation = LoadContentSafetyDocument(presentationBytes, fileName, readOnly: true);
@@ -41,8 +41,8 @@ public sealed partial class PowerPointDocument {
         OfficeContentCleanupSelection selection,
         string fileName = "presentation.pptx",
         OfficeContentCleanupOptions? options = null) {
-        if (presentationBytes == null) throw new ArgumentNullException(nameof(presentationBytes));
-        if (selection == null) throw new ArgumentNullException(nameof(selection));
+        ArgumentNullException.ThrowIfNull(presentationBytes);
+        ArgumentNullException.ThrowIfNull(selection);
         options ??= new OfficeContentCleanupOptions();
         options.Validate();
         OfficeContentSafetyReport before = InspectContentSafety(presentationBytes, fileName, options.Inspection);

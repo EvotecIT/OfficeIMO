@@ -16,7 +16,7 @@ public sealed class TnefAttribute {
     public TnefAttribute(TnefAttributeLevel level, uint tag, byte[] data, bool checksumIsValid = true) {
         Level = level;
         Tag = tag;
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         _data = (byte[])data.Clone();
         ChecksumIsValid = checksumIsValid;
     }

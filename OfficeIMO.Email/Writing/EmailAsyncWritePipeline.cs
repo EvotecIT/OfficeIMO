@@ -7,8 +7,8 @@ internal static class EmailAsyncWritePipeline {
 
     internal static async Task<long> RunAsync(Stream destination, long maximumLength,
         Action<Stream> producer, CancellationToken cancellationToken) {
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
-        if (producer == null) throw new ArgumentNullException(nameof(producer));
+        ArgumentNullException.ThrowIfNull(destination);
+        ArgumentNullException.ThrowIfNull(producer);
 
         using (var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
         using (var queue = new BoundedAsyncChunkQueue(BufferedChunks)) {
@@ -72,7 +72,7 @@ internal static class EmailAsyncWritePipeline {
         public override void SetLength(long value) => throw new NotSupportedException();
 
         public override void Write(byte[] buffer, int offset, int count) {
-            if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+            ArgumentNullException.ThrowIfNull(buffer);
             if (offset < 0 || count < 0 || offset > buffer.Length - count) throw new ArgumentOutOfRangeException(nameof(offset));
             while (count > 0) {
                 _cancellationToken.ThrowIfCancellationRequested();

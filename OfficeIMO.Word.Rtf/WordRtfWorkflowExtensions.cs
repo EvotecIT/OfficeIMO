@@ -9,8 +9,8 @@ public static class WordRtfWorkflowExtensions {
         this RtfDocument template,
         IDictionary<string, string> values,
         bool removeFields = true) {
-        if (template == null) throw new ArgumentNullException(nameof(template));
-        if (values == null) throw new ArgumentNullException(nameof(values));
+        ArgumentNullException.ThrowIfNull(template);
+        ArgumentNullException.ThrowIfNull(values);
 
         RtfConversionResult<WordDocument> input = template.ConvertToWordWithEvidence();
         using WordDocument word = input.Value;
@@ -24,7 +24,7 @@ public static class WordRtfWorkflowExtensions {
         this RtfReadResult template,
         IDictionary<string, string> values,
         bool removeFields = true) {
-        if (template == null) throw new ArgumentNullException(nameof(template));
+        ArgumentNullException.ThrowIfNull(template);
         RtfWordWorkflowResult<WordMailMergeTemplateInspection> result = template.Document.MailMergeResult(values, removeFields);
         result.Report.AddReadDiagnostics(template.Diagnostics, "template");
         return result;
@@ -36,7 +36,7 @@ public static class WordRtfWorkflowExtensions {
         string textToFind,
         string textToReplace,
         StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         RtfConversionResult<WordDocument> input = document.ConvertToWordWithEvidence();
         using WordDocument word = input.Value;
         var options = new global::OfficeIMO.OfficeTextSearchOptions {
@@ -52,7 +52,7 @@ public static class WordRtfWorkflowExtensions {
         string textToFind,
         string textToReplace,
         StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         RtfWordWorkflowResult<int> result = document.Document.FindAndReplaceResult(textToFind, textToReplace, comparison);
         result.Report.AddReadDiagnostics(document.Diagnostics, "source");
         return result;
@@ -62,7 +62,7 @@ public static class WordRtfWorkflowExtensions {
     public static RtfWordWorkflowResult<WordFieldUpdateReport> UpdateFieldsResult(
         this RtfDocument document,
         WordFieldUpdateOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         RtfConversionResult<WordDocument> input = document.ConvertToWordWithEvidence();
         using WordDocument word = input.Value;
         WordFieldUpdateReport workflow = word.UpdateFieldsAndGetReport(options ?? WordFieldUpdateOptions.Default);
@@ -84,7 +84,7 @@ public static class WordRtfWorkflowExtensions {
     public static RtfWordWorkflowResult<WordFieldUpdateReport> UpdateFieldsResult(
         this RtfReadResult document,
         WordFieldUpdateOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         RtfWordWorkflowResult<WordFieldUpdateReport> result = document.Document.UpdateFieldsResult(options);
         result.Report.AddReadDiagnostics(document.Diagnostics, "source");
         return result;
@@ -92,8 +92,8 @@ public static class WordRtfWorkflowExtensions {
 
     /// <summary>Appends another RTF document through the OfficeIMO.Word merge engine.</summary>
     public static RtfWordWorkflowResult<int> MergeResult(this RtfDocument document, RtfDocument source) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(source);
         RtfConversionResult<WordDocument> destinationConversion = document.ConvertToWordWithEvidence();
         RtfConversionResult<WordDocument> sourceConversion = source.ConvertToWordWithEvidence();
         using WordDocument destinationWord = destinationConversion.Value;
@@ -110,8 +110,8 @@ public static class WordRtfWorkflowExtensions {
         this RtfDocument source,
         RtfDocument target,
         WordComparisonOptions? options = null) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
-        if (target == null) throw new ArgumentNullException(nameof(target));
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(target);
         RtfConversionResult<WordDocument> sourceConversion = source.ConvertToWordWithEvidence();
         RtfConversionResult<WordDocument> targetConversion = target.ConvertToWordWithEvidence();
         using WordDocument sourceWord = sourceConversion.Value;

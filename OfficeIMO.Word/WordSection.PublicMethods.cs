@@ -36,9 +36,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="wordParagraph">Paragraph to append.</param>
         internal void AppendParagraphToSection(WordParagraph wordParagraph) {
-            if (wordParagraph == null) {
-                throw new ArgumentNullException(nameof(wordParagraph));
-            }
+            ArgumentNullException.ThrowIfNull(wordParagraph);
 
             if (wordParagraph._paragraph == null) {
                 throw new InvalidOperationException("Paragraph does not contain an OpenXml representation.");

@@ -127,11 +127,7 @@ public sealed class InvoicePdfLayoutOptions {
     /// Creates a localized or multilingual layout from built-in language packs. The first culture formats numbers and dates.
     /// </summary>
     public static InvoicePdfLayoutOptions ForCultures(params string[] cultureNames) {
-#if NET8_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(cultureNames);
-#else
-        if (cultureNames == null) throw new ArgumentNullException(nameof(cultureNames));
-#endif
         if (cultureNames.Length == 0) throw new ArgumentException("At least one culture is required.", nameof(cultureNames));
         var result = new InvoicePdfLayoutOptions();
         result._languages.Clear();

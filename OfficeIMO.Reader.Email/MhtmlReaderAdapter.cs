@@ -10,7 +10,7 @@ internal static class MhtmlReaderAdapter {
         ReaderOptions? readerOptions,
         ReaderHtmlOptions? htmlOptions,
         CancellationToken cancellationToken) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (path.Length == 0) throw new ArgumentException("MHTML path cannot be empty.", nameof(path));
         if (!File.Exists(path)) throw new FileNotFoundException($"MHTML file '{path}' doesn't exist.", path);
 
@@ -28,7 +28,7 @@ internal static class MhtmlReaderAdapter {
         ReaderOptions? readerOptions,
         ReaderHtmlOptions? htmlOptions,
         CancellationToken cancellationToken) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("MHTML stream must be readable.", nameof(stream));
 
         ReaderOptions effective = readerOptions ?? new ReaderOptions();
@@ -56,7 +56,7 @@ internal static class MhtmlReaderAdapter {
         ReaderOptions? readerOptions,
         ReaderHtmlOptions? htmlOptions,
         CancellationToken cancellationToken) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (path.Length == 0) throw new ArgumentException("MHTML path cannot be empty.", nameof(path));
         if (!File.Exists(path)) throw new FileNotFoundException($"MHTML file '{path}' doesn't exist.", path);
 
@@ -73,7 +73,7 @@ internal static class MhtmlReaderAdapter {
         ReaderOptions? readerOptions,
         ReaderHtmlOptions? htmlOptions,
         CancellationToken cancellationToken) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("MHTML stream must be readable.", nameof(stream));
 
         ReaderOptions effective = readerOptions ?? new ReaderOptions();

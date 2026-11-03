@@ -163,9 +163,8 @@ public sealed class HtmlRenderResult {
 
     /// <summary>Gets one executable output surface by zero-based index.</summary>
     public HtmlRenderSurface GetSurface(int outputIndex) {
-        if (outputIndex < 0 || outputIndex >= _outputSurfaces.Count) {
-            throw new ArgumentOutOfRangeException(nameof(outputIndex));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegative(outputIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(outputIndex, _outputSurfaces.Count);
         return _outputSurfaces[outputIndex];
     }
 
@@ -174,7 +173,7 @@ public sealed class HtmlRenderResult {
     /// container, adapter, or input boundary. The current result remains unchanged.
     /// </summary>
     public HtmlRenderResult WithAdditionalDiagnostics(IEnumerable<HtmlDiagnostic> diagnostics) {
-        if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
+        ArgumentNullException.ThrowIfNull(diagnostics);
         return new HtmlRenderResult(Request, Document.WithAdditionalDiagnostics(diagnostics), _surfaces, ResolvedOptions);
     }
 

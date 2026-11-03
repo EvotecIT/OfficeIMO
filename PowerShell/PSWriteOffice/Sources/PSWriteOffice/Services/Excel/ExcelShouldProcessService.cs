@@ -8,10 +8,7 @@ internal static class ExcelShouldProcessService
 {
     public static bool ShouldProcessWorkbook(PSCmdlet cmdlet, ExcelDocument document, string? inputPath, string action)
     {
-        if (cmdlet == null)
-        {
-            throw new ArgumentNullException(nameof(cmdlet));
-        }
+        ArgumentNullException.ThrowIfNull(cmdlet);
 
         var target = !string.IsNullOrWhiteSpace(document?.FilePath)
             ? document!.FilePath!
@@ -24,10 +21,7 @@ internal static class ExcelShouldProcessService
 
     public static bool ShouldProcessTarget(PSCmdlet cmdlet, string target, string action)
     {
-        if (cmdlet == null)
-        {
-            throw new ArgumentNullException(nameof(cmdlet));
-        }
+        ArgumentNullException.ThrowIfNull(cmdlet);
 
         return cmdlet.ShouldProcess(string.IsNullOrWhiteSpace(target) ? "Excel workbook" : target, action);
     }

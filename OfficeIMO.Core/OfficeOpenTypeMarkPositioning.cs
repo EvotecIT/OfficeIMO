@@ -51,9 +51,9 @@ internal sealed partial class OfficeOpenTypeMarkPositioning {
     internal static bool TryGetAttachments(byte[] fontData, IReadOnlyList<OfficeOpenTypeSubstitution.GlyphToken> tokens,
         string? language, OfficeTextFeatureSettings settings, CancellationToken cancellationToken,
         out OfficeOpenTypeMarkAttachment[] attachments) {
-        if (fontData == null) throw new ArgumentNullException(nameof(fontData));
-        if (tokens == null) throw new ArgumentNullException(nameof(tokens));
-        if (settings == null) throw new ArgumentNullException(nameof(settings));
+        ArgumentNullException.ThrowIfNull(fontData);
+        ArgumentNullException.ThrowIfNull(tokens);
+        ArgumentNullException.ThrowIfNull(settings);
         cancellationToken.ThrowIfCancellationRequested();
         attachments = new OfficeOpenTypeMarkAttachment[tokens.Count];
         try {

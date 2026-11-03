@@ -21,7 +21,7 @@ internal static class OfficeDibReader {
         out OfficeRasterImage? image) {
         image = null;
         try {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             options.Validate();
             options.CancellationToken.ThrowIfCancellationRequested();
             if (dibBytes == null || dibBytes.Length < BitmapInfoHeaderSize ||

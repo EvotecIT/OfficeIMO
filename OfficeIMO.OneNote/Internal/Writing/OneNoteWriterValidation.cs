@@ -2,7 +2,7 @@ namespace OfficeIMO.OneNote;
 
 internal static class OneNoteWriterValidation {
     internal static void ValidateSectionOptions(OneNoteWriterOptions options) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         if (options.MaxOutputBytes < 1) {
             throw new ArgumentOutOfRangeException(nameof(options.MaxOutputBytes), "MaxOutputBytes must be greater than zero.");
         }

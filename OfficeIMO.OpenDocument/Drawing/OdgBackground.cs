@@ -81,7 +81,7 @@ public sealed class OdgBackground {
     /// <remarks>Uses the shared PNG/JPEG/GIF/BMP/TIFF/WebP drawing/PDF resource profile. Image entries are deduplicated;
     /// a new common definition prevents changes to other bindings. Inactive paint properties and unrelated XML are retained.</remarks>
     public void SetBitmap(byte[] data, string fileName = "background.png") {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         if (!OfficeImageReader.TryValidateContent(data, fileName, out OfficeImageInfo info) || !OdgPage.IsWithinRasterProjectionProfile(info))
             throw new ArgumentException("Background data must be a complete raster inside the shared drawing/PDF profile.", nameof(data));
         _ = GetStyle(); // Reject an unresolved binding before embedding bytes.

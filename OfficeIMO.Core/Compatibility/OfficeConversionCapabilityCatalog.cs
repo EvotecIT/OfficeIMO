@@ -160,7 +160,7 @@ public sealed class OfficeConversionCapability {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Route id cannot be empty.", nameof(id));
         if (string.IsNullOrWhiteSpace(source)) throw new ArgumentException("Source label cannot be empty.", nameof(source));
         if (string.IsNullOrWhiteSpace(target)) throw new ArgumentException("Target label cannot be empty.", nameof(target));
-        if (sourceExtensions == null) throw new ArgumentNullException(nameof(sourceExtensions));
+        ArgumentNullException.ThrowIfNull(sourceExtensions);
         if (string.IsNullOrWhiteSpace(targetExtension)) throw new ArgumentException("Target extension cannot be empty.", nameof(targetExtension));
         if (string.IsNullOrWhiteSpace(packageId)) throw new ArgumentException("Package id cannot be empty.", nameof(packageId));
         if (string.IsNullOrWhiteSpace(api)) throw new ArgumentException("API cannot be empty.", nameof(api));

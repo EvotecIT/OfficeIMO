@@ -54,9 +54,7 @@ namespace OfficeIMO.Excel {
             string? a1Range,
             int maximumRules,
             out bool truncated) {
-            if (maximumRules <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(maximumRules));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumRules);
 
             truncated = false;
             (int r1, int c1, int r2, int c2)? filter = string.IsNullOrWhiteSpace(a1Range) ? null : ParseReferenceArgument(a1Range!);
@@ -536,7 +534,7 @@ namespace OfficeIMO.Excel {
         /// Applies prompt/error-message metadata to existing validations that overlap the range.
         /// </summary>
         public void SetDataValidationMessages(string a1Range, ExcelDataValidationMessageOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             SetDataValidationMessagesCore(a1Range, _ => options);
         }
 
@@ -544,7 +542,7 @@ namespace OfficeIMO.Excel {
         /// <param name="a1Range">A1 range overlapping the rules to update.</param>
         /// <param name="update">Synchronous mutation of each rule's current message settings.</param>
         public void UpdateDataValidationMessages(string a1Range, Action<ExcelDataValidationMessageOptions> update) {
-            if (update == null) throw new ArgumentNullException(nameof(update));
+            ArgumentNullException.ThrowIfNull(update);
             SetDataValidationMessagesCore(a1Range, validation => {
                 var options = new ExcelDataValidationMessageOptions {
                     PromptTitle = validation.PromptTitle?.Value, Prompt = validation.Prompt?.Value,
@@ -820,7 +818,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal uint AppendConditionalDifferentialFormat(DifferentialFormat differentialFormat) {
-            if (differentialFormat == null) throw new ArgumentNullException(nameof(differentialFormat));
+            ArgumentNullException.ThrowIfNull(differentialFormat);
             WorkbookPart workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             WorkbookStylesPart stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
             Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();

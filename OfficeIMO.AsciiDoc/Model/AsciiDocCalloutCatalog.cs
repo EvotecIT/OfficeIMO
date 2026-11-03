@@ -13,8 +13,8 @@ public sealed class AsciiDocCalloutCatalog {
     public IReadOnlyList<AsciiDocReferenceDiagnostic> Diagnostics => _diagnosticView;
     /// <summary>Builds a bounded snapshot including compound blocks and AsciiDoc-style table cells.</summary>
     public static AsciiDocCalloutCatalog Create(AsciiDocDocument document, int maximumNestingDepth = 64, System.Threading.CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (maximumNestingDepth < 1) throw new ArgumentOutOfRangeException(nameof(maximumNestingDepth));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumNestingDepth, 1);
         var result = new AsciiDocCalloutCatalog(); result.Visit(document, 0, maximumNestingDepth, cancellationToken); return result;
     }
     private void Visit(AsciiDocDocument document, int depth, int maximumDepth, System.Threading.CancellationToken token) {

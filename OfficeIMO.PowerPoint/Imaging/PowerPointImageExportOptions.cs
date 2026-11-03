@@ -89,12 +89,8 @@ namespace OfficeIMO.PowerPoint {
 
         internal void Validate() {
             ValidateImageExportOptions();
-            if (MaximumEmbeddedImageBytes <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(MaximumEmbeddedImageBytes));
-            }
-            if (MaximumTotalEmbeddedImageBytes <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(MaximumTotalEmbeddedImageBytes));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumEmbeddedImageBytes);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumTotalEmbeddedImageBytes);
         }
     }
 

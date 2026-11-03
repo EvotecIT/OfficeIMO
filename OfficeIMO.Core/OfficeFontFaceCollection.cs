@@ -237,7 +237,7 @@ public sealed partial class OfficeFontFaceCollection {
         int maximumDecodedBytes,
         out int decodedBytes,
         out string? error) {
-        if (maximumDecodedBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumDecodedBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumDecodedBytes);
         OfficeFontUnicodeRangeSet normalizedRanges = unicodeRanges ?? OfficeFontUnicodeRangeSet.All;
         string? resourceFamilyName = normalizedRanges.IsAll || string.IsNullOrWhiteSpace(familyName)
             ? familyName
@@ -263,7 +263,7 @@ public sealed partial class OfficeFontFaceCollection {
         out int decodedBytes,
         out string? error,
         bool applyDescriptorWeight = false) {
-        if (maximumDecodedBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumDecodedBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumDecodedBytes);
         OfficeFontUnicodeRangeSet normalizedRanges = unicodeRanges ?? OfficeFontUnicodeRangeSet.All;
         string? resourceFamilyName = string.IsNullOrWhiteSpace(familyName)
             ? familyName

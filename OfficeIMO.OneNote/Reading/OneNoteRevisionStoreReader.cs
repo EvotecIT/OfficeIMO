@@ -4,7 +4,7 @@ namespace OfficeIMO.OneNote;
 public static class OneNoteRevisionStoreReader {
     /// <summary>Reads the root revision-store structures from a file path.</summary>
     public static OneNoteRevisionStore Read(string path, OneNoteReaderOptions? options = null) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (path.Length == 0) throw new ArgumentException("Path cannot be empty.", nameof(path));
         var file = new FileInfo(path);
         if (!file.Exists) throw new FileNotFoundException("The OneNote file does not exist.", path);
@@ -18,7 +18,7 @@ public static class OneNoteRevisionStoreReader {
     /// its original position.
     /// </summary>
     public static OneNoteRevisionStore Read(Stream stream, OneNoteReaderOptions? options = null) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
         if (!stream.CanSeek) throw new ArgumentException("Revision-store reading currently requires a seekable stream.", nameof(stream));
         var effectiveOptions = options ?? new OneNoteReaderOptions();

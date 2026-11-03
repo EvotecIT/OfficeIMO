@@ -18,7 +18,7 @@ public sealed class EmailMailboxWriter {
 
     /// <summary>Writes a mailbox to a file.</summary>
     public EmailWriteResult Write(EmailMailbox mailbox, string filePath) {
-        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        ArgumentNullException.ThrowIfNull(filePath);
         byte[] bytes = ToBytes(mailbox, out EmailWriteResult result, CancellationToken.None);
         if (result.HasErrors && bytes.Length == 0) return result;
         OfficeFileCommit.WriteAllBytes(filePath, bytes);
@@ -27,7 +27,7 @@ public sealed class EmailMailboxWriter {
 
     /// <summary>Writes a mailbox to a stream without closing it.</summary>
     public EmailWriteResult Write(EmailMailbox mailbox, Stream stream) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
         byte[] bytes = ToBytes(mailbox, out EmailWriteResult result, CancellationToken.None);
         if (result.HasErrors && bytes.Length == 0) return result;
@@ -53,8 +53,8 @@ public sealed class EmailMailboxWriter {
     /// </summary>
     public EmailWriteResult WriteEntries(IEnumerable<EmailMailboxEntry> entries, Stream stream,
         CancellationToken cancellationToken = default) {
-        if (entries == null) throw new ArgumentNullException(nameof(entries));
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(entries);
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
         var diagnostics = new List<EmailDiagnostic>();
         bool hasAcceptedLoss = false;
@@ -80,7 +80,7 @@ public sealed class EmailMailboxWriter {
     /// <summary>Asynchronously writes a mailbox file.</summary>
     public async Task<EmailWriteResult> WriteAsync(EmailMailbox mailbox, string filePath,
         CancellationToken cancellationToken = default) {
-        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        ArgumentNullException.ThrowIfNull(filePath);
         cancellationToken.ThrowIfCancellationRequested();
         byte[] bytes = ToBytes(mailbox, out EmailWriteResult result, cancellationToken);
         if (result.HasErrors && bytes.Length == 0) return result;
@@ -92,7 +92,7 @@ public sealed class EmailMailboxWriter {
     /// <summary>Asynchronously writes a mailbox without closing the stream.</summary>
     public async Task<EmailWriteResult> WriteAsync(EmailMailbox mailbox, Stream stream,
         CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
         cancellationToken.ThrowIfCancellationRequested();
         byte[] bytes = ToBytes(mailbox, out EmailWriteResult result, cancellationToken);
@@ -103,7 +103,7 @@ public sealed class EmailMailboxWriter {
     }
 
     private byte[] ToBytes(EmailMailbox mailbox, out EmailWriteResult result, CancellationToken cancellationToken) {
-        if (mailbox == null) throw new ArgumentNullException(nameof(mailbox));
+        ArgumentNullException.ThrowIfNull(mailbox);
         cancellationToken.ThrowIfCancellationRequested();
         var diagnostics = new List<EmailDiagnostic>();
         bool hasAcceptedLoss = false;

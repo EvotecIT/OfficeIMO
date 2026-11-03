@@ -16,7 +16,7 @@ public static class OfficeDocumentReaderBuilderJsonExtensions {
         this OfficeDocumentReaderBuilder builder,
         JsonReadOptions? jsonOptions = null,
         bool replaceExisting = true) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderHandlerRegistration registration = CreateRegistration(jsonOptions);
         return builder.AddHandler(registration, replaceExisting);
     }

@@ -39,9 +39,7 @@ public static partial class HtmlResourcePipeline {
     }
 
     internal static HtmlResourceManifest BuildManifest(IHtmlDocument document, HtmlResourcePipelineOptions? options = null) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
         options = options ?? new HtmlResourcePipelineOptions();
         HtmlConversionLimits limits = options.Limits ?? HtmlConversionLimits.UntrustedDefaults;

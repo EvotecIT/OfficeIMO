@@ -11,9 +11,7 @@ namespace OfficeIMO.Excel.Pdf {
 
 
         private static PdfCore.PdfDocument ConvertToPdfDocument(ExcelDocument document, ExcelPdfExportOptions options) {
-            if (document == null) {
-                throw new ArgumentNullException(nameof(document));
-            }
+            ArgumentNullException.ThrowIfNull(document);
 
             ExcelDocument? pivotCopy = CreatePivotRenderedCopy(document, options);
             if (pivotCopy == null) return ConvertToPdfDocument(document, options, document.FilePath);
@@ -134,9 +132,7 @@ namespace OfficeIMO.Excel.Pdf {
         /// </summary>
         internal static PdfCore.PdfDocumentConversionResult ConvertToPdfWithEvidence(this ExcelDocument document, ExcelPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-            if (document == null) {
-                throw new ArgumentNullException(nameof(document));
-            }
+            ArgumentNullException.ThrowIfNull(document);
 
             ExcelPdfExportOptions operation = (options ?? new ExcelPdfExportOptions()).CloneForConversion();
             operation.CancellationToken = cancellationToken;

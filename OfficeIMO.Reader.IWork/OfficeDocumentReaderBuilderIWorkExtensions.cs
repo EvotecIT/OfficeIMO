@@ -13,7 +13,7 @@ public static class OfficeDocumentReaderBuilderIWorkExtensions {
         this OfficeDocumentReaderBuilder builder,
         ReaderIWorkOptions? options = null,
         bool replaceExisting = false) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderIWorkOptions registered = (options ?? new ReaderIWorkOptions()).Clone();
         long maximumInputBytes = registered.ReadOptions?.MaxPackageBytes
             ?? new IWorkReadOptions().MaxPackageBytes;

@@ -6,7 +6,7 @@ namespace OfficeIMO.Xps;
 public static partial class XpsPdfExtensions {
     internal static PdfDocumentConversionResult ConvertToPdfWithEvidence(this XpsDocument document, XpsPdfExportOptions? options,
         CancellationToken cancellationToken) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         var snapshot = (options ?? new XpsPdfExportOptions()).Clone();
         if (snapshot.MaximumSvgCharacters < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumSvgCharacters must be positive.");

@@ -6,7 +6,7 @@ public sealed partial class OfficeWorkflowRunner {
         IEnumerable<OfficeWorkflowRequest> requests,
         IProgress<OfficeWorkflowProgress>? progress = null,
         CancellationToken cancellationToken = default) {
-        if (requests == null) throw new ArgumentNullException(nameof(requests));
+        ArgumentNullException.ThrowIfNull(requests);
         if (cancellationToken.IsCancellationRequested) return Array.Empty<OfficeWorkflowResult>();
         var batch = new List<PreparedRequest>();
         var selectedSources = new List<(string Location, OfficeWorkflowStreamInput? Stream, OfficeWorkflowDirectoryPackageInput? Package)>();

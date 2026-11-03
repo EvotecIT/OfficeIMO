@@ -6,9 +6,7 @@ using Threaded = DocumentFormat.OpenXml.Office2019.Excel.ThreadedComments;
 namespace OfficeIMO.Excel.Utilities {
     internal static class ExcelWorksheetCommentResolver {
         internal static Dictionary<string, ExcelCommentInspectionInfo> BuildLegacyCommentMap(WorksheetPart worksheetPart) {
-            if (worksheetPart == null) {
-                throw new ArgumentNullException(nameof(worksheetPart));
-            }
+            ArgumentNullException.ThrowIfNull(worksheetPart);
 
             var commentsPart = worksheetPart.WorksheetCommentsPart;
             var comments = commentsPart?.Comments;
@@ -47,9 +45,7 @@ namespace OfficeIMO.Excel.Utilities {
         }
 
         internal static Dictionary<string, string> BuildThreadedCommentPersonMap(WorkbookPart workbookPart) {
-            if (workbookPart == null) {
-                throw new ArgumentNullException(nameof(workbookPart));
-            }
+            ArgumentNullException.ThrowIfNull(workbookPart);
 
             var people = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var personPart in workbookPart.WorkbookPersonParts) {
@@ -78,13 +74,9 @@ namespace OfficeIMO.Excel.Utilities {
             WorksheetPart worksheetPart,
             IReadOnlyDictionary<string, string> people,
             string? sheetName = null) {
-            if (worksheetPart == null) {
-                throw new ArgumentNullException(nameof(worksheetPart));
-            }
+            ArgumentNullException.ThrowIfNull(worksheetPart);
 
-            if (people == null) {
-                throw new ArgumentNullException(nameof(people));
-            }
+            ArgumentNullException.ThrowIfNull(people);
 
             var map = new Dictionary<string, List<ExcelThreadedCommentInfo>>(StringComparer.OrdinalIgnoreCase);
             foreach (var commentsPart in worksheetPart.WorksheetThreadedCommentsParts) {

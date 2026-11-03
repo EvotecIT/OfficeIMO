@@ -55,7 +55,7 @@ public sealed class EmailHtmlImageDocument {
     /// </summary>
     /// <param name="html">HTML fragment or document to inspect.</param>
     public static EmailHtmlImageDocument Parse(string html) {
-        if (html == null) throw new ArgumentNullException(nameof(html));
+        ArgumentNullException.ThrowIfNull(html);
 
         HtmlUrlPolicy compatibleResources = HtmlUrlPolicy.CreateOfficeIMOProfile();
         var options = HtmlConversionDocumentOptions.UntrustedDefaults;
@@ -87,7 +87,8 @@ public sealed class EmailHtmlImageDocument {
     /// <param name="imageIndex">Index from <see cref="EmailHtmlImageReference.Index"/>.</param>
     /// <param name="source">Replacement source, such as a <c>cid:</c> reference.</param>
     public void SetImageSource(int imageIndex, string source) {
-        if (imageIndex < 0 || imageIndex >= _images.Length) throw new ArgumentOutOfRangeException(nameof(imageIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(imageIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(imageIndex, _images.Length);
         if (string.IsNullOrWhiteSpace(source)) throw new ArgumentException("An image source is required.", nameof(source));
         _images[imageIndex].SetAttribute("src", source);
     }

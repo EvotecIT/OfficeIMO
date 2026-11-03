@@ -9,15 +9,9 @@ internal static class PowerPointObjectSearch
 {
     public static bool MatchesShape(PowerPointShapeInfo info, Func<string, bool> matches)
     {
-        if (info == null)
-        {
-            throw new ArgumentNullException(nameof(info));
-        }
+        ArgumentNullException.ThrowIfNull(info);
 
-        if (matches == null)
-        {
-            throw new ArgumentNullException(nameof(matches));
-        }
+        ArgumentNullException.ThrowIfNull(matches);
 
         return !string.IsNullOrEmpty(info.Text) && matches(info.Text!)
             || info.Shape is PowerPointTable table && matches(GetTableText(table));

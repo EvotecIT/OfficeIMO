@@ -12,7 +12,7 @@ namespace OfficeIMO.PowerPoint.Html;
 /// </summary>
 public static partial class HtmlPowerPointConverterExtensions {
     internal static HtmlToPowerPointResult ConvertToPowerPointWithEvidence(this HtmlConversionDocument document, HtmlPowerPointExportOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         const HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen;
         IHtmlDocument adapterDocument = document.CreateNativeDocumentForConversion(mediaContext);
         HtmlPowerPointExportOptions resolved = options?.Clone() ?? new HtmlPowerPointExportOptions();

@@ -71,7 +71,7 @@ namespace OfficeIMO.Access {
         /// <summary>Appends validated values to the model, retaining omitted fields separately from explicit nulls.</summary>
         public void AppendRow(AccessRowValues values) {
             EnsureAttached(); Document.EnsureMutable();
-            if (values == null) throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(values);
             Dictionary<string, object?> row = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
             foreach (KeyValuePair<string, object?> pair in values) {
                 AccessColumn column = Columns[pair.Key];
@@ -95,13 +95,14 @@ namespace OfficeIMO.Access {
         internal AccessColumnCollection(AccessTable table) : base(table.Document) { _table = table; }
         /// <summary>Adds a sequential AutoNumber field whose first omitted value is seed. The model retains omission; native creation allocates values.</summary>
         public AccessColumn AddAutoNumber(string name, int seed = 1) {
-            if (seed < 1) throw new ArgumentOutOfRangeException(nameof(seed));
+            ArgumentOutOfRangeException.ThrowIfLessThan(seed, 1);
             AccessColumn column = Add(name, AccessDataType.AutoNumber); column.AutoNumberSeed = seed; return column;
         }
         /// <summary>Adds a Decimal field with explicit precision and scale. Native saving rejects values requiring rounding.</summary>
         public AccessColumn AddDecimal(string name, int precision = 28, int scale = 0) {
             if (precision < 1 || precision > 28) throw new ArgumentOutOfRangeException(nameof(precision));
-            if (scale < 0 || scale > precision) throw new ArgumentOutOfRangeException(nameof(scale));
+            ArgumentOutOfRangeException.ThrowIfNegative(scale);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(scale, precision);
             AccessColumn column = Add(name, AccessDataType.Decimal); column.Precision = precision; column.Scale = scale; return column;
         }
         /// <summary>Adds a typed column before rows have been appended. ShortText defaults to 255 characters.</summary>

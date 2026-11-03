@@ -12,9 +12,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         }
 
         public override int GetOrdinal(string name) {
-            if (name == null) {
-                throw new ArgumentNullException(nameof(name));
-            }
+            ArgumentNullException.ThrowIfNull(name);
 
             if (_ordinals.TryGetValue(name, out int ordinal)) {
                 return ordinal;
@@ -50,9 +48,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         }
 
         public override int GetValues(object[] values) {
-            if (values == null) {
-                throw new ArgumentNullException(nameof(values));
-            }
+            ArgumentNullException.ThrowIfNull(values);
 
             int count = Math.Min(values.Length, FieldCount);
             for (int index = 0; index < count; index++) {

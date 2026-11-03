@@ -8,8 +8,8 @@ namespace OfficeIMO.OneNote;
 /// </summary>
 internal static class OneNoteWriteRoundTripValidator {
     internal static void ValidateSection(OneNoteSection expected, OneNoteSection actual) {
-        if (expected == null) throw new ArgumentNullException(nameof(expected));
-        if (actual == null) throw new ArgumentNullException(nameof(actual));
+        ArgumentNullException.ThrowIfNull(expected);
+        ArgumentNullException.ThrowIfNull(actual);
         if (!string.Equals(expected.Name, actual.Name, StringComparison.Ordinal)) Fail("section name");
         ValidatePageList(expected.Pages, actual.Pages, "section", PageRole.Current);
     }

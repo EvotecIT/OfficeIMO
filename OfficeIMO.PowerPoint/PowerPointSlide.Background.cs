@@ -57,9 +57,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets a background image for the slide.
         /// </summary>
         public void SetBackgroundImage(string imagePath) {
-            if (imagePath == null) {
-                throw new ArgumentNullException(nameof(imagePath));
-            }
+            ArgumentNullException.ThrowIfNull(imagePath);
             if (!File.Exists(imagePath)) {
                 throw new FileNotFoundException("Image file not found.", imagePath);
             }
@@ -76,9 +74,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="image">Stream containing the image data.</param>
         /// <param name="imageType">Image format of the stream.</param>
         public void SetBackgroundImage(Stream image, OfficeIMO.Drawing.OfficeImageFormat imageType) {
-            if (image == null) {
-                throw new ArgumentNullException(nameof(image));
-            }
+            ArgumentNullException.ThrowIfNull(image);
             if (!image.CanRead) {
                 throw new ArgumentException("Image stream must be readable.", nameof(image));
             }

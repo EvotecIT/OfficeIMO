@@ -13,9 +13,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointMedia AddVideo(string videoPath, string? posterImagePath = null, OfficeLength? left = null, OfficeLength? top = null,
             OfficeLength? width = null, OfficeLength? height = null) {
-            if (videoPath == null) {
-                throw new ArgumentNullException(nameof(videoPath));
-            }
+            ArgumentNullException.ThrowIfNull(videoPath);
             if (!File.Exists(videoPath)) {
                 throw new FileNotFoundException("Video file not found.", videoPath);
             }
@@ -51,9 +49,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointMedia AddAudio(string audioPath, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null,
             OfficeLength? height = null) {
-            if (audioPath == null) {
-                throw new ArgumentNullException(nameof(audioPath));
-            }
+            ArgumentNullException.ThrowIfNull(audioPath);
             if (!File.Exists(audioPath)) {
                 throw new FileNotFoundException("Audio file not found.", audioPath);
             }
@@ -88,10 +84,10 @@ namespace OfficeIMO.PowerPoint {
 
         private PowerPointMedia AddLinkedMedia(Uri source, PowerPointMediaKind kind,
             long left, long top, long width, long height) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(source);
             if (!source.IsAbsoluteUri) throw new ArgumentException("A linked media URI must be absolute.", nameof(source));
-            if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-            if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
             uint shapeId = AllocateShapeId();
             string relationshipId = GetNextRelationshipId(_slidePart);
             string relationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/" +
@@ -114,9 +110,7 @@ namespace OfficeIMO.PowerPoint {
         private PowerPointMedia AddMedia(Stream media, string contentType, string extension, PowerPointMediaKind kind,
             long left, long top, long width, long height, Stream? posterImage = null,
             OfficeImageFormat posterImageType = OfficeImageFormat.Png) {
-            if (media == null) {
-                throw new ArgumentNullException(nameof(media));
-            }
+            ArgumentNullException.ThrowIfNull(media);
             if (!media.CanRead) {
                 throw new ArgumentException("Media stream must be readable.", nameof(media));
             }
@@ -126,12 +120,8 @@ namespace OfficeIMO.PowerPoint {
             if (string.IsNullOrWhiteSpace(extension)) {
                 throw new ArgumentException("Media extension is required.", nameof(extension));
             }
-            if (width <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(width));
-            }
-            if (height <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(height));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
 
             uint shapeId = AllocateShapeId();
             MediaDataPart mediaPart = CreateMediaDataPart(media, contentType, extension);
@@ -203,9 +193,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private ImagePart AddImagePartFromStream(Stream image, OfficeImageFormat imageType) {
-            if (image == null) {
-                throw new ArgumentNullException(nameof(image));
-            }
+            ArgumentNullException.ThrowIfNull(image);
             if (!image.CanRead) {
                 throw new ArgumentException("Image stream must be readable.", nameof(image));
             }

@@ -28,10 +28,10 @@ public sealed class EmailSemanticComparisonOptions {
         int maxEmbeddedMessageDepth = 32,
         int maxDifferences = 10_000,
         bool includeEmbeddedMessageContent = true) {
-        if (maxAttachmentBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxAttachmentBytes));
-        if (maxTotalAttachmentBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxTotalAttachmentBytes));
-        if (maxEmbeddedMessageDepth < 0) throw new ArgumentOutOfRangeException(nameof(maxEmbeddedMessageDepth));
-        if (maxDifferences <= 0) throw new ArgumentOutOfRangeException(nameof(maxDifferences));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxAttachmentBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxTotalAttachmentBytes);
+        ArgumentOutOfRangeException.ThrowIfNegative(maxEmbeddedMessageDepth);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDifferences);
         if (digestKey != null && digestKey.Length < 16) {
             throw new ArgumentException("A semantic HMAC key must contain at least 16 bytes.", nameof(digestKey));
         }

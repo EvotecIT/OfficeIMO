@@ -57,11 +57,7 @@ internal static class PdfTextSpanGeometry {
 
     private static PdfTextSpanBounds GetAxisAlignedBoundsCore(PdfTextSpan span, double advanceOffset, double advance,
         double firstNormalFactor, double secondNormalFactor, bool useSourceTransform = false) {
-#if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(span);
-#else
-        if (span == null) throw new ArgumentNullException(nameof(span));
-#endif
 
         advance = Math.Max(1D, Math.Abs(advance));
         double fontSize = Math.Max(1D, Math.Abs(span.FontSize));

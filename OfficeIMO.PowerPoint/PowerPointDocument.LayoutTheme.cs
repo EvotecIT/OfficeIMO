@@ -31,7 +31,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="masterIndex">Zero-based master to restyle, or null for every master and the presentation defaults.</param>
         public void ApplyTheme(OfficeTheme theme, int? masterIndex = null) {
             ThrowIfDisposed();
-            if (theme == null) throw new ArgumentNullException(nameof(theme));
+            ArgumentNullException.ThrowIfNull(theme);
             SlideMasterPart? selected = masterIndex.HasValue ? GetSlideMasterPart(masterIndex.Value) : null;
             bool allMasters = selected == null || _presentationPart.SlideMasterParts.Count() == 1;
             PowerPointLayoutTheme layout = PowerPointLayoutTheme.From(theme);

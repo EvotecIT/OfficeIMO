@@ -189,7 +189,7 @@ public static partial class HtmlEditableLayoutProjector {
          bool preserveRegionsAfterForcedPageBreaks,
          bool preserveUnrenderedSourceImages,
          HtmlConversionLimits? limits) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         if ((regionKinds & ~HtmlEditableLayoutRegionKinds.All) != 0) throw new ArgumentOutOfRangeException(nameof(regionKinds));
         if (maximumEditableSurfaceNumber < 0) throw new ArgumentOutOfRangeException(nameof(maximumEditableSurfaceNumber));
         if (maximumEditableContinuousSurfaceHeight <= 0D) {
@@ -569,7 +569,7 @@ public static partial class HtmlEditableLayoutProjector {
         HtmlConversionDocument document,
         HtmlEditableLayoutRegionKinds regionKinds,
         IEnumerable<string>? additionalStylesheets = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         if (MayContainEditableLayoutRegions(document.SourceHtml, regionKinds)) return true;
         return additionalStylesheets != null
             && additionalStylesheets.Any(stylesheet =>

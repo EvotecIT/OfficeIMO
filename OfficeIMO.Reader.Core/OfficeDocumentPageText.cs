@@ -24,7 +24,7 @@ public sealed class OfficeDocumentPageText {
 public static partial class OfficeDocumentReadResultExtensions {
     /// <summary>Projects canonical blocks and tables into plain text without rereading the source.</summary>
     public static string GetText(this OfficeDocumentReadResult document, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         var text = new StringBuilder();
         void Append(string? value, bool continues = false) {
@@ -59,7 +59,7 @@ public static partial class OfficeDocumentReadResultExtensions {
 
     /// <summary>Projects each existing page-like container into plain text with its original citation metadata.</summary>
     public static IReadOnlyList<OfficeDocumentPageText> GetPageText(this OfficeDocumentReadResult document, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         int total = document.GetTotalPageCount();
         var provenance = document.GetPageProvenance();

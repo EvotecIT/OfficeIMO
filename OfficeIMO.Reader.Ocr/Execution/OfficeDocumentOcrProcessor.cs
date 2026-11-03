@@ -25,8 +25,8 @@ public sealed class OfficeDocumentOcrProcessor : IAsyncOfficeDocumentProcessor {
 
     /// <inheritdoc />
     public async Task<OfficeDocumentReadResult> ProcessAsync(OfficeDocumentReadResult document, OfficeDocumentProcessorContext context) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (context == null) throw new ArgumentNullException(nameof(context));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(context);
         OfficeDocumentOcrExecutionResult result = await document.ApplyOcrAsync(_engine, _options, context.CancellationToken).ConfigureAwait(false);
         return result.Document;
     }

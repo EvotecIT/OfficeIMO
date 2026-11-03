@@ -463,7 +463,7 @@ namespace OfficeIMO.Excel {
         /// Does nothing when the header cannot be found.
         /// </summary>
         public void SetByHeader(int rowIndex, string header, object? value, ExcelReaderOptions? options = null) {
-            if (rowIndex <= 0) throw new ArgumentOutOfRangeException(nameof(rowIndex));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowIndex);
             if (!TryGetColumnIndexByHeader(header, out var col, options))
                 return;
 

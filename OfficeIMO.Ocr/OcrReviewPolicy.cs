@@ -19,7 +19,7 @@ public sealed class OcrReviewPolicy {
         ValidateUnit(minimumWordConfidence, nameof(minimumWordConfidence));
         ValidateUnit(maximumUncertainWordFraction, nameof(maximumUncertainWordFraction));
         ValidateUnit(minimumRetainedWordRatio, nameof(minimumRetainedWordRatio));
-        if (minimumWordCount < 1) throw new ArgumentOutOfRangeException(nameof(minimumWordCount));
+        ArgumentOutOfRangeException.ThrowIfLessThan(minimumWordCount, 1);
         MinimumWordConfidence = minimumWordConfidence;
         MaximumUncertainWordFraction = maximumUncertainWordFraction;
         MinimumWordCount = minimumWordCount;
@@ -40,7 +40,7 @@ public sealed class OcrReviewPolicy {
 
     /// <summary>Assesses a caller-owned result snapshot, without interpreting confidence as correctness.</summary>
     public OcrQualityAssessment Assess(OcrResult result) {
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(result);
         int words = 0, low = 0, unknown = 0;
         foreach (OcrTextSpan span in result.Spans ?? Array.Empty<OcrTextSpan>()) {
             if (span == null || span.Level != OcrTextSpanLevel.Word || string.IsNullOrWhiteSpace(span.Text)) continue;

@@ -286,7 +286,7 @@ namespace OfficeIMO.Word {
         }
 
         private static void EnsureMaximumProjectionDepth(OpenXmlElement element, int maxDepth) {
-            if (maxDepth <= 0) throw new ArgumentOutOfRangeException(nameof(maxDepth));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDepth);
             var pending = new Stack<(OpenXmlElement Element, int Depth)>();
             pending.Push((element, 1));
             while (pending.Count > 0) {

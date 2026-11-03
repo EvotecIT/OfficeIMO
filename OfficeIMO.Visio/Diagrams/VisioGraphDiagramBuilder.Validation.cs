@@ -68,7 +68,7 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private static IReadOnlyList<string> NormalizeZoneNodeIds(IEnumerable<string> nodeIds, string parameterName, string label) {
-            if (nodeIds == null) throw new ArgumentNullException(nameof(nodeIds));
+            ArgumentNullException.ThrowIfNull(nodeIds);
             List<string> normalizedNodeIds = new();
             HashSet<string> seen = new(StringComparer.Ordinal);
             foreach (string nodeId in nodeIds) {

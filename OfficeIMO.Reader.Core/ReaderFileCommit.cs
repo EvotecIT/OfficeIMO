@@ -10,8 +10,8 @@ namespace OfficeIMO.Reader;
 internal static class ReaderFileCommit {
     /// <summary>Publishes completed bytes, preserving existing destinations when overwrite is disabled.</summary>
         internal static bool WriteAllBytes(string path, byte[] bytes, bool overwrite = true) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(path);
+        ArgumentNullException.ThrowIfNull(bytes);
 
         string fullPath = Path.GetFullPath(path);
         string? directory = Path.GetDirectoryName(fullPath);

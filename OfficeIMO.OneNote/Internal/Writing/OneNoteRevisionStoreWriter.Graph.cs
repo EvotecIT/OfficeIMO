@@ -24,7 +24,7 @@ internal sealed class OneNoteDesktopWritePlan {
     internal OneNoteDesktopFileNodeList Root => _root;
 
     internal static OneNoteDesktopWritePlan Create(OneNoteWriteGraph graph) {
-        if (graph == null) throw new ArgumentNullException(nameof(graph));
+        ArgumentNullException.ThrowIfNull(graph);
         if (graph.FileKind != OneNoteFileKind.Section && graph.FileKind != OneNoteFileKind.TableOfContents) {
             throw new OneNoteFormatException("ONENOTE_WRITE_FILE_KIND", "A desktop revision store can only represent a .one section or .onetoc2 table of contents.");
         }

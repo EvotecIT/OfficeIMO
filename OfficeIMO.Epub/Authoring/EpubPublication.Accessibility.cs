@@ -15,7 +15,7 @@ public sealed partial class EpubPublication {
     /// by the publisher, not inferred or certified. Null summary and empty sufficient-mode sets remove those properties.
     /// </summary>
     public void SetAccessibilityMetadata(EpubAccessibilityMetadata metadata) {
-        if (metadata == null) throw new ArgumentNullException(nameof(metadata));
+        ArgumentNullException.ThrowIfNull(metadata);
         if (PackageVersion != "3.0") throw new NotSupportedException("Typed accessibility discovery metadata requires EPUB 3.");
         if (EpubVocabulary.Expand(Root, "schema:accessMode") != SchemaVocabulary + "accessMode")
             throw new InvalidOperationException("The schema prefix does not identify the schema.org vocabulary.");

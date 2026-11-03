@@ -39,7 +39,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Gets the stored column width for a worksheet, resolving physical values through its default font.</summary>
         /// <remarks>The physical width rounds to whole pixels and then to the stored 1/256-character grid.</remarks>
         public double ToCharacters(ExcelSheet sheet) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             if (!_isLength) return _characters;
             double pixels = Math.Round(_length.ToPixels(), MidpointRounding.AwayFromZero);
             double digit = ExcelColumnGeometry.GetMaximumDigitWidth(sheet.WorksheetPart);
@@ -48,7 +48,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Gets the physical column width for a worksheet, including native column padding and pixel rounding.</summary>
         public OfficeLength ToLength(ExcelSheet sheet) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             if (_isLength) return _length;
             double digit = ExcelColumnGeometry.GetMaximumDigitWidth(sheet.WorksheetPart);
             return OfficeLength.Pixels(_characters <= 0D ? _characters * digit

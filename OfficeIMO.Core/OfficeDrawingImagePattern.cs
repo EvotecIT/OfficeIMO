@@ -15,7 +15,7 @@ public sealed class OfficeDrawingImagePattern : OfficeDrawingElement {
         OfficeImagePatternLayout layout,
         int maximumTileCount = 16384,
         double opacity = 1D) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         if (bytes.Length == 0) throw new ArgumentException("Image-pattern bytes cannot be empty.", nameof(bytes));
         if (maximumTileCount <= 0) throw new ArgumentOutOfRangeException(nameof(maximumTileCount), "Maximum image-pattern tile count must be positive.");
         if (layout.EstimatedTileCount > maximumTileCount) throw new ArgumentException("Image pattern exceeds the configured tile-count limit.", nameof(layout));

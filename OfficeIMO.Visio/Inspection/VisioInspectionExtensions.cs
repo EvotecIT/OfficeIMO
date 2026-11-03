@@ -21,12 +21,8 @@ namespace OfficeIMO.Visio {
         internal static VisioInspectionSnapshot Inspect(
             this VisioDocument document,
             int maxShapeDataRowsPerPage) {
-            if (document == null) {
-                throw new ArgumentNullException(nameof(document));
-            }
-            if (maxShapeDataRowsPerPage <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(maxShapeDataRowsPerPage));
-            }
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxShapeDataRowsPerPage);
 
             IReadOnlyList<VisioInspectionMasterSnapshot> masters = document.Masters
                 .OrderBy(master => master.NameU, StringComparer.OrdinalIgnoreCase)

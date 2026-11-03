@@ -127,7 +127,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Loads a PowerPoint 97-2003 binary presentation from a path.</summary>
         public static LegacyPptDocument Load(string path, LegacyPptImportOptions? options = null) {
-            if (path == null) throw new ArgumentNullException(nameof(path));
+            ArgumentNullException.ThrowIfNull(path);
             options ??= new LegacyPptImportOptions();
             using var stream = new FileStream(path, FileMode.Open,
                 FileAccess.Read, FileShare.Read);
@@ -137,7 +137,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Loads a PowerPoint 97-2003 binary presentation from a stream.</summary>
         public static LegacyPptDocument Load(Stream stream, LegacyPptImportOptions? options = null) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
             options ??= new LegacyPptImportOptions();
             return Load(OfficeStreamReader.ReadAllBytes(stream,
@@ -152,7 +152,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private static LegacyPptDocument LoadCore(byte[] bytes,
             LegacyPptImportOptions? options,
             CancellationToken cancellationToken) {
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            ArgumentNullException.ThrowIfNull(bytes);
             options ??= new LegacyPptImportOptions();
             options.Validate();
             if (bytes.Length > options.MaxInputBytes) {

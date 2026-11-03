@@ -5,7 +5,7 @@ namespace OfficeIMO.Reader;
 
 internal static class ReaderCapabilityManifestJson {
     public static string Serialize(ReaderCapabilityManifest manifest, bool indented) {
-        if (manifest == null) throw new ArgumentNullException(nameof(manifest));
+        ArgumentNullException.ThrowIfNull(manifest);
 
         var handlers = manifest.Handlers ?? Array.Empty<ReaderHandlerCapability>();
         var sb = new StringBuilder(8_192);

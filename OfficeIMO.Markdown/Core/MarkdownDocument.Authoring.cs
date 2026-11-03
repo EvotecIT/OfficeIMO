@@ -6,7 +6,7 @@ public partial class MarkdownDocument {
 
     /// <summary>Appends a paragraph composed with <see cref="MarkdownParagraphBuilder"/> and returns it.</summary>
     public ParagraphBlock AddParagraph(Action<MarkdownParagraphBuilder> build) {
-        if (build == null) throw new ArgumentNullException(nameof(build));
+        ArgumentNullException.ThrowIfNull(build);
         MarkdownParagraphBuilder builder = new MarkdownParagraphBuilder();
         build(builder);
         return Add(new ParagraphBlock(builder.Inlines));
@@ -22,7 +22,7 @@ public partial class MarkdownDocument {
 
     /// <summary>Appends a bulleted list composed with <see cref="MarkdownUnorderedListBuilder"/> and returns it.</summary>
     public UnorderedListBlock AddList(Action<MarkdownUnorderedListBuilder> build) {
-        if (build == null) throw new ArgumentNullException(nameof(build));
+        ArgumentNullException.ThrowIfNull(build);
         MarkdownUnorderedListBuilder builder = new MarkdownUnorderedListBuilder();
         build(builder);
         return Add(builder.Build());
@@ -30,13 +30,13 @@ public partial class MarkdownDocument {
 
     /// <summary>Appends a bulleted list with one item per value, formatted with <c>ToString()</c>.</summary>
     public UnorderedListBlock AddList<T>(IEnumerable<T> items) {
-        if (items == null) throw new ArgumentNullException(nameof(items));
+        ArgumentNullException.ThrowIfNull(items);
         return AddList(builder => builder.Items(items, null));
     }
 
     /// <summary>Appends a numbered list composed with <see cref="MarkdownOrderedListBuilder"/> and returns it.</summary>
     public OrderedListBlock AddOrderedList(Action<MarkdownOrderedListBuilder> build) {
-        if (build == null) throw new ArgumentNullException(nameof(build));
+        ArgumentNullException.ThrowIfNull(build);
         MarkdownOrderedListBuilder builder = new MarkdownOrderedListBuilder();
         build(builder);
         return Add(builder.Build());
@@ -46,13 +46,13 @@ public partial class MarkdownDocument {
     /// <param name="items">Item values.</param>
     /// <param name="start">First item number.</param>
     public OrderedListBlock AddOrderedList<T>(IEnumerable<T> items, int start = 1) {
-        if (items == null) throw new ArgumentNullException(nameof(items));
+        ArgumentNullException.ThrowIfNull(items);
         return AddOrderedList(builder => builder.StartAt(start).Items(items, null));
     }
 
     /// <summary>Appends a term/definition list composed with <see cref="MarkdownDefinitionListBuilder"/> and returns it.</summary>
     public DefinitionListBlock AddDefinitionList(Action<MarkdownDefinitionListBuilder> build) {
-        if (build == null) throw new ArgumentNullException(nameof(build));
+        ArgumentNullException.ThrowIfNull(build);
         MarkdownDefinitionListBuilder builder = new MarkdownDefinitionListBuilder();
         build(builder);
         return Add(builder.Build());
@@ -70,7 +70,7 @@ public partial class MarkdownDocument {
     /// <summary>Appends a table composed with <see cref="MarkdownTableBuilder"/> and returns it.</summary>
     /// <remarks>Column alignment, including the numeric/date heuristics, is set on the builder.</remarks>
     public TableBlock AddTable(Action<MarkdownTableBuilder> build) {
-        if (build == null) throw new ArgumentNullException(nameof(build));
+        ArgumentNullException.ThrowIfNull(build);
         MarkdownTableBuilder builder = new MarkdownTableBuilder();
         build(builder);
         return Add(builder.Build());

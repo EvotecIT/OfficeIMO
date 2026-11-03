@@ -8,7 +8,7 @@ internal static class OfficePngCrc32 {
     internal static uint Begin() => 0xFFFFFFFFU;
 
     internal static uint Append(uint crc, byte[] data, int offset, int count) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         if (offset < 0 || count < 0 || offset > data.Length - count) {
             throw new ArgumentOutOfRangeException(nameof(offset));
         }

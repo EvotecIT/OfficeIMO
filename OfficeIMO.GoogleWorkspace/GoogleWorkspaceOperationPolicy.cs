@@ -158,12 +158,12 @@ namespace OfficeIMO.GoogleWorkspace {
             GoogleWorkspaceRateLimitPolicy rateLimitPolicy, GoogleWorkspaceDataLossDecision dataLossDecision,
             string? acceptedLoss = null) {
             if (string.IsNullOrWhiteSpace(account)) throw new ArgumentException("The expected Google account is required.", nameof(account));
-            if (scopes == null) throw new ArgumentNullException(nameof(scopes));
+            ArgumentNullException.ThrowIfNull(scopes);
             string[] materialized = scopes.Where(scope => !string.IsNullOrWhiteSpace(scope)).Distinct(StringComparer.Ordinal).ToArray();
             if (materialized.Length == 0) throw new ArgumentException("At least one OAuth scope is required.", nameof(scopes));
             if (string.IsNullOrWhiteSpace(target)) throw new ArgumentException("The mutation target is required.", nameof(target));
             if (string.IsNullOrWhiteSpace(expectedRevision)) throw new ArgumentException("An expected revision decision is required; use an explicit create or unversioned marker when applicable.", nameof(expectedRevision));
-            if (maxRetryCount < 0) throw new ArgumentOutOfRangeException(nameof(maxRetryCount));
+            ArgumentOutOfRangeException.ThrowIfNegative(maxRetryCount);
             if (maxRetryElapsedTime <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(maxRetryElapsedTime));
             if (dataLossDecision == GoogleWorkspaceDataLossDecision.AcceptSpecifiedLoss && string.IsNullOrWhiteSpace(acceptedLoss)) throw new ArgumentException("Accepted loss must be named explicitly.", nameof(acceptedLoss));
             Account = account; Scopes = Array.AsReadOnly(materialized); Target = target; ExpectedRevision = expectedRevision;

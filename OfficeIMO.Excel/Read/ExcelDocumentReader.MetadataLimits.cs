@@ -99,8 +99,8 @@ namespace OfficeIMO.Excel {
             Stream stream,
             string partName,
             ExcelReaderOptions options) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(stream);
+            ArgumentNullException.ThrowIfNull(options);
 
             options.CancellationToken.ThrowIfCancellationRequested();
             if (stream.CanSeek && stream.Length > options.MaxMetadataPartBytes) {

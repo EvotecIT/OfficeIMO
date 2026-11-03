@@ -12,8 +12,8 @@ public static partial class EmailSmime {
         CmsVerificationOptions? options = null,
         EmailReaderOptions? contentReaderOptions = null) {
 #if NETSTANDARD2_0 || NET472
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(securityProvider);
 #else
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(securityProvider);
@@ -114,9 +114,9 @@ public static partial class EmailSmime {
         CmsEnvelopeOptions? options = null,
         EmailReaderOptions? contentReaderOptions = null) {
 #if NETSTANDARD2_0 || NET472
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (recipientCertificate == null) throw new ArgumentNullException(nameof(recipientCertificate));
-        if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(recipientCertificate);
+        ArgumentNullException.ThrowIfNull(securityProvider);
 #else
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(recipientCertificate);
@@ -180,9 +180,9 @@ public static partial class EmailSmime {
         CmsVerificationOptions? verificationOptions = null,
         EmailReaderOptions? contentReaderOptions = null) {
 #if NETSTANDARD2_0 || NET472
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (recipientCertificate == null) throw new ArgumentNullException(nameof(recipientCertificate));
-        if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(recipientCertificate);
+        ArgumentNullException.ThrowIfNull(securityProvider);
 #else
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(recipientCertificate);

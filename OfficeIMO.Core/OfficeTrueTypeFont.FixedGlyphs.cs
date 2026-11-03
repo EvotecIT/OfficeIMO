@@ -27,7 +27,8 @@ public sealed partial class OfficeTrueTypeFont {
     /// <summary>Reads the top-center origin and vertical advance for fixed, default-instance TrueType glyph placement.</summary>
     /// <remarks>Uses vmtx when present, otherwise OS/2 typographic metrics or hhea, as required by XPS sideways layout.</remarks>
     internal double FixedGlyphVerticalMetrics(int glyphId, double fontSize, out double originX, out double originY) {
-        if (glyphId < 0 || glyphId >= _numGlyphs) throw new ArgumentOutOfRangeException(nameof(glyphId));
+        ArgumentOutOfRangeException.ThrowIfNegative(glyphId);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(glyphId, _numGlyphs);
         var tables = _fixedGlyphTables;
         if (_numHMetrics == 0 || _numHMetrics > _numGlyphs || tables.HorizontalLength < _numHMetrics * 4 + (_numGlyphs - _numHMetrics) * 2)
             throw new InvalidDataException("Invalid horizontal glyph metrics.");
@@ -63,14 +64,16 @@ public sealed partial class OfficeTrueTypeFont {
     }
     /// <summary>Reads the native horizontal advance for an already resolved glyph index.</summary>
     internal double FixedGlyphAdvance(int glyphId, double fontSize) {
-        if (glyphId < 0 || glyphId >= _numGlyphs) throw new ArgumentOutOfRangeException(nameof(glyphId));
+        ArgumentOutOfRangeException.ThrowIfNegative(glyphId);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(glyphId, _numGlyphs);
         return AdvanceWidth((ushort)glyphId) * ScaleFor(fontSize);
     }
     /// <summary>Projects an explicitly positioned glyph without Unicode remapping or shaping.</summary>
     internal List<List<OfficePoint>> FixedGlyphContours(int glyphId, double fontSize, double x, double baseline,
         int maximumPoints, CancellationToken cancellationToken) {
-        if (glyphId < 0 || glyphId >= _numGlyphs) throw new ArgumentOutOfRangeException(nameof(glyphId));
-        if (maximumPoints <= 0) throw new ArgumentOutOfRangeException(nameof(maximumPoints));
+        ArgumentOutOfRangeException.ThrowIfNegative(glyphId);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(glyphId, _numGlyphs);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumPoints);
         double scale = ScaleFor(fontSize);
         int count = 0;
         return ReadGlyphContours((ushort)glyphId, new FontTransform(scale, 0, 0, -scale, x, baseline), 0,

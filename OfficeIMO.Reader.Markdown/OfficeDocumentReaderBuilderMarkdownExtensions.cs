@@ -13,7 +13,7 @@ public static class OfficeDocumentReaderBuilderMarkdownExtensions {
         this OfficeDocumentReaderBuilder builder,
         ReaderMarkdownOptions? options = null,
         bool replaceExisting = false) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderMarkdownOptions configured = MarkdownReaderAdapter.Clone(options);
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,

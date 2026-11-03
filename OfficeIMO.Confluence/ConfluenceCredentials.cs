@@ -23,7 +23,7 @@ public sealed class ConfluenceBasicCredentialSource : IConfluenceCredentialSourc
 
     /// <summary>Sets the request's Basic Authorization header.</summary>
     public Task ApplyAsync(HttpRequestMessage request, CancellationToken cancellationToken = default) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         request.Headers.Authorization = new AuthenticationHeaderValue("Basic", _encodedCredential);
         return Task.CompletedTask;
     }
@@ -41,7 +41,7 @@ public sealed class ConfluenceBearerCredentialSource : IConfluenceCredentialSour
 
     /// <summary>Sets the request's Bearer Authorization header.</summary>
     public Task ApplyAsync(HttpRequestMessage request, CancellationToken cancellationToken = default) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
         return Task.CompletedTask;
     }

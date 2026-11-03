@@ -21,8 +21,8 @@ internal sealed class PageRenderCoordinator : IDisposable {
         int maximumEntries = 16,
         long maximumBytes = 96L * 1024L * 1024L) {
         _renderPage = renderPage ?? throw new ArgumentNullException(nameof(renderPage));
-        if (maximumEntries <= 0) throw new ArgumentOutOfRangeException(nameof(maximumEntries));
-        if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumEntries);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
         _maximumEntries = maximumEntries;
         _maximumBytes = maximumBytes;
     }
@@ -140,7 +140,7 @@ internal sealed class PageRenderCoordinator : IDisposable {
         internal double Scale => ScalePercent / 100D;
 
         internal static RenderKey Create(int pageNumber, double scale) {
-            if (pageNumber <= 0) throw new ArgumentOutOfRangeException(nameof(pageNumber));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageNumber);
             return new RenderKey(pageNumber, PdfRasterScale.ToPercent(scale));
         }
     }

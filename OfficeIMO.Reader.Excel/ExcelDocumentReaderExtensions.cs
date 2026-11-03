@@ -13,7 +13,7 @@ public static class ExcelDocumentReaderExtensions {
     /// <remarks>Input and package admission options cannot retroactively bound the model's earlier load. Source byte hashes, lengths and timestamps are not inferred from the logical name. Keep the model open to request subsequent native payload reads.</remarks>
     public static OfficeDocumentReadResult ReadDocument(this ExcelDocument document, string? sourceName = null,
         ReaderOptions? options = null, ReaderExcelOptions? formatOptions = null, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         ReaderOptions effective = DocumentReaderEngine.NormalizeOptions(options);
         ReaderExcelOptions configured = ExcelReaderAdapter.Clone(formatOptions);

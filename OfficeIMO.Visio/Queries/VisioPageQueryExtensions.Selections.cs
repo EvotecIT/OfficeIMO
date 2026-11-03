@@ -10,9 +10,7 @@ namespace OfficeIMO.Visio {
         /// <param name="page">Page to query.</param>
         /// <param name="predicate">Predicate used to include shapes.</param>
         public static VisioShapeSelection SelectShapes(this VisioPage page, Func<VisioShape, bool> predicate) {
-            if (predicate == null) {
-                throw new ArgumentNullException(nameof(predicate));
-            }
+            ArgumentNullException.ThrowIfNull(predicate);
 
             return new VisioShapeSelection(FilterShapes(page, predicate), page);
         }

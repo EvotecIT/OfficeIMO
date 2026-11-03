@@ -6,7 +6,7 @@ namespace OfficeIMO.Email;
 public static class EmailIndexText {
     /// <summary>Projects text without opening attachments or modifying the source. This is not an authorship detector.</summary>
     public static EmailIndexTextResult Create(EmailDocument source, EmailIndexTextOptions? options = null) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         var effective = options ?? new EmailIndexTextOptions();
         if (!Enum.IsDefined(typeof(EmailConcealedTextPolicy), effective.ConcealedTextPolicy)) throw new ArgumentOutOfRangeException(nameof(effective.ConcealedTextPolicy));
         if (effective.MaxSourceChars <= 0) throw new ArgumentOutOfRangeException(nameof(effective.MaxSourceChars));

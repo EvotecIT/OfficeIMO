@@ -84,7 +84,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static string DataTableToJson(DataTable table, JsonSerializerOptions? options) {
-            if (table == null) throw new ArgumentNullException(nameof(table));
+            ArgumentNullException.ThrowIfNull(table);
             if (options == null) {
                 return DataTableToJsonStreaming(table);
             }

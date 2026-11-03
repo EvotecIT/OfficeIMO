@@ -58,9 +58,7 @@ namespace OfficeIMO.PowerPoint {
             string? contentType,
             string partUri,
             string? relationshipId = null) where TPart : OpenXmlPart {
-            if (parent == null) {
-                throw new ArgumentNullException(nameof(parent));
-            }
+            ArgumentNullException.ThrowIfNull(parent);
             if (parent.OpenXmlPackage == null) {
                 throw new InvalidOperationException("Parent part is not attached to a package.");
             }
@@ -100,8 +98,8 @@ namespace OfficeIMO.PowerPoint {
             OpenXmlPartContainer parent,
             OpenXmlPart sourcePart,
             string relationshipId) {
-            if (parent == null) throw new ArgumentNullException(nameof(parent));
-            if (sourcePart == null) throw new ArgumentNullException(nameof(sourcePart));
+            ArgumentNullException.ThrowIfNull(parent);
+            ArgumentNullException.ThrowIfNull(sourcePart);
             if (string.IsNullOrWhiteSpace(relationshipId)) {
                 throw new ArgumentException("Relationship identifier is required.", nameof(relationshipId));
             }
@@ -178,9 +176,7 @@ namespace OfficeIMO.PowerPoint {
             string baseName,
             string extension,
             bool allowBaseWithoutIndex) {
-            if (package == null) {
-                throw new ArgumentNullException(nameof(package));
-            }
+            ArgumentNullException.ThrowIfNull(package);
             if (string.IsNullOrWhiteSpace(folder)) {
                 throw new ArgumentException("Folder is required.", nameof(folder));
             }

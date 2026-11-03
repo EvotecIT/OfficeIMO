@@ -11,7 +11,7 @@ namespace OfficeIMO.Word {
         private readonly List<WordFeatureFinding> _features = new List<WordFeatureFinding>();
 
         internal WordFeatureReport(IReadOnlyList<WordFeatureFinding> features) {
-            if (features == null) throw new ArgumentNullException(nameof(features));
+            ArgumentNullException.ThrowIfNull(features);
             _features.AddRange(features);
         }
 
@@ -66,7 +66,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="featureNames">Feature names to match, for example <c>VBA macros</c> or <c>Digital signatures</c>.</param>
         public IReadOnlyList<WordFeatureFinding> FindFeatures(IEnumerable<string> featureNames) {
-            if (featureNames == null) throw new ArgumentNullException(nameof(featureNames));
+            ArgumentNullException.ThrowIfNull(featureNames);
             var names = new HashSet<string>(featureNames.Where(name => !string.IsNullOrWhiteSpace(name)), StringComparer.OrdinalIgnoreCase);
             if (names.Count == 0) return Array.Empty<WordFeatureFinding>();
 
@@ -80,7 +80,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="supportLevels">Support levels to match.</param>
         public IReadOnlyList<WordFeatureFinding> FindFeatures(params OfficeFeatureSupportLevel[] supportLevels) {
-            if (supportLevels == null) throw new ArgumentNullException(nameof(supportLevels));
+            ArgumentNullException.ThrowIfNull(supportLevels);
             if (supportLevels.Length == 0) return Array.Empty<WordFeatureFinding>();
 
             var levels = new HashSet<OfficeFeatureSupportLevel>(supportLevels);

@@ -11,8 +11,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal static byte[] Encrypt(OfficeCompoundFile source,
             OfficeBinaryRc4CryptoApiSession session) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (session == null) throw new ArgumentNullException(nameof(session));
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentNullException.ThrowIfNull(session);
 
             byte[] summary = GetPropertyStreamOrEmpty(source,
                 SummaryInformationStream,
@@ -40,9 +40,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             LegacyPptImportOptions options,
             LegacyPptDecodedStorageBudget decodedStorageBudget,
             CancellationToken cancellationToken = default) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (session == null) throw new ArgumentNullException(nameof(session));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentNullException.ThrowIfNull(session);
+            ArgumentNullException.ThrowIfNull(options);
             if (decodedStorageBudget == null) {
                 throw new ArgumentNullException(
                     nameof(decodedStorageBudget));
@@ -85,10 +85,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             byte[] bytes, LegacyPptImportOptions options,
             LegacyPptDecodedStorageBudget decodedStorageBudget,
             CancellationToken cancellationToken = default) {
-            if (replacements == null) {
-                throw new ArgumentNullException(nameof(replacements));
-            }
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(replacements);
+            ArgumentNullException.ThrowIfNull(options);
             if (decodedStorageBudget == null) {
                 throw new ArgumentNullException(
                     nameof(decodedStorageBudget));

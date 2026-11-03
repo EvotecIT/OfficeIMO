@@ -66,7 +66,7 @@ public sealed class RtfFieldCodeSyntax {
 
     /// <summary>Parses a field instruction without discarding trivia or unknown switches.</summary>
     public static RtfFieldCodeSyntax Parse(string instruction) {
-        if (instruction == null) throw new ArgumentNullException(nameof(instruction));
+        ArgumentNullException.ThrowIfNull(instruction);
         var tokens = new List<RtfFieldCodeToken>();
         bool hasKeyword = false;
         int index = 0;

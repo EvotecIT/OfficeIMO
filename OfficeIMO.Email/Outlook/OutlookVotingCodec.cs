@@ -13,8 +13,8 @@ internal static class OutlookVotingCodec {
 
     internal static bool TryDecode(byte[] value, int codePage, IList<OutlookVoteOption> options,
         out string? error) {
-        if (value == null) throw new ArgumentNullException(nameof(value));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(value);
+        ArgumentNullException.ThrowIfNull(options);
         options.Clear();
         try {
             using (var stream = new MemoryStream(value, writable: false))
@@ -53,7 +53,7 @@ internal static class OutlookVotingCodec {
 
     internal static bool TryEncode(IReadOnlyList<OutlookVoteOption> options, int codePage,
         out byte[]? value, out string? error) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         try {
             if (options.Count > MaximumOptions) throw new InvalidDataException("Voting option count exceeds 255.");
             Encoding ansi = StrictEncoding(codePage);

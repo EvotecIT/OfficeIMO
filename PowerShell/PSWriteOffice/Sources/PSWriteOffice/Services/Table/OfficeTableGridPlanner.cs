@@ -9,10 +9,7 @@ internal static class OfficeTableGridPlanner
         IReadOnlyList<IReadOnlyList<OfficeTableCellSpec>> rows,
         out int columnCount)
     {
-        if (rows == null)
-        {
-            throw new ArgumentNullException(nameof(rows));
-        }
+        ArgumentNullException.ThrowIfNull(rows);
 
         var placements = new List<OfficeTableCellPlacement>();
         var activeRowSpans = new Dictionary<int, int>();

@@ -257,8 +257,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static byte[] BuildPreservedMasterThemeRecord(
             LegacyPptRecord prototype, SlideMasterPart source,
             IReadOnlyList<int> changedClassicColorSlots) {
-            if (prototype == null) throw new ArgumentNullException(nameof(prototype));
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(prototype);
+            ArgumentNullException.ThrowIfNull(source);
             return BuildPreservedMasterThemeRecord(prototype, source.ThemePart,
                 source.SlideMaster?.ColorMap, changedClassicColorSlots);
         }
@@ -266,8 +266,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static byte[] BuildPreservedMasterThemeRecord(
             LegacyPptRecord prototype, NotesMasterPart source,
             IReadOnlyList<int> changedClassicColorSlots) {
-            if (prototype == null) throw new ArgumentNullException(nameof(prototype));
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(prototype);
+            ArgumentNullException.ThrowIfNull(source);
             return BuildPreservedMasterThemeRecord(prototype, source.ThemePart,
                 source.NotesMaster?.ColorMap, changedClassicColorSlots);
         }
@@ -275,8 +275,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static byte[] BuildPreservedMasterThemeRecord(
             LegacyPptRecord prototype, HandoutMasterPart source,
             IReadOnlyList<int> changedClassicColorSlots) {
-            if (prototype == null) throw new ArgumentNullException(nameof(prototype));
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(prototype);
+            ArgumentNullException.ThrowIfNull(source);
             return BuildPreservedMasterThemeRecord(prototype, source.ThemePart,
                 source.HandoutMaster?.ColorMap, changedClassicColorSlots);
         }
@@ -284,14 +284,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static byte[] BuildPreservedMasterThemeRecord(
             LegacyPptRecord prototype, SlideLayoutPart source,
             IReadOnlyList<int> changedClassicColorSlots) {
-            if (prototype == null) throw new ArgumentNullException(nameof(prototype));
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(prototype);
+            ArgumentNullException.ThrowIfNull(source);
             A.ThemeOverride theme = source.ThemeOverridePart?.ThemeOverride
                 ?? throw new InvalidDataException(
                     "A projected binary title master has no DrawingML theme override to preserve.");
-            if (changedClassicColorSlots == null) {
-                throw new ArgumentNullException(nameof(changedClassicColorSlots));
-            }
+            ArgumentNullException.ThrowIfNull(changedClassicColorSlots);
             A.ColorScheme? effectiveColors = theme.ColorScheme
                 ?? source.SlideMasterPart?.ThemePart?.Theme?.ThemeElements?
                     .ColorScheme;
@@ -306,15 +304,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static byte[] BuildPreservedThemeRecord(
             LegacyPptRecord prototype, SlidePart source,
             IReadOnlyList<int> changedClassicColorSlots) {
-            if (prototype == null) throw new ArgumentNullException(nameof(prototype));
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(prototype);
+            ArgumentNullException.ThrowIfNull(source);
             A.ThemeOverride theme = (source.ThemeOverridePart
                     ?? source.SlideLayoutPart?.ThemeOverridePart)?.ThemeOverride
                 ?? throw new InvalidDataException(
                     "A projected binary slide has no DrawingML theme override to preserve.");
-            if (changedClassicColorSlots == null) {
-                throw new ArgumentNullException(nameof(changedClassicColorSlots));
-            }
+            ArgumentNullException.ThrowIfNull(changedClassicColorSlots);
             A.ColorScheme? effectiveColors = theme.ColorScheme
                 ?? source.SlideLayoutPart?.SlideMasterPart?.ThemePart?.Theme?
                     .ThemeElements?.ColorScheme;
@@ -340,14 +336,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static byte[] BuildPreservedThemeRecord(
             LegacyPptRecord prototype, NotesSlidePart source,
             IReadOnlyList<int> changedClassicColorSlots) {
-            if (prototype == null) throw new ArgumentNullException(nameof(prototype));
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(prototype);
+            ArgumentNullException.ThrowIfNull(source);
             A.ThemeOverride theme = source.ThemeOverridePart?.ThemeOverride
                 ?? throw new InvalidDataException(
                     "A projected binary notes page has no DrawingML theme override to preserve.");
-            if (changedClassicColorSlots == null) {
-                throw new ArgumentNullException(nameof(changedClassicColorSlots));
-            }
+            ArgumentNullException.ThrowIfNull(changedClassicColorSlots);
             A.ColorScheme? effectiveColors = theme.ColorScheme
                 ?? source.NotesMasterPart?.ThemePart?.Theme?.ThemeElements?
                     .ColorScheme;
@@ -375,9 +369,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             A.Theme theme = themePart?.Theme
                 ?? throw new InvalidDataException(
                     "A projected binary master has no DrawingML theme to preserve.");
-            if (changedClassicColorSlots == null) {
-                throw new ArgumentNullException(nameof(changedClassicColorSlots));
-            }
+            ArgumentNullException.ThrowIfNull(changedClassicColorSlots);
             return BuildMasterRecord(prototype, ReadColorScheme(themePart),
                 background: null,
                 roundTripThemeRecords: BuildRoundTripThemeRecords(
@@ -412,8 +404,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptRecord prototype,
             LegacyPptWriterBackground background,
             LegacyPptWriterPictureCatalog? pictureCatalog = null) {
-            if (prototype == null) throw new ArgumentNullException(nameof(prototype));
-            if (background == null) throw new ArgumentNullException(nameof(background));
+            ArgumentNullException.ThrowIfNull(prototype);
+            ArgumentNullException.ThrowIfNull(background);
             byte[] bytes = BuildMasterRecord(prototype,
                 ReadColorScheme(themePart: null), background,
                 rewriteColorScheme: false,
@@ -441,7 +433,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static byte[] BuildPreservedMasterObjectInheritanceRecord(
             LegacyPptRecord prototype, bool followsMasterObjects) {
-            if (prototype == null) throw new ArgumentNullException(nameof(prototype));
+            ArgumentNullException.ThrowIfNull(prototype);
             byte[] bytes = prototype.CopyRecordBytes();
             LegacyPptRecord? slideAtom = prototype.Children.FirstOrDefault(child =>
                 child.Type == RecordSlideAtom && child.PayloadLength >= 22);
@@ -474,7 +466,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static byte[] BuildPreservedPlaceholderSignatureRecord(
             LegacyPptRecord prototype, IReadOnlyList<PowerPointShape> shapes,
             LegacyPptWriterShapeContext shapeContext) {
-            if (prototype == null) throw new ArgumentNullException(nameof(prototype));
+            ArgumentNullException.ThrowIfNull(prototype);
             byte[] bytes = prototype.CopyRecordBytes();
             LegacyPptRecord? slideAtom = prototype.Children.FirstOrDefault(child =>
                 child.Type == RecordSlideAtom && child.PayloadLength >= 12);

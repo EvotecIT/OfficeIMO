@@ -42,8 +42,8 @@ public sealed class InvoiceSourceEditResult {
 public static class InvoiceSourceEditor {
     /// <summary>Replaces only existing, unique plaintext fields. Rejects XML signatures, nested/annotated fields and unsupported dates before mutation. Number changes do not infer payment-reference changes.</summary>
     public static InvoiceSourceEditResult Apply(InvoiceSourceDocument source, InvoiceSourceEdits edits) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
-        if (edits == null) throw new ArgumentNullException(nameof(edits));
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(edits);
         var replacements = new List<InvoiceSourceScalarEdit>();
         void Add(InvoiceSourceField field, string? value) { if (value != null) replacements.Add(new InvoiceSourceScalarEdit(field, value)); }
         Add(InvoiceSourceField.DocumentId, edits.Number);

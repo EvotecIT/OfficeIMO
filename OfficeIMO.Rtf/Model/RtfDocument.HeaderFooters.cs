@@ -5,7 +5,7 @@ public sealed partial class RtfDocument {
     /// <summary>Returns the effective headers and footers for a section, including inherited kinds.</summary>
     /// <remarks>An explicit empty destination overrides inherited content. For repeated declarations, the last declaration of a kind wins.</remarks>
     public IReadOnlyList<RtfHeaderFooter> GetEffectiveHeaderFooters(RtfSection section) {
-        if (section == null) throw new ArgumentNullException(nameof(section));
+        ArgumentNullException.ThrowIfNull(section);
         if (!_sections.Contains(section)) throw new ArgumentException("Section must belong to this document.", nameof(section));
         var owned = new HashSet<RtfHeaderFooter>(_sections.SelectMany(item => item.HeaderFooters));
         var effective = new Dictionary<RtfHeaderFooterKind, RtfHeaderFooter>();

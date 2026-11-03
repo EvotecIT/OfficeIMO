@@ -32,9 +32,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Updates the chart data (series and categories).
         /// </summary>
         internal PowerPointChart UpdateData(PowerPointChartData data) {
-            if (data == null) {
-                throw new ArgumentNullException(nameof(data));
-            }
+            ArgumentNullException.ThrowIfNull(data);
 
             ChartPart chartPart = GetChartPart();
             EmbeddedPackagePart? embedded = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.GetSharedEmbeddedWorkbook(chartPart);
@@ -56,9 +54,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Updates scatter chart data (series X/Y values).
         /// </summary>
         internal PowerPointChart UpdateData(PowerPointScatterChartData data) {
-            if (data == null) {
-                throw new ArgumentNullException(nameof(data));
-            }
+            ArgumentNullException.ThrowIfNull(data);
 
             ChartPart chartPart = GetChartPart();
             EmbeddedPackagePart? embedded = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.GetSharedEmbeddedWorkbook(chartPart);
@@ -98,9 +94,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets the chart title text.
         /// </summary>
         public PowerPointChart SetTitle(string title) {
-            if (title == null) {
-                throw new ArgumentNullException(nameof(title));
-            }
+            ArgumentNullException.ThrowIfNull(title);
 
             C.Chart chart = GetChart();
             chart.AutoTitleDeleted = new C.AutoTitleDeleted { Val = false };

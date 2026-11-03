@@ -32,7 +32,7 @@ namespace OfficeIMO.Visio {
             IEnumerable<VisioDiagramQualityIssue> issues,
             VisioDiagramQualityIssueSeverity minimumSeverity,
             out IReadOnlyList<VisioDiagramQualityIssue> capturedIssues) {
-            if (issues == null) throw new ArgumentNullException(nameof(issues));
+            ArgumentNullException.ThrowIfNull(issues);
 
             capturedIssues = issues.ToList().AsReadOnly();
             string summary = $"Visio diagram quality gate failed with {capturedIssues.Count} issue(s) at or above {minimumSeverity}.";

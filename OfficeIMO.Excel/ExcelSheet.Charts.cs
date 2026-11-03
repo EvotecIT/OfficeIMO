@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChartDataRange WriteChartData(ExcelChartData data, int startRow = 1, int startColumn = 1, string? categoryHeader = null,
             bool includeHeaderRow = true, bool numericCategories = false, ExcelChartDataOrientation orientation = ExcelChartDataOrientation.Vertical) {
-            if (data == null) throw new ArgumentNullException(nameof(data));
+            ArgumentNullException.ThrowIfNull(data);
             if (startRow <= 0 || startColumn <= 0) throw new ArgumentOutOfRangeException(nameof(startRow));
 
             IReadOnlyList<string> categories = data.Categories;
@@ -157,7 +157,7 @@ namespace OfficeIMO.Excel {
             OfficeChartType type = OfficeChartType.ColumnClustered, string? title = null) {
             width ??= OfficeLength.Pixels(640);
             height ??= OfficeLength.Pixels(360);
-            if (data == null) throw new ArgumentNullException(nameof(data));
+            ArgumentNullException.ThrowIfNull(data);
             ValidateChartTypes(type, data);
             ValidateChartPlacement(row, column, width.Value, height.Value);
 
@@ -197,7 +197,7 @@ namespace OfficeIMO.Excel {
             OfficeChartType type = OfficeChartType.ColumnClustered, ExcelChartData? cachedData = null, string? title = null) {
             width ??= OfficeLength.Pixels(640);
             height ??= OfficeLength.Pixels(360);
-            if (dataRange == null) throw new ArgumentNullException(nameof(dataRange));
+            ArgumentNullException.ThrowIfNull(dataRange);
             ValidateChartPlacement(row, column, width.Value, height.Value);
 
             return AddChartInternal(dataRange, row, column, width.Value, height.Value, type, cachedData, title);
@@ -299,7 +299,7 @@ namespace OfficeIMO.Excel {
 
         private ExcelChart AddChartFromSeriesRanges(IEnumerable<ExcelChartSeriesRange> seriesRanges, int row, int column, OfficeLength width,
             OfficeLength height, OfficeChartType type, string? title) {
-            if (seriesRanges == null) throw new ArgumentNullException(nameof(seriesRanges));
+            ArgumentNullException.ThrowIfNull(seriesRanges);
             ValidateChartPlacement(row, column, width, height);
 
             var ranges = seriesRanges as IReadOnlyList<ExcelChartSeriesRange> ?? seriesRanges.ToList();

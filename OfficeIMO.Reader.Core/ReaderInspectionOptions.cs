@@ -24,8 +24,8 @@ public sealed class ReaderInspectionOptions {
     public long MaxCharacters { get; set; } = 1_000_000;
 
     internal ReaderInspectionOptions CloneValidated() {
-        if (MaxRecords < 1) throw new ArgumentOutOfRangeException(nameof(MaxRecords));
-        if (MaxCharacters < 1) throw new ArgumentOutOfRangeException(nameof(MaxCharacters));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxRecords, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxCharacters, 1);
         return (ReaderInspectionOptions)MemberwiseClone();
     }
 }

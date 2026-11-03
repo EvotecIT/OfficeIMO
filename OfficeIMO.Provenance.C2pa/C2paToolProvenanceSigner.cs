@@ -64,11 +64,7 @@ public sealed class C2paToolProvenanceSigner : IOfficeProvenanceSigner {
     public OfficeProvenanceSigningResult Sign(
         OfficeProvenanceSigningRequest request,
         OfficeProvenanceSigningOptions? options = null) {
-#if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(request);
-#else
-        if (request == null) throw new ArgumentNullException(nameof(request));
-#endif
         options ??= new OfficeProvenanceSigningOptions();
         Validate(options);
 

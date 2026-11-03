@@ -93,9 +93,8 @@ namespace OfficeIMO.PowerPoint {
 
         private SlideMasterPart GetSlideMasterPart(int masterIndex) {
             SlideMasterPart[] masters = _presentationPart.SlideMasterParts.ToArray();
-            if (masterIndex < 0 || masterIndex >= masters.Length) {
-                throw new ArgumentOutOfRangeException(nameof(masterIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(masterIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(masterIndex, masters.Length);
             return masters[masterIndex];
         }
 
@@ -140,9 +139,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static void InsertSlideId(SlideIdList slideIdList, SlideId slideId, int index) {
             List<SlideId> ids = slideIdList.Elements<SlideId>().ToList();
-            if (index < 0 || index > ids.Count) {
-                throw new ArgumentOutOfRangeException(nameof(index));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(index, ids.Count);
 
             ids.Insert(index, slideId);
             slideIdList.RemoveAllChildren();

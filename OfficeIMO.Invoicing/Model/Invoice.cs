@@ -6,7 +6,7 @@ public sealed class Invoice {
     /// <param name="line">Caller-created line. An explicit duplicate identifier is rejected before the collection changes.</param>
     /// <returns>The added line.</returns>
     public InvoiceLine AddLine(InvoiceLine line) {
-        if (line == null) throw new ArgumentNullException(nameof(line));
+        ArgumentNullException.ThrowIfNull(line);
         var identifiers = new HashSet<string>(Lines.Select(item => item.Id), StringComparer.Ordinal);
         if (string.IsNullOrWhiteSpace(line.Id)) {
             int number = 1;

@@ -416,7 +416,7 @@ namespace OfficeIMO.Excel {
         /// <param name="maxDifferences">Maximum number of differences to record. A nonpositive value records no differences.</param>
         /// <returns>A report containing differences up to the requested limit.</returns>
         public ExcelWorkbookDiffReport CompareWorkbook(ExcelDocument other, int maxDifferences = 200) {
-            if (other == null) throw new ArgumentNullException(nameof(other));
+            ArgumentNullException.ThrowIfNull(other);
             var differences = new List<ExcelWorkbookDifference>();
             var otherSheets = other.Sheets.ToDictionary(sheet => sheet.Name, StringComparer.OrdinalIgnoreCase);
 

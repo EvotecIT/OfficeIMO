@@ -41,7 +41,7 @@ public sealed class OfficeDocumentArtifactClassificationProcessor : OfficeDocume
     public override OfficeDocumentReadResult Process(
         OfficeDocumentReadResult document,
         OfficeDocumentProcessorContext context) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         IReadOnlyList<OfficeDocumentPage> pages = document.Pages ?? Array.Empty<OfficeDocumentPage>();
         if (pages.Count < _options.MinimumPageOccurrences) return document;
 

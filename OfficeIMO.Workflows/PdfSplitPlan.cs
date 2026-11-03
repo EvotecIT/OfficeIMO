@@ -13,9 +13,9 @@ public sealed class PdfSplitPlan {
     public IReadOnlyList<PdfSplitPart> Parts { get; }
     /// <summary>Creates a bounded plan without loading or changing a document.</summary>
     public static PdfSplitPlan Create(int pageCount, int pagesPerDocument, int maximumParts = 1000) {
-        if (pageCount < 1) throw new ArgumentOutOfRangeException(nameof(pageCount));
-        if (pagesPerDocument < 1) throw new ArgumentOutOfRangeException(nameof(pagesPerDocument));
-        if (maximumParts < 1) throw new ArgumentOutOfRangeException(nameof(maximumParts));
+        ArgumentOutOfRangeException.ThrowIfLessThan(pageCount, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(pagesPerDocument, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumParts, 1);
         int count = 1 + (pageCount - 1) / pagesPerDocument;
         if (count > maximumParts) throw new InvalidOperationException($"The split would create {count} parts, above the configured {maximumParts}-part limit.");
         var parts = new PdfSplitPart[count];
@@ -31,9 +31,9 @@ public sealed class PdfSplitPlan {
     /// Pages before the first start become an unnamed leading part; duplicate starts are merged.
     /// </summary>
     public static PdfSplitPlan FromStarts(int pageCount, IReadOnlyList<PdfSplitStart> starts, int maximumParts = 1000) {
-        if (pageCount < 1) throw new ArgumentOutOfRangeException(nameof(pageCount));
-        if (starts is null) throw new ArgumentNullException(nameof(starts));
-        if (maximumParts < 1) throw new ArgumentOutOfRangeException(nameof(maximumParts));
+        ArgumentOutOfRangeException.ThrowIfLessThan(pageCount, 1);
+        ArgumentNullException.ThrowIfNull(starts);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumParts, 1);
         if (starts.Any(start => start is null || start.FirstPage < 1 || start.FirstPage > pageCount))
             throw new ArgumentException("Every split start must identify a page in the document.", nameof(starts));
         var ordered = starts

@@ -14,7 +14,7 @@ internal static class HtmlGenericDocumentProjector {
     };
 
     internal static IReadOnlyList<HtmlGenericSectionProjection> CreateSections(IHtmlDocument document) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         IElement? body = document.Body ?? document.DocumentElement;
         if (body == null) return Array.Empty<HtmlGenericSectionProjection>();
 
@@ -123,7 +123,7 @@ internal static class HtmlGenericDocumentProjector {
         element.QuerySelector("img, video, audio, object, embed") != null;
 
     internal static IReadOnlyList<IElement> SelectRootTables(IHtmlDocument document) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return document.QuerySelectorAll("table, [role]")
             .Where(IsTable)
             .Where(table => !HasTableAncestor(table))
@@ -152,7 +152,7 @@ internal static class HtmlGenericDocumentProjector {
     }
 
     internal static string GetBlockText(IElement element) {
-        if (element == null) throw new ArgumentNullException(nameof(element));
+        ArgumentNullException.ThrowIfNull(element);
         if (Is(element, "ul") || Is(element, "ol")) {
             bool ordered = Is(element, "ol");
             int index = 1;
@@ -169,7 +169,7 @@ internal static class HtmlGenericDocumentProjector {
     }
 
     internal static IEnumerable<IElement> EnumerateBlocks(HtmlGenericSectionProjection section) {
-        if (section == null) throw new ArgumentNullException(nameof(section));
+        ArgumentNullException.ThrowIfNull(section);
         foreach (IElement block in section.Blocks) {
             foreach (IElement candidate in EnumerateBlocks(block)) yield return candidate;
         }

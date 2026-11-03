@@ -5,7 +5,7 @@ namespace OfficeIMO.Drawing.Binary;
 /// <summary>Computes the MD4 digest required by OfficeArt BLIP identifiers.</summary>
 internal static class OfficeArtMd4 {
     internal static byte[] Compute(byte[] source) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         long bitLength = checked((long)source.Length * 8L);
         int paddingLength = 64 - ((source.Length + 9) & 63);
         if (paddingLength == 64) paddingLength = 0;

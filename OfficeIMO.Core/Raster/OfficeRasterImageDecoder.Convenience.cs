@@ -9,7 +9,7 @@ namespace OfficeIMO.Drawing {
 
         /// <summary>Decodes the requested static frame and returns source, loss, and orientation evidence.</summary>
         public static OfficeRasterImage Decode(byte[] bytes, OfficeRasterDecodeOptions? options, out OfficeRasterDecodeInfo info) {
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            ArgumentNullException.ThrowIfNull(bytes);
             if (!TryDecode(bytes, options, out OfficeRasterImage? image, out info) || image == null) throw DecodeException(info);
             return image;
         }
@@ -28,7 +28,7 @@ namespace OfficeIMO.Drawing {
 
         /// <summary>Decodes every frame or page and retains source descriptors and complete-sequence evidence.</summary>
         public static OfficeRasterFrames DecodeFrames(byte[] bytes, OfficeRasterDecodeOptions? options, out OfficeRasterDecodeInfo info, int maximumFrames = 256) {
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            ArgumentNullException.ThrowIfNull(bytes);
             if (!TryDecodeFrames(bytes, options, out OfficeRasterFrames? frames, out info, maximumFrames) || frames == null) throw DecodeException(info);
             return frames;
         }
@@ -45,7 +45,7 @@ namespace OfficeIMO.Drawing {
         /// <summary>Decodes every stream frame or page within limits, retaining failure evidence and preserving seekable position.</summary>
         public static bool TryDecodeFrames(Stream stream, OfficeRasterDecodeOptions? options, out OfficeRasterFrames? frames,
             out OfficeRasterDecodeInfo info, int maximumFrames = 256) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             if (maximumFrames < 1 || maximumFrames > 4096) throw new ArgumentOutOfRangeException(nameof(maximumFrames));
             OfficeRasterDecodeOptions effective = options ?? new OfficeRasterDecodeOptions();
             effective.Validate();

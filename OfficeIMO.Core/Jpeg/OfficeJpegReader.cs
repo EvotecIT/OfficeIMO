@@ -172,7 +172,7 @@ internal static partial class OfficeJpegReader {
         long retainedManagedBytes,
         bool preserveRaw16 = false, bool samplesLittleEndian = true) {
         componentCount = 0;
-        if (retainedManagedBytes < 0L) throw new ArgumentOutOfRangeException(nameof(retainedManagedBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(retainedManagedBytes, 0L);
         cancellationToken.ThrowIfCancellationRequested();
         if (!IsJpeg(data)) throw new FormatException("Invalid JPEG signature.");
         OfficeRasterGuards.EnsurePayloadWithinLimits(data.Length, "JPEG payload exceeds size limits.");

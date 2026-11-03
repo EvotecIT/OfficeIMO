@@ -79,7 +79,7 @@ public sealed class RevisionStoreAssetSafetyTests {
         }
 
         public override int Read(byte[] buffer, int offset, int count) {
-            if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+            ArgumentNullException.ThrowIfNull(buffer);
             if (offset < 0 || count < 0 || offset > buffer.Length - count) throw new ArgumentOutOfRangeException();
             MaxReadRequest = Math.Max(MaxReadRequest, count);
             if (count > 64) throw new InvalidOperationException("The asset reader tried to materialize the padded frame.");

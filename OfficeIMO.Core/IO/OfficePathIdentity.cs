@@ -149,7 +149,7 @@ namespace OfficeIMO.Internal {
         }
 
         internal static SafeFileHandle OpenDirectoryForIdentity(string path, out string physicalPath) {
-            if (path == null) throw new ArgumentNullException(nameof(path));
+            ArgumentNullException.ThrowIfNull(path);
             string fullPath = Path.GetFullPath(path);
             SafeFileHandle handle;
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
@@ -173,7 +173,7 @@ namespace OfficeIMO.Internal {
         }
 
         internal static void EnsurePathMatchesOpenedDirectory(string path, SafeFileHandle handle) {
-            if (path == null) throw new ArgumentNullException(nameof(path));
+            ArgumentNullException.ThrowIfNull(path);
             OfficeFileMetadata opened = GetMetadata(path, handle);
             if (!opened.IsDirectory) {
                 throw new InvalidDataException("The opened filesystem entry is not a directory.");
@@ -193,9 +193,9 @@ namespace OfficeIMO.Internal {
 
         internal static FileStream OpenRegularFileForRead(string path, string physicalRoot, int bufferSize,
             FileShare share = FileShare.Read) {
-            if (path == null) throw new ArgumentNullException(nameof(path));
-            if (physicalRoot == null) throw new ArgumentNullException(nameof(physicalRoot));
-            if (bufferSize <= 0) throw new ArgumentOutOfRangeException(nameof(bufferSize));
+            ArgumentNullException.ThrowIfNull(path);
+            ArgumentNullException.ThrowIfNull(physicalRoot);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bufferSize);
             string fullPath = Path.GetFullPath(path);
             FileStream stream;
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {

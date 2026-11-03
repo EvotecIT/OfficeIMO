@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel.LegacyXls {
     /// </summary>
     internal sealed class LegacyXlsImportReport {
         internal LegacyXlsImportReport(LegacyXlsWorkbook workbook) {
-            if (workbook == null) throw new ArgumentNullException(nameof(workbook));
+            ArgumentNullException.ThrowIfNull(workbook);
 
             LegacyXlsComment[] comments = workbook.Worksheets.SelectMany(sheet => sheet.Comments).ToArray();
             LegacyXlsDataValidationCollectionRecord[] dataValidationCollections = workbook.Worksheets.SelectMany(sheet => sheet.DataValidationCollections).ToArray();

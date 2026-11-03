@@ -11,7 +11,7 @@ public static class OfficeError {
     /// <summary>Creates an error for a diagnostic code. PowerShell appends the implementing cmdlet type itself.</summary>
     /// <remarks>Use the diagnostic code alone when writing through a cmdlet, so the runtime adds exactly one command suffix.</remarks>
     public static ErrorRecord Create(Exception exception, string diagnosticCode, object? input, ErrorCategory? category = null) {
-        if (exception == null) throw new ArgumentNullException(nameof(exception));
+        ArgumentNullException.ThrowIfNull(exception);
         if (string.IsNullOrWhiteSpace(diagnosticCode)) throw new ArgumentException("A diagnostic code is required.", nameof(diagnosticCode));
         if (exception is OfficeConversionException conversion) diagnosticCode = ConversionCode(conversion) ?? diagnosticCode;
         return new ErrorRecord(exception, diagnosticCode, category ?? Category(exception), input);

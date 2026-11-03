@@ -7,7 +7,7 @@ public static class OutlookRecurrenceIcsConverter {
     /// <summary>Exports one Outlook recurrence without silently discarding exceptions or time-zone constraints.</summary>
     public static OutlookRecurrenceIcsExportResult Export(OutlookRecurrence recurrence,
         OutlookRecurrenceIcsExportOptions? options = null) {
-        if (recurrence == null) throw new ArgumentNullException(nameof(recurrence));
+        ArgumentNullException.ThrowIfNull(recurrence);
         OutlookRecurrenceIcsExportOptions effective = options ?? new OutlookRecurrenceIcsExportOptions();
         var report = new OutlookRecurrenceIcsConversionReport();
         var rule = new IcsRecurrenceRule();
@@ -41,8 +41,8 @@ public static class OutlookRecurrenceIcsConverter {
     /// <summary>Imports one RRULE plus its EXDATE and exception-component data.</summary>
     public static OutlookRecurrenceIcsImportResult Import(IcsRecurrenceRule rule,
         OutlookRecurrenceIcsImportOptions options) {
-        if (rule == null) throw new ArgumentNullException(nameof(rule));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(rule);
+        ArgumentNullException.ThrowIfNull(options);
         var report = new OutlookRecurrenceIcsConversionReport();
         DateTime start = ToLocal(options.Start, options.TimeZone, report, "DTSTART");
         var recurrence = new OutlookRecurrence { Start = start, Duration = options.Duration };

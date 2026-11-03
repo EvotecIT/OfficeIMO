@@ -56,8 +56,8 @@ public static partial class EpubImageExportExtensions {
         OfficeImageExportConsumer consumer,
         EpubImageExportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
-        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(consumer);
         EpubImageExportOptions effective =
             options?.CloneEpub() ?? new EpubImageExportOptions();
         IReadOnlyList<EpubChapter> chapters = SelectChapters(source, effective);
@@ -112,8 +112,8 @@ public static partial class EpubImageExportExtensions {
         OfficeImageExportAsyncConsumer consumer,
         EpubImageExportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
-        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(consumer);
         EpubImageExportOptions effective =
             options?.CloneEpub() ?? new EpubImageExportOptions();
         IReadOnlyList<EpubChapter> chapters = SelectChapters(source, effective);

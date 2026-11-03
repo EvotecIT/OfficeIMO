@@ -49,9 +49,7 @@ namespace OfficeIMO.PowerPoint {
         public static PowerPointDeckDesign FromBrand(string accentColor, string seed,
             PowerPointDesignDirection direction, string? name = null, string? eyebrow = null,
             string? footerLeft = null, string? footerRight = null) {
-            if (direction == null) {
-                throw new ArgumentNullException(nameof(direction));
-            }
+            ArgumentNullException.ThrowIfNull(direction);
             if (string.IsNullOrWhiteSpace(seed)) {
                 throw new ArgumentException("Deck design seed cannot be null or empty.", nameof(seed));
             }
@@ -120,9 +118,7 @@ namespace OfficeIMO.PowerPoint {
             if (string.IsNullOrWhiteSpace(seed)) {
                 throw new ArgumentException("Deck design seed cannot be null or empty.", nameof(seed));
             }
-            if (recipe == null) {
-                throw new ArgumentNullException(nameof(recipe));
-            }
+            ArgumentNullException.ThrowIfNull(recipe);
             if (count < 0) {
                 throw new ArgumentOutOfRangeException(nameof(count), "Design alternative count cannot be negative.");
             }
@@ -164,9 +160,7 @@ namespace OfficeIMO.PowerPoint {
             if (string.IsNullOrWhiteSpace(seed)) {
                 throw new ArgumentException("Deck design seed cannot be null or empty.", nameof(seed));
             }
-            if (directions == null) {
-                throw new ArgumentNullException(nameof(directions));
-            }
+            ArgumentNullException.ThrowIfNull(directions);
 
             List<PowerPointDesignDirection> directionList = new();
             foreach (PowerPointDesignDirection direction in directions) {
@@ -254,9 +248,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Applies the deck theme to the presentation.
         /// </summary>
         public PowerPointDocument ApplyTo(PowerPointDocument presentation) {
-            if (presentation == null) {
-                throw new ArgumentNullException(nameof(presentation));
-            }
+            ArgumentNullException.ThrowIfNull(presentation);
 
             return presentation.ApplyDesignerTheme(Theme);
         }
@@ -278,9 +270,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Applies deck chrome and a per-slide intent to an options object.
         /// </summary>
         public T Configure<T>(T options, string slideSeed) where T : PowerPointDesignerSlideOptions {
-            if (options == null) {
-                throw new ArgumentNullException(nameof(options));
-            }
+            ArgumentNullException.ThrowIfNull(options);
 
             options.DesignIntent = IntentFor(slideSeed);
             options.ShowDirectionMotif = options.ShowDirectionMotif && ShowDirectionMotif;

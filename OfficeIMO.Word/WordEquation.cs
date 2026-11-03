@@ -125,7 +125,7 @@ namespace OfficeIMO.Word {
 
         /// <summary>Replaces this equation with an editable OMML representation of a shared expression.</summary>
         public WordEquation SetExpression(OfficeMathExpression expression) {
-            if (expression == null) throw new ArgumentNullException(nameof(expression));
+            ArgumentNullException.ThrowIfNull(expression);
             var replacement = new DocumentFormat.OpenXml.Math.OfficeMath(WordMathMarkup.ToOmml(expression));
             if (_officeMath != null) {
                 _officeMath.RemoveAllChildren();
@@ -210,8 +210,8 @@ namespace OfficeIMO.Word {
         internal OpenXmlElement? MathElement => (OpenXmlElement?)_officeMath ?? _mathParagraph;
 
         internal static IReadOnlyList<WordEquationOccurrence> GetOccurrences(WordDocument document, Paragraph paragraph) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(paragraph);
 
             List<OpenXmlElement> children = paragraph.ChildElements.ToList();
             var occurrences = new List<WordEquationOccurrence>();
@@ -230,8 +230,8 @@ namespace OfficeIMO.Word {
             OpenXmlElement container,
             IReadOnlyList<WordEquationOccurrence> occurrences,
             Func<OpenXmlElement, bool>? includeElement = null) {
-            if (container == null) throw new ArgumentNullException(nameof(container));
-            if (occurrences == null) throw new ArgumentNullException(nameof(occurrences));
+            ArgumentNullException.ThrowIfNull(container);
+            ArgumentNullException.ThrowIfNull(occurrences);
 
             var segments = new List<WordEquationContentSegment>();
             var emittedEquations = new HashSet<WordEquation>();

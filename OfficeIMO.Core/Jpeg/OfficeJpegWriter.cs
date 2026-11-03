@@ -136,8 +136,8 @@ internal static partial class OfficeJpegWriter {
 
     private static void WriteRgbaCore(Stream stream, int width, int height, byte[] rgba, int stride, int rowOffset, int rowStride, OfficeJpegEncodeOptions options, string bufferName, string bufferMessage, CancellationToken cancellationToken, Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
         if (width > OfficeRasterImageEncoder.JpegMaximumDimension) throw new ArgumentOutOfRangeException(nameof(width), "JPEG width cannot exceed 65535 pixels.");
         if (height > OfficeRasterImageEncoder.JpegMaximumDimension) throw new ArgumentOutOfRangeException(nameof(height), "JPEG height cannot exceed 65535 pixels.");
         _ = OfficeRasterGuards.EnsureOutputPixels(width, height, JpegOutputLimitMessage);
@@ -146,8 +146,8 @@ internal static partial class OfficeJpegWriter {
         if (stride < width * 4) throw new ArgumentOutOfRangeException(nameof(stride));
         if (rowStride < rowOffset + stride) throw new ArgumentOutOfRangeException(nameof(rowStride));
         if (rgba.Length < height * rowStride) throw new ArgumentException(bufferMessage, bufferName);
-        if (stream is null) throw new ArgumentNullException(nameof(stream));
-        if (options is null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(stream);
+        ArgumentNullException.ThrowIfNull(options);
 
         var quality = options.Quality;
         if (quality is < 1 or > 100) throw new ArgumentOutOfRangeException(nameof(options.Quality));

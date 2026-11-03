@@ -90,13 +90,9 @@ public static partial class OfficeTextBlockRenderer {
         OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None,
         OfficeTextBaseline baseline = OfficeTextBaseline.Normal,
         OfficeColor? decorationColor = null) {
-        if (canvas == null) {
-            throw new ArgumentNullException(nameof(canvas));
-        }
+        ArgumentNullException.ThrowIfNull(canvas);
 
-        if (layout == null) {
-            throw new ArgumentNullException(nameof(layout));
-        }
+        ArgumentNullException.ThrowIfNull(layout);
 
         if (layout.Lines.Count == 0 || color.A == 0 || width <= 0D || height <= 0D) {
             return;
@@ -216,13 +212,9 @@ public static partial class OfficeTextBlockRenderer {
         OfficeTextDecorationStyle underlineStyle = OfficeTextDecorationStyle.None,
         OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None,
         OfficeTextBaseline baseline = OfficeTextBaseline.Normal) {
-        if (canvas == null) {
-            throw new ArgumentNullException(nameof(canvas));
-        }
+        ArgumentNullException.ThrowIfNull(canvas);
 
-        if (plan == null) {
-            throw new ArgumentNullException(nameof(plan));
-        }
+        ArgumentNullException.ThrowIfNull(plan);
 
         if (backgroundColor.HasValue && backgroundColor.Value.A > 0) {
             OfficeTextBlockBackgroundBounds background = plan.CreateBackgroundBounds(backgroundPaddingX, backgroundPaddingY);
@@ -290,13 +282,9 @@ public static partial class OfficeTextBlockRenderer {
         bool centerLineInLineHeight = true,
         bool flipHorizontal = false,
         bool flipVertical = false) {
-        if (canvas == null) {
-            throw new ArgumentNullException(nameof(canvas));
-        }
+        ArgumentNullException.ThrowIfNull(canvas);
 
-        if (layout == null) {
-            throw new ArgumentNullException(nameof(layout));
-        }
+        ArgumentNullException.ThrowIfNull(layout);
 
         if (layout.Lines.Count == 0 || width <= 0D || height <= 0D) {
             return;
@@ -385,10 +373,8 @@ public static partial class OfficeTextBlockRenderer {
         double rotationDegrees = 0D,
         double rotationCenterX = 0D,
         double rotationCenterY = 0D) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
-        if (segment == null) {
-            throw new ArgumentNullException(nameof(segment));
-        }
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(segment);
 
         if (segment.TabLinePaint != null) return AppendSvgTabLineLeader(builder, segment.TabLinePaint, x,
             ResolveRichTextRenderedBaseline(segment, baseline), rotationDegrees, rotationCenterX, rotationCenterY);
@@ -547,13 +533,9 @@ public static partial class OfficeTextBlockRenderer {
         OfficeTextDecorationStyle underlineStyle = OfficeTextDecorationStyle.None,
         OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None,
         OfficeTextBaseline baseline = OfficeTextBaseline.Normal) {
-        if (writer == null) {
-            throw new ArgumentNullException(nameof(writer));
-        }
+        ArgumentNullException.ThrowIfNull(writer);
 
-        if (plan == null) {
-            throw new ArgumentNullException(nameof(plan));
-        }
+        ArgumentNullException.ThrowIfNull(plan);
 
         if (backgroundColor.HasValue && backgroundColor.Value.A > 0) {
             OfficeTextBlockBackgroundBounds background = plan.CreateBackgroundBounds(backgroundPaddingX, backgroundPaddingY);

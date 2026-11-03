@@ -59,10 +59,7 @@ internal static class ExcelSheetResolver
 
     public static ExcelSheet Resolve(ExcelDocument document, string? sheetName, int? sheetIndex)
     {
-        if (document == null)
-        {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
         if (sheetName != null)
         {

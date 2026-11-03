@@ -8,7 +8,7 @@ namespace OfficeIMO.Reader.Epub;
 internal static partial class EpubReaderAdapter {
     /// <summary>Reads an EPUB file into the shared rich document envelope.</summary>
     public static OfficeDocumentReadResult ReadDocument(string epubPath, ReaderOptions? readerOptions = null, EpubLoadOptions? epubOptions = null, CancellationToken cancellationToken = default) {
-        if (epubPath == null) throw new ArgumentNullException(nameof(epubPath));
+        ArgumentNullException.ThrowIfNull(epubPath);
         if (epubPath.Length == 0) throw new ArgumentException("EPUB path cannot be empty.", nameof(epubPath));
         if (!File.Exists(epubPath)) throw new FileNotFoundException($"EPUB file '{epubPath}' doesn't exist.", epubPath);
         ReaderOptions effective = readerOptions ?? new ReaderOptions();
@@ -20,7 +20,7 @@ internal static partial class EpubReaderAdapter {
 
     /// <summary>Reads an EPUB stream into the shared rich document envelope.</summary>
     public static OfficeDocumentReadResult ReadDocument(Stream epubStream, string? sourceName = null, ReaderOptions? readerOptions = null, EpubLoadOptions? epubOptions = null, CancellationToken cancellationToken = default) {
-        if (epubStream == null) throw new ArgumentNullException(nameof(epubStream));
+        ArgumentNullException.ThrowIfNull(epubStream);
         if (!epubStream.CanRead) throw new ArgumentException("EPUB stream must be readable.", nameof(epubStream));
         ReaderOptions effective = readerOptions ?? new ReaderOptions();
         string logicalSourceName = string.IsNullOrWhiteSpace(sourceName) ? "document.epub" : sourceName!.Trim();

@@ -29,7 +29,7 @@ internal static partial class ZipReaderAdapter {
         ArchiveTraversalOptions? zipOptions,
         ReaderZipOptions? readerZipOptions,
         CancellationToken cancellationToken = default) {
-        if (zipPath == null) throw new ArgumentNullException(nameof(zipPath));
+        ArgumentNullException.ThrowIfNull(zipPath);
         if (zipPath.Length == 0) throw new ArgumentException("ZIP path cannot be empty.", nameof(zipPath));
         if (!File.Exists(zipPath)) throw new FileNotFoundException($"ZIP file '{zipPath}' doesn't exist.", zipPath);
 
@@ -91,7 +91,7 @@ internal static partial class ZipReaderAdapter {
         ArchiveTraversalOptions? zipOptions,
         ReaderZipOptions? readerZipOptions,
         CancellationToken cancellationToken = default) {
-        if (zipStream == null) throw new ArgumentNullException(nameof(zipStream));
+        ArgumentNullException.ThrowIfNull(zipStream);
         if (!zipStream.CanRead) throw new ArgumentException("ZIP stream must be readable.", nameof(zipStream));
 
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();

@@ -220,7 +220,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static WorkbookPart GetWorkbookPartOrThrow(SpreadsheetDocument document) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
 
             var workbookPart = document.WorkbookPart;
             if (workbookPart != null) {
@@ -242,8 +242,8 @@ namespace OfficeIMO.Excel {
             Stream? originalStream = null,
             bool leaveOriginalStreamOpen = true,
             bool captureSourcePackageSecurity = true) {
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(bytes);
+            ArgumentNullException.ThrowIfNull(options);
             OfficeDocumentLifecycle.Validate(options.AccessMode, options.PersistenceMode, "workbook");
             long? inputLimit = ResolveInputLimit(options);
             if (inputLimit.HasValue && bytes.LongLength > inputLimit.Value) {
@@ -460,9 +460,7 @@ namespace OfficeIMO.Excel {
         public static ExcelDocument Load(string filePath, ExcelLoadOptions? options = null) {
             if (options?.Password is string password) return AssociateEncryptedWorkbook(LoadEncrypted(filePath, password, options), filePath, password, options: options);
             if (options?.FileBacked == true) return OpenFileBacked(filePath, options);
-            if (filePath == null) {
-                throw new ArgumentNullException(nameof(filePath));
-            }
+            ArgumentNullException.ThrowIfNull(filePath);
 
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
@@ -485,8 +483,8 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Access and load options for the decrypted package.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
         internal static ExcelDocument LoadEncrypted(string filePath, string password, ExcelLoadOptions? options = null) {
-            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(filePath);
+            ArgumentNullException.ThrowIfNull(password);
             ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "document");
             resolved = resolved.Snapshot();
@@ -519,7 +517,7 @@ namespace OfficeIMO.Excel {
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
         public static ExcelDocument Load(Stream stream, ExcelLoadOptions? options = null) {
             if (options?.Password is string password) return AssociateEncryptedWorkbook(LoadEncrypted(stream, password, options), null, password, options.AccessMode == DocumentAccessMode.ReadOnly ? null : stream, options);
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
             ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
@@ -543,8 +541,8 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Access and load options for the decrypted package.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
         internal static ExcelDocument LoadEncrypted(Stream stream, string password, ExcelLoadOptions? options = null) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(stream);
+            ArgumentNullException.ThrowIfNull(password);
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
             ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "document");
@@ -597,9 +595,7 @@ namespace OfficeIMO.Excel {
             cancellationToken.ThrowIfCancellationRequested();
             if (options?.Password is string password) return AssociateEncryptedWorkbook(await LoadEncryptedAsync(filePath, password, options, cancellationToken).ConfigureAwait(false), filePath, password, options: options);
             if (options?.FileBacked == true) return await Task.Run(() => OpenFileBacked(filePath, options, cancellationToken), cancellationToken).ConfigureAwait(false);
-            if (filePath == null) {
-                throw new ArgumentNullException(nameof(filePath));
-            }
+            ArgumentNullException.ThrowIfNull(filePath);
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
@@ -619,8 +615,8 @@ namespace OfficeIMO.Excel {
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
         internal static async Task<ExcelDocument> LoadEncryptedAsync(string filePath, string password, ExcelLoadOptions? options = null, CancellationToken cancellationToken = default) {
-            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(filePath);
+            ArgumentNullException.ThrowIfNull(password);
             ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "document");
             resolved = resolved.Snapshot();
@@ -654,7 +650,7 @@ namespace OfficeIMO.Excel {
             options.XlsbImportOptions.CancellationToken = cancellationToken;
             cancellationToken.ThrowIfCancellationRequested();
             if (options?.Password is string password) return AssociateEncryptedWorkbook(await LoadEncryptedAsync(stream, password, options, cancellationToken).ConfigureAwait(false), null, password, options.AccessMode == DocumentAccessMode.ReadOnly ? null : stream, options);
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
             ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
@@ -680,8 +676,8 @@ namespace OfficeIMO.Excel {
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
         internal static async Task<ExcelDocument> LoadEncryptedAsync(Stream stream, string password, ExcelLoadOptions? options = null, CancellationToken cancellationToken = default) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(stream);
+            ArgumentNullException.ThrowIfNull(password);
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
             ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "document");

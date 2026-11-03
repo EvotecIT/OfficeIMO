@@ -21,7 +21,7 @@ public sealed class EmailStoreNativeDirectoryExportOptions {
         EmailStoreEmlxWriterOptions? emlxOptions = null) {
         if (!Enum.IsDefined(typeof(EmailStoreNativeDirectoryFormat), format))
             throw new ArgumentOutOfRangeException(nameof(format));
-        if (maxItems <= 0) throw new ArgumentOutOfRangeException(nameof(maxItems));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxItems);
         Format = format;
         FolderId = string.IsNullOrWhiteSpace(folderId) ? null : folderId;
         IncludeDescendants = includeDescendants;

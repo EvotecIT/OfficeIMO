@@ -22,7 +22,7 @@ public enum Fa3InvoiceKind {
 public sealed class Fa3TaxSummary {
     /// <summary>Creates an explicit national declaration. Authoring validates the field suffix, monetary precision and currency context.</summary>
     public Fa3TaxSummary(string suffix, decimal basis, decimal? tax = null, decimal? taxInPln = null) {
-        if (suffix == null) throw new ArgumentNullException(nameof(suffix));
+        ArgumentNullException.ThrowIfNull(suffix);
         FieldSuffix = suffix; TaxableAmount = basis; TaxAmount = tax; TaxAmountInPln = taxInPln;
     }
     /// <summary>Suffix of P_13, such as 1, 6_2 or 11.</summary>
@@ -97,7 +97,7 @@ public sealed class Fa3InvoiceReadResult {
     public byte[] GetOriginalBytes() => (byte[])_source.Clone();
     /// <summary>Converts common fields only when no observed business data or national semantics would be discarded.</summary>
     public byte[] WriteCommonInvoice(InvoiceXmlOptions target) {
-        if (target == null) throw new ArgumentNullException(nameof(target));
+        ArgumentNullException.ThrowIfNull(target);
         if (UnmappedData.Count != 0 || CommonMappingDiagnostics.Any(item => item.Severity == InvoiceDiagnosticSeverity.Error))
             throw new InvalidDataException("FA(3) conversion is blocked by unmapped data or national semantics. Inspect both diagnostic collections.");
         return InvoiceSerializer.Write(Invoice, target);

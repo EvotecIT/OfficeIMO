@@ -6,7 +6,7 @@ namespace OfficeIMO.Reader.Dbf {
         /// <summary>Adds bounded DBF path and stream ingestion using the DbaClientX codec.</summary>
         public static OfficeDocumentReaderBuilder AddDbfHandler(this OfficeDocumentReaderBuilder builder,
             ReaderDbfOptions? options = null, bool replaceExisting = true) {
-            if (builder == null) throw new ArgumentNullException(nameof(builder));
+            ArgumentNullException.ThrowIfNull(builder);
             ReaderDbfOptions registered = (options ?? new()).Copy();
             return builder.AddHandler(new ReaderHandlerRegistration {
                 Origin = ReaderHandlerOrigin.OfficeIMO, Id = HandlerId, DisplayName = "DBF Reader Adapter",

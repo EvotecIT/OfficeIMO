@@ -9,7 +9,7 @@ internal static class LatexParser {
         string source,
         LatexParseOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         options = (options ?? new LatexParseOptions()).Clone();
         cancellationToken.ThrowIfCancellationRequested();
         LatexTokenizer.Validate(source, options);

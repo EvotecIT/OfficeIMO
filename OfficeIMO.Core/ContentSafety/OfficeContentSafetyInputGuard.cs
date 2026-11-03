@@ -22,7 +22,7 @@ internal static class OfficeContentSafetyInputGuard {
         bool inspectZipPackage,
         CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         cancellationToken.ThrowIfCancellationRequested();
         options.Validate();
         string fullPath = Path.GetFullPath(filePath);
@@ -40,8 +40,8 @@ internal static class OfficeContentSafetyInputGuard {
 
     /// <summary>Validates already-buffered input before a parser or package loader is invoked.</summary>
     public static void ValidateBytes(byte[] input, OfficeContentSafetyOptions options, bool inspectZipPackage = false) {
-        if (input == null) throw new ArgumentNullException(nameof(input));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(input);
+        ArgumentNullException.ThrowIfNull(options);
         options.Validate();
         if (input.LongLength > options.MaxInputBytes) throw new OfficeInspectionResourceLimitException("content-safety", nameof(OfficeContentSafetyOptions.MaxInputBytes), options.MaxInputBytes);
         if (inspectZipPackage && LooksLikeZip(input)) ValidateZipPackage(input, options);
@@ -49,8 +49,8 @@ internal static class OfficeContentSafetyInputGuard {
 
     /// <summary>Validates an in-memory text input before HTML or other text parsers are invoked.</summary>
     public static void ValidateText(string text, OfficeContentSafetyOptions options) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentNullException.ThrowIfNull(options);
         options.Validate();
         if (text.Length > options.MaxCharacters) throw new OfficeInspectionResourceLimitException("content-safety", nameof(OfficeContentSafetyOptions.MaxCharacters), options.MaxCharacters);
         if (Encoding.UTF8.GetByteCount(text) > options.MaxInputBytes) throw new OfficeInspectionResourceLimitException("content-safety", nameof(OfficeContentSafetyOptions.MaxInputBytes), options.MaxInputBytes);
@@ -64,8 +64,8 @@ internal static class OfficeContentSafetyInputGuard {
 
     /// <summary>Decodes guarded BOM-aware text bytes, defaulting to strict UTF-8 when no BOM is present.</summary>
     internal static string DecodeText(byte[] bytes, OfficeContentSafetyOptions options) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(bytes);
+        ArgumentNullException.ThrowIfNull(options);
         ValidateBytes(bytes, options);
         try {
             using var stream = new MemoryStream(bytes, writable: false);

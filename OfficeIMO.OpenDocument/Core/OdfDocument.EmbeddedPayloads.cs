@@ -9,15 +9,15 @@ public abstract partial class OdfDocument {
     /// <summary>Returns native non-XML payload descriptors under explicit inspection limits.</summary>
     public IReadOnlyList<OfficeEmbeddedPayloadInfo> GetEmbeddedPayloads(OfficeEmbeddedPayloadInspectionOptions options,
         CancellationToken cancellationToken = default) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         using OfficeEmbeddedPayloadInspection inspection = InspectEmbeddedPayloads(options, cancellationToken);
         return inspection.Payloads;
     }
 
     /// <summary>Reads one complete inert non-XML native package payload under an explicit decoded byte ceiling.</summary>
     public Stream OpenEmbeddedPayload(string id, long maximumBytes, CancellationToken cancellationToken = default) {
-        if (id == null) throw new ArgumentNullException(nameof(id));
-        if (maximumBytes < 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        ArgumentNullException.ThrowIfNull(id);
+        ArgumentOutOfRangeException.ThrowIfNegative(maximumBytes);
         foreach (OfficeEmbeddedPayloadSource source in GetPayloadSources(cancellationToken)) {
             if (source.Info.Id != id) continue;
             using var inspection = new OfficeEmbeddedPayloadInspection(new[] { source }, new OfficeEmbeddedPayloadInspectionOptions {

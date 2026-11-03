@@ -7,7 +7,7 @@ public static class OfficeDocumentReaderBuilderChmExtensions {
     /// <summary>Adds CHM topics, tables, links and resources with archive-based source hashes and per-topic citations.</summary>
     public static OfficeDocumentReaderBuilder AddChmHandler(this OfficeDocumentReaderBuilder builder,
         ReaderChmOptions? options = null, bool replaceExisting = false) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderChmOptions registered = options?.Clone() ?? new ReaderChmOptions();
         return builder.AddHandler(new ReaderHandlerRegistration {
             Id = HandlerId, Origin = ReaderHandlerOrigin.OfficeIMO, Kind = ReaderInputKind.Chm,

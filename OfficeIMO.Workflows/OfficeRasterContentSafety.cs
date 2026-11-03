@@ -18,8 +18,8 @@ public static partial class OfficeRasterContentSafety {
         IOcrEngine engine,
         OfficeRasterContentSafetyOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (imageBytes == null) throw new ArgumentNullException(nameof(imageBytes));
-        if (engine == null) throw new ArgumentNullException(nameof(engine));
+        ArgumentNullException.ThrowIfNull(imageBytes);
+        ArgumentNullException.ThrowIfNull(engine);
         cancellationToken.ThrowIfCancellationRequested();
         OfficeRasterContentSafetyOptions.Snapshot snapshot =
             (options ?? new OfficeRasterContentSafetyOptions()).Capture();
@@ -46,7 +46,7 @@ public static partial class OfficeRasterContentSafety {
         OfficeRasterContentSafetyOptions? options = null,
         CancellationToken cancellationToken = default) {
         if ((filePath == null || string.IsNullOrWhiteSpace(filePath))) throw new ArgumentException("An image path is required.", nameof(filePath));
-        if (engine == null) throw new ArgumentNullException(nameof(engine));
+        ArgumentNullException.ThrowIfNull(engine);
         cancellationToken.ThrowIfCancellationRequested();
         OfficeRasterContentSafetyOptions effective = options ?? new OfficeRasterContentSafetyOptions();
         OfficeRasterContentSafetyOptions.Snapshot snapshot = effective.Capture();

@@ -4,13 +4,9 @@ namespace OfficeIMO.Markup.Excel;
 
 internal sealed partial class OfficeMarkupExcelExporter {
     public ExcelDocument Convert(OfficeMarkupDocument document, MarkupExcelExportOptions options) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         if (document.Profile != OfficeMarkupProfile.Workbook) {
             throw new InvalidOperationException("Excel export requires the Workbook OfficeIMO markup profile.");

@@ -6,7 +6,7 @@ public sealed class EmailStoreProjection {
 
     /// <summary>Creates a projection from one or more canonical fields.</summary>
     public EmailStoreProjection(params EmailStoreField[] fields) {
-        if (fields == null) throw new ArgumentNullException(nameof(fields));
+        ArgumentNullException.ThrowIfNull(fields);
         if (fields.Length == 0) throw new ArgumentException("A projection must contain at least one field.", nameof(fields));
         if (fields.Any(field => field == null)) throw new ArgumentException("A projection cannot contain null fields.", nameof(fields));
         string? duplicate = fields.GroupBy(field => field.Key, StringComparer.Ordinal)

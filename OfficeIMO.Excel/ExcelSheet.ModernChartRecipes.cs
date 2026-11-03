@@ -324,9 +324,7 @@ namespace OfficeIMO.Excel {
             IEnumerable<double> values,
             string parameterName,
             bool allowNegative) {
-            if (categories == null) {
-                throw new ArgumentNullException(nameof(categories));
-            }
+            ArgumentNullException.ThrowIfNull(categories);
 
             List<string> materializedCategories = categories.Select(category => category ?? string.Empty).ToList();
             List<double> materializedValues = MaterializeFiniteChartValues(values, parameterName, allowNegative);

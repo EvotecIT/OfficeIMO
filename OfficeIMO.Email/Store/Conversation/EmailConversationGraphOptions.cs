@@ -17,12 +17,10 @@ public sealed class EmailConversationGraphOptions {
         long maxDecodedPropertyBytesPerItem = 4L * 1024L * 1024L) {
         if (folderId.HasValue && folderId.Value.IsEmpty) throw new ArgumentException(
             "A folder scope cannot be empty.", nameof(folderId));
-        if (maxItems <= 0) throw new ArgumentOutOfRangeException(nameof(maxItems));
-        if (maxEdges <= 0) throw new ArgumentOutOfRangeException(nameof(maxEdges));
-        if (maxReferencesPerItem <= 0) throw new ArgumentOutOfRangeException(nameof(maxReferencesPerItem));
-        if (maxDecodedPropertyBytesPerItem <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(maxDecodedPropertyBytesPerItem));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxItems);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxEdges);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxReferencesPerItem);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedPropertyBytesPerItem);
         FolderId = folderId;
         IncludeDescendants = includeDescendants;
         IncludeAssociatedItems = includeAssociatedItems;

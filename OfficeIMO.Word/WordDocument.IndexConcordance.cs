@@ -10,9 +10,7 @@ namespace OfficeIMO.Word {
         /// <param name="matchWholeWord">Whether matches require non-letter/digit boundaries around the search text.</param>
         /// <returns>A report describing the marks inserted and entries skipped.</returns>
         public WordIndexConcordanceReport MarkIndexEntries(IEnumerable<WordIndexConcordanceEntry> entries, bool matchCase = false, bool matchWholeWord = true) {
-            if (entries == null) {
-                throw new ArgumentNullException(nameof(entries));
-            }
+            ArgumentNullException.ThrowIfNull(entries);
 
             Body body = _wordprocessingDocument.MainDocumentPart?.Document?.Body
                 ?? throw new InvalidOperationException("Document body is missing.");
@@ -63,9 +61,7 @@ namespace OfficeIMO.Word {
         /// <param name="matchWholeWord">Whether matches require non-letter/digit boundaries around the search text.</param>
         /// <returns>A report describing the marks inserted and entries skipped.</returns>
         public WordIndexConcordanceReport MarkIndexEntriesFromConcordance(WordDocument concordanceDocument, bool matchCase = false, bool matchWholeWord = true) {
-            if (concordanceDocument == null) {
-                throw new ArgumentNullException(nameof(concordanceDocument));
-            }
+            ArgumentNullException.ThrowIfNull(concordanceDocument);
 
             IReadOnlyList<WordIndexConcordanceEntry> entries = ReadIndexConcordanceEntries(concordanceDocument, out int skippedEntryCount);
             WordIndexConcordanceReport report = MarkIndexEntries(entries, matchCase, matchWholeWord);

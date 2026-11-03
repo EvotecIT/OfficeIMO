@@ -6,7 +6,7 @@ public sealed partial class EpubPublication {
     /// <summary>Replaces TOC entries and optionally page-list/landmark entries while retaining unrelated navigation XML.</summary>
     public void SetNavigation(IEnumerable<EpubNavigationEntry> tableOfContents,
         IEnumerable<EpubNavigationEntry>? pageList = null, IEnumerable<EpubNavigationEntry>? landmarks = null) {
-        if (tableOfContents == null) throw new ArgumentNullException(nameof(tableOfContents));
+        ArgumentNullException.ThrowIfNull(tableOfContents);
         EpubNavigationEntry[] toc = tableOfContents.ToArray();
         if (toc.Length == 0) throw new InvalidDataException("A nonempty table of contents is required.");
         EpubNavigationEntry[]? pages = pageList?.ToArray();

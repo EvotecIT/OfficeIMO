@@ -20,12 +20,12 @@ public sealed class EmailStorePstCompactionOptions {
         string? displayName = null,
         EmailSemanticComparisonOptions? verificationOptions = null,
         int maxVerificationIssues = 1000) {
-        if (maxItems <= 0) throw new ArgumentOutOfRangeException(nameof(maxItems));
-        if (maxNestedMessageDepth < 0) throw new ArgumentOutOfRangeException(nameof(maxNestedMessageDepth));
-        if (unknownItemEstimateBytes <= 0) throw new ArgumentOutOfRangeException(nameof(unknownItemEstimateBytes));
-        if (perItemOverheadBytes < 0) throw new ArgumentOutOfRangeException(nameof(perItemOverheadBytes));
-        if (fixedPstOverheadBytes < 0) throw new ArgumentOutOfRangeException(nameof(fixedPstOverheadBytes));
-        if (maxVerificationIssues <= 0) throw new ArgumentOutOfRangeException(nameof(maxVerificationIssues));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxItems);
+        ArgumentOutOfRangeException.ThrowIfNegative(maxNestedMessageDepth);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(unknownItemEstimateBytes);
+        ArgumentOutOfRangeException.ThrowIfNegative(perItemOverheadBytes);
+        ArgumentOutOfRangeException.ThrowIfNegative(fixedPstOverheadBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxVerificationIssues);
         OverwriteExisting = overwriteExisting;
         FailOnLoss = failOnLoss;
         ContinueOnItemError = continueOnItemError;

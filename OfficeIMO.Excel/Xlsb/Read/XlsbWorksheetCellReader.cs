@@ -131,7 +131,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         }
 
         private static byte[] CopyTail(byte[] data, int offset) {
-            if (offset < 0 || offset > data.Length) throw new ArgumentOutOfRangeException(nameof(offset));
+            ArgumentOutOfRangeException.ThrowIfNegative(offset);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(offset, data.Length);
             byte[] result = new byte[data.Length - offset];
             Buffer.BlockCopy(data, offset, result, 0, result.Length);
             return result;

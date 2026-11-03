@@ -24,9 +24,9 @@ internal static class OfficeConversionInputReader {
         string sourceName,
         long maximumInputBytes,
         CancellationToken cancellationToken) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         if (!source.CanRead) throw new ArgumentException("Stream must be readable.", nameof(source));
-        if (maximumInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumInputBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumInputBytes);
 
         cancellationToken.ThrowIfCancellationRequested();
         if (source.CanSeek && source.Length - source.Position > maximumInputBytes) {

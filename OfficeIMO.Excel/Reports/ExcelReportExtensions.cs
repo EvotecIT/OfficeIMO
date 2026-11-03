@@ -116,7 +116,7 @@ namespace OfficeIMO.Excel.Reports {
         /// <returns>The same chart for further editing.</returns>
         public static ExcelChart ApplyDashboardPreset(this ExcelChart chart, ExcelDashboardChartPreset preset = ExcelDashboardChartPreset.Comparison,
             int? styleId = null, int? colorStyleId = null) {
-            if (chart == null) throw new ArgumentNullException(nameof(chart));
+            ArgumentNullException.ThrowIfNull(chart);
             if (!Enum.IsDefined(typeof(ExcelDashboardChartPreset), preset))
                 throw new ArgumentOutOfRangeException(nameof(preset));
             ApplyDashboardAppearance(chart, preset, styleId, colorStyleId);
@@ -129,7 +129,7 @@ namespace OfficeIMO.Excel.Reports {
         /// <param name="options">Dashboard layout and styling options.</param>
         /// <returns>Dashboard table range and generated chart metadata.</returns>
         public static ExcelDashboardResult AddDashboard(this ExcelSheet sheet, DataTable data, ExcelDashboardOptions? options = null) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             return sheet.AddDashboardCore(data, options);
         }
 
@@ -138,7 +138,7 @@ namespace OfficeIMO.Excel.Reports {
         /// <param name="options">Subtotal generation options.</param>
         /// <returns>Information about the generated summary block.</returns>
         public static ExcelSubtotalResult AddSubtotalSummary(this ExcelSheet sheet, ExcelSubtotalOptions options) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             return sheet.AddSubtotalSummaryCore(options);
         }
 
@@ -149,8 +149,8 @@ namespace OfficeIMO.Excel.Reports {
         /// <param name="options">Dashboard chart options.</param>
         /// <returns>The created chart.</returns>
         public static ExcelChart AddDashboardChart(this ExcelSheet sheet, ExcelDashboardChartOptions options) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(sheet);
+            ArgumentNullException.ThrowIfNull(options);
             if (!Enum.IsDefined(typeof(ExcelDashboardChartPreset), options.Preset)) throw new ArgumentOutOfRangeException(nameof(options.Preset));
             if (options.Row <= 0 || options.Row > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(options.Row), "Chart row must be between 1 and the Excel row limit.");
             if (options.Column <= 0 || options.Column > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(options.Column), "Chart column must be between 1 and the Excel column limit.");

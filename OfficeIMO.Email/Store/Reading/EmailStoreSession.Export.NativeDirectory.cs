@@ -7,8 +7,8 @@ public sealed partial class EmailStoreSession {
     /// <summary>Exports selected items to a Maildir or EMLX directory tree without modifying the source.</summary>
     public EmailStoreExportReport ExportToNativeDirectory(string destinationDirectory,
         EmailStoreNativeDirectoryExportOptions options, CancellationToken cancellationToken = default) {
-        if (destinationDirectory == null) throw new ArgumentNullException(nameof(destinationDirectory));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(destinationDirectory);
+        ArgumentNullException.ThrowIfNull(options);
         ThrowIfDisposed();
         string root = Path.GetFullPath(destinationDirectory);
         ThrowIfStoreSourceDestination(root, "Native directory export");
@@ -143,8 +143,8 @@ public sealed partial class EmailStoreSession {
     }
 
     internal static bool ProbeMaildirInfoSuffixSupport(string directory, Action<string> createProbe) {
-        if (directory == null) throw new ArgumentNullException(nameof(directory));
-        if (createProbe == null) throw new ArgumentNullException(nameof(createProbe));
+        ArgumentNullException.ThrowIfNull(directory);
+        ArgumentNullException.ThrowIfNull(createProbe);
         string probePath = Path.Combine(directory,
             ".officeimo-maildir-suffix-probe-" + Guid.NewGuid().ToString("N") + ":2,");
         try {

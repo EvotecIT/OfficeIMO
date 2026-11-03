@@ -9,7 +9,7 @@ namespace OfficeIMO.Visio.Diagrams {
         /// Adds a semantic org chart page and returns the document for chaining.
         /// </summary>
         public static VisioDocument OrgChartDiagram(this VisioDocument document, string pageName, Action<VisioOrgChartDiagramBuilder> configure) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             VisioOrgChartDiagramBuilder builder = new VisioOrgChartDiagramBuilder(document, pageName);
             configure?.Invoke(builder);
             builder.Build();

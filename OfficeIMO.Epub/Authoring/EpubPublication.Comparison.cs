@@ -8,7 +8,7 @@ public sealed partial class EpubPublication {
     /// ID; unmanifested payloads match by path. XML comparison is structural, not rendered equivalence.
     /// </summary>
     public EpubEditionComparison CompareTo(EpubPublication revised, CancellationToken cancellationToken = default) {
-        if (revised == null) throw new ArgumentNullException(nameof(revised));
+        ArgumentNullException.ThrowIfNull(revised);
         cancellationToken.ThrowIfCancellationRequested();
         var changes = new List<EpubEditionResourceChange>();
         var textChanges = new List<EpubEditionTextChange>();

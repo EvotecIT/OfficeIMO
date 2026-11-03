@@ -81,13 +81,13 @@ internal sealed class PstWriterFile : IDisposable {
     internal void PreserveOnDispose() => _blocks.PreserveOnDispose();
 
     internal ulong WriteDataTree(byte[] bytes) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         if (bytes.Length <= MaximumBlockPayload) return WriteBlock(bytes, isInternal: false).Bid;
         using (var input = new MemoryStream(bytes, writable: false)) return WriteDataTree(input, bytes.LongLength);
     }
 
     internal ulong WriteDataTree(Stream input, long length) {
-        if (input == null) throw new ArgumentNullException(nameof(input));
+        ArgumentNullException.ThrowIfNull(input);
         if (!input.CanRead) throw new ArgumentException("The PST data source must be readable.", nameof(input));
         if (length < 0 || length > uint.MaxValue) {
             throw new NotSupportedException("One PST data tree cannot exceed 4 GiB.");
@@ -117,7 +117,7 @@ internal sealed class PstWriterFile : IDisposable {
     }
 
     internal ulong WriteDataTree(Stream input, out long length) {
-        if (input == null) throw new ArgumentNullException(nameof(input));
+        ArgumentNullException.ThrowIfNull(input);
         if (!input.CanRead) throw new ArgumentException("The PST data source must be readable.", nameof(input));
         PstWriterDataTreeJournal leaves = NewDataTreeJournal();
         try {
@@ -149,7 +149,7 @@ internal sealed class PstWriterFile : IDisposable {
     }
 
     internal ulong WriteDataTreeBlocks(IReadOnlyList<byte[]> blocks) {
-        if (blocks == null) throw new ArgumentNullException(nameof(blocks));
+        ArgumentNullException.ThrowIfNull(blocks);
         if (blocks.Count == 0) return WriteBlock(Array.Empty<byte>(), isInternal: false).Bid;
         if (blocks.Count == 1) {
             byte[] payload = blocks[0] ??

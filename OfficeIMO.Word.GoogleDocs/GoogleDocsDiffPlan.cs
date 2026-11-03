@@ -64,7 +64,7 @@ namespace OfficeIMO.Word.GoogleDocs {
         /// <summary>Captures source content hashes and optional observed remote revisions.</summary>
         /// <remarks>Persist the checkpoint only when it accurately represents a synchronized baseline.</remarks>
         public static GoogleDocsSyncCheckpoint CreateCheckpoint(WordDocument document, string? revisionId = null, long? driveVersion = null) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             var checkpoint = new GoogleDocsSyncCheckpoint { HashFormatVersion = CurrentHashFormatVersion, RevisionId = revisionId, DriveVersion = driveVersion };
             foreach (KeyValuePair<string, string> pair in BuildHashes(document)) checkpoint.ContentHashes[pair.Key] = pair.Value;
             return checkpoint;
@@ -78,7 +78,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             GoogleWorkspaceSession session,
             GoogleDocsSyncCheckpoint? checkpoint = null,
             CancellationToken cancellationToken = default) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(source);
             ValidateCheckpoint(checkpoint);
             GoogleDocsImportResult imported = await new GoogleDocsImporter().ImportAsync(
                 documentId,

@@ -60,7 +60,8 @@ namespace OfficeIMO.PowerPoint {
             OpenXmlElement? parent = Element.Parent;
             if (parent == null) throw new InvalidOperationException("The shape must be attached before changing reading order.");
             List<OpenXmlElement> shapes = parent.ChildElements.Where(IsDrawingElement).ToList();
-            if (order < 0 || order >= shapes.Count) throw new ArgumentOutOfRangeException(nameof(order));
+            ArgumentOutOfRangeException.ThrowIfNegative(order);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(order, shapes.Count);
             if (shapes[order] == Element) return;
             Element.Remove();
             shapes.Remove(Element);

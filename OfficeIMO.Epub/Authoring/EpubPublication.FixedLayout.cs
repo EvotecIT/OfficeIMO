@@ -15,7 +15,7 @@ public sealed partial class EpubPublication {
     /// artwork coordinates; Regions must be empty. This does not paginate reflowable content or certify accessible reading order.
     /// </summary>
     public void SetFixedLayoutPage(string manifestId, EpubFixedLayoutPage page, CancellationToken cancellationToken = default) {
-        if (page == null) throw new ArgumentNullException(nameof(page));
+        ArgumentNullException.ThrowIfNull(page);
         cancellationToken.ThrowIfCancellationRequested();
         if (PackageVersion != "3.0") throw new NotSupportedException("Fixed-layout page authoring requires EPUB 3.");
         if (page.Width < 1 || page.Height < 1) throw new ArgumentOutOfRangeException(nameof(page), "Canvas dimensions must be positive CSS pixels.");

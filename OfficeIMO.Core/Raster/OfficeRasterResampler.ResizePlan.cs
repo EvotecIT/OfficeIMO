@@ -6,7 +6,7 @@ namespace OfficeIMO.Drawing {
         /// <summary>Captures fit, pixel rounding, crop and peak storage before allocating raster pixels.</summary>
         public static OfficeRasterResizePlan PlanResize(int sourceWidth, int sourceHeight,
             OfficeRasterResizeOptions options, CancellationToken cancellationToken = default) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             cancellationToken.ThrowIfCancellationRequested();
             OfficeRasterGuards.EnsureOutputPixels(sourceWidth, sourceHeight, "Source dimensions exceed the managed image limit.");
             int? requestedWidth = options.Width, requestedHeight = options.Height;
@@ -46,15 +46,15 @@ namespace OfficeIMO.Drawing {
         /// <summary>Returns independently resized pixels using requested fit bounds and sampling.</summary>
         public static OfficeRasterImage Resize(OfficeRasterImage source, OfficeRasterResizeOptions options,
             CancellationToken cancellationToken = default) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(source);
             return Resize(source, PlanResize(source.Width, source.Height, options, cancellationToken), cancellationToken);
         }
 
         /// <summary>Executes an immutable resize plan against its required source dimensions, without modifying the source.</summary>
         public static OfficeRasterImage Resize(OfficeRasterImage source, OfficeRasterResizePlan plan,
             CancellationToken cancellationToken = default) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (plan == null) throw new ArgumentNullException(nameof(plan));
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentNullException.ThrowIfNull(plan);
             cancellationToken.ThrowIfCancellationRequested();
             if (source.Width != plan.SourceWidth || source.Height != plan.SourceHeight) throw new ArgumentException("Source dimensions do not match the resize plan.", nameof(source));
             OfficeRasterImage resized = Resize(source, plan.ResizeWidth, plan.ResizeHeight, plan.ResamplingMode, plan.ColorSpace, cancellationToken);

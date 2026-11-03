@@ -390,9 +390,7 @@ namespace OfficeIMO.Visio {
         /// <param name="subAddress">Optional internal sub-address.</param>
         /// <returns>The created hyperlink row.</returns>
         public VisioHyperlink AddHyperlink(Uri address, string? description = null, string? subAddress = null) {
-            if (address == null) {
-                throw new ArgumentNullException(nameof(address));
-            }
+            ArgumentNullException.ThrowIfNull(address);
 
             return AddHyperlink(address.ToString(), description, subAddress);
         }
@@ -543,9 +541,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="configure">Protection configuration delegate.</param>
         public VisioShape Protect(Action<VisioShapeProtection> configure) {
-            if (configure == null) {
-                throw new ArgumentNullException(nameof(configure));
-            }
+            ArgumentNullException.ThrowIfNull(configure);
 
             configure(Protection);
             return this;
@@ -671,9 +667,7 @@ namespace OfficeIMO.Visio {
         }
 
         private void PrepareChildForParent(VisioShape child, VisioShape? ignoredChild = null) {
-            if (child == null) {
-                throw new ArgumentNullException(nameof(child));
-            }
+            ArgumentNullException.ThrowIfNull(child);
 
             if (ReferenceEquals(child, this)) {
                 throw new InvalidOperationException("A shape cannot be added as a child of itself.");

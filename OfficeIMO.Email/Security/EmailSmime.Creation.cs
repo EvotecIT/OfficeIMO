@@ -15,7 +15,7 @@ public static partial class EmailSmime {
         IEnumerable<X509Certificate2>? certificateChain = null,
         EmailWriterOptions? writerOptions = null) {
         ValidateCreationArguments(document, securityProvider);
-        if (signingCertificate == null) throw new ArgumentNullException(nameof(signingCertificate));
+        ArgumentNullException.ThrowIfNull(signingCertificate);
         options ??= new CmsSigningOptions();
         EmailWriterOptions writer = writerOptions ?? EmailWriterOptions.Default;
         var diagnostics = new List<EmailDiagnostic>();
@@ -32,7 +32,7 @@ public static partial class EmailSmime {
         CmsEnvelopeOptions? options = null,
         EmailWriterOptions? writerOptions = null) {
         ValidateCreationArguments(document, securityProvider);
-        if (recipients == null) throw new ArgumentNullException(nameof(recipients));
+        ArgumentNullException.ThrowIfNull(recipients);
         options ??= new CmsEnvelopeOptions();
         X509Certificate2[] recipientArray = MaterializeRecipients(recipients, options.MaxRecipients);
         EmailWriterOptions writer = writerOptions ?? EmailWriterOptions.Default;
@@ -58,8 +58,8 @@ public static partial class EmailSmime {
         IEnumerable<X509Certificate2>? certificateChain = null,
         EmailWriterOptions? writerOptions = null) {
         ValidateCreationArguments(document, securityProvider);
-        if (signingCertificate == null) throw new ArgumentNullException(nameof(signingCertificate));
-        if (recipients == null) throw new ArgumentNullException(nameof(recipients));
+        ArgumentNullException.ThrowIfNull(signingCertificate);
+        ArgumentNullException.ThrowIfNull(recipients);
         signingOptions ??= new CmsSigningOptions();
         envelopeOptions ??= new CmsEnvelopeOptions();
         X509Certificate2[] recipientArray = MaterializeRecipients(recipients, envelopeOptions.MaxRecipients);
@@ -208,7 +208,7 @@ public static partial class EmailSmime {
     }
 
     private static void ValidateCreationArguments(EmailDocument document, IOfficeSecurityProvider securityProvider) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(securityProvider);
     }
 }

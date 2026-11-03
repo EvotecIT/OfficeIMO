@@ -91,9 +91,8 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="index">Index of the slide to remove.</param>
         public void RemoveSlide(int index) {
-            if (index < 0 || index >= _slides.Count) {
-                throw new ArgumentOutOfRangeException(nameof(index));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, _slides.Count);
 
             SlideIdList? slideIdList = PresentationRoot.SlideIdList;
             if (slideIdList == null) {
@@ -252,9 +251,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private void ValidateSlideIndex(int index) {
-            if (index < 0 || index >= _slides.Count) {
-                throw new ArgumentOutOfRangeException(nameof(index));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, _slides.Count);
         }
 
         /// <summary>
@@ -263,13 +261,11 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="fromIndex">Current index of the slide.</param>
         /// <param name="toIndex">Destination index of the slide.</param>
         public void MoveSlide(int fromIndex, int toIndex) {
-            if (fromIndex < 0 || fromIndex >= _slides.Count) {
-                throw new ArgumentOutOfRangeException(nameof(fromIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(fromIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(fromIndex, _slides.Count);
 
-            if (toIndex < 0 || toIndex >= _slides.Count) {
-                throw new ArgumentOutOfRangeException(nameof(toIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(toIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(toIndex, _slides.Count);
 
             if (fromIndex == toIndex) {
                 return;
@@ -305,9 +301,8 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="insertAt">Index where the duplicate should be inserted. Defaults to index + 1.</param>
         public PowerPointSlide DuplicateSlide(int index, int? insertAt = null) {
             ThrowIfDisposed();
-            if (index < 0 || index >= _slides.Count) {
-                throw new ArgumentOutOfRangeException(nameof(index));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, _slides.Count);
 
             int targetIndex = insertAt ?? index + 1;
             if (targetIndex < 0 || targetIndex > _slides.Count) {
@@ -390,11 +385,9 @@ namespace OfficeIMO.PowerPoint {
             PowerPointDocument sourcePresentation, IEnumerable<int> sourceIndices,
             int? insertAt, bool includeLinkedSlides) {
             ThrowIfDisposed();
-            if (sourcePresentation == null) {
-                throw new ArgumentNullException(nameof(sourcePresentation));
-            }
+            ArgumentNullException.ThrowIfNull(sourcePresentation);
 
-            if (sourceIndices == null) throw new ArgumentNullException(nameof(sourceIndices));
+            ArgumentNullException.ThrowIfNull(sourceIndices);
             int[] indices = sourceIndices.Distinct().ToArray();
             IReadOnlyList<PowerPointSlide> sourceSlides = sourcePresentation.Slides;
             if (indices.Any(index => index < 0 || index >= sourceSlides.Count))

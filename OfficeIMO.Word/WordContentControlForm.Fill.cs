@@ -14,7 +14,7 @@ namespace OfficeIMO.Word {
         /// </remarks>
         /// <exception cref="InvalidOperationException">A supplied value targets locked content or would remove a locked nested control.</exception>
         public int FillContentControlValues(IReadOnlyDictionary<string, object?> values, WordContentControlFormKey keyMode = WordContentControlFormKey.TagThenAlias) {
-            if (values == null) throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(values);
 
             List<WordContentControlFormIssue> lockIssues = GetFormControlLockIssues(values, keyMode).ToList();
             if (lockIssues.Count > 0) {

@@ -9,7 +9,7 @@ internal sealed class OfficeImageExportEncodingBudget {
     private long _usedBytes;
 
     internal OfficeImageExportEncodingBudget(long maximumBytes) {
-        if (maximumBytes < 1L) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumBytes, 1L);
         MaximumBytes = maximumBytes;
     }
 
@@ -22,7 +22,7 @@ internal sealed class OfficeImageExportEncodingBudget {
     internal byte[] EncodeWithinRemainingBudget(
         Func<long, byte[]> encoder,
         CancellationToken cancellationToken) {
-        if (encoder == null) throw new ArgumentNullException(nameof(encoder));
+        ArgumentNullException.ThrowIfNull(encoder);
         cancellationToken.ThrowIfCancellationRequested();
         _serializedEncodingGate.Wait(cancellationToken);
         try {
@@ -56,7 +56,7 @@ internal sealed class OfficeImageExportEncodingBudget {
     }
 
     internal void Reserve(int byteCount) {
-        if (byteCount < 0) throw new ArgumentOutOfRangeException(nameof(byteCount));
+        ArgumentOutOfRangeException.ThrowIfNegative(byteCount);
         if (byteCount == 0) return;
 
         while (true) {

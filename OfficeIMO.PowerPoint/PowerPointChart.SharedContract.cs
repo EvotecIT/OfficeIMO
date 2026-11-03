@@ -16,7 +16,7 @@ namespace OfficeIMO.PowerPoint {
     public partial class PowerPointChart {
         /// <summary>Updates the native chart from the shared OfficeIMO chart contract.</summary>
         public PowerPointChart UpdateData(OfficeChartData data) {
-            if (data == null) throw new ArgumentNullException(nameof(data));
+            ArgumentNullException.ThrowIfNull(data);
             PowerPointImportedChartReport imported = InspectImportedContent();
             if (AdvancedChartProjections.ContainsKey(imported.Family)) {
                 return UpdateImportedData(data);
@@ -51,7 +51,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Creates a deterministic plain-text summary suitable for accessibility review or sidecar output.</summary>
         public static string CreateDataSummary(OfficeChartType chartKind, OfficeChartData data) {
-            if (data == null) throw new ArgumentNullException(nameof(data));
+            ArgumentNullException.ThrowIfNull(data);
             var builder = new StringBuilder();
             builder.Append("Chart kind: ").Append(chartKind).AppendLine();
             if ((chartKind == OfficeChartType.Scatter || chartKind == OfficeChartType.Bubble) &&

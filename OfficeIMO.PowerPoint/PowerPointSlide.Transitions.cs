@@ -93,9 +93,7 @@ namespace OfficeIMO.PowerPoint {
 
         internal static PowerPointSlideTransition GetTransitionValue(
             Transition transition) {
-            if (transition == null) {
-                throw new ArgumentNullException(nameof(transition));
-            }
+            ArgumentNullException.ThrowIfNull(transition);
 
             PowerPointSlideTransition? classicTransition = GetClassicTransition(
                 transition);

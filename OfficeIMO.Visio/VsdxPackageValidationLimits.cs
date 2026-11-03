@@ -14,9 +14,9 @@ namespace OfficeIMO.Visio {
         public double MaxCompressionRatio { get; set; } = 200d;
 
         internal Snapshot CreateSnapshot() {
-            if (MaxEntries <= 0) throw new ArgumentOutOfRangeException(nameof(MaxEntries));
-            if (MaxEntryBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxEntryBytes));
-            if (MaxTotalBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTotalBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxEntries);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxEntryBytes);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxTotalBytes);
             if (MaxCompressionRatio <= 0 || double.IsNaN(MaxCompressionRatio) || double.IsInfinity(MaxCompressionRatio)) {
                 throw new ArgumentOutOfRangeException(nameof(MaxCompressionRatio));
             }

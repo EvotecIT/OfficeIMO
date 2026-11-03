@@ -10,7 +10,7 @@ public static partial class HtmlPdfConverterExtensions {
     /// <summary>Converts a parsed HTML document to PDF plus an immutable diagnostics snapshot.</summary>
     internal static PdfCore.PdfDocumentConversionResult ConvertToPdfWithEvidence(this HtmlConversionDocument document, HtmlPdfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         HtmlPdfRenderResult rendered = HtmlPdfRenderedConverter.Convert(
             document,
             Normalize(options), cancellationToken);
@@ -22,7 +22,7 @@ public static partial class HtmlPdfConverterExtensions {
         this HtmlConversionDocument document,
         HtmlPdfExportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlPdfRenderResult rendered = await HtmlPdfRenderedConverter.ConvertAsync(
             document,

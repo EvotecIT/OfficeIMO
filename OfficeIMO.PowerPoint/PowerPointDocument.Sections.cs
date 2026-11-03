@@ -68,9 +68,8 @@ namespace OfficeIMO.PowerPoint {
             if (slideIds.Count == 0) {
                 throw new InvalidOperationException("Presentation has no slides.");
             }
-            if (startSlideIndex < 0 || startSlideIndex >= slideIds.Count) {
-                throw new ArgumentOutOfRangeException(nameof(startSlideIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(startSlideIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(startSlideIndex, slideIds.Count);
 
             P14.SectionList sectionList = EnsureSectionList(slideIds);
             uint slideIdValue = slideIds[startSlideIndex].Id?.Value ?? throw new InvalidOperationException("Slide ID is missing.");
@@ -111,9 +110,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public bool RenameSection(string name, string newName, bool ignoreCase = true) {
             ThrowIfDisposed();
-            if (name == null) {
-                throw new ArgumentNullException(nameof(name));
-            }
+            ArgumentNullException.ThrowIfNull(name);
             if (string.IsNullOrWhiteSpace(newName)) {
                 throw new ArgumentException("Section name cannot be null or empty.", nameof(newName));
             }

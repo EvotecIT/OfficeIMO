@@ -11,7 +11,7 @@ public sealed partial class CsvDocument
     /// <remarks>The text is buffered during opening; use the Stream overload for byte-based input.</remarks>
     public static CsvDataReader OpenReader(TextReader reader, CsvReaderOptions? options = null)
     {
-        if (reader is null) throw new ArgumentNullException(nameof(reader));
+        ArgumentNullException.ThrowIfNull(reader);
         options = options?.Clone() ?? new CsvReaderOptions();
         if (options.MaxInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options));
         options.CancellationToken.ThrowIfCancellationRequested();
@@ -43,10 +43,7 @@ public sealed partial class CsvDocument
         string text,
         CsvReaderOptions? options = null)
     {
-        if (text == null)
-        {
-            throw new ArgumentNullException(nameof(text));
-        }
+        ArgumentNullException.ThrowIfNull(text);
 
         options = options?.Clone() ?? new CsvReaderOptions();
         if (options.MaxInputBytes <= 0)

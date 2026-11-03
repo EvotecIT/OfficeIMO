@@ -20,7 +20,7 @@ public class ExcelDataTableRowShapeBenchmarks {
 
     [GlobalSetup]
     public void Setup() {
-        if (RowCount < 2) throw new ArgumentOutOfRangeException(nameof(RowCount));
+        ArgumentOutOfRangeException.ThrowIfLessThan(RowCount, 2);
         string lastColumn = ColumnCount switch {
             8 => "H", 65 => "BM", _ => throw new ArgumentOutOfRangeException(nameof(ColumnCount))
         };

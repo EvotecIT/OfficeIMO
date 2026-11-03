@@ -24,9 +24,9 @@ The dependency-bounded tool does not configure OCR or hosted providers.
         TextWriter standardError,
         CancellationToken cancellationToken = default,
         bool overwriteSingleOutput = true) {
-        if (standardInput == null) throw new ArgumentNullException(nameof(standardInput));
-        if (standardOutput == null) throw new ArgumentNullException(nameof(standardOutput));
-        if (standardError == null) throw new ArgumentNullException(nameof(standardError));
+        ArgumentNullException.ThrowIfNull(standardInput);
+        ArgumentNullException.ThrowIfNull(standardOutput);
+        ArgumentNullException.ThrowIfNull(standardError);
 
         ReaderToolArguments parsed;
         try {

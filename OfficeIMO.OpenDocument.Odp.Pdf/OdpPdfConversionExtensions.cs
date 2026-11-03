@@ -11,7 +11,7 @@ public static partial class OdpPdfConversionExtensions {
     /// <summary>Converts an ODP presentation to PDF and preserves diagnostics from both conversion stages.</summary>
     private static PdfCore.PdfDocumentConversionResult ConvertToPdfCore(this OdpPresentation source, PowerPointOpenDocumentConversionOptions? conversionOptions = null, PowerPointPdf.PowerPointPdfExportOptions? pdfOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         OdfConversionResult<OfficeIMO.PowerPoint.PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence(conversionOptions);
         using (conversion.Value) {
             PdfCore.PdfDocumentConversionResult result = PowerPointPdf.PowerPointPdfConverterExtensions.ConvertToPdfWithEvidence(conversion.Value, pdfOptions, cancellationToken);
@@ -22,7 +22,7 @@ public static partial class OdpPdfConversionExtensions {
     /// <summary>Reconstructs an ODP presentation and preserves diagnostics from both conversion stages.</summary>
     private static PdfOdpConversionResult ConvertOdpCore(this PdfCore.PdfDocument source, PdfPowerPoint.PdfPowerPointExportOptions? pdfOptions = null, PowerPointOpenDocumentConversionOptions? openDocumentOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         PdfPowerPoint.PdfPowerPointConversionResult pdf =
             PdfPowerPoint.PdfPowerPointConverterExtensions.ConvertToPowerPointWithEvidence(source, pdfOptions, cancellationToken);
         using (pdf.Value) {
@@ -38,7 +38,7 @@ public static partial class OdpPdfConversionExtensions {
     /// <remarks>A logical PDF model resolves Auto to editable tables and also supports explicit editable-content reconstruction. Visual and hybrid projections require an opened PDF.</remarks>
     private static PdfOdpConversionResult ConvertOdpCore(this PdfCore.PdfDocumentReadResult source, PdfPowerPoint.PdfPowerPointExportOptions? pdfOptions = null, PowerPointOpenDocumentConversionOptions? openDocumentOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         PdfPowerPoint.PdfPowerPointConversionResult pdf =
             PdfPowerPoint.PdfPowerPointConverterExtensions.ConvertToPowerPointWithEvidence(source, pdfOptions, cancellationToken);
         using (pdf.Value) {

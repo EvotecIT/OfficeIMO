@@ -58,7 +58,7 @@ public sealed class HtmlPortableBrowserFontProfile {
     /// </summary>
     public static HtmlPortableBrowserFontProfile Create(string id, Func<string, byte[]> readAsset) {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A portable font-package id is required.", nameof(id));
-        if (readAsset == null) throw new ArgumentNullException(nameof(readAsset));
+        ArgumentNullException.ThrowIfNull(readAsset);
         byte[] regular = Read(readAsset, "Carlito-Regular.ttf");
         byte[] bold = Read(readAsset, "Carlito-Bold.ttf");
         byte[] italic = Read(readAsset, "Carlito-Italic.ttf");

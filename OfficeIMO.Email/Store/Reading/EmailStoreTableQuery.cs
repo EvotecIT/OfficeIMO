@@ -19,8 +19,8 @@ public sealed class EmailStoreTableQuery {
         EmailStoreContinuationToken? continuationToken = null,
         int maxItemsScanned = 1_000_000,
         int pageSize = 100) {
-        if (maxItemsScanned <= 0) throw new ArgumentOutOfRangeException(nameof(maxItemsScanned));
-        if (pageSize <= 0) throw new ArgumentOutOfRangeException(nameof(pageSize));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxItemsScanned);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
         if (folderId.HasValue && folderId.Value.IsEmpty) throw new ArgumentException("The folder identifier cannot be the default value.", nameof(folderId));
         FolderId = folderId;
         IncludeDescendants = includeDescendants;

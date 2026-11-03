@@ -680,7 +680,7 @@ public sealed partial class PdfReadPage {
         int pageNumber, int maximumPlacements, Action<long> consumeWork, Action cancellationCheck,
         bool prepareOutputIntent, CancellationToken cancellationToken) {
 #pragma warning disable CA1512 // ThrowIfNegative is unavailable on netstandard2.0 and net472.
-        if (maximumPlacements < 0) throw new ArgumentOutOfRangeException(nameof(maximumPlacements));
+        ArgumentOutOfRangeException.ThrowIfNegative(maximumPlacements);
 #pragma warning restore CA1512
         Guard.NotNull(consumeWork, nameof(consumeWork));
         Guard.NotNull(cancellationCheck, nameof(cancellationCheck));

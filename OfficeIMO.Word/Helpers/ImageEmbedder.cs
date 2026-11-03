@@ -43,7 +43,7 @@ namespace OfficeIMO.Word {
             string src,
             OfficeRemoteImageLoadOptions remoteImageOptions,
             CancellationToken cancellationToken = default) {
-            if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
+            ArgumentNullException.ThrowIfNull(remoteImageOptions);
             return CreateImageRunCoreAsync(mainPart, src, remoteImageOptions, cancellationToken);
         }
 

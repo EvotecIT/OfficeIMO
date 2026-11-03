@@ -14,9 +14,8 @@ namespace OfficeIMO.PowerPoint {
         ///     Retrieves a row wrapper at the specified index.
         /// </summary>
         public PowerPointTableRow GetRow(int rowIndex) {
-            if (rowIndex < 0 || rowIndex >= Rows) {
-                throw new ArgumentOutOfRangeException(nameof(rowIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(rowIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(rowIndex, Rows);
 
             A.TableRow tableRow = TableElement.Elements<A.TableRow>().ElementAt(rowIndex);
             return new PowerPointTableRow(this, tableRow);
@@ -26,9 +25,8 @@ namespace OfficeIMO.PowerPoint {
         ///     Retrieves a column wrapper at the specified index.
         /// </summary>
         public PowerPointTableColumn GetColumn(int columnIndex) {
-            if (columnIndex < 0 || columnIndex >= Columns) {
-                throw new ArgumentOutOfRangeException(nameof(columnIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(columnIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(columnIndex, Columns);
 
             A.GridColumn column = TableElement.TableGrid!.Elements<A.GridColumn>().ElementAt(columnIndex);
             return new PowerPointTableColumn(this, column);
@@ -71,9 +69,8 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a new row cloned from a template row.
         /// </summary>
         public PowerPointTableRow AddRowFromTemplate(int templateRowIndex, int? index = null, bool clearText = true) {
-            if (templateRowIndex < 0 || templateRowIndex >= Rows) {
-                throw new ArgumentOutOfRangeException(nameof(templateRowIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(templateRowIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(templateRowIndex, Rows);
 
             A.Table table = TableElement;
             var regions = CaptureMergeRegions();
@@ -186,9 +183,8 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a new column cloned from a template column.
         /// </summary>
         public PowerPointTableColumn AddColumnFromTemplate(int templateColumnIndex, int? index = null, bool clearText = true) {
-            if (templateColumnIndex < 0 || templateColumnIndex >= Columns) {
-                throw new ArgumentOutOfRangeException(nameof(templateColumnIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(templateColumnIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(templateColumnIndex, Columns);
 
             A.Table table = TableElement;
             A.TableGrid grid = table.TableGrid ?? throw new InvalidOperationException("Table grid is missing.");

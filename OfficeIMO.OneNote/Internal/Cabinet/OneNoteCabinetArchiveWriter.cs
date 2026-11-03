@@ -7,7 +7,7 @@ internal static class OneNoteCabinetArchiveWriter {
     private const ushort UtfNameAttribute = 0x0080;
 
     internal static byte[] Write(IReadOnlyList<OneNoteCabinetEntry> entries, long maxOutputBytes) {
-        if (entries == null) throw new ArgumentNullException(nameof(entries));
+        ArgumentNullException.ThrowIfNull(entries);
         if (entries.Count == 0 || entries.Count > ushort.MaxValue) throw new OneNoteFormatException("ONENOTE_CAB_ENTRY_COUNT", "A OneNote package must contain between 1 and 65535 entries.");
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         using (var folderData = new MemoryStream())

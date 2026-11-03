@@ -54,9 +54,11 @@ public sealed class OfficeScanProcessingOptions {
 
     /// <summary>Validates operation settings before allocating buffers or requesting provider work.</summary>
     public void Validate() {
-        if (ClockwiseQuarterTurns < 0 || ClockwiseQuarterTurns > 3) throw new ArgumentOutOfRangeException(nameof(ClockwiseQuarterTurns));
+        ArgumentOutOfRangeException.ThrowIfNegative(ClockwiseQuarterTurns);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(ClockwiseQuarterTurns, 3);
         if (!Finite(StraightenDegrees) || Math.Abs(StraightenDegrees) > 15D) throw new ArgumentOutOfRangeException(nameof(StraightenDegrees));
-        if (BlackPoint < 0 || BlackPoint > 254) throw new ArgumentOutOfRangeException(nameof(BlackPoint));
+        ArgumentOutOfRangeException.ThrowIfNegative(BlackPoint);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(BlackPoint, 254);
         if (WhitePoint <= BlackPoint || WhitePoint > 255) throw new ArgumentOutOfRangeException(nameof(WhitePoint));
         if (!Finite(Gamma) || Gamma < 0.1D || Gamma > 10D) throw new ArgumentOutOfRangeException(nameof(Gamma));
         if (!Finite(MaximumDeskewAngleDegrees) || MaximumDeskewAngleDegrees < 1D || MaximumDeskewAngleDegrees > 15D)
@@ -70,7 +72,7 @@ public sealed class OfficeScanProcessingOptions {
         if (MaximumPixels <= 0 || MaximumPixels > OfficeRasterGuards.MaximumPixels) throw new ArgumentOutOfRangeException(nameof(MaximumPixels));
         if (MaximumWorkingBytes <= 0 || MaximumWorkingBytes > OfficeRasterGuards.MaximumDecodedBytes) throw new ArgumentOutOfRangeException(nameof(MaximumWorkingBytes));
         if (MaximumAnalysisSamples < 1 || MaximumAnalysisSamples > 1_000_000) throw new ArgumentOutOfRangeException(nameof(MaximumAnalysisSamples));
-        if (MaximumAnalysisOperations <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumAnalysisOperations));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumAnalysisOperations);
     }
 
     private static bool Finite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);

@@ -25,7 +25,7 @@ public static partial class HtmlMarkdownConverterExtensions {
     internal static HtmlToMarkdownResult ConvertToMarkdownWithEvidence(
         this HtmlConversionDocument document,
         HtmlMarkdownExportOptions operation, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         ApplyDocumentPolicies(document, operation);
         var converter = new HtmlToMarkdownConverter(cancellationToken);

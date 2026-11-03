@@ -42,8 +42,8 @@ namespace OfficeIMO.GoogleWorkspace {
         /// <param name="policy">Policy controlling accepted codes and blocking severity.</param>
         /// <exception cref="GoogleWorkspacePreflightException">One or more unaccepted notices block the operation.</exception>
         public static void Validate(TranslationReport report, GoogleWorkspaceFidelityPolicy policy) {
-            if (report == null) throw new ArgumentNullException(nameof(report));
-            if (policy == null) throw new ArgumentNullException(nameof(policy));
+            ArgumentNullException.ThrowIfNull(report);
+            ArgumentNullException.ThrowIfNull(policy);
 
             if (policy.PreflightMode == GoogleWorkspacePreflightMode.ReportOnly) {
                 return;

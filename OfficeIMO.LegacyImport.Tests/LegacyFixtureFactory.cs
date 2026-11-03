@@ -343,7 +343,7 @@ internal static class LegacyFixtureFactory {
         const uint freeSect = 0xffffffff;
         const uint endOfChain = 0xfffffffe;
         const uint fatSect = 0xfffffffd;
-        if (directorySectorCount < 1) throw new ArgumentOutOfRangeException(nameof(directorySectorCount));
+        ArgumentOutOfRangeException.ThrowIfLessThan(directorySectorCount, 1);
         int fatSectorIndex = directorySectorCount;
         byte[] compound = new byte[sectorSize * (directorySectorCount + 2)];
         new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 }.CopyTo(compound, 0);

@@ -9,8 +9,8 @@ namespace OfficeIMO.Excel {
         /// Creates or reuses an Open XML cell format for a parsed legacy XLS XF record.
         /// </summary>
         internal uint GetOrCreateLegacyCellFormatStyleIndex(LegacyXlsWorkbook workbook, LegacyXlsCellFormat format) {
-            if (workbook == null) throw new ArgumentNullException(nameof(workbook));
-            if (format == null) throw new ArgumentNullException(nameof(format));
+            ArgumentNullException.ThrowIfNull(workbook);
+            ArgumentNullException.ThrowIfNull(format);
 
             if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
                 MaterializeDeferredDataSetImportIfNeeded();
@@ -36,9 +36,9 @@ namespace OfficeIMO.Excel {
         /// Converts a parsed legacy XLS XF record into an Open XML cell format.
         /// </summary>
         internal static CellFormat CreateLegacyCellFormat(Stylesheet stylesheet, LegacyXlsWorkbook workbook, LegacyXlsCellFormat format) {
-            if (stylesheet == null) throw new ArgumentNullException(nameof(stylesheet));
-            if (workbook == null) throw new ArgumentNullException(nameof(workbook));
-            if (format == null) throw new ArgumentNullException(nameof(format));
+            ArgumentNullException.ThrowIfNull(stylesheet);
+            ArgumentNullException.ThrowIfNull(workbook);
+            ArgumentNullException.ThrowIfNull(format);
 
             EnsureDefaultStylePrimitives(stylesheet);
             CellFormat candidate = GetBaseCellFormat(stylesheet, 0U);

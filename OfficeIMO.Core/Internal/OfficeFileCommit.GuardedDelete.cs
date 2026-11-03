@@ -14,11 +14,7 @@ namespace OfficeIMO.Core.Internal {
         /// if restoration is occupied or fails, an IOException identifies the retained candidate.
         /// </remarks>
         public static bool TryDeleteIfUnchanged(string targetPath, Func<string, bool> candidateMatchesExpected) {
-#if NET6_0_OR_GREATER
             ArgumentNullException.ThrowIfNull(candidateMatchesExpected);
-#else
-            if (candidateMatchesExpected == null) throw new ArgumentNullException(nameof(candidateMatchesExpected));
-#endif
             string destination = GetFullTargetPath(targetPath);
             string quarantine = CreateTemporaryPath(destination);
             try { File.Move(destination, quarantine); }

@@ -116,9 +116,9 @@ public sealed class HtmlCapabilityEvidenceSelection {
         _requiredCaseIds = HtmlCapabilityContractValue.Normalize(requiredCaseIds, nameof(requiredCaseIds));
         _excludedCaseIds = HtmlCapabilityContractValue.Normalize(excludedCaseIds, nameof(excludedCaseIds));
         _outOfScope = HtmlCapabilityContractValue.Normalize(outOfScope ?? Array.Empty<string>(), nameof(outOfScope));
-        if (passed < 0) throw new ArgumentOutOfRangeException(nameof(passed));
-        if (failed < 0) throw new ArgumentOutOfRangeException(nameof(failed));
-        if (untested < 0) throw new ArgumentOutOfRangeException(nameof(untested));
+        ArgumentOutOfRangeException.ThrowIfNegative(passed);
+        ArgumentOutOfRangeException.ThrowIfNegative(failed);
+        ArgumentOutOfRangeException.ThrowIfNegative(untested);
         if (passed + failed + untested != _requiredCaseIds.Count) {
             throw new ArgumentException("Passed, failed, and untested counts must equal the required case count.");
         }

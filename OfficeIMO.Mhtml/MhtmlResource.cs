@@ -22,7 +22,7 @@ public sealed class MhtmlResource {
         string? mimeTransferEncoding,
         bool mimeDecodingWasAmbiguous,
         bool takeOwnership) {
-        if (content == null) throw new ArgumentNullException(nameof(content));
+        ArgumentNullException.ThrowIfNull(content);
         if (string.IsNullOrWhiteSpace(contentId) && string.IsNullOrWhiteSpace(contentLocation) &&
             string.IsNullOrWhiteSpace(fileName)) {
             throw new ArgumentException("An MHTML resource requires a Content-ID, Content-Location, or filename.");
@@ -96,7 +96,7 @@ public sealed class MhtmlResource {
     }
 
     internal static MhtmlResource FromEmailAttachment(EmailAttachment attachment) {
-        if (attachment == null) throw new ArgumentNullException(nameof(attachment));
+        ArgumentNullException.ThrowIfNull(attachment);
         if (attachment.Content != null) {
             return new MhtmlResource(
                 attachment.Content,

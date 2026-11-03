@@ -61,9 +61,8 @@ namespace OfficeIMO.PowerPoint {
         ///     Retrieves a cell at the specified row index.
         /// </summary>
         public PowerPointTableCell GetCell(int rowIndex) {
-            if (rowIndex < 0 || rowIndex >= _table.Rows) {
-                throw new ArgumentOutOfRangeException(nameof(rowIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(rowIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(rowIndex, _table.Rows);
 
             int index = Index;
             if (index < 0) {

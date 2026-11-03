@@ -32,7 +32,7 @@ namespace OfficeIMO.Access {
 
         private void SetVbaProjectCore(OfficeVbaProject project, OfficeVbaWriteOptions? options, CancellationToken cancellationToken,
             ISet<string>? addedHosts, IReadOnlyDictionary<string, byte[]>? hostStreams) {
-            if (project == null) throw new ArgumentNullException(nameof(project));
+            ArgumentNullException.ThrowIfNull(project);
             EnsureMutationAllowed(); cancellationToken.ThrowIfCancellationRequested();
             if (NativeDatabase == null || CatalogStatus != AccessCatalogStatus.Decoded || VbaProject.CatalogStatus != AccessCatalogStatus.Decoded)
                 throw new NotSupportedException("VBA application requires a decoded native database and project.");

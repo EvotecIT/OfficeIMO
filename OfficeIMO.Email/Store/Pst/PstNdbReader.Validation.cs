@@ -4,7 +4,7 @@ internal sealed partial class PstNdbReader {
     internal EmailStoreStructuralValidationResult ValidateStructure(
         EmailStoreValidationOptions options,
         CancellationToken cancellationToken) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         var context = new StructuralValidationContext(
             _stream, _header, options, cancellationToken);
         return context.Validate();

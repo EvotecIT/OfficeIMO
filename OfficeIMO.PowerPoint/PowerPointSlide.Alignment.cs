@@ -16,9 +16,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Aligns shapes within a custom bounding box.
         /// </summary>
         public void AlignShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeAlignment alignment, PowerPointLayoutBox bounds) {
-            if (shapes == null) {
-                throw new ArgumentNullException(nameof(shapes));
-            }
+            ArgumentNullException.ThrowIfNull(shapes);
 
             List<PowerPointShape> list = NormalizeShapes(shapes);
             if (list.Count == 0) {
@@ -94,9 +92,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Distributes shapes evenly within a custom bounding box.
         /// </summary>
         public void DistributeShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution, PowerPointLayoutBox bounds) {
-            if (shapes == null) {
-                throw new ArgumentNullException(nameof(shapes));
-            }
+            ArgumentNullException.ThrowIfNull(shapes);
 
             List<PowerPointShape> list = NormalizeShapes(shapes);
             if (list.Count < 2) {
@@ -122,9 +118,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void DistributeShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
             PowerPointLayoutBox bounds, PowerPointShapeAlignment crossAxisAlignment) {
-            if (shapes == null) {
-                throw new ArgumentNullException(nameof(shapes));
-            }
+            ArgumentNullException.ThrowIfNull(shapes);
 
             List<PowerPointShape> list = NormalizeShapes(shapes);
             if (list.Count == 0) {
@@ -212,9 +206,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static PowerPointLayoutBox GetSelectionBounds(IEnumerable<PowerPointShape> shapes) {
-            if (shapes == null) {
-                throw new ArgumentNullException(nameof(shapes));
-            }
+            ArgumentNullException.ThrowIfNull(shapes);
 
             List<PowerPointShape> list = NormalizeShapes(shapes);
             if (list.Count == 0) {

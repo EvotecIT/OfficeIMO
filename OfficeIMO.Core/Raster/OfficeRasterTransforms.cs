@@ -8,9 +8,7 @@ namespace OfficeIMO.Drawing;
 public static class OfficeRasterTransforms {
     /// <summary>Crops an exact in-bounds rectangular pixel region.</summary>
     public static OfficeRasterImage Crop(OfficeRasterImage source, int x, int y, int width, int height, CancellationToken cancellationToken = default) {
-        if (source == null) {
-            throw new ArgumentNullException(nameof(source));
-        }
+        ArgumentNullException.ThrowIfNull(source);
         if (x < 0 || y < 0 || width <= 0 || height <= 0 || (long)x + width > source.Width || (long)y + height > source.Height) {
             throw new ArgumentOutOfRangeException(nameof(width), "Crop bounds must be inside the source image.");
         }
@@ -27,9 +25,7 @@ public static class OfficeRasterTransforms {
 
     /// <summary>Mirrors an image horizontally, vertically, or along both axes.</summary>
     public static OfficeRasterImage Flip(OfficeRasterImage source, bool horizontal, bool vertical, CancellationToken cancellationToken = default) {
-        if (source == null) {
-            throw new ArgumentNullException(nameof(source));
-        }
+        ArgumentNullException.ThrowIfNull(source);
         EnsureWorkingSet(source, (long)source.Width * source.Height * 4, cancellationToken);
         var result = new OfficeRasterImage(source.Width, source.Height);
         for (int y = 0; y < source.Height; y++) {
@@ -61,7 +57,7 @@ public static class OfficeRasterTransforms {
 
     /// <summary>Plans the exact canvas dimensions produced by a clockwise rotation without allocating pixels.</summary>
     public static (int Width, int Height) GetRotatedSize(OfficeRasterImage source, double degrees) {
-        if (source == null) { throw new ArgumentNullException(nameof(source)); }
+        ArgumentNullException.ThrowIfNull(source);
         double normalized = ((Finite(degrees, nameof(degrees)) % 360) + 360) % 360;
         if (normalized == 0 || normalized == 180) { return (source.Width, source.Height); }
         if (normalized == 90 || normalized == 270) { return (source.Height, source.Width); }
@@ -90,7 +86,7 @@ public static class OfficeRasterTransforms {
 
     /// <summary>Applies an EXIF orientation value, including mirrored orientations.</summary>
     public static OfficeRasterImage AutoOrient(OfficeRasterImage source, int orientation, CancellationToken cancellationToken = default) {
-        if (source == null) { throw new ArgumentNullException(nameof(source)); }
+        ArgumentNullException.ThrowIfNull(source);
         if (orientation < 1 || orientation > 8) { throw new ArgumentOutOfRangeException(nameof(orientation), "EXIF orientation must be between one and eight."); }
         EnsureWorkingSet(source, (long)source.Width * source.Height * 4, cancellationToken);
         int width = orientation < 5 ? source.Width : source.Height;
@@ -119,9 +115,7 @@ public static class OfficeRasterTransforms {
 
     /// <summary>Keeps pixels inside an antialiased ellipse and clears pixels outside it.</summary>
     public static OfficeRasterImage MaskEllipse(OfficeRasterImage source, double x, double y, double width, double height, CancellationToken cancellationToken = default) {
-        if (source == null) {
-            throw new ArgumentNullException(nameof(source));
-        }
+        ArgumentNullException.ThrowIfNull(source);
         if (Finite(width, nameof(width)) <= 0 || Finite(height, nameof(height)) <= 0) {
             throw new ArgumentOutOfRangeException(nameof(width));
         }
@@ -135,12 +129,8 @@ public static class OfficeRasterTransforms {
 
     /// <summary>Keeps pixels inside an antialiased polygon.</summary>
     public static OfficeRasterImage MaskPolygon(OfficeRasterImage source, IReadOnlyList<OfficePoint> points, CancellationToken cancellationToken = default) {
-        if (source == null) {
-            throw new ArgumentNullException(nameof(source));
-        }
-        if (points == null) {
-            throw new ArgumentNullException(nameof(points));
-        }
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(points);
         if (points.Count < 3) {
             throw new ArgumentException("At least three polygon vertices are required.", nameof(points));
         }
@@ -152,9 +142,7 @@ public static class OfficeRasterTransforms {
 
     /// <summary>Clears pixels outside the rounded corners of the image canvas.</summary>
     public static OfficeRasterImage MaskRoundedRectangle(OfficeRasterImage source, double radius, CancellationToken cancellationToken = default) {
-        if (source == null) {
-            throw new ArgumentNullException(nameof(source));
-        }
+        ArgumentNullException.ThrowIfNull(source);
         if (Finite(radius, nameof(radius)) < 0) {
             throw new ArgumentOutOfRangeException(nameof(radius));
         }
@@ -192,9 +180,7 @@ public static class OfficeRasterTransforms {
     }
 
     private static (double Left, double Top, int Width, int Height) GetExpandedBounds(OfficeRasterImage source, OfficeTransform transform) {
-        if (source == null) {
-            throw new ArgumentNullException(nameof(source));
-        }
+        ArgumentNullException.ThrowIfNull(source);
         OfficePoint[] corners = {
             transform.TransformPoint(new OfficePoint(0, 0)),
             transform.TransformPoint(new OfficePoint(source.Width, 0)),

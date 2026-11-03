@@ -76,7 +76,7 @@ public sealed class OfficeWorkflowConversionRegistration {
     public static OfficeWorkflowConversionRegistration Create<TSettings>(string routeId,
         OfficeWorkflowConfiguredConverter<TSettings> converter,
         Func<string, OfficeOperationLimits, TSettings?, OfficeWorkflowStreamInput>? directoryPackageInput) where TSettings : class, IOfficeConversionSettings {
-        if (converter == null) throw new ArgumentNullException(nameof(converter));
+        ArgumentNullException.ThrowIfNull(converter);
         return new(routeId, (input, output, limits, settings, token) => converter(input, output, limits, (TSettings?)settings, token),
             settings => settings is TSettings, directoryPackageInput is null ? null
                 : (path, limits, settings) => directoryPackageInput(path, limits, (TSettings?)settings));
@@ -94,7 +94,7 @@ public sealed class OfficeWorkflowConversionRegistration {
 
     private static Func<Stream, Stream, OfficeOperationLimits, IOfficeConversionSettings?, CancellationToken, OfficeWorkflowConversionEvidence>
         Adapt(OfficeWorkflowConverter converter) {
-        if (converter == null) throw new ArgumentNullException(nameof(converter));
+        ArgumentNullException.ThrowIfNull(converter);
         return (input, output, limits, _, token) => converter(input, output, limits, token);
     }
 }
@@ -103,15 +103,15 @@ public sealed class OfficeWorkflowConversionRegistration {
 public sealed class OfficeWorkflowConversionEvidence : OfficeConversionReport {
     /// <summary>Copies typed fidelity diagnostics and compact source/projection facts from the owning converter.</summary>
     public OfficeWorkflowConversionEvidence(OfficeConversionReport report, IReadOnlyDictionary<string, string>? facts = null) {
-        if (report == null) throw new ArgumentNullException(nameof(report));
+        ArgumentNullException.ThrowIfNull(report);
         FidelityDiagnostics = OfficeConversionFidelityDiagnostics.Flatten([report]);
         Facts = new ReadOnlyDictionary<string, string>((facts ?? new Dictionary<string, string>()).ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal));
     }
 
     /// <summary>Copies evidence from ordered conversion stages after their output operations have completed.</summary>
     public OfficeWorkflowConversionEvidence(IReadOnlyList<OfficeConversionReport> reports, IReadOnlyDictionary<string, string> facts) {
-        if (reports == null) throw new ArgumentNullException(nameof(reports));
-        if (facts == null) throw new ArgumentNullException(nameof(facts));
+        ArgumentNullException.ThrowIfNull(reports);
+        ArgumentNullException.ThrowIfNull(facts);
         FidelityDiagnostics = OfficeConversionFidelityDiagnostics.Flatten(reports);
         Facts = new ReadOnlyDictionary<string, string>(facts.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal));
     }

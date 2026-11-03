@@ -2,13 +2,9 @@ namespace OfficeIMO.Markdown;
 
 internal static class MarkdownDocumentBlockRewriter {
     public static void RewriteDocument(MarkdownDocument document, Func<IMarkdownBlock, IMarkdownBlock> blockRewriter) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
-        if (blockRewriter == null) {
-            throw new ArgumentNullException(nameof(blockRewriter));
-        }
+        ArgumentNullException.ThrowIfNull(blockRewriter);
 
         document.Rewrite(new DelegateMarkdownRewriter(blockRewriter));
     }

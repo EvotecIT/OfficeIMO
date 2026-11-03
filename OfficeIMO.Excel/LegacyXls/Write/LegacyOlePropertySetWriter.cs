@@ -4,7 +4,7 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Excel.LegacyXls.Write {
     internal static class LegacyOlePropertySetWriter {
         internal static IReadOnlyList<OfficeCompoundStream> CreateDocumentPropertyStreams(ExcelDocument document) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
 
             var streams = new List<OfficeCompoundStream>(2);
             byte[]? summaryInformation = CreateSummaryInformation(document);

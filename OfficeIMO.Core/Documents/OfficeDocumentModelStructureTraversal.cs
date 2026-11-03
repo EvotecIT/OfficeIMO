@@ -13,9 +13,9 @@ internal static class OfficeDocumentModelStructureTraversal {
         IReadOnlyList<OfficeDocumentModelNode> roots,
         int maxDepth,
         int maxNodes) {
-        if (roots == null) throw new ArgumentNullException(nameof(roots));
+        ArgumentNullException.ThrowIfNull(roots);
         if (maxDepth < 1 || maxDepth > MaximumSupportedDepth) throw new ArgumentOutOfRangeException(nameof(maxDepth));
-        if (maxNodes < 1) throw new ArgumentOutOfRangeException(nameof(maxNodes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxNodes, 1);
 
         var flattened = new List<OfficeDocumentModelNode>(Math.Min(maxNodes, 4_096));
         var ancestry = new HashSet<OfficeDocumentModelNode>(ReferenceComparer.Instance);

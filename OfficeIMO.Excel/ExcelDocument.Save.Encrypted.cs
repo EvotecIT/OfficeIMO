@@ -18,8 +18,8 @@ public partial class ExcelDocument {
     /// <param name="format">Physical workbook format before encryption.</param>
     /// <param name="saveOptions">Format-specific save policy and limits.</param>
     internal void SaveEncrypted(Stream destination, string password, ExcelFileFormat format, ExcelSaveOptions? saveOptions = null) {
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
-        if (password == null) throw new ArgumentNullException(nameof(password));
+        ArgumentNullException.ThrowIfNull(destination);
+        ArgumentNullException.ThrowIfNull(password);
         if (!destination.CanWrite) throw new ArgumentException("Destination must be writable.", nameof(destination));
         if (format == ExcelFileFormat.Xlsx) { SaveEncrypted(destination, password, saveOptions); return; }
         EnsureWritableForSave();

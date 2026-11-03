@@ -35,9 +35,7 @@ public static partial class OfficePngWriter {
     /// Encodes an RGBA image as PNG bytes.
     /// </summary>
     public static byte[] Encode(OfficeRasterImage image, OfficePngCompression compression = OfficePngCompression.Optimal) {
-        if (image == null) {
-            throw new ArgumentNullException(nameof(image));
-        }
+        ArgumentNullException.ThrowIfNull(image);
 
         return EncodeRgba(image.Width, image.Height, image.PixelBuffer, compression);
     }
@@ -47,15 +45,15 @@ public static partial class OfficePngWriter {
         OfficeRasterImage image,
         System.Threading.CancellationToken cancellationToken,
         OfficePngCompression compression = OfficePngCompression.Optimal) {
-        if (image == null) throw new ArgumentNullException(nameof(image));
+        ArgumentNullException.ThrowIfNull(image);
         return EncodeRgbaMaterialized(image.Width, image.Height, image.PixelBuffer,
             compression, null, null, cancellationToken);
     }
 
     /// <summary>Encodes an RGBA image with explicit compression and physical-resolution metadata.</summary>
     public static byte[] Encode(OfficeRasterImage image, OfficePngEncodeOptions options) {
-        if (image == null) throw new ArgumentNullException(nameof(image));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(options);
         ValidateDpi(options.DpiX, nameof(options.DpiX));
         ValidateDpi(options.DpiY, nameof(options.DpiY));
         return EncodeRgba(image.Width, image.Height, image.PixelBuffer, options);
@@ -72,7 +70,7 @@ public static partial class OfficePngWriter {
 
     /// <summary>Encodes raw RGBA pixels with explicit compression and physical-resolution metadata.</summary>
     public static byte[] EncodeRgba(int width, int height, byte[] rgba, OfficePngEncodeOptions options) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         ValidateDpi(options.DpiX, nameof(options.DpiX));
         ValidateDpi(options.DpiY, nameof(options.DpiY));
         ValidateRgba(width, height, rgba);
@@ -104,9 +102,7 @@ public static partial class OfficePngWriter {
         byte[] scanlines,
         OfficePngCompression compression = OfficePngCompression.Optimal) {
         ValidatePngHeader(width, height, bitDepth, colorType);
-        if (scanlines == null) {
-            throw new ArgumentNullException(nameof(scanlines));
-        }
+        ArgumentNullException.ThrowIfNull(scanlines);
 
         ValidateScanlineBufferLength(width, height, bitDepth, colorType, scanlines);
 
@@ -133,9 +129,7 @@ public static partial class OfficePngWriter {
         int colorType,
         byte[] compressedScanlines) {
         ValidatePngHeader(width, height, bitDepth, colorType);
-        if (compressedScanlines == null) {
-            throw new ArgumentNullException(nameof(compressedScanlines));
-        }
+        ArgumentNullException.ThrowIfNull(compressedScanlines);
 
         using MemoryStream stream = new MemoryStream();
         stream.Write(PngSignature, 0, PngSignature.Length);
@@ -146,9 +140,9 @@ public static partial class OfficePngWriter {
     }
 
     private static void ValidateRgba(int width, int height, byte[] rgba) {
-        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
-        if (rgba == null) throw new ArgumentNullException(nameof(rgba));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
+        ArgumentNullException.ThrowIfNull(rgba);
         if (rgba.Length != checked(width * height * 4)) {
             throw new ArgumentException("RGBA buffer length does not match image dimensions.", nameof(rgba));
         }
@@ -180,13 +174,9 @@ public static partial class OfficePngWriter {
     }
 
     private static void ValidatePngHeader(int width, int height, int bitDepth, int colorType) {
-        if (width <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(width));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
 
-        if (height <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(height));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
 
         if (bitDepth is not (1 or 2 or 4 or 8 or 16)) {
             throw new ArgumentOutOfRangeException(nameof(bitDepth), "Bit depth must be a valid PNG bit depth.");

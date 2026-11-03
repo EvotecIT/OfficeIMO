@@ -6,7 +6,7 @@ namespace OfficeIMO.GoogleWorkspace {
     public static class GoogleWorkspaceCheckpointFormat {
         /// <summary>Formats an interpolated fingerprint without depending on the current culture or runtime's default floating-point precision.</summary>
         public static string Format(FormattableString value) {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
             return value.ToString(StableFormatProvider.Instance);
         }
 

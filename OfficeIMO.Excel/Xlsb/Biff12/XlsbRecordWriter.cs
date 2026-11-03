@@ -2,9 +2,10 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
     /// <summary>Writes canonically framed BIFF12 records.</summary>
     internal static class XlsbRecordWriter {
         internal static void Write(Stream stream, int recordType, byte[]? payload = null) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanWrite) throw new ArgumentException("The BIFF12 destination must be writable.", nameof(stream));
-            if (recordType < 0 || recordType > 0x3FFF) throw new ArgumentOutOfRangeException(nameof(recordType));
+            ArgumentOutOfRangeException.ThrowIfNegative(recordType);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(recordType, 0x3FFF);
             byte[] data = payload ?? Array.Empty<byte>();
 
             WriteHeader(stream, recordType, data.Length);
@@ -12,10 +13,12 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
         }
 
         internal static void WriteHeader(Stream stream, int recordType, int payloadLength) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanWrite) throw new ArgumentException("The BIFF12 destination must be writable.", nameof(stream));
-            if (recordType < 0 || recordType > 0x3FFF) throw new ArgumentOutOfRangeException(nameof(recordType));
-            if (payloadLength < 0 || payloadLength > 0x0FFFFFFF) throw new ArgumentOutOfRangeException(nameof(payloadLength));
+            ArgumentOutOfRangeException.ThrowIfNegative(recordType);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(recordType, 0x3FFF);
+            ArgumentOutOfRangeException.ThrowIfNegative(payloadLength);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(payloadLength, 0x0FFFFFFF);
 
             if (recordType < 0x80) {
                 stream.WriteByte((byte)recordType);
@@ -36,9 +39,11 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
             int payloadLength,
             byte[] destination,
             int offset) {
-            if (recordType < 0 || recordType > 0x3FFF) throw new ArgumentOutOfRangeException(nameof(recordType));
-            if (payloadLength < 0 || payloadLength > 0x0FFFFFFF) throw new ArgumentOutOfRangeException(nameof(payloadLength));
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            ArgumentOutOfRangeException.ThrowIfNegative(recordType);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(recordType, 0x3FFF);
+            ArgumentOutOfRangeException.ThrowIfNegative(payloadLength);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(payloadLength, 0x0FFFFFFF);
+            ArgumentNullException.ThrowIfNull(destination);
             if (offset < 0 || offset > destination.Length - 6) {
                 throw new ArgumentOutOfRangeException(nameof(offset));
             }
@@ -69,7 +74,8 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
         }
 
         private static void WriteVariableLengthValue(Stream stream, int value) {
-            if (value < 0 || value > 0x0FFFFFFF) throw new ArgumentOutOfRangeException(nameof(value));
+            ArgumentOutOfRangeException.ThrowIfNegative(value);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(value, 0x0FFFFFFF);
             do {
                 byte current = (byte)(value & 0x7F);
                 value >>= 7;

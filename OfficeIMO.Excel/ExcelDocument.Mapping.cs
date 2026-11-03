@@ -17,7 +17,7 @@ public static class ExcelDocumentMappingExtensions {
         this ExcelDocument document,
         ExcelReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document is null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken, options?.CancellationToken ?? default);
         linked.Token.ThrowIfCancellationRequested();
@@ -36,8 +36,8 @@ public static class ExcelDocumentMappingExtensions {
         Action<RowMapper<T>> configure,
         ExcelReaderOptions? options = null,
         CancellationToken cancellationToken = default) where T : new() {
-        if (document is null) throw new ArgumentNullException(nameof(document));
-        if (configure is null) throw new ArgumentNullException(nameof(configure));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(configure);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken, options?.CancellationToken ?? default);
         linked.Token.ThrowIfCancellationRequested();
@@ -56,8 +56,8 @@ public static class ExcelDocumentMappingExtensions {
         Func<IDataRecord, T> factory,
         ExcelReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document is null) throw new ArgumentNullException(nameof(document));
-        if (factory is null) throw new ArgumentNullException(nameof(factory));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(factory);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken, options?.CancellationToken ?? default);
         linked.Token.ThrowIfCancellationRequested();
@@ -76,7 +76,7 @@ public static class ExcelDocumentMappingExtensions {
         ParallelRowMappingOptions? parallelOptions = null,
         ExcelReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document is null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken, options?.CancellationToken ?? default);
         linked.Token.ThrowIfCancellationRequested();
@@ -96,8 +96,8 @@ public static class ExcelDocumentMappingExtensions {
         ParallelRowMappingOptions? parallelOptions = null,
         ExcelReaderOptions? options = null,
         CancellationToken cancellationToken = default) where T : new() {
-        if (document is null) throw new ArgumentNullException(nameof(document));
-        if (configure is null) throw new ArgumentNullException(nameof(configure));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(configure);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken, options?.CancellationToken ?? default);
         linked.Token.ThrowIfCancellationRequested();
@@ -117,8 +117,8 @@ public static class ExcelDocumentMappingExtensions {
         ParallelRowMappingOptions? parallelOptions = null,
         ExcelReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document is null) throw new ArgumentNullException(nameof(document));
-        if (factory is null) throw new ArgumentNullException(nameof(factory));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(factory);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken, options?.CancellationToken ?? default);
         linked.Token.ThrowIfCancellationRequested();

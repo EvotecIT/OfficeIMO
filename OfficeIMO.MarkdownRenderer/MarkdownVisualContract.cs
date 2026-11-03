@@ -109,9 +109,7 @@ public static class MarkdownVisualContract {
         string visualKind,
         string language,
         MarkdownVisualPayload payload) {
-        if (sb == null) {
-            throw new ArgumentNullException(nameof(sb));
-        }
+        ArgumentNullException.ThrowIfNull(sb);
         if (string.IsNullOrWhiteSpace(visualKind)) {
             throw new ArgumentException("Visual kind is required.", nameof(visualKind));
         }
@@ -132,9 +130,7 @@ public static class MarkdownVisualContract {
     /// Appends an encoded string-valued HTML attribute.
     /// </summary>
     public static void AppendAttribute(StringBuilder sb, string name, string? value) {
-        if (sb == null) {
-            throw new ArgumentNullException(nameof(sb));
-        }
+        ArgumentNullException.ThrowIfNull(sb);
 
         if (string.IsNullOrWhiteSpace(name) || value == null) {
             return;
@@ -151,9 +147,7 @@ public static class MarkdownVisualContract {
     /// Appends an integer-valued HTML attribute using invariant culture formatting.
     /// </summary>
     public static void AppendAttribute(StringBuilder sb, string name, int value) {
-        if (sb == null) {
-            throw new ArgumentNullException(nameof(sb));
-        }
+        ArgumentNullException.ThrowIfNull(sb);
 
         if (string.IsNullOrWhiteSpace(name)) {
             return;
@@ -170,9 +164,7 @@ public static class MarkdownVisualContract {
     /// Appends multiple encoded string-valued HTML attributes.
     /// </summary>
     public static void AppendAttributes(StringBuilder sb, params KeyValuePair<string, string?>[] attributes) {
-        if (sb == null) {
-            throw new ArgumentNullException(nameof(sb));
-        }
+        ArgumentNullException.ThrowIfNull(sb);
 
         if (attributes == null || attributes.Length == 0) {
             return;

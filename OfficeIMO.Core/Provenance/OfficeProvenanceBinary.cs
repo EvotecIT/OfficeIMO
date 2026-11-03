@@ -8,7 +8,7 @@ namespace OfficeIMO.Provenance;
 
 internal static class OfficeProvenanceBinary {
     internal static byte[] ComputeSha256(byte[] data, CancellationToken cancellationToken = default) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         using IncrementalHash algorithm = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         const int chunkSize = 81920;
         int offset = 0;
@@ -23,7 +23,7 @@ internal static class OfficeProvenanceBinary {
     }
 
     internal static byte[] ReadBounded(Stream stream, long maximumBytes, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (maximumBytes <= 0 || maximumBytes > int.MaxValue) {
             throw new ArgumentOutOfRangeException(nameof(maximumBytes), "The asset limit must be between 1 byte and Int32.MaxValue.");
         }
@@ -53,7 +53,7 @@ internal static class OfficeProvenanceBinary {
     }
 
     internal static void ValidateLimits(OfficeProvenanceOptions options) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         if (options.MaxAssetBytes <= 0 || options.MaxAssetBytes > int.MaxValue) {
             throw new ArgumentOutOfRangeException(nameof(options.MaxAssetBytes));
         }
@@ -67,7 +67,7 @@ internal static class OfficeProvenanceBinary {
     }
 
     internal static void ValidateRemovalOptions(OfficeProvenanceRemovalOptions options) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         ValidateLimits(options.Limits);
         if (options.MaxOutputBytes.HasValue &&
             (options.MaxOutputBytes.Value <= 0 || options.MaxOutputBytes.Value > int.MaxValue)) {
@@ -90,7 +90,7 @@ internal static class OfficeProvenanceBinary {
     }
 
     internal static byte[] CloneForOutput(byte[] data, long maximumOutputBytes) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         EnsureOutputWithinLimit(data.LongLength, maximumOutputBytes);
         return (byte[])data.Clone();
     }

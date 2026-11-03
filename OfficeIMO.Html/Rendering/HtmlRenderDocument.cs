@@ -91,7 +91,7 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
         new(mode, pages, _diagnosticReport, _fonts, Metadata, _bookmarks, SourceImagesMissingNames);
 
     internal HtmlRenderDocument WithAdditionalDiagnostics(IEnumerable<HtmlDiagnostic> diagnostics) {
-        if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
+        ArgumentNullException.ThrowIfNull(diagnostics);
         HtmlDiagnosticReport report = _diagnosticReport.Clone();
         report.AddRange(diagnostics);
         return new HtmlRenderDocument(Mode, _pages, report, _fonts, Metadata, _bookmarks, SourceImagesMissingNames);

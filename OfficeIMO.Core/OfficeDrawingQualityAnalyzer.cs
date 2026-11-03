@@ -19,9 +19,7 @@ public static class OfficeDrawingQualityAnalyzer {
     /// <param name="options">Optional quality-check tolerances.</param>
     /// <returns>Quality report with structured issues.</returns>
     public static OfficeDrawingQualityReport Analyze(OfficeDrawing drawing, OfficeDrawingQualityOptions? options = null) {
-        if (drawing == null) {
-            throw new ArgumentNullException(nameof(drawing));
-        }
+        ArgumentNullException.ThrowIfNull(drawing);
 
         return Analyze(drawing, drawing.Width, drawing.Height, options);
     }
@@ -35,7 +33,7 @@ public static class OfficeDrawingQualityAnalyzer {
 
     internal static OfficeDrawingQualityReport AnalyzeAtOffset(OfficeDrawing drawing, double canvasLeft, double canvasTop,
         double canvasWidth, double canvasHeight, OfficeDrawingQualityOptions? options, CancellationToken cancellationToken) {
-        if (drawing == null) throw new ArgumentNullException(nameof(drawing));
+        ArgumentNullException.ThrowIfNull(drawing);
         if (double.IsNaN(canvasWidth) || double.IsInfinity(canvasWidth) || canvasWidth <= 0D) throw new ArgumentOutOfRangeException(nameof(canvasWidth));
         if (double.IsNaN(canvasHeight) || double.IsInfinity(canvasHeight) || canvasHeight <= 0D) throw new ArgumentOutOfRangeException(nameof(canvasHeight));
         cancellationToken.ThrowIfCancellationRequested();

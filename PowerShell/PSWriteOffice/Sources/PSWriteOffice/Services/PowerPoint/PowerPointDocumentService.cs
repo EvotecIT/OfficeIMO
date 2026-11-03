@@ -62,7 +62,7 @@ public static partial class PowerPointDocumentService {
     }
 
     private static void EnsureExplicitPersistence(PowerPointDocument presentation) {
-        if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+        ArgumentNullException.ThrowIfNull(presentation);
         if (presentation.PersistenceMode != DocumentPersistenceMode.Explicit)
             throw new InvalidOperationException("Use DocumentPersistenceMode.Explicit before saving or closing a presentation through PSWriteOffice.");
     }

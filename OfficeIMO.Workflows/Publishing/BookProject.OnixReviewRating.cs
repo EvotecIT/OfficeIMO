@@ -20,7 +20,7 @@ public sealed partial class BookProject {
         var languages = new HashSet<string>(StringComparer.Ordinal);
         foreach (var unit in rating.Units) {
             token.ThrowIfCancellationRequested();
-            if (unit == null) throw new ArgumentNullException(nameof(unit));
+            ArgumentNullException.ThrowIfNull(unit);
             RequireOnixText(unit.Text, nameof(unit.Text));
             if (unit.Text.Length > 50 || unit.Text.Length > textBudget)
                 throw new ArgumentException("Rating units exceed the field or aggregate collateral text limit.", nameof(rating));

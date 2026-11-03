@@ -108,7 +108,7 @@ internal static class AdfValidator {
     };
 
     internal static AdfValidationResult Validate(AdfDocument document, AdfProcessingOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         options ??= new AdfProcessingOptions();
         AdfValidationIssue? graphIssue = AdfGraphSafety.Inspect(document, options);
         if (graphIssue != null) return new AdfValidationResult(new[] { graphIssue });

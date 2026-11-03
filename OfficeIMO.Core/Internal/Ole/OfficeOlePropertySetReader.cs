@@ -13,7 +13,7 @@ namespace OfficeIMO.Core.Internal {
         private const uint CodePagePropertyId = 1;
 
         internal static IReadOnlyList<OfficeOlePropertySection> ReadSections(byte[] bytes, CancellationToken cancellationToken = default) {
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            ArgumentNullException.ThrowIfNull(bytes);
             cancellationToken.ThrowIfCancellationRequested();
             ValidateSections(bytes, cancellationToken);
             if (bytes.Length < 28) {

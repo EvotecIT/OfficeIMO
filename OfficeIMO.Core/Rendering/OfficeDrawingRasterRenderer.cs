@@ -16,7 +16,7 @@ public static partial class OfficeDrawingRasterRenderer {
 
     /// <summary>Renders a drawing with an optional external image codec.</summary>
     public static OfficeRasterImage Render(OfficeDrawing drawing, OfficeDrawingRasterRenderOptions options) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         return RenderCore(drawing, options, options.Scale, options.Scale);
     }
 
@@ -28,8 +28,8 @@ public static partial class OfficeDrawingRasterRenderer {
     /// </summary>
     internal static OfficeRasterImage RenderRegion(OfficeDrawing drawing, OfficeDrawingRasterRenderOptions options,
         int x, int y, int width, int height) {
-        if (drawing == null) throw new ArgumentNullException(nameof(drawing));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(drawing);
+        ArgumentNullException.ThrowIfNull(options);
         double scale = options.Scale;
         if (scale <= 0D || double.IsNaN(scale) || double.IsInfinity(scale))
             throw new ArgumentOutOfRangeException(nameof(options), "Scale must be a finite positive number.");
@@ -51,11 +51,9 @@ public static partial class OfficeDrawingRasterRenderer {
     private static OfficeRasterImage RenderCore(OfficeDrawing drawing, OfficeDrawingRasterRenderOptions options,
         double scaleX, double scaleY, OfficeRasterExportPlan? allocationPlan = null, OfficeFontFaceCollection? fonts = null,
         int pixelWidth = 0, int pixelHeight = 0) {
-        if (drawing == null) {
-            throw new ArgumentNullException(nameof(drawing));
-        }
+        ArgumentNullException.ThrowIfNull(drawing);
 
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         options.CancellationToken.ThrowIfCancellationRequested();
         double scale = options.Scale;
 

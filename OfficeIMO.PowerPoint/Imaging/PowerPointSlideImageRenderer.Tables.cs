@@ -12,7 +12,7 @@ namespace OfficeIMO.PowerPoint {
 
         internal static bool TryCreateTableDrawing(PowerPointTable table,
             out OfficeDrawing drawing, out string? reason) {
-            if (table == null) throw new ArgumentNullException(nameof(table));
+            ArgumentNullException.ThrowIfNull(table);
             drawing = null!;
             if (!table.TryGetBoundsPoints(out double left, out double top,
                     out double width, out double height)

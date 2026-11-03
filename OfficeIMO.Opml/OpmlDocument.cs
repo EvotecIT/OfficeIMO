@@ -69,7 +69,7 @@ public sealed partial class OpmlDocument {
 
     /// <summary>Parses OPML text with secure, bounded XML settings.</summary>
     public static OpmlDocument Parse(string text, OpmlLoadOptions? options = null, CancellationToken cancellationToken = default) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(text);
         options ??= new OpmlLoadOptions();
         options.Validate();
         if (text.Length > options.MaxCharacters) throw new InvalidDataException("OPML input exceeds MaxCharacters.");
@@ -81,7 +81,7 @@ public sealed partial class OpmlDocument {
 
     /// <summary>Loads an OPML file.</summary>
     public static OpmlDocument Load(string path, OpmlLoadOptions? options = null, CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         string fullPath = Path.GetFullPath(path);
         using var stream = File.OpenRead(fullPath);
         var document = Load(stream, options, cancellationToken);

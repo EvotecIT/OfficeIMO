@@ -41,12 +41,12 @@ public static partial class DataReaderUtf8TextExtensions {
         byte[]? buffer,
         int bufferOffset,
         int length) {
-        if (record == null) throw new ArgumentNullException(nameof(record));
-        if (dataOffset < 0) throw new ArgumentOutOfRangeException(nameof(dataOffset));
-        if (bufferOffset < 0) throw new ArgumentOutOfRangeException(nameof(bufferOffset));
-        if (length < 0) throw new ArgumentOutOfRangeException(nameof(length));
+        ArgumentNullException.ThrowIfNull(record);
+        ArgumentOutOfRangeException.ThrowIfNegative(dataOffset);
+        ArgumentOutOfRangeException.ThrowIfNegative(bufferOffset);
+        ArgumentOutOfRangeException.ThrowIfNegative(length);
         if (buffer != null) {
-            if (bufferOffset > buffer.Length) throw new ArgumentOutOfRangeException(nameof(bufferOffset));
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(bufferOffset, buffer.Length);
             if (length > buffer.Length - bufferOffset) {
                 throw new ArgumentException("The requested destination segment extends beyond the buffer.", nameof(length));
             }

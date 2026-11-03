@@ -102,7 +102,7 @@ internal static class OfficeBatchOptionsSerializer {
     }
 
     private static void Validate(OfficeBatchOptions options) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         if (options.InputDirectory == null && options.InputPaths is not { Length: > 0 }) throw new InvalidDataException("Select a source directory or explicit source files.");
         CheckText(options.Name, 256, false); CheckText(options.ConversionRouteId, 128, false);
         CheckText(options.InputDirectory, 4096, false); CheckText(options.OutputDirectory, 4096, true);

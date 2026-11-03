@@ -29,7 +29,7 @@ public sealed partial class IWorkNativeEditSession {
     /// <summary>Writes a completed package at the caller stream's current position, leaves it open and returns the report.</summary>
     /// <remarks>Validation/encoding finish first. A copying failure can leave partial stream bytes.</remarks>
     public IWorkNativeSaveReport Save(Stream destination, IWorkNativeSaveOptions? options = null, CancellationToken cancellationToken = default) {
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(destination);
         if (!destination.CanWrite) throw new ArgumentException("The destination stream must be writable.", nameof(destination));
         IWorkNativeSaveResult result = SaveBytesResult(options, cancellationToken);
         IWorkNativePackageWriter.Copy(result.Bytes, destination, cancellationToken); return result.Report;
@@ -39,7 +39,7 @@ public sealed partial class IWorkNativeEditSession {
     /// <remarks>Directory-source members cannot be output targets. Failed encoding or staging preserves the existing destination.</remarks>
     public IWorkNativeSaveReport Save(string path, bool overwrite = false, IWorkNativeSaveOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A destination path is required.", nameof(path));
         cancellationToken.ThrowIfCancellationRequested();
         RejectDirectoryMember(path);

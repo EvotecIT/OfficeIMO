@@ -183,9 +183,7 @@ public sealed class OfficeShape {
 
     /// <summary>Creates a polygon descriptor from points in a local top-left coordinate space.</summary>
     public static OfficeShape Polygon(IEnumerable<OfficePoint> points) {
-        if (points is null) {
-            throw new ArgumentNullException(nameof(points));
-        }
+        ArgumentNullException.ThrowIfNull(points);
 
         var source = new List<OfficePoint>();
         double minX = 0;
@@ -295,9 +293,7 @@ public sealed class OfficeShape {
 
     private static OfficeShape CreatePath(IEnumerable<OfficePathCommand> commands,
         double? canvasWidth, double? canvasHeight) {
-        if (commands is null) {
-            throw new ArgumentNullException(nameof(commands));
-        }
+        ArgumentNullException.ThrowIfNull(commands);
 
         var source = new List<OfficePathCommand>();
         double minX = 0;

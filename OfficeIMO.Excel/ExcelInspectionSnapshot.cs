@@ -133,12 +133,12 @@ namespace OfficeIMO.Excel {
         public bool HasPivotTables => PivotTablePartCount > 0;
 
         internal void AddSheet(ExcelWorksheetInfo worksheet) {
-            if (worksheet == null) throw new ArgumentNullException(nameof(worksheet));
+            ArgumentNullException.ThrowIfNull(worksheet);
             _worksheets.Add(worksheet);
         }
 
         internal void AddNamedRange(ExcelNamedRangeInspectionInfo namedRange) {
-            if (namedRange == null) throw new ArgumentNullException(nameof(namedRange));
+            ArgumentNullException.ThrowIfNull(namedRange);
             _namedRanges.Add(namedRange);
         }
     }
@@ -281,37 +281,37 @@ namespace OfficeIMO.Excel {
         public IReadOnlyList<ExcelThreadedCommentInfo> ThreadedComments => _threadedComments;
 
         internal void AddCell(ExcelCellInfo cell) {
-            if (cell == null) throw new ArgumentNullException(nameof(cell));
+            ArgumentNullException.ThrowIfNull(cell);
             _cells.Add(cell);
         }
 
         internal void AddMergedRange(ExcelMergedRangeInfo mergedRange) {
-            if (mergedRange == null) throw new ArgumentNullException(nameof(mergedRange));
+            ArgumentNullException.ThrowIfNull(mergedRange);
             _mergedRanges.Add(mergedRange);
         }
 
         internal void AddColumn(ExcelColumnInfo column) {
-            if (column == null) throw new ArgumentNullException(nameof(column));
+            ArgumentNullException.ThrowIfNull(column);
             _columns.Add(column);
         }
 
         internal void AddRow(ExcelRowInfo row) {
-            if (row == null) throw new ArgumentNullException(nameof(row));
+            ArgumentNullException.ThrowIfNull(row);
             _rows.Add(row);
         }
 
         internal void AddValidation(ExcelDataValidationInspectionInfo validation) {
-            if (validation == null) throw new ArgumentNullException(nameof(validation));
+            ArgumentNullException.ThrowIfNull(validation);
             _validations.Add(validation);
         }
 
         internal void AddTable(ExcelTableInspectionInfo table) {
-            if (table == null) throw new ArgumentNullException(nameof(table));
+            ArgumentNullException.ThrowIfNull(table);
             _tables.Add(table);
         }
 
         internal void AddThreadedComment(ExcelThreadedCommentInfo comment) {
-            if (comment == null) throw new ArgumentNullException(nameof(comment));
+            ArgumentNullException.ThrowIfNull(comment);
             _threadedComments.Add(comment);
         }
     }
@@ -754,7 +754,7 @@ namespace OfficeIMO.Excel {
         public IReadOnlyList<ExcelFilterColumnInfo> Columns => _columns;
 
         internal void AddColumn(ExcelFilterColumnInfo column) {
-            if (column == null) throw new ArgumentNullException(nameof(column));
+            ArgumentNullException.ThrowIfNull(column);
             _columns.Add(column);
         }
     }
@@ -802,7 +802,7 @@ namespace OfficeIMO.Excel {
         public IReadOnlyList<ExcelCustomFilterConditionInfo> Conditions => _conditions;
 
         internal void AddCondition(ExcelCustomFilterConditionInfo condition) {
-            if (condition == null) throw new ArgumentNullException(nameof(condition));
+            ArgumentNullException.ThrowIfNull(condition);
             _conditions.Add(condition);
         }
     }
@@ -884,7 +884,7 @@ namespace OfficeIMO.Excel {
         public IReadOnlyList<ExcelTableColumnInspectionInfo> Columns => _columns;
 
         internal void AddColumn(ExcelTableColumnInspectionInfo column) {
-            if (column == null) throw new ArgumentNullException(nameof(column));
+            ArgumentNullException.ThrowIfNull(column);
             _columns.Add(column);
         }
     }

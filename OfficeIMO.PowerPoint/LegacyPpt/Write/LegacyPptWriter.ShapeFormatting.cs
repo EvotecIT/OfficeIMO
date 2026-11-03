@@ -11,7 +11,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static bool TryReadShapeFormatting(PowerPointShape shape,
             out LegacyPptWriterShapeFormatting formatting,
             out string? reason) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
             if (!TryReadShapeTransform(shape,
                     out LegacyPptWriterShapeFormatting transform,
                     out reason)
@@ -50,7 +50,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             PowerPointShape shape,
             out IReadOnlyList<LegacyPptWriterFoptProperty> properties,
             out string? reason) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
             properties = shape.Hidden
                 ? new[] {
                     new LegacyPptWriterFoptProperty(0x03BF,
@@ -65,7 +65,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             PowerPointShape shape,
             out IReadOnlyList<LegacyPptWriterFoptProperty> properties,
             out string? reason) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
             if (!string.IsNullOrWhiteSpace(shape.Title)) {
                 properties = Array.Empty<LegacyPptWriterFoptProperty>();
                 reason = "Accessibility titles have no native PowerPoint 97-2003 shape-property representation.";
@@ -97,7 +97,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static bool TryReadShapeTransform(PowerPointShape shape,
             out LegacyPptWriterShapeFormatting formatting,
             out string? reason) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
             var properties = new List<LegacyPptWriterFoptProperty>(1);
             uint fspFlags = 0x00000A00U;
             if (shape.HorizontalFlip == true) fspFlags |= 1U << 6;
@@ -126,7 +126,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             ushort shapeType,
             out IReadOnlyList<LegacyPptWriterFoptProperty> properties,
             out string? reason) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
             A.PresetGeometry? geometry = shape.Element
                 .Descendants<A.PresetGeometry>().FirstOrDefault();
             A.AdjustValueList? values = geometry?.AdjustValueList;
@@ -196,7 +196,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static bool TryReadShapeVisualStyle(PowerPointShape shape,
             out IReadOnlyList<LegacyPptWriterFoptProperty> properties,
             out string? reason) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
             if (shape.Element.GetFirstChild<P.ShapeStyle>() != null) {
                 properties = Array.Empty<LegacyPptWriterFoptProperty>();
                 reason = "Theme-referenced shape styles must be resolved before binary PowerPoint writing.";
@@ -662,7 +662,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptRecord prototype, PowerPointShape shape) {
             if (prototype == null) throw new ArgumentNullException(
                 nameof(prototype));
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
             if (prototype.Type != OfficeArtFsp
                 || prototype.PayloadLength < 8) {
                 throw new InvalidDataException(
@@ -686,7 +686,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bool rewriteTextFrame = false,
             bool rewriteShapeMetadata = false,
             bool rewriteShapeVisibility = false) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
             if (!rewriteShapeTransform && !rewriteShapeGeometry
                 && !rewriteShapeVisualStyle
                 && !rewritePictureFormatting && !rewriteTextFrame

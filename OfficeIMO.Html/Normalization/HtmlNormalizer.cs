@@ -36,9 +36,7 @@ public static partial class HtmlNormalizer {
     /// Parses and normalizes raw HTML.
     /// </summary>
     public static string Normalize(string html, HtmlNormalizationOptions? options = null) {
-        if (html == null) {
-            throw new ArgumentNullException(nameof(html));
-        }
+        ArgumentNullException.ThrowIfNull(html);
 
         HtmlNormalizationOptions resolved = CopyOptions(options ?? new HtmlNormalizationOptions());
         resolved.Limits.Validate();
@@ -57,9 +55,7 @@ public static partial class HtmlNormalizer {
 
     internal static string Normalize(IHtmlDocument document, HtmlNormalizationOptions? options = null, CancellationToken cancellationToken = default,
         IDictionary<int, IElement>? emittedElements = null) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
         HtmlNormalizationOptions resolved = CopyOptions(options ?? new HtmlNormalizationOptions());
         resolved.Limits.Validate();
@@ -69,7 +65,7 @@ public static partial class HtmlNormalizer {
 
     /// <summary>Normalizes one already parsed element for a raw-fragment target without reparsing it.</summary>
     internal static string NormalizePreparedElement(IElement element, HtmlNormalizationOptions options, CancellationToken cancellationToken = default) {
-        if (element == null) throw new ArgumentNullException(nameof(element));
+        ArgumentNullException.ThrowIfNull(element);
         HtmlNormalizationOptions resolved = CopyOptions(options ?? throw new ArgumentNullException(nameof(options)));
         resolved.Limits.Validate();
         using var builder = new HtmlConversionSourceWriter.BoundedWriter(resolved.Limits, cancellationToken);
@@ -83,7 +79,7 @@ public static partial class HtmlNormalizer {
     /// without resolving URL attributes that the target adapter still needs to diagnose.
     /// </summary>
     internal static void SanitizePreparedDocumentStructure(IHtmlDocument document) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         foreach (IElement element in document.QuerySelectorAll("*")) {
             foreach (IAttr attribute in element.Attributes
                 .Where(attribute => attribute.Name.StartsWith("on", StringComparison.OrdinalIgnoreCase))

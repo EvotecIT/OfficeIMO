@@ -10,7 +10,7 @@ public static class RtfReadResultReaderExtensions {
     /// This method does not reopen the source or defer data already decoded. The logical source name is not opened or hashed.</remarks>
     public static OfficeDocumentReadResult ReadDocument(this RtfReadResult readResult, string? sourceName = null,
         ReaderOptions? options = null, ReaderRtfOptions? formatOptions = null, CancellationToken cancellationToken = default) {
-        if (readResult == null) throw new ArgumentNullException(nameof(readResult));
+        ArgumentNullException.ThrowIfNull(readResult);
         cancellationToken.ThrowIfCancellationRequested();
         ReaderOptions effective = DocumentReaderEngine.NormalizeOptions(options);
         ReaderRtfOptions format = ReaderRtfOptionsCloner.CloneOrDefault(formatOptions);

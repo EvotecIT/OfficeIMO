@@ -11,8 +11,8 @@ public sealed partial class OfficeWorkflowRunner {
     /// through <see cref="PdfFormOcrReview.Apply"/> and the host's existing undo/publication owner.</remarks>
     public async Task<PdfFormOcrReview> PreparePdfFormOcrAsync(PdfDocument document, IOcrEngine engine,
         PdfOcrMergeOptions? options = null, OfficeOperationLimits? limits = null, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (engine == null) throw new ArgumentNullException(nameof(engine));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(engine);
         cancellationToken.ThrowIfCancellationRequested();
         var capturedLimits = (limits ?? new OfficeOperationLimits()).CloneAndValidate();
         var capturedOptions = options?.Clone() ?? new PdfOcrMergeOptions();

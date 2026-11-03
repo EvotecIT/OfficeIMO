@@ -34,7 +34,7 @@ internal static class OfficeImageExporter
         PdfHtmlExportOptions? htmlOptions = null, CsvSaveOptions? csvOptions = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (review == null) throw new ArgumentNullException(nameof(review));
+        ArgumentNullException.ThrowIfNull(review);
         review.Ocr.RequireAcceptedOcrContent();
         string extension = Path.GetExtension(outputPath).ToLowerInvariant();
         ValidateExtension(extension);

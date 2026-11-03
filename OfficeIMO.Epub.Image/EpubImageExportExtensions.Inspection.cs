@@ -33,7 +33,7 @@ public static partial class EpubImageExportExtensions {
     /// <param name="cancellationToken">Cooperative cancellation.</param>
     public static EpubFixedLayoutInspection InspectFixedLayoutRegions(this EpubDocument source, int chapterIndex,
         IReadOnlyList<string> regionElementIds, EpubImageExportOptions? options = null, CancellationToken cancellationToken = default) {
-        if (regionElementIds == null) throw new ArgumentNullException(nameof(regionElementIds));
+        ArgumentNullException.ThrowIfNull(regionElementIds);
         if (regionElementIds.Count == 0 || regionElementIds.Count > 1024) throw new ArgumentOutOfRangeException(nameof(regionElementIds));
         string[] ids = regionElementIds.ToArray();
         if (ids.Any(id => string.IsNullOrWhiteSpace(id) || id.Length > 1024) || ids.Distinct(StringComparer.Ordinal).Count() != ids.Length)
@@ -43,9 +43,10 @@ public static partial class EpubImageExportExtensions {
 
     private static EpubFixedLayoutInspection InspectFixedLayout(EpubDocument source, int chapterIndex,
         IReadOnlyList<string> regionIds, EpubImageExportOptions? options, CancellationToken cancellationToken) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         cancellationToken.ThrowIfCancellationRequested();
-        if (chapterIndex < 0 || chapterIndex >= source.Chapters.Count) throw new ArgumentOutOfRangeException(nameof(chapterIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(chapterIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(chapterIndex, source.Chapters.Count);
         EpubChapter chapter = source.Chapters[chapterIndex];
         if (!chapter.IsFixedLayout || !string.Equals(chapter.MediaType, "application/xhtml+xml", StringComparison.OrdinalIgnoreCase))
             throw new NotSupportedException("Fixed-layout inspection requires an XHTML spine chapter declared pre-paginated.");

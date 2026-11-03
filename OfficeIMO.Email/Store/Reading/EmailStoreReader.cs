@@ -11,7 +11,7 @@ public sealed class EmailStoreReader {
 
     /// <summary>Detects a store format from a bounded header.</summary>
     public static EmailStoreFormat DetectFormat(string path) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (Directory.Exists(path)) return EmailStoreFormat.MailboxDirectory;
         using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read)) {
             return DetectFormat(stream, Path.GetFileName(path));
@@ -20,7 +20,7 @@ public sealed class EmailStoreReader {
 
     /// <summary>Detects a store format without changing a seekable stream's position.</summary>
     public static EmailStoreFormat DetectFormat(Stream stream, string? sourceName = null) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("The source stream must be readable.", nameof(stream));
 
         long position = stream.CanSeek ? stream.Position : 0;
@@ -61,7 +61,7 @@ public sealed class EmailStoreReader {
 
     /// <summary>Reads a file while keeping random-access parsing off the large-object heap.</summary>
     public EmailStoreReadResult Read(string path, CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         cancellationToken.ThrowIfCancellationRequested();
         using (EmailStoreSession session = EmailStoreSession.Open(path, _options, cancellationToken)) {
             return session.ReadAll(cancellationToken);
@@ -71,7 +71,7 @@ public sealed class EmailStoreReader {
     /// <summary>Reads a seekable stream and leaves it open.</summary>
     public EmailStoreReadResult Read(Stream stream, string? sourceName = null,
         CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         cancellationToken.ThrowIfCancellationRequested();
         if (!stream.CanRead || !stream.CanSeek) {
             throw new ArgumentException("Email-store streams must be readable and seekable.", nameof(stream));

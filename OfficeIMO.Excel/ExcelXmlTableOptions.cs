@@ -61,7 +61,7 @@ public sealed class ExcelXmlTableOptions {
         if (MaxInputBytes < 1 || MaxOutputBytes < 1 || MaxRows < 1 || MaxRows > ExcelA1.MaxRows || MaxColumns < 1 || MaxColumns > ExcelA1.MaxColumns || MaxCells < 1 || MaxXmlElements < 1 || MaxXmlDepth < 1)
             throw new ArgumentOutOfRangeException(nameof(ExcelXmlTableOptions));
         XmlConvert.VerifyNCName(RootElementName); XmlConvert.VerifyNCName(RowElementName); XmlConvert.VerifyNCName(CellElementName);
-        if (NamespaceUri == null) throw new ArgumentNullException(nameof(NamespaceUri));
+        ArgumentNullException.ThrowIfNull(NamespaceUri);
         if (Columns.Count > MaxColumns) throw new ArgumentException("XML table mappings exceed MaxColumns.");
         var copy = new ExcelXmlTableOptions { RootElementName = RootElementName, RowElementName = RowElementName, CellElementName = CellElementName,
             NamespaceUri = NamespaceUri, MaxInputBytes = MaxInputBytes, MaxOutputBytes = MaxOutputBytes, MaxRows = MaxRows, MaxColumns = MaxColumns,

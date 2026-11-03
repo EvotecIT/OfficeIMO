@@ -5,17 +5,11 @@ internal static class MarkdownDocumentBlockListExpander {
         MarkdownDocument document,
         MarkdownDocumentTransformContext context,
         Func<IReadOnlyList<IMarkdownBlock>, MarkdownDocumentTransformContext, List<IMarkdownBlock>> blockListRewriter) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
-        if (context == null) {
-            throw new ArgumentNullException(nameof(context));
-        }
+        ArgumentNullException.ThrowIfNull(context);
 
-        if (blockListRewriter == null) {
-            throw new ArgumentNullException(nameof(blockListRewriter));
-        }
+        ArgumentNullException.ThrowIfNull(blockListRewriter);
 
         document.ReplaceBlocks(RewriteBlocks(document.Blocks, context, blockListRewriter));
     }

@@ -25,9 +25,9 @@ internal sealed partial class OfficeAv1PaletteReader {
 
     internal OfficeAv1PaletteReader(OfficeAv1StillFrame frame, OfficeAv1StillSequence sequence, OfficeAv1Tile tile,
         OfficeRasterDecodeOptions options) {
-        if (frame == null) throw new ArgumentNullException(nameof(frame));
-        if (sequence == null) throw new ArgumentNullException(nameof(sequence));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(frame);
+        ArgumentNullException.ThrowIfNull(sequence);
+        ArgumentNullException.ThrowIfNull(options);
         options.Validate(); options.CancellationToken.ThrowIfCancellationRequested();
         if ((sequence.BitDepth != 8 && sequence.BitDepth != 10) || frame.BitDepth != sequence.BitDepth)
             throw new FormatException("AV1 palettes require matching eight-bit or ten-bit frame and sequence depths.");
@@ -49,7 +49,7 @@ internal sealed partial class OfficeAv1PaletteReader {
 
     internal OfficeAv1Palette Read(OfficeAv1SymbolReader symbols, OfficeAv1BlockRegion block, OfficeAv1IntraModes modes) {
         Check();
-        if (symbols == null) throw new ArgumentNullException(nameof(symbols));
+        ArgumentNullException.ThrowIfNull(symbols);
         _geometry.Validate(block);
         if (_pending) throw new InvalidOperationException("Complete the current AV1 palette leaf first.");
         try {

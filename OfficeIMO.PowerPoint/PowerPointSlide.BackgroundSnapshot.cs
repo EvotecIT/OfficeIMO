@@ -18,13 +18,13 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Returns a detached slide-background snapshot with a bound on embedded image bytes.</summary>
         public PowerPointSlideBackground GetBackground(int maximumImageBytes) {
-            if (maximumImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumImageBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumImageBytes);
             return GetBackgroundCore(maximumImageBytes);
         }
 
         /// <summary>Evaluates an aggregate image allowance only when the background contains an image.</summary>
         internal PowerPointSlideBackground GetBackground(Func<int> imageReadLimit) {
-            if (imageReadLimit == null) throw new ArgumentNullException(nameof(imageReadLimit));
+            ArgumentNullException.ThrowIfNull(imageReadLimit);
             return GetBackgroundCore(maximumImageBytes: null, imageReadLimit);
         }
 

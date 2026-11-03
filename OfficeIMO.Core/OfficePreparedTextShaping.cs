@@ -94,7 +94,7 @@ internal sealed class OfficePreparedTextShaping {
         CancellationToken cancellationToken, OfficeCffOperationBudget? cffBudget = null) {
         ValidateSize(size);
         cancellationToken.ThrowIfCancellationRequested();
-        if (maximumPointCount <= 0) throw new ArgumentOutOfRangeException(nameof(maximumPointCount));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumPointCount);
         if (_trueTypeRun != null)
             return _trueTypeRun.GetContours(x, y, size, maximumPointCount, cancellationToken);
         return Program is IOfficeCffBoundedFontProgram cff

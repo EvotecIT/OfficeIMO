@@ -21,7 +21,7 @@ namespace OfficeIMO.Visio {
         private static string CreateMessage(
             IEnumerable<VisioShowcaseValidationIssue> issues,
             out IReadOnlyList<VisioShowcaseValidationIssue> capturedIssues) {
-            if (issues == null) throw new ArgumentNullException(nameof(issues));
+            ArgumentNullException.ThrowIfNull(issues);
 
             capturedIssues = issues.ToList().AsReadOnly();
             string summary = $"Visio showcase artifact validation failed with {capturedIssues.Count} issue(s).";

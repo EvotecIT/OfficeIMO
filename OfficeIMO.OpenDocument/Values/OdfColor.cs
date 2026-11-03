@@ -15,7 +15,7 @@ public readonly struct OdfColor : IEquatable<OdfColor> {
 
     /// <summary>Parses `#RRGGBB` or `RRGGBB`.</summary>
     public static OdfColor Parse(string value) {
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
         string hex = value.Trim();
         if (!hex.StartsWith("#", StringComparison.Ordinal)) hex = "#" + hex;
         if (hex.Length != 7 || !int.TryParse(hex.Substring(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _)) {

@@ -12,7 +12,7 @@ public sealed class AngleSharpHtmlParser : IHtmlParserProvider {
 
     /// <inheritdoc />
     public HtmlDocument ParseDocument(string source, HtmlParseOptions options, CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         HtmlParseOptions resolved = (options ?? throw new ArgumentNullException(nameof(options))).Clone();
         resolved.Validate();
         cancellationToken.ThrowIfCancellationRequested();
@@ -23,8 +23,8 @@ public sealed class AngleSharpHtmlParser : IHtmlParserProvider {
 
     /// <inheritdoc />
     public HtmlDocumentFragment ParseFragment(string source, HtmlElement contextElement, HtmlParseOptions options, CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
-        if (contextElement == null) throw new ArgumentNullException(nameof(contextElement));
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(contextElement);
         HtmlParseOptions resolved = (options ?? throw new ArgumentNullException(nameof(options))).Clone();
         resolved.Validate();
         cancellationToken.ThrowIfCancellationRequested();

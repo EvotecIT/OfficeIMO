@@ -124,7 +124,7 @@ namespace OfficeIMO.Word {
         /// <param name="paragraph">The paragraph to append the cloned image to.</param>
         /// <returns>The newly created <see cref="WordImage"/> instance.</returns>
         public WordImage Clone(WordParagraph paragraph) {
-            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
+            ArgumentNullException.ThrowIfNull(paragraph);
             return CloneToParagraph(paragraph);
         }
 
@@ -365,7 +365,7 @@ namespace OfficeIMO.Word {
         }
 
         private void AddExternalImage(WordDocument document, WordParagraph paragraph, Uri uri, double width, double height, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description, WordImageTextWrapping wrapImage, bool allowFileUri = false) {
-            if (uri == null) throw new ArgumentNullException(nameof(uri));
+            ArgumentNullException.ThrowIfNull(uri);
             if (!uri.IsAbsoluteUri ||
                 (!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
                  !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) &&

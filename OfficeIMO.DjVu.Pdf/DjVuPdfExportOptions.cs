@@ -43,12 +43,12 @@ public sealed class DjVuPdfExportOptions {
         copy.OcrOptions = (OcrOptions ?? throw new ArgumentNullException(nameof(OcrOptions))).Clone();
         if (copy.RenderOptions.Region.HasValue || !copy.RenderOptions.ApplyRotation)
             throw new ArgumentException("PDF conversion requires complete, display-oriented page images.", nameof(RenderOptions));
-        if (MaxPages <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPages));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxPages);
         if (MaxImageBytesPerPage <= 0 || MaxImageBytesPerPage > 128L * 1024 * 1024) throw new ArgumentOutOfRangeException(nameof(MaxImageBytesPerPage));
-        if (MaxTotalImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTotalImageBytes));
-        if (MaxTextSpans <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTextSpans));
-        if (MaxTextCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTextCharacters));
-        if (MaxPdfBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPdfBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxTotalImageBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxTextSpans);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxTextCharacters);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxPdfBytes);
         if (OcrEngine != null && !IncludeText) throw new ArgumentException("OCR requires IncludeText.", nameof(OcrEngine));
         copy.PdfOptions.MaxGeneratedPages = Math.Min(copy.PdfOptions.MaxGeneratedPages ?? MaxPages, MaxPages);
         copy.PdfOptions.MaxGeneratedOutputBytes = Math.Min(copy.PdfOptions.MaxGeneratedOutputBytes ?? MaxPdfBytes, MaxPdfBytes);

@@ -42,9 +42,7 @@ public sealed class MarkdownNativeVisualPayload {
     /// Classifies a semantic fenced block payload without introducing a JSON parser dependency.
     /// </summary>
     public static MarkdownNativeVisualPayload Create(SemanticFencedBlock visual) {
-        if (visual == null) {
-            throw new ArgumentNullException(nameof(visual));
-        }
+        ArgumentNullException.ThrowIfNull(visual);
 
         var content = visual.Content ?? string.Empty;
         var trimmed = content.Trim();

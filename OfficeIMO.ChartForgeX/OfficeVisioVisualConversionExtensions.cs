@@ -19,7 +19,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
         this VisualArtifact artifact,
         OfficeVisioVisualOptions? options = null,
         VisualArtifactRenderOptions? renderOptions = null) {
-        if (artifact == null) throw new ArgumentNullException(nameof(artifact));
+        ArgumentNullException.ThrowIfNull(artifact);
         return artifact.ToInterchangeEnvelope(renderOptions).ToOfficeVisio(options);
     }
 
@@ -32,7 +32,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
 
     private static OfficeVisioVisualConversionResult CreateDocumentProjection(
         VisualArtifactInterchangeEnvelope envelope, OfficeVisioVisualOptions? options, bool enforceFidelity) {
-        if (envelope == null) throw new ArgumentNullException(nameof(envelope));
+        ArgumentNullException.ThrowIfNull(envelope);
         envelope.Validate();
         VisualArtifactInterchangeEnvelope validated = envelope;
         options ??= new OfficeVisioVisualOptions();
@@ -88,7 +88,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
     public static OfficeVisioVisualConversionResult ToOfficeVisio(
         this byte[] interchangeJson,
         OfficeVisioVisualOptions? options = null) {
-        if (interchangeJson == null) throw new ArgumentNullException(nameof(interchangeJson));
+        ArgumentNullException.ThrowIfNull(interchangeJson);
         return VisualArtifactInterchangeEnvelope.FromUtf8Json(interchangeJson).ToOfficeVisio(options);
     }
 

@@ -10,7 +10,7 @@ namespace OfficeIMO.Word.OpenDocument;
 public static partial class WordOpenDocumentConversionExtensions {
     internal static OdfConversionResult<OdtDocument> ConvertToOpenDocumentWithEvidence(this WordDocument source,
         WordOpenDocumentConversionOptions? options = null) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         WordOpenDocumentConversionOptions effective = options ?? new WordOpenDocumentConversionOptions();
         WordDocumentInfo snapshot = source.Inspect();
         OdtDocument target = OdtDocument.Create();
@@ -162,7 +162,7 @@ public static partial class WordOpenDocumentConversionExtensions {
 
     internal static OdfConversionResult<WordDocument> ConvertToWordWithEvidence(this OdtDocument source,
         WordOpenDocumentConversionOptions? options = null) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         WordOpenDocumentConversionOptions effective = options ?? new WordOpenDocumentConversionOptions();
         if (effective.MaxConvertedImageBytes < 0)
             throw new ArgumentOutOfRangeException(nameof(options), "MaxConvertedImageBytes cannot be negative.");

@@ -26,7 +26,7 @@ internal sealed class OfficeProvenanceContext {
     }
 
     internal void AddResolvedExternalManifestReference(OfficeProvenanceEvidence evidence, string reference) {
-        if (evidence == null) throw new ArgumentNullException(nameof(evidence));
+        ArgumentNullException.ThrowIfNull(evidence);
         if (string.IsNullOrWhiteSpace(reference)) throw new ArgumentException("A resolved manifest reference is required.", nameof(reference));
         _resolvedExternalManifestReferences.Add(evidence, reference);
     }

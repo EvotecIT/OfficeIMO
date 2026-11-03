@@ -8,7 +8,7 @@ internal static partial class VisioPdfConversionEngine {
         VisioDocument document,
         VisioPdfExportOptions? options,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         VisioPdfExportOptions operation = options ?? new VisioPdfExportOptions();
         operation.Validate();
         cancellationToken.ThrowIfCancellationRequested();

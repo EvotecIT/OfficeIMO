@@ -26,9 +26,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Applies an action to all cells in the table.
         /// </summary>
         public void ApplyToCells(Action<PowerPointTableCell> action) {
-            if (action == null) {
-                throw new ArgumentNullException(nameof(action));
-            }
+            ArgumentNullException.ThrowIfNull(action);
             if (Rows == 0 || Columns == 0) {
                 return;
             }
@@ -40,9 +38,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Applies an action to a rectangular range of cells.
         /// </summary>
         public void ApplyToCells(int startRow, int endRow, int startColumn, int endColumn, Action<PowerPointTableCell> action) {
-            if (action == null) {
-                throw new ArgumentNullException(nameof(action));
-            }
+            ArgumentNullException.ThrowIfNull(action);
             if (Rows == 0 || Columns == 0) {
                 return;
             }
@@ -70,9 +66,8 @@ namespace OfficeIMO.PowerPoint {
         ///     Applies an action to a specific row.
         /// </summary>
         public void ApplyToRow(int rowIndex, Action<PowerPointTableCell> action) {
-            if (rowIndex < 0 || rowIndex >= Rows) {
-                throw new ArgumentOutOfRangeException(nameof(rowIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(rowIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(rowIndex, Rows);
             ApplyToCells(rowIndex, rowIndex, 0, Columns - 1, action);
         }
 
@@ -80,9 +75,8 @@ namespace OfficeIMO.PowerPoint {
         ///     Applies an action to a specific column.
         /// </summary>
         public void ApplyToColumn(int columnIndex, Action<PowerPointTableCell> action) {
-            if (columnIndex < 0 || columnIndex >= Columns) {
-                throw new ArgumentOutOfRangeException(nameof(columnIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(columnIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(columnIndex, Columns);
             ApplyToCells(0, Rows - 1, columnIndex, columnIndex, action);
         }
 

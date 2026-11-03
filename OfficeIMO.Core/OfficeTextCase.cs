@@ -72,7 +72,7 @@ public static class OfficeTextCaseTransformer {
     /// <param name="culture">Culture used for casing. The current culture is used when omitted.</param>
     /// <returns>The transformed text.</returns>
     public static string Apply(string text, OfficeTextCase textCase, CultureInfo? culture = null) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(text);
         return TransformSegments(new[] { text }, textCase, culture ?? CultureInfo.CurrentCulture)[0];
     }
 
@@ -84,7 +84,7 @@ public static class OfficeTextCaseTransformer {
         IReadOnlyList<string> segments,
         OfficeTextCase textCase,
         CultureInfo? culture = null) {
-        if (segments == null) throw new ArgumentNullException(nameof(segments));
+        ArgumentNullException.ThrowIfNull(segments);
         if (segments.Count == 0) return Array.Empty<string>();
         return TransformSegments(segments, textCase, culture ?? CultureInfo.CurrentCulture);
     }

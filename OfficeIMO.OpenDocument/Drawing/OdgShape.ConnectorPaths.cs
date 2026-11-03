@@ -45,7 +45,7 @@ public sealed partial class OdgShape {
 
     private void SetConnectorRouteCore(IEnumerable<OfficePathCommand> commands, OdgConnectorKind? routingKind) {
         RequireConnector();
-        if (commands == null) throw new ArgumentNullException(nameof(commands));
+        ArgumentNullException.ThrowIfNull(commands);
         var path = commands.Take(MaximumGeometryItems + 1).ToArray();
         _ = FormatCommands(path); ValidateConnectorPath(path);
         OfficePoint start = path[0].Point, end = path[path.Length - 1].Point;

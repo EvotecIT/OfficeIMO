@@ -70,9 +70,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeIMO.Drawing.OfficeChartLayout? layout = null,
             OfficeIMO.Drawing.OfficeChartStyle? style = null,
             OfficeIMO.Drawing.OfficeChartRadialLayout? radialLayout = null) {
-            if (data == null) {
-                throw new ArgumentNullException(nameof(data));
-            }
+            ArgumentNullException.ThrowIfNull(data);
 
             Name = name ?? string.Empty;
             Title = title;

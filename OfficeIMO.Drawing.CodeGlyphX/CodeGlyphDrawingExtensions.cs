@@ -20,7 +20,7 @@ public static class CodeGlyphDrawingExtensions {
         this QrCode qrCode,
         out int unsupportedFeatureCount,
         QrSvgRenderOptions? options = null) {
-        if (qrCode is null) throw new ArgumentNullException(nameof(qrCode));
+        ArgumentNullException.ThrowIfNull(qrCode);
         QrSvgRenderOptions renderOptions = options ?? new QrSvgRenderOptions();
         if (renderOptions.Logo is not null) {
             throw new NotSupportedException("QR logo images cannot be represented by the OfficeIMO.Drawing SVG importer.");
@@ -40,7 +40,7 @@ public static class CodeGlyphDrawingExtensions {
         this BitMatrix modules,
         out int unsupportedFeatureCount,
         MatrixSvgRenderOptions? options = null) {
-        if (modules is null) throw new ArgumentNullException(nameof(modules));
+        ArgumentNullException.ThrowIfNull(modules);
         string svg = MatrixSvgRenderer.Render(modules, options ?? new MatrixSvgRenderOptions());
         return ReadSvg(svg, ResolveMaximumElements(modules, elementsPerCell: 1), out unsupportedFeatureCount);
     }
@@ -54,7 +54,7 @@ public static class CodeGlyphDrawingExtensions {
         this Barcode1D barcode,
         out int unsupportedFeatureCount,
         BarcodeSvgRenderOptions? options = null) {
-        if (barcode is null) throw new ArgumentNullException(nameof(barcode));
+        ArgumentNullException.ThrowIfNull(barcode);
         string svg = SvgBarcodeRenderer.Render(barcode, options ?? new BarcodeSvgRenderOptions());
         return ReadSvg(svg, ResolveMaximumElements(barcode.Segments.Count), out unsupportedFeatureCount);
     }

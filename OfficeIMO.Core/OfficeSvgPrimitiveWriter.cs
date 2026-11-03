@@ -11,9 +11,7 @@ internal static class OfficeSvgPrimitiveWriter {
     /// Writes a filled or stroked SVG circle.
     /// </summary>
     public static void WriteCircle(XmlWriter writer, string svgNamespace, double cx, double cy, double radius, OfficeColor color, bool fill, double strokeWidth) {
-        if (writer == null) {
-            throw new ArgumentNullException(nameof(writer));
-        }
+        ArgumentNullException.ThrowIfNull(writer);
 
         writer.WriteStartElement("circle", svgNamespace);
         writer.WriteNumberAttribute("cx", cx);
@@ -27,9 +25,7 @@ internal static class OfficeSvgPrimitiveWriter {
     /// Writes a filled or stroked SVG rectangle.
     /// </summary>
     public static void WriteRectangle(XmlWriter writer, string svgNamespace, double x, double y, double width, double height, OfficeColor color, bool fill, double strokeWidth, double cornerRadius = 0D) {
-        if (writer == null) {
-            throw new ArgumentNullException(nameof(writer));
-        }
+        ArgumentNullException.ThrowIfNull(writer);
 
         writer.WriteStartElement("rect", svgNamespace);
         writer.WriteNumberAttribute("x", x);
@@ -48,9 +44,7 @@ internal static class OfficeSvgPrimitiveWriter {
     /// Writes a stroked SVG line with rounded line caps.
     /// </summary>
     public static void WriteLine(XmlWriter writer, string svgNamespace, double x1, double y1, double x2, double y2, OfficeColor color, double strokeWidth) {
-        if (writer == null) {
-            throw new ArgumentNullException(nameof(writer));
-        }
+        ArgumentNullException.ThrowIfNull(writer);
 
         writer.WriteStartElement("line", svgNamespace);
         writer.WriteNumberAttribute("x1", x1);
@@ -67,9 +61,7 @@ internal static class OfficeSvgPrimitiveWriter {
     /// Writes a filled or stroked SVG path.
     /// </summary>
     public static void WritePath(XmlWriter writer, string svgNamespace, string data, OfficeColor color, bool fill, double strokeWidth) {
-        if (writer == null) {
-            throw new ArgumentNullException(nameof(writer));
-        }
+        ArgumentNullException.ThrowIfNull(writer);
 
         if (string.IsNullOrEmpty(data)) {
             return;

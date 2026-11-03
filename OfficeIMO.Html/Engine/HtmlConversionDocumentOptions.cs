@@ -129,8 +129,8 @@ public sealed class HtmlConversionDocumentOptions {
     }
 
     internal void Validate() {
-        if (ParserProvider == null) throw new ArgumentNullException(nameof(ParserProvider));
-        if (InputEncodingProvider == null) throw new ArgumentNullException(nameof(InputEncodingProvider));
+        ArgumentNullException.ThrowIfNull(ParserProvider);
+        ArgumentNullException.ThrowIfNull(InputEncodingProvider);
         if (!Enum.IsDefined(typeof(HtmlInputTrust), Trust)) throw new ArgumentOutOfRangeException(nameof(Trust));
         if (!Enum.IsDefined(typeof(HtmlConversionProfile), Profile)) throw new ArgumentOutOfRangeException(nameof(Profile));
         (Limits ?? ResolveDefaultLimits(Trust)).Validate();

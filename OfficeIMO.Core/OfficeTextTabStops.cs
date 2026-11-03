@@ -63,7 +63,7 @@ public sealed class OfficeTextTabStops {
     /// <param name="defaultInterval">Positive distance between default stops.</param>
     /// <param name="origin">Tab origin relative to the paragraph's inner left margin. May be negative.</param>
     public OfficeTextTabStops(IReadOnlyList<OfficeTextTabStop> stops, double defaultInterval = 36, double origin = 0) {
-        if (stops == null) throw new ArgumentNullException(nameof(stops));
+        ArgumentNullException.ThrowIfNull(stops);
         if (stops.Count > 256) throw new ArgumentException("A paragraph supports at most 256 explicit tab stops.", nameof(stops));
         if (defaultInterval <= 0 || double.IsNaN(defaultInterval) || double.IsInfinity(defaultInterval)) throw new ArgumentOutOfRangeException(nameof(defaultInterval));
         if (double.IsNaN(origin) || double.IsInfinity(origin)) throw new ArgumentOutOfRangeException(nameof(origin));

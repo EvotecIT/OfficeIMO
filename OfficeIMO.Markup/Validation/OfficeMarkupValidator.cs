@@ -7,9 +7,7 @@ public static class OfficeMarkupValidator {
     /// <summary>Reports nodes not allowed by the document profile and blocks missing required fields.</summary>
     /// <remarks>Validation returns diagnostics and does not mutate the semantic document.</remarks>
     public static IReadOnlyList<OfficeMarkupDiagnostic> Validate(OfficeMarkupDocument document) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
         var diagnostics = new List<OfficeMarkupDiagnostic>();
         foreach (var block in document.DescendantsAndSelf()) {

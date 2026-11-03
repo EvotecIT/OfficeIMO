@@ -74,7 +74,7 @@ public static partial class OfficeRasterFilters {
 
     /// <summary>Applies a caller-owned normalized RGBA affine matrix, including its explicit alpha row.</summary>
     public static OfficeRasterImage ColorMatrix(OfficeRasterImage source, OfficeRasterColorMatrix matrix, CancellationToken cancellationToken = default) {
-        if (matrix == null) throw new ArgumentNullException(nameof(matrix));
+        ArgumentNullException.ThrowIfNull(matrix);
         return Map(source, (c, _, _) => {
             double r = c.R / 255D, g = c.G / 255D, b = c.B / 255D, a = c.A / 255D;
             return OfficeColor.FromRgba(Channel(matrix.Apply(0, r, g, b, a) * 255D), Channel(matrix.Apply(1, r, g, b, a) * 255D),

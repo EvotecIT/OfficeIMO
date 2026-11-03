@@ -12,7 +12,7 @@ namespace OfficeIMO.Rtf.Markdown;
 /// <summary>Semantic conversion between OfficeIMO RTF and Markdown document models.</summary>
 public static partial class RtfMarkdownConverterExtensions {
     internal static RtfConversionResult<MarkdownDocument> ConvertToMarkdownWithEvidence(this RtfDocument document, RtfMarkdownExportOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         var context = new RtfToMarkdownConversionContext(options ?? new RtfMarkdownExportOptions());
         context.ConversionReport.Merge(document.GetStyleConversionDiagnostics());
         MarkdownDocument value = RtfToMarkdownConverter.Convert(document, context);
@@ -25,7 +25,7 @@ public static partial class RtfMarkdownConverterExtensions {
     }
 
     internal static RtfConversionResult<RtfDocument> ConvertToRtfWithEvidence(this MarkdownDocument markdown, MarkdownRtfExportOptions? options = null) {
-        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
+        ArgumentNullException.ThrowIfNull(markdown);
         var context = new MarkdownToRtfConversionContext(options ?? new MarkdownRtfExportOptions());
         RtfDocument value = MarkdownToRtfConverter.Convert(markdown, context);
         return new RtfConversionResult<RtfDocument>(value, context.ConversionReport);
@@ -38,7 +38,7 @@ public static partial class RtfMarkdownConverterExtensions {
     /// <summary>Converts an RTF document into a Markdown document model and returns the completed conversion report.</summary>
     public static MarkdownDocument ToMarkdown(this RtfDocument document, RtfMarkdownExportOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         RtfConversionResult<MarkdownDocument> result = document.ConvertToMarkdownWithEvidence(options);
         MarkdownDocument value = result.Value;
@@ -99,7 +99,7 @@ public static partial class RtfMarkdownConverterExtensions {
     /// <summary>Converts a Markdown document into an RTF document model and returns the completed conversion report.</summary>
     public static RtfDocument ToRtf(this MarkdownDocument markdown, MarkdownRtfExportOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
+        ArgumentNullException.ThrowIfNull(markdown);
         cancellationToken.ThrowIfCancellationRequested();
         RtfConversionResult<RtfDocument> result = markdown.ConvertToRtfWithEvidence(options);
         RtfDocument value = result.Value;

@@ -21,8 +21,8 @@ public static class VisioShapeResizeExtensions {
     /// supported. Physical font sizes, margins and line weights remain unchanged.
     /// </remarks>
     public static VisioShape ResizeShape(this VisioPage page, VisioShape shape, OfficeLength width, OfficeLength height) {
-        if (page == null) throw new ArgumentNullException(nameof(page));
-        if (shape == null) throw new ArgumentNullException(nameof(shape));
+        ArgumentNullException.ThrowIfNull(page);
+        ArgumentNullException.ThrowIfNull(shape);
         if (!ReferenceEquals(shape.OwnerPage, page)) throw new InvalidOperationException("The shape is not part of this page.");
         VisioShapeResizing.Resize(page, shape, width.ToInches(), height.ToInches());
         return shape;

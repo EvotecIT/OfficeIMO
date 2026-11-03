@@ -8,9 +8,7 @@ public static class HtmlCapabilityGalleryManifestWriter {
     /// Converts a gallery manifest to markdown.
     /// </summary>
     public static string ToMarkdown(HtmlCapabilityGalleryManifest manifest) {
-        if (manifest == null) {
-            throw new ArgumentNullException(nameof(manifest));
-        }
+        ArgumentNullException.ThrowIfNull(manifest);
 
         var builder = new StringBuilder();
         HtmlConversionProfileContract contract = HtmlConversionProfileContracts.Get(manifest.Profile);

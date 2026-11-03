@@ -27,7 +27,7 @@ public static class ArchiveInspector {
     /// <exception cref="NotSupportedException">The input uses an unsupported container or metadata profile.</exception>
     public static ArchiveInspection Open(Stream source, ArchiveInspectionOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         if (!source.CanRead) throw new ArgumentException("Inspection requires a readable stream.", nameof(source));
         var requested = options ?? new ArchiveInspectionOptions();
         var limits = CreateLimits(requested);

@@ -150,9 +150,9 @@ public sealed class OfficeRasterImage {
     }
 
     private static void ValidateRgba32Buffer(int width, int height, byte[] pixels) {
-        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
-        if (pixels == null) throw new ArgumentNullException(nameof(pixels));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
+        ArgumentNullException.ThrowIfNull(pixels);
         if (pixels.Length != checked(width * height * 4)) {
             throw new ArgumentException("RGBA buffer length does not match image dimensions.", nameof(pixels));
         }

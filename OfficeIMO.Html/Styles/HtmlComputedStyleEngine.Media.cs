@@ -14,7 +14,7 @@ public static partial class HtmlComputedStyleEngine {
         string mediaText,
         HtmlCssMediaContext mediaContext,
         HtmlRenderMediaFeatures mediaFeatures) {
-        if (mediaFeatures == null) throw new ArgumentNullException(nameof(mediaFeatures));
+        ArgumentNullException.ThrowIfNull(mediaFeatures);
         mediaFeatures.Validate();
         return IsApplicableMedia(mediaText, MediaEnvironment.CreateDefault(mediaContext, mediaFeatures));
     }
@@ -42,7 +42,7 @@ public static partial class HtmlComputedStyleEngine {
         if (surfaceHeight <= 0D || double.IsNaN(surfaceHeight) || double.IsInfinity(surfaceHeight)) {
             throw new ArgumentOutOfRangeException(nameof(surfaceHeight));
         }
-        if (mediaFeatures == null) throw new ArgumentNullException(nameof(mediaFeatures));
+        ArgumentNullException.ThrowIfNull(mediaFeatures);
         mediaFeatures.Validate();
 
         return IsApplicableMedia(mediaText, new MediaEnvironment(mediaContext, surfaceWidth, surfaceHeight, mediaFeatures));
@@ -156,7 +156,7 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     internal static bool IsPotentiallyApplicableScreenMedia(string mediaText, HtmlRenderMediaFeatures mediaFeatures) {
-        if (mediaFeatures == null) throw new ArgumentNullException(nameof(mediaFeatures));
+        ArgumentNullException.ThrowIfNull(mediaFeatures);
         mediaFeatures.Validate();
         if (string.IsNullOrWhiteSpace(mediaText)) return true;
 

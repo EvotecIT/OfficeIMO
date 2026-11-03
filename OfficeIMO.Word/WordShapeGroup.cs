@@ -72,8 +72,8 @@ namespace OfficeIMO.Word {
         public void Remove() => _drawing.Remove();
 
         internal static WordShapeGroup Add(WordParagraph paragraph, IEnumerable<WordShapeGroupItem> items, OfficeLength? left, OfficeLength? top) {
-            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
-            if (items == null) throw new ArgumentNullException(nameof(items));
+            ArgumentNullException.ThrowIfNull(paragraph);
+            ArgumentNullException.ThrowIfNull(items);
 
             List<WordShapeGroupItem> materialized = items.ToList();
             if (materialized.Count < 2) {

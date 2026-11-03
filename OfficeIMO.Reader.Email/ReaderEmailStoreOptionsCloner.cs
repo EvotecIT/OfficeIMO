@@ -22,8 +22,8 @@ internal static class ReaderEmailStoreOptionsCloner {
     internal static EmailStoreReaderOptions CreateEffective(
         ReaderEmailStoreOptions options,
         ReaderOptions readerOptions) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
-        if (readerOptions == null) throw new ArgumentNullException(nameof(readerOptions));
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(readerOptions);
         EmailStoreReaderOptions source = options.StoreOptions ?? EmailStoreReaderOptions.Default;
         long maxInputBytes = source.MaxInputBytes;
         if (readerOptions.MaxInputBytes.HasValue && readerOptions.MaxInputBytes.Value > 0) {

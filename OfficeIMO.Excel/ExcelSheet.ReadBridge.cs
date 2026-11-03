@@ -51,7 +51,7 @@ namespace OfficeIMO.Excel {
             Action<RowMapper<T>> configure,
             ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) where T : new() {
-            if (configure is null) throw new ArgumentNullException(nameof(configure));
+            ArgumentNullException.ThrowIfNull(configure);
             return RowsAsUsedRangeIterator(configure, options, cancellationToken);
         }
 
@@ -67,7 +67,7 @@ namespace OfficeIMO.Excel {
             Func<IDataRecord, T> factory,
             ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (factory is null) throw new ArgumentNullException(nameof(factory));
+            ArgumentNullException.ThrowIfNull(factory);
             return RowsAsUsedRangeIterator(factory, options, cancellationToken);
         }
 
@@ -97,7 +97,7 @@ namespace OfficeIMO.Excel {
             ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) where T : new() {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
-            if (configure is null) throw new ArgumentNullException(nameof(configure));
+            ArgumentNullException.ThrowIfNull(configure);
             return RowsAsRangeIterator(a1Range, configure, options, cancellationToken);
         }
 
@@ -116,7 +116,7 @@ namespace OfficeIMO.Excel {
             ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
-            if (factory is null) throw new ArgumentNullException(nameof(factory));
+            ArgumentNullException.ThrowIfNull(factory);
             return RowsAsRangeIterator(a1Range, factory, options, cancellationToken);
         }
 

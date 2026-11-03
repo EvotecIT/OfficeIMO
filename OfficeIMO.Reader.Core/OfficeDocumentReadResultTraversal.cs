@@ -11,7 +11,7 @@ public static partial class OfficeDocumentReadResultExtensions {
     /// Results reference source payloads or location projections and are not immutable snapshots.
     /// </summary>
     public static IEnumerable<OfficeDocumentContentItem> EnumerateContent(this OfficeDocumentReadResult document) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return OfficeDocumentModelTraversal.Content(document);
     }
 
@@ -22,13 +22,13 @@ public static partial class OfficeDocumentReadResultExtensions {
     /// Results may refer to source objects or location projections; they are not immutable snapshots.
     /// </summary>
     public static IEnumerable<OfficeDocumentBlock> EnumerateBlocks(this OfficeDocumentReadResult document) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return OfficeDocumentModelTraversal.Blocks(document);
     }
 
     /// <summary>Enumerates document and chunk visual projections using the Reader's canonical duplicate handling.</summary>
     public static IEnumerable<ReaderVisual> EnumerateVisuals(this OfficeDocumentReadResult document) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return OfficeDocumentModelTraversal.Visuals(document);
     }
 
@@ -37,7 +37,7 @@ public static partial class OfficeDocumentReadResultExtensions {
     /// Page-only tables inherit missing location information from their page. Results may refer to source model objects.
     /// </summary>
     public static IEnumerable<ReaderTable> EnumerateTables(this OfficeDocumentReadResult document) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return OfficeDocumentModelTraversal.Tables(document);
     }
 }

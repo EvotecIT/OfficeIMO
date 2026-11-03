@@ -5,7 +5,7 @@ namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointDesignExtensions {
         internal static PowerPointSlide FinalizeDesignerAccessibility(PowerPointSlide slide, string? requestedTitle = null,
             string language = "en-US") {
-            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            ArgumentNullException.ThrowIfNull(slide);
             PowerPointTextBox? detectedTitle = slide.TextBoxes
                 .Where(box => !string.IsNullOrWhiteSpace(box.Text))
                 .OrderBy(box => box.Top.ToPoints())

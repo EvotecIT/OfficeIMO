@@ -126,7 +126,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Sets flowchart-specific node dimensions without introducing a second visual theme.</summary>
         public VisioFlowchartBuilder LayoutOptions(VisioFlowchartLayoutOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             ValidatePositive(options.ProcessWidth, nameof(options));
             ValidatePositive(options.ProcessHeight, nameof(options));
             ValidatePositive(options.DecisionWidth, nameof(options));

@@ -8,8 +8,8 @@ public static class PdfPrintRenderer {
     /// <summary>Prepares raster sheets from an authenticated snapshot without reopening the source location.</summary>
     public static PdfPreparedPrintDocument Prepare(PdfDocument document, PdfPrintPlanRequest request,
         PdfPrintRenderOptions? options = null, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(request);
         string sourcePath = request.InputPath;
         options ??= new();
         double dpi = options.Dpi;

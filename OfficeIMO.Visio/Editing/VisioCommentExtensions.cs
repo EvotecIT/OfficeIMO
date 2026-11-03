@@ -11,9 +11,7 @@ namespace OfficeIMO.Visio {
         /// Adds a page-level native Visio comment.
         /// </summary>
         public static VisioComment AddComment(this VisioPage page, string text, string? authorName = null, string? authorInitials = null, VisioCommentOptions? options = null) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             VisioComment comment = CreateComment(page, text, authorName, authorInitials, options);
             page.Comments.Add(comment);
@@ -24,13 +22,9 @@ namespace OfficeIMO.Visio {
         /// Adds a native Visio comment to a shape on the page.
         /// </summary>
         public static VisioComment AddComment(this VisioPage page, VisioShape target, string text, string? authorName = null, string? authorInitials = null, VisioCommentOptions? options = null) {
-            if (target == null) {
-                throw new ArgumentNullException(nameof(target));
-            }
+            ArgumentNullException.ThrowIfNull(target);
 
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             EnsureTargetBelongsToPage(page, target.Id);
             VisioComment comment = CreateComment(page, text, authorName, authorInitials, options);
@@ -43,9 +37,7 @@ namespace OfficeIMO.Visio {
         /// Adds a native Visio comment to a shape or connector by identifier.
         /// </summary>
         public static VisioComment AddCommentToShape(this VisioPage page, string shapeId, string text, string? authorName = null, string? authorInitials = null, VisioCommentOptions? options = null) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             EnsureTargetBelongsToPage(page, shapeId);
             VisioComment comment = CreateComment(page, text, authorName, authorInitials, options);
@@ -58,9 +50,7 @@ namespace OfficeIMO.Visio {
         /// Returns comments that target the provided shape.
         /// </summary>
         public static IReadOnlyList<VisioComment> CommentsForShape(this VisioPage page, VisioShape target) {
-            if (target == null) {
-                throw new ArgumentNullException(nameof(target));
-            }
+            ArgumentNullException.ThrowIfNull(target);
 
             return page.CommentsForShape(target.Id);
         }
@@ -69,9 +59,7 @@ namespace OfficeIMO.Visio {
         /// Returns comments that target the provided shape or connector identifier.
         /// </summary>
         public static IReadOnlyList<VisioComment> CommentsForShape(this VisioPage page, string shapeId) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             if (string.IsNullOrWhiteSpace(shapeId)) {
                 throw new ArgumentException("Shape id cannot be empty.", nameof(shapeId));
@@ -86,9 +74,7 @@ namespace OfficeIMO.Visio {
         /// Finds a native Visio comment by its page-scoped identifier.
         /// </summary>
         public static VisioComment? FindComment(this VisioPage page, int commentId) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             return page.Comments.FirstOrDefault(comment => comment.Id == commentId);
         }
@@ -97,9 +83,7 @@ namespace OfficeIMO.Visio {
         /// Returns native Visio comments that are not marked as done.
         /// </summary>
         public static IReadOnlyList<VisioComment> UnresolvedComments(this VisioPage page) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             return page.Comments.Where(comment => !comment.Done).ToList();
         }
@@ -108,9 +92,7 @@ namespace OfficeIMO.Visio {
         /// Returns native Visio comments that are marked as done.
         /// </summary>
         public static IReadOnlyList<VisioComment> ResolvedComments(this VisioPage page) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             return page.Comments.Where(comment => comment.Done).ToList();
         }
@@ -119,7 +101,7 @@ namespace OfficeIMO.Visio {
         public static VisioComment ReplyToComment(this VisioPage page,
             int parentCommentId, string text, VisioCommentAuthor author,
             VisioCommentOptions? options = null) {
-            if (author == null) throw new ArgumentNullException(nameof(author));
+            ArgumentNullException.ThrowIfNull(author);
             VisioComment parent = RequireComment(page, parentCommentId);
             string threadId = string.IsNullOrWhiteSpace(parent.ThreadId)
                 ? "visio-thread-" + parent.Id.ToString(System.Globalization.CultureInfo.InvariantCulture)
@@ -138,7 +120,7 @@ namespace OfficeIMO.Visio {
         /// <summary>Returns deterministic root-and-reply thread projections.</summary>
         public static IReadOnlyList<VisioCommentThread> GetCommentThreads(
             this VisioPage page) {
-            if (page == null) throw new ArgumentNullException(nameof(page));
+            ArgumentNullException.ThrowIfNull(page);
             Dictionary<int, VisioComment> byId = page.Comments
                 .ToDictionary(comment => comment.Id);
             return page.Comments
@@ -160,8 +142,8 @@ namespace OfficeIMO.Visio {
         /// <summary>Returns comments written by one stable author identity.</summary>
         public static IReadOnlyList<VisioComment> CommentsByAuthor(
             this VisioPage page, VisioCommentAuthor author) {
-            if (page == null) throw new ArgumentNullException(nameof(page));
-            if (author == null) throw new ArgumentNullException(nameof(author));
+            ArgumentNullException.ThrowIfNull(page);
+            ArgumentNullException.ThrowIfNull(author);
             return page.Comments.Where(comment =>
                     string.Equals(comment.AuthorName, author.Name, StringComparison.Ordinal) &&
                     string.Equals(comment.AuthorInitials, author.Initials, StringComparison.Ordinal) &&
@@ -200,13 +182,9 @@ namespace OfficeIMO.Visio {
         /// Removes a native Visio comment from the page.
         /// </summary>
         public static bool RemoveComment(this VisioPage page, VisioComment comment) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
-            if (comment == null) {
-                throw new ArgumentNullException(nameof(comment));
-            }
+            ArgumentNullException.ThrowIfNull(comment);
 
             if (!page.Comments.Contains(comment)) return false;
             RemoveCommentAndReplies(page, comment.Id);
@@ -227,9 +205,7 @@ namespace OfficeIMO.Visio {
         /// Removes all native Visio comments targeting a shape or connector identifier.
         /// </summary>
         public static int RemoveCommentsForShape(this VisioPage page, string shapeId) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             if (string.IsNullOrWhiteSpace(shapeId)) {
                 throw new ArgumentException("Shape id cannot be empty.", nameof(shapeId));
@@ -248,9 +224,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static VisioComment RequireComment(VisioPage page, int commentId) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             VisioComment? comment = page.FindComment(commentId);
             if (comment == null) {
@@ -291,9 +265,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static VisioComment CreateComment(VisioPage page, string text, string? authorName, string? authorInitials, VisioCommentOptions? options) {
-            if (text == null) {
-                throw new ArgumentNullException(nameof(text));
-            }
+            ArgumentNullException.ThrowIfNull(text);
 
             VisioCommentOptions effectiveOptions = options ?? new VisioCommentOptions();
             VisioComment comment = new(text) {

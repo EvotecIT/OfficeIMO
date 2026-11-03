@@ -52,7 +52,7 @@ internal sealed class IWorkWireMessage {
 
     internal IReadOnlyList<ulong> GetRepeatedUnsigned(int field, bool packed,
         int maximumValues) {
-        if (maximumValues < 0) throw new ArgumentOutOfRangeException(nameof(maximumValues));
+        ArgumentOutOfRangeException.ThrowIfNegative(maximumValues);
         int effectiveMaximum = Math.Min(maximumValues, _options.MaxProtobufFieldCount);
         string limitDescription = effectiveMaximum < maximumValues
             ? $"configured value limit of {_options.MaxProtobufFieldCount}"
@@ -284,8 +284,8 @@ internal static class IWorkProtobuf {
     internal static IReadOnlyList<IWorkWireMessage> ParseRepeatedMessages(
         byte[] data, int targetField, int maximumMatches, IWorkReadOptions options,
         out bool malformedTarget) {
-        if (targetField <= 0) throw new ArgumentOutOfRangeException(nameof(targetField));
-        if (maximumMatches <= 0) throw new ArgumentOutOfRangeException(nameof(maximumMatches));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(targetField);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumMatches);
         var result = new List<IWorkWireMessage>();
         malformedTarget = false;
         int offset = 0;

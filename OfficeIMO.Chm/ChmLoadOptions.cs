@@ -43,16 +43,16 @@ public sealed class ChmLoadOptions {
     internal void Validate() {
         if (MaxInputBytes < 1 || MaxInputBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(MaxInputBytes));
         if (MaxExpandedBytes < 1 || MaxExpandedBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(MaxExpandedBytes));
-        if (MaxEntries < 1) throw new ArgumentOutOfRangeException(nameof(MaxEntries));
-        if (MaxEntryBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaxEntryBytes));
-        if (MaxPathLength < 1) throw new ArgumentOutOfRangeException(nameof(MaxPathLength));
-        if (MaxNavigationItems < 1) throw new ArgumentOutOfRangeException(nameof(MaxNavigationItems));
-        if (MaxNavigationReferences < 1) throw new ArgumentOutOfRangeException(nameof(MaxNavigationReferences));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxEntries, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxEntryBytes, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxPathLength, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxNavigationItems, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxNavigationReferences, 1);
         if (MaxNavigationCharacters < 1 || MaxNavigationCharacters > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(MaxNavigationCharacters));
         if (MaxNavigationDepth < 1 || MaxNavigationDepth > 512) throw new ArgumentOutOfRangeException(nameof(MaxNavigationDepth));
-        if (MaxHtmlNodes < 1) throw new ArgumentOutOfRangeException(nameof(MaxHtmlNodes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxHtmlNodes, 1);
         if (MaxHtmlDepth < 1 || MaxHtmlDepth > 512) throw new ArgumentOutOfRangeException(nameof(MaxHtmlDepth));
-        if (ParserProvider == null) throw new ArgumentNullException(nameof(ParserProvider));
-        if (EncodingProvider == null) throw new ArgumentNullException(nameof(EncodingProvider));
+        ArgumentNullException.ThrowIfNull(ParserProvider);
+        ArgumentNullException.ThrowIfNull(EncodingProvider);
     }
 }

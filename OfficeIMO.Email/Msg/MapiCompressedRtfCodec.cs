@@ -136,7 +136,7 @@ internal static class MapiCompressedRtfCodec {
     }
 
     internal static byte[] Compress(byte[] source, CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         cancellationToken.ThrowIfCancellationRequested();
         var dictionary = new CompressionDictionary();
         using (var contents = new MemoryStream()) {

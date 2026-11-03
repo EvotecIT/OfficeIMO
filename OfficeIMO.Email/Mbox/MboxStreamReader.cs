@@ -3,7 +3,7 @@ namespace OfficeIMO.Email;
 internal static class MboxStreamReader {
     internal static IEnumerable<EmailMailboxEntryReadResult> Read(Stream stream, EmailMailboxReaderOptions options,
         CancellationToken cancellationToken) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("The stream must be readable.", nameof(stream));
         return Enumerate(stream, options, cancellationToken);
     }

@@ -18,7 +18,7 @@ public sealed class VisioDocumentProjectionOptions {
     public VisioPngSaveOptions? PngOptions { get; set; }
 
     internal VisioDocumentProjectionOptions Snapshot() {
-        if (MaxTableRows <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTableRows));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxTableRows);
         return new VisioDocumentProjectionOptions {
             MaxTableRows = MaxTableRows,
             IncludeSvgPreviewAssets = IncludeSvgPreviewAssets,

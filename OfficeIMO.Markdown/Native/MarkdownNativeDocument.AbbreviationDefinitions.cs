@@ -107,9 +107,7 @@ public sealed partial class MarkdownNativeDocument {
 
     /// <summary>Creates a non-mutating source edit that replaces an abbreviation definition.</summary>
     public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownAbbreviationDefinition abbreviationDefinition, string replacementMarkdown) {
-        if (abbreviationDefinition == null) {
-            throw new ArgumentNullException(nameof(abbreviationDefinition));
-        }
+        ArgumentNullException.ThrowIfNull(abbreviationDefinition);
 
         if (!abbreviationDefinition.SourceSpan.HasValue) {
             throw new InvalidOperationException("The abbreviation definition does not have a source span.");
@@ -120,9 +118,7 @@ public sealed partial class MarkdownNativeDocument {
 
     /// <summary>Creates a non-mutating source edit that replaces an abbreviation definition field.</summary>
     public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeAbbreviationDefinitionField field, string replacementMarkdown) {
-        if (field == null) {
-            throw new ArgumentNullException(nameof(field));
-        }
+        ArgumentNullException.ThrowIfNull(field);
 
         return CreateReplaceEdit(field.SourceSpan, replacementMarkdown);
     }

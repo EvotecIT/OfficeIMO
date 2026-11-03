@@ -72,17 +72,11 @@ internal static partial class ExcelLibraryComparisonRunner {
             throw new ArgumentException("Output path must not be empty.", nameof(outputPath));
         }
 
-        if (rowCount <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(rowCount));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowCount);
 
-        if (warmupIterations <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(warmupIterations));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(warmupIterations);
 
-        if (measuredIterations <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(measuredIterations));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(measuredIterations);
 
         ConfigureEpPlusLicense();
         _libraryFilter = BuildLibraryFilter(libraryFilters);
@@ -713,17 +707,11 @@ internal static partial class ExcelLibraryComparisonRunner {
             throw new ArgumentException("Output path must not be empty.", nameof(outputPath));
         }
 
-        if (rowCount <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(rowCount));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowCount);
 
-        if (warmupIterations <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(warmupIterations));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(warmupIterations);
 
-        if (measuredIterations <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(measuredIterations));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(measuredIterations);
 
         ConfigureEpPlusLicense();
         var scenarioFilter = BuildScenarioFilter(scenarioFilters);

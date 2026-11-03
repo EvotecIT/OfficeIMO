@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Inspects the attached VBA project while enforcing a decoded byte limit.</summary>
         public OfficeVbaProjectInfo? InspectVbaProject(bool includeSha256, long maxBytes) {
-            if (maxBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxBytes);
             return Locking.ExecuteRead(EnsureLock(), () => {
                 VbaProjectPart? part = WorkbookPartRoot?.VbaProjectPart;
                 return part == null ? null : OfficeOpenXmlPackagePayload.CreateVbaProjectInfo(

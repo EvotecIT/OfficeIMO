@@ -8,7 +8,7 @@ public static class OfficeDocumentReaderBuilderPublisherExtensions {
     /// <summary>Registers bounded PUB story, table-grid, page-inventory and embedded-image recovery.</summary>
     public static OfficeDocumentReaderBuilder AddPublisherHandler(this OfficeDocumentReaderBuilder builder,
         ReaderPublisherOptions? options = null, bool replaceExisting = false) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderPublisherOptions registered = (options ?? new ReaderPublisherOptions()).Clone();
         long maximumBytes = registered.ReadOptions!.Limits.MaxInputBytes;
         return builder.AddHandler(new ReaderHandlerRegistration {

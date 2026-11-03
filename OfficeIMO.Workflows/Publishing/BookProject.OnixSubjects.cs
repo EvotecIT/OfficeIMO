@@ -4,7 +4,7 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class BookProject {
     private static IReadOnlyList<XElement> BuildOnixSubjects(IReadOnlyList<BookOnixSubject> subjects, CancellationToken token) {
-        if (subjects == null) throw new ArgumentNullException(nameof(subjects));
+        ArgumentNullException.ThrowIfNull(subjects);
         if (subjects.Count > 64) throw new ArgumentException("Supply at most 64 ONIX subject declarations.", nameof(subjects));
         XNamespace ns = OnixNamespace;
         var result = new List<XElement>();

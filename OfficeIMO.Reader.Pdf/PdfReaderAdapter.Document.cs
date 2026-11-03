@@ -95,7 +95,7 @@ internal static partial class PdfReaderAdapter {
     /// Reads a PDF file and returns the shared OfficeIMO read result envelope.
     /// </summary>
     public static OfficeDocumentReadResult ReadDocument(string pdfPath, ReaderOptions? readerOptions = null, ReaderPdfOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
-        if (pdfPath == null) throw new ArgumentNullException(nameof(pdfPath));
+        ArgumentNullException.ThrowIfNull(pdfPath);
         if (pdfPath.Length == 0) throw new ArgumentException("PDF path cannot be empty.", nameof(pdfPath));
         if (!File.Exists(pdfPath)) throw new FileNotFoundException($"PDF file '{pdfPath}' doesn't exist.", pdfPath);
 
@@ -114,7 +114,7 @@ internal static partial class PdfReaderAdapter {
     /// Reads a PDF stream and returns the shared OfficeIMO read result envelope.
     /// </summary>
     public static OfficeDocumentReadResult ReadDocument(Stream pdfStream, string? sourceName = null, ReaderOptions? readerOptions = null, ReaderPdfOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
-        if (pdfStream == null) throw new ArgumentNullException(nameof(pdfStream));
+        ArgumentNullException.ThrowIfNull(pdfStream);
         if (!pdfStream.CanRead) throw new ArgumentException("PDF stream must be readable.", nameof(pdfStream));
 
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
@@ -138,7 +138,7 @@ internal static partial class PdfReaderAdapter {
     /// Reads PDF bytes and returns the shared OfficeIMO read result envelope.
     /// </summary>
     public static OfficeDocumentReadResult ReadDocument(byte[] pdfBytes, string? sourceName = null, ReaderOptions? readerOptions = null, ReaderPdfOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
-        if (pdfBytes == null) throw new ArgumentNullException(nameof(pdfBytes));
+        ArgumentNullException.ThrowIfNull(pdfBytes);
 
         using var stream = new MemoryStream(pdfBytes, writable: false);
         return ReadDocument(stream, sourceName, readerOptions, pdfOptions, cancellationToken);
@@ -148,8 +148,8 @@ internal static partial class PdfReaderAdapter {
     /// Converts an already loaded logical PDF model into the shared OfficeIMO read result envelope.
     /// </summary>
     public static OfficeDocumentReadResult ReadDocument(PdfDocumentReadResult document, string sourceName = "document.pdf", ReaderOptions? readerOptions = null, ReaderPdfOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(sourceName);
 
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
         var effectivePdfOptions = ReaderPdfOptionsCloner.CloneOrDefault(pdfOptions);

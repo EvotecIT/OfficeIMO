@@ -12,7 +12,7 @@ public static partial class OfficeConverter {
 
     /// <summary>Registers an opt-in implementation of an existing catalog route. Built-in routes cannot be replaced.</summary>
     public static void Register(IOfficeConversionRoute route) {
-        if (route == null) throw new ArgumentNullException(nameof(route));
+        ArgumentNullException.ThrowIfNull(route);
         if (!OfficeConversionCapabilityCatalog.All.Any(capability => string.Equals(capability.Id, route.Id, StringComparison.OrdinalIgnoreCase)))
             throw new ArgumentException("Choose a route from the canonical conversion capability catalog.", nameof(route));
         if (BuiltinRouteIds.Contains(route.Id) || !Registrations.TryAdd(route.Id, route))

@@ -8,8 +8,8 @@ namespace OfficeIMO.Html.Css;
 public readonly struct HtmlCssSourceSpan : IEquatable<HtmlCssSourceSpan> {
     /// <summary>Creates a source span.</summary>
     public HtmlCssSourceSpan(int offset, int length) {
-        if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset));
-        if (length < 0) throw new ArgumentOutOfRangeException(nameof(length));
+        ArgumentOutOfRangeException.ThrowIfNegative(offset);
+        ArgumentOutOfRangeException.ThrowIfNegative(length);
         Offset = offset;
         Length = length;
     }
@@ -22,7 +22,7 @@ public readonly struct HtmlCssSourceSpan : IEquatable<HtmlCssSourceSpan> {
     public int End => checked(Offset + Length);
     /// <summary>Reads this span from the source it belongs to.</summary>
     public string GetText(string source) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         if (End > source.Length) throw new ArgumentOutOfRangeException(nameof(source));
         return source.Substring(Offset, Length);
     }

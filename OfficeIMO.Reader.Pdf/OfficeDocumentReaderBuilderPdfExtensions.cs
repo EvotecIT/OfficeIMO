@@ -16,7 +16,7 @@ public static class OfficeDocumentReaderBuilderPdfExtensions {
         this OfficeDocumentReaderBuilder builder,
         ReaderPdfOptions? pdfOptions = null,
         bool replaceExisting = true) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         return builder.AddHandler(CreateRegistration(pdfOptions), replaceExisting);
     }
 

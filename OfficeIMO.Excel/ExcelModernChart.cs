@@ -123,7 +123,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Updates data for an OfficeIMO-authored chart while preserving unrelated ChartEx siblings and formatting.</summary>
         public ExcelModernChart UpdateData(ExcelChartData data) {
-            if (data == null) throw new ArgumentNullException(nameof(data));
+            ArgumentNullException.ThrowIfNull(data);
             return Locking.ExecuteWrite(_sheet.Document.EnsureLock(), () => {
                 ExcelChartDataRange currentRange = DataRange
                     ?? throw new InvalidOperationException("Imported ChartEx data cannot be replaced without an explicit authored data range.");

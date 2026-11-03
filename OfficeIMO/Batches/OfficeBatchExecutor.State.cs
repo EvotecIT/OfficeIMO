@@ -61,7 +61,7 @@ internal static partial class OfficeBatchExecutor {
     }
 
     private static OfficeBatchOptions Snapshot(OfficeBatchOptions request, IReadOnlyList<OfficeConversionExecutionRoute> routes) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         if (request.MaxParallelism is < 1 or > 32 || request.MaximumFiles < 1 || request.MaximumInputBytes < 1 || request.MaximumOutputBytes < 1 || request.MaximumXmlCharactersInPart < 1)
             throw new ArgumentException("Batch resource limits are invalid.", nameof(request));
         var copy = request with {

@@ -19,7 +19,7 @@ public sealed class ProjectFluentDocument {
     }
     /// <summary>Configures metadata on the underlying document.</summary>
     public ProjectFluentDocument Info(Action<ProjectInfoBuilder> configure) {
-        if (configure == null) throw new ArgumentNullException(nameof(configure));
+        ArgumentNullException.ThrowIfNull(configure);
         configure(new ProjectInfoBuilder(Document)); return this;
     }
     /// <summary>Sets a local project start and forward-scheduling input.</summary>
@@ -28,20 +28,20 @@ public sealed class ProjectFluentDocument {
     public ProjectFluentDocument StandardWorkingWeek(string name = "Standard") { Document.Calendar = Document.Calendars.AddStandardWorkingWeek(name); return this; }
     /// <summary>Configures an explicit calendar through the same typed model.</summary>
     public ProjectFluentDocument Calendar(string name, Action<ProjectCalendar> configure) {
-        if (configure == null) throw new ArgumentNullException(nameof(configure));
+        ArgumentNullException.ThrowIfNull(configure);
         var calendar = Document.Calendars.Add(name); configure(calendar); Document.Calendar = calendar; return this;
     }
     /// <summary>Creates a resource and registers its session-local alias.</summary>
     public ProjectFluentDocument Resource(string alias, Action<ProjectResourceBuilder> configure) {
         CheckAlias(alias, _resources);
-        if (configure == null) throw new ArgumentNullException(nameof(configure));
+        ArgumentNullException.ThrowIfNull(configure);
         var resource = Document.Resources.AddWork(alias); _resources.Add(alias, resource);
         configure(new ProjectResourceBuilder(resource)); return this;
     }
     /// <summary>Registers an existing resource for later fluent assignments.</summary>
     public ProjectFluentDocument Resource(string alias, ProjectResource resource) {
         CheckAlias(alias, _resources); Document.CheckMember(resource);
-        if (resource == null) throw new ArgumentNullException(nameof(resource));
+        ArgumentNullException.ThrowIfNull(resource);
         _resources.Add(alias, resource); return this;
     }
     /// <summary>Adds a top-level task.</summary>
@@ -50,7 +50,7 @@ public sealed class ProjectFluentDocument {
     }
     /// <summary>Adds and configures a top-level summary.</summary>
     public ProjectFluentDocument Summary(string alias, string name, Action<ProjectFluentTasks> configure) {
-        if (configure == null) throw new ArgumentNullException(nameof(configure));
+        ArgumentNullException.ThrowIfNull(configure);
         var task = AddTask(Document.Tasks, alias, name, true, null);
         configure(new ProjectFluentTasks(this, task.Children)); return this;
     }

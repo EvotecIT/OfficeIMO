@@ -11,7 +11,7 @@ public static partial class HtmlOneNoteConverterExtensions {
     private const string ComponentName = "OfficeIMO.OneNote.Html";
 
     internal static HtmlToOneNoteSectionResult ConvertToOneNoteSectionWithEvidence(this HtmlConversionDocument document, HtmlOneNoteExportOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         HtmlOneNoteExportOptions resolved = options?.Clone() ?? new HtmlOneNoteExportOptions();
         resolved.Limits.Validate();
         var section = new OneNoteSection { Name = CleanName(resolved.SectionName, "Imported") };
@@ -71,7 +71,7 @@ public static partial class HtmlOneNoteConverterExtensions {
     }
 
     internal static HtmlToOneNoteNotebookResult ConvertToOneNoteNotebookWithEvidence(this HtmlConversionDocument document, HtmlOneNoteExportOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         HtmlOneNoteExportOptions resolved = options?.Clone() ?? new HtmlOneNoteExportOptions();
         HtmlToOneNoteSectionResult sectionResult = document.ConvertToOneNoteSectionWithEvidence(resolved);
         var notebook = new OneNoteNotebook { Name = CleanName(resolved.NotebookName, "Imported") };

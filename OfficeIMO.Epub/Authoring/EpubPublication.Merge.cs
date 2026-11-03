@@ -15,7 +15,7 @@ public sealed partial class EpubPublication {
     /// cascade applies to both chapters; unresolved scaffold, identifier and package-refinement conflicts fail atomically.</summary>
     public void MergeChapters(string firstManifestId, string secondManifestId, string boundaryId, EpubChapterMergeOptions options,
         CancellationToken cancellationToken = default) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         EpubChapterMergeStylePolicy stylePolicy = options.StylePolicy;
         if (stylePolicy != EpubChapterMergeStylePolicy.RequireEquivalent && stylePolicy != EpubChapterMergeStylePolicy.AppendSecondStyles)
             throw new ArgumentOutOfRangeException(nameof(options.StylePolicy));

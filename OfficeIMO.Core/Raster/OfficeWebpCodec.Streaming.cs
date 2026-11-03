@@ -45,7 +45,7 @@ public static partial class OfficeWebpCodec {
 #if NET8_0_OR_GREATER
     /// <summary>Encodes an RGBA image directly to a caller-owned buffer writer.</summary>
     public static void EncodeTo(OfficeRasterImage image, IBufferWriter<byte> destination) {
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(destination);
         using var stream = new OfficeBufferWriterStream(destination);
         EncodeTo(image, stream);
     }
@@ -56,7 +56,7 @@ public static partial class OfficeWebpCodec {
         IBufferWriter<byte> destination,
         double dpiX,
         double dpiY) {
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(destination);
         using var stream = new OfficeBufferWriterStream(destination);
         EncodeTo(image, stream, dpiX, dpiY);
     }
@@ -73,8 +73,8 @@ public static partial class OfficeWebpCodec {
         long additionalRetainedManagedBytes = 0L,
         bool materializeOutput = false,
         OfficeImageEncodingEffort effort = OfficeImageEncodingEffort.Balanced) {
-        if (image == null) throw new ArgumentNullException(nameof(image));
-        if (additionalRetainedManagedBytes < 0L) throw new ArgumentOutOfRangeException(nameof(additionalRetainedManagedBytes));
+        ArgumentNullException.ThrowIfNull(image);
+        ArgumentOutOfRangeException.ThrowIfLessThan(additionalRetainedManagedBytes, 0L);
         OfficeRasterOutput.EnsureWritable(destination);
         cancellationToken.ThrowIfCancellationRequested();
         if (image.Width > OfficeRasterImageEncoder.WebpMaximumDimension) throw new ArgumentOutOfRangeException(nameof(image), "WebP width cannot exceed 16,384 pixels.");
@@ -242,7 +242,8 @@ public static partial class OfficeWebpCodec {
         internal int BytesWritten { get; private set; }
 
         public void WriteBits(uint value, int count) {
-            if (count < 0 || count > 32) throw new ArgumentOutOfRangeException(nameof(count));
+            ArgumentOutOfRangeException.ThrowIfNegative(count);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(count, 32);
             ulong mask = count == 32 ? uint.MaxValue : ((1UL << count) - 1UL);
             _buffer |= ((ulong)value & mask) << _bitCount;
             _bitCount += count;

@@ -11,13 +11,9 @@ public static class HtmlToMarkdownOptionsExtensions {
     /// Applies a renderer plugin's HTML-ingestion contract to HTML-to-markdown options.
     /// </summary>
     public static void ApplyPlugin(this HtmlMarkdownExportOptions options, MarkdownRendererPlugin plugin) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
-        if (plugin == null) {
-            throw new ArgumentNullException(nameof(plugin));
-        }
+        ArgumentNullException.ThrowIfNull(plugin);
 
         if (!options.TryMarkPluginApplied(plugin.Id)) {
             return;
@@ -34,13 +30,9 @@ public static class HtmlToMarkdownOptionsExtensions {
     /// has already been applied to HTML-to-markdown options.
     /// </summary>
     public static bool HasPlugin(this HtmlMarkdownExportOptions options, MarkdownRendererPlugin plugin) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
-        if (plugin == null) {
-            throw new ArgumentNullException(nameof(plugin));
-        }
+        ArgumentNullException.ThrowIfNull(plugin);
 
         return options.HasPluginId(plugin.Id)
             || (ContainsAllDocumentTransforms(options.DocumentTransforms, plugin.HtmlDocumentTransforms)
@@ -53,13 +45,9 @@ public static class HtmlToMarkdownOptionsExtensions {
     /// Applies a renderer feature pack's HTML-ingestion contract to HTML-to-markdown options.
     /// </summary>
     public static void ApplyFeaturePack(this HtmlMarkdownExportOptions options, MarkdownRendererFeaturePack featurePack) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
-        if (featurePack == null) {
-            throw new ArgumentNullException(nameof(featurePack));
-        }
+        ArgumentNullException.ThrowIfNull(featurePack);
 
         if (!options.TryMarkFeaturePackApplied(featurePack.Id)) {
             return;
@@ -80,13 +68,9 @@ public static class HtmlToMarkdownOptionsExtensions {
     /// has already been applied to HTML-to-markdown options.
     /// </summary>
     public static bool HasFeaturePack(this HtmlMarkdownExportOptions options, MarkdownRendererFeaturePack featurePack) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
-        if (featurePack == null) {
-            throw new ArgumentNullException(nameof(featurePack));
-        }
+        ArgumentNullException.ThrowIfNull(featurePack);
 
         return options.HasFeaturePackId(featurePack.Id)
             || (ContainsAllDocumentTransforms(options.DocumentTransforms, featurePack.HtmlDocumentTransforms)

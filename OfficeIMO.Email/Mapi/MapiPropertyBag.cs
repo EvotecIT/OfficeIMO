@@ -30,13 +30,13 @@ public sealed class MapiPropertyBag {
 
     /// <summary>Returns every property with the specified canonical identity and an accepted wire type.</summary>
     public IReadOnlyList<MapiProperty> FindAll(MapiPropertyKey key) {
-        if (key == null) throw new ArgumentNullException(nameof(key));
+        ArgumentNullException.ThrowIfNull(key);
         return _properties.Where(key.Matches).ToArray();
     }
 
     /// <summary>Returns every raw property with the specified canonical identity, in source order.</summary>
     public IReadOnlyList<MapiProperty> FindAllRaw(MapiPropertyKey key) {
-        if (key == null) throw new ArgumentNullException(nameof(key));
+        ArgumentNullException.ThrowIfNull(key);
         return _properties.Where(key.MatchesIdentity).ToArray();
     }
 
@@ -63,22 +63,22 @@ public sealed class MapiPropertyBag {
     /// wire type. Existing mapped property ID and flags are retained unless flags are supplied explicitly.
     /// </summary>
     public MapiProperty Set<T>(MapiPropertyKey<T> key, T value, uint? flags = null) {
-        if (key == null) throw new ArgumentNullException(nameof(key));
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(key);
+        ArgumentNullException.ThrowIfNull(value);
 
         return SetValue(key, value, key.PreferredType, flags);
     }
 
     /// <summary>Writes a value using one of the key's accepted wire types.</summary>
     public MapiProperty Set<T>(MapiPropertyKey<T> key, T value, MapiPropertyType wireType, uint? flags = null) {
-        if (key == null) throw new ArgumentNullException(nameof(key));
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(key);
+        ArgumentNullException.ThrowIfNull(value);
         return SetValue(key, value, wireType, flags);
     }
 
     /// <summary>Writes a null placeholder for an object or null-typed MAPI property.</summary>
     public MapiProperty SetNull(MapiPropertyKey key, MapiPropertyType wireType, uint? flags = null) {
-        if (key == null) throw new ArgumentNullException(nameof(key));
+        ArgumentNullException.ThrowIfNull(key);
         if (wireType != MapiPropertyType.Object && wireType != MapiPropertyType.Null) {
             throw new ArgumentException("Only Object and Null MAPI wire types can be written without a value.",
                 nameof(wireType));
@@ -92,8 +92,8 @@ public sealed class MapiPropertyBag {
 
     internal MapiProperty SetValue(MapiPropertyKey key, object value, MapiPropertyType wireType,
         uint? flags = null) {
-        if (key == null) throw new ArgumentNullException(nameof(key));
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(key);
+        ArgumentNullException.ThrowIfNull(value);
         ValidateWireType(key, wireType);
         if (!key.ValueType.IsInstanceOfType(value)) {
             throw new ArgumentException(string.Concat("Property ", key.CanonicalName, " requires managed value type ",
@@ -124,7 +124,7 @@ public sealed class MapiPropertyBag {
     /// <summary>Removes all properties with the specified canonical identity.</summary>
     /// <returns>The number of removed raw properties.</returns>
     public int Remove(MapiPropertyKey key) {
-        if (key == null) throw new ArgumentNullException(nameof(key));
+        ArgumentNullException.ThrowIfNull(key);
         int removed = 0;
         for (int index = _properties.Count - 1; index >= 0; index--) {
             if (!key.MatchesIdentity(_properties[index])) continue;

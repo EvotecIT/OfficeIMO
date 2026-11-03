@@ -70,7 +70,7 @@ internal static partial class CsvFile
     /// </summary>
     internal static Stream OpenReadStream(Stream source, CsvParsingSettings options, bool leaveOpen)
     {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         if (!source.CanRead) throw new ArgumentException("Source stream must be readable.", nameof(source));
 
         CsvCompressionType compressionType = options.CompressionType == CsvCompressionType.Auto
@@ -133,7 +133,7 @@ internal static partial class CsvFile
         bool leaveOpen,
         int bufferSize = 256 * 1024)
     {
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(destination);
         if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
         var compressionType = options.CompressionType == CsvCompressionType.Auto
             ? CsvCompressionType.None

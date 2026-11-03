@@ -131,7 +131,7 @@ public sealed class PdfOcrMergeOptions {
     /// <remarks>Preserves requested page order. Invalid region pages and the configured page budget are rejected before rendering.</remarks>
     public int[] GetSelectedPages(int pageCount) {
         Validate();
-        if (pageCount < 0) throw new ArgumentOutOfRangeException(nameof(pageCount));
+        ArgumentOutOfRangeException.ThrowIfNegative(pageCount);
         int[] pages = ReadOptions.PageSelection?.ToPageNumbers(pageCount, nameof(ReadOptions.PageSelection))
             ?? Enumerable.Range(1, pageCount).ToArray();
         if (Regions.Count > 0) {
@@ -147,7 +147,7 @@ public sealed class PdfOcrMergeOptions {
     internal void Validate() {
         ScanProcessing?.Validate();
         Perspective?.Validate();
-        if (Regions == null) throw new ArgumentNullException(nameof(Regions));
+        ArgumentNullException.ThrowIfNull(Regions);
         if (Regions.Count > MaxPages || Regions.Any(region => region == null) || Regions.Select(region => region.PageNumber).Distinct().Count() != Regions.Count)
             throw new ArgumentException("OCR regions require unique pages within MaxPages.", nameof(Regions));
         Guard.NotNull(ReadOptions, nameof(ReadOptions));
@@ -159,9 +159,9 @@ public sealed class PdfOcrMergeOptions {
         ValidateRatio(NativeTextOverlapThreshold, nameof(NativeTextOverlapThreshold));
         Guard.PositiveInteger(MaxPages, nameof(MaxPages));
         if (ProviderTimeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(ProviderTimeout));
-        if (MaxPixelsPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPixelsPerPage));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxPixelsPerPage);
         Guard.PositiveInteger(MaxConcurrentPages, nameof(MaxConcurrentPages));
-        if (MaxRenderedBytesPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxRenderedBytesPerPage));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxRenderedBytesPerPage);
         Guard.PositiveInteger(MaxOcrSpansPerPage, nameof(MaxOcrSpansPerPage));
         Guard.PositiveInteger(MaxOcrWordsPerPage, nameof(MaxOcrWordsPerPage));
         Guard.PositiveInteger(MaxOcrTextCharactersPerPage, nameof(MaxOcrTextCharactersPerPage));
@@ -171,7 +171,7 @@ public sealed class PdfOcrMergeOptions {
         Guard.PositiveInteger(MaxProviderMetadataCharactersPerPage, nameof(MaxProviderMetadataCharactersPerPage));
         Guard.PositiveInteger(MaxNativeTextBlocksPerPage, nameof(MaxNativeTextBlocksPerPage));
         Guard.PositiveInteger(MaxNativeTextCharactersPerPage, nameof(MaxNativeTextCharactersPerPage));
-        if (MaxNativeTextOverlapComparisonsPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxNativeTextOverlapComparisonsPerPage));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxNativeTextOverlapComparisonsPerPage);
         Guard.PositiveInteger(MaxNativeTextOverlapIntersectionsPerWord, nameof(MaxNativeTextOverlapIntersectionsPerWord));
         Guard.PositiveInteger(MaxMergedTextCharactersPerPage, nameof(MaxMergedTextCharactersPerPage));
     }

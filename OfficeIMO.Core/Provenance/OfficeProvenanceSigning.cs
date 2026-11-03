@@ -67,7 +67,7 @@ public sealed class OfficeProvenanceClaim {
         if (title != null && (title.Length > 1024 || ContainsControlCharacter(title))) {
             throw new ArgumentException("The title must be at most 1,024 characters and contain no controls.", nameof(title));
         }
-        if (actions == null) throw new ArgumentNullException(nameof(actions));
+        ArgumentNullException.ThrowIfNull(actions);
         if (actions.Count == 0) throw new ArgumentException("At least one provenance action is required.", nameof(actions));
         for (int index = 0; index < actions.Count; index++) {
             if (actions[index] == null) throw new ArgumentException("Provenance actions cannot contain null entries.", nameof(actions));

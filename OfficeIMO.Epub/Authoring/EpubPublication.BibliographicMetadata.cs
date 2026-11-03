@@ -5,7 +5,7 @@ namespace OfficeIMO.Epub;
 public sealed partial class EpubPublication {
     /// <summary>Appends an EPUB 3 title and its refinements atomically without changing the existing primary title.</summary>
     public void AddTitle(string id, EpubTitleMetadata title) {
-        if (title == null) throw new ArgumentNullException(nameof(title));
+        ArgumentNullException.ThrowIfNull(title);
         RequirePublishingMetadataId(id);
         List<XElement> records = TitleRecords(id, title);
         AppendPublishingMetadata(records);
@@ -16,7 +16,7 @@ public sealed partial class EpubPublication {
     /// existing unrelated refinements and attributes are retained. Null optional fields retain their values.
     /// </summary>
     public void SetPrimaryTitle(string id, EpubTitleMetadata title) {
-        if (title == null) throw new ArgumentNullException(nameof(title));
+        ArgumentNullException.ThrowIfNull(title);
         if (PackageVersion != "3.0") throw new NotSupportedException("Refined publishing metadata requires EPUB 3.");
         XElement? primary = RequireSection("metadata").Element(Dc + "title");
         string? existingId = (string?)primary?.Attribute("id");
@@ -44,7 +44,7 @@ public sealed partial class EpubPublication {
 
     /// <summary>Appends an EPUB 3 subject with optional authority and code in one metadata edit.</summary>
     public void AddSubject(string id, EpubSubjectMetadata subject) {
-        if (subject == null) throw new ArgumentNullException(nameof(subject));
+        ArgumentNullException.ThrowIfNull(subject);
         RequirePublishingMetadataId(id);
         ValidatePublishingName(subject.Text, null, subject.Language);
         if (subject.Authority != null) ValidatePublishingName(subject.Authority, null, null);
@@ -65,7 +65,7 @@ public sealed partial class EpubPublication {
     /// range assignment and identifier registration are not. The selected package identity is unchanged.
     /// </summary>
     public void AddIdentifier(string id, EpubIdentifierMetadata identifier) {
-        if (identifier == null) throw new ArgumentNullException(nameof(identifier));
+        ArgumentNullException.ThrowIfNull(identifier);
         RequirePublishingMetadataId(id);
         string value = EpubBibliographicIdentifier.Normalize(identifier.Value, identifier.Kind);
         string? code = identifier.Kind switch {
@@ -91,7 +91,7 @@ public sealed partial class EpubPublication {
     /// Null fields retain existing values. Other values, attributes and refinements remain intact.
     /// </summary>
     public void SetPublicationDetails(EpubPublicationDetails details) {
-        if (details == null) throw new ArgumentNullException(nameof(details));
+        ArgumentNullException.ThrowIfNull(details);
         if (PackageVersion != "3.0") throw new NotSupportedException("Typed publication details require EPUB 3.");
         var values = new[] {
             new KeyValuePair<string, string?>("publisher", details.Publisher),

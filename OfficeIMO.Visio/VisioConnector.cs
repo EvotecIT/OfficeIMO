@@ -272,9 +272,7 @@ namespace OfficeIMO.Visio {
         /// <param name="subAddress">Optional internal sub-address.</param>
         /// <returns>The created hyperlink row.</returns>
         public VisioHyperlink AddHyperlink(Uri address, string? description = null, string? subAddress = null) {
-            if (address == null) {
-                throw new ArgumentNullException(nameof(address));
-            }
+            ArgumentNullException.ThrowIfNull(address);
 
             return AddHyperlink(address.ToString(), description, subAddress);
         }
@@ -377,9 +375,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="configure">Protection configuration delegate.</param>
         public VisioConnector Protect(Action<VisioProtection> configure) {
-            if (configure == null) {
-                throw new ArgumentNullException(nameof(configure));
-            }
+            ArgumentNullException.ThrowIfNull(configure);
 
             configure(Protection);
             return this;
@@ -416,8 +412,8 @@ namespace OfficeIMO.Visio {
         }
 
         private static string GetNextId(VisioShape from, VisioShape to) {
-            if (from == null) throw new ArgumentNullException(nameof(from));
-            if (to == null) throw new ArgumentNullException(nameof(to));
+            ArgumentNullException.ThrowIfNull(from);
+            ArgumentNullException.ThrowIfNull(to);
             int fromId = int.TryParse(from.Id, out int fi) ? fi : 0;
             int toId = int.TryParse(to.Id, out int ti) ? ti : 0;
             int newId = Math.Max(fromId, toId) + 1;

@@ -78,7 +78,7 @@ public static class ChmMarkdownConverterExtensions {
 
     private static (MarkdownDocument Value, string Text, ChmConversionReport Report) Convert(ChmDocument document,
         ChmMarkdownExportOptions? options, CancellationToken cancellationToken) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         ChmConversionOptions configured = options?.ConversionOptions.Clone() ?? new ChmConversionOptions();
         ChmConversionResult<HtmlConversionDocument> projected = document.ToHtmlDocumentResult(configured, cancellationToken);

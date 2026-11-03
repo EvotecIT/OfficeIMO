@@ -21,9 +21,7 @@ namespace OfficeIMO.Word.Markdown {
         private IReadOnlyDictionary<string, string>? _currentFootnotes;
 
         public WordDocument Convert(Omd.MarkdownDocument markdown, MarkdownWordExportOptions options, CancellationToken cancellationToken = default) {
-            if (markdown == null) {
-                throw new ArgumentNullException(nameof(markdown));
-            }
+            ArgumentNullException.ThrowIfNull(markdown);
 
             options ??= new MarkdownWordExportOptions();
 

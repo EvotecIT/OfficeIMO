@@ -17,7 +17,7 @@ public partial class ExcelDocument {
 
     /// <summary>Applies a native source project, preserving unrelated payloads and requiring explicit VBA signature removal.</summary>
     public void SetVbaProject(OfficeVbaProject project, OfficeVbaWriteOptions? options = null) {
-        if (project == null) throw new ArgumentNullException(nameof(project));
+        ArgumentNullException.ThrowIfNull(project);
         options ??= new OfficeVbaWriteOptions();
         byte[] bytes = project.Write(options).GetBytes();
         Locking.ExecuteWrite(EnsureLock(), () => {

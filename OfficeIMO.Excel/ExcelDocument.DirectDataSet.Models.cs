@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel {
             }
 
             internal DirectDataSetWorkbookModel WithWorksheetMetadata(IReadOnlyList<DirectWorksheetMetadata?> metadata) {
-                if (metadata == null) throw new ArgumentNullException(nameof(metadata));
+                ArgumentNullException.ThrowIfNull(metadata);
                 if (metadata.Count != Sheets.Count) {
                     throw new ArgumentException("Metadata count must match the sheet count.", nameof(metadata));
                 }

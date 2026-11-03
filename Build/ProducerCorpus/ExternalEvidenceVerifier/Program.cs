@@ -122,7 +122,7 @@ static async Task<object[]> VerifyOdfAsync(JsonElement manifest, HttpClient clie
 }
 
 static async Task<byte[]> DownloadBoundedAsync(HttpClient client, string sourceUrl, long maximumBytes) {
-    if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
     using HttpResponseMessage response = await client.GetAsync(
         sourceUrl,
         HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);

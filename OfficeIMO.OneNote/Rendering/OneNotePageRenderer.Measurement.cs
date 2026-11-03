@@ -7,7 +7,7 @@ public static partial class OneNotePageRenderer {
         private int _listMeasurementDepth;
 
         internal void MeasureWithTemporaryListNumbering(Action measure) {
-            if (measure == null) throw new ArgumentNullException(nameof(measure));
+            ArgumentNullException.ThrowIfNull(measure);
             MeasureWithTemporaryListNumbering(() => {
                 measure();
                 return true;

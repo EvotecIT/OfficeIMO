@@ -52,7 +52,7 @@ internal static class ReaderBatchExecutor {
         Func<int, string, CancellationToken, Task<T>> readAsync,
         Action<T> onCompleted,
         CancellationToken cancellationToken) {
-        if (onCompleted == null) throw new ArgumentNullException(nameof(onCompleted));
+        ArgumentNullException.ThrowIfNull(onCompleted);
         await ExecuteCoreAsync(
             paths,
             options,
@@ -73,10 +73,10 @@ internal static class ReaderBatchExecutor {
         Action<T>? onCompleted,
         bool retainResults,
         CancellationToken cancellationToken) {
-        if (paths == null) throw new ArgumentNullException(nameof(paths));
-        if (readAsync == null) throw new ArgumentNullException(nameof(readAsync));
-        if (defaultMaxDegreeOfParallelism < 1) throw new ArgumentOutOfRangeException(nameof(defaultMaxDegreeOfParallelism));
-        if (maxDegreeOfParallelismLimit < 1) throw new ArgumentOutOfRangeException(nameof(maxDegreeOfParallelismLimit));
+        ArgumentNullException.ThrowIfNull(paths);
+        ArgumentNullException.ThrowIfNull(readAsync);
+        ArgumentOutOfRangeException.ThrowIfLessThan(defaultMaxDegreeOfParallelism, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxDegreeOfParallelismLimit, 1);
 
         int maxDocuments = options?.MaxDocuments ?? 500;
         if (maxDocuments < 1) {

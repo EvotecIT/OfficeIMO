@@ -16,7 +16,7 @@ public sealed class ConfluenceContentConversionResult<T> : OfficeConversionResul
 public static class ConfluenceContentConverter {
     /// <summary>Creates a Confluence ADF body from Markdown.</summary>
     public static ConfluenceContentConversionResult<ConfluencePageBody> FromMarkdown(string markdown, ConfluenceBodyFormat format = ConfluenceBodyFormat.AtlasDocFormat) {
-        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
+        ArgumentNullException.ThrowIfNull(markdown);
         AdfConversionResult<AdfDocument> adf = AdfConverter.FromMarkdown(markdown);
         string value = format == ConfluenceBodyFormat.AtlasDocFormat ? adf.Value.ToJson() : MarkdownDocument.Parse(markdown).ToHtml();
         AdfConversionReport report = format == ConfluenceBodyFormat.AtlasDocFormat
@@ -36,7 +36,7 @@ public static class ConfluenceContentConverter {
 
     /// <summary>Creates a Confluence body from HTML. ADF output passes through OfficeIMO.Html and Markdown.</summary>
     public static ConfluenceContentConversionResult<ConfluencePageBody> FromHtml(string html, ConfluenceBodyFormat format = ConfluenceBodyFormat.Storage) {
-        if (html == null) throw new ArgumentNullException(nameof(html));
+        ArgumentNullException.ThrowIfNull(html);
         AdfConversionResult<AdfDocument>? adf = format == ConfluenceBodyFormat.AtlasDocFormat ? AdfConverter.FromHtml(html) : null;
         return new ConfluenceContentConversionResult<ConfluencePageBody>(new ConfluencePageBody {
             Representation = format == ConfluenceBodyFormat.AtlasDocFormat ? "atlas_doc_format" : "storage",
@@ -46,7 +46,7 @@ public static class ConfluenceContentConverter {
 
     /// <summary>Projects a page body to Markdown with an explicit fidelity report.</summary>
     public static ConfluenceContentConversionResult<string> ToMarkdown(ConfluencePage page) {
-        if (page == null) throw new ArgumentNullException(nameof(page));
+        ArgumentNullException.ThrowIfNull(page);
         if (!string.IsNullOrWhiteSpace(page.Body.AtlasDocFormat?.Value)) {
             AdfConversionResult<string> result = AdfConverter.ToMarkdown(AdfDocument.Parse(page.Body.AtlasDocFormat!.Value!));
             return new ConfluenceContentConversionResult<string>(result.Value, result.Report);
@@ -61,7 +61,7 @@ public static class ConfluenceContentConverter {
 
     /// <summary>Projects a page body to HTML with an explicit fidelity report.</summary>
     public static ConfluenceContentConversionResult<string> ToHtml(ConfluencePage page) {
-        if (page == null) throw new ArgumentNullException(nameof(page));
+        ArgumentNullException.ThrowIfNull(page);
         string? storage = page.Body?.Storage?.Value;
         if (!string.IsNullOrWhiteSpace(storage)) {
             return new ConfluenceContentConversionResult<string>(storage!, AdfConversionReport.Empty);

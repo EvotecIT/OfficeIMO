@@ -20,7 +20,7 @@ namespace OfficeIMO.Excel {
         internal static async Task<ExcelWorkbookDataReader> OpenEncryptedDataReaderAsync(
             string path, string password, ExcelReaderOptions? options = null, CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(password);
             ExcelReaderOptions effectiveOptions = (options ?? new ExcelReaderOptions()).Clone();
             cancellationToken.ThrowIfCancellationRequested();
             effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
@@ -46,9 +46,9 @@ namespace OfficeIMO.Excel {
         /// </remarks>
         internal static Task<ExcelWorkbookDataReader> OpenEncryptedDataReaderAsync(
             Stream stream, string password, ExcelReaderOptions? options = null, CancellationToken cancellationToken = default) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(password);
             return OpenEncryptedDataReaderAsyncCore(
                 stream, password, (options ?? new ExcelReaderOptions()).Clone(), cancellationToken);
         }

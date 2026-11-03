@@ -14,7 +14,7 @@ internal static partial class DocumentReaderEngine {
     /// <param name="chunks">Reader chunks to inspect.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     public static IReadOnlyList<ReaderVisual> ExtractVisuals(IEnumerable<ReaderChunk> chunks, CancellationToken cancellationToken = default) {
-        if (chunks == null) throw new ArgumentNullException(nameof(chunks));
+        ArgumentNullException.ThrowIfNull(chunks);
 
         List<ReaderVisual>? visuals = null;
         foreach (ReaderChunk? chunk in chunks) {
@@ -39,7 +39,7 @@ internal static partial class DocumentReaderEngine {
     /// <param name="indentedJson">When true, writes indented visual JSON payloads.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     public static IReadOnlyList<ReaderVisualExportBundle> ExportVisuals(IEnumerable<ReaderVisual> visuals, bool indentedJson = false, CancellationToken cancellationToken = default) {
-        if (visuals == null) throw new ArgumentNullException(nameof(visuals));
+        ArgumentNullException.ThrowIfNull(visuals);
 
         List<ReaderVisualExportBundle>? exports = null;
         int index = 0;

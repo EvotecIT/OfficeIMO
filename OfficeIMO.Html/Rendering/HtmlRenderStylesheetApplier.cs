@@ -252,8 +252,8 @@ internal static class HtmlRenderStylesheetApplier {
     }
 
     internal static bool IsApplicableStylesheetLink(IElement link, HtmlRenderOptions options) {
-        if (link == null) throw new ArgumentNullException(nameof(link));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(link);
+        ArgumentNullException.ThrowIfNull(options);
         if (!IsStylesheetLinkCandidate(link, options)) return false;
         string? title = NormalizeStylesheetSetTitle(link.GetAttribute("title"));
         return IsApplicableStylesheetLink(link, options,
@@ -261,8 +261,8 @@ internal static class HtmlRenderStylesheetApplier {
     }
 
     internal static bool IsApplicableStylesheetLink(IElement link, HtmlRenderOptions options, string? preferredSet) {
-        if (link == null) throw new ArgumentNullException(nameof(link));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(link);
+        ArgumentNullException.ThrowIfNull(options);
         if (!IsStylesheetLinkCandidate(link, options)) return false;
 
         string? title = NormalizeStylesheetSetTitle(link.GetAttribute("title"));
@@ -272,8 +272,8 @@ internal static class HtmlRenderStylesheetApplier {
     }
 
     internal static bool IsApplicableStyleElement(IElement styleElement, HtmlRenderOptions options) {
-        if (styleElement == null) throw new ArgumentNullException(nameof(styleElement));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(styleElement);
+        ArgumentNullException.ThrowIfNull(options);
         if (!IsStyleElementCandidate(styleElement, options)) return false;
         string? title = NormalizeStylesheetSetTitle(styleElement.GetAttribute("title"));
         return IsApplicableStyleElement(styleElement, options,
@@ -281,8 +281,8 @@ internal static class HtmlRenderStylesheetApplier {
     }
 
     internal static bool IsApplicableStyleElement(IElement styleElement, HtmlRenderOptions options, string? preferredSet) {
-        if (styleElement == null) throw new ArgumentNullException(nameof(styleElement));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(styleElement);
+        ArgumentNullException.ThrowIfNull(options);
         if (!IsStyleElementCandidate(styleElement, options)) return false;
 
         string? title = NormalizeStylesheetSetTitle(styleElement.GetAttribute("title"));
@@ -291,8 +291,8 @@ internal static class HtmlRenderStylesheetApplier {
     }
 
     internal static bool IsPreferredStylesheetSetDeclaration(IElement element, HtmlRenderOptions options) {
-        if (element == null) throw new ArgumentNullException(nameof(element));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(element);
+        ArgumentNullException.ThrowIfNull(options);
         string? title = NormalizeStylesheetSetTitle(element.GetAttribute("title"));
         if (title == null) return false;
         if (string.Equals(element.LocalName, "link", StringComparison.OrdinalIgnoreCase)) {
@@ -303,8 +303,8 @@ internal static class HtmlRenderStylesheetApplier {
     }
 
     internal static bool HasSelectableAlternateStylesheetSet(IHtmlDocument document, HtmlRenderOptions options) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(options);
         string? preferredSet = FindPreferredStylesheetSet(document, options);
         foreach (IElement element in document.QuerySelectorAll("link[href], style")) {
             if (NormalizeStylesheetSetTitle(element.GetAttribute("title")) == null) continue;

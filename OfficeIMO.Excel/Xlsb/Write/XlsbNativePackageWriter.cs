@@ -19,9 +19,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ExcelDocument document,
             byte[] sourcePackageBytes,
             XlsbWorkbook sourceWorkbook, long maximumBytes = int.MaxValue, ExcelNativeCalculationPolicy calculation = default) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (sourcePackageBytes == null) throw new ArgumentNullException(nameof(sourcePackageBytes));
-            if (sourceWorkbook == null) throw new ArgumentNullException(nameof(sourceWorkbook));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(sourcePackageBytes);
+            ArgumentNullException.ThrowIfNull(sourceWorkbook);
 
             document.ValidateNativeXlsbProjection();
             var structure = new XlsbSheetStructure(document, sourceWorkbook);
@@ -222,8 +222,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             int maxPartBytes,
             long maxPackageBytes,
             ISet<string>? deletions, long maximumBytes = int.MaxValue) {
-            if (sourcePackageBytes == null) throw new ArgumentNullException(nameof(sourcePackageBytes));
-            if (replacements == null) throw new ArgumentNullException(nameof(replacements));
+            ArgumentNullException.ThrowIfNull(sourcePackageBytes);
+            ArgumentNullException.ThrowIfNull(replacements);
 
             var normalizedReplacements = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
             foreach (KeyValuePair<string, byte[]> replacement in replacements) {

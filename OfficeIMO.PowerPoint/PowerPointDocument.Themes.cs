@@ -72,9 +72,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void SetThemeColors(IDictionary<PowerPointThemeColor, string> colors, int masterIndex = 0) {
             ThrowIfDisposed();
-            if (colors == null) {
-                throw new ArgumentNullException(nameof(colors));
-            }
+            ArgumentNullException.ThrowIfNull(colors);
 
             foreach (KeyValuePair<PowerPointThemeColor, string> entry in colors) {
                 SetThemeColor(entry.Key, entry.Value, masterIndex);
@@ -97,9 +95,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void SetThemeColorsForAllMasters(IDictionary<PowerPointThemeColor, string> colors) {
             ThrowIfDisposed();
-            if (colors == null) {
-                throw new ArgumentNullException(nameof(colors));
-            }
+            ArgumentNullException.ThrowIfNull(colors);
             int masterCount = _presentationPart.SlideMasterParts.Count();
             for (int i = 0; i < masterCount; i++) {
                 SetThemeColors(colors, i);

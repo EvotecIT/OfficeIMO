@@ -23,7 +23,7 @@ public sealed class HtmlFormControlState {
     public HtmlFormControlState(HtmlFormControlStateKind kind, string? value = null, bool isChecked = false, bool isIndeterminate = false, bool isSelected = false) {
         if (!Enum.IsDefined(typeof(HtmlFormControlStateKind), kind)) throw new ArgumentOutOfRangeException(nameof(kind));
         if (kind == HtmlFormControlStateKind.Input || kind == HtmlFormControlStateKind.TextArea) {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
         } else if (value != null) throw new ArgumentException("Only input and textarea state has a value.", nameof(value));
         if (kind != HtmlFormControlStateKind.Input && (isChecked || isIndeterminate)) throw new ArgumentException("Checked and indeterminate state requires an input.");
         if (kind != HtmlFormControlStateKind.Option && isSelected) throw new ArgumentException("Selected state requires an option.", nameof(isSelected));

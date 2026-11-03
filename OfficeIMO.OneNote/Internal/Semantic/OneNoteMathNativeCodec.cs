@@ -19,7 +19,7 @@ internal static class OneNoteMathNativeCodec {
     }
 
     internal static IReadOnlyList<EncodedRun> Encode(OfficeMathExpression expression) {
-        if (expression == null) throw new ArgumentNullException(nameof(expression));
+        ArgumentNullException.ThrowIfNull(expression);
         var runs = new List<EncodedRun>();
         AppendBoundaryGroup(expression, runs);
         return runs;
@@ -55,8 +55,8 @@ internal static class OneNoteMathNativeCodec {
     internal static OfficeMathExpression Decode(
         IList<OneNoteTextRun> runs,
         int maximumDepth = OneNoteReaderOptions.DefaultMaxPropertySetDepth) {
-        if (runs == null) throw new ArgumentNullException(nameof(runs));
-        if (maximumDepth < 1) throw new ArgumentOutOfRangeException(nameof(maximumDepth));
+        ArgumentNullException.ThrowIfNull(runs);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumDepth, 1);
         var text = new StringBuilder();
         var descriptors = new Dictionary<int, OneNoteMathInlineDescriptor>();
         for (int index = 0; index < runs.Count; index++) {
@@ -138,7 +138,7 @@ internal static class OneNoteMathNativeCodec {
     }
 
     internal static void ValidateNativeCharacters(OfficeMathExpression expression) {
-        if (expression == null) throw new ArgumentNullException(nameof(expression));
+        ArgumentNullException.ThrowIfNull(expression);
         NativeCharacter(expression.Character, "primary");
         NativeCharacter(expression.SecondaryCharacter, "secondary");
         NativeCharacter(expression.SeparatorCharacter, "separator");

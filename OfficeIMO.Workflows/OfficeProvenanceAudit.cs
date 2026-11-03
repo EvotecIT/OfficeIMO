@@ -32,7 +32,7 @@ public sealed class OfficeProvenanceAuditRequest {
 public static class OfficeProvenanceAudit {
     /// <summary>Discovers a deterministic, bounded set. Directory symlinks and generated/VCS directories are not followed.</summary>
     public static IReadOnlyList<string> Discover(OfficeProvenanceAuditRequest request, CancellationToken cancellationToken = default) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         if (request.Inputs.Count == 0) throw new ArgumentException("At least one audit input is required.");
         if (request.MaximumItems is < 1 or > 10_000 || request.MaximumVisitedEntries < 1 || request.MaximumInputBytes < 1)
             throw new ArgumentOutOfRangeException(nameof(request));
@@ -83,7 +83,7 @@ public static class OfficeProvenanceAudit {
     /// <summary>Assesses discovered inputs without publishing or modifying assets.</summary>
     public static async Task<IReadOnlyList<OfficeProvenanceWorkflowResult>> RunAsync(OfficeProvenanceAuditRequest request,
         IOfficeProvenanceWorkflowRunner? runner = null, CancellationToken cancellationToken = default) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         var roots = request.Inputs.Select(input => {
             string selected = Path.GetFullPath(input);
             string directory = Directory.Exists(selected) ? selected : Path.GetDirectoryName(selected)!;

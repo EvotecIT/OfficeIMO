@@ -15,7 +15,7 @@ namespace OfficeIMO.Pdf.Word {
             this PdfCore.PdfDocument document,
             PdfWordExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             PdfWordExportOptions operation = (options ?? new PdfWordExportOptions()).CloneForConversion();
             operation.CancellationToken = cancellationToken;
             ValidateImportMode(operation.Mode);
@@ -46,7 +46,7 @@ namespace OfficeIMO.Pdf.Word {
             this PdfCore.PdfDocumentReadResult document,
             PdfWordExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
 
             PdfWordExportOptions operation = (options ?? new PdfWordExportOptions()).CloneForConversion();
             ValidateImportMode(operation.Mode);

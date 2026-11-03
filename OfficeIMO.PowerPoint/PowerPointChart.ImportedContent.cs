@@ -144,7 +144,7 @@ namespace OfficeIMO.PowerPoint {
         /// workbook of an advanced imported chart without rebuilding its native chart group.
         /// </summary>
         public PowerPointChart UpdateImportedData(OfficeChartData data) {
-            if (data == null) throw new ArgumentNullException(nameof(data));
+            ArgumentNullException.ThrowIfNull(data);
             PowerPointImportedChartReport report = InspectImportedContent();
             if (report.Support != PowerPointImportedChartSupport.EditableWithProjectedRendering ||
                 report.ExportProjection == null)

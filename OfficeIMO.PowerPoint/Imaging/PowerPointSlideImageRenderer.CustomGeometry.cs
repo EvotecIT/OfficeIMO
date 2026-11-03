@@ -12,7 +12,7 @@ namespace OfficeIMO.PowerPoint {
         internal static bool TryCreateCustomGeometryDrawing(
             PowerPointShape shape, double width, double height,
             out OfficeDrawing? drawing, out string? reason) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
             drawing = null;
             reason = null;
             if (width <= 0D || height <= 0D) {

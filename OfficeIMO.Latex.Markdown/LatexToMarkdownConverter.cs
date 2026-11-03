@@ -11,7 +11,7 @@ internal static partial class LatexToMarkdownConverter {
 
     internal static LatexMarkdownProjection Project(LatexDocument document, LatexMarkdownExportOptions? options = null,
         System.Threading.CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         document = document.GetCurrentView(cancellationToken);
         var context = new LatexProjectionContext(document, cancellationToken);

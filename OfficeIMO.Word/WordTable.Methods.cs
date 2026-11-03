@@ -570,9 +570,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="percentages">Column percentages in any positive ratio.</param>
         public void SetColumnWidthsPercentage(params int[] percentages) {
-            if (percentages == null) {
-                throw new ArgumentNullException(nameof(percentages));
-            }
+            ArgumentNullException.ThrowIfNull(percentages);
 
             if (Rows.Count == 0 || Rows[0].Cells.Count == 0) {
                 throw new InvalidOperationException("Cannot set column widths on an empty table.");

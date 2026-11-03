@@ -55,7 +55,7 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
         }
 
         internal string ReadWideString(int maxCharacters) {
-            if (maxCharacters < 0) throw new ArgumentOutOfRangeException(nameof(maxCharacters));
+            ArgumentOutOfRangeException.ThrowIfNegative(maxCharacters);
 
             uint count = ReadUInt32();
             if (count > maxCharacters) {
@@ -76,7 +76,7 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
         }
 
         internal byte[] ReadBytes(int count) {
-            if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+            ArgumentOutOfRangeException.ThrowIfNegative(count);
             EnsureAvailable(count);
             byte[] bytes = new byte[count];
             Buffer.BlockCopy(_data, Position, bytes, 0, count);
@@ -85,7 +85,7 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
         }
 
         internal void Skip(int count) {
-            if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+            ArgumentOutOfRangeException.ThrowIfNegative(count);
             EnsureAvailable(count);
             Position += count;
         }

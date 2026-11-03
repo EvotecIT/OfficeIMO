@@ -12,8 +12,8 @@ internal sealed class PstSpecialFolderResolver {
         IEnumerable<MapiProperty>? rootProperties,
         IEnumerable<MapiProperty>? inboxProperties,
         IReadOnlyCollection<uint> folderNids) {
-        if (storeProperties == null) throw new ArgumentNullException(nameof(storeProperties));
-        if (folderNids == null) throw new ArgumentNullException(nameof(folderNids));
+        ArgumentNullException.ThrowIfNull(storeProperties);
+        ArgumentNullException.ThrowIfNull(folderNids);
 
         var knownFolderNids = new HashSet<uint>(folderNids);
         byte[]? providerUid = GetBinary(storeProperties, MapiKnownProperties.PidTag.RecordKey);
@@ -42,14 +42,14 @@ internal sealed class PstSpecialFolderResolver {
 
     internal static bool TryGetStoreFolderNid(IEnumerable<MapiProperty> storeProperties,
         MapiPropertyKey<byte[]> key, out uint nid) {
-        if (storeProperties == null) throw new ArgumentNullException(nameof(storeProperties));
+        ArgumentNullException.ThrowIfNull(storeProperties);
         return TryGetFolderNid(storeProperties, key,
             GetBinary(storeProperties, MapiKnownProperties.PidTag.RecordKey), out nid);
     }
 
     internal static bool TryGetFolderNid(IEnumerable<MapiProperty> properties,
         MapiPropertyKey<byte[]> key, byte[]? providerUid, out uint nid) {
-        if (properties == null) throw new ArgumentNullException(nameof(properties));
+        ArgumentNullException.ThrowIfNull(properties);
         byte[]? entryId = GetBinary(properties, key);
         if (entryId == null || entryId.Length != 24 ||
             entryId[0] != 0 || entryId[1] != 0 || entryId[2] != 0 || entryId[3] != 0) {

@@ -79,7 +79,7 @@ public static partial class OfficeRasterImageEncoder {
         OfficeRasterImage image,
         OfficeImageExportFormat format,
         OfficeRasterEncodingOptions? options = null) {
-        if (image == null) throw new ArgumentNullException(nameof(image));
+        ArgumentNullException.ThrowIfNull(image);
         OfficeRasterEncodingOptions effective =
             (options ?? new OfficeRasterEncodingOptions()).Resolve(format);
         return format switch {
@@ -120,7 +120,7 @@ public static partial class OfficeRasterImageEncoder {
         long maximumEncodedBytes,
         CancellationToken cancellationToken,
         long additionalRetainedManagedBytes) {
-        if (additionalRetainedManagedBytes < 0L) throw new ArgumentOutOfRangeException(nameof(additionalRetainedManagedBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(additionalRetainedManagedBytes, 0L);
         var budget = new OfficeImageExportEncodingBudget(maximumEncodedBytes);
         return Encode(image, format, options, budget, cancellationToken, additionalRetainedManagedBytes);
     }
@@ -140,8 +140,8 @@ public static partial class OfficeRasterImageEncoder {
         OfficeImageExportEncodingBudget budget,
         CancellationToken cancellationToken,
         long additionalRetainedManagedBytes) {
-        if (image == null) throw new ArgumentNullException(nameof(image));
-        if (budget == null) throw new ArgumentNullException(nameof(budget));
+        ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(budget);
         OfficeRasterEncodingOptions effective =
             (options ?? new OfficeRasterEncodingOptions()).Resolve(format);
         if (format == OfficeImageExportFormat.Bmp) {

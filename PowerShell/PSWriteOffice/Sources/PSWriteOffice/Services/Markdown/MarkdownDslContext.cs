@@ -20,10 +20,7 @@ internal sealed class MarkdownDslContext : IDisposable
 
     public static MarkdownDslContext Enter(MarkdownDocument document)
     {
-        if (document == null)
-        {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
         var scope = new MarkdownDslContext(document, CurrentScope.Value);
         CurrentScope.Value = scope;

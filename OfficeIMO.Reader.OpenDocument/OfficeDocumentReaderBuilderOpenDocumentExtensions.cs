@@ -12,7 +12,7 @@ public static class OfficeDocumentReaderBuilderOpenDocumentExtensions {
         this OfficeDocumentReaderBuilder builder,
         ReaderOpenDocumentOptions? options = null,
         bool replaceExisting = false) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderHandlerRegistration registration = CreateRegistration((options ?? new ReaderOpenDocumentOptions()).Clone());
         return builder.AddHandler(registration, replaceExisting);
     }

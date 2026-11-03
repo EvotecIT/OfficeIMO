@@ -31,7 +31,7 @@ public sealed partial class RtfPageSetup {
 public sealed partial class RtfDocument {
     /// <summary>Returns an independent page setup with document defaults applied beneath the section's authored values.</summary>
     public RtfPageSetup GetEffectivePageSetup(RtfSection section) {
-        if (section == null) throw new ArgumentNullException(nameof(section));
+        ArgumentNullException.ThrowIfNull(section);
         if (!_sections.Contains(section)) throw new ArgumentException("Section must belong to this document.", nameof(section));
         return GetPageSetup(section);
     }

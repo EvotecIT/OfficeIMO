@@ -239,7 +239,7 @@ namespace OfficeIMO.PowerPoint {
         ///     type scale, spacing and neutral roles stay. Colours that would fail contrast are not taken over.
         /// </summary>
         internal static PowerPointLayoutTheme From(PowerPointDesignTheme design, OfficeTheme? baseTheme = null) {
-            if (design == null) throw new ArgumentNullException(nameof(design));
+            ArgumentNullException.ThrowIfNull(design);
             OfficeTheme theme = baseTheme ?? OfficeTheme.Default;
             OfficeThemePalette palette = theme.Palette;
             OfficeColor accent = Color(design.AccentColor, palette.Accent1);

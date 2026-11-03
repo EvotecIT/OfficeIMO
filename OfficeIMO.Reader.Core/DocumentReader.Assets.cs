@@ -14,7 +14,7 @@ internal static partial class DocumentReaderEngine {
     /// <param name="predicate">Optional predicate used to select assets.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     public static IReadOnlyList<OfficeDocumentAsset> ExtractAssets(OfficeDocumentReadResult result, Func<OfficeDocumentAsset, bool>? predicate = null, CancellationToken cancellationToken = default) {
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(result);
 
         IReadOnlyList<OfficeDocumentAsset> assets = result.Assets ?? Array.Empty<OfficeDocumentAsset>();
         if (assets.Count == 0) {

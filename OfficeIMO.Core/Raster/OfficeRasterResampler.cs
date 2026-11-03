@@ -79,10 +79,10 @@ public static partial class OfficeRasterResampler {
         CancellationToken cancellationToken = default,
         Action? resamplingWorkStarted = null) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (source == null) throw new ArgumentNullException(nameof(source));
-        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
-        if (retainedManagedBytes < 0L) throw new ArgumentOutOfRangeException(nameof(retainedManagedBytes));
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
+        ArgumentOutOfRangeException.ThrowIfLessThan(retainedManagedBytes, 0L);
         if (mode < OfficeRasterResamplingMode.NearestNeighbor || mode > OfficeRasterResamplingMode.Welch) {
             throw new ArgumentOutOfRangeException(nameof(mode));
         }

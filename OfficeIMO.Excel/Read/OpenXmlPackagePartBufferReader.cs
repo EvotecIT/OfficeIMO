@@ -34,7 +34,7 @@ namespace OfficeIMO.Excel {
         /// the stream does not contain a readable ZIP archive.
         /// </summary>
         internal static OpenXmlPackagePartBufferReader? TryOpen(Stream stream) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             try {
                 var reader = new OpenXmlPackagePartBufferReader(stream);
                 return reader;
@@ -108,9 +108,7 @@ namespace OfficeIMO.Excel {
             if (_disposed) {
                 throw new ObjectDisposedException(nameof(OpenXmlPackagePartBufferReader));
             }
-            if (maximumBytes < 0) {
-                throw new ArgumentOutOfRangeException(nameof(maximumBytes));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(maximumBytes);
             cancellationToken.ThrowIfCancellationRequested();
             buffer = null;
             length = 0;
@@ -158,7 +156,7 @@ namespace OfficeIMO.Excel {
             Func<byte[], int, bool>? acceptPrefix = null) {
             string normalizedPartName = NormalizePartName(partName);
             if (_disposed) throw new ObjectDisposedException(nameof(OpenXmlPackagePartBufferReader));
-            if (maximumBytes < 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+            ArgumentOutOfRangeException.ThrowIfNegative(maximumBytes);
             cancellationToken.ThrowIfCancellationRequested();
             if (!_entries.TryGetValue(normalizedPartName, out ZipArchiveEntry? entry)
                 || entry.Length < 0
@@ -253,9 +251,7 @@ namespace OfficeIMO.Excel {
             if (_disposed) {
                 throw new ObjectDisposedException(nameof(OpenXmlPackagePartBufferReader));
             }
-            if (maximumBytes < 0) {
-                throw new ArgumentOutOfRangeException(nameof(maximumBytes));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(maximumBytes);
             cancellationToken.ThrowIfCancellationRequested();
 
             string normalizedPartName = NormalizePartName(partName);

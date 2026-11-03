@@ -235,9 +235,7 @@ internal static partial class OfficeGeometry {
         out OfficePoint tip,
         out OfficePoint from,
         double tolerance = 1e-6D) {
-        if (points == null) {
-            throw new ArgumentNullException(nameof(points));
-        }
+        ArgumentNullException.ThrowIfNull(points);
 
         if (points.Count < 2) {
             tip = default;
@@ -283,9 +281,7 @@ internal static partial class OfficeGeometry {
         out (double X, double Y) tip,
         out (double X, double Y) from,
         double tolerance = 1e-6D) {
-        if (points == null) {
-            throw new ArgumentNullException(nameof(points));
-        }
+        ArgumentNullException.ThrowIfNull(points);
 
         if (points.Count < 2) {
             tip = default;
@@ -728,9 +724,7 @@ internal static partial class OfficeGeometry {
     /// <param name="points">Polyline points in drawing coordinates.</param>
     /// <param name="position">Normalized position where 0 is the first point and 1 is the last point.</param>
     public static OfficePoint InterpolatePolyline(IReadOnlyList<OfficePoint> points, double position) {
-        if (points == null) {
-            throw new ArgumentNullException(nameof(points));
-        }
+        ArgumentNullException.ThrowIfNull(points);
 
         if (points.Count == 0) {
             return default;
@@ -778,9 +772,7 @@ internal static partial class OfficeGeometry {
     /// <param name="points">Polyline points in drawing coordinates.</param>
     /// <param name="position">Normalized position where 0 is the first point and 1 is the last point.</param>
     public static (double X, double Y) InterpolatePolyline(IReadOnlyList<(double X, double Y)> points, double position) {
-        if (points == null) {
-            throw new ArgumentNullException(nameof(points));
-        }
+        ArgumentNullException.ThrowIfNull(points);
 
         if (points.Count == 0) {
             return default;

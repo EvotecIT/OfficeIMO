@@ -17,7 +17,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static byte[] BuildSoundCollectionRecord(
             LegacyPptWriterSoundCatalog catalog) {
-            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
+            ArgumentNullException.ThrowIfNull(catalog);
             if (catalog.Sounds.Count == 0) return Array.Empty<byte>();
             var seedPayload = new byte[4];
             WriteInt32(seedPayload, 0, checked((int)catalog.Sounds.Max(sound =>
@@ -62,9 +62,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
             internal LegacyPptWriterSoundCatalog(
                 IEnumerable<LegacyPptSound> sourceSounds, uint? soundIdSeed) {
-                if (sourceSounds == null) {
-                    throw new ArgumentNullException(nameof(sourceSounds));
-                }
+                ArgumentNullException.ThrowIfNull(sourceSounds);
                 foreach (LegacyPptSound source in sourceSounds.OrderBy(sound =>
                              sound.Id)) {
                     if (!source.HasData || source.ContentType == null) continue;
@@ -181,10 +179,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal bool TryGetOrAddMedia(SlidePart ownerPart,
                 PowerPointMedia media, out LegacyPptWriterSound? sound,
                 out string? reason) {
-                if (ownerPart == null) {
-                    throw new ArgumentNullException(nameof(ownerPart));
-                }
-                if (media == null) throw new ArgumentNullException(nameof(media));
+                ArgumentNullException.ThrowIfNull(ownerPart);
+                ArgumentNullException.ThrowIfNull(media);
                 sound = null;
                 reason = null;
                 string relationshipId = media.MediaReferenceId

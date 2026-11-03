@@ -105,7 +105,7 @@ public sealed partial class RtfLegacyNumbering {
 
     /// <summary>Copies all legacy numbering metadata from another instance.</summary>
     public void CopyFrom(RtfLegacyNumbering source) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         Enabled = source.Enabled;
         LevelKind = source.LevelKind;
         Level = source.Level;

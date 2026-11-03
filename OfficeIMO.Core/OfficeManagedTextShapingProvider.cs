@@ -31,7 +31,7 @@ public sealed partial class OfficeManagedTextShapingProvider : IOfficeTextShapin
     /// <summary>Retains bounded joining and mark-cluster ordering after complete shaping is declined.</summary>
     /// <remarks>Consumers retain approximation diagnostics and must not record provider success.</remarks>
     internal OfficeTextShapingResult? ShapeDiagnosedFallback(OfficeTextShapingRequest request) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         if (request.ApplyDefaultLatinLigatures ||
             !OfficeTextElements.ContainsCombiningMark(request.Text) &&
             !OfficeArabicTextShaper.RequiresLamAlefLigatureShaping(request.Text, request.FeatureSettings)) return null;
@@ -39,7 +39,7 @@ public sealed partial class OfficeManagedTextShapingProvider : IOfficeTextShapin
     }
 
     private OfficeTextShapingResult? ShapeTextCore(OfficeTextShapingRequest request, bool allowDiagnosedFallback) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         bool controls = OfficeManagedTextShaper.ContainsNonPaintingControl(request.Text, request.CancellationToken);
         // A resolved slice contains original visible source, not a second set
         // of embedding directives for the provider to interpret again.

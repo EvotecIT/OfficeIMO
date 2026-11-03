@@ -68,15 +68,9 @@ internal static class PowerPointShapeReader
 {
     public static PowerPointShapeInfo Read(PowerPointSlide slide, PowerPointShape shape, int slideIndex, int shapeIndex)
     {
-        if (slide == null)
-        {
-            throw new ArgumentNullException(nameof(slide));
-        }
+        ArgumentNullException.ThrowIfNull(slide);
 
-        if (shape == null)
-        {
-            throw new ArgumentNullException(nameof(shape));
-        }
+        ArgumentNullException.ThrowIfNull(shape);
 
         var info = new PowerPointShapeInfo
         {

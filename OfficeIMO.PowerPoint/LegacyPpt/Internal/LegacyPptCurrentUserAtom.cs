@@ -25,7 +25,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal bool HasFourBytePayloadOverstatement { get; }
 
         internal static LegacyPptCurrentUserAtom Read(byte[] stream) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             int minimumLength = RecordHeaderLength + FixedPayloadLength;
             if (stream.Length < minimumLength) {
                 throw new InvalidDataException("The CurrentUserAtom fixed fields are truncated.");

@@ -13,7 +13,7 @@ public static class EmailDataArtifact {
     /// <summary>Opens a supported file or directory with the existing artifact owner's bounded policy.</summary>
     public static EmailDataOpenResult Open(string path, EmailDataOpenOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         cancellationToken.ThrowIfCancellationRequested();
         string fullPath = Path.GetFullPath(path);
         if (!File.Exists(fullPath) && !Directory.Exists(fullPath))

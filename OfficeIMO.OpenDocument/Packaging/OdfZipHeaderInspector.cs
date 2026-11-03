@@ -2,7 +2,7 @@ namespace OfficeIMO.OpenDocument;
 
 internal static class OdfZipHeaderInspector {
     internal static void ValidateMimetypeEntry(Stream packageStream) {
-        if (packageStream == null) throw new ArgumentNullException(nameof(packageStream));
+        ArgumentNullException.ThrowIfNull(packageStream);
         if (!packageStream.CanRead || !packageStream.CanSeek) {
             throw new ArgumentException("OpenDocument ZIP header inspection requires a readable, seekable stream.", nameof(packageStream));
         }

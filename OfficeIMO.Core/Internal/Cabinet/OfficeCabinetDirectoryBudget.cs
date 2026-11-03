@@ -6,7 +6,7 @@ namespace OfficeIMO.Core.Internal.Cabinet;
 internal sealed class OfficeCabinetDirectoryBudget {
     private long _remaining;
     internal OfficeCabinetDirectoryBudget(long maximumRecords) {
-        if (maximumRecords < 1) throw new ArgumentOutOfRangeException(nameof(maximumRecords));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumRecords, 1);
         _remaining = maximumRecords;
     }
     internal void Consume(long records) {

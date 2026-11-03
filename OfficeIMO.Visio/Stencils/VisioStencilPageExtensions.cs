@@ -9,7 +9,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// Adds a stencil shape using its default size and the page default measurement unit.
         /// </summary>
         internal static VisioShape AddStencilShapeInches(this VisioPage page, VisioStencilShape stencil, string id, double x, double y, string? text = null) {
-            if (stencil == null) throw new ArgumentNullException(nameof(stencil));
+            ArgumentNullException.ThrowIfNull(stencil);
             return AddStencilShapeInches(page, stencil, id, x, y, stencil.DefaultWidth, stencil.DefaultHeight, text, null, useStencilDefaultSize: true, catalogName: null);
         }
 
@@ -17,7 +17,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// Adds a stencil shape using its default size and an explicit measurement unit.
         /// </summary>
         internal static VisioShape AddStencilShapeInches(this VisioPage page, VisioStencilShape stencil, string id, double x, double y, string? text, VisioMeasurementUnit unit) {
-            if (stencil == null) throw new ArgumentNullException(nameof(stencil));
+            ArgumentNullException.ThrowIfNull(stencil);
             return AddStencilShapeInches(page, stencil, id, x, y, stencil.DefaultWidth, stencil.DefaultHeight, text, unit, useStencilDefaultSize: true, catalogName: null);
         }
 
@@ -43,7 +43,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// Adds a stencil shape from a catalog using its default size.
         /// </summary>
         internal static VisioShape AddStencilShapeInches(this VisioPage page, VisioStencilCatalog catalog, string stencilIdOrName, string id, double x, double y, string? text = null) {
-            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
+            ArgumentNullException.ThrowIfNull(catalog);
             VisioStencilShape stencil = catalog.Get(stencilIdOrName);
             return AddStencilShapeInches(page, stencil, id, x, y, stencil.DefaultWidth, stencil.DefaultHeight, text, null, useStencilDefaultSize: true, catalogName: catalog.Name);
         }
@@ -52,7 +52,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// Adds a stencil shape from a catalog using an explicit size.
         /// </summary>
         internal static VisioShape AddStencilShapeInches(this VisioPage page, VisioStencilCatalog catalog, string stencilIdOrName, string id, double x, double y, double width, double height, string? text = null) {
-            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
+            ArgumentNullException.ThrowIfNull(catalog);
             return AddStencilShapeInches(page, catalog.Get(stencilIdOrName), id, x, y, width, height, text, null, useStencilDefaultSize: false, catalogName: catalog.Name);
         }
 
@@ -82,8 +82,8 @@ namespace OfficeIMO.Visio.Stencils {
             VisioMeasurementUnit? unit,
             bool useStencilDefaultSize,
             string? catalogName) {
-            if (page == null) throw new ArgumentNullException(nameof(page));
-            if (stencil == null) throw new ArgumentNullException(nameof(stencil));
+            ArgumentNullException.ThrowIfNull(page);
+            ArgumentNullException.ThrowIfNull(stencil);
             if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Shape id cannot be null or whitespace.", nameof(id));
 
             VisioMeasurementUnit placementUnit = unit ?? page.DefaultUnit;

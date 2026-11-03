@@ -18,7 +18,7 @@ namespace OfficeIMO.Word.Html {
         /// <param name="options">Optional gallery options.</param>
         /// <returns>Shared gallery manifest describing the generated artifacts and roundtrip expectations.</returns>
         public static HtmlCapabilityGalleryManifest SaveHtmlCapabilityGallery(this HtmlConversionDocument source, string directoryPath, WordHtmlCapabilityGalleryOptions? options = null) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(source);
             if (string.IsNullOrWhiteSpace(directoryPath)) throw new ArgumentException("Artifact directory cannot be empty.", nameof(directoryPath));
 
             options ??= new WordHtmlCapabilityGalleryOptions();

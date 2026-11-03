@@ -42,9 +42,7 @@ namespace OfficeIMO.Excel {
         /// Sets fill and/or outline styling for a single chart data point by series index and zero-based point index.
         /// </summary>
         public ExcelChart SetDataPointColor(int seriesIndex, uint pointIndex, OfficeColor? fillColor = null, OfficeColor? lineColor = null, OfficeLength? lineWidth = null) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
 
             ValidateDataPointStyle(fillColor, lineColor, lineWidth);
 
@@ -65,9 +63,7 @@ namespace OfficeIMO.Excel {
         /// Sets fill and/or outline styling for a single chart data point by series name and zero-based point index.
         /// </summary>
         public ExcelChart SetDataPointColor(string seriesName, uint pointIndex, OfficeColor? fillColor = null, OfficeColor? lineColor = null, OfficeLength? lineWidth = null, bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
 
             ValidateDataPointStyle(fillColor, lineColor, lineWidth);
 

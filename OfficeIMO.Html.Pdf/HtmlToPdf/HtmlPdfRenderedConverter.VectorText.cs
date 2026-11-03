@@ -549,8 +549,8 @@ internal static partial class HtmlPdfRenderedConverter {
         double visualHeight,
         IReadOnlyList<double> lineHeights,
         IReadOnlyList<double> baselineOffsets) {
-        if (lineHeights == null) throw new ArgumentNullException(nameof(lineHeights));
-        if (baselineOffsets == null) throw new ArgumentNullException(nameof(baselineOffsets));
+        ArgumentNullException.ThrowIfNull(lineHeights);
+        ArgumentNullException.ThrowIfNull(baselineOffsets);
         if (lineHeights.Count == 0 || lineHeights.Count != baselineOffsets.Count) {
             throw new ArgumentException("Outlined line metrics require one baseline offset per font run.");
         }

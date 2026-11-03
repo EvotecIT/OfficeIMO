@@ -14,7 +14,7 @@ internal sealed partial class OfficeOpenTypeKerning {
     internal bool TryPositionRun(IReadOnlyList<OfficeOpenTypeSubstitution.GlyphToken> logicalTokens,
         string? language, CancellationToken cancellationToken, out OfficeOpenTypeGlyphPositioning[] positions,
         bool rejectMarkAdjustments = false) {
-        if (logicalTokens == null) throw new ArgumentNullException(nameof(logicalTokens));
+        ArgumentNullException.ThrowIfNull(logicalTokens);
         cancellationToken.ThrowIfCancellationRequested();
         positions = new OfficeOpenTypeGlyphPositioning[logicalTokens.Count];
         try {

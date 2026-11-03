@@ -12,9 +12,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="page">Page to query.</param>
         public static IReadOnlyList<VisioShape> AllShapes(this VisioPage page) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             List<VisioShape> shapes = new();
             foreach (VisioShape shape in page.Shapes) {
@@ -30,9 +28,7 @@ namespace OfficeIMO.Visio {
         /// <param name="page">Page to query.</param>
         /// <param name="id">Shape identifier.</param>
         public static VisioShape? FindShapeById(this VisioPage page, string id) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             if (string.IsNullOrWhiteSpace(id)) {
                 throw new ArgumentException("Shape id cannot be empty.", nameof(id));
@@ -85,9 +81,7 @@ namespace OfficeIMO.Visio {
         /// <param name="text">Text fragment to find.</param>
         /// <param name="comparison">String comparison used for matching.</param>
         public static IReadOnlyList<VisioShape> ShapesContainingText(this VisioPage page, string text, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
-            if (text == null) {
-                throw new ArgumentNullException(nameof(text));
-            }
+            ArgumentNullException.ThrowIfNull(text);
 
             return FilterShapes(page, shape => shape.Text != null && shape.Text.IndexOf(text, comparison) >= 0);
         }
@@ -117,9 +111,7 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentException("Data key cannot be empty.", nameof(key));
             }
 
-            if (value == null) {
-                throw new ArgumentNullException(nameof(value));
-            }
+            ArgumentNullException.ThrowIfNull(value);
 
             return FilterShapes(page, shape => string.Equals(GetDataValue(shape, key), value, comparison));
         }
@@ -135,9 +127,7 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentException("Data key cannot be empty.", nameof(key));
             }
 
-            if (predicate == null) {
-                throw new ArgumentNullException(nameof(predicate));
-            }
+            ArgumentNullException.ThrowIfNull(predicate);
 
             return FilterShapes(page, shape => predicate(GetDataValue(shape, key)));
         }
@@ -227,9 +217,7 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentException("User cell name cannot be empty.", nameof(name));
             }
 
-            if (value == null) {
-                throw new ArgumentNullException(nameof(value));
-            }
+            ArgumentNullException.ThrowIfNull(value);
 
             return FilterShapes(page, shape => string.Equals(shape.GetUserCellValue(name), value, comparison));
         }
@@ -270,9 +258,7 @@ namespace OfficeIMO.Visio {
         /// <param name="page">Page to query.</param>
         /// <param name="predicate">Protection predicate.</param>
         public static IReadOnlyList<VisioShape> ShapesWithProtection(this VisioPage page, Func<VisioShapeProtection, bool> predicate) {
-            if (predicate == null) {
-                throw new ArgumentNullException(nameof(predicate));
-            }
+            ArgumentNullException.ThrowIfNull(predicate);
 
             return FilterShapes(page, shape => predicate(shape.Protection));
         }

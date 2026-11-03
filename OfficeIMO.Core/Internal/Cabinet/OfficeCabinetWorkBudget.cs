@@ -12,7 +12,7 @@ internal sealed class OfficeCabinetWorkBudget {
 
     internal OfficeCabinetWorkBudget(long maximumBytes = DefaultMaximumBytes, Action<long, long>? consumeFrame = null, Action<long>? select = null) {
         _consumeFrame = consumeFrame; _select = select;
-        if (maximumBytes < 1) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumBytes, 1);
         _maximumBytes = maximumBytes;
         _remainingBytes = maximumBytes;
     }

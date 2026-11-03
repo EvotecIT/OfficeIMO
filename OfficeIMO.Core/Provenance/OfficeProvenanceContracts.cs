@@ -71,7 +71,7 @@ public sealed class OfficeProvenanceEvidence {
         string? value = null,
         OfficeProvenanceDigitalSourceKind digitalSourceKind = OfficeProvenanceDigitalSourceKind.Unknown) {
         if (string.IsNullOrWhiteSpace(location)) throw new ArgumentException("A carrier location is required.", nameof(location));
-        if (payloadLength < 0) throw new ArgumentOutOfRangeException(nameof(payloadLength));
+        ArgumentOutOfRangeException.ThrowIfNegative(payloadLength);
         Carrier = carrier;
         Location = location;
         IsStructurallyValid = isStructurallyValid;
@@ -119,7 +119,7 @@ public sealed class OfficeProvenanceReport {
         IReadOnlyList<string>? diagnostics,
         long expandedInspectionBytes,
         IReadOnlyDictionary<OfficeProvenanceEvidence, string>? resolvedExternalManifestReferences = null) {
-        if (expandedInspectionBytes < 0) throw new ArgumentOutOfRangeException(nameof(expandedInspectionBytes));
+        ArgumentOutOfRangeException.ThrowIfNegative(expandedInspectionBytes);
         Format = format;
         Evidence = new List<OfficeProvenanceEvidence>(evidence ?? throw new ArgumentNullException(nameof(evidence))).AsReadOnly();
         Diagnostics = new List<string>(diagnostics ?? Array.Empty<string>()).AsReadOnly();

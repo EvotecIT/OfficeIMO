@@ -101,7 +101,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Saves to a file with an explicit conversion-loss policy.</summary>
         public void Save(string filePath, PowerPointSaveOptions? options) {
-            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            ArgumentNullException.ThrowIfNull(filePath);
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             EnsureDestinationFileWritable(filePath);
             byte[] packageBytes = CreateUnifiedBytesForPath(filePath, options);
@@ -118,7 +118,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Saves an independent copy with an explicit conversion-loss policy.</summary>
         public void SaveCopy(string filePath, PowerPointSaveOptions? options) {
-            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            ArgumentNullException.ThrowIfNull(filePath);
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             EnsureDestinationFileWritable(filePath);
             OfficeFileCommit.WriteAllBytes(filePath, CreateUnifiedBytesForPath(filePath, options));
@@ -132,7 +132,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Asynchronously saves an independent copy with an explicit conversion-loss policy.</summary>
         public async Task SaveCopyAsync(string filePath, PowerPointSaveOptions? options,
             CancellationToken cancellationToken = default) {
-            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            ArgumentNullException.ThrowIfNull(filePath);
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             EnsureDestinationFileWritable(filePath);
             cancellationToken.ThrowIfCancellationRequested();
@@ -170,7 +170,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Saves to a stream using an explicit physical PowerPoint format.</summary>
         internal void Save(Stream destination, PowerPointFileFormat format, PowerPointSaveOptions? options = null) {
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            ArgumentNullException.ThrowIfNull(destination);
             OfficeStreamWriter.WriteAllBytes(destination, EncodeBytes(format, options));
             _discardChangesOnDispose = false;
         }
@@ -199,7 +199,7 @@ namespace OfficeIMO.PowerPoint {
             string filePath,
             PowerPointSaveOptions? options,
             CancellationToken cancellationToken = default) {
-            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            ArgumentNullException.ThrowIfNull(filePath);
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             EnsureDestinationFileWritable(filePath);
             cancellationToken.ThrowIfCancellationRequested();
@@ -216,7 +216,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Asynchronously saves once to a stream using an explicit physical PowerPoint format.</summary>
         internal async Task SaveAsync(Stream destination, PowerPointFileFormat format,
             PowerPointSaveOptions? options = null, CancellationToken cancellationToken = default) {
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            ArgumentNullException.ThrowIfNull(destination);
             cancellationToken.ThrowIfCancellationRequested();
             byte[] bytes = EncodeBytes(format, options);
             await OfficeStreamWriter.WriteAllBytesAsync(destination, bytes, cancellationToken).ConfigureAwait(false);
@@ -396,7 +396,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="filePath">Destination .pptx path.</param>
         public void ExportSlide(int slideIndex, string filePath) {
             ThrowIfDisposed();
-            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            ArgumentNullException.ThrowIfNull(filePath);
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
 
             ValidateSlideIndex(slideIndex);
@@ -412,7 +412,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="destination">Writable destination stream.</param>
         public void ExportSlide(int slideIndex, Stream destination) {
             ThrowIfDisposed();
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            ArgumentNullException.ThrowIfNull(destination);
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
 
             ValidateSlideIndex(slideIndex);
@@ -440,8 +440,8 @@ namespace OfficeIMO.PowerPoint {
         internal void SaveEncrypted(string filePath, string password,
             PowerPointSaveOptions? options) {
             ThrowIfDisposed();
-            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(filePath);
+            ArgumentNullException.ThrowIfNull(password);
             if (filePath.Length == 0) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             EnsureDestinationFileWritable(filePath);
 
@@ -464,8 +464,8 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="password">Password used to encrypt the presentation package.</param>
         internal void SaveEncrypted(Stream destination, string password) {
             ThrowIfDisposed();
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(destination);
+            ArgumentNullException.ThrowIfNull(password);
 
             byte[] encryptedBytes = IsLegacyBinaryFormat(SourceFormat)
                 ? CreateEncryptedLegacyPptBytes(password, options: null)
@@ -482,8 +482,8 @@ namespace OfficeIMO.PowerPoint {
         internal void SaveEncrypted(Stream destination, string password,
             PowerPointFileFormat format, PowerPointSaveOptions? options = null) {
             ThrowIfDisposed();
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(destination);
+            ArgumentNullException.ThrowIfNull(password);
             byte[] encryptedBytes = IsLegacyBinaryFormat(format)
                 ? CreateEncryptedLegacyPptBytes(password, options)
                 : OfficeEncryption.EncryptPackage(EncodeBytes(format, options),
@@ -500,7 +500,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointFileFormat format = PowerPointFileFormat.Pptx,
             PowerPointSaveOptions? options = null) {
             ThrowIfDisposed();
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(password);
             return IsLegacyBinaryFormat(format)
                 ? CreateEncryptedLegacyPptBytes(password, options)
                 : OfficeEncryption.EncryptPackage(EncodeBytes(format, options),

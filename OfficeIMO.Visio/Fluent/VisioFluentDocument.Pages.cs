@@ -16,7 +16,7 @@ public partial class VisioFluentDocument {
 
     /// <summary>Configures a page belonging to this document.</summary>
     public VisioFluentDocument GetPage(VisioPage page, Action<VisioFluentPage> configure) {
-        if (page == null) throw new ArgumentNullException(nameof(page));
+        ArgumentNullException.ThrowIfNull(page);
         if (!_document.Pages.Contains(page)) throw new InvalidOperationException("The page does not belong to this document.");
         ConfigurePage(page, configure);
         return this;

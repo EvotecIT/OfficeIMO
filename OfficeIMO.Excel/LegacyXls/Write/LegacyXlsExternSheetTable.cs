@@ -41,8 +41,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         internal byte[] Payload { get; }
 
         internal static LegacyXlsExternSheetTable Create(ExcelDocument document, IReadOnlyList<ExcelSheet> sheets) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (sheets == null) throw new ArgumentNullException(nameof(sheets));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(sheets);
 
             string[] sheetNames = sheets.Select(sheet => sheet.Name).ToArray();
             IReadOnlyList<ExternalWorkbookReference> externalReferences = CollectExternalWorkbookReferences(document, sheets);
@@ -121,7 +121,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         internal static bool SupportsDeclaredExternalWorkbookLinks(WorkbookPart workbookPart, out string? reason) {
-            if (workbookPart == null) throw new ArgumentNullException(nameof(workbookPart));
+            ArgumentNullException.ThrowIfNull(workbookPart);
 
             return TryCollectDeclaredExternalWorkbookReferences(
                 workbookPart,

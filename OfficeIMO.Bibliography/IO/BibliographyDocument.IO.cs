@@ -15,7 +15,7 @@ public sealed partial class BibliographyDocument {
 
     /// <summary>Loads bibliography data from a stream.</summary>
     public static BibliographyReadResult Load(Stream stream, BibliographyFormat format, BibliographyReadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         options ??= new BibliographyReadOptions();
         options.Validate();
         byte[] bytes = ReadAllBytes(stream, options.MaxInputBytes, cancellationToken);
@@ -35,7 +35,7 @@ public sealed partial class BibliographyDocument {
 
     /// <summary>Loads bibliography data from a stream asynchronously.</summary>
     public static async Task<BibliographyReadResult> LoadAsync(Stream stream, BibliographyFormat format, BibliographyReadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         options ??= new BibliographyReadOptions();
         options.Validate();
         byte[] bytes = await ReadAllBytesAsync(stream, options.MaxInputBytes, cancellationToken).ConfigureAwait(false);
@@ -55,7 +55,7 @@ public sealed partial class BibliographyDocument {
 
     /// <summary>Saves or converts to a stream without closing it.</summary>
     public BibliographyWriteResult Save(Stream stream, BibliographyWriteOptions? options = null, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         BibliographyWriteResult result = Write(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PrepareOutputStream(stream, cancellationToken);
@@ -77,7 +77,7 @@ public sealed partial class BibliographyDocument {
 
     /// <summary>Saves or converts to a stream asynchronously without closing it.</summary>
     public async Task<BibliographyWriteResult> SaveAsync(Stream stream, BibliographyWriteOptions? options = null, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         BibliographyWriteResult result = Write(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PrepareOutputStream(stream, cancellationToken);

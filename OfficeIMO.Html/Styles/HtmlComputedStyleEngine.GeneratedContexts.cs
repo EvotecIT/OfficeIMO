@@ -13,8 +13,8 @@ public static partial class HtmlComputedStyleEngine {
         CancellationToken cancellationToken,
         HtmlRenderingFontDefaults? fontDefaults = null,
         IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null) {
-        if (parent == null) throw new ArgumentNullException(nameof(parent));
-        if (declarations == null) throw new ArgumentNullException(nameof(declarations));
+        ArgumentNullException.ThrowIfNull(parent);
+        ArgumentNullException.ThrowIfNull(declarations);
         cancellationToken.ThrowIfCancellationRequested();
         var properties = new Dictionary<string, CascadedProperty>(HtmlCssPropertyNameComparer.Instance);
         foreach (HtmlGeneratedStyleDeclaration declaration in declarations) {

@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 public sealed partial class RtfDocument {
     /// <summary>Resolves the list instance, definition and targeted level beneath a paragraph. The returned level is an independent copy.</summary>
     public RtfListFormatting? ResolveListFormatting(RtfParagraph paragraph) {
-        if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
+        ArgumentNullException.ThrowIfNull(paragraph);
         return ResolveListFormattingCore(ApplyParagraphInheritance(paragraph.CopyFormattingView()));
     }
 

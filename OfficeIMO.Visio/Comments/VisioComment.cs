@@ -79,7 +79,7 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Changes all author identity fields together.</summary>
         public void SetAuthor(VisioCommentAuthor author) {
-            if (author == null) throw new ArgumentNullException(nameof(author));
+            ArgumentNullException.ThrowIfNull(author);
             AuthorName = author.Name;
             AuthorInitials = author.Initials;
             AuthorResolutionId = author.ResolutionId;

@@ -70,11 +70,11 @@ public sealed class PdfStaticFormRecognitionOptions {
     public double MinimumConfidence { get; set; } = 0.6D;
 
     internal void Validate() {
-        if (MaxPages <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPages));
-        if (MaxProposals <= 0) throw new ArgumentOutOfRangeException(nameof(MaxProposals));
-        if (MaxCandidateScanWork <= 0) throw new ArgumentOutOfRangeException(nameof(MaxCandidateScanWork));
-        if (MaxDiagnostics <= 0) throw new ArgumentOutOfRangeException(nameof(MaxDiagnostics));
-        if (MaxOcrTextItems < 0) throw new ArgumentOutOfRangeException(nameof(MaxOcrTextItems));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxPages);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxProposals);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxCandidateScanWork);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxDiagnostics);
+        ArgumentOutOfRangeException.ThrowIfNegative(MaxOcrTextItems);
         if (double.IsNaN(MinimumConfidence) || MinimumConfidence < 0D || MinimumConfidence > 1D) {
             throw new ArgumentOutOfRangeException(nameof(MinimumConfidence));
         }

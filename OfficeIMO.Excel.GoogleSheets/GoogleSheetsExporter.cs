@@ -8,13 +8,13 @@ namespace OfficeIMO.Excel.GoogleSheets {
     public sealed class GoogleSheetsExporter : IGoogleSheetsExporter {
         /// <summary>Inspects source features and fidelity risks without contacting Google.</summary>
         public GoogleSheetsTranslationPlan BuildPlan(ExcelDocument document, GoogleSheetsSaveOptions? options = null) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             return GoogleSheetsPlanBuilder.Build(document, options ?? new GoogleSheetsSaveOptions());
         }
 
         /// <summary>Compiles source content into provider-neutral Sheets requests without contacting Google.</summary>
         public GoogleSheetsBatch BuildBatch(ExcelDocument document, GoogleSheetsSaveOptions? options = null) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             return GoogleSheetsBatchCompiler.Build(document, options ?? new GoogleSheetsSaveOptions());
         }
 
@@ -25,8 +25,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
             GoogleWorkspaceSession session,
             GoogleSheetsSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (session == null) throw new ArgumentNullException(nameof(session));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(session);
 
             var effectiveOptions = options ?? new GoogleSheetsSaveOptions();
             ValidateExecutionOptions(effectiveOptions.Execution);
@@ -301,7 +301,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             GoogleSheetsReplaceOptions replace,
             TranslationReport report,
             CancellationToken cancellationToken) {
-            if (replace == null) throw new ArgumentNullException(nameof(replace));
+            ArgumentNullException.ThrowIfNull(replace);
             if (replace.ConflictMode == GoogleSheetsReplaceConflictMode.RequireMatchingDriveVersion
                 && !replace.ExpectedDriveVersion.HasValue) {
                 report.Add(
@@ -442,7 +442,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static void ValidateExecutionOptions(GoogleSheetsExecutionOptions execution) {
-            if (execution == null) throw new ArgumentNullException(nameof(execution));
+            ArgumentNullException.ThrowIfNull(execution);
             if (execution.MaxValueRangesPerRequest <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(execution.MaxValueRangesPerRequest));
             }

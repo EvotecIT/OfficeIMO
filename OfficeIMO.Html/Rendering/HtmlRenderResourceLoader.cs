@@ -44,7 +44,7 @@ public sealed partial class HtmlResourceSession {
     }
 
     internal HtmlResourceSession(HtmlRenderOptions options, HtmlDiagnosticReport diagnostics) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         ResourcePolicy = options.GetResourceUrlPolicy().Clone();
         Resolver = options.ResourceResolver;
         SynchronousResolver = options.SynchronousResourceResolver;
@@ -323,7 +323,7 @@ public sealed partial class HtmlResourceSession {
         out string diagnosticCode,
         out string diagnosticDetail) {
         if (string.IsNullOrWhiteSpace(resolvedSource)) throw new ArgumentException("A canonical inline resource source is required.", nameof(resolvedSource));
-        if (resource == null) throw new ArgumentNullException(nameof(resource));
+        ArgumentNullException.ThrowIfNull(resource);
         if (_resources.ContainsKey(resolvedSource)) {
             diagnosticCode = string.Empty;
             diagnosticDetail = string.Empty;
@@ -411,12 +411,12 @@ public sealed partial class HtmlResourceSession {
 
     private void ValidateLimits() {
         if (ResourceTimeout <= TimeSpan.Zero || ResourceTimeout == Timeout.InfiniteTimeSpan) throw new ArgumentOutOfRangeException(nameof(ResourceTimeout));
-        if (MaxConcurrentLoads <= 0) throw new ArgumentOutOfRangeException(nameof(MaxConcurrentLoads));
-        if (MaxResourceBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxResourceBytes));
-        if (MaxTotalResourceBytes < MaxResourceBytes) throw new ArgumentOutOfRangeException(nameof(MaxTotalResourceBytes));
-        if (MaxResourceCount <= 0) throw new ArgumentOutOfRangeException(nameof(MaxResourceCount));
-        if (MaxResourceRequests < MaxResourceCount) throw new ArgumentOutOfRangeException(nameof(MaxResourceRequests));
-        if (MaxStylesheetImportDepth <= 0) throw new ArgumentOutOfRangeException(nameof(MaxStylesheetImportDepth));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxConcurrentLoads);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxResourceBytes);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxTotalResourceBytes, MaxResourceBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxResourceCount);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxResourceRequests, MaxResourceCount);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxStylesheetImportDepth);
     }
 
     internal static bool IsAcceptedContentType(HtmlResourceKind kind, string contentType) {

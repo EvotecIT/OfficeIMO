@@ -166,7 +166,7 @@ namespace OfficeIMO.Data {
         /// Flattens <paramref name="item"/> into a dictionary according to <paramref name="opts"/>.
         /// </summary>
         public Dictionary<string, object?> Flatten<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(T item, ObjectFlattenerOptions opts) {
-            if (opts == null) throw new ArgumentNullException(nameof(opts));
+            ArgumentNullException.ThrowIfNull(opts);
             return FlattenPrepared(item, opts.CreateProjectionSnapshot());
         }
 
@@ -200,8 +200,8 @@ namespace OfficeIMO.Data {
         /// Computes all reachable dotted paths for a given <paramref name="type"/> under <paramref name="opts"/>.
         /// </summary>
         public List<string> GetPaths([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] Type type, ObjectFlattenerOptions opts) {
-            if (type == null) throw new ArgumentNullException(nameof(type));
-            if (opts == null) throw new ArgumentNullException(nameof(opts));
+            ArgumentNullException.ThrowIfNull(type);
+            ArgumentNullException.ThrowIfNull(opts);
             return GetPathsPrepared(type, opts.CreateProjectionSnapshot());
         }
 
@@ -217,8 +217,8 @@ namespace OfficeIMO.Data {
         /// Applies the configured include, exclude, pin, and priority rules to discovered table paths.
         /// </summary>
         public List<string> ResolvePaths(IEnumerable<string> paths, ObjectFlattenerOptions opts) {
-            if (paths == null) throw new ArgumentNullException(nameof(paths));
-            if (opts == null) throw new ArgumentNullException(nameof(opts));
+            ArgumentNullException.ThrowIfNull(paths);
+            ArgumentNullException.ThrowIfNull(opts);
             return ResolvePathsPrepared(paths, opts.CreateProjectionSnapshot());
         }
 

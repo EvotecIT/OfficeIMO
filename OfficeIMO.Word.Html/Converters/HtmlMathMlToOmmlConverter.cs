@@ -15,7 +15,7 @@ namespace OfficeIMO.Word.Html {
         private HtmlMathMlToOmmlConverter() { }
 
         internal static bool TryConvert(IElement math, out string omml, out bool hasUnsupportedOperatorProperties) {
-            if (math == null) throw new ArgumentNullException(nameof(math));
+            ArgumentNullException.ThrowIfNull(math);
 
             var converter = new HtmlMathMlToOmmlConverter();
             var content = converter.ConvertChildren(math).ToList();

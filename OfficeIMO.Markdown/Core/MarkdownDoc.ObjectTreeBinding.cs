@@ -15,9 +15,7 @@ public partial class MarkdownDocument {
 
     /// <summary>Adds a parser-owned probe block whose temporary object tree is never exposed.</summary>
     internal void AddWithoutObjectTreeBinding(IMarkdownBlock block) {
-        if (block == null) {
-            throw new ArgumentNullException(nameof(block));
-        }
+        ArgumentNullException.ThrowIfNull(block);
 
         if (block is IFrontMatterMarkdownBlock frontMatter) {
             _frontMatter = frontMatter;

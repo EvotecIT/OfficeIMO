@@ -272,7 +272,7 @@ public static class OfficeProvenanceAssessment {
         string fullPath = Path.GetFullPath(filePath);
         string logicalFullPath = Path.GetFullPath(logicalFilePath);
         if (!File.Exists(fullPath)) throw new FileNotFoundException("The asset to assess was not found.", fullPath);
-        if (structural == null) throw new ArgumentNullException(nameof(structural));
+        ArgumentNullException.ThrowIfNull(structural);
         options ??= new OfficeProvenanceAssessmentOptions();
 
         cancellationToken.ThrowIfCancellationRequested();

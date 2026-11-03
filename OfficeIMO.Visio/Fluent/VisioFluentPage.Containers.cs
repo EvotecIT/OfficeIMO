@@ -25,9 +25,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// Adds existing shapes to a Visio-native container using inline resize option configuration.
         /// </summary>
         public VisioFluentPage AddToContainer(string containerId, IEnumerable<string> memberIds, Action<VisioContainerOptions> configureResizeOptions) {
-            if (configureResizeOptions == null) {
-                throw new ArgumentNullException(nameof(configureResizeOptions));
-            }
+            ArgumentNullException.ThrowIfNull(configureResizeOptions);
 
             VisioContainerOptions options = new();
             configureResizeOptions(options);
@@ -47,9 +45,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// Removes existing shapes from a Visio-native container using inline resize option configuration.
         /// </summary>
         public VisioFluentPage RemoveFromContainer(string containerId, IEnumerable<string> memberIds, Action<VisioContainerOptions> configureResizeOptions) {
-            if (configureResizeOptions == null) {
-                throw new ArgumentNullException(nameof(configureResizeOptions));
-            }
+            ArgumentNullException.ThrowIfNull(configureResizeOptions);
 
             VisioContainerOptions options = new();
             configureResizeOptions(options);
@@ -83,9 +79,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// Applies a reusable visual style to an existing Visio-native container.
         /// </summary>
         public VisioFluentPage StyleContainer(string containerId, VisioShapeStyle style, bool refit = false) {
-            if (style == null) {
-                throw new ArgumentNullException(nameof(style));
-            }
+            ArgumentNullException.ThrowIfNull(style);
 
             return ConfigureContainer(containerId, options => options.ShapeStyle = style, refit);
         }
@@ -102,9 +96,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// Resizes a Visio-native container around its current members using inline option configuration.
         /// </summary>
         public VisioFluentPage RefitContainer(string containerId, Action<VisioContainerOptions> configureOptions) {
-            if (configureOptions == null) {
-                throw new ArgumentNullException(nameof(configureOptions));
-            }
+            ArgumentNullException.ThrowIfNull(configureOptions);
 
             VisioContainerOptions options = new();
             configureOptions(options);

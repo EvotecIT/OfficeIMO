@@ -9,8 +9,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             OpenXmlElement element,
             IEnumerable<string> allowedUnqualifiedNames,
             Func<OpenXmlAttribute, bool>? allowQualified = null) {
-            if (element == null) throw new ArgumentNullException(nameof(element));
-            if (allowedUnqualifiedNames == null) throw new ArgumentNullException(nameof(allowedUnqualifiedNames));
+            ArgumentNullException.ThrowIfNull(element);
+            ArgumentNullException.ThrowIfNull(allowedUnqualifiedNames);
 
             var allowed = new HashSet<string>(allowedUnqualifiedNames, StringComparer.Ordinal);
             foreach (OpenXmlAttribute attribute in element.GetAttributes()) {

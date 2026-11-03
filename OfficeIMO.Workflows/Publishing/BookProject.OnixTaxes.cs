@@ -16,7 +16,7 @@ public sealed partial class BookProject {
         var result = new List<XElement>();
         decimal remaining = price.Amount;
         foreach (BookOnixTax tax in price.Taxes) {
-            if (tax == null) throw new ArgumentNullException(nameof(tax));
+            ArgumentNullException.ThrowIfNull(tax);
             string type = tax.Type switch {
                 BookOnixTaxType.ValueAdded => "01", BookOnixTaxType.Sales => "02", BookOnixTaxType.Environmental => "03",
                 _ => throw new ArgumentOutOfRangeException(nameof(tax.Type))

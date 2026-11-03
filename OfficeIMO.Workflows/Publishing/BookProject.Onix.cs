@@ -21,8 +21,8 @@ public sealed partial class BookProject {
     /// </summary>
     public BookOnixExportResult ExportOnix(BookOnixExportOptions options, XmlSchemaSet schemas,
         EpubSaveOptions? epubOptions = null, CancellationToken cancellationToken = default) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
-        if (schemas == null) throw new ArgumentNullException(nameof(schemas));
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(schemas);
         cancellationToken.ThrowIfCancellationRequested();
         BookOnixMessage.RequireSchema(schemas);
         string notification = options.Notification switch {

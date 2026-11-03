@@ -18,8 +18,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             Func<LegacyPptInteraction, IReadOnlyList<OpenXmlElement>>?
                 projectInteraction = null,
             Func<LegacyPptPictureBullet, string?>? projectPictureBullet = null) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(shape);
+            ArgumentNullException.ThrowIfNull(source);
             if (source.HasExplicitCharacterFormatting
                 || source.HasParagraphFormatting || source.HasInteractions
                 || source.Fields.Count > 0 || source.HasLanguageInformation) {
@@ -45,7 +45,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             Func<LegacyPptInteraction, IReadOnlyList<OpenXmlElement>>?
                 projectInteraction,
             Func<LegacyPptPictureBullet, string?>? projectPictureBullet = null) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(source);
             var textBody = new P.TextBody(new A.BodyProperties(), new A.ListStyle());
             ApplyTextFrame(textBody.BodyProperties, frame);
             var projectionPlan = new LegacyPptTextProjectionPlan(source);
@@ -140,8 +140,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal static void ApplyParagraphFormatting(A.TextParagraphPropertiesType properties,
             LegacyPptParagraphRun run, bool includeLevel,
             Func<LegacyPptPictureBullet, string?>? projectPictureBullet = null) {
-            if (properties == null) throw new ArgumentNullException(nameof(properties));
-            if (run == null) throw new ArgumentNullException(nameof(run));
+            ArgumentNullException.ThrowIfNull(properties);
+            ArgumentNullException.ThrowIfNull(run);
             if (includeLevel) properties.Level = run.IndentLevel;
             if (run.LeftMargin.HasValue) properties.LeftMargin = ToEmus(run.LeftMargin.Value);
             if (run.Indent.HasValue) properties.Indent = ToEmus(run.Indent.Value);

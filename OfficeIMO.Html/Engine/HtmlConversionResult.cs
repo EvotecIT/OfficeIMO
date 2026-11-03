@@ -49,7 +49,7 @@ public abstract class HtmlConversionResult<T> : IOfficeResult<T> where T : class
 
     /// <summary>Adds diagnostics while the result is being constructed.</summary>
     protected void AddDiagnostics(IEnumerable<HtmlDiagnostic> diagnostics) {
-        if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
+        ArgumentNullException.ThrowIfNull(diagnostics);
         foreach (HtmlDiagnostic diagnostic in diagnostics) AddDiagnostic(diagnostic);
     }
 }

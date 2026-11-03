@@ -81,7 +81,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal bool TryReservePendingDirectCellValueSheet(ExcelSheet sheet) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             if (!ReferenceEquals(sheet.Document, this)) {
                 return false;
             }

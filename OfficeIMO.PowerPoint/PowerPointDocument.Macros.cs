@@ -24,9 +24,7 @@ namespace OfficeIMO.PowerPoint {
         public byte[]? GetVbaProjectBytes(
             long maximumBytes = DefaultMaximumVbaProjectBytes) {
             ThrowIfDisposed();
-            if (maximumBytes <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(maximumBytes));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
             VbaProjectPart? part = _presentationPart.VbaProjectPart;
             if (part == null) return null;
             using Stream input = part.GetStream(FileMode.Open, FileAccess.Read);
@@ -44,9 +42,7 @@ namespace OfficeIMO.PowerPoint {
         public void SetVbaProject(Stream project,
             long maximumBytes = DefaultMaximumVbaProjectBytes) {
             ThrowIfDisposed();
-            if (maximumBytes <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(maximumBytes));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
             byte[] bytes = OfficeStreamReader.ReadAllBytes(project, maximumBytes);
             SetVbaProject(bytes, maximumBytes);
         }
@@ -57,10 +53,8 @@ namespace OfficeIMO.PowerPoint {
         public void SetVbaProject(byte[] project,
             long maximumBytes = DefaultMaximumVbaProjectBytes) {
             ThrowIfDisposed();
-            if (project == null) throw new ArgumentNullException(nameof(project));
-            if (maximumBytes <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(maximumBytes));
-            }
+            ArgumentNullException.ThrowIfNull(project);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
             if (project.LongLength > maximumBytes) {
                 throw new InvalidDataException(
                     $"VBA project exceeds the configured maximum size ({maximumBytes} bytes).");

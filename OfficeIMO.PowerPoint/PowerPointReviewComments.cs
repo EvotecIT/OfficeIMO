@@ -170,7 +170,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Reassigns the comment to an existing or newly created author.</summary>
         public void SetAuthor(PowerPointCommentAuthor author) {
-            if (author == null) throw new ArgumentNullException(nameof(author));
+            ArgumentNullException.ThrowIfNull(author);
             P.Comment attached = RequireAttached();
             uint? previousAuthorId = attached.AuthorId?.Value;
             P.CommentAuthor target = _presentation.GetOrCreateClassicCommentAuthor(author);
@@ -303,7 +303,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointModernCommentReply AddReply(PowerPointCommentAuthor author,
             string text, PowerPointModernCommentStatus status = PowerPointModernCommentStatus.Active,
             DateTime? created = null) {
-            if (author == null) throw new ArgumentNullException(nameof(author));
+            ArgumentNullException.ThrowIfNull(author);
             PowerPointDocument.ValidateCommentText(text);
             P188.Comment comment = RequireAttached();
             P188.CommentStatus modernStatus =
@@ -328,7 +328,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Reassigns the comment to an existing or newly created author.</summary>
         public void SetAuthor(PowerPointCommentAuthor author) {
-            if (author == null) throw new ArgumentNullException(nameof(author));
+            ArgumentNullException.ThrowIfNull(author);
             P188.Comment attached = RequireAttached();
             string? previousAuthorId = attached.AuthorId?.Value;
             string? targetAuthorId = _presentation.GetOrCreateModernCommentAuthor(author).Id?.Value;
@@ -446,7 +446,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Reassigns the reply to an existing or newly created author.</summary>
         public void SetAuthor(PowerPointCommentAuthor author) {
-            if (author == null) throw new ArgumentNullException(nameof(author));
+            ArgumentNullException.ThrowIfNull(author);
             P188.CommentReply attached = RequireAttached();
             string? previousAuthorId = attached.AuthorId?.Value;
             string? targetAuthorId = _presentation.GetOrCreateModernCommentAuthor(author).Id?.Value;
@@ -500,7 +500,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointCommentAuthor author, string text, OfficeLength x = default, OfficeLength y = default,
             DateTime? created = null) {
             EnsureCommentSlide(slide);
-            if (author == null) throw new ArgumentNullException(nameof(author));
+            ArgumentNullException.ThrowIfNull(author);
             ValidateClassicCommentText(text, nameof(text));
             long nativeX = LengthToClassicCommentPosition(x);
             long nativeY = LengthToClassicCommentPosition(y);
@@ -540,7 +540,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointModernCommentStatus status = PowerPointModernCommentStatus.Active,
             OfficeLength x = default, OfficeLength y = default, DateTime? created = null) {
             EnsureCommentSlide(slide);
-            if (author == null) throw new ArgumentNullException(nameof(author));
+            ArgumentNullException.ThrowIfNull(author);
             ValidateCommentText(text);
             ValidateModernCommentPosition(x.ToEmus(), nameof(x));
             ValidateModernCommentPosition(y.ToEmus(), nameof(y));
@@ -924,7 +924,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static void ValidateCommentAuthorIdentity(
             PowerPointCommentAuthor author) {
-            if (author == null) throw new ArgumentNullException(nameof(author));
+            ArgumentNullException.ThrowIfNull(author);
             PowerPointXmlValueValidator.ValidateCharacters(author.Name,
                 nameof(author), "Author name");
             PowerPointXmlValueValidator.ValidateCharacters(author.Initials,
@@ -941,7 +941,7 @@ namespace OfficeIMO.PowerPoint {
 
         private void EnsureCommentSlide(PowerPointSlide slide) {
             ThrowIfDisposed();
-            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            ArgumentNullException.ThrowIfNull(slide);
             if (!_slides.Contains(slide)) {
                 throw new ArgumentException("The slide does not belong to this presentation.", nameof(slide));
             }

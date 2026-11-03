@@ -121,7 +121,7 @@ namespace OfficeIMO.Excel {
         /// Creates a template image from a stream.
         /// </summary>
         public static ExcelTemplateImage FromStream(Stream stream, string contentType = "image/png", OfficeLength? width = null, OfficeLength? height = null, OfficeLength offsetX = default, OfficeLength offsetY = default, string? name = null, string? altText = null, bool lockAspectRatio = true) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             using var buffer = new MemoryStream();
             stream.CopyTo(buffer);
             return FromBytes(buffer.ToArray(), contentType, width, height, offsetX, offsetY, name, altText, lockAspectRatio);
@@ -142,7 +142,7 @@ namespace OfficeIMO.Excel {
             OfficeLength? width = null, OfficeLength? height = null, OfficeLength offsetX = default, OfficeLength offsetY = default,
             string? name = null, string? altText = null, bool lockAspectRatio = true,
             CancellationToken cancellationToken = default) {
-            if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
+            ArgumentNullException.ThrowIfNull(remoteImageOptions);
             return FromUrlCoreAsync(url, remoteImageOptions, width, height, offsetX,
                 offsetY, name, altText, lockAspectRatio, cancellationToken);
         }

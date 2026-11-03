@@ -64,7 +64,7 @@ internal sealed class OfficeOpenTypeReader {
     internal int HorizontalMetricCount { get; }
 
     internal static OfficeOpenTypeReader? TryCreate(byte[] data) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         try {
             if (data.Length < 12) return null;
             uint flavor = ReadUInt32(data, 0);
@@ -116,7 +116,8 @@ internal sealed class OfficeOpenTypeReader {
     }
 
     internal int AdvanceWidth(int glyphId) {
-        if (glyphId < 0 || glyphId >= GlyphCount) throw new ArgumentOutOfRangeException(nameof(glyphId));
+        ArgumentOutOfRangeException.ThrowIfNegative(glyphId);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(glyphId, GlyphCount);
         int metricIndex = Math.Min(glyphId, HorizontalMetricCount - 1);
         return ReadUInt16(_hmtx.Offset + metricIndex * 4);
     }

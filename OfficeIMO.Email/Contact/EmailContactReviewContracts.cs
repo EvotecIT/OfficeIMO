@@ -15,7 +15,7 @@ public sealed class EmailContactSource {
     public EmailDocument Document { get; }
     /// <summary>Projects a person OAB entry through its canonical Outlook contact mapper.</summary>
     public static EmailContactSource FromAddressBook(OfflineAddressBookEntry entry, string? sourceId = null) {
-        if (entry == null) throw new ArgumentNullException(nameof(entry));
+        ArgumentNullException.ThrowIfNull(entry);
         if (entry.IsDistributionList) throw new ArgumentException("Distribution lists require a group export.", nameof(entry));
         return new EmailContactSource(sourceId ?? entry.Reference.Id,
             new EmailDocument { OutlookItemKind = OutlookItemKind.Contact, Contact = entry.ToOutlookContact() });

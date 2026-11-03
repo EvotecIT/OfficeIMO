@@ -27,10 +27,7 @@ internal static class ExcelReadOutputService
         string? a1Range,
         bool headersInFirstRow)
     {
-        if (options == null)
-        {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         if (!string.IsNullOrWhiteSpace(sheetName) && sheetIndex.HasValue)
         {
@@ -54,10 +51,7 @@ internal static class ExcelReadOutputService
 
     public static DataTable ReadCurrentResultAsDataTable(DbDataReader reader, string? tableName = null)
     {
-        if (reader == null)
-        {
-            throw new ArgumentNullException(nameof(reader));
-        }
+        ArgumentNullException.ThrowIfNull(reader);
 
         var table = new DataTable(tableName ?? string.Empty)
         {
@@ -93,15 +87,9 @@ internal static class ExcelReadOutputService
         bool byColumn = false,
         string? worksheetName = null)
     {
-        if (cmdlet == null)
-        {
-            throw new ArgumentNullException(nameof(cmdlet));
-        }
+        ArgumentNullException.ThrowIfNull(cmdlet);
 
-        if (table == null)
-        {
-            throw new ArgumentNullException(nameof(table));
-        }
+        ArgumentNullException.ThrowIfNull(table);
 
         if (asDataTable && asHashtable)
         {
@@ -187,15 +175,9 @@ internal static class ExcelReadOutputService
         bool asHashtable,
         string? worksheetName)
     {
-        if (cmdlet == null)
-        {
-            throw new ArgumentNullException(nameof(cmdlet));
-        }
+        ArgumentNullException.ThrowIfNull(cmdlet);
 
-        if (reader == null)
-        {
-            throw new ArgumentNullException(nameof(reader));
-        }
+        ArgumentNullException.ThrowIfNull(reader);
 
         var columnCount = reader.FieldCount;
         var columnNames = new string[columnCount];

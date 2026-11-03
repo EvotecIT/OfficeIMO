@@ -4,13 +4,13 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class BookProject {
     private static IReadOnlyList<XElement> BuildOnixAlternativeTitles(IReadOnlyList<BookOnixAlternativeTitle> titles, CancellationToken token) {
-        if (titles == null) throw new ArgumentNullException(nameof(titles));
+        ArgumentNullException.ThrowIfNull(titles);
         if (titles.Count > 32) throw new ArgumentException("Supply at most 32 alternative ONIX titles.", nameof(titles));
         XNamespace ns = OnixNamespace;
         var result = new List<XElement>();
         foreach (var title in titles) {
             token.ThrowIfCancellationRequested();
-            if (title == null) throw new ArgumentNullException(nameof(title));
+            ArgumentNullException.ThrowIfNull(title);
             string type = title.Type switch {
                 BookOnixAlternativeTitleType.OriginalLanguage => "03", BookOnixAlternativeTitleType.Abbreviated => "05",
                 BookOnixAlternativeTitleType.OtherLanguage => "06", BookOnixAlternativeTitleType.Former => "08",

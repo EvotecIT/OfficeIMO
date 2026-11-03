@@ -32,8 +32,8 @@ namespace OfficeIMO.Excel.LegacyXls {
         internal CancellationToken CancellationToken { get; set; }
 
         internal void Validate() {
-            if (MaxInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxInputBytes));
-            if (MaxDecodedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxDecodedImageBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxInputBytes);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxDecodedImageBytes);
         }
 
     }

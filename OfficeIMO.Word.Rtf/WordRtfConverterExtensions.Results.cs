@@ -12,7 +12,7 @@ namespace OfficeIMO.Word.Rtf;
 /// </content>
 public static partial class WordRtfConverterExtensions {
     internal static RtfConversionResult<RtfDocument> ConvertToRtfWithEvidence(this WordDocument document) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         RtfDocument converted = document.ConvertToRtfDocument();
         var report = new RtfConversionReport();
         AddWordToRtfDiagnostics(document, report);
@@ -20,7 +20,7 @@ public static partial class WordRtfConverterExtensions {
     }
 
     internal static RtfConversionResult<WordDocument> ConvertToWordWithEvidence(this RtfDocument document) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         var report = new RtfConversionReport();
         WordDocument converted = ToWordDocumentCore(document, report);
         AddRtfToWordDiagnostics(document, report);
@@ -30,7 +30,7 @@ public static partial class WordRtfConverterExtensions {
     internal static RtfConversionResult<WordDocument> ConvertToWordWithEvidence(
         this RtfReadResult readResult,
         string? sourcePath = null) {
-        if (readResult == null) throw new ArgumentNullException(nameof(readResult));
+        ArgumentNullException.ThrowIfNull(readResult);
         RtfConversionResult<WordDocument> converted = readResult.Document.ConvertToWordWithEvidence();
         var report = new RtfConversionReport();
         report.AddReadDiagnostics(readResult.Diagnostics, sourcePath);

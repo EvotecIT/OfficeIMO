@@ -11,9 +11,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Groups shapes into a single group shape.
         /// </summary>
         public PowerPointGroupShape GroupShapes(IEnumerable<PowerPointShape> shapes, string? name = null) {
-            if (shapes == null) {
-                throw new ArgumentNullException(nameof(shapes));
-            }
+            ArgumentNullException.ThrowIfNull(shapes);
 
             List<PowerPointShape> list = NormalizeShapes(shapes);
             if (list.Count < 2) {
@@ -72,9 +70,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Ungroups a group shape back into its child shapes.
         /// </summary>
         public IReadOnlyList<PowerPointShape> UngroupShape(PowerPointGroupShape groupShape) {
-            if (groupShape == null) {
-                throw new ArgumentNullException(nameof(groupShape));
-            }
+            ArgumentNullException.ThrowIfNull(groupShape);
 
             int index = EnsureShapeOnSlide(groupShape);
             GroupShape group = groupShape.GroupShape;

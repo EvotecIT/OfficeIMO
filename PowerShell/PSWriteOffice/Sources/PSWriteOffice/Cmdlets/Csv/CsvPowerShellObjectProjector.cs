@@ -30,10 +30,7 @@ internal sealed class CsvPowerShellObjectProjector
         int maxCollectionItems = PowerShellObjectNormalizerOptions.DefaultMaxCollectionItems,
         int maxNestingDepth = PowerShellObjectNormalizerOptions.DefaultMaxNestingDepth)
     {
-        if (options == null)
-        {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         _allowTrustedTextRows = options.DateTimeFormat == null && !options.UseUtc;
         _normalizerOptions = new PowerShellObjectNormalizerOptions
@@ -47,10 +44,7 @@ internal sealed class CsvPowerShellObjectProjector
 
     public void UseColumns(IReadOnlyList<string> columns, bool validateColumns)
     {
-        if (columns == null)
-        {
-            throw new ArgumentNullException(nameof(columns));
-        }
+        ArgumentNullException.ThrowIfNull(columns);
 
         _columns = columns.ToArray();
         _values = new object?[_columns.Length];
@@ -68,20 +62,14 @@ internal sealed class CsvPowerShellObjectProjector
 
     public void ValidateObjectColumns(object? value, IReadOnlyList<string> columns)
     {
-        if (columns == null)
-        {
-            throw new ArgumentNullException(nameof(columns));
-        }
+        ArgumentNullException.ThrowIfNull(columns);
 
         ValidateFirstRowColumns(value, columns);
     }
 
     public bool CanProjectColumns(object? value, IReadOnlyList<string> columns)
     {
-        if (columns == null)
-        {
-            throw new ArgumentNullException(nameof(columns));
-        }
+        ArgumentNullException.ThrowIfNull(columns);
 
         return TryGetProjectableColumns(value, columns, out _);
     }

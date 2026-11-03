@@ -20,7 +20,7 @@ public sealed partial class EpubPublication {
     /// Existing collections remain intact. Requires EPUB 3 and an unused package identifier.
     /// </summary>
     public void AddCollection(string id, EpubCollectionMetadata collection) {
-        if (collection == null) throw new ArgumentNullException(nameof(collection));
+        ArgumentNullException.ThrowIfNull(collection);
         RequirePublishingMetadataId(id);
         ValidatePublishingName(collection.Name, collection.FileAs, collection.Language);
         string kind = collection.Kind switch {
@@ -40,7 +40,7 @@ public sealed partial class EpubPublication {
     }
 
     private void AddContributorRecord(string elementName, string id, EpubContributorMetadata contributor) {
-        if (contributor == null) throw new ArgumentNullException(nameof(contributor));
+        ArgumentNullException.ThrowIfNull(contributor);
         RequirePublishingMetadataId(id);
         ValidatePublishingName(contributor.Name, contributor.FileAs, contributor.Language);
         if (contributor.MarcRoles == null) throw new ArgumentNullException(nameof(contributor.MarcRoles));

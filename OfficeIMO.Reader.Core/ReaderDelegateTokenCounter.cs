@@ -25,7 +25,7 @@ public sealed class ReaderDelegateTokenCounter : IReaderRangeTokenCounter {
     public int CountTokens(string text) => Validate(_count(text ?? string.Empty));
     /// <inheritdoc />
     public int CountTokens(string prefix, string source, int start, int length) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         if (start < 0 || length < 0 || start > source.Length - length) throw new ArgumentOutOfRangeException(nameof(start));
         return Validate(_countRange == null ? _count((prefix ?? string.Empty) + source.Substring(start, length))
             : _countRange(prefix ?? string.Empty, source, start, length));

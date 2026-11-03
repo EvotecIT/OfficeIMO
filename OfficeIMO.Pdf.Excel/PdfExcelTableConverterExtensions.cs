@@ -15,7 +15,7 @@ namespace OfficeIMO.Pdf.Excel {
             this PdfCore.PdfDocument document,
             PdfExcelExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             return ReadForExcel(document, options, cancellationToken).ConvertToExcelWithEvidence(options, cancellationToken);
         }
 
@@ -45,7 +45,7 @@ namespace OfficeIMO.Pdf.Excel {
             this PdfCore.PdfDocumentReadResult document,
             PdfExcelExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             PdfExcelExportOptions operation = (options ?? new PdfExcelExportOptions()).Clone();
             operation.CancellationToken = cancellationToken;
             PdfCore.PdfLogicalContentProjection.RequireComplete(document, cancellationToken);

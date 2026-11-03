@@ -27,9 +27,7 @@ public static class MarkdownTranscriptPreparation {
         MarkdownLoadOptions options,
         bool preservesGroupedDefinitionLikeParagraphs = true,
         MarkdownVisualFenceLanguageMode? visualFenceLanguageMode = null) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         options.InputNormalization = MarkdownInputNormalizationPresets.CreateIntelligenceXTranscript();
         options.PreferNarrativeSingleLineDefinitions = true;

@@ -81,7 +81,7 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Print layout options.</param>
         /// <returns>The worksheet for fluent chaining.</returns>
         internal ExcelSheet ApplyPrintLayoutCore(ExcelPrintLayoutOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
 
             var preset = ResolvePrintLayoutPreset(options.Preset);
             var orientation = options.Orientation ?? preset.Orientation;

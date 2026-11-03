@@ -8,7 +8,7 @@ public sealed partial class XpsFixedDocument {
     /// <summary>Creates or replaces native outlines and story addresses, retaining unknown markup and unrelated relationships.</summary>
     /// <remarks>Story addresses must resolve to page fragments. Numeric page addresses follow the adopted payload-global interpretation.</remarks>
     public void ReplaceDocumentStructureMarkup(XElement markup) {
-        if (markup == null) throw new ArgumentNullException(nameof(markup));
+        ArgumentNullException.ThrowIfNull(markup);
         Owner.CommitDocumentStructure(this, markup);
     }
 }

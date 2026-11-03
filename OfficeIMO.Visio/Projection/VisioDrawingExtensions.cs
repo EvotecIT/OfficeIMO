@@ -9,7 +9,7 @@ public static class VisioDrawingExtensions {
     /// <remarks>Stencil masters must first be instantiated on a page. ShapeSheet recalculation is not performed.</remarks>
     public static OfficeConversionResult<IReadOnlyList<OfficeDrawing>, VisioDrawingConversionReport> ToDrawings(
         this VisioDocument document, VisioDrawingOptions? options = null, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         VisioDrawingOptions operation = (options ?? new VisioDrawingOptions()).Snapshot();
         if (document.Pages.Count == 0) throw new InvalidOperationException("The Visio document has no pages. Instantiate stencil masters on a page before rendering.");
@@ -25,7 +25,7 @@ public static class VisioDrawingExtensions {
     /// <summary>Projects one page at its physical dimensions in points and returns source-qualified fidelity evidence.</summary>
     public static OfficeConversionResult<OfficeDrawing, VisioDrawingConversionReport> ToDrawing(
         this VisioPage page, VisioDrawingOptions? options = null, CancellationToken cancellationToken = default) {
-        if (page == null) throw new ArgumentNullException(nameof(page));
+        ArgumentNullException.ThrowIfNull(page);
         cancellationToken.ThrowIfCancellationRequested();
         VisioDrawingOptions operation = (options ?? new VisioDrawingOptions()).Snapshot();
         var report = new VisioDrawingConversionReport(operation.SourceName ?? page.OwnerDocument?.FilePath);

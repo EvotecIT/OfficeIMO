@@ -27,7 +27,8 @@ public sealed partial class OfficeRasterCanvas {
     internal static (double Left, double Top, double Right, double Bottom, bool HasInk, bool IsMeasured, bool IsClipped)
         MeasureNominalAdditionalInkLoss(IReadOnlyList<List<OfficePoint>> contours, OfficeFillRule rule,
             IReadOnlyList<OfficeTextInkClip> clips, int admittedClipCount, CancellationToken cancellationToken = default) {
-        if (admittedClipCount < 0 || admittedClipCount > clips.Count) throw new ArgumentOutOfRangeException(nameof(admittedClipCount));
+        ArgumentOutOfRangeException.ThrowIfNegative(admittedClipCount);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(admittedClipCount, clips.Count);
         // This overload receives filled clip geometry. Half-plane clips are applied by the
         // caller before inspection, as in the existing positioned-text inspection route.
         foreach (OfficeTextInkClip clip in clips)

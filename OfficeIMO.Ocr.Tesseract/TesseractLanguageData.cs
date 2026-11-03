@@ -112,7 +112,7 @@ public static class TesseractLanguageData {
         IReadOnlyList<Package> packages,
         TesseractLanguageDataOptions? options,
         CancellationToken cancellationToken) {
-        if (packages == null) throw new ArgumentNullException(nameof(packages));
+        ArgumentNullException.ThrowIfNull(packages);
         TesseractLanguageDataOptions effective = options ?? new TesseractLanguageDataOptions();
         if (effective.MaxBytesPerLanguage < 1L) throw new ArgumentOutOfRangeException(nameof(options), "Maximum language-data bytes must be positive.");
         string directory = ResolveCacheDirectory(effective.CacheDirectory);

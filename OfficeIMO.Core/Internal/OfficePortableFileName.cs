@@ -9,8 +9,8 @@ internal static class OfficePortableFileName {
     private static readonly char[] PlatformInvalidCharacters = Path.GetInvalidFileNameChars();
 
     internal static string SanitizeBaseName(string name, int maximumLength = 120) {
-        if (name == null) throw new ArgumentNullException(nameof(name));
-        if (maximumLength < 1) throw new ArgumentOutOfRangeException(nameof(maximumLength));
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumLength, 1);
         char[] chars = name.ToCharArray();
         for (int index = 0; index < chars.Length; index++) {
             if (chars[index] < 32 || PortableInvalidCharacters.IndexOf(chars[index]) >= 0 ||
