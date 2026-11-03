@@ -44,6 +44,13 @@ public class ExcelReaderGeneratedWriteBenchmarks {
             ExcelReaderGeneratedBenchmarks.Validate(count++, reader.GetString(0), checked((int)reader.GetDouble(1)), reader.GetDateTime(2), reader.GetDouble(3));
         }
         if (count != RowCount || reader.NextResult()) throw new InvalidDataException("Incorrect row or sheet count.");
+        if (Format == ExcelFileFormat.Xlsb) {
+            using var zip = new System.IO.Compression.ZipArchive(new MemoryStream(output), System.IO.Compression.ZipArchiveMode.Read);
+            var worksheet = zip.GetEntry("xl/worksheets/sheet1.bin") ?? throw new InvalidDataException("Missing worksheet.");
+            using var part = worksheet.Open();
+            string hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(part));
+            Console.WriteLine($"ValidatedXlsb: package={output.Length}; worksheet={worksheet.Length}; compressed={worksheet.CompressedLength}; sha256={hash}");
+        }
     }
 }
 #endif

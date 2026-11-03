@@ -386,6 +386,63 @@ cases. All four framework builds have zero warnings/errors; NativeAOT publish an
 smoke pass. An independent read-only review finds no actionable issues. The net472
 result is a cross-build without a Windows runtime run.
 
+## Compressed XLSB snapshots: 3 November 2026
+
+The baseline is `cc1dd3e42e`; `11d6fff204` replaces the native cell snapshot for
+privately captured flat values exported to an ordinary empty `MemoryStream`.
+I validate and serialize those values once into an owned compressed package,
+then publish it after styles, shared strings and ZIP finalization succeed.
+Fixed pooled chunks avoid growth copies, and the destination reserves the exact
+completed package length. Every chunk is cleared and returned. Other destinations,
+cancellable saves and timing callbacks retain their existing path. Selector timing,
+the public API, worksheet grid and runtime dependencies are unchanged.
+
+The profile still shows source materialization, boxed selectors, string generation
+and memory-stream growth. Managed sampling does not isolate native DEFLATE CPU
+time, so I make no compression-algorithm throughput claim. Compression remains
+`Fastest`. For the selector workload, the worksheet stays 5,127,936 bytes before
+compression and 841,866 bytes after compression; the whole package stays 845,732
+bytes. Its worksheet SHA-256 is identical in the baseline and both candidate
+launches. The allocation reduction does not trade compression ratio or data.
+
+The first compressed-staging experiment uses a growing `MemoryStream` and raises
+XLSB allocation from 14.875 to 16.515 MiB without a material timing improvement.
+I discard that storage choice. The [normalized evidence](excel-xlsb-compressed-snapshot-2026-11-03.json)
+retains that result, the pooled trial, profiles, actual assembly/source hashes,
+package/worksheet sizes and all samples. The final runs use the exact same
+benchmark binary with candidate, baseline, candidate ordering: one baseline
+bracketed by two candidates. Each launch keeps twelve samples, eight warmups,
+sixteen invocations and all outliers. Package generation, row generation,
+serialization, finalization and the complete byte array remain inside the
+50,000-row operation. Every lane passes strict and independent all-value checks.
+
+| Write lane | Library | Baseline ms | Candidate 1 / 2 ms | Before → after MiB |
+|---|---|---:|---:|---:|
+| XLSB selectors | OfficeIMO | 16.957 | 16.184 / 15.280 | 14.874 → 13.368 |
+| XLSB typed cells, diagnostic | OfficeIMO | 16.040 | 15.621 / 14.637 | 12.737 → 12.737 |
+| XLSB | ExcelReader.NET 7.3.4 | 5.531 | 5.598 / 5.489 | 8.829 → 8.829 |
+| XLS selectors | OfficeIMO | 16.111 | 14.466 / 14.314 | 28.241 → 28.242 |
+| XLS | ExcelReader.NET 7.3.4 | 5.136 | 5.006 / 4.486 | 17.075 → 17.076 |
+| XLSX streaming | OfficeIMO | 10.200 | 10.544 / 9.761 | 9.066 → 9.066 |
+| XLSX | ExcelReader.NET 7.3.4 | 8.178 | 8.061 / 8.046 | 9.007 → 9.007 |
+| XLSX | SpreadCheetah 1.28.0 | 11.510 | 11.634 / 11.367 | 11.135 → 11.135 |
+
+The retained XLSB selector route saves about 1.51 MiB per operation, or 10.1%.
+Its medians improve by 4.6–9.9%, but unchanged XLS code also moves by about 10–11%.
+I therefore keep the allocation result without attributing all timing movement
+to the snapshot change. The typed-cell route is unchanged in this pass. The
+benchmark preflight records package size, worksheet size, compressed length and
+worksheet hash; these checks run outside the timed operation.
+
+The existing late-overlong-text test now also exercises a bounded flat snapshot
+through public `WriteData` and `Save`. The fresh destination keeps zero length,
+position and capacity after failure. All four cases pass against the baseline
+engine too. Final validation passes 182 focused cases, 7,754 net10.0 Excel tests
+with five opt-in/platform skips, and all 938 CSV tests. All twelve omitted-reference
+cases pass. netstandard2.0, net8.0, net10.0 and net472 builds have zero warnings/errors;
+osx-arm64 NativeAOT publish and smoke pass. Independent read-only review finds
+no actionable issues. net472 remains a cross-build without a Windows runtime run.
+
 ## Remaining costs and limits
 
 Parity is incomplete; the earlier cohorts still show gaps against ExcelReader.NET

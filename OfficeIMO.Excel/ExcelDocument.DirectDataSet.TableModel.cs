@@ -13,6 +13,10 @@ namespace OfficeIMO.Excel {
         internal static ExcelCellValueBuffer? GetBufferedTabularCells(IExcelSheetTabularRowSource source)
             => (source as DirectDataSetTableModel)?.CellValueBuffer;
 
+        /// <summary>Identifies a retained flat snapshot without calling a source value accessor.</summary>
+        internal static bool HasFlatTabularSnapshot(IExcelSheetTabularRowSource source)
+            => source is DirectDataSetTableModel table && table.TryGetCellValueRows(out _);
+
         private sealed partial class DirectDataSetTableModel : IExcelSheetTabularRowSource {
             private const int MaxAutoFitStringWidthCacheEntriesPerColumn = 1024;
             private const long BufferedDictionaryCellLimit = 500_000;
