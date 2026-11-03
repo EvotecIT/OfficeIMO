@@ -71,15 +71,11 @@ using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Markdown;
 
 RtfReadResult read = RtfDocument.LoadResult("input.rtf");
-RtfConversionResult<string> conversion =
-    read.Document.ToMarkdownResult();
+foreach (var diagnostic in read.Diagnostics)
+    Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
 
-var report = new RtfConversionReport();
-report.AddReadDiagnostics(read.Diagnostics, "input.rtf");
-report.Merge(conversion.Report);
-report.ThrowIfLoss();
-
-File.WriteAllText("output.md", conversion.Value);
+OfficeConversionReport report = read.Document.SaveAsMarkdown("output.md",
+    new RtfMarkdownExportOptions { FailOnLoss = true });
 ```
 
 Use `ThrowIfLoss()` for strict archival or compliance workflows. In permissive workflows, inspect each diagnostic and accept only the tradeoffs appropriate for the destination.

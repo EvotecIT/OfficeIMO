@@ -32,7 +32,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         text.FillColor = "112233";
         slide.Notes.Text = "Private note";
 
-        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult(
+        OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence(
             new PowerPointOpenDocumentConversionOptions {
                 IncludeBasicFormatting = false,
                 IncludeSpeakerNotes = false
@@ -51,7 +51,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             .Paragraphs[0].Runs[0];
         run.SetHyperlink("https://example.test/docs", "Open the documentation");
 
-        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
 
         OdpTextBox converted = Assert.IsType<OdpTextBox>(Assert.Single(conversion.Value.Slides.Single().Shapes));
         Assert.Equal("https://example.test/docs", converted.Paragraphs.Single()
@@ -68,7 +68,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         textBox.Paragraphs[0].Runs[0].UnderlineStyle = PowerPointUnderlineStyle.WavyHeavy;
         textBox.Paragraphs[0].AddText(" Words").UnderlineStyle = PowerPointUnderlineStyle.Words;
 
-        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
 
         OdfConversionMapping mapping = Assert.Single(conversion.Report.Mappings,
             item => item.Feature == "text-decorations");
@@ -86,7 +86,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
         WordRunInfo authored = Assert.Single(source.Inspect().Sections
             .SelectMany(section => section.Elements).OfType<WordParagraphInfo>().Single().Runs);
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdtSpan converted = Assert.Single(conversion.Value.Paragraphs.Single().Spans);
 
         Assert.Equal(WordUnderlineStyle.Double, authored.UnderlineStyle);
@@ -107,7 +107,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         paragraph.ShadingFillColor = OfficeColor.Parse("D9EAF7");
         paragraph.ShadingPattern = WordShadingPattern.Percent20;
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdtParagraph converted = Assert.Single(conversion.Value.Paragraphs);
 
         Assert.Equal("#D9EAF7", converted.BackgroundColor?.ToString());
@@ -125,7 +125,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         header.Bold = true;
         header.FontSize = global::OfficeIMO.OfficeLength.Points(11.5);
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdtSpan bodySpan = Assert.Single(conversion.Value.Paragraphs.Single().Spans);
         OdtSpan headerSpan = Assert.Single(conversion.Value.PageLayout.Header.Paragraphs.Single().Spans);
 
@@ -145,7 +145,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             new ExcelRichTextRun(" note")
         }, "Alice");
 
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdsAnnotation annotation = Assert.Single(conversion.Value.Sheets.Single().Cell(0, 0).Annotations);
 
         Assert.Equal("Important note", annotation.Text);
@@ -162,7 +162,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         paragraph.Underline = WordUnderlineStyle.Single;
         paragraph.Strike = true;
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdtParagraph converted = conversion.Value.Tables.Single().Cell(0, 0).Paragraphs.Single();
         OdtSpan span = Assert.Single(converted.Spans);
 
@@ -180,7 +180,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         span.Underline = true;
         span.StrikeThrough = true;
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         WordParagraph converted = Assert.Single(conversion.Value.Tables.Single().Rows[0].Cells[0].Paragraphs,
             paragraph => paragraph.Text == "Decorated cell");
 
@@ -197,7 +197,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         OdtSpan span = source.AddParagraph().AddSpan("Half point");
         span.FontSize = OdfLength.Points(10.5D);
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
         WordParagraph run = Assert.Single(target.Paragraphs.Single().GetRuns());
 
@@ -205,7 +205,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         Assert.DoesNotContain(conversion.Report.Mappings, mapping =>
             mapping.Feature == "relative-measurements" && mapping.Status == OdfConversionMappingStatus.Unsupported);
 
-        OdtDocument roundTrip = target.ToOpenDocumentResult().Value;
+        OdtDocument roundTrip = target.ConvertToOpenDocumentWithEvidence().Value;
         OdfLength roundTripSize = Assert.Single(roundTrip.Paragraphs.Single().Spans).FontSize!.Value;
         Assert.True(roundTripSize.TryToPoints(out double points));
         Assert.Equal(10.5D, points);
@@ -221,7 +221,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         OdtSpan span = paragraph.AddSpan("Logical layout");
         span.FontFamily = "Liberation Sans";
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
         WordParagraphInfo converted = Assert.Single(target.Inspect().Sections
             .SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
@@ -242,7 +242,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         source.AddParagraph().AddSpan("Fallback").FontFamily =
             "'Liberation Sans', Arial, sans-serif";
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
         WordParagraphInfo paragraph = Assert.Single(target.Inspect()
             .Sections.SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
@@ -252,7 +252,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             mapping.Feature == "font-family-fallbacks"
             && mapping.Status == OdfConversionMappingStatus.Approximated
             && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions {
                 LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss
             }));
@@ -266,7 +266,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             "'Liberation Sans', Arial, sans-serif";
 
         OdfConversionResult<PowerPointDocument> conversion =
-            source.ToPowerPointDocumentResult();
+            source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
 
         Assert.Equal("Liberation Sans", target.Slides.Single().TextBoxes.Single()
@@ -284,7 +284,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         cell.SetString("Fallback");
         cell.FontFamily = "'Liberation Sans', Arial, sans-serif";
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> conversion = source.ConvertToExcelWithEvidence();
         using ExcelDocument target = conversion.Value;
 
         Assert.Equal("Liberation Sans", target.Inspect().Worksheets.Single()
@@ -302,7 +302,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         paragraph.BiDi = true;
         paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((360) / 240D);
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdtParagraph converted = Assert.Single(conversion.Value.Paragraphs);
 
         Assert.Equal("rl-tb", converted.WritingMode);
@@ -317,11 +317,11 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         OdtDocument source = OdtDocument.Create();
         source.AddParagraph("Vertical").WritingMode = "tb-rl";
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
 
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "writing-mode"
             && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions {
                 LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
             }));
@@ -339,7 +339,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         OdpParagraph vertical = textBox.AddParagraph("Vertical");
         vertical.WritingMode = "tb-rl";
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
         PowerPointTextBox converted = Assert.IsType<PowerPointTextBox>(target.Slides.Single().Shapes.Single());
 
@@ -352,7 +352,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
         Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoSkippedOrUnsupported());
 
-        OdpPresentation roundTrip = target.ToOpenDocumentResult().Value;
+        OdpPresentation roundTrip = target.ConvertToOpenDocumentWithEvidence().Value;
         OdpParagraph reopened = Assert.IsType<OdpTextBox>(roundTrip.Slides.Single().Shapes.Single())
             .Paragraphs[0];
         Assert.Equal("rl-tb", reopened.WritingMode);
@@ -371,7 +371,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         paragraphs[3].Alignment = PowerPointTextAlignment.Justified;
         paragraphs[4].Alignment = PowerPointTextAlignment.Distributed;
 
-        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdpTextBox converted = Assert.IsType<OdpTextBox>(
             Assert.Single(conversion.Value.Slides.Single().Shapes));
 
@@ -414,7 +414,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         }
         Assert.Empty(source.ValidateDocument());
 
-        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdpSlide convertedSlide = conversion.Value.Slides.Single();
         Assert.Equal("Before\n1After",
             Assert.IsType<OdpTextBox>(convertedSlide.Shapes[0]).Paragraphs.Single().Text);
@@ -441,7 +441,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         Assert.Throws<OdfConversionLossException>(() => conversion.Report.ThrowIfLoss());
         Assert.True(OdpPresentation.Load(new MemoryStream(conversion.Value.ToBytes())).Validate().IsValid);
 
-        OdfConversionResult<PowerPointDocument> reverse = conversion.Value.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> reverse = conversion.Value.ConvertToPowerPointWithEvidence();
         using PowerPointDocument reversePresentation = reverse.Value;
         PowerPointSlide reverseSlide = reversePresentation.Slides.Single();
         IReadOnlyList<PowerPointParagraph> reverseParagraphs = new[] {
@@ -471,7 +471,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             .Cell(0, 0).Paragraphs[0].WritingMode = "tb-lr";
         slide.GetOrCreateSpeakerNotes().AddParagraph("Note").WritingMode = "tb-rl";
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
 
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "writing-mode"
@@ -486,7 +486,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         OdtSpan span = source.AddParagraph().AddSpan("Quarter point");
         span.FontSize = OdfLength.Points(10.25D);
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
         WordParagraph run = Assert.Single(target.Paragraphs.Single().GetRuns());
 
@@ -533,11 +533,11 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             }
 
             using PowerPointDocument source = PowerPointDocument.Load(path);
-            OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+            OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
 
             Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "shape-hyperlinks" &&
                 mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
-            Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
                 new PowerPointOpenDocumentConversionOptions {
                     LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
                 }));
@@ -555,7 +555,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         text.AddParagraph().AddRun("Styled").Bold = true;
         slide.GetOrCreateSpeakerNotes().AddParagraph("Private note");
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult(
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence(
             new PowerPointOpenDocumentConversionOptions {
                 IncludeBasicFormatting = false,
                 IncludeSpeakerNotes = false
@@ -581,7 +581,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         paragraph.AddHyperlink("Link", "#slide-2");
         source.AddSlide("Target");
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
         PowerPointTextRun[] runs = target.Slides[0].TextBoxes.Single().Paragraphs.Single().Runs
             .Where(run => run.Text.Length > 0).ToArray();
@@ -602,7 +602,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         paragraph.StrikeThrough = true;
         paragraph.TextBackgroundColor = OdfColor.Parse("#FFFF00");
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
 
         WordParagraph run = Assert.Single(target.Paragraphs.Single().GetRuns());
@@ -622,7 +622,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         cell.SetString("Body");
         cell.FontSize = OdfLength.Parse("120%");
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> conversion = source.ConvertToExcelWithEvidence();
         using ExcelDocument target = conversion.Value;
 
         Assert.Equal("Body", target.Inspect().Worksheets.Single().Cells.Single().Value);
@@ -640,7 +640,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         cell.UnderlineStyle = OdfTextDecorationStyle.Wave;
         cell.SmallCaps = true;
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> conversion = source.ConvertToExcelWithEvidence();
         using ExcelDocument target = conversion.Value;
 
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "text-decorations"
@@ -655,7 +655,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         using ExcelDocument source = ExcelDocument.Create();
         source.AddSheet("Data").Range("A1:A100").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 10);
 
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult(
+        OdfConversionResult<OdsDocument> conversion = source.ConvertToOpenDocumentWithEvidence(
             new ExcelOpenDocumentConversionOptions { MaximumRows = 10 });
         OdsSheet sheet = conversion.Value.Sheets.Single();
 
@@ -677,7 +677,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         sheet.Range("A1:B1").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 10);
         sheet.Range("B1:C1").Validation().List(new[] { "One", "Two" });
 
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult(
+        OdfConversionResult<OdsDocument> conversion = source.ConvertToOpenDocumentWithEvidence(
             new ExcelOpenDocumentConversionOptions { MaximumExpandedCells = 1 });
         OdsSheet converted = conversion.Value.Sheets.Single();
 
@@ -695,7 +695,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         sheet.Cell(1, 1).SetValue("Anchor");
         sheet.Range("A1:B2").Merge();
 
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult(
+        OdfConversionResult<OdsDocument> conversion = source.ConvertToOpenDocumentWithEvidence(
             new ExcelOpenDocumentConversionOptions { MaximumExpandedCells = 4 });
         OdsCellRun anchor = conversion.Value.Sheets.Single().RowRuns
             .Single(run => run.StartRow == 0).CellRuns.Single(run => run.StartColumn == 0);
@@ -714,7 +714,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         textBox.Bounds = new OdfRect(OdfLength.Parse("10%"), OdfLength.Centimeters(1),
             OdfLength.Centimeters(8), OdfLength.Centimeters(2));
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
 
         Assert.Empty(target.Slides.Single().TextBoxes);
@@ -732,7 +732,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         list.AddItem("Parent");
         list.AddItem("Child", 1);
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdtDocument target = conversion.Value;
 
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "list-levels" &&
@@ -746,7 +746,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         header.AddSpan("Styled").Bold = true;
         header.AddImage(TinyPng, "header.png", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
         WordParagraph paragraph = Assert.Single(target.PageSetup.Header.Paragraphs, item => item.Text.Contains("Styled", StringComparison.Ordinal));
         WordParagraph[] runs = paragraph.GetRuns().ToArray();
@@ -763,7 +763,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         source.AddSheet("Data").Cell(0, 0).AddAnnotation("Review", "Alice");
         source.AddNamedRange("Input", "$'Data'.$A$1");
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult(
+        OdfConversionResult<ExcelDocument> conversion = source.ConvertToExcelWithEvidence(
             new ExcelOpenDocumentConversionOptions {
                 LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
             });
@@ -786,7 +786,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             new XElement(OdfNamespaces.Text + "list-item", new XElement(OdfNamespaces.Text + "p", "First")),
             new XElement(OdfNamespaces.Text + "list-item", new XElement(OdfNamespaces.Text + "p", "Second"))));
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult(
+        OdfConversionResult<ExcelDocument> conversion = source.ConvertToExcelWithEvidence(
             new ExcelOpenDocumentConversionOptions {
                 LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
             });
@@ -809,7 +809,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
                         new XAttribute(OdfNamespaces.Text + "c", 8 * 1024 * 1024)))));
         }
 
-        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => source.ToExcelDocumentResult());
+        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => source.ConvertToExcelWithEvidence());
         Assert.Equal("opendocument", error.Owner);
         Assert.Equal("MaximumDecodedCharacters", error.LimitName);
         Assert.Equal(16L * 1024 * 1024, error.Maximum);
@@ -827,7 +827,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
                 new XElement(OdfNamespaces.Text + "s",
                     new XAttribute(OdfNamespaces.Text + "c", 16 * 1024 * 1024)))));
 
-        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => source.ToExcelDocumentResult());
+        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => source.ConvertToExcelWithEvidence());
         Assert.Equal("opendocument", error.Owner);
         Assert.Equal("MaximumDecodedCharacters", error.LimitName);
         Assert.Equal(16L * 1024 * 1024, error.Maximum);
@@ -840,13 +840,13 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             OdsValidationConditionSyntax.CreateList(new[] { new string('x', 254) }));
         source.AddSheet("Data").Cell(0, 0).ValidationName = validation.Name;
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> conversion = source.ConvertToExcelWithEvidence();
         using ExcelDocument target = conversion.Value;
 
         Assert.Empty(target.Inspect().Worksheets.Single().Validations);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "validations" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => source.ToExcelDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToExcelWithEvidence(
             new ExcelOpenDocumentConversionOptions {
                 LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
             }));
@@ -862,7 +862,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             .AddParagraph().AddHyperlink("Web", "https://example.test/");
         slide.GetOrCreateSpeakerNotes().AddParagraph("Presenter note");
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult(
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence(
             new PowerPointOpenDocumentConversionOptions {
                 LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
             });
@@ -887,7 +887,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         note.AddHyperlink("Web", "https://example.test/").Underline = true;
         source.AddSlide("Target");
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
         using var stream = new MemoryStream(target.ToBytes());
         using PowerPointDocument reopened = PowerPointDocument.Load(stream);
@@ -922,7 +922,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         Assert.Equal("new", persistedHyperlink.ShowBehavior);
 
         OdfConversionResult<PowerPointDocument> conversion =
-            persisted.ToPowerPointDocumentResult();
+            persisted.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
 
         Assert.Equal("https://example.test/docs", target.Slides.Single()
@@ -932,7 +932,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             && mapping.Status == OdfConversionMappingStatus.Unsupported
             && mapping.Count == 1);
         Assert.Throws<OdfConversionLossException>(() =>
-            persisted.ToPowerPointDocumentResult(new PowerPointOpenDocumentConversionOptions {
+            persisted.ConvertToPowerPointWithEvidence(new PowerPointOpenDocumentConversionOptions {
                 LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss
             }));
     }
@@ -944,7 +944,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             .AddParagraph().AddHyperlink("Next", "#slide-2");
         source.AddSlide("Second");
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
 
         Assert.Equal("#slide-2", target.Slides[0].TextBoxes.Single().Paragraphs.Single()
@@ -967,7 +967,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             .AddParagraph().AddHyperlink("Next", "#slide%2D2");
         source.AddSlide("Second");
 
-        using PowerPointDocument target = source.ToPowerPointDocumentResult().Value;
+        using PowerPointDocument target = source.ConvertToPowerPointWithEvidence().Value;
 
         byte[] package = target.ToBytes();
         string slideXml = ReadFirstPackageEntry(package, name =>
@@ -987,7 +987,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             .AddParagraph().AddHyperlink("Agenda", "#Agenda");
         source.AddSlide("Agenda");
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
 
         byte[] package = target.ToBytes();
@@ -1007,7 +1007,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         source.AddSlide("Only").AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2))
             .AddParagraph().AddHyperlink("Missing", "#Missing");
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
 
         string relationships = ReadFirstPackageEntry(target.ToBytes(), name =>
@@ -1032,7 +1032,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
                 .SetAttributeValue(XName.Get("href", "http://www.w3.org/1999/xlink"), "https://example.test/external.png"));
         OdtDocument source = OdtDocument.Load(new MemoryStream(package));
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
 
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "source-external-links" &&
@@ -1055,7 +1055,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> conversion = source.ConvertToExcelWithEvidence();
         using ExcelDocument target = conversion.Value;
 
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "source-external-links" &&
@@ -1075,7 +1075,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
                 .SetAttributeValue(XName.Get("href", "http://www.w3.org/1999/xlink"), "https://example.test/external.png"));
         OdpPresentation source = OdpPresentation.Load(new MemoryStream(package));
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
 
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "source-external-links" &&
@@ -1092,7 +1092,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> conversion = source.ConvertToExcelWithEvidence();
         using ExcelDocument target = conversion.Value;
 
         Assert.Contains(conversion.Report.Mappings, mapping =>
@@ -1110,7 +1110,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         mixed.AddRun("Bold").Bold = true;
         textBox.AddList().AddItem("Bullet");
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
 
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "text-lists" &&
@@ -1129,7 +1129,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             OdfLength.Centimeters(1), OdfLength.Centimeters(1));
         OdtDocument source = OdtDocument.Load(new MemoryStream(RemovePackageEntry(template.ToBytes(), "styles.xml")));
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
 
         Assert.Contains(target.Inspect().Sections.SelectMany(section => section.Elements)
@@ -1152,7 +1152,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         sheet.Cell(1, 2).SetFormula("IF(A1=42,\"x,y\",\"other\")");
         sheet.Cell(1, 3).SetFormula("SUM('Other, Sheet'!A1,A1)");
 
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdsDocument target = conversion.Value;
         OdsSheet converted = target.GetSheet("Data")!;
 
@@ -1171,7 +1171,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         linked.SetNumber(42D);
         linked.SetHyperlink("Go", "#$'Target'.A1");
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> conversion = source.ConvertToExcelWithEvidence();
         using ExcelDocument target = conversion.Value;
         ExcelWorksheetInfo links = target.Inspect().Worksheets.Single(sheet => sheet.Name == "Links");
         ExcelCellInfo cell = Assert.Single(links.Cells);
@@ -1188,7 +1188,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         source.AddSheet("Sales Data").Cell(0, 0).SetString("Destination");
         source.AddSheet("Links").Cell(0, 0).SetHyperlink("Go", "#$'Sales%20Data'.A1");
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> conversion = source.ConvertToExcelWithEvidence();
         using ExcelDocument target = conversion.Value;
         ExcelCellInfo cell = Assert.Single(target.Inspect().Worksheets
             .Single(sheet => sheet.Name == "Links").Cells);
@@ -1208,7 +1208,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         OdsCell linked = source.AddSheet("Links").Cell(0, 0);
         linked.SetHyperlink("Go", "#MyRange");
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> conversion = source.ConvertToExcelWithEvidence();
         using ExcelDocument target = conversion.Value;
         ExcelCellInfo cell = Assert.Single(target.Inspect().Worksheets
             .Single(sheet => sheet.Name == "Links").Cells);
@@ -1232,7 +1232,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         links.Cell(0, 0).Formula = "of:=R1C1+_R1C1";
         links.Cell(0, 1).SetHyperlink("Go", "#R1C1");
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> conversion = source.ConvertToExcelWithEvidence();
         using ExcelDocument target = conversion.Value;
         ExcelWorkbookInfo snapshot = target.Inspect();
         ExcelWorksheetInfo convertedLinks = snapshot.Worksheets.Single(sheet => sheet.Name == "Links");
@@ -1256,7 +1256,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         OdsCell linked = source.AddSheet("Links").Cell(0, 0);
         linked.SetHyperlink("Missing", "#Missing");
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> conversion = source.ConvertToExcelWithEvidence();
         using ExcelDocument target = conversion.Value;
 
         ExcelCellInfo cell = Assert.Single(target.Inspect().Worksheets.Single().Cells);
@@ -1289,7 +1289,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         linked.SetHyperlink("Docs", "docs/page.html");
         OdsDocument source = OdsDocument.Load(new MemoryStream(RemovePackageEntry(template.ToBytes(), "styles.xml")));
 
-        using ExcelDocument target = source.ToExcelDocument();
+        using ExcelDocument target = source.ToExcel();
         ExcelCellInfo cell = Assert.Single(target.Inspect().Worksheets.Single().Cells);
 
         Assert.NotNull(cell.Hyperlink);
@@ -1314,7 +1314,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
                 .SetAttributeValue(XName.Get("href", "http://www.w3.org/1999/xlink"), escapedHref));
         OdpPresentation source = OdpPresentation.Load(new MemoryStream(package));
 
-        using PowerPointDocument target = source.ToPowerPointDocument();
+        using PowerPointDocument target = source.ToPowerPoint();
         PowerPointSlide converted = Assert.Single(target.Slides);
 
         Assert.Equal(new[] { "First", "Second" }, converted.TextBoxes.Single().Paragraphs.Select(paragraph => paragraph.Text));
@@ -1328,7 +1328,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         template.AddSlide("Minimal").AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2), "Text");
         OdpPresentation source = OdpPresentation.Load(new MemoryStream(RemovePackageEntry(template.ToBytes(), "styles.xml")));
 
-        using PowerPointDocument target = source.ToPowerPointDocument();
+        using PowerPointDocument target = source.ToPowerPoint();
 
         Assert.Single(target.Slides);
         Assert.Contains("Text", target.Slides.Single().TextBoxes.Single().Text, StringComparison.Ordinal);
@@ -1348,7 +1348,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
 
-        using ExcelDocument target = source.ToExcelDocument();
+        using ExcelDocument target = source.ToExcel();
 
         Assert.Single(target.Inspect().Worksheets);
     }
@@ -1360,7 +1360,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         WordSection second = source.AddSection();
         second.PageSetup.Header.AddParagraph("Later header");
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult(new WordOpenDocumentConversionOptions {
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence(new WordOpenDocumentConversionOptions {
             IncludeHeadersAndFooters = true
         });
         OdtDocument target = conversion.Value;
@@ -1384,7 +1384,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         OdtSpan span = source.AddParagraph().AddSpan("Plain");
         span.StyleName = child.Name;
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
         WordRunInfo run = Assert.Single(target.Inspect().Sections
             .SelectMany(section => section.Elements).OfType<WordParagraphInfo>()
@@ -1406,7 +1406,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         OdtSpan span = source.AddParagraph().AddSpan("Decorated");
         span.StyleName = style.Name;
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
 
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "text-decorations"
@@ -1424,7 +1424,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         style.Element.Element(OdfNamespaces.Style + "text-properties")!
             .SetAttributeValue(OdfNamespaces.Style + "text-underline-style", "wave");
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
         PowerPointTextRun converted = target.Slides.Single().TextBoxes.Single()
             .Paragraphs.Single().Runs.Single();
@@ -1470,7 +1470,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             Assert.Equal("ppaction://hlinkshowjump?jump=nextslide", authored.ClickAction);
             Assert.Equal("ppaction://hlinkshowjump?jump=lastslide", authored.MouseOverAction);
 
-            OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+            OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
             Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "run-interactions"
                 && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
             Assert.Throws<OdfConversionLossException>(() => conversion.Report.RequireNoSkippedOrUnsupported());

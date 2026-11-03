@@ -15,11 +15,11 @@ using OfficeIMO.Rtf;
 
 HtmlConversionDocument html = HtmlConversionDocument.Parse(
     "<p>Hello <strong>RTF</strong></p>");
-RtfDocument rtf = html.ToRtfDocument();
+RtfDocument rtf = html.ToRtf();
 
-RtfToHtmlResult roundTrip = rtf.ToHtmlResult(
-    RtfHtmlExportOptions.CreateWebSafeProfile());
-roundTrip.RtfReport.ThrowIfLoss();
+var options = RtfHtmlExportOptions.CreateWebSafeProfile();
+options.FailOnLoss = true;
+string roundTrip = rtf.ToHtml(options, out OfficeConversionReport report);
 ```
 
 For a complete responsive and print-aware review document, select the named print profile and a shared theme:

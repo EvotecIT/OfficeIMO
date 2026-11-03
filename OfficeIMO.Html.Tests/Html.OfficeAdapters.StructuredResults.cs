@@ -18,9 +18,9 @@ public class HtmlOfficeAdaptersStructuredResults {
             <main><section class="officeimo-slide"><p>Prepared slide</p></section></main>
             """);
 
-        HtmlToExcelResult excelResult = excelSource.ToExcelDocumentResult();
+        HtmlToExcelResult excelResult = excelSource.ConvertToExcelWithEvidence();
         using OfficeIMO.Excel.ExcelDocument workbook = excelResult.Value;
-        HtmlToPowerPointResult powerPointResult = powerPointSource.ToPowerPointDocumentResult();
+        HtmlToPowerPointResult powerPointResult = powerPointSource.ConvertToPowerPointWithEvidence();
         using OfficeIMO.PowerPoint.PowerPointDocument presentation = powerPointResult.Value;
 
         Assert.True(excelResult.Succeeded);
@@ -35,7 +35,7 @@ public class HtmlOfficeAdaptersStructuredResults {
     [Fact]
     public void ExcelHtml_ConvenienceImportThrowsWhenSemanticEnvelopeIsMissing() {
         HtmlConversionException exception = Assert.Throws<HtmlConversionException>(() =>
-            OfficeIMO.Html.HtmlConversionDocument.Parse("<main><p>Not an Excel envelope</p></main>").ToExcelDocument());
+            OfficeIMO.Html.HtmlConversionDocument.Parse("<main><p>Not an Excel envelope</p></main>").ToExcel());
 
         HtmlDiagnostic diagnostic = Assert.Single(exception.Diagnostics);
         Assert.Equal(HtmlConversionDiagnosticCodes.SemanticContentMissing, diagnostic.Code);
@@ -46,7 +46,7 @@ public class HtmlOfficeAdaptersStructuredResults {
     [Fact]
     public void PowerPointHtml_ConvenienceImportThrowsWhenSemanticEnvelopeIsMissing() {
         HtmlConversionException exception = Assert.Throws<HtmlConversionException>(() =>
-            OfficeIMO.Html.HtmlConversionDocument.Parse("<main><p>Not a PowerPoint envelope</p></main>").ToPowerPointDocument());
+            OfficeIMO.Html.HtmlConversionDocument.Parse("<main><p>Not a PowerPoint envelope</p></main>").ToPowerPoint());
 
         HtmlDiagnostic diagnostic = Assert.Single(exception.Diagnostics);
         Assert.Equal(HtmlConversionDiagnosticCodes.SemanticContentMissing, diagnostic.Code);

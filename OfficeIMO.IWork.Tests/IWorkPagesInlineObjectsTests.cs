@@ -11,8 +11,7 @@ namespace OfficeIMO.IWork.Tests;
 public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Native_pages_inline_tables_and_image_keep_their_place_between_body_paragraphs_after_save() {
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(CorpusFixture("picodocs/sample-v14.4.pages"),
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(CorpusFixture("picodocs/sample-v14.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         using var stream = new MemoryStream(); result.Value.Save(stream); stream.Position = 0;
         using var reopened = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(stream, false);
         var blocks = reopened.MainDocumentPart!.Document!.Body!.ChildElements.ToArray();
@@ -78,7 +77,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Inline_images_preserve_UTF16_offsets_and_text_order_with_two_images_in_one_paragraph() {
         using var package = InlineImagePackage();
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
         Assert.False(result.IsVisualFallback);
         var anchors = result.Projection.Body.Paragraphs.SelectMany(paragraph => paragraph.Runs)
             .Where(run => run.InlineObject != null).Select(run => run.InlineObject!).ToArray();

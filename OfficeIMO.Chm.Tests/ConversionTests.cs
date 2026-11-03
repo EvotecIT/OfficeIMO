@@ -15,7 +15,7 @@ public sealed class ConversionTests {
         Assert.NotNull(html.Value.Document.QuerySelector("#chm-topic-2-part"));
         Assert.Equal("#chm-topic-2-part", html.Value.Document.QuerySelector("a")!.GetAttribute("href"));
         Assert.StartsWith("data:image/png;base64,", html.Value.Document.QuerySelector("img")!.GetAttribute("src"));
-        var markdown = book.ToMarkdownResult();
+        var markdown = book.ConvertToMarkdownWithEvidence();
         Assert.Contains("Café", markdown.Value); Assert.Contains("Second topic", markdown.Value); Assert.Contains("42", markdown.Value);
         Assert.Contains("#chm-topic-2-part", markdown.Value);
         Assert.Contains(markdown.Report.Diagnostics, item => item.Code == "CHM_INDEX_METADATA" && item.LossKind == OfficeConversionLossKind.Omission);
@@ -31,7 +31,7 @@ public sealed class ConversionTests {
         var projection = book.ToHtmlDocumentResult();
         Assert.Equal("chm-topic-1-column", projection.Value.Document.QuerySelector("td")!.GetAttribute("headers"));
         Assert.Equal("chm-topic-1-description", projection.Value.Document.QuerySelector("table")!.GetAttribute("aria-describedby"));
-        var epub = book.ToEpubPublicationResult(); Assert.True(epub.Succeeded);
+        var epub = book.ConvertToEpubWithEvidence(); Assert.True(epub.Succeeded);
         Assert.NotEmpty(epub.Publication.Write().Value);
     }
 
@@ -50,9 +50,9 @@ public sealed class ConversionTests {
     [Fact]
     public async Task EpubReopensWithHierarchyAndEmbeddedResources() {
         ChmDocument book = ChmDocument.Load(ChmFixture.Book());
-        EpubManuscriptResult imported = await book.ToEpubPublicationResultAsync();
+        EpubManuscriptResult imported = await book.ConvertToEpubWithEvidenceAsync();
         Assert.True(imported.Succeeded, string.Join("\n", imported.Report.Diagnostics.Select(item => item.Code + ": " + item.Message)));
-        var result = book.ToEpubBytesResult(writeOptions: new EpubSaveOptions { ModifiedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero) });
+        var result = book.ConvertToEpubBytesWithEvidence(writeOptions: new EpubSaveOptions { ModifiedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero) });
         using var stream = new MemoryStream(result.Value); EpubDocument reopened = EpubDocument.Load(stream);
         Assert.Contains(reopened.Chapters, chapter => chapter.Text.Contains("Café"));
         Assert.Contains(reopened.Chapters, chapter => chapter.Text.Contains("42"));
@@ -65,12 +65,12 @@ public sealed class ConversionTests {
     [Fact]
     public void PdfKeepsTopicPageBoundariesAndSearchableContent() {
         ChmDocument book = ChmDocument.Load(ChmFixture.Book());
-        var result = book.ToPdfBytesResult();
-        PdfDocument read = PdfDocument.Load(new System.IO.MemoryStream(result.Value));
+        using PdfDocument converted = book.ToPdf(null, out OfficeConversionReport report);
+        PdfDocument read = PdfDocument.Load(new System.IO.MemoryStream(converted.ToBytes(new PdfSaveOptions { AllowLoss = true })));
         Assert.Equal(2, read.Pages.Count); string text = read.ExtractText();
         Assert.Contains("Café", text); Assert.Contains("Second topic", text); Assert.Contains("42", text);
         Assert.NotEmpty(read.Pages[0].GetImages());
-        Assert.Contains(result.Report.Diagnostics, item => item.Code == "CHM_PDF_TOPIC_LINKS");
+        Assert.Contains(report.Diagnostics, item => item.Code == "CHM_PDF_TOPIC_LINKS");
     }
 
     [Fact]
@@ -83,24 +83,24 @@ public sealed class ConversionTests {
         int delegated = 0;
         var rendering = new HtmlPdfExportOptions { ResourceResolver = (request, token) => { delegated++; return Task.FromResult<HtmlResolvedResource?>(null); } };
         rendering.ResourcePolicy.AllowRemoteResourceResolution = true;
-        var result = await book.ToPdfDocumentResultAsync(pdfOptions: rendering);
-        Assert.Equal(0, delegated); Assert.NotEmpty(result.ToBytes());
-        Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).Pages[0].GetImages());
+        var result = await book.ToPdfAsync(new ChmPdfExportOptions { PdfOptions = rendering });
+        Assert.Equal(0, delegated); Assert.NotEmpty(result.Value.ToBytes());
+        Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(result.Value.ToBytes())).Pages[0].GetImages());
         rendering.ResourcePolicy.AllowEmbeddedPackageResources = false;
-        var withoutImages = await book.ToPdfDocumentResultAsync(pdfOptions: rendering);
-        Assert.Empty(PdfDocument.Load(new System.IO.MemoryStream(withoutImages.ToBytes())).Pages[0].GetImages());
+        var withoutImages = await book.ToPdfAsync(new ChmPdfExportOptions { PdfOptions = rendering });
+        Assert.Empty(PdfDocument.Load(new System.IO.MemoryStream(withoutImages.Value.ToBytes())).Pages[0].GetImages());
     }
 
     [Fact]
     public void SelectionAggregateBudgetsAndCancellationAreExplicit() {
         ChmDocument book = ChmDocument.Load(ChmFixture.Book());
-        var result = book.ToMarkdownResult(new ChmConversionOptions { TopicPaths = new[] { "/guide/details.html" } });
+        var result = book.ConvertToMarkdownWithEvidence(new ChmConversionOptions { TopicPaths = new[] { "/guide/details.html" } });
         Assert.Contains("Second topic", result.Value); Assert.DoesNotContain("Café", result.Value);
         Assert.Single(result.Report.TopicPaths);
-        Assert.Throws<ArgumentException>(() => book.ToMarkdownResult(new ChmConversionOptions { TopicPaths = new[] { "/missing.html" } }));
-        Assert.Equal("CHM_CONVERSION_LIMIT", Assert.Throws<ChmReadException>(() => book.ToMarkdownResult(new ChmConversionOptions { MaxTotalHtmlCharacters = 10 })).Code);
-        Assert.Equal("CHM_CONVERSION_LIMIT", Assert.Throws<ChmReadException>(() => book.ToMarkdownResult(new ChmConversionOptions { MaxTopics = 1 })).Code);
-        Assert.ThrowsAny<OperationCanceledException>(() => book.ToPdfDocumentResult(cancellationToken: new CancellationToken(true)));
+        Assert.Throws<ArgumentException>(() => book.ConvertToMarkdownWithEvidence(new ChmConversionOptions { TopicPaths = new[] { "/missing.html" } }));
+        Assert.Equal("CHM_CONVERSION_LIMIT", Assert.Throws<ChmReadException>(() => book.ConvertToMarkdownWithEvidence(new ChmConversionOptions { MaxTotalHtmlCharacters = 10 })).Code);
+        Assert.Equal("CHM_CONVERSION_LIMIT", Assert.Throws<ChmReadException>(() => book.ConvertToMarkdownWithEvidence(new ChmConversionOptions { MaxTopics = 1 })).Code);
+        Assert.ThrowsAny<OperationCanceledException>(() => book.ToPdf(null, out _, new CancellationToken(true)));
     }
 
     [Fact]

@@ -146,7 +146,7 @@ public partial class Html {
 
         string markdown = source.ToMarkdown().ToMarkdown();
         MarkdownDocument markdownDocument = source.ToMarkdown();
-        RtfDocument rtfDocument = source.ToRtfDocument();
+        RtfDocument rtfDocument = source.ToRtf();
         using WordDocument wordDocument = source.ConvertToWordWithEvidence().RequireValue();
 
         Assert.Contains("Hello", markdown, StringComparison.Ordinal);
@@ -157,19 +157,19 @@ public partial class Html {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         workbook.AddSheet("Data").Cell(1, 1).SetValue("value");
         HtmlConversionDocument excelHtml = HtmlConversionDocument.Parse(workbook.ToHtml());
-        using ExcelDocument importedWorkbook = excelHtml.ToExcelDocumentResult().RequireValue();
+        using ExcelDocument importedWorkbook = excelHtml.ConvertToExcelWithEvidence().RequireValue();
         Assert.Single(importedWorkbook.Sheets);
 
         using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.AddSlide().AddTextBox("Hello",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         HtmlConversionDocument powerPointHtml = HtmlConversionDocument.Parse(presentation.ToHtml());
         using PowerPointDocument importedPresentation = powerPointHtml
-            .ToPowerPointDocumentResult()
+            .ConvertToPowerPointWithEvidence()
             .RequireValue();
         Assert.Single(importedPresentation.Slides);
 
-        OneNoteSection oneNoteSection = source.ToOneNoteSectionResult().RequireValue();
-        HtmlTextConversionResult oneNoteHtml = oneNoteSection.ToHtmlDocumentResult();
+        OneNoteSection oneNoteSection = source.ConvertToOneNoteSectionWithEvidence().RequireValue();
+        HtmlTextConversionResult oneNoteHtml = oneNoteSection.ConvertToHtmlWithEvidence();
         Assert.Contains("Hello", oneNoteHtml.RequireValue(), StringComparison.Ordinal);
 
         OfficeIMO.Pdf.PdfDocumentConversionResult pdf = source.ConvertToPdfWithEvidence();
@@ -190,20 +190,20 @@ public partial class Html {
                 typeof(WordHtmlConverterExtensions), "ToWord", "ToWord",
                 typeof(WordHtmlConverterExtensions), "ToHtml", "ToHtml"),
             [HtmlConversionTarget.Excel] = new(
-                typeof(HtmlExcelConverterExtensions), "ToExcelDocument", "ToExcelDocumentResult",
-                typeof(ExcelHtmlConverterExtensions), "ToHtml", "ToHtmlResult"),
+                typeof(HtmlExcelConverterExtensions), "ToExcel", "ToExcel",
+                typeof(ExcelHtmlConverterExtensions), "ToHtml", "ToHtml"),
             [HtmlConversionTarget.PowerPoint] = new(
-                typeof(HtmlPowerPointConverterExtensions), "ToPowerPointDocument", "ToPowerPointDocumentResult",
+                typeof(HtmlPowerPointConverterExtensions), "ToPowerPoint", "ToPowerPoint",
                 typeof(PowerPointHtmlConverterExtensions), "ToHtml", "ToHtml"),
             [HtmlConversionTarget.OneNote] = new(
-                typeof(HtmlOneNoteConverterExtensions), "ToOneNoteSection", "ToOneNoteSectionResult",
-                typeof(OneNoteHtmlConverterExtensions), "ToHtmlDocument", "ToHtmlDocumentResult"),
+                typeof(HtmlOneNoteConverterExtensions), "ToOneNoteSection", "ToOneNoteSection",
+                typeof(OneNoteHtmlConverterExtensions), "ToHtml", "ToHtml"),
             [HtmlConversionTarget.Markdown] = new(
                 typeof(HtmlMarkdownConverterExtensions), "ToMarkdown", "ToMarkdown",
                 typeof(MarkdownDocument), "ToHtml", null),
             [HtmlConversionTarget.Rtf] = new(
-                typeof(HtmlRtfConverterExtensions), "ToRtfDocument", "ToRtfDocumentResult",
-                typeof(HtmlRtfConverterExtensions), "ToHtml", "ToHtmlResult"),
+                typeof(HtmlRtfConverterExtensions), "ToRtf", "ToRtf",
+                typeof(HtmlRtfConverterExtensions), "ToHtml", "ToHtml"),
             [HtmlConversionTarget.Pdf] = new(
                 typeof(HtmlPdfConverterExtensions), "ToPdf", "ToPdf",
                 typeof(PdfHtmlConverterExtensions), "ToHtml", "ToHtml"),

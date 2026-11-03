@@ -8,8 +8,7 @@ public sealed class IWorkKeynoteRichTextWritingTests {
     public void Creation_example_matches_the_package_qualified_by_native_Keynote() {
         byte[] expected = File.ReadAllBytes(Fixture("keynote-created-rich-v15.4.key"));
         Assert.Equal(expected, RichExample().SaveBytes());
-        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(expected),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(expected), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
         using var saved = PowerPointDocument.Load(output);
@@ -52,8 +51,7 @@ public sealed class IWorkKeynoteRichTextWritingTests {
         Assert.False(reset.Underline); Assert.False(reset.Strikethrough);
         Assert.Equal(24, reset.FontSizePoints);
         Assert.Equal("000000", reset.Color!.RgbHex);
-        using var conversion = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(Fixture("keynote-created-rich-edited-v15.4.key"),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var conversion = IWorkSourceDocument.Open(Fixture("keynote-created-rich-edited-v15.4.key"), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         conversion.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); conversion.Value.Save(output); output.Position = 0;
         using var reopened = PowerPointDocument.Load(output);
@@ -89,8 +87,7 @@ public sealed class IWorkKeynoteRichTextWritingTests {
         Assert.Equal(30, last.FontSizePoints);
         Assert.Equal("008000", last.Color!.RgbHex);
 
-        using var conversion = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(bytes),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var conversion = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         conversion.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream();
         conversion.Value.Save(output); output.Position = 0;

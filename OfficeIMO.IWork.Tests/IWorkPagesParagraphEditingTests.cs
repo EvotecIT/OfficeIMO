@@ -25,8 +25,7 @@ public sealed class IWorkPagesParagraphEditingTests {
         Assert.Equal(nativeResave ? "Native checked paragraph." : "Updated reset Native layout edit.", pages.Paragraphs[6]);
         Assert.Equal("Rich layout plain Zażółć 😀", pages.Paragraphs[5]);
         Assert.Equal(2, pages.Body.Paragraphs[5].Runs.Count);
-        using var converted = WordIWorkConverter.ConvertPagesToWordResult(new MemoryStream(source.BeginEdit().SaveBytes()),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(source.BeginEdit().SaveBytes()), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction();
         using var bytes = new MemoryStream(); converted.Value.Save(bytes); bytes.Position = 0;
         using var saved = WordDocument.Load(bytes); Assert.Empty(saved.ValidateDocument());
@@ -83,8 +82,7 @@ public sealed class IWorkPagesParagraphEditingTests {
             Assert.Equal(entry.GetBytes(), saved.Entries.Single(item => item.Path == entry.Path).GetBytes());
         Assert.Equal(body.Paragraphs[0].Runs[0].Style.FontName, projected.Body.Paragraphs[0].Runs[0].Style.FontName);
         Assert.Equal(body.Paragraphs[0].Runs[0].Style.Color!.RgbHex, projected.Body.Paragraphs[0].Runs[0].Style.Color!.RgbHex);
-        using var converted = WordIWorkConverter.ConvertPagesToWordResult(new MemoryStream(result.GetPackageBytes()),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(result.GetPackageBytes()), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction();
         using var bytes = new MemoryStream(); converted.Value.Save(bytes); bytes.Position = 0;
         using var reopened = WordDocument.Load(bytes);

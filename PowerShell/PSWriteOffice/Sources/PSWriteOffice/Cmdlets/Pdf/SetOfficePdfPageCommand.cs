@@ -125,7 +125,7 @@ public sealed class SetOfficePdfPageCommand : PSWriteOffice.Cmdlets.OfficeMutati
         var readOptions = PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent);
 
         if (resizeOptions != null) {
-            PdfDocument.Load(inputPath, readOptions).Pages.Resize(resizeOptions, pages).Save(outputPath);
+            PdfDocument.Load(inputPath, readOptions).Pages.Resize(resizeOptions, pages.Length == 0 ? null : PdfPageSelection.From(pages)).Save(outputPath);
             WritePassThru(new FileInfo(outputPath));
             return;
         }

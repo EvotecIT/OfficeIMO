@@ -79,7 +79,7 @@ public sealed class ArchiveTests {
             ["/a b.html"] = ChmFixture.Html("<p>Space topic</p>"), ["/a%20b.html"] = ChmFixture.Html("<p>Percent topic</p>"),
             ["/start.html"] = ChmFixture.Html("<link rel='stylesheet' href='a%20b.css'><link rel='stylesheet' href='a%2520b.css'><a href='a%20b.html'>Space</a><a href='a%2520b.html'>Percent</a>")
         }));
-        var epub = await book.ToEpubPublicationResultAsync(); Assert.True(epub.Succeeded);
+        var epub = await book.ConvertToEpubWithEvidenceAsync(); Assert.True(epub.Succeeded);
         var styles = epub.Publication.Manifest.Where(item => item.MediaType == "text/css")
             .Select(item => Encoding.UTF8.GetString(epub.Publication.GetResourceBytes(item.Id))).ToArray();
         Assert.Contains("p {color:red}", styles); Assert.Contains("p {color:blue}", styles);

@@ -24,8 +24,7 @@ public sealed partial class IWorkBoundaryTests {
             VarintField(3, (ulong)operands.Length))));
         using var package = CreateNumbersPackage(new[] { new TableSpec("Integers", 1, 1, 42d,
             hasFormula: true, formulaPayload: BytesField(1, Message(nodes.ToArray()))) });
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.Equal(qualified, result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.FormulaIsComplete);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
@@ -45,8 +44,7 @@ public sealed partial class IWorkBoundaryTests {
             "G12", "H12", "G15", "G16", "H16", "G17", "H17", "G18", "H18", "B13", "B14",
             "E2", "F2", "E3", "F3", "E4", "F4", "E5", "F5", "E6", "F6", "E15", "F15", "E16", "F16",
             "E17", "F17", "E18", "F18" });
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(CorpusFixture("native-exports/" + evidence.GetProperty("source").GetString()),
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(CorpusFixture("native-exports/" + evidence.GetProperty("source").GetString()), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         IWorkTable table = Assert.Single(Assert.Single(result.Projection.Sheets).Tables);
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_TABLE_FORMULA_PARTIAL");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;

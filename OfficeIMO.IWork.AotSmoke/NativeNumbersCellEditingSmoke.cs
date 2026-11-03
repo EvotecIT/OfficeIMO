@@ -40,8 +40,7 @@ internal static class NativeNumbersCellEditingSmoke {
             && !(bool)tables[0].GetCell(2, 3)!.Value! && (double)tables[0].GetCell(3, 2)!.Value! == -7.5
             && (bool)tables[0].GetCell(3, 3)!.Value! && (double)tables[1].GetCell(1, 2)!.Value! == 123.75
             && (bool)tables[1].GetCell(2, 1)!.Value! && tables[2].Cells.Count == 0, "Native Numbers edited values or table membership differ.");
-        using var conversion = ExcelIWorkConverter.ConvertNumbersToExcelResult(new MemoryStream(source.BeginEdit().SaveBytes()),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var conversion = IWorkSourceDocument.Open(new MemoryStream(source.BeginEdit().SaveBytes()), IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Require(conversion.Report.Diagnostics.Any(item => item.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED"), "XLSX padding loss was hidden.");
         using var output = new MemoryStream(); conversion.Value.Save(output); output.Position = 0;
         using var saved = ExcelDocument.Load(output);

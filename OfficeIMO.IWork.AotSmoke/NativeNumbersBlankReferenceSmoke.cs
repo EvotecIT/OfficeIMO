@@ -17,8 +17,7 @@ internal static class NativeNumbersBlankReferenceSmoke {
         for (int state = 0; state < 2; state++) {
             string path = Path.Combine(AppContext.BaseDirectory, names[state]);
             Require(Hash(path) == hashes[state], "Native blank-reference source changed.");
-            using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-                conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+            using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
             IWorkTable checks = result.Projection.Sheets[1].Tables.Single();
             int qualified = state == 0 ? 10 : 14;
             Require(!result.IsVisualFallback && result.Report.IsPartialEditableReconstruction

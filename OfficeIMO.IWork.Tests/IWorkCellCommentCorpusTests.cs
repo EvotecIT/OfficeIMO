@@ -15,8 +15,7 @@ public sealed class IWorkCellCommentCorpusTests {
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "native-roots.json")));
         Assert.Equal(manifest.RootElement.GetProperty("sourceSha256").GetString(),
             Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         Assert.False(result.IsVisualFallback, string.Join("\n", result.Report.Diagnostics.Select(d => d.Code + ": " + d.Message)));
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);

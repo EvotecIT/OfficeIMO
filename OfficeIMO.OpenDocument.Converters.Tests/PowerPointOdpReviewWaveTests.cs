@@ -23,11 +23,11 @@ public sealed class PowerPointOdpReviewWaveTests {
         source.AddSlide(PowerPointSlideLayoutType.Blank).Name = " ";
         source.AddSlide(PowerPointSlideLayoutType.Blank).Name = "Slide1";
 
-        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Equal(new[] { "Slide1", "Slide1_2" }, conversion.Value.Slides.Select(slide => slide.Name));
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "slide-names" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -45,11 +45,11 @@ public sealed class PowerPointOdpReviewWaveTests {
             .SetAttributeValue(Table + "visibility", visibility);
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument converted = conversion.Value;
         AssertLoss(conversion.Report, "shape-accessibility");
         AssertLoss(conversion.Report, "table-visibility");
-        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToPowerPointWithEvidence(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -63,7 +63,7 @@ public sealed class PowerPointOdpReviewWaveTests {
                     new XElement(Svg + "font-face-uri"))));
         source.Package.MarkXmlDirty("styles.xml");
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument converted = conversion.Value;
         AssertLoss(conversion.Report, "embedded-fonts");
     }
@@ -77,10 +77,10 @@ public sealed class PowerPointOdpReviewWaveTests {
             new A.SchemeColor { Val = A.SchemeColorValues.Accent1 }) { Index = 1U });
         slide.Transition = new Transition { AdvanceAfterTime = "5000" };
 
-        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
         AssertLoss(conversion.Report, "slide-backgrounds");
         AssertLoss(conversion.Report, "slide-transition-timing");
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -92,9 +92,9 @@ public sealed class PowerPointOdpReviewWaveTests {
         slide.CommonSlideData!.Background = new Background(new BackgroundProperties(new A.SolidFill(
             new A.SystemColor { Val = A.SystemColorValues.WindowText, LastColor = "336699" })));
 
-        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
         AssertLoss(conversion.Report, "slide-backgrounds");
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -110,7 +110,7 @@ public sealed class PowerPointOdpReviewWaveTests {
         source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<A.ParagraphProperties>().First().DefaultTabSize = 914400;
 
-        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
         AssertLoss(conversion.Report, "paragraph-layout");
     }
 
@@ -123,7 +123,7 @@ public sealed class PowerPointOdpReviewWaveTests {
         paragraph.ParagraphProperties ??= new A.ParagraphProperties();
         paragraph.ParagraphProperties.DefaultTabSize = 914400;
 
-        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
         AssertLoss(conversion.Report, "paragraph-layout");
     }
 

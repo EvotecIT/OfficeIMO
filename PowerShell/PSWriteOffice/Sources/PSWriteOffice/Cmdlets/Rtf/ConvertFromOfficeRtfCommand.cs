@@ -250,7 +250,7 @@ public sealed class ConvertFromOfficeRtfCommand : PSCmdlet
             EmitUnsupportedHtmlComments = !NoUnsupportedHtmlComments.IsPresent
         };
 
-        var markdown = LoadRtfDocument().ToMarkdown(options);
+        var markdown = LoadRtfDocument().ToMarkdown(options).ToMarkdown(options?.MarkdownWriteOptions);
         if (string.IsNullOrWhiteSpace(OutputPath))
         {
             WriteObject(markdown);
@@ -280,7 +280,7 @@ public sealed class ConvertFromOfficeRtfCommand : PSCmdlet
 
     private WordDocument LoadWordDocument()
     {
-        return LoadRtfDocument().ToWordDocument();
+        return LoadRtfDocument().ToWord();
     }
 
     private WordHtmlExportOptions CreateWordToHtmlOptions()

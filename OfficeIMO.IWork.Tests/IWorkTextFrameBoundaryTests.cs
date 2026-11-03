@@ -10,8 +10,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(14, true)]
     public void Qualified_fixed_frames_only_make_keep_lines_inactive(int paginationField, bool fallback) {
         using var package = NativeTextFramePackage(Message(), paginationField: paginationField);
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package,
-            conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.Equal(fallback, result.IsVisualFallback);
         Assert.Equal(fallback, result.Report.Diagnostics.Any(diagnostic =>
             diagnostic.Code == "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_UNSUPPORTED"));
@@ -54,7 +53,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(true)]
     public void Explicit_padding_uses_zero_defaults_for_omitted_sides_instead_of_parent_insets(bool leftOnly) {
         using var package = NativeTextFramePackage(BytesField(6, leftOnly ? FloatField(1, 8) : Message()));
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
         result.Report.RequireCompleteEditableReconstruction();
         IWorkTextBoxLayout layout = result.Projection.Slides[0].TitleBox!.Layout!;
         Assert.Equal(leftOnly ? 8 : 0, layout.LeftInsetPoints);
@@ -91,7 +90,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Finite_native_frame_insets_round_to_the_PPTX_grid_with_precision_evidence() {
         using var package = NativeTextFramePackage(BytesField(6, FloatField(1, 3.6f)));
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
         result.Report.RequireCompleteEditableReconstruction();
         Assert.Equal((double)3.6f, result.Projection.Slides[0].TitleBox!.Layout!.LeftInsetPoints);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_KEYNOTE_PPTX_PRECISION"
@@ -106,8 +105,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Frame_insets_outside_the_destination_range_remain_rejected() {
         using var package = NativeTextFramePackage(BytesField(6, FloatField(1, 200000)));
         Assert.Contains("padding outside", Assert.Throws<InvalidDataException>(() =>
-            PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package,
-                conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly })).Message);
+            IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly })).Message);
     }
 
     private static MemoryStream NativeTextFramePackage(byte[] childProperties,

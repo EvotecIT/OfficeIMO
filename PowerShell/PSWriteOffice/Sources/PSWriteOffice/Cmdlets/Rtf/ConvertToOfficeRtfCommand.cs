@@ -233,7 +233,7 @@ public sealed class ConvertToOfficeRtfCommand : PSCmdlet
     {
         if (string.IsNullOrWhiteSpace(OutputPath))
         {
-            WriteObject(document.ToRtf());
+            WriteObject(document.ToRtf().ToRtf());
             return;
         }
 
@@ -244,7 +244,7 @@ public sealed class ConvertToOfficeRtfCommand : PSCmdlet
         }
 
         PdfCommandUtilities.EnsureDirectory(outputPath);
-        document.SaveAsRtf(outputPath, encoding: new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        document.SaveAsRtf(outputPath, new OfficeIMO.Word.Rtf.WordRtfExportOptions { Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false) });
         if (PassThru.IsPresent)
         {
             WriteObject(new FileInfo(outputPath));
@@ -293,7 +293,7 @@ public sealed class ConvertToOfficeRtfCommand : PSCmdlet
             PreserveRawHtmlAsText = PreserveRawHtmlAsText.IsPresent
         };
 
-        var rtf = MarkdownDocument.Parse(markdown, options.ReaderOptions).ToRtfDocument(options).ToRtf();
+        var rtf = MarkdownDocument.Parse(markdown, options.ReaderOptions).ToRtf(options).ToRtf();
         if (string.IsNullOrWhiteSpace(OutputPath))
         {
             WriteObject(rtf);

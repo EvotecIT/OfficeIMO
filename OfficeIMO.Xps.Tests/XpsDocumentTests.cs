@@ -37,7 +37,7 @@ public sealed class XpsDocumentTests {
         Assert.DoesNotContain("<text", reopened.Pages[0].ToSvg().Svg);
         byte[] png = reopened.Pages[0].ExportImage(OfficeImageExportFormat.Png).Bytes;
         Assert.Equal(320, OfficeImageReader.Identify(png).Width);
-        byte[] pdf = reopened.ToPdf(); Assert.StartsWith("%PDF-", Encoding.ASCII.GetString(pdf, 0, 8));
+        byte[] pdf = reopened.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }); Assert.StartsWith("%PDF-", Encoding.ASCII.GetString(pdf, 0, 8));
     }
     [Fact]
     public void RejectsExternalStartRelationshipAndMissingPages() {

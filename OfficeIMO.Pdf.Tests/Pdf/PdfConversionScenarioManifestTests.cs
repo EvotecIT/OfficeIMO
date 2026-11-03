@@ -98,7 +98,7 @@ public sealed class PdfConversionScenarioManifestTests {
             "* Native AsciiDoc parser\n" +
             "* Shared Markdown PDF renderer\n";
 
-        PdfCore.PdfDocumentConversionResult result = AsciiDocDocument.ParseResult(source).Document.ToPdfDocumentResult();
+        var result = AsciiDocDocument.ParseResult(source).Document.ConvertToPdfWithEvidence(null, default);
         byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         AsciiDocToMarkdownReport projection = Assert.IsType<AsciiDocToMarkdownReport>(
@@ -126,7 +126,7 @@ public sealed class PdfConversionScenarioManifestTests {
             "Semantic route marker with citation \\cite{officeimo} and math $x^2$.\n" +
             "\\end{document}\n";
 
-        PdfCore.PdfDocumentConversionResult result = LatexDocument.ParseResult(source).Document.ToPdfDocumentResult();
+        var result = LatexDocument.ParseResult(source).Document.ConvertToPdfWithEvidence(null, default);
         byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         LatexToMarkdownReport projection = Assert.IsType<LatexToMarkdownReport>(

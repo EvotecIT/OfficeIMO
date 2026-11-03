@@ -6,9 +6,7 @@ namespace OfficeIMO.IWork.Tests;
 public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Native_Pages_physical_row_heights_exclude_Word_added_bottom_padding() {
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(
-            CorpusFixture("native-exports/pages-table-borders-v15.4.pages"),
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(CorpusFixture("native-exports/pages-table-borders-v15.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         IWorkTable source = Assert.Single(result.Projection.Tables);
         Assert.Equal(new double?[] { 32, 31, 32, 32 }, Enumerable.Range(1, 4).Select(source.GetRowHeight));
         result.Report.RequireCompleteEditableReconstruction();
@@ -33,8 +31,7 @@ public sealed partial class IWorkBoundaryTests {
         // The second cell is genuinely blank. Its selected padding still affects an ordinary row,
         // but a covered horizontal cell has no independent Word layout box.
         using var package = PhysicalRowPackage(20, 2, 8, merge, rowCount);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package,
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         result.Report.RequireCompleteEditableReconstruction();
         Assert.Equal(IWorkCellKind.Empty, result.Projection.Tables[0].GetCell(1, 2)!.Kind);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
@@ -49,8 +46,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Pages_partial_row_height_subtracts_serialized_rounded_padding() {
         using var package = PhysicalRowPackage(.125, .0625f, .0625f);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_PAGES_DOCX_PRECISION");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = WordDocument.Load(saved);
@@ -62,8 +58,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Pages_exact_rows_retain_vertical_merge_continuation_bottom_padding() {
         using var package = PhysicalRowPackage(20, 2, 8, "vertical-styled", 2);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package,
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         Assert.Equal(8, result.Projection.Tables[0].GetCell(2, 1)!.Padding!.BottomPoints);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = WordDocument.Load(saved);
@@ -76,8 +71,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Pages_physical_row_box_can_reach_Word_declaration_limit_plus_padding() {
         using var package = PhysicalRowPackage(1588, 4, 4);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package,
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = WordDocument.Load(saved);
         Assert.Equal(OfficeIMO.OfficeLength.Points(1584), Assert.Single(reopened.Tables).Rows[0].Height);
@@ -92,8 +86,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_unrepresentable_exact_row_box_is_rejected_before_DOCX_creation(double height, float padding, bool partial) {
         using var package = PhysicalRowPackage(height, padding, padding);
         Assert.Contains("row height", Assert.Throws<InvalidDataException>(() =>
-            WordIWorkConverter.ConvertPagesToWordResult(package,
-                conversionOptions: new IWorkConversionOptions {
+            IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions {
                     Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = partial
                 })).Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -104,8 +97,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_minimum_row_constraint_also_respects_Word_declaration_range(bool partial) {
         using var package = PhysicalRowPackage(2000, 4, 4, automatic: true);
         Assert.Contains("row height", Assert.Throws<InvalidDataException>(() =>
-            WordIWorkConverter.ConvertPagesToWordResult(package,
-                conversionOptions: new IWorkConversionOptions {
+            IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions {
                     Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = partial
                 })).Message, StringComparison.OrdinalIgnoreCase);
     }

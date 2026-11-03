@@ -18,7 +18,7 @@ public sealed class RtfStyleDiagnosticRegressionTests {
         var result = document.ToRtfResult();
         result.ThrowIfLoss();
         Assert.Equal(document.Styles[0].Name, RtfDocument.ParseResult(result.Value).Document.Styles[0].Name);
-        document.ToHtmlResult().RtfReport.ThrowIfLoss();
+        document.ConvertToHtmlWithEvidence().RtfReport.ThrowIfLoss();
     }
 
     [Theory]
@@ -32,9 +32,9 @@ public sealed class RtfStyleDiagnosticRegressionTests {
         Assert.Contains(result.Report.NativeDiagnostics, item => item.Code == code && item.Feature == feature);
         Assert.Throws<RtfConversionLossException>(() => result.ThrowIfLoss());
         Assert.Contains(read.Document.Clone().ToRtfResult().Report.Diagnostics, item => item.Code == code);
-        Assert.Contains(read.Document.ToHtmlResult().RtfReport.Diagnostics, item => item.Code == code);
-        Assert.Contains(read.Document.ToMarkdownResult().Report.Diagnostics, item => item.Code == code);
-        var word = read.Document.ToWordDocumentResult();
+        Assert.Contains(read.Document.ConvertToHtmlWithEvidence().RtfReport.Diagnostics, item => item.Code == code);
+        Assert.Contains(read.Document.ConvertToMarkdownTextWithEvidence().Report.Diagnostics, item => item.Code == code);
+        var word = read.Document.ConvertToWordWithEvidence();
         using (word.Value) Assert.Contains(word.Report.Diagnostics, item => item.Code == code);
         Assert.Contains(read.Document.ConvertToPdfWithEvidence().Report.Warnings, item => item.Code == code);
     }
@@ -51,9 +51,9 @@ public sealed class RtfStyleDiagnosticRegressionTests {
         document.AddParagraph("Repeated missing").StyleId = 9;
 
         AssertDiagnostics(document.ToRtfResult().Report);
-        AssertDiagnostics(document.ToHtmlResult().RtfReport);
-        AssertDiagnostics(document.ToMarkdownResult().Report);
-        var word = document.ToWordDocumentResult();
+        AssertDiagnostics(document.ConvertToHtmlWithEvidence().RtfReport);
+        AssertDiagnostics(document.ConvertToMarkdownTextWithEvidence().Report);
+        var word = document.ConvertToWordWithEvidence();
         using (word.Value) AssertDiagnostics(word.Report);
         var pdf = document.ConvertToPdfWithEvidence();
         Assert.Contains(pdf.Report.Warnings, item => item.Code == "RtfStyleInheritanceCycle");
@@ -71,7 +71,7 @@ public sealed class RtfStyleDiagnosticRegressionTests {
         const string input = @"{\rtf1\ansi{\stylesheet{\s1\uc1 Named\u233?;}}Plain\par}";
         RtfDocument document = RtfDocument.ParseResult(input).Document;
         document.ToRtfResult().ThrowIfLoss();
-        document.ToHtmlResult().RtfReport.ThrowIfLoss();
+        document.ConvertToHtmlWithEvidence().RtfReport.ThrowIfLoss();
         Assert.Equal("Namedé", document.Styles[0].Name);
     }
 }

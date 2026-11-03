@@ -1,3 +1,4 @@
+#pragma warning disable RS0026, RS0027 // Existing optional-parameter overload families keep their shape.
 using System.Threading;
 
 namespace OfficeIMO.Pdf;
@@ -30,10 +31,10 @@ public sealed partial class PdfDocumentPages {
         Split(pagesPerDocument, _document.ReadOptions, cancellationToken);
 
     /// <summary>Creates caller-ordered selection parts with cooperative cancellation through every part.</summary>
-    public IReadOnlyList<PdfDocument> Split(CancellationToken cancellationToken, params PdfPageSelection[] selections) {
+    public IReadOnlyList<PdfDocument> Split(IReadOnlyList<PdfPageSelection> selections, CancellationToken cancellationToken = default) {
         Guard.NotNull(selections, nameof(selections));
-        if (selections.Length == 0) throw new ArgumentException("At least one page selection must be specified.", nameof(selections));
-        return Split(selections, _document.ReadOptions, cancellationToken);
+        if (selections.Count == 0) throw new ArgumentException("At least one page selection must be specified.", nameof(selections));
+        return Split(selections.ToArray(), _document.ReadOptions, cancellationToken);
     }
 
     /// <summary>Creates caller-ordered range parts with cancellation during range enumeration and extraction.</summary>

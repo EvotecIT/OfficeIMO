@@ -46,8 +46,8 @@ public partial class WordRtfConverterTests {
         word.PageSetup.EvenPageFooter.AddParagraph("Even footer");
         word.AddParagraph("Body");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
         Assert.Equal(16838, rtfDocument.PageSetup.PaperWidthTwips);
         Assert.Equal(11906, rtfDocument.PageSetup.PaperHeightTwips);
@@ -110,8 +110,8 @@ public partial class WordRtfConverterTests {
         word.PageSetup.Margins.Type = WordMargin.Mirrored;
         word.AddParagraph("Body");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
         Assert.True(rtfDocument.Settings.MirrorMargins);
         Assert.Contains(@"\margmirror", rtf, StringComparison.Ordinal);
@@ -127,8 +127,8 @@ public partial class WordRtfConverterTests {
         settings.Append(new DocumentProtection { Edit = DocumentProtectionValues.ReadOnly });
         word.AddParagraph("Body");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
         Assert.Equal(1440, rtfDocument.Settings.DefaultTabWidthTwips);
         Assert.Equal(125, rtfDocument.Settings.ViewScale);
@@ -149,8 +149,8 @@ public partial class WordRtfConverterTests {
         rtfDocument.Settings.MirrorMargins = true;
         rtfDocument.AddParagraph("Body");
 
-        using WordDocument word = rtfDocument.ToWordDocument();
-        RtfDocument roundTrip = word.ToRtfDocument();
+        using WordDocument word = rtfDocument.ToWord();
+        RtfDocument roundTrip = word.ToRtf();
 
         Assert.Equal(1440, word.Settings.DefaultTabStop);
         Assert.Equal(125, word.Settings.ZoomPercentage);

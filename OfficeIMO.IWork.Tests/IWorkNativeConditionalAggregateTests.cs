@@ -16,9 +16,8 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(input.GetProperty("bytes").GetInt64(), bytes.LongLength);
             Assert.Equal(input.GetProperty("sha256").GetString(), Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant());
         }
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(CorpusFixture(
-            "native-exports/" + evidence.GetProperty("source").GetString()),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(CorpusFixture(
+            "native-exports/" + evidence.GetProperty("source").GetString()), IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Report.IsPartialEditableReconstruction);
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED");

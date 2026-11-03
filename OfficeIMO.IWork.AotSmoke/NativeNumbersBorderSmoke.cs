@@ -11,8 +11,7 @@ internal static class NativeNumbersBorderSmoke {
         using var expected = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "native-numbers-borders-decode.json")));
         Require(Hash(source) == expected.RootElement.GetProperty("sourceSha256").GetString(), "Native border source hash changed.");
         Require(Hash(reference) == expected.RootElement.GetProperty("nativeXlsxSha256").GetString(), "Native border XLSX hash changed.");
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(source,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(source, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Require(result.Report.IsPartialEditableReconstruction
             && result.Report.Diagnostics.Any(d => d.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED"
                 && d.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission), "Native padding loss was hidden.");

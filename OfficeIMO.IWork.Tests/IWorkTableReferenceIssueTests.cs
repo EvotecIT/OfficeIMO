@@ -106,9 +106,9 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         IWorkConversionReport report;
         if (kind == IWorkDocumentKind.Pages) {
-            using var automatic = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToWordResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToWordDocumentResult(options);
+            using var partial = source.ToWordResult(options);
             Assert.False(partial.IsVisualFallback);
             report = partial.Report;
             partial.Value.Save(saved);
@@ -116,9 +116,9 @@ public sealed partial class IWorkBoundaryTests {
             using WordDocument reopened = WordDocument.Load(saved);
             Assert.Equal("42", reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToExcelResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToExcelDocumentResult(options);
+            using var partial = source.ToExcelResult(options);
             Assert.False(partial.IsVisualFallback);
             report = partial.Report;
             partial.Value.Save(saved);
@@ -126,9 +126,9 @@ public sealed partial class IWorkBoundaryTests {
             using ExcelDocument reopened = ExcelDocument.Load(saved);
             Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue().Value);
         } else {
-            using var automatic = source.ToPowerPointDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToPowerPointResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToPowerPointDocumentResult(options);
+            using var partial = source.ToPowerPointResult(options);
             Assert.False(partial.IsVisualFallback);
             report = partial.Report;
             partial.Value.Save(saved);

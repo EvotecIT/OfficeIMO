@@ -16,7 +16,7 @@ public class RtfStyleVisibilityRegressionTests {
     public void LegacyHtmlRunMetadataRetainsCssHiddenText() {
         string legacy = Convert.ToBase64String(Encoding.UTF8.GetBytes("version=MQ==\nplain=ZmFsc2U=\n"));
         string html = "<p><span data-officeimo-rtf-direct-run=\"" + legacy + "\"><span style=\"visibility:hidden\">Secret</span></span><span>Visible</span></p>";
-        RtfDocument imported = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument imported = HtmlConversionDocument.Parse(html).ToRtf();
         RtfParagraph paragraph = Assert.Single(imported.Paragraphs);
         Assert.True(imported.ResolveRunFormatting(paragraph, paragraph.Runs.Single(run => run.Text == "Secret")).Hidden);
         Assert.False(imported.ResolveRunFormatting(paragraph, paragraph.Runs.Single(run => run.Text == "Visible")).Hidden);
@@ -78,7 +78,7 @@ public class RtfStyleVisibilityRegressionTests {
         RtfDocument source = RtfDocument.ParseResult(Input).Document;
         string html = source.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile());
         Assert.Contains("visibility:hidden", html, StringComparison.Ordinal);
-        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtf();
         RtfParagraph paragraph = document.Paragraphs[0];
         RtfRun inherited = paragraph.Runs.First();
         Assert.Null(inherited.DirectHidden);
@@ -91,8 +91,8 @@ public class RtfStyleVisibilityRegressionTests {
     [Fact]
     public void WordStylesAndExplicitVisibleOverridesSurviveSemanticReimport() {
         RtfDocument document = RtfDocument.ParseResult(Input).Document;
-        using var word = document.ToWordDocument();
-        RtfDocument reopened = word.ToRtfDocument();
+        using var word = document.ToWord();
+        RtfDocument reopened = word.ToRtf();
         RtfParagraph paragraph = reopened.Paragraphs[0];
         Assert.True(reopened.Styles.Single(style => style.Id == paragraph.StyleId && style.Kind == RtfStyleKind.Paragraph).TextHidden);
         Assert.True(reopened.ResolveRunFormatting(paragraph, paragraph.Runs.First()).Hidden);

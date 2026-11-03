@@ -31,7 +31,7 @@ public sealed class PowerPointOdpImageCropTests {
             picture.Crop(25, 12.5, 12.5, 12.5);
         }
 
-        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(conversion.Value.ToBytes()));
         OdpImage[] images = reopened.Slides[0].Shapes.OfType<OdpImage>().ToArray();
         Assert.Equal(2, images.Length);
@@ -46,7 +46,7 @@ public sealed class PowerPointOdpImageCropTests {
         }
         Assert.Equal(120, images[0].Bounds.Width.ToPoints());
         Assert.Equal(240, images[1].Bounds.Width.ToPoints());
-        using PowerPointDocument roundTrip = reopened.ToPowerPointDocument();
+        using PowerPointDocument roundTrip = reopened.ToPowerPoint();
         foreach (PowerPointImage picture in roundTrip.Slides[0].Images) AssertCrop(picture, .25, .125, .125, .125);
         AssertNoCropLoss(conversion.Report);
     }
@@ -65,7 +65,7 @@ public sealed class PowerPointOdpImageCropTests {
             image.Crop = Insets(vertical, right, vertical, left);
         }
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
         byte[] pptx = target.ToBytes();
         using PowerPointDocument reopened = PowerPointDocument.Load(new MemoryStream(pptx));
@@ -104,7 +104,7 @@ public sealed class PowerPointOdpImageCropTests {
         if (kind == "malformed") image.EnsureGraphicStyle().SetProperty(OdfNamespaces.Style + "graphic-properties",
             OdfNamespaces.Fo + "clip", "rect(0pt 0pt 0pt 10%)");
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
         PowerPointImage picture = Assert.Single(target.Slides[0].Images);
         Assert.Equal(bytes, picture.GetImageBytes());
@@ -112,7 +112,7 @@ public sealed class PowerPointOdpImageCropTests {
         Assert.Equal(90, picture.Height.ToPoints());
         AssertCrop(picture, 0, 0, 0, 0);
         AssertCropLoss(conversion.Report);
-        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToPowerPointWithEvidence(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -122,7 +122,7 @@ public sealed class PowerPointOdpImageCropTests {
         OdpPresentation source = OdpPresentation.Create();
         OdpImage image = source.AddSlide().AddImage(bytes, "pixel.png", OdfRect.FromCentimeters(1, 1, 2, 2));
         image.Crop = OdfInsets.FromCentimeters(0, 0, 0, .2);
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
         AssertCrop(Assert.Single(target.Slides[0].Images), 0, 0, 0, 0);
         AssertCropLoss(conversion.Report);
@@ -145,13 +145,13 @@ public sealed class PowerPointOdpImageCropTests {
         raw.BlipFill!.SourceRectangle = new A.SourceRectangle();
         raw.BlipFill.SourceRectangle.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute("", "l", "", left));
         raw.BlipFill.SourceRectangle.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute("", "r", "", right));
-        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdpImage image = Assert.Single(conversion.Value.Slides[0].Shapes.OfType<OdpImage>());
         Assert.Null(image.Crop);
         Assert.Equal(bytes, image.GetImageBytes());
         Assert.Equal(240, image.Bounds.Width.ToPoints());
         AssertCropLoss(conversion.Report);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -164,7 +164,7 @@ public sealed class PowerPointOdpImageCropTests {
         PowerPointImage picture = source.AddSlide().AddImage(stream, OfficeImageFormat.Svg, new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Points(20),OfficeIMO.OfficeLength.Points(30),OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(90)));
         picture.Bounds = new PowerPointLayoutBox(OfficeLength.Points(20), OfficeLength.Points(30), OfficeLength.Points(240), OfficeLength.Points(90));
         picture.Crop(25, 0, 0, 0);
-        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdpImage image = Assert.Single(conversion.Value.Slides[0].Shapes.OfType<OdpImage>());
         Assert.Null(image.Crop);
         Assert.Equal(bytes, image.GetImageBytes());
@@ -185,7 +185,7 @@ public sealed class PowerPointOdpImageCropTests {
         using PowerPointDocument source = PowerPointDocument.Create();
         using var stream = new MemoryStream(bytes);
         source.AddSlide().AddImage(stream, OfficeImageFormat.Png, new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Points(20),OfficeIMO.OfficeLength.Points(30),OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(90))).Crop(99.999, 0, 0, 0);
-        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdpImage image = Assert.Single(conversion.Value.Slides[0].Shapes.OfType<OdpImage>());
         Assert.Null(image.Crop);
         Assert.Equal(bytes, image.GetImageBytes());

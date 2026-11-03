@@ -218,7 +218,7 @@ public sealed class PdfReverseConversionScorecardTests {
                 }
                 return;
             case "pdf-to-odt": {
-                PdfOdtConversionResult odtResult = logical.ToOdtDocumentResult();
+                PdfOdtConversionResult odtResult = logical.ConvertToOdtWithEvidence(null, default);
                 byte[] artifact = odtResult.Value.ToBytes();
                 OdtDocument reopened = OdtDocument.Load(new MemoryStream(artifact));
                 Assert.NotEmpty(reopened.Paragraphs);
@@ -226,7 +226,7 @@ public sealed class PdfReverseConversionScorecardTests {
                 return;
             }
             case "pdf-to-ods": {
-                PdfOdsConversionResult odsResult = logical.ToOdsDocumentResult();
+                PdfOdsConversionResult odsResult = logical.ConvertToOdsWithEvidence(null, default);
                 byte[] artifact = odsResult.Value.ToBytes();
                 OdsDocument reopened = OdsDocument.Load(new MemoryStream(artifact));
                 Assert.NotEmpty(reopened.Sheets);
@@ -242,7 +242,7 @@ public sealed class PdfReverseConversionScorecardTests {
                 return;
             }
             case "pdf-to-odp": {
-                PdfOdpConversionResult odpResult = logical.ToOdpPresentationResult(PdfPowerPointExportOptions.CreateEditableContent());
+                PdfOdpConversionResult odpResult = logical.ConvertToOdpWithEvidence(new PdfOdpExportOptions { PdfOptions = PdfPowerPointExportOptions.CreateEditableContent() }, default);
                 byte[] artifact = odpResult.Value.ToBytes();
                 OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(artifact));
                 Assert.Equal(logical.Pages.Count, reopened.Slides.Count);

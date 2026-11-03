@@ -11,17 +11,7 @@ public static partial class HtmlExcelConverterExtensions {
     private const int ExcelCellTextCharacterLimit = 32_767;
     private const int ExcelFormulaCharacterLimit = 8_192;
 
-    /// <summary>
-    /// Imports a prepared shared HTML conversion document into a native workbook without reparsing its adapter DOM.
-    /// </summary>
-    public static ExcelDocument ToExcelDocument(this HtmlConversionDocument document, HtmlExcelExportOptions? options = null) {
-        return GetWorkbookOrThrow(ToExcelDocumentResult(document, options));
-    }
-
-    /// <summary>
-    /// Imports a prepared shared HTML conversion document and returns the workbook plus structured evidence.
-    /// </summary>
-    public static HtmlToExcelResult ToExcelDocumentResult(this HtmlConversionDocument document, HtmlExcelExportOptions? options = null) {
+    internal static HtmlToExcelResult ConvertToExcelWithEvidence(this HtmlConversionDocument document, HtmlExcelExportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         const HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen;
         IHtmlDocument adapterDocument = document.CreateNativeDocumentForConversion(mediaContext);

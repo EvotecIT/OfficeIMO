@@ -30,7 +30,7 @@ foreach (HtmlDiagnostic diagnostic in prepared.Report.Diagnostics) {
 }
 ```
 
-Pass `editable` to a target adapter, such as `ToWordDocumentResult()` from `OfficeIMO.Word.Html`, and inspect that adapter's report too. Preparation never fetches network resources or changes `archive.HtmlDocument`. It applies the shared resource byte, count, and request limits; missing, rejected, and over-budget images remain as URLs with loss diagnostics. CSS backgrounds, `srcset` candidates, and linked stylesheets are outside this direct-image preparation step. A target adapter may still reject an embedded format such as WebP.
+Pass `editable` to a target adapter, such as `ToWord(options, out report)` from `OfficeIMO.Word.Html`, and inspect that adapter's report too. Preparation never fetches network resources or changes `archive.HtmlDocument`. It applies the shared resource byte, count, and request limits; missing, rejected, and over-budget images remain as URLs with loss diagnostics. CSS backgrounds, `srcset` candidates, and linked stylesheets are outside this direct-image preparation step. A target adapter may still reject an embedded format such as WebP.
 
 For a print-oriented editable import, resolve archived stylesheets before selecting visible content:
 

@@ -38,6 +38,10 @@ public class OneNoteReadWriteBenchmarks {
         new OneNoteWriterOptions { ValidateRoundTrip = false });
 
     [Benchmark]
-    public string ProjectMarkdown() => _section.ToMarkdown();
+    public long ProjectMarkdown() {
+        using var output = new System.IO.MemoryStream();
+        _section.SaveAsMarkdown(output);
+        return output.Length;
+    }
 
 }

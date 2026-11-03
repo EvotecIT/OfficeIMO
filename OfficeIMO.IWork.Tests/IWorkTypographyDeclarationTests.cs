@@ -19,13 +19,13 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Empty(references);
         package.Position = 0;
         if (kind == IWorkDocumentKind.Pages) {
-            using var fallback = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var fallback = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(fallback.IsVisualFallback);
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var fallback = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var fallback = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(fallback.IsVisualFallback);
         } else {
-            using var fallback = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var fallback = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(fallback.IsVisualFallback);
         }
         package.Position = 0;

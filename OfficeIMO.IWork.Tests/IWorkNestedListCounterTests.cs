@@ -39,7 +39,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal("  2. Child continued", IWorkReadProjection.RichTextMarkdown(content.Paragraphs[6]));
         if (kind == IWorkDocumentKind.Keynote) {
             package.Position = 0;
-            using var result = IWorkSourceDocument.Open(package).ToPowerPointDocumentResult(new() {
+            using var result = IWorkSourceDocument.Open(package).ToPowerPointResult(new() {
                 Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
             using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
             using var reopened = PowerPointDocument.Load(saved);

@@ -4,16 +4,17 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Chm;
 
 /// <summary>Renders each selected topic independently and merges its pages through the first-party PDF engine.</summary>
-public static class ChmPdfConverterExtensions {
-    /// <summary>Converts help topics to PDF, preserving per-topic CSS isolation and composing source and renderer reports.</summary>
-    public static PdfDocumentConversionResult ToPdfDocumentResult(this ChmDocument document, ChmConversionOptions? options = null,
-        HtmlPdfExportOptions? pdfOptions = null, CancellationToken cancellationToken = default) =>
-        Task.Run(() => document.ToPdfDocumentResultAsync(options, pdfOptions, cancellationToken), cancellationToken).GetAwaiter().GetResult();
+public static partial class ChmPdfConverterExtensions {
+    // Topics render through the asynchronous archive resolver; the synchronous form waits on it off the caller's context.
+    internal static PdfDocumentConversionResult ConvertToPdfWithEvidence(this ChmDocument document, ChmPdfExportOptions? options,
+        CancellationToken cancellationToken) =>
+        Task.Run(() => document.ConvertToPdfWithEvidenceAsync(options, cancellationToken), cancellationToken).GetAwaiter().GetResult();
 
-    /// <summary>Asynchronously renders selected topics with archive-only resource resolution.</summary>
-    public static async Task<PdfDocumentConversionResult> ToPdfDocumentResultAsync(this ChmDocument document, ChmConversionOptions? options = null,
-        HtmlPdfExportOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
+    internal static async Task<PdfDocumentConversionResult> ConvertToPdfWithEvidenceAsync(this ChmDocument document, ChmPdfExportOptions? exportOptions,
+        CancellationToken cancellationToken) {
         if (document == null) throw new ArgumentNullException(nameof(document));
+        ChmConversionOptions? options = exportOptions?.ConversionOptions;
+        HtmlPdfExportOptions? pdfOptions = exportOptions?.PdfOptions;
         ChmConversionOptions configured = options?.Clone() ?? new ChmConversionOptions();
         IReadOnlyList<ChmTopic> topics = document.SelectTopics(configured);
         var diagnostics = document.SourceDiagnostics();
@@ -68,12 +69,4 @@ public static class ChmPdfConverterExtensions {
         return result;
     }
 
-    /// <summary>Serializes the selected topic pages as PDF.</summary>
-    public static ChmConversionResult<byte[]> ToPdfBytesResult(this ChmDocument document, ChmConversionOptions? options = null,
-        HtmlPdfExportOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
-        ChmConversionOptions configured = options?.Clone() ?? new ChmConversionOptions();
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(configured, pdfOptions, cancellationToken);
-        byte[] bytes = result.ToBytes(cancellationToken); ChmDocument.EnforceOutput(bytes.LongLength, configured);
-        return new ChmConversionResult<byte[]>(bytes, new ChmConversionReport(document.SelectTopics(configured).Select(topic => topic.Path), result.Diagnostics));
-    }
 }

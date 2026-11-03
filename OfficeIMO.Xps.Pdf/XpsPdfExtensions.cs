@@ -3,38 +3,19 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Xps;
 
 /// <summary>Thin PDF export over the native XPS reader and existing PDF drawing engine.</summary>
-public static class XpsPdfExtensions {
-    /// <summary>Produces vector PDF pages with native semantic structure, retaining the two-parameter conversion entrypoint.</summary>
-    public static byte[] ToPdf(this XpsDocument document, CancellationToken cancellationToken) =>
-        ToPdf(document, cancellationToken, preserveLogicalStructure: true);
-
-    /// <summary>Produces vector PDF pages with searchable native Unicode. Authored native structure supplies semantic tags and logical reading order when present.</summary>
-    /// <param name="document">The native document.</param>
-    /// <param name="cancellationToken">Cancels conversion and PDF serialization.</param>
-    /// <param name="preserveLogicalStructure">Maps native semantics strictly. False exports paint and searchable text in markup order, including documents with unsupported structure extensions.</param>
-    /// <remarks>Page-local fragments use page order when no story addresses were authored. Native figure descriptions and PDF/UA conformance are not inferred.</remarks>
-    public static byte[] ToPdf(this XpsDocument document, CancellationToken cancellationToken = default, bool preserveLogicalStructure = true) {
-        using var output = new MemoryStream();
-        document.SavePdf(output, new XpsPdfExportOptions { PreserveLogicalStructure = preserveLogicalStructure }, cancellationToken);
-        return output.ToArray();
-    }
-
-    /// <summary>Writes native vector pages and searchable Unicode directly to a caller-owned PDF stream.</summary>
-    /// <param name="document">The native document.</param>
-    /// <param name="output">Writable destination. Seekable output is replaced and rewound on success; the stream remains open.</param>
-    /// <param name="options">Native semantic preservation and existing PDF serialization settings.</param>
-    /// <param name="cancellationToken">Cancels conversion and serialization.</param>
-    /// <remarks>Validation precedes writing. A serialization failure can leave partial stream output; hosts that publish files should stage and validate it first.</remarks>
-    public static PdfSaveResult SavePdf(this XpsDocument document, Stream output, XpsPdfExportOptions? options = null,
-        CancellationToken cancellationToken = default) {
+public static partial class XpsPdfExtensions {
+    internal static PdfDocumentConversionResult ConvertToPdfWithEvidence(this XpsDocument document, XpsPdfExportOptions? options,
+        CancellationToken cancellationToken) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        if (output == null) throw new ArgumentNullException(nameof(output));
-        if (!output.CanWrite) throw new ArgumentException("PDF output must be writable.", nameof(output));
         cancellationToken.ThrowIfCancellationRequested();
         var snapshot = (options ?? new XpsPdfExportOptions()).Clone();
         if (snapshot.MaximumSvgCharacters < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumSvgCharacters must be positive.");
         if (snapshot.MaximumPathCommands < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumPathCommands must be positive.");
-        return CreatePdf(document, snapshot, cancellationToken).SaveWithEvidence(output, cancellationToken);
+        var report = new PdfConversionReport();
+        PdfCreateOptions pdfOptions = snapshot.PdfOptions?.Clone() ?? new PdfCreateOptions();
+        pdfOptions.ReportDiagnosticsTo(report, "OfficeIMO.Xps.Pdf");
+        snapshot.PdfOptions = pdfOptions;
+        return new PdfDocumentConversionResult(CreatePdf(document, snapshot, cancellationToken), report);
     }
 
     private static PdfDocument CreatePdf(XpsDocument document, XpsPdfExportOptions options, CancellationToken cancellationToken) {

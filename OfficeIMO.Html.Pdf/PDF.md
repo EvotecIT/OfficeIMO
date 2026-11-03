@@ -274,9 +274,8 @@ var options = new HtmlPdfExportOptions {
         .EnableTaggedPdfCatalogMarkers()
 };
 
-var result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
-result.ThrowIfLoss();
-result.Save("report.pdf").ThrowIfLoss();
+options.FailOnLoss = true;
+OfficeConversionReport report = HtmlConversionDocument.Parse(html).SaveAsPdf("report.pdf", options);
 ```
 
 `HtmlRenderResult.ThrowIfLoss()` checks retained layout diagnostics. For an explicit PDF request, `HtmlPdfRenderRequestResult.Output` exposes the combined HTML/PDF report, including warnings refreshed during serialization. Use `Output.ToBytes(failOnLoss: true)` for strict byte export, or call `Output.ThrowIfLoss()` after serialization. Encoded images carry their own `Diagnostics`; `image.CreateReport().ThrowIfLoss()` checks that completed image-export stage.
@@ -458,9 +457,8 @@ Install `OfficeIMO.Mhtml.Pdf` when the source is an MHT/MHTML archive. That brid
 
 Naming is consistent across the direct output APIs:
 
-- `ToPdf().ToBytes()` returns encoded bytes.
-- `ToPdfDocument()` returns the first-party PDF model.
-- `ToPdfDocumentResult()` returns the PDF model plus diagnostics.
+- `ToPdf()` returns the first-party PDF model; `ToPdf().ToBytes()` returns encoded bytes.
+- `ToPdf(options, out OfficeConversionReport report)` returns the model plus its diagnostics.
 - `ExportImage()` and `ExportImages()` return image output, dimensions, and diagnostics.
 - `SaveAsPdf(path)` and `SaveAsPdf(stream)` write to a destination.
 - Async counterparts use the same names with `Async` appended.
@@ -572,10 +570,10 @@ using OfficeIMO.Word.Html;
 using OfficeIMO.Word.Pdf;
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
-byte[] markdownPdf = source.ToMarkdownDocument().ToPdfBytes();
+using var markdownPdf = source.ToMarkdown().ToPdf();
 
-using var word = source.ToWordDocument();
-byte[] wordPdf = word.ToPdfBytes();
+using var word = source.ToWord();
+using var wordPdf = word.ToPdf();
 ```
 
 Those adapters remain separate packages and are not dependencies of `OfficeIMO.Html`.

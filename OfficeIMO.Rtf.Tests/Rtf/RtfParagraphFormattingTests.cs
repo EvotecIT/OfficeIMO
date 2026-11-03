@@ -127,9 +127,9 @@ public class RtfParagraphFormattingTests {
         paragraph.Borders.LeftSize = OfficeLength.Points(1);
         paragraph.Borders.LeftColor = OfficeColor.Parse("00AA55");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Equal("#E6F2FF", rtfDocument.GetColor(rtfParagraph.BackgroundColorIndex!.Value)!.ToString());
@@ -164,7 +164,7 @@ public class RtfParagraphFormattingTests {
             .SetBorder(RtfParagraphBorderSide.Top, RtfParagraphBorderStyle.Single, width: 30, colorIndex: topColor)
             .SetBorder(RtfParagraphBorderSide.Left, RtfParagraphBorderStyle.Double, width: 20, colorIndex: leftColor);
 
-        using WordDocument word = document.ToWordDocument();
+        using WordDocument word = document.ToWord();
 
         WordParagraph wordParagraph = Assert.Single(word.Paragraphs);
         Assert.Equal(OfficeColor.Parse("E6F2FF"), wordParagraph.ShadingFillColor);
@@ -184,9 +184,9 @@ public class RtfParagraphFormattingTests {
         paragraph.ShadingPattern = WordShadingPattern.Percent37;
         paragraph._paragraph.ParagraphProperties!.Shading!.Color = "4472C4";
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Equal("#E6F2FF", rtfDocument.GetColor(rtfParagraph.BackgroundColorIndex!.Value)!.ToString());
@@ -209,7 +209,7 @@ public class RtfParagraphFormattingTests {
         RtfParagraph paragraph = document.AddParagraph("Pattern");
         paragraph.SetShading(fill, foregroundColorIndex: foreground, pattern: RtfShadingPattern.DarkForwardDiagonal);
 
-        using WordDocument word = document.ToWordDocument();
+        using WordDocument word = document.ToWord();
 
         WordParagraph wordParagraph = Assert.Single(word.Paragraphs);
         Assert.Equal(OfficeColor.Parse("E6F2FF"), wordParagraph.ShadingFillColor);

@@ -798,13 +798,13 @@ public sealed partial class HtmlRenderingTests {
             "<h1>MhtmlPdfMarker</h1><img src='cid:logo@example.test' width='40' height='25' alt='embedded logo'>",
             new[] { new MhtmlResource(imageBytes, "image/png", contentId: "logo@example.test", fileName: "logo.png") });
 
-        PdfCore.PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync();
-        byte[] pdf = result.ToBytes();
+        var result = await archive.ToPdfAsync();
+        byte[] pdf = result.Value.ToBytes();
 
         string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText().Replace("\r", string.Empty).Replace("\n", string.Empty);
         Assert.Contains("MhtmlPdfMarker", text, StringComparison.Ordinal);
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+        Assert.DoesNotContain(result.Report.Diagnostics, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
     }
 
     [Theory]
@@ -817,10 +817,10 @@ public sealed partial class HtmlRenderingTests {
         var archive = new MhtmlDocument(
             "<p><span style='font-family:Aptos;font-size:18px;color:#336699;font-weight:700;font-style:italic;text-decoration-line:underline line-through;text-decoration-style:wavy;vertical-align:super'>Styled MHTML</span></p>");
 
-        PdfCore.PdfDocumentConversionResult pdf = archive.ToPdfDocumentResult();
+        PdfCore.PdfDocument pdf = archive.ToPdf(null, out OfficeConversionReport pdfReport);
         OfficeImageExportResult image = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(pdf, format));
 
-        Assert.Contains("Styled MHTML", PdfCore.PdfReadDocument.Open(pdf.ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Styled MHTML", PdfCore.PdfReadDocument.Open(pdf.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).ExtractText(), StringComparison.Ordinal);
         Assert.Equal(format, image.Format);
         Assert.True(image.Bytes.Length > 32);
     }
@@ -845,13 +845,13 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlPdfExportOptions {
             UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
         };
-        PdfCore.PdfDocumentConversionResult result = archive.ToPdfDocumentResult(options);
-        byte[] pdf = result.ToBytes();
+        PdfCore.PdfDocument result = archive.ToPdf(options, out OfficeConversionReport resultReport);
+        byte[] pdf = result.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.Equal(2, PdfCore.PdfImageExtractor.ExtractImages(pdf).Count(image => image.IsImageFile && image.MimeType == "image/png"));
         Assert.DoesNotContain(PdfCore.PdfInspector.Inspect(pdf).LinkUris, link => link.StartsWith("cid:", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain("cid", options.UrlPolicy.AllowedUrlSchemes);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+        Assert.DoesNotContain(resultReport.Diagnostics, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
     }
 
     [Fact]
@@ -862,11 +862,11 @@ public sealed partial class HtmlRenderingTests {
             new[] { new MhtmlResource(imageBytes, "image/png", contentLocation: "images/logo.png", fileName: "logo.png") },
             contentLocation: "https://snapshot.example.test/archive/page.html");
 
-        PdfCore.PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync();
-        byte[] pdf = result.ToBytes();
+        var result = await archive.ToPdfAsync();
+        byte[] pdf = result.Value.ToBytes();
 
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+        Assert.DoesNotContain(result.Report.Diagnostics, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
     }
 
     [Fact]
@@ -881,12 +881,12 @@ public sealed partial class HtmlRenderingTests {
             MhtmlDocument archive = MhtmlDocument.Load(path);
             Assert.True(archive.BaseUri.IsFile);
 
-            PdfCore.PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync();
-            byte[] pdf = result.ToBytes();
+            var result = await archive.ToPdfAsync();
+            byte[] pdf = result.Value.ToBytes();
 
             Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
             Assert.DoesNotContain(PdfCore.PdfInspector.Inspect(pdf).LinkUris, link => link.StartsWith("file:", StringComparison.OrdinalIgnoreCase));
-            Assert.DoesNotContain(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+            Assert.DoesNotContain(result.Report.Diagnostics, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
@@ -902,13 +902,13 @@ public sealed partial class HtmlRenderingTests {
         PdfCore.PdfResourcePolicy policy = PdfCore.PdfResourcePolicy.CreateTrustedHost();
         policy.AllowEmbeddedPackageResources = false;
 
-        PdfCore.PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync(new HtmlPdfExportOptions {
+        var result = await archive.ToPdfAsync(new HtmlPdfExportOptions {
             ResourcePolicy = policy
         });
-        byte[] pdf = result.ToBytes();
+        byte[] pdf = result.Value.ToBytes();
 
         Assert.DoesNotContain(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
-        Assert.Contains(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+        Assert.Contains(result.Report.Diagnostics, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
     }
 
     [Fact]
@@ -920,7 +920,7 @@ public sealed partial class HtmlRenderingTests {
             new[] { new MhtmlResource(imageBytes, "image/png", contentId: "logo", fileName: "logo.png") },
             contentLocation: "ftp://snapshot.example.test/archive/page.html");
 
-        PdfCore.PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync(new HtmlPdfExportOptions {
+        var result = await archive.ToPdfAsync(new HtmlPdfExportOptions {
             UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost(),
             ResourceResolver = (request, cancellationToken) => {
@@ -928,31 +928,11 @@ public sealed partial class HtmlRenderingTests {
                 return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(imageBytes, "image/png"));
             }
         });
-        byte[] pdf = result.ToBytes();
+        byte[] pdf = result.Value.ToBytes();
 
         Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
         Assert.Equal(0, hostResolverCalls);
-        Assert.Contains(result.Warnings, warning => warning.Code == "image-resource-rejected-by-policy");
-    }
-
-    [Fact]
-    public void MhtmlPdf_ExposesCompleteDirectLifecycle() {
-        MethodInfo[] methods = typeof(MhtmlPdfConverterExtensions)
-            .GetMethods(BindingFlags.Public | BindingFlags.Static)
-            .Where(method => method.GetParameters().FirstOrDefault()?.ParameterType == typeof(MhtmlDocument))
-            .ToArray();
-
-        Assert.Single(methods, method => method.Name == "ToPdfBytes");
-        Assert.DoesNotContain(methods, method => method.Name == "ToPdf");
-        Assert.Single(methods, method => method.Name == "ToPdfBytesAsync");
-        Assert.Single(methods, method => method.Name == "ToPdfDocument");
-        Assert.Single(methods, method => method.Name == "ToPdfDocumentAsync");
-        Assert.Single(methods, method => method.Name == "ToPdfDocumentResult");
-        Assert.Single(methods, method => method.Name == "ToPdfDocumentResultAsync");
-        Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdf"));
-        Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdfAsync"));
-        Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdfResult"));
-        Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdfResultAsync"));
+        Assert.Contains(result.Report.Diagnostics, warning => warning.Code == "image-resource-rejected-by-policy");
     }
 
     [Fact]

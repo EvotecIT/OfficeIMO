@@ -21,11 +21,11 @@ public sealed class WordPageBreakConversionTests {
             _ => source.AddParagraph()
         };
         paragraph.AddText("BEFORE").AddBreak(WordBreakType.Column).AddText("AFTER");
-        var result = source.ToOpenDocumentResult();
+        var result = source.ConvertToOpenDocumentWithEvidence();
         var mapping = Assert.Single(result.Report.Mappings, item => item.Feature == "column-breaks");
         Assert.Equal(OdfConversionMappingStatus.Approximated, mapping.Status);
         Assert.Equal(1, mapping.Count);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(new WordOpenDocumentConversionOptions {
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(new WordOpenDocumentConversionOptions {
             LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss
         }));
     }
@@ -41,9 +41,9 @@ public sealed class WordPageBreakConversionTests {
         using (var first = new System.IO.MemoryStream(bytes)) paragraph.AddImage(first, "first.png", OfficeIMO.OfficeLength.Pixels(12), OfficeIMO.OfficeLength.Pixels(12));
         using (var second = new System.IO.MemoryStream(bytes)) paragraph.AddImage(second, "second.png", OfficeIMO.OfficeLength.Pixels(12), OfficeIMO.OfficeLength.Pixels(12));
         paragraph.GetPositionedImages().Last().Image.AltText = "Second image description";
-        var result = source.ToOpenDocumentResult();
+        var result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "image-layout" && mapping.Count == 1);
-        Assert.Throws<OfficeIMO.OpenDocument.OdfConversionLossException>(() => source.ToOpenDocumentResult(new WordOpenDocumentConversionOptions {
+        Assert.Throws<OfficeIMO.OpenDocument.OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(new WordOpenDocumentConversionOptions {
             LossPolicy = OfficeIMO.OpenDocument.OdfConversionLossPolicy.ThrowOnAnyLoss
         }));
     }
@@ -63,7 +63,7 @@ public sealed class WordPageBreakConversionTests {
         if (breakBeforeImage) drawing.InsertBeforeSelf(boundary);
         else drawing.InsertAfterSelf(boundary);
         paragraph._run.AppendChild(new DocumentFormat.OpenXml.Wordprocessing.Text("AFTER"));
-        var result = source.ToOpenDocumentResult();
+        var result = source.ConvertToOpenDocumentWithEvidence();
         var paragraphs = result.Value.Paragraphs;
         Assert.Equal(2, paragraphs.Count);
         Assert.Equal("BEFORE", paragraphs[0].Text);
@@ -85,7 +85,7 @@ public sealed class WordPageBreakConversionTests {
         paragraph._run.AppendChild(new DocumentFormat.OpenXml.Wordprocessing.Break { Type = DocumentFormat.OpenXml.Wordprocessing.BreakValues.Page });
         using (var third = new System.IO.MemoryStream(bytes)) paragraph.AddImage(third, "third.png", OfficeIMO.OfficeLength.Pixels(12), OfficeIMO.OfficeLength.Pixels(12));
         paragraph._run.AppendChild(new DocumentFormat.OpenXml.Wordprocessing.Text("D"));
-        var paragraphs = source.ToOpenDocumentResult().Value.Paragraphs;
+        var paragraphs = source.ConvertToOpenDocumentWithEvidence().Value.Paragraphs;
         Assert.Equal(2, paragraphs.Count);
         string Order(OdtParagraph item) => string.Concat(item.InlineNodes.Select(node => node.Image != null ? "[IMAGE]" : node.Text));
         Assert.Equal("A[IMAGE]B[IMAGE]C", Order(paragraphs[0]));
@@ -100,8 +100,8 @@ public sealed class WordPageBreakConversionTests {
         var first = source.AddParagraph("Before the break");
         if (insideParagraph) first.AddBreak(WordBreakType.Page).AddText("After the break");
         else { source.AddPageBreak(); source.AddParagraph("After the break"); }
-        var odt = source.ToOpenDocumentResult().Value;
-        using var converted = odt.ToWordDocumentResult().Value;
+        var odt = source.ConvertToOpenDocumentWithEvidence().Value;
+        using var converted = odt.ConvertToWordWithEvidence().Value;
         Assert.Equal(2, converted.GetEstimatedPageCount());
         Assert.Contains(converted.Paragraphs, paragraph => paragraph.Text.Contains("Before the break"));
         Assert.Contains(converted.Paragraphs, paragraph => paragraph.Text.Contains("After the break"));
@@ -113,7 +113,7 @@ public sealed class WordPageBreakConversionTests {
         var paragraph = source.AddParagraph("Before");
         paragraph.Bold = true;
         paragraph.AddBreak(WordBreakType.Page).AddBreak(WordBreakType.Page).AddText("After").Bold = true;
-        using var converted = source.ToOpenDocumentResult().Value.ToWordDocumentResult().Value;
+        using var converted = source.ConvertToOpenDocumentWithEvidence().Value.ConvertToWordWithEvidence().Value;
         Assert.Equal(3, converted.GetEstimatedPageCount());
         Assert.Contains(converted.Paragraphs, item => item.Text == "Before" && item.Bold == true);
         Assert.Contains(converted.Paragraphs, item => item.Text == "After" && item.Bold == true);
@@ -123,7 +123,7 @@ public sealed class WordPageBreakConversionTests {
     public void LiteralLineSeparatorTextDoesNotCreateAPageBreak() {
         using var source = WordDocument.Create();
         source.AddParagraph("Before\u2028After");
-        using var converted = source.ToOpenDocumentResult().Value.ToWordDocumentResult().Value;
+        using var converted = source.ConvertToOpenDocumentWithEvidence().Value.ConvertToWordWithEvidence().Value;
         Assert.Equal(1, converted.GetEstimatedPageCount());
         Assert.Contains(converted.Paragraphs, item => item.Text.Contains("Before") && item.Text.Contains("After"));
     }

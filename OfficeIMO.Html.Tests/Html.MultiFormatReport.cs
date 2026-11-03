@@ -45,7 +45,7 @@ public class HtmlMultiFormatReport {
             Assert.NotNull(header.RunProperties?.Bold);
         }
 
-        HtmlToExcelResult excelResult = report.ToExcelDocumentResult(new HtmlExcelExportOptions {
+        HtmlToExcelResult excelResult = report.ConvertToExcelWithEvidence(new HtmlExcelExportOptions {
             Mode = HtmlImportMode.Generic,
             ImportTypedCellValues = true
         });

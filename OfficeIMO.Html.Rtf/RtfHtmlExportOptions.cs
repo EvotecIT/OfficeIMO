@@ -148,6 +148,12 @@ public sealed partial class RtfHtmlExportOptions {
     /// <summary>Shared HTML diagnostic report for cross-format aggregation.</summary>
     internal HtmlDiagnosticReport HtmlDiagnostics { get; } = new HtmlDiagnosticReport();
 
+    /// <summary>Encoding used when the HTML is saved. Null writes UTF-8 without a byte-order mark.</summary>
+    public System.Text.Encoding? Encoding { get; set; }
+
+    /// <summary>Throws <see cref="OfficeConversionException"/> when the conversion reports loss.</summary>
+    public bool FailOnLoss { get; set; }
+
     /// <summary>
     /// Creates a reusable copy of the current save options.
     /// </summary>
@@ -162,6 +168,8 @@ public sealed partial class RtfHtmlExportOptions {
         EmbedImagesAsDataUri = EmbedImagesAsDataUri,
         MaxEmbeddedImageBytes = MaxEmbeddedImageBytes,
         ImageSourceResolver = ImageSourceResolver,
+        Encoding = Encoding,
+        FailOnLoss = FailOnLoss
     };
 
     internal string GetNewLine() => string.IsNullOrEmpty(NewLine) ? Environment.NewLine : NewLine;

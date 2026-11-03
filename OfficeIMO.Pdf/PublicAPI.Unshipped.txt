@@ -1,4 +1,27 @@
 #nullable enable
+OfficeIMO.Pdf.PdfTableStyle.CellHeaderScopes.get -> System.Collections.Generic.Dictionary<(int Row, int Column), OfficeIMO.Pdf.PdfCanvasTableHeaderScope>?
+OfficeIMO.Pdf.PdfTableStyle.CellHeaderScopes.set -> void
+OfficeIMO.Pdf.PdfCreateOptions.EmbedDefaultFonts.get -> bool
+OfficeIMO.Pdf.PdfCreateOptions.EmbedDefaultFonts.set -> void
+OfficeIMO.Pdf.PdfLoadOptions.Clone(long? maximumInputBytes, string? passwordOverride) -> OfficeIMO.Pdf.PdfLoadOptions!
+OfficeIMO.Pdf.PdfLogicalHeading.Lines.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfLogicalTextBlock!>!
+OfficeIMO.Pdf.PdfPageBackgroundShape.FirstPageOnly.get -> bool
+OfficeIMO.Pdf.PdfPageBackgroundShape.FirstPageOnly.set -> void
+OfficeIMO.Pdf.PdfPanelStyle.LeftInset.get -> OfficeIMO.OfficeLength
+OfficeIMO.Pdf.PdfPanelStyle.LeftInset.set -> void
+OfficeIMO.Pdf.PdfPanelStyle.RightInset.get -> OfficeIMO.OfficeLength
+OfficeIMO.Pdf.PdfPanelStyle.RightInset.set -> void
+OfficeIMO.Pdf.PdfSaveOptions.Encryption.get -> OfficeIMO.Pdf.PdfStandardEncryptionOptions?
+OfficeIMO.Pdf.PdfSaveOptions.Encryption.set -> void
+OfficeIMO.Pdf.PdfStandardEncryptionOptions.HasDistinctOwnerPassword.get -> bool
+OfficeIMO.Pdf.PdfTextStampOptions.Align.set -> void
+OfficeIMO.Pdf.PdfTextStampOptions.EmbedFont.get -> bool
+OfficeIMO.Pdf.PdfTextStampOptions.EmbedFont.set -> void
+static OfficeIMO.Pdf.PdfStandardEncryptionOptions.ForPermissions(string! ownerPassword, OfficeIMO.Pdf.PdfStandardPermissions allowedPermissions) -> OfficeIMO.Pdf.PdfStandardEncryptionOptions!
+OfficeIMO.Pdf.PdfRedactionMatchKind.FormField = 4 -> OfficeIMO.Pdf.PdfRedactionMatchKind
+OfficeIMO.Pdf.PdfRedactionMatchKind.BookmarkTitle = 5 -> OfficeIMO.Pdf.PdfRedactionMatchKind
+OfficeIMO.Pdf.PdfDocumentPages.BookmarkPageRanges(int level, params string![]! bookmarkTitles) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfBookmarkPageRange!>!
+OfficeIMO.Pdf.PdfDocumentRenderer.LayoutDebugOverlayPng(int pageNumber, double scale = 1, OfficeIMO.Pdf.PdfLayoutDebugOverlayOptions? options = null, OfficeIMO.Pdf.PdfTextLayoutOptions? layoutOptions = null, OfficeIMO.Pdf.PdfLoadOptions? loadOptions = null) -> byte[]!
 *REMOVED*OfficeIMO.Pdf.PdfAlign
 *REMOVED*OfficeIMO.Pdf.PdfAlign.Center = 1 -> OfficeIMO.Pdf.PdfAlign
 *REMOVED*OfficeIMO.Pdf.PdfAlign.Justify = 3 -> OfficeIMO.Pdf.PdfAlign
@@ -123,8 +146,6 @@ OfficeIMO.Pdf.PdfConversionWarning.ToFidelityDiagnostic() -> OfficeIMO.OfficeDia
 *REMOVED*OfficeIMO.Pdf.PdfCreateOptions.DifferentFirstPageHeaderFooter.set -> void
 *REMOVED*OfficeIMO.Pdf.PdfCreateOptions.DifferentOddAndEvenPagesHeaderFooter.get -> bool
 *REMOVED*OfficeIMO.Pdf.PdfCreateOptions.DifferentOddAndEvenPagesHeaderFooter.set -> void
-OfficeIMO.Pdf.PdfCreateOptions.EmbedDefaultFonts.get -> bool
-OfficeIMO.Pdf.PdfCreateOptions.EmbedDefaultFonts.set -> void
 *REMOVED*OfficeIMO.Pdf.PdfCreateOptions.EvenPageFooterFormat.get -> string!
 *REMOVED*OfficeIMO.Pdf.PdfCreateOptions.EvenPageFooterFormat.set -> void
 *REMOVED*OfficeIMO.Pdf.PdfCreateOptions.EvenPageFooterSegments.get -> System.Collections.Generic.List<OfficeIMO.Pdf.PdfFooterSegment!>?
@@ -303,8 +324,6 @@ OfficeIMO.Pdf.PdfDocumentPages.Append(byte[]! sourcePdf, OfficeIMO.Pdf.PdfPageSe
 OfficeIMO.Pdf.PdfDocumentPages.Append(string! sourcePath, OfficeIMO.Pdf.PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfDocument!
 *REMOVED*OfficeIMO.Pdf.PdfDocumentPages.Append(string! sourcePath, OfficeIMO.Pdf.PdfPageSelection! sourceSelection, OfficeIMO.Pdf.PdfPageImportOptions? importOptions = null) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Append(string! sourcePath, OfficeIMO.Pdf.PdfPageSelection! sourceSelection, OfficeIMO.Pdf.PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfDocument!
-OfficeIMO.Pdf.PdfDocumentPages.BookmarkPageRanges(int level, System.Threading.CancellationToken cancellationToken, params string![]! bookmarkTitles) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfBookmarkPageRange!>!
-OfficeIMO.Pdf.PdfDocumentPages.BookmarkPageRanges(int level, params string![]! bookmarkTitles) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfBookmarkPageRange!>!
 *REMOVED*OfficeIMO.Pdf.PdfDocumentPages.Insert(int insertBeforePageNumber, OfficeIMO.Pdf.PdfDocument! sourceDocument, OfficeIMO.Pdf.PdfPageImportOptions? importOptions = null) -> OfficeIMO.Pdf.PdfDocument!
 OfficeIMO.Pdf.PdfDocumentPages.Insert(int insertBeforePageNumber, OfficeIMO.Pdf.PdfDocument! sourceDocument, OfficeIMO.Pdf.PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfDocument!
 *REMOVED*OfficeIMO.Pdf.PdfDocumentPages.Insert(int insertBeforePageNumber, OfficeIMO.Pdf.PdfDocument! sourceDocument, OfficeIMO.Pdf.PdfPageSelection! sourceSelection, OfficeIMO.Pdf.PdfPageImportOptions? importOptions = null) -> OfficeIMO.Pdf.PdfDocument!
@@ -381,7 +400,6 @@ OfficeIMO.Pdf.PdfDocumentRedactions.Search(OfficeIMO.Pdf.PdfRedactionSearchOptio
 OfficeIMO.Pdf.PdfDocumentRedactions.Verify(OfficeIMO.Pdf.PdfRedactionVerificationOptions! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfRedactionVerificationReport!
 *REMOVED*OfficeIMO.Pdf.PdfDocumentRedactions.VerifyAppliedPlan(OfficeIMO.Pdf.PdfRedactionPlan! reviewedPlan, OfficeIMO.Pdf.PdfRedactionVerificationOptions! options) -> OfficeIMO.Pdf.PdfRedactionVerificationReport!
 OfficeIMO.Pdf.PdfDocumentRedactions.VerifyAppliedPlan(OfficeIMO.Pdf.PdfRedactionPlan! reviewedPlan, OfficeIMO.Pdf.PdfRedactionVerificationOptions! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfRedactionVerificationReport!
-OfficeIMO.Pdf.PdfDocumentRenderer.LayoutDebugOverlayPng(int pageNumber, double scale = 1, OfficeIMO.Pdf.PdfLayoutDebugOverlayOptions? options = null, OfficeIMO.Pdf.PdfTextLayoutOptions? layoutOptions = null, OfficeIMO.Pdf.PdfLoadOptions? loadOptions = null) -> byte[]!
 *REMOVED*OfficeIMO.Pdf.PdfDocumentSecurity.PrepareExternalSignature(OfficeIMO.Pdf.PdfExternalSignatureOptions? options = null) -> OfficeIMO.Pdf.PdfExternalSignaturePreparation!
 OfficeIMO.Pdf.PdfDocumentSecurity.PrepareExternalSignature(OfficeIMO.Pdf.PdfExternalSignatureOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfExternalSignaturePreparation!
 *REMOVED*OfficeIMO.Pdf.PdfDocumentSecurity.SignExternal(OfficeIMO.Pdf.IPdfExternalSigner! signer, OfficeIMO.Pdf.PdfExternalSignatureOptions? options = null) -> OfficeIMO.Pdf.PdfExternalSignatureCompletion!
@@ -553,8 +571,6 @@ OfficeIMO.Pdf.PdfList.IsNumbered.get -> bool
 OfficeIMO.Pdf.PdfList.ItemCount.get -> int
 OfficeIMO.Pdf.PdfListStyle.MarkerAlign.get -> OfficeIMO.OfficeAlignment?
 *REMOVED*OfficeIMO.Pdf.PdfListStyle.MarkerAlign.get -> OfficeIMO.Pdf.PdfAlign?
-OfficeIMO.Pdf.PdfLoadOptions.Clone(long? maximumInputBytes, string? passwordOverride) -> OfficeIMO.Pdf.PdfLoadOptions!
-OfficeIMO.Pdf.PdfLogicalHeading.Lines.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfLogicalTextBlock!>!
 *REMOVED*OfficeIMO.Pdf.PdfMetadata
 *REMOVED*OfficeIMO.Pdf.PdfMetadata.Author.get -> string?
 *REMOVED*OfficeIMO.Pdf.PdfMetadata.Author.set -> void
@@ -577,8 +593,6 @@ OfficeIMO.Pdf.PdfLogicalHeading.Lines.get -> System.Collections.Generic.IReadOnl
 *REMOVED*OfficeIMO.Pdf.PdfMetadata.TrappingStatus.set -> void
 *REMOVED*OfficeIMO.Pdf.PdfOptimizationOptions.CancellationToken.get -> System.Threading.CancellationToken
 *REMOVED*OfficeIMO.Pdf.PdfOptimizationOptions.CancellationToken.set -> void
-OfficeIMO.Pdf.PdfPageBackgroundShape.FirstPageOnly.get -> bool
-OfficeIMO.Pdf.PdfPageBackgroundShape.FirstPageOnly.set -> void
 OfficeIMO.Pdf.PdfPageBuilder.PageSetup.get -> OfficeIMO.Pdf.PdfPageSetup!
 OfficeIMO.Pdf.PdfPageCanvas.FreeTextAnnotation(string! contents, OfficeIMO.OfficeLength x, OfficeIMO.OfficeLength y, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeLength? fontSize = null, OfficeIMO.OfficeColor? textColor = null, OfficeIMO.OfficeColor? borderColor = null, OfficeIMO.OfficeLength? borderWidth = null, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeAlignment textAlign = OfficeIMO.OfficeAlignment.Left, OfficeIMO.OfficeLength? padding = null, OfficeIMO.OfficeLength? lineHeight = null) -> OfficeIMO.Pdf.PdfPageCanvas!
 *REMOVED*OfficeIMO.Pdf.PdfPageCanvas.FreeTextAnnotation(string! contents, OfficeIMO.OfficeLength x, OfficeIMO.OfficeLength y, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeLength? fontSize = null, OfficeIMO.OfficeColor? textColor = null, OfficeIMO.OfficeColor? borderColor = null, OfficeIMO.OfficeLength? borderWidth = null, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.Pdf.PdfAlign textAlign = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.OfficeLength? padding = null, OfficeIMO.OfficeLength? lineHeight = null) -> OfficeIMO.Pdf.PdfPageCanvas!
@@ -629,10 +643,6 @@ OfficeIMO.Pdf.PdfPageSetupMargins.Top.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfPageSetupMargins.Top.set -> void
 OfficeIMO.Pdf.PdfPanelStyle.Align.get -> OfficeIMO.OfficeAlignment
 *REMOVED*OfficeIMO.Pdf.PdfPanelStyle.Align.get -> OfficeIMO.Pdf.PdfAlign
-OfficeIMO.Pdf.PdfPanelStyle.LeftInset.get -> OfficeIMO.OfficeLength
-OfficeIMO.Pdf.PdfPanelStyle.LeftInset.set -> void
-OfficeIMO.Pdf.PdfPanelStyle.RightInset.get -> OfficeIMO.OfficeLength
-OfficeIMO.Pdf.PdfPanelStyle.RightInset.set -> void
 OfficeIMO.Pdf.PdfParagraph
 OfficeIMO.Pdf.PdfParagraph.AddBookmarkLink(string! text, string! bookmarkName, OfficeIMO.OfficeColor? color = null, bool underline = true, string? contents = null) -> OfficeIMO.Pdf.PdfTextRun!
 OfficeIMO.Pdf.PdfParagraph.AddFallbackText(OfficeIMO.Pdf.PdfEmbeddedFontFallbackSet! fallbackSet, string! text, string! source = "") -> OfficeIMO.Pdf.PdfParagraph!
@@ -697,8 +707,6 @@ OfficeIMO.Pdf.PdfParagraph.Runs.get -> System.Collections.Generic.IReadOnlyList<
 *REMOVED*OfficeIMO.Pdf.PdfRedactionAnnotationOptions.CancellationToken.set -> void
 *REMOVED*OfficeIMO.Pdf.PdfRedactionApplyOptions.CancellationToken.get -> System.Threading.CancellationToken
 *REMOVED*OfficeIMO.Pdf.PdfRedactionApplyOptions.CancellationToken.set -> void
-OfficeIMO.Pdf.PdfRedactionMatchKind.BookmarkTitle = 5 -> OfficeIMO.Pdf.PdfRedactionMatchKind
-OfficeIMO.Pdf.PdfRedactionMatchKind.FormField = 4 -> OfficeIMO.Pdf.PdfRedactionMatchKind
 *REMOVED*OfficeIMO.Pdf.PdfRedactionSearchOptions.CancellationToken.get -> System.Threading.CancellationToken
 *REMOVED*OfficeIMO.Pdf.PdfRedactionSearchOptions.CancellationToken.set -> void
 *REMOVED*OfficeIMO.Pdf.PdfRedactionVerificationOptions.CancellationToken.get -> System.Threading.CancellationToken
@@ -707,8 +715,6 @@ OfficeIMO.Pdf.PdfRedactionMatchKind.FormField = 4 -> OfficeIMO.Pdf.PdfRedactionM
 *REMOVED*OfficeIMO.Pdf.PdfRepairArtifactOptions.CancellationToken.set -> void
 *REMOVED*OfficeIMO.Pdf.PdfSanitizationOptions.CancellationToken.get -> System.Threading.CancellationToken
 *REMOVED*OfficeIMO.Pdf.PdfSanitizationOptions.CancellationToken.set -> void
-OfficeIMO.Pdf.PdfSaveOptions.Encryption.get -> OfficeIMO.Pdf.PdfStandardEncryptionOptions?
-OfficeIMO.Pdf.PdfSaveOptions.Encryption.set -> void
 OfficeIMO.Pdf.PdfSaveResult.ConversionDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeDiagnostic!>!
 *REMOVED*OfficeIMO.Pdf.PdfSaveResult.ConversionReports.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.IOfficeConversionReport!>!
 OfficeIMO.Pdf.PdfSaveResult.ConversionReports.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeConversionReport!>!
@@ -717,7 +723,6 @@ OfficeIMO.Pdf.PdfSaveResult.ConversionReports.get -> System.Collections.Generic.
 OfficeIMO.Pdf.PdfSaveResult.ThrowIfLoss() -> void
 *REMOVED*OfficeIMO.Pdf.PdfStampAnnotationOptions.CancellationToken.get -> System.Threading.CancellationToken
 *REMOVED*OfficeIMO.Pdf.PdfStampAnnotationOptions.CancellationToken.set -> void
-OfficeIMO.Pdf.PdfStandardEncryptionOptions.HasDistinctOwnerPassword.get -> bool
 OfficeIMO.Pdf.PdfTable
 OfficeIMO.Pdf.PdfTable.Caption.get -> string?
 OfficeIMO.Pdf.PdfTable.ColumnCount.get -> int
@@ -735,8 +740,6 @@ OfficeIMO.Pdf.PdfTableStyle.CaptionAlign.get -> OfficeIMO.OfficeAlignment
 *REMOVED*OfficeIMO.Pdf.PdfTableStyle.CaptionAlign.get -> OfficeIMO.Pdf.PdfAlign
 OfficeIMO.Pdf.PdfTableStyle.CellAlignments.get -> System.Collections.Generic.Dictionary<(int Row, int Column), OfficeIMO.OfficeAlignment>?
 *REMOVED*OfficeIMO.Pdf.PdfTableStyle.CellAlignments.get -> System.Collections.Generic.Dictionary<(int Row, int Column), OfficeIMO.Pdf.PdfColumnAlign>?
-OfficeIMO.Pdf.PdfTableStyle.CellHeaderScopes.get -> System.Collections.Generic.Dictionary<(int Row, int Column), OfficeIMO.Pdf.PdfCanvasTableHeaderScope>?
-OfficeIMO.Pdf.PdfTableStyle.CellHeaderScopes.set -> void
 *REMOVED*OfficeIMO.Pdf.PdfTextRun.Font.get -> OfficeIMO.Pdf.PdfStandardFont?
 *REMOVED*OfficeIMO.Pdf.PdfTextRun.PdfTextRun(string! text, bool bold = false, bool underline = false, OfficeIMO.OfficeColor? color = null, bool italic = false, bool strike = false, OfficeIMO.OfficeLength? fontSize = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? linkUri = null, string? linkContents = null, OfficeIMO.Pdf.PdfTextBaseline baseline = OfficeIMO.Pdf.PdfTextBaseline.Normal, string? linkDestinationName = null, OfficeIMO.Pdf.PdfTabLeaderStyle tabLeader = OfficeIMO.Pdf.PdfTabLeaderStyle.None, OfficeIMO.Pdf.PdfTabAlignment tabAlignment = OfficeIMO.Pdf.PdfTabAlignment.Left, OfficeIMO.OfficeColor? backgroundColor = null, string? fontFamily = null, OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None, OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None, OfficeIMO.OfficeColor? decorationColor = null) -> void
 OfficeIMO.Pdf.PdfTextRun.PdfTextRun(string! text, bool bold = false, bool underline = false, OfficeIMO.OfficeColor? color = null, bool italic = false, bool strike = false, OfficeIMO.OfficeLength? fontSize = null, OfficeIMO.Pdf.PdfStandardFont? standardFont = null, string? linkUri = null, string? linkContents = null, OfficeIMO.Pdf.PdfTextBaseline baseline = OfficeIMO.Pdf.PdfTextBaseline.Normal, string? linkDestinationName = null, OfficeIMO.Pdf.PdfTabLeaderStyle tabLeader = OfficeIMO.Pdf.PdfTabLeaderStyle.None, OfficeIMO.Pdf.PdfTabAlignment tabAlignment = OfficeIMO.Pdf.PdfTabAlignment.Left, OfficeIMO.OfficeColor? backgroundColor = null, string? fontFamily = null, OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None, OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None, OfficeIMO.OfficeColor? decorationColor = null) -> void
@@ -789,11 +792,8 @@ OfficeIMO.Pdf.PdfTextRunDefaults.UnderlineStyle.set -> void
 *REMOVED*OfficeIMO.Pdf.PdfTextSearchOptions.WholeWords.get -> bool
 *REMOVED*OfficeIMO.Pdf.PdfTextSearchOptions.WholeWords.set -> void
 OfficeIMO.Pdf.PdfTextStampOptions.Align.get -> OfficeIMO.OfficeAlignment
-OfficeIMO.Pdf.PdfTextStampOptions.Align.set -> void
 *REMOVED*OfficeIMO.Pdf.PdfTextStampOptions.CancellationToken.get -> System.Threading.CancellationToken
 *REMOVED*OfficeIMO.Pdf.PdfTextStampOptions.CancellationToken.set -> void
-OfficeIMO.Pdf.PdfTextStampOptions.EmbedFont.get -> bool
-OfficeIMO.Pdf.PdfTextStampOptions.EmbedFont.set -> void
 *REMOVED*OfficeIMO.Pdf.PdfWatermarkOptions.CancellationToken.get -> System.Threading.CancellationToken
 *REMOVED*OfficeIMO.Pdf.PdfWatermarkOptions.CancellationToken.set -> void
 override OfficeIMO.Pdf.PdfConversionProofReport.HasLoss.get -> bool
@@ -810,10 +810,52 @@ static OfficeIMO.Pdf.PdfBatesNumberer.Apply(System.Collections.Generic.IEnumerab
 static OfficeIMO.Pdf.PdfPageInterleaver.Interleave(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfInterleaveSource!>! sources, OfficeIMO.Pdf.PdfInterleaveOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfInterleaveResult!
 *REMOVED*static OfficeIMO.Pdf.PdfReadLimits.Default.get -> OfficeIMO.Pdf.PdfReadLimits!
 *REMOVED*static OfficeIMO.Pdf.PdfRepairArtifact.Create(byte[]! pdf, OfficeIMO.Pdf.PdfRepairArtifactOptions? options = null, OfficeIMO.Pdf.PdfLoadOptions? readOptions = null) -> OfficeIMO.Pdf.PdfRepairArtifactResult!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentPages.DestructiveCrop(double left, double bottom, double right, double top, OfficeIMO.Pdf.PdfDestructiveCropOptions? options = null, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDestructiveCropResult!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentPages.Resize(OfficeIMO.Pdf.PdfPageResizeOptions! options, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.DestructiveCrop(double left, double bottom, double right, double top, OfficeIMO.Pdf.PdfDestructiveCropOptions? options = null, OfficeIMO.Pdf.PdfPageSelection? selection = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfDestructiveCropResult!
+OfficeIMO.Pdf.PdfDocumentPages.Resize(OfficeIMO.Pdf.PdfPageResizeOptions! options, OfficeIMO.Pdf.PdfPageSelection? selection = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.ApplyAttributes(System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfPageAttributeEdit!>! edits, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.BookmarkPageRanges(System.Collections.Generic.IReadOnlyList<string!>! bookmarkTitles, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfBookmarkPageRange!>!
+OfficeIMO.Pdf.PdfDocumentPages.BookmarkPageRanges(int level, System.Collections.Generic.IReadOnlyList<string!>! bookmarkTitles, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfBookmarkPageRange!>!
+OfficeIMO.Pdf.PdfDocumentPages.CropAndTranslate(double left, double bottom, double right, double top, OfficeIMO.Pdf.PdfPageSelection? selection, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.ReorderWithMapping(OfficeIMO.Pdf.PdfPageSelection! order, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfPageRewriteResult!
+OfficeIMO.Pdf.PdfDocumentPages.Resize(OfficeIMO.Pdf.PdfPageSize pageSize, OfficeIMO.Pdf.PdfPageSelection? selection, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.SetArtBox(double left, double bottom, double right, double top, OfficeIMO.Pdf.PdfPageSelection? selection, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.SetBleedBox(double left, double bottom, double right, double top, OfficeIMO.Pdf.PdfPageSelection? selection, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.SetCropBox(double left, double bottom, double right, double top, OfficeIMO.Pdf.PdfPageSelection? selection, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.SetMediaBox(double left, double bottom, double right, double top, OfficeIMO.Pdf.PdfPageSelection? selection, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.SetPageBox(OfficeIMO.Pdf.PdfPageBoundaryBox box, double left, double bottom, double right, double top, OfficeIMO.Pdf.PdfPageSelection? selection, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.SetTrimBox(double left, double bottom, double right, double top, OfficeIMO.Pdf.PdfPageSelection? selection, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfDocument!
+OfficeIMO.Pdf.PdfDocumentPages.Split(System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfPageSelection!>! selections, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfDocument!>!
+OfficeIMO.Pdf.PdfDocumentPages.SplitByBookmarks(System.Collections.Generic.IReadOnlyList<string!>! bookmarkTitles, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfDocument!>!
+OfficeIMO.Pdf.PdfDocumentRedactions.Plan(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfRedactionArea!>! areas, OfficeIMO.Pdf.PdfTextLayoutOptions? layoutOptions = null, OfficeIMO.Pdf.PdfLoadOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfRedactionPlan!
+OfficeIMO.Pdf.PdfDocumentRedactions.Plan(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfRedactionRegion!>! regions, OfficeIMO.Pdf.PdfTextLayoutOptions? layoutOptions = null, OfficeIMO.Pdf.PdfLoadOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfRedactionPlan!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentPages.ApplyAttributes(System.Threading.CancellationToken cancellationToken, params OfficeIMO.Pdf.PdfPageAttributeEdit![]! edits) -> OfficeIMO.Pdf.PdfDocument!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentPages.BookmarkPageRanges(System.Threading.CancellationToken cancellationToken, params string![]! bookmarkTitles) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfBookmarkPageRange!>!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentPages.CropAndTranslate(double left, double bottom, double right, double top, System.Threading.CancellationToken cancellationToken, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentPages.Delete(System.Threading.CancellationToken cancellationToken, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentPages.Duplicate(System.Threading.CancellationToken cancellationToken, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentPages.Move(int insertBeforePageNumber, System.Threading.CancellationToken cancellationToken, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentPages.Reorder(System.Threading.CancellationToken cancellationToken, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentPages.ReorderWithMapping(System.Threading.CancellationToken cancellationToken, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfPageRewriteResult!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentPages.Resize(OfficeIMO.Pdf.PdfPageSize pageSize, System.Threading.CancellationToken cancellationToken, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentPages.Rotate(int rotationDegrees, System.Threading.CancellationToken cancellationToken, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentPages.RotateBy(int rotationDegrees, System.Threading.CancellationToken cancellationToken, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentPages.SetArtBox(double left, double bottom, double right, double top, System.Threading.CancellationToken cancellationToken, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentPages.SetBleedBox(double left, double bottom, double right, double top, System.Threading.CancellationToken cancellationToken, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentPages.SetCropBox(double left, double bottom, double right, double top, System.Threading.CancellationToken cancellationToken, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentPages.SetMediaBox(double left, double bottom, double right, double top, System.Threading.CancellationToken cancellationToken, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentPages.SetPageBox(OfficeIMO.Pdf.PdfPageBoundaryBox box, double left, double bottom, double right, double top, System.Threading.CancellationToken cancellationToken, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentPages.SetTrimBox(double left, double bottom, double right, double top, System.Threading.CancellationToken cancellationToken, params int[]! pageNumbers) -> OfficeIMO.Pdf.PdfDocument!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentPages.Split(System.Threading.CancellationToken cancellationToken, params OfficeIMO.Pdf.PdfPageSelection![]! selections) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfDocument!>!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentPages.SplitByBookmarks(System.Threading.CancellationToken cancellationToken, params string![]! bookmarkTitles) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfDocument!>!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentRedactions.Plan(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfRedactionArea!>! areas, OfficeIMO.Pdf.PdfTextLayoutOptions? layoutOptions = null, OfficeIMO.Pdf.PdfLoadOptions? options = null) -> OfficeIMO.Pdf.PdfRedactionPlan!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentRedactions.Plan(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfRedactionArea!>! areas, System.Threading.CancellationToken cancellationToken, OfficeIMO.Pdf.PdfTextLayoutOptions? layoutOptions = null, OfficeIMO.Pdf.PdfLoadOptions? options = null) -> OfficeIMO.Pdf.PdfRedactionPlan!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentRedactions.Plan(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfRedactionRegion!>! regions, OfficeIMO.Pdf.PdfTextLayoutOptions? layoutOptions = null, OfficeIMO.Pdf.PdfLoadOptions? options = null) -> OfficeIMO.Pdf.PdfRedactionPlan!
+*REMOVED*OfficeIMO.Pdf.PdfDocumentRedactions.Plan(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfRedactionRegion!>! regions, System.Threading.CancellationToken cancellationToken, OfficeIMO.Pdf.PdfTextLayoutOptions? layoutOptions = null, OfficeIMO.Pdf.PdfLoadOptions? options = null) -> OfficeIMO.Pdf.PdfRedactionPlan!
 static OfficeIMO.Pdf.PdfRepairArtifact.Create(byte[]! pdf, OfficeIMO.Pdf.PdfRepairArtifactOptions? options = null, OfficeIMO.Pdf.PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfRepairArtifactResult!
 *REMOVED*static OfficeIMO.Pdf.PdfSaveResult.FromFailure(string? outputPath, System.Exception! exception, OfficeIMO.IOfficeConversionReport! sourceConversionReport) -> OfficeIMO.Pdf.PdfSaveResult!
 static OfficeIMO.Pdf.PdfSaveResult.FromFailure(string? outputPath, System.Exception! exception, OfficeIMO.OfficeConversionReport! sourceConversionReport) -> OfficeIMO.Pdf.PdfSaveResult!
-static OfficeIMO.Pdf.PdfStandardEncryptionOptions.ForPermissions(string! ownerPassword, OfficeIMO.Pdf.PdfStandardPermissions allowedPermissions) -> OfficeIMO.Pdf.PdfStandardEncryptionOptions!
 *REMOVED*static OfficeIMO.Pdf.PdfTextRun.BoldItalic(string! text, OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeLength? fontSize = null, OfficeIMO.OfficeColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!
 static OfficeIMO.Pdf.PdfTextRun.BoldItalic(string! text, OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeLength? fontSize = null, OfficeIMO.OfficeColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? standardFont = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!
 *REMOVED*static OfficeIMO.Pdf.PdfTextRun.BoldUnderlined(string! text, OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeLength? fontSize = null, OfficeIMO.OfficeColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!

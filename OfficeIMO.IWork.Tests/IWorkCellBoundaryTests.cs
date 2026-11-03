@@ -57,21 +57,21 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         const string marker = "Truncated cell value field.";
         if (kind == IWorkDocumentKind.Pages) {
-            using var automatic = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToWordDocumentResult(options); partial.Value.Save(saved); saved.Position = 0;
+            using var automatic = source.ToWordResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
+            using var partial = source.ToWordResult(options); partial.Value.Save(saved); saved.Position = 0;
             using var reopened = WordDocument.Load(saved);
             Assert.Equal(marker, reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
             Assert.Empty(reopened.ValidateDocument());
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToExcelDocumentResult(options); partial.Value.Save(saved); saved.Position = 0;
+            using var automatic = source.ToExcelResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
+            using var partial = source.ToExcelResult(options); partial.Value.Save(saved); saved.Position = 0;
             using var reopened = ExcelDocument.Load(saved);
             Assert.Null(reopened.Sheets[0].GetFormulaText(1, 1));
             Assert.Equal(marker, reopened.Sheets[0].Cell(1, 1).GetValue<string>());
             Assert.Empty(reopened.ValidateOpenXml());
         } else {
-            using var automatic = source.ToPowerPointDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToPowerPointDocumentResult(options); partial.Value.Save(saved); saved.Position = 0;
+            using var automatic = source.ToPowerPointResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
+            using var partial = source.ToPowerPointResult(options); partial.Value.Save(saved); saved.Position = 0;
             using var reopened = PowerPointDocument.Load(saved);
             Assert.Equal(marker, Assert.Single(reopened.Slides[0].Tables).GetCell(0, 0).Text);
             Assert.Empty(reopened.ValidateDocument());
@@ -86,7 +86,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] row = Message(VarintField(1, 0), BytesField(6, cell), BytesField(7, offsets));
         using var package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), columns: 300,
             tilePayload: BytesField(5, row));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.False(result.IsVisualFallback);
         Assert.Equal(42d, result.Value.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.Empty(result.Report.SourceDeclarationIssues);

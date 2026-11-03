@@ -208,7 +208,7 @@ public sealed class LatexAuditConversionTests {
         if (source.IndexOf("\\begin{comment}", StringComparison.Ordinal) >= 0) {
             Assert.Contains(result.Report.NativeDiagnostics, static diagnostic => diagnostic.Feature == "comment-environment" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Omitted);
         }
-        Assert.DoesNotContain("PRIVATE", PdfDocument.Load(new System.IO.MemoryStream(document.ToPdfDocumentResult().Value.ToBytes())).ExtractText(), StringComparison.Ordinal);
+        Assert.DoesNotContain("PRIVATE", PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText(), StringComparison.Ordinal);
     }
 
     [Theory]
@@ -236,10 +236,10 @@ public sealed class LatexAuditConversionTests {
 
     [Fact]
     public void PdfProjectionPreservesPlainSourceAndReportsItsFallback() {
-        var conversion = LatexDocument.Parse("IMPORTANT CONTENT").ToPdfDocumentResult();
-        Assert.True(conversion.HasLoss);
-        Assert.Contains(conversion.Diagnostics, static diagnostic => diagnostic.Code == "LATEXMD297");
-        Assert.Contains("IMPORTANT CONTENT", PdfDocument.Load(new System.IO.MemoryStream(conversion.Value.ToBytes())).ExtractText(), StringComparison.Ordinal);
+        using var conversion = LatexDocument.Parse("IMPORTANT CONTENT").ToPdf(null, out OfficeConversionReport report);
+        Assert.True(report.HasLoss);
+        Assert.Contains(report.Diagnostics, static diagnostic => diagnostic.Code == "LATEXMD297");
+        Assert.Contains("IMPORTANT CONTENT", PdfDocument.Load(new System.IO.MemoryStream(conversion.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -249,8 +249,8 @@ public sealed class LatexAuditConversionTests {
         LatexDocument document = LatexDocument.Parse(source, new LatexParseOptions { Profile = LatexDocumentProfile.PreserveOnly });
         LatexToMarkdownResult preserved = document.ToMarkdownDocumentResult(new LatexMarkdownExportOptions { IncludePreambleAsFrontMatter = false });
         Assert.Equal(source, Assert.Single(preserved.Value.Blocks.OfType<CodeBlock>()).Content);
-        var pdf = document.ToPdfDocumentResult();
-        string extracted = PdfDocument.Load(new System.IO.MemoryStream(pdf.Value.ToBytes())).ExtractText();
+        var pdf = document.ToPdf(null, out OfficeConversionReport pdfReport);
+        string extracted = PdfDocument.Load(new System.IO.MemoryStream(pdf.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText();
         foreach (string text in new[] { "usepackage", "newcommand", "greet World", "TRAILER" }) Assert.Contains(text, extracted, StringComparison.Ordinal);
         LatexToMarkdownResult omitted = document.ToMarkdownDocumentResult(new LatexMarkdownExportOptions { IncludePreambleAsFrontMatter = false, PreserveUnsupportedAsSource = false });
         Assert.Empty(omitted.Value.Blocks);
@@ -273,9 +273,9 @@ public sealed class LatexAuditConversionTests {
     public void PdfReportsParserErrorsIntroducedByNativeEdits() {
         LatexDocument document = LatexDocument.Parse(Wrap("Original paragraph"));
         document.Paragraphs[0].Content = "$unterminated";
-        var conversion = document.ToPdfDocumentResult();
-        Assert.Contains(conversion.Warnings, static warning => warning.Code == "LATEX003");
-        Assert.True(conversion.HasLoss);
+        var conversion = document.ToPdf(null, out OfficeConversionReport conversionReport);
+        Assert.Contains(conversionReport.Diagnostics, static warning => warning.Code == "LATEX003");
+        Assert.True(conversionReport.HasLoss);
     }
 
     private static string PlainText(InlineSequence inlines) {

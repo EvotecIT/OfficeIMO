@@ -56,7 +56,7 @@ public sealed class ProjectionBoundaryTests {
         var book = ChmDocument.Load(ChmFixture.Archive(new Dictionary<string, byte[]> {
             ["/first.html"] = ChmFixture.Html("<section data-chm-topic='/first.html'" + attributes + "><p>Text</p></section>")
         }));
-        var imported = book.ToEpubPublicationResult();
+        var imported = book.ConvertToEpubWithEvidence();
         Assert.True(imported.Succeeded);
         using var stream = new MemoryStream(imported.Publication.Write().Value);
         Assert.Equal("chm-topic-1", Assert.Single(OfficeIMO.Epub.EpubDocument.Load(stream).TableOfContents).Fragment);
@@ -160,8 +160,8 @@ public sealed class ProjectionBoundaryTests {
         Assert.Contains("h1 { color: red; }", html.Value.SourceHtml);
         Assert.Contains(html.Report.Diagnostics, diagnostic => diagnostic.Code == "CHM_HEADING_LEVELS"
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation && diagnostic.Location == "/first.html");
-        Assert.Contains(book.ToMarkdownResult().Report.Diagnostics, diagnostic => diagnostic.Code == "CHM_HEADING_LEVELS");
-        Assert.Contains(book.ToEpubPublicationResult().Report.Diagnostics, diagnostic => diagnostic.Code == "CHM_HEADING_LEVELS");
+        Assert.Contains(book.ConvertToMarkdownWithEvidence().Report.Diagnostics, diagnostic => diagnostic.Code == "CHM_HEADING_LEVELS");
+        Assert.Contains(book.ConvertToEpubWithEvidence().Report.Diagnostics, diagnostic => diagnostic.Code == "CHM_HEADING_LEVELS");
     }
 
     private static byte[] TwoTopics() => ChmFixture.Archive(new Dictionary<string, byte[]> {
@@ -180,7 +180,7 @@ public sealed class ProjectionBoundaryTests {
 
     private static void Convert(byte[] archive, string route, ChmConversionOptions options) {
         if (route == "pdf") {
-            ChmDocument.Load(archive).ToPdfBytesResult(options);
+            ChmDocument.Load(archive).ToPdf(new ChmPdfExportOptions { ConversionOptions = options }).Dispose();
         } else {
             var reader = new OfficeDocumentReaderBuilder().AddChmHandler(new ReaderChmOptions { ConversionOptions = options }).Build();
             using var stream = new MemoryStream(archive);

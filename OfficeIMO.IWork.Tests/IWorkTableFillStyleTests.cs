@@ -20,7 +20,7 @@ public sealed partial class IWorkBoundaryTests {
         string?[] expected = { "FF0000", "FFFF00", banded ? "808080" : "0000FF", "FFFF00", null, "0000FF" };
         (int Row, int Column)[] positions = { (1, 1), (4, 1), (3, 2), (4, 2), (2, 2), (2, 3) };
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(policy);
+            using var result = source.ToWordResult(policy);
             Assert.False(result.IsVisualFallback); table = Assert.Single(result.Projection.Tables);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
@@ -30,7 +30,7 @@ public sealed partial class IWorkBoundaryTests {
                 else Assert.Equal(OfficeIMO.OfficeColor.Parse(expected[i]!), cell.ShadingFillColor);
             }
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var result = source.ToExcelDocumentResult(policy);
+            using var result = source.ToExcelResult(policy);
             Assert.False(result.IsVisualFallback); table = Assert.Single(Assert.Single(result.Projection.Sheets).Tables);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
@@ -43,7 +43,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.False(reopened.Sheets[0].TryGetCellValueSnapshot(2, 2, out _)); // Selected no-fill blank.
             Assert.False(reopened.Sheets[0].TryGetCellValueSnapshot(2, 3, out _)); // Inherited-fill blank.
         } else {
-            using var result = source.ToPowerPointDocumentResult(policy);
+            using var result = source.ToPowerPointResult(policy);
             Assert.False(result.IsVisualFallback); table = Assert.Single(Assert.Single(result.Projection.Slides).Tables);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
@@ -96,7 +96,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Numbers_role_defaults_respect_the_bounded_destination_style_budget() {
         using var package = RoleFillPackage(IWorkDocumentKind.Numbers, rows: 100_001);
-        using var result = IWorkSourceDocument.Open(package).ToExcelDocumentResult(
+        using var result = IWorkSourceDocument.Open(package).ToExcelResult(
             IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
         Assert.True(result.IsVisualFallback);
         var table = Assert.Single(Assert.Single(result.Projection.Sheets).Tables);
@@ -111,8 +111,7 @@ public sealed partial class IWorkBoundaryTests {
         string path = CorpusFixture(native.GetProperty("path").GetString()!);
         Assert.Equal(native.GetProperty("sha256").GetString(), Convert.ToHexString(
             System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(path,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         var expected = Assert.Single(manifest.RootElement.GetProperty("tables").EnumerateArray());
         var table = Assert.Single(result.Projection.Slides.SelectMany(slide => slide.Tables));

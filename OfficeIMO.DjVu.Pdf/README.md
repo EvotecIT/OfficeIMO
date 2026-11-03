@@ -11,15 +11,14 @@ using OfficeIMO.DjVu;
 using OfficeIMO.DjVu.Pdf;
 
 var document = DjVuDocument.Load("book.djvu");
-var result = document.ToPdfDocumentResult(new DjVuPdfExportOptions {
+OfficeConversionReport report = document.SaveAsPdf("selected.pdf", new DjVuPdfExportOptions {
     PageNumbers = new[] { 2, 1 }
 });
-var saved = result.Save("selected.pdf");
 ```
 
-`ToPdfBytes`, `SaveAsPdf`, and asynchronous equivalents share the same conversion. Native DPI is the default. Lower render DPI is an explicit reported approximation; physical page size still comes from the source. The PDF retains scanned pixels rather than reconstructing editable paragraphs or source typography.
+`ToPdf(options, out report)`, `SaveAsPdf`, and the asynchronous `ToPdfAsync`/`SaveAsPdfAsync` share the same conversion; only the asynchronous forms run an explicit `OcrEngine`. Native DPI is the default. Lower render DPI is an explicit reported approximation; physical page size still comes from the source. The PDF retains scanned pixels rather than reconstructing editable paragraphs or source typography.
 
-The result carries a `DjVuPdfConversionReport` alongside PDF-stage reports. Per-page evidence records source/output page numbers, original text status, `StoredText`/`Ocr`/`None` provenance, pixel size, physical size, and embedded character count. Conversion reports distinguish omitted annotations, corrupt text, unsupported navigation targets, approximate geometry, and render qualifications. Use the existing result/report `ThrowIfLoss()` gate when reported loss is unacceptable.
+The report carries the `DjVuPdfConversionReport` diagnostics alongside the PDF-stage findings. Per-page evidence records source/output page numbers, original text status, `StoredText`/`Ocr`/`None` provenance, pixel size, physical size, and embedded character count. Conversion reports distinguish omitted annotations, corrupt text, unsupported navigation targets, approximate geometry, and render qualifications. Set `FailOnLoss` on the options, or call `report.ThrowIfLoss()`, when reported loss is unacceptable.
 
 For OCR, supply an existing `IOcrEngine` through `DjVuPdfExportOptions.OcrEngine` and call an asynchronous entrypoint. Only selected pages with `Absent` or `Empty` stored text are recognized. Present text is reused and corrupt text remains a diagnostic. OCR uses the existing Reader execution limits and records new provider/model/confidence evidence; text without usable provider geometry is reported and not placed into an invented searchable rectangle. OfficeIMO does not install an OCR engine.
 

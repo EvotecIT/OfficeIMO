@@ -6,15 +6,14 @@ Convert compiled help to a reflowable EPUB through the shared EPUB manuscript im
 using OfficeIMO.Chm;
 
 ChmDocument book = ChmDocument.Load("manual.chm");
-ChmConversionResult<byte[]> result = book.ToEpubBytesResult();
-File.WriteAllBytes("manual.epub", result.RequireValue());
-foreach (var diagnostic in result.Report.Diagnostics)
+OfficeConversionReport report = book.SaveAsEpub("manual.epub");
+foreach (var diagnostic in report.Diagnostics)
     Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
 ```
 
-Use `ToEpubPublicationResult()` or its async counterpart to obtain an editable `EpubPublication` before writing. `ChmConversionOptions` selects topics and bounds aggregate projection/output; `EpubManuscriptOptions` configures the existing importer, and `EpubSaveOptions` bounds package writing. Resource resolution is replaced with the archive-only resolver.
+Use `ToEpub(options, out report)` or `ToEpubAsync` to obtain an editable `EpubPublication` before writing. `ChmEpubExportOptions` groups the settings: `ConversionOptions` (`ChmConversionOptions`) selects topics and bounds aggregate projection/output; `EpubManuscriptOptions` configures the existing importer, and `EpubSaveOptions` bounds package writing. Resource resolution is replaced with the archive-only resolver.
 
-The byte result combines CHM projection, manuscript import and package-write evidence. `RequireValue()` rejects a failed conversion; `Report.ThrowIfLoss()` rejects reported loss. Reflow can change topic CSS scope; the compiled keyword index, See Also and Windows help behavior are not recreated. Multi-target contents entries use one EPUB destination and report the reduction. See [CHM support](../OfficeIMO.Chm/SUPPORT.md) and [EPUB authoring](../OfficeIMO.Epub/README.md).
+The report combines CHM projection, manuscript import and package-write evidence. Set `FailOnLoss` to reject reported loss before anything is written. Reflow can change topic CSS scope; the compiled keyword index, See Also and Windows help behavior are not recreated. Multi-target contents entries use one EPUB destination and report the reduction. See [CHM support](../OfficeIMO.Chm/SUPPORT.md) and [EPUB authoring](../OfficeIMO.Epub/README.md).
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

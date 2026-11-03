@@ -36,16 +36,16 @@ using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 
 PdfDocument pdf = PdfDocument.Load("policy.pdf");
-PdfHtmlConversionResult semantic = pdf.ToHtmlResult();
-PdfHtmlConversionResult review = pdf.ToHtmlResult(new PdfHtmlSaveOptions {
+string semantic = pdf.ToHtml(null, out OfficeConversionReport semanticReport);
+string review = pdf.ToHtml(new PdfHtmlExportOptions {
     Profile = PdfHtmlProfile.PositionedReview,
     IncludeLinkAnnotations = true,
     IncludeFormWidgets = true
-});
+}, out OfficeConversionReport reviewReport);
 
-File.WriteAllText("policy-review.html", review.Value);
-foreach (PdfConversionWarning warning in review.Report.Warnings) {
-    Console.WriteLine($"{warning.Code}: {warning.Message}");
+File.WriteAllText("policy-review.html", review);
+foreach (OfficeDiagnostic diagnostic in reviewReport.Diagnostics) {
+    Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
 }
 ```
 

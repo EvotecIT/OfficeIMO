@@ -811,7 +811,7 @@ public class PdfITextInspiredCoverageTests {
 
         byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(600))) {
             Mode = PdfPageResizeMode.Stretch
-        }, 1);
+        }, PdfPageSelection.From(1));
 
         PdfDocumentInfo info = PdfInspector.Inspect(resized);
         PdfLinkAnnotation link = Assert.Single(info.Pages[1].LinkAnnotations);

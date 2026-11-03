@@ -26,8 +26,7 @@ public sealed class IWorkKeynoteParagraphEditingTests {
             Assert.Equal(before.GetBytes(), image.GetBytes());
         }
         Assert.Equal(2, output.Slides[1].TextBoxes[1].Content.Paragraphs[0].Runs.Count);
-        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(source.BeginEdit().SaveBytes()),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(source.BeginEdit().SaveBytes()), IWorkDocumentKind.Keynote).ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction();
         using var bytes = new MemoryStream(); converted.Value.Save(bytes);
         using var xml = PresentationDocument.Open(new MemoryStream(bytes.ToArray()), false);
@@ -66,8 +65,7 @@ public sealed class IWorkKeynoteParagraphEditingTests {
             Assert.Equal(entry.GetBytes(), saved.Entries.Single(item => item.Path == entry.Path).GetBytes());
         Assert.Equal(first.Geometry!.LeftPoints, output.Slides[0].TextBoxes[0].Geometry!.LeftPoints);
         Assert.Equal(first.Geometry.WidthPoints, output.Slides[0].TextBoxes[0].Geometry!.WidthPoints);
-        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(result.GetPackageBytes()),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(result.GetPackageBytes()), IWorkDocumentKind.Keynote).ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction();
         using var bytes = new MemoryStream(); converted.Value.Save(bytes);
         using var xml = PresentationDocument.Open(new MemoryStream(bytes.ToArray()), false);

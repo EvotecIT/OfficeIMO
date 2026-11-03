@@ -79,7 +79,7 @@ internal sealed partial class PdfWorkspace {
     internal Task<PdfRedactionPlan> PlanRedactionsAsync(IReadOnlyList<PdfRedactionArea> areas, CancellationToken cancellationToken) {
         PdfDocument snapshot = CreateDocumentSnapshot();
         PdfRedactionArea[] selection = areas.ToArray();
-        return Task.Run(() => snapshot.Redactions.Plan(selection, cancellationToken), cancellationToken);
+        return Task.Run(() => snapshot.Redactions.Plan(selection, cancellationToken: cancellationToken), cancellationToken);
     }
     [System.Text.Json.Serialization.JsonSerializable(typeof(PdfRedactionShareableSummary))]
     private sealed partial class RedactionJsonContext : System.Text.Json.Serialization.JsonSerializerContext;

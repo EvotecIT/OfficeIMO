@@ -24,7 +24,7 @@ public sealed class IWorkPagesNumberedListWritingTests {
             Assert.Equal(paragraph.ListLevel == 0 ? 0 : 18, paragraph.ListLayout.MarkerIndentPoints);
         });
         Assert.Null(projection.Body.Paragraphs.Last().ListNumber);
-        using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using (var reopened = WordDocument.Load(new MemoryStream(output.ToArray())))
@@ -75,7 +75,7 @@ public sealed class IWorkPagesNumberedListWritingTests {
         Assert.Equal(baseline, document.SaveBytes()); Assert.Single(list.Items);
         Assert.Single(document.Paragraphs); Assert.Single(document.BodyBlocks);
         Assert.Equal(8, list.AddItem("After").ListNumber);
-        using var result = IWorkSourceDocument.Open(document.SaveBytes()).ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(document.SaveBytes()).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         Assert.Equal(new int?[] { 7, 8 }, result.Projection.Body.Paragraphs
             .Where(paragraph => paragraph.ListNumber.HasValue).Select(paragraph => paragraph.ListNumber));
@@ -90,7 +90,7 @@ public sealed class IWorkPagesNumberedListWritingTests {
         Assert.Throws<InvalidOperationException>(() => list.AddItem("Child overflow", 1)); Assert.Equal(2, list.Items.Count);
         Assert.Equal(4, list.AddItem("Parent restart", restartAt: 4).ListNumber);
         Assert.Equal(1, list.AddItem("Reset child", 1).ListNumber);
-        using var result = IWorkSourceDocument.Open(document.SaveBytes()).ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(document.SaveBytes()).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         Assert.Equal(new int?[] { int.MaxValue, int.MaxValue, 4, 1 }, result.Projection.Body.Paragraphs
             .Where(paragraph => paragraph.ListNumber.HasValue).Select(paragraph => paragraph.ListNumber));

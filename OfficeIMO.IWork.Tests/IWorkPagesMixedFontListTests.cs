@@ -51,7 +51,7 @@ public sealed class IWorkPagesMixedFontListTests {
             Assert.Equal(model.Runs.Select(run => run.FontName), items[index].Runs.Select(run => run.Style.FontName));
             Assert.Equal(model.Runs.Select(run => run.Color.RgbHex), items[index].Runs.Select(run => run.Style.Color!.RgbHex));
         }
-        using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream();
         result.Value.Save(output);

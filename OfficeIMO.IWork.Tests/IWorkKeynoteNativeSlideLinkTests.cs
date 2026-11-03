@@ -25,8 +25,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(target, Assert.Single(Assert.Single(sourceSlide.PresenterNoteContent.Paragraphs).Runs).Hyperlink);
 
         package.Position = 0;
-        using var conversion = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package,
-            conversionOptions: new IWorkConversionOptions {
+        using var conversion = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions {
                 Mode = IWorkConversionMode.EditableOnly,
                 AllowPartialEditableReconstruction = missingPredecessor
             });
@@ -56,8 +55,7 @@ public sealed partial class IWorkBoundaryTests {
             issue => issue.Kind == IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
         package.Position = 0;
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package,
-                conversionOptions: new IWorkConversionOptions {
+            IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions {
                     Mode = IWorkConversionMode.EditableOnly,
                     AllowPartialEditableReconstruction = true
                 }));

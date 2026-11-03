@@ -581,7 +581,7 @@ public class PdfOcrTests {
 
         PdfExcelTableImportResult excelResult = result.Document.ConvertToExcelWithEvidence();
         using (excelResult.Value) Assert.Single(excelResult.Report.Entries);
-        PdfOdsConversionResult odsResult = result.Document.ToOdsDocumentResult();
+        PdfOdsConversionResult odsResult = result.Document.ConvertToOdsWithEvidence(null, default);
         Assert.Single(odsResult.Value.Sheets);
 
         PdfPowerPointConversionResult presentationResult = result.Document
@@ -1072,7 +1072,7 @@ public class PdfOcrTests {
         Assert.Contains("Quarterly review", html, StringComparison.Ordinal);
         Assert.Contains("Ready", html, StringComparison.Ordinal);
         Assert.Contains("Summary narrative", result.Document.ToRtfDocument().ToRtf(), StringComparison.Ordinal);
-        PdfOdtConversionResult odtResult = result.Document.ToOdtDocumentResult();
+        PdfOdtConversionResult odtResult = result.Document.ConvertToOdtWithEvidence(null, default);
         Assert.Contains(odtResult.Value.Paragraphs, paragraph => paragraph.Text.Contains("Summary narrative", StringComparison.Ordinal));
     }
 

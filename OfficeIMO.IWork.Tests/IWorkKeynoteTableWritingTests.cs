@@ -66,8 +66,7 @@ public sealed class IWorkKeynoteTableWritingTests {
         Assert.Equal("FFFFFF", table.GetFill(3, 3)!.Color!.RgbHex);
         Assert.Equal("Arial", table.GetParagraphStyle(2, 2)!.TextStyle.FontName);
         Assert.Equal(24, table.GetParagraphStyle(2, 2)!.TextStyle.FontSizePoints);
-        using var conversion = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(package),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var conversion = IWorkSourceDocument.Open(new MemoryStream(package), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         conversion.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); conversion.Value.Save(output); output.Position = 0;
         using var reopened = PowerPointDocument.Load(output);

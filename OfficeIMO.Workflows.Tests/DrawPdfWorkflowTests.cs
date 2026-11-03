@@ -22,9 +22,9 @@ public sealed class DrawPdfWorkflowTests {
                 PdfOptions = new PdfCreateOptions()
                 .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, font))
             };
-            PdfDocumentConversionResult baseline = drawing.ToPdfDocumentResult(options);
-            baseline.ToBytes();
-            Assert.True(baseline.Report.HasLoss);
+            PdfDocument baseline = drawing.ToPdf(options, out OfficeConversionReport baselineReport);
+            baseline.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+            Assert.True(baselineReport.HasLoss);
             byte[] original = { 1, 2, 3 };
             File.WriteAllBytes(output, original);
             var result = await new OfficeWorkflowRunner().RunAsync(new() {
@@ -40,7 +40,7 @@ public sealed class DrawPdfWorkflowTests {
             });
             Assert.False(result.Succeeded);
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
-            foreach (OfficeDiagnostic finding in baseline.Report.Diagnostics.Where(d => d.LossKind != OfficeConversionLossKind.None))
+            foreach (OfficeDiagnostic finding in baselineReport.Diagnostics.Where(d => d.LossKind != OfficeConversionLossKind.None))
                 Assert.Contains(evidence.Diagnostics, d => d.Code == finding.Code && d.Format == finding.Format && d.LossKind == finding.LossKind);
             Assert.Equal(original, File.ReadAllBytes(output));
             Assert.Empty(Directory.GetFiles(directory, ".*.tmp"));

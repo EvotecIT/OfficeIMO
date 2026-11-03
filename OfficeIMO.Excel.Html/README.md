@@ -18,9 +18,7 @@ string html = workbook.ToHtml(new ExcelHtmlExportOptions {
 });
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
-HtmlToExcelResult result = source.ToExcelDocumentResult();
-using ExcelDocument imported = result.RequireValue();
-imported.Save("report-roundtrip.xlsx");
+OfficeConversionReport report = source.SaveAsExcel("report-roundtrip.xlsx");
 ```
 
 Semantic output carries a versioned OfficeIMO envelope and preserves worksheet names and visibility, used-range coordinates, typed text/number/boolean/date-time values, formulas, comments, merged ranges, embedded image inventory, supported chart inventory, and inert pivot-definition review metadata. HTML `rowspan` and `colspan` values become native Excel merged ranges. Pivot refresh, drill, caches, slicers, and timelines remain native workbook behavior and are not executed in HTML.
@@ -31,15 +29,15 @@ Semantic tables show the worksheet as it reads in Excel: cell and table-style fi
 
 `HeaderMode` makes the first-row assumption explicit. `FirstRow` is the compatibility default and emits a real `thead` with column headers. Use `None` when every row is data.
 
-`ToExcelDocument()` is the convenience API. It throws `HtmlConversionException` when no semantic `section.officeimo-sheet` envelope exists. Use `ToExcelDocumentResult()` to receive the workbook plus structured diagnostics and loss classification. Export callers can use `ToHtmlResult()` for the same evidence shape; pivot simplification, truncation, unavailable chart or image content, and visual-renderer fallbacks are operation-scoped diagnostics rather than HTML-only prose.
+`ToExcel(options, out report)` returns the workbook with its `OfficeConversionReport` and throws `HtmlConversionException` when no semantic `section.officeimo-sheet` envelope exists; `SaveAsExcel` writes it and returns the report. Set `FailOnLoss` to make reported loss an error. Export callers use `ToHtml(options, out report)` or `SaveAsHtml` for the same report.
 
 Ordinary HTML tables are available explicitly through the shared generic projector:
 
 ```csharp
-HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-    .ToExcelDocumentResult(new HtmlExcelExportOptions {
+using ExcelDocument workbook = HtmlConversionDocument.Parse(html)
+    .ToExcel(new HtmlExcelExportOptions {
         Mode = HtmlImportMode.Auto
-    });
+    }, out OfficeConversionReport report);
 ```
 
 `Semantic` remains the default for strict round-trip compatibility. `Auto` selects a supported semantic envelope when present and otherwise maps ordinary tables to worksheets; `Generic` always uses the ordinary HTML path. `HtmlExcelExportOptions.Limits` bounds worksheets, tables, cells, images, chart dimensions, metadata, and geometry before native allocations. `MaxTableCells` remains as a forwarding compatibility property.
@@ -50,7 +48,7 @@ On the ordinary HTML path, bounded positioned, floating, flex, and grid regions 
 
 Embedded static WebP and AVIF pictures are decoded by the shared managed Core engine and stored as PNG in the workbook. Generic images, semantic inventories, and layout-region pictures use the same preparation path. `Limits.MaxDecodedImagePixels` bounds normalization, while `MaxImageBytes` and `MaxTotalImageBytes` bound source payloads and the retained native PNG. Independently, `MaxImages` and `MaxTotalImageBytes` cap admitted normalization attempts and their total input bytes; a failed normalization releases its output slot but retains its work charge. Animated, malformed, unsupported, or over-limit images produce omission diagnostics; PNG normalization produces an approximation diagnostic because the original compressed format is replaced. Native image placement and alternative text are retained.
 
-`SaveAsHtml` and `SaveAsHtmlAsync` write UTF-8 without a byte-order mark to paths or caller-owned streams. For import I/O, use `HtmlConversionDocument.Load(...)` or `LoadAsync(...)`, then call `ToExcelDocument()` or `ToExcelDocumentResult()` on the prepared document. Stream overloads leave caller-owned streams open.
+`SaveAsHtml` and `SaveAsHtmlAsync` write UTF-8 without a byte-order mark to paths or caller-owned streams. For import I/O, use `HtmlConversionDocument.Load(...)` or `LoadAsync(...)`, then call `ToExcel` or `SaveAsExcel` on the prepared document. Stream overloads leave caller-owned streams open.
 
 ## Typed values in ordinary report tables
 
@@ -67,12 +65,10 @@ The first three cells become a number, boolean, and date in Excel. The reference
 
 ```csharp
 var report = HtmlConversionDocument.Load("service-review.html");
-var result = report.ToExcelDocumentResult(new HtmlExcelExportOptions {
+report.SaveAsExcel("service-review.xlsx", new HtmlExcelExportOptions {
     Mode = HtmlImportMode.Generic,
     ImportTypedCellValues = true
 });
-using var workbook = result.RequireValue();
-workbook.Save("service-review.xlsx");
 ```
 
 See the [text formatting support matrix](../Docs/officeimo.text-formatting-support-matrix.md#typed-html-table-values) for scalar formatting and display limits.

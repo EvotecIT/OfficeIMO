@@ -26,8 +26,7 @@ public sealed class IWorkKeynoteWritingTests {
         Assert.Equal(0, box.Layout!.LeftInsetPoints);
         Assert.Equal(0, box.Layout.TopInsetPoints);
         Assert.Equal("Times New Roman", projection.Slides[0].TextBoxes[1].Content.Paragraphs[0].Runs[0].Style.FontName);
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(path,
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         result.Report.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream();
         result.Value.Save(saved); saved.Position = 0;
@@ -69,8 +68,7 @@ public sealed class IWorkKeynoteWritingTests {
         Assert.Equal("Times New Roman", deck.Slides[0].TextBoxes[1].Content.Paragraphs[0].Runs[0].Style!.FontName);
 
         input.Position = 0;
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(input,
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(input, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         result.Report.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream();
         result.Value.Save(saved);
@@ -97,8 +95,7 @@ public sealed class IWorkKeynoteWritingTests {
         Assert.All(source.Records, record => Assert.All(record.ObjectReferences,
             identifier => Assert.Contains(identifier, identifiers)));
         Assert.Equal(10, Assert.Single(source.ReadKeynote().Slides).TextBoxes.Count);
-        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(package),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(package), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = PowerPointDocument.Load(saved);

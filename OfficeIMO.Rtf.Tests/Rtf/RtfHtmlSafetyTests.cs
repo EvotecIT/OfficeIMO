@@ -14,7 +14,7 @@ public class RtfHtmlSafetyTests {
         document.AddParagraph().AddText("Visible link").SetHyperlink(new Uri(target, UriKind.RelativeOrAbsolute));
 
         var options = new RtfHtmlExportOptions();
-        RtfToHtmlResult result = document.ToHtmlResult(options);
+        RtfToHtmlResult result = document.ConvertToHtmlWithEvidence(options);
         string html = result.Value;
 
         Assert.Equal("<p>Visible link</p>", html);
@@ -33,7 +33,7 @@ public class RtfHtmlSafetyTests {
         field.AddText("Visible field result");
 
         var options = new RtfHtmlExportOptions();
-        RtfToHtmlResult result = document.ToHtmlResult(options);
+        RtfToHtmlResult result = document.ConvertToHtmlWithEvidence(options);
         string html = result.Value;
 
         Assert.Equal("<p><span>Visible field result</span></p>", html);
@@ -50,7 +50,7 @@ public class RtfHtmlSafetyTests {
         rtfObject.Result.AddText("Attachment").SetBold();
 
         var options = new RtfHtmlExportOptions();
-        RtfToHtmlResult result = document.ToHtmlResult(options);
+        RtfToHtmlResult result = document.ConvertToHtmlWithEvidence(options);
         string html = result.Value;
 
         Assert.Equal("<p><span class=\"rtf-object-result\"><strong>Attachment</strong></span></p>", html);
@@ -67,7 +67,7 @@ public class RtfHtmlSafetyTests {
             ImageSourceResolver = _ => "https://cdn.example.test/image.png"
         };
 
-        RtfToHtmlResult result = document.ToHtmlResult(options);
+        RtfToHtmlResult result = document.ConvertToHtmlWithEvidence(options);
         string html = result.Value;
 
         Assert.Equal("<img src=\"https://cdn.example.test/image.png\">", html);
@@ -82,7 +82,7 @@ public class RtfHtmlSafetyTests {
             ImageSourceResolver = _ => "file:///C:/private/image.png"
         };
 
-        RtfToHtmlResult result = document.ToHtmlResult(options);
+        RtfToHtmlResult result = document.ConvertToHtmlWithEvidence(options);
         string html = result.Value;
 
         Assert.Empty(html);
@@ -98,7 +98,7 @@ public class RtfHtmlSafetyTests {
         var options = RtfHtmlTestOptions.CreateRoundTripFragment();
         options.MaxEmbeddedImageBytes = 3;
 
-        RtfToHtmlResult result = document.ToHtmlResult(options);
+        RtfToHtmlResult result = document.ConvertToHtmlWithEvidence(options);
         string html = result.Value;
 
         Assert.Empty(html);

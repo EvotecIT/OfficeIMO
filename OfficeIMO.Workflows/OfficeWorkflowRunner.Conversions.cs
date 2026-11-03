@@ -122,7 +122,7 @@ public sealed partial class OfficeWorkflowRunner {
                 limits.Limits.MaxInputBytes = (int)Math.Min(limits.Limits.MaxInputBytes, request.Limits.MaximumInputBytes);
                 var document = XpsDocument.Load(input, limits, cancellationToken);
                 using var output = new OfficeWorkflowBoundedMemoryStream(maximumOutputBytes);
-                document.SavePdf(output, settings.Xps, cancellationToken);
+                document.SaveAsPdf(output, settings.Xps, cancellationToken);
                 bytes = output.ToArray();
                 break;
             }

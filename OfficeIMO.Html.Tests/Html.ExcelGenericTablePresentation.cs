@@ -20,7 +20,7 @@ public partial class HtmlOfficeAdapters {
             + string.Concat(Enumerable.Range(2, columnCount - 1).Select(index => $"<td>{60 + index}</td>"))
             + "</tr></table>";
 
-        using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcelDocument(
+        using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcel(
             new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         byte[] bytes = artifact.ToArray();
@@ -55,7 +55,7 @@ public partial class HtmlOfficeAdapters {
         const string html = "<table><tr><th>Quantity</th><th>Mercury</th><th>Venus</th><th>Earth</th><th>Mars</th></tr>"
             + "<tr></tr><tr><td>Known natural satellites as of January 2013</td><td>0</td><td>0</td><td>1</td><td>2</td></tr>"
             + "<tr><td colspan='5'>" + note + "</td></tr></table>";
-        using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcelDocument(
+        using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcel(
             new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(artifact);
@@ -80,7 +80,7 @@ public partial class HtmlOfficeAdapters {
             + "<td data-officeimo-value-kind='date-time' data-officeimo-value='2026-09-01T00:00:00'>1 Sep 2026</td></tr>"
             + "<tr><th scope='row'>Projects</th><td>pending</td><td>later</td></tr></tbody></table></body></html>";
 
-        using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcelDocument(
+        using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcel(
             new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic, ImportTypedCellValues = true });
         foreach (ExcelSheet autoFit in workbook.Sheets) {
             autoFit.AutoFitColumns();

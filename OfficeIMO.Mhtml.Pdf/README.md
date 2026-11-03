@@ -12,12 +12,11 @@ using OfficeIMO.Mhtml;
 using OfficeIMO.Pdf;
 
 MhtmlDocument archive = MhtmlDocument.Load("quarterly-update.mhtml");
-PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync(
+OfficeConversionReport report = await archive.SaveAsPdfAsync("quarterly-update.pdf",
     new HtmlPdfExportOptions());
-await result.SaveAsync("quarterly-update.pdf");
 ```
 
-The result combines MIME, HTML-rendering, and PDF diagnostics. Local-file and remote-network access remain governed by the HTML resource policy; embedded archive resources do not silently widen it.
+The report combines MIME, HTML-rendering, and PDF diagnostics. MHTML conversion takes the same `HtmlPdfExportOptions` as HTML to PDF, because the archive is rendered by that engine. `ToPdf(options, out report)` returns the PDF model with its `OfficeConversionReport`, `ToPdfAsync` returns both as `OfficeConversionResult<PdfDocument>`, and `SaveAsPdf`/`SaveAsPdfAsync` write a path or caller-owned stream and return the report. Set `FailOnLoss` on the options to make reported loss an `OfficeConversionException` before anything is written. Local-file and remote-network access remain governed by the HTML resource policy; embedded archive resources do not silently widen it.
 
 For a screen-media or screen-snapshot PDF, pass an explicit render request. The archive's embedded stylesheets and images remain available to both intents:
 
@@ -48,7 +47,7 @@ remote.ResourceFetcher = async (request, cancellationToken) => {
 };
 archive.ConfigureRenderOptions(options, remote);
 
-PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync(options);
+OfficeConversionReport report = await archive.SaveAsPdfAsync("quarterly-update.pdf", options);
 ```
 
 Malformed multipart recovery, legacy charset decoding, nested related parts, duplicate Content-ID and Content-Location selection, and archive diagnostics are owned by the bounded Email/MHTML layer. Layout and PDF paint reuse the managed HTML/CSS renderer, and scripts remain inert.

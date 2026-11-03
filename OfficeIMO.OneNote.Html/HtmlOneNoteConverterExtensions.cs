@@ -10,12 +10,7 @@ namespace OfficeIMO.OneNote.Html;
 public static partial class HtmlOneNoteConverterExtensions {
     private const string ComponentName = "OfficeIMO.OneNote.Html";
 
-    /// <summary>Imports HTML as a OneNote section or throws when an error diagnostic is produced.</summary>
-    public static OneNoteSection ToOneNoteSection(this HtmlConversionDocument document, HtmlOneNoteExportOptions? options = null) =>
-        Require(document.ToOneNoteSectionResult(options));
-
-    /// <summary>Imports HTML as a OneNote section with structured diagnostics and counters.</summary>
-    public static HtmlToOneNoteSectionResult ToOneNoteSectionResult(this HtmlConversionDocument document, HtmlOneNoteExportOptions? options = null) {
+    internal static HtmlToOneNoteSectionResult ConvertToOneNoteSectionWithEvidence(this HtmlConversionDocument document, HtmlOneNoteExportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         HtmlOneNoteExportOptions resolved = options?.Clone() ?? new HtmlOneNoteExportOptions();
         resolved.Limits.Validate();
@@ -75,15 +70,10 @@ public static partial class HtmlOneNoteConverterExtensions {
         }
     }
 
-    /// <summary>Imports HTML as a single-section OneNote notebook or throws on conversion errors.</summary>
-    public static OneNoteNotebook ToOneNoteNotebook(this HtmlConversionDocument document, HtmlOneNoteExportOptions? options = null) =>
-        Require(document.ToOneNoteNotebookResult(options));
-
-    /// <summary>Imports HTML as a single-section OneNote notebook with structured evidence.</summary>
-    public static HtmlToOneNoteNotebookResult ToOneNoteNotebookResult(this HtmlConversionDocument document, HtmlOneNoteExportOptions? options = null) {
+    internal static HtmlToOneNoteNotebookResult ConvertToOneNoteNotebookWithEvidence(this HtmlConversionDocument document, HtmlOneNoteExportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         HtmlOneNoteExportOptions resolved = options?.Clone() ?? new HtmlOneNoteExportOptions();
-        HtmlToOneNoteSectionResult sectionResult = document.ToOneNoteSectionResult(resolved);
+        HtmlToOneNoteSectionResult sectionResult = document.ConvertToOneNoteSectionWithEvidence(resolved);
         var notebook = new OneNoteNotebook { Name = CleanName(resolved.NotebookName, "Imported") };
         notebook.Sections.Add(sectionResult.Value);
         var result = new HtmlToOneNoteNotebookResult(notebook) {
@@ -355,7 +345,7 @@ public static partial class HtmlOneNoteConverterExtensions {
         string? detail = null) =>
         result.AddImportDiagnostic(new HtmlDiagnostic(ComponentName, code, message, severity, detail: detail, lossKind: lossKind));
 
-    private static T Require<T>(HtmlConversionResult<T> result) where T : class {
+    internal static T Require<T>(HtmlConversionResult<T> result) where T : class {
         if (result.Succeeded) return result.Value;
         throw new HtmlConversionException(result.Report.NativeDiagnostics);
     }

@@ -22,8 +22,7 @@ internal static partial class NativeKeynoteWriterSmoke {
             IWorkKeynoteDrawableKind.TextBox, IWorkKeynoteDrawableKind.TextBox,
             IWorkKeynoteDrawableKind.Image, IWorkKeynoteDrawableKind.TextBox
         }), "NativeAOT text/image insertion order differs.");
-        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(bytes),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
         using var saved = PowerPointDocument.Load(output);

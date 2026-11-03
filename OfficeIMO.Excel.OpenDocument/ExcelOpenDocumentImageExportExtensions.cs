@@ -37,7 +37,7 @@ public static class ExcelOpenDocumentImageExportExtensions {
         ExcelImageExportOptions effective =
             imageOptions?.Clone() ?? new ExcelImageExportOptions();
         OdfConversionResult<ExcelDocument> conversion =
-            source.ToExcelDocumentResult(conversionOptions);
+            source.ConvertToExcelWithEvidence(conversionOptions);
         using (conversion.Value) {
             conversion.Value.ExportImages(
                 format,

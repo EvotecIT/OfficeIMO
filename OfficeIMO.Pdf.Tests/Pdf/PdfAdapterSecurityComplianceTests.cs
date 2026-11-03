@@ -209,34 +209,34 @@ public class PdfAdapterSecurityComplianceTests {
         "rtf" => (CreateRtf(route).ToPdf(new RtfPdfExportOptions {
             PdfOptions = pdfOptions
         })).ToBytes(),
-        "asciidoc" => AsciiDocDocument.ParseResult("= " + Marker(route) + "\n\nAdapter proof").Document.ToPdfBytes(
+        "asciidoc" => AsciiDocDocument.ParseResult("= " + Marker(route) + "\n\nAdapter proof").Document.ToPdf(
             new AsciiDocPdfExportOptions {
                 MarkdownOptions = CreateMarkdownOptions(pdfOptions)
-            }),
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
         "latex" => LatexDocument.ParseResult(
                 "\\documentclass{article}\\begin{document}\\section{" + Marker(route) + "}Adapter proof\\end{document}")
-            .Document.ToPdfBytes(new LatexPdfExportOptions {
+            .Document.ToPdf(new LatexPdfExportOptions {
                 MarkdownOptions = CreateMarkdownOptions(pdfOptions)
-            }),
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
         "mhtml" => new MhtmlDocument(
                 "<h1>" + Marker(route) + "</h1><p>Adapter proof</p>",
                 contentLocation: "https://proof.officeimo.test/report.html")
-            .ToPdfBytes(CreateHtmlOptions(pdfOptions)),
-        "onenote" => CreateOneNote(route).ToPdfBytes(new OneNotePdfExportOptions {
+            .ToPdf(CreateHtmlOptions(pdfOptions)).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
+        "onenote" => CreateOneNote(route).ToPdf(new OneNotePdfExportOptions {
             MarkdownOptions = CreateMarkdownOptions(pdfOptions)
-        }),
-        "odt" => CreateOdt(route).ToPdfBytes(pdfOptions: new WordPdfExportOptions {
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
+        "odt" => CreateOdt(route).ToPdf(new OdtPdfExportOptions { PdfOptions = new WordPdfExportOptions {
             PdfOptions = pdfOptions,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
-        }),
-        "ods" => CreateOds(route).ToPdfBytes(pdfOptions: new ExcelPdfExportOptions {
+        } }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
+        "ods" => CreateOds(route).ToPdf(new OdsPdfExportOptions { PdfOptions = new ExcelPdfExportOptions {
             PdfOptions = pdfOptions,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
-        }),
-        "odp" => CreateOdp(route).ToPdfBytes(pdfOptions: new PowerPointPdfExportOptions {
+        } }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
+        "odp" => CreateOdp(route).ToPdf(new OdpPdfExportOptions { PdfOptions = new PowerPointPdfExportOptions {
             PdfOptions = pdfOptions,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
-        }),
+        } }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
         "visio" => Serialize(CreateVisio(route).ToPdf(new VisioPdfExportOptions {
             ProjectionOptions = new PdfCore.PdfProjectionOptions { PdfOptions = pdfOptions }
         })),

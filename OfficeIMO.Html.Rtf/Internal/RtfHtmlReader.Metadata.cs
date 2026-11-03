@@ -191,7 +191,7 @@ internal static partial class RtfHtmlReader {
                 _pendingSectionHeaders.Add(new KeyValuePair<RtfHeaderFooter, int>(headerFooter, sectionIndex));
             }
             if (html.Length == 0) return;
-            RtfDocument contentDocument = HtmlConversionDocument.Parse(html!).ToRtfDocument();
+            RtfDocument contentDocument = HtmlConversionDocument.Parse(html!).ConvertToRtfWithEvidence().RequireValue();
             foreach (RtfParagraph paragraph in contentDocument.Paragraphs) {
                 RtfParagraph target = headerFooter.AddParagraph();
                 CopyParagraphInlines(paragraph, target, contentDocument);

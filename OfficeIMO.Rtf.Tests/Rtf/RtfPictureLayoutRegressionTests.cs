@@ -77,10 +77,10 @@ public class RtfPictureLayoutRegressionTests {
         string html = document.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile());
         AngleSharp.Dom.IElement rendered = Assert.Single(new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html).QuerySelectorAll("img"));
         Assert.Contains("overflow:hidden", rendered.ParentElement!.GetAttribute("style"), StringComparison.Ordinal);
-        RtfImage htmlImage = Assert.Single(HtmlConversionDocument.Parse(html).ToRtfDocument().Paragraphs.SelectMany(paragraph => paragraph.Inlines).OfType<RtfImage>());
+        RtfImage htmlImage = Assert.Single(HtmlConversionDocument.Parse(html).ToRtf().Paragraphs.SelectMany(paragraph => paragraph.Inlines).OfType<RtfImage>());
         Assert.Equal(visibleWidth, htmlImage.ResolveLayout().VisibleWidthTwips);
         Assert.Equal(padding ? -200 : 200, htmlImage.CropLeftTwips);
-        using WordDocument word = document.ToWordDocument();
+        using WordDocument word = document.ToWord();
         Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(word._wordprocessingDocument));
         WordImage output = Assert.Single(word.Images);
         Assert.Equal(visibleWidth / 15d, (output.Width?.ToPixels()));
@@ -90,7 +90,7 @@ public class RtfPictureLayoutRegressionTests {
         word.Save(bytes);
         bytes.Position = 0;
         using WordDocument opened = WordDocument.Load(bytes);
-        RtfImage native = Assert.IsType<RtfImage>(opened.ToRtfDocument().Blocks[0]);
+        RtfImage native = Assert.IsType<RtfImage>(opened.ToRtf().Blocks[0]);
         Assert.Equal(visibleWidth, native.ResolveLayout().VisibleWidthTwips);
         Assert.Equal(2000, native.ResolveLayout().VisibleHeightTwips);
         Assert.Equal(100, native.SourceWidth);
@@ -116,8 +116,8 @@ public class RtfPictureLayoutRegressionTests {
         }
         RtfDocument invalid = CreatePicture();
         Assert.IsType<RtfImage>(invalid.Blocks[0]).CropLeftTwips = 2000;
-        Assert.Contains(invalid.ToHtmlResult(RtfHtmlExportOptions.CreateRoundTripProfile()).RtfReport.NativeDiagnostics, item => item.Code == "RtfHtmlImageLayoutInvalid" && item.Action == RtfConversionAction.Blocked);
+        Assert.Contains(invalid.ConvertToHtmlWithEvidence(RtfHtmlExportOptions.CreateRoundTripProfile()).RtfReport.NativeDiagnostics, item => item.Code == "RtfHtmlImageLayoutInvalid" && item.Action == RtfConversionAction.Blocked);
         Assert.Contains(invalid.ConvertToPdfWithEvidence().Warnings, item => item.Code == "ImageLayoutInvalid");
-        Assert.Contains(invalid.ToWordDocumentResult().Report.NativeDiagnostics, item => item.Code == "RtfWordImagesOmitted" && item.Action == RtfConversionAction.Omitted);
+        Assert.Contains(invalid.ConvertToWordWithEvidence().Report.NativeDiagnostics, item => item.Code == "RtfWordImagesOmitted" && item.Action == RtfConversionAction.Omitted);
     }
 }

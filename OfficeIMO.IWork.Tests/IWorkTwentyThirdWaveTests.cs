@@ -9,7 +9,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_header_footer_variants_map_to_distinct_word_parts() {
         using MemoryStream package = CreatePagesPackageWithHeaderFooterVariants();
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
         IWorkPagesSection source = Assert.Single(result.Projection.Sections);
         WordSection section = Assert.Single(result.Value.Sections);
 
@@ -44,7 +44,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(true)]
     public void Pages_template_declarations_do_not_enable_unselected_variants(bool hideFirstPage) {
         using MemoryStream package = CreatePagesPackageWithHeaderFooterVariants(false, false, hideFirstPage);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
         IWorkPagesSection source = Assert.Single(result.Projection.Sections);
         Assert.True(source.HasFirstPageTemplate);
         Assert.True(source.HasEvenPageTemplate);
@@ -87,7 +87,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Partial_keynote_numbered_lists_continue_after_the_initial_marker() {
         using MemoryStream package = CreateKeynotePackageWithNumberedSequence(0);
 
-        using var result = IWorkSourceDocument.Open(package).ToPowerPointDocumentResult(
+        using var result = IWorkSourceDocument.Open(package).ToPowerPointResult(
             new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         PowerPointParagraph[] paragraphs = Assert.Single(
             Assert.Single(result.Value.Slides).TextBoxes).Paragraphs.ToArray();
@@ -105,7 +105,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             text: "Item", listLabel: "custom:");
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);

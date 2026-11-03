@@ -13,8 +13,7 @@ public sealed partial class IWorkBoundaryTests {
         var expected = decoded.RootElement;
         Assert.Equal(expected.GetProperty("sourceSha256").GetString(), BorderCorpusHash(source));
         Assert.Equal(expected.GetProperty("nativeDocxSha256").GetString(), BorderCorpusHash(reference));
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(source,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(source, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.Report.IsPartialEditableReconstruction);
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_PAGES_DOCX_PRECISION");
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED");

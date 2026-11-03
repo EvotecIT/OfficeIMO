@@ -11,7 +11,7 @@ public sealed partial class IWorkBoundaryTests {
     public void A_value_aggregate_native_identity_saves_an_editable_formula_and_numeric_cache(int index, string name, double expected) {
         using var package = CreateNumbersPackage(new[] { new TableSpec("Functions", 1, 1, expected,
             hasFormula: true, formulaPayload: FunctionPayload(index, 2)) });
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         var source = result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!;
         Assert.True(source.FormulaIsComplete);
         Assert.Equal("=" + name + "(1,2)", source.Formula);

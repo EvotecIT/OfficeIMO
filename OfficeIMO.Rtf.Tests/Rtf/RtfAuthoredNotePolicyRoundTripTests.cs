@@ -35,7 +35,7 @@ public sealed class RtfAuthoredNotePolicyRoundTripTests {
         RtfDocument reopened = RtfDocument.ParseResult(saved).Document;
         RtfNote added = Assert.Single(reopened.Paragraphs).AddFootnote("1", "Added after save").Note!;
         Assert.Equal(RtfNoteKind.Footnote, added.Kind);
-        using WordDocument word = reopened.ToWordDocument();
+        using WordDocument word = reopened.ToWord();
         using var stream = new MemoryStream();
         word.Save(stream);
         stream.Position = 0;

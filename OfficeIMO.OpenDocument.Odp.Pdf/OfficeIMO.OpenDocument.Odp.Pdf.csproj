@@ -38,4 +38,11 @@
   <ItemGroup><ProjectReference Include="..\OfficeIMO.Pdf.PowerPoint\OfficeIMO.Pdf.PowerPoint.csproj" /></ItemGroup>
   <ItemGroup><Using Include="OfficeIMO.PowerPoint.Pdf" /></ItemGroup>
   <ItemGroup><Using Include="OfficeIMO.Pdf.PowerPoint" /></ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.OpenDocument.Converters.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Pdf.Benchmarks.Comparisons" />
+  </ItemGroup>
 </Project>

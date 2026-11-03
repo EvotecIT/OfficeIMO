@@ -13,7 +13,7 @@ public sealed class HtmlExcelTableCaptionTests {
     [Fact]
     public void ExcelCaptionFollowsMergedRowExtent() {
         const string html = "<table><caption>Caption</caption><tr><td rowspan='5'>A</td></tr><tr></tr><tr></tr><tr></tr><tr></tr></table>";
-        using var document = HtmlConversionDocument.Parse(html).ToExcelDocument(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
+        using var document = HtmlConversionDocument.Parse(html).ToExcel(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         var sheet = Assert.Single(document.Sheets);
         Assert.Equal(5, Assert.Single(sheet.GetMergedRanges()).EndRow);
         Assert.Equal("Caption", sheet.Cell(7, 1).GetValue<string>());
@@ -24,7 +24,7 @@ public sealed class HtmlExcelTableCaptionTests {
         var limits = new HtmlImportLimits();
         limits.MaxMetadataCharacters = 64;
         string html = "<table><caption><a href='https://example.test/" + new string('x', 100) + "'>Units</a></caption><tr><td>m</td></tr></table>";
-        var result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+        var result = HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using var document = result.RequireValue();
         Assert.Empty(Assert.Single(document.Sheets).GetHyperlinks());
         Assert.Equal("Units", document.Sheets[0].Cell(3, 1).GetValue<string>());
@@ -33,7 +33,7 @@ public sealed class HtmlExcelTableCaptionTests {
 
     [Fact]
     public void ExcelRetainsFullLinkedCaptionAfterNativeTableCells() {
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(RegulatoryTableHtml).ToExcelDocumentResult(
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(RegulatoryTableHtml).ConvertToExcelWithEvidence(
             new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.RequireValue();
         using var artifact = new MemoryStream();

@@ -9,7 +9,7 @@ public sealed class AsciiDocPdfAdapterContractTests {
     public void ParserDiagnostics_FlowIntoFinalPdfResult() {
         AsciiDocDocument document = AsciiDocDocument.ParseResult("= Parser proof\n\n----\nunterminated block\n").Document;
 
-        var result = document.ToPdfDocumentResult();
+        var result = document.ConvertToPdfWithEvidence(null, default);
         var warning = Assert.Single(result.Warnings, item => item.Code == "ADOC001");
 
         Assert.Equal("OfficeIMO.AsciiDoc.Pdf", warning.Converter);

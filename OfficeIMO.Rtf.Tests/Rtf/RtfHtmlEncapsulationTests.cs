@@ -35,7 +35,7 @@ public class RtfHtmlEncapsulationTests {
 
         Assert.False(clone.IsHtmlEncapsulationCurrent);
         Assert.True(document.IsHtmlEncapsulationCurrent);
-        RtfToHtmlResult converted = clone.ToHtmlResult();
+        RtfToHtmlResult converted = clone.ConvertToHtmlWithEvidence();
         Assert.DoesNotContain("Original HTML", converted.Value, StringComparison.Ordinal);
         Assert.DoesNotContain(@"\fromhtml", clone.ToRtf(), StringComparison.Ordinal);
         Assert.Contains(converted.RtfReport.Diagnostics, diagnostic => diagnostic.Code == "RtfHtmlEncapsulationInvalidated");
@@ -49,7 +49,7 @@ public class RtfHtmlEncapsulationTests {
             "microsoft-outlook", "outlook-16-mapi-html-encapsulated.rtf");
         RtfDocument document = RtfDocument.Load(path);
         string extracted = System.Net.WebUtility.HtmlDecode(document.HtmlEncapsulation!.Html);
-        RtfToHtmlResult converted = document.ToHtmlResult();
+        RtfToHtmlResult converted = document.ConvertToHtmlWithEvidence();
         string html = System.Net.WebUtility.HtmlDecode(converted.Value);
         foreach (string text in new[] { "Outlook MAPI HTML fixture", "Zażółć gęślą jaźń", "First", "Second", "Key", "Value", "Bandage", "Ready" }) {
             Assert.Contains(text, extracted, StringComparison.Ordinal);
@@ -89,7 +89,7 @@ public class RtfHtmlEncapsulationTests {
         RtfDocument document = RtfDocument.ParseResult(rtf).Document;
         var options = new RtfHtmlExportOptions();
 
-        RtfToHtmlResult result = document.ToHtmlResult(options);
+        RtfToHtmlResult result = document.ConvertToHtmlWithEvidence(options);
         string html = result.Value;
 
         Assert.Contains("<strong>Rich</strong>", html, StringComparison.Ordinal);

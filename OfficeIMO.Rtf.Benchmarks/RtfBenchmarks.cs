@@ -63,7 +63,7 @@ public class RtfAdapterBenchmarks {
 
     [Benchmark]
     [BenchmarkCategory("Markdown")]
-    public string Markdown() => _document.ToMarkdown();
+    public string Markdown() => _document.ToMarkdown().ToMarkdown();
 
     [Benchmark]
     [BenchmarkCategory("Pdf")]
@@ -72,14 +72,14 @@ public class RtfAdapterBenchmarks {
     [Benchmark]
     [BenchmarkCategory("Word")]
     public int WordModel() {
-        using WordDocument word = _document.ToWordDocument();
+        using WordDocument word = _document.ToWord();
         return _document.Blocks.Count;
     }
 
     [Benchmark]
     [BenchmarkCategory("Word")]
     public byte[] Word() {
-        using WordDocument word = _document.ToWordDocument();
+        using WordDocument word = _document.ToWord();
         using MemoryStream stream = new MemoryStream(word.ToBytes());
         return stream.ToArray();
     }

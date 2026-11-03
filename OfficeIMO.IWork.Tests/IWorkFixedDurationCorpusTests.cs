@@ -18,8 +18,7 @@ public sealed class IWorkFixedDurationCorpusTests {
         }
         using var decoded = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, manifest.RootElement.GetProperty("decode").GetString()!)));
         string sourcePath = Path.Combine(root, decoded.RootElement.GetProperty("source").GetString()!);
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(sourcePath,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(sourcePath, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         IWorkTestPolicy.AssertCellPaddingOmission(result.Report);
         Assert.False(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_DURATION_DISPLAY_APPROXIMATED");

@@ -44,7 +44,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
               Continuation
             """;
 
-        var document = MarkdownDocument.Parse(markdown).ToRtfDocument();
+        var document = MarkdownDocument.Parse(markdown).ToRtf();
 
         Assert.Equal(1, document.Paragraphs.Count(paragraph => paragraph.ToPlainText() == "Continuation"));
     }
@@ -55,7 +55,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
             ReaderOptions = MarkdownLoadOptions.CreateOfficeIMOProfile()
         };
 
-        var document = MarkdownDocument.Parse("Formula ^2^ and H~2~O", options.ReaderOptions).ToRtfDocument(options);
+        var document = MarkdownDocument.Parse("Formula ^2^ and H~2~O", options.ReaderOptions).ToRtf(options);
         var paragraph = Assert.Single(document.Paragraphs);
 
         Assert.Contains(paragraph.Runs, run => run.Text == "2" && run.VerticalPosition == RtfVerticalPosition.Superscript);
@@ -68,7 +68,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
             ReaderOptions = MarkdownLoadOptions.CreateOfficeIMOProfile()
         };
 
-        var document = MarkdownDocument.Parse("Before ++new++ after", options.ReaderOptions).ToRtfDocument(options);
+        var document = MarkdownDocument.Parse("Before ++new++ after", options.ReaderOptions).ToRtf(options);
         var paragraph = Assert.Single(document.Paragraphs);
 
         Assert.Contains(paragraph.Runs, run => run.Text == "new" && run.UnderlineStyle != RtfUnderlineStyle.None);
@@ -84,7 +84,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
             .Superscript("2")
             .Subscript("n")));
 
-        var document = markdown.ToRtfDocument();
+        var document = markdown.ToRtf();
         var paragraph = Assert.Single(document.Paragraphs);
 
         Assert.Contains(paragraph.Runs, run => run.Text == "new" && run.UnderlineStyle != RtfUnderlineStyle.None);

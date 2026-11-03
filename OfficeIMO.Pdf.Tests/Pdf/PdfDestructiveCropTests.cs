@@ -17,7 +17,7 @@ public class PdfDestructiveCropTests {
         PdfDestructiveCropResult result = PdfDocument.Load(source).Pages.DestructiveCrop(
             0, 350, 612, 792,
             new PdfDestructiveCropOptions { Dpi = 96 },
-            1);
+            PdfPageSelection.From(1));
 
         byte[] output = result.ToBytes();
         PdfReadDocument read = PdfReadDocument.Open(output);

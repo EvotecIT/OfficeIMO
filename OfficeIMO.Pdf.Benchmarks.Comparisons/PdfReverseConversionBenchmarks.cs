@@ -82,7 +82,7 @@ public class PdfReverseConversionBenchmarks {
     public int PdfToOdt() {
         using var input = new MemoryStream(_source, writable: false);
         using PdfCore.PdfDocument source = PdfCore.PdfDocument.Load(input);
-        var document = source.ToOdtDocumentResult().Value;
+        var document = source.ConvertToOdtWithEvidence(null, default).Value;
         return document.ToBytes().Length;
     }
 
@@ -90,7 +90,7 @@ public class PdfReverseConversionBenchmarks {
     public int PdfToOds() {
         using var input = new MemoryStream(_source, writable: false);
         using PdfCore.PdfDocument source = PdfCore.PdfDocument.Load(input);
-        var document = source.ToOdsDocumentResult().Value;
+        var document = source.ConvertToOdsWithEvidence(null, default).Value;
         return document.ToBytes().Length;
     }
 
@@ -98,7 +98,7 @@ public class PdfReverseConversionBenchmarks {
     public int PdfToOdp() {
         using var input = new MemoryStream(_source, writable: false);
         using PdfCore.PdfDocument source = PdfCore.PdfDocument.Load(input);
-        var document = source.ToOdpPresentationResult(PdfPowerPointExportOptions.CreateEditableContent()).Value;
+        var document = source.ConvertToOdpWithEvidence(new PdfOdpExportOptions { PdfOptions = PdfPowerPointExportOptions.CreateEditableContent() }, default).Value;
         return document.ToBytes().Length;
     }
 
@@ -144,18 +144,18 @@ public class PdfReverseConversionBenchmarks {
             if (slideCount != _scenario.PageCount) throw new InvalidOperationException($"PPTX reverse conversion produced {slideCount} of {_scenario.PageCount} slides.");
             ValidateContent(string.Join(" ", package.PresentationPart!.SlideParts.SelectMany(static slide => slide.Slide?.Descendants<A.Text>() ?? Enumerable.Empty<A.Text>()).Select(static text => text.Text)), "PPTX");
         }
-        var odtOutput = source.ToOdtDocumentResult().Value;
+        var odtOutput = source.ConvertToOdtWithEvidence(null, default).Value;
         byte[] odt = odtOutput.ToBytes();
         using var odtInput = new MemoryStream(odt, writable: false);
         OdtDocument odtDocument = OdtDocument.Load(odtInput);
         ValidateContent(ReadOpenDocumentText(odt), "ODT");
-        var odsOutput = source.ToOdsDocumentResult().Value;
+        var odsOutput = source.ConvertToOdsWithEvidence(null, default).Value;
         byte[] ods = odsOutput.ToBytes();
         using var odsInput = new MemoryStream(ods, writable: false);
         OdsDocument odsDocument = OdsDocument.Load(odsInput);
         if (odsDocument.Sheets.Count == 0) throw new InvalidOperationException("ODS reverse conversion did not produce a sheet.");
         PdfBenchmarkValidation.ValidateTableScenarioContent(ReadOpenDocumentText(ods), _scenario, Producer + " " + Scale + " ODS");
-        var odpOutput = source.ToOdpPresentationResult(PdfPowerPointExportOptions.CreateEditableContent()).Value;
+        var odpOutput = source.ConvertToOdpWithEvidence(new PdfOdpExportOptions { PdfOptions = PdfPowerPointExportOptions.CreateEditableContent() }, default).Value;
         byte[] odp = odpOutput.ToBytes();
         using var odpInput = new MemoryStream(odp, writable: false);
         OdpPresentation odpDocument = OdpPresentation.Load(odpInput);

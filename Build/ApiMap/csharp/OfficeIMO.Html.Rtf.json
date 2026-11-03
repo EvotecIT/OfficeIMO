@@ -27,6 +27,35 @@
       "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
       "category": "options",
       "applied": true
+    },
+    {
+      "old": "RtfDocument.ToHtml(RtfHtmlExportOptions) / ToHtmlResult : RtfToHtmlResult / ToHtmlBytes / ToHtmlStream",
+      "kind": "method",
+      "action": "merge",
+      "new": "RtfDocument.ToHtml(RtfHtmlExportOptions options[, out OfficeConversionReport report], CancellationToken) : string; ToHtmlAsync; SaveAsHtml(path | stream) : OfficeConversionReport; SaveAsHtmlAsync",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "replacement": "Output encoding moves to RtfHtmlExportOptions.Encoding.",
+      "applied": true
+    },
+    {
+      "old": "HtmlConversionDocument.ToRtfDocument / ToRtfDocumentResult / ToRtf(readOptions, writeOptions) : string / ToRtfBytes / ToRtfStream",
+      "kind": "method",
+      "action": "merge",
+      "new": "HtmlConversionDocument.ToRtf(HtmlRtfExportOptions options[, out OfficeConversionReport report], CancellationToken) : RtfDocument; ToRtfAsync; SaveAsRtf(path | stream); SaveAsRtfAsync",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "replacement": "Call ToRtf()/ToBytes()/ToStream() on the returned RtfDocument; writer settings and encoding move to HtmlRtfExportOptions.SaveOptions and Encoding.",
+      "applied": true
+    },
+    {
+      "old": "RTF/HTML options without loss policy or output settings",
+      "kind": "property",
+      "action": "change",
+      "new": "RtfHtmlExportOptions.Encoding, FailOnLoss; HtmlRtfExportOptions.SaveOptions, Encoding, FailOnLoss",
+      "reason": "Output settings and the loss policy live on the converter options.",
+      "category": "options",
+      "applied": true
     }
   ]
 }

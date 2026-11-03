@@ -12,8 +12,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(root.GetProperty("sourceSha256").GetString(), HashFile(source));
         foreach (var artifact in root.GetProperty("artifacts").EnumerateArray())
             Assert.Equal(artifact.GetProperty("sha256").GetString(), HashFile(CorpusFixture("native-exports/" + artifact.GetProperty("path").GetString())));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(source,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(source, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_FILL_DEFAULTS_UNSUPPORTED");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
@@ -39,7 +38,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Banded_body_fill_alone_is_bounded_by_the_destination_style_budget() {
         using var package = RoleFillPackage(IWorkDocumentKind.Numbers, rows: 100_001, banded: true, roleDefaults: false);
-        using var result = IWorkSourceDocument.Open(package).ToExcelDocumentResult(
+        using var result = IWorkSourceDocument.Open(package).ToExcelResult(
             IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Message.Contains("styled-cell budget", StringComparison.Ordinal));

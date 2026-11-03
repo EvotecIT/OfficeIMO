@@ -18,7 +18,7 @@ public partial class WordRtfConverterTests {
         rtf.AddObject(RtfObjectKind.Embedded, new byte[] { 1, 2, 3 });
         rtf.AddShape().AddTextBoxParagraph("Shape text");
 
-        RtfConversionResult<WordDocument> result = rtf.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> result = rtf.ConvertToWordWithEvidence();
         using (result.Value) {
             Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "RtfWordStylesMapped" && diagnostic.Action == RtfConversionAction.Preserved);
             Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "RtfWordListDefinitionsMapped" && diagnostic.Count == 2);
@@ -37,7 +37,7 @@ public partial class WordRtfConverterTests {
         nestedParagraph.AddObject(RtfObjectKind.Embedded, new byte[] { 1, 2, 3 });
         nestedParagraph.AddShape().AddTextBoxParagraph("Shape");
 
-        RtfConversionResult<WordDocument> result = rtf.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> result = rtf.ConvertToWordWithEvidence();
         using (result.Value) {
             Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
                 diagnostic.Code == "RtfWordObjectsOmitted" && diagnostic.Count == 1);
@@ -52,7 +52,7 @@ public partial class WordRtfConverterTests {
         RtfDocument rtf = RtfDocument.Create();
         rtf.AddImage(RtfImageFormat.Unknown, new byte[] { 1, 2, 3 });
 
-        RtfConversionResult<WordDocument> result = rtf.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> result = rtf.ConvertToWordWithEvidence();
         using (result.Value) {
             Assert.Empty(result.Value.Images);
             Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
@@ -69,7 +69,7 @@ public partial class WordRtfConverterTests {
 
         RtfConversionResult<WordDocument> result = RtfDocument
             .ParseResult(rtf, RtfLoadOptions.UntrustedDefaults)
-            .ToWordDocumentResult("string");
+            .ConvertToWordWithEvidence("string");
         using (result.Value) {
             RtfConversionDiagnostic diagnostic = Assert.Single(result.Report.NativeDiagnostics, item => item.Code == "RTF105");
             Assert.Equal(RtfConversionAction.Blocked, diagnostic.Action);
@@ -83,7 +83,7 @@ public partial class WordRtfConverterTests {
         options.Limits.MaxInputCharacters = 4;
 
         Assert.Throws<RtfReadLimitException>(() =>
-            RtfDocument.ParseResult(@"{\rtf1 Too large}", options).ToWordDocumentResult("string"));
+            RtfDocument.ParseResult(@"{\rtf1 Too large}", options).ConvertToWordWithEvidence("string"));
     }
 
     [Fact]
@@ -113,7 +113,7 @@ public partial class WordRtfConverterTests {
         paragraph.ListDefinitionId = 10;
         paragraph.AddText("Styled list item").SetStyle(8);
 
-        RtfConversionResult<WordDocument> toWord = rtf.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> toWord = rtf.ConvertToWordWithEvidence();
         using WordDocument word = toWord.Value;
         Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator()
             .Validate(word._wordprocessingDocument).Select(error => error.Description));
@@ -123,7 +123,7 @@ public partial class WordRtfConverterTests {
         Assert.Equal(20, wordParagraph._listNumberId);
         Assert.Equal("RtfC8", Assert.Single(wordParagraph.GetRuns()).CharacterStyleId);
 
-        RtfConversionResult<RtfDocument> roundTripResult = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> roundTripResult = word.ConvertToRtfWithEvidence();
         RtfDocument roundTrip = roundTripResult.Value;
         RtfParagraph roundTripParagraph = Assert.Single(roundTrip.Paragraphs);
         RtfStyle mappedParagraphStyle = Assert.Single(roundTrip.Styles, style => style.Id == roundTripParagraph.StyleId && style.Kind == RtfStyleKind.Paragraph);
@@ -157,7 +157,7 @@ public partial class WordRtfConverterTests {
         RtfDocument rtf = RtfDocument.Create();
         RtfParagraph paragraph = rtf.AddParagraph("Generated list item").SetList(listId: 7, level: 1, kind: RtfListKind.Bullet);
 
-        RtfConversionResult<WordDocument> result = rtf.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> result = rtf.ConvertToWordWithEvidence();
         using WordDocument word = result.Value;
 
         Numbering numbering = word._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!;
@@ -177,7 +177,7 @@ public partial class WordRtfConverterTests {
         rtf.AddHeader().AddParagraph("Header").AddObject(RtfObjectKind.Embedded, new byte[] { 1 });
         rtf.AddFooter().AddParagraph("Footer").AddShape();
 
-        RtfConversionResult<WordDocument> result = rtf.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> result = rtf.ConvertToWordWithEvidence();
         using (result.Value) {
             Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
                 diagnostic.Code == "RtfWordObjectsOmitted" && diagnostic.Count == 1);
@@ -205,7 +205,7 @@ public partial class WordRtfConverterTests {
                 AbstractNumberId = 10
             });
 
-        RtfDocument rtf = word.ToRtfDocument();
+        RtfDocument rtf = word.ToRtf();
 
         RtfListDefinition definition = Assert.Single(rtf.ListDefinitions);
         Assert.Equal(3, definition.Levels.Count);
@@ -225,7 +225,7 @@ public partial class WordRtfConverterTests {
                 AbstractNumberId = 10
             });
 
-        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => word.ToRtfDocument());
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => word.ToRtf());
 
         Assert.Contains("outside the supported range", exception.Message, StringComparison.Ordinal);
     }
@@ -235,7 +235,7 @@ public partial class WordRtfConverterTests {
         RtfDocument rtf = RtfDocument.Create();
         for (int index = 0; index < 1_000; index++) rtf.AddStyle(index + 1, "Style " + index);
 
-        using WordDocument word = rtf.ToWordDocument();
+        using WordDocument word = rtf.ToWord();
 
         Styles styles = word._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         Assert.Equal(1_000, styles.Elements<Style>().Count(style => style.StyleId?.Value?.StartsWith("RtfP", StringComparison.Ordinal) == true));
@@ -248,7 +248,7 @@ public partial class WordRtfConverterTests {
         table.Rows[0].Cells[0]._tableCell.Append(new SdtBlock(
             new SdtContentBlock(new Paragraph(new Run(new Text("Controlled"))))));
 
-        RtfConversionResult<RtfDocument> result = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> result = word.ConvertToRtfWithEvidence();
 
         Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "WordRtfElementOmitted" &&
@@ -262,7 +262,7 @@ public partial class WordRtfConverterTests {
         using WordDocument word = WordDocument.Create();
         word.AddParagraph().AddStructuredDocumentTag("Controlled");
 
-        RtfConversionResult<RtfDocument> result = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> result = word.ConvertToRtfWithEvidence();
 
         Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "WordRtfElementOmitted" &&
@@ -278,7 +278,7 @@ public partial class WordRtfConverterTests {
         word.PageSetup.Footer._footer!.Append(new SdtBlock(
             new SdtContentBlock(new Paragraph(new Run(new Text("Footer control"))))));
 
-        RtfConversionResult<RtfDocument> result = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> result = word.ConvertToRtfWithEvidence();
 
         Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "WordRtfElementOmitted" &&

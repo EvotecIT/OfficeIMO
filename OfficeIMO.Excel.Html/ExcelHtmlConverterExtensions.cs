@@ -7,15 +7,7 @@ namespace OfficeIMO.Excel.Html;
 /// Extension methods enabling HTML conversions for OfficeIMO Excel documents.
 /// </summary>
 public static partial class ExcelHtmlConverterExtensions {
-    /// <summary>
-    /// Converts a workbook to HTML.
-    /// </summary>
-    public static string ToHtml(this ExcelDocument workbook, ExcelHtmlExportOptions? options = null) {
-        return workbook.ToHtmlResult(options).Value;
-    }
-
-    /// <summary>Converts a workbook to HTML with the shared structured result contract.</summary>
-    public static HtmlTextConversionResult ToHtmlResult(this ExcelDocument workbook, ExcelHtmlExportOptions? options = null) {
+    internal static HtmlTextConversionResult ConvertToHtmlWithEvidence(this ExcelDocument workbook, ExcelHtmlExportOptions? options = null) {
         if (workbook == null) throw new ArgumentNullException(nameof(workbook));
         ExcelHtmlExportOptions operation = (options ?? new ExcelHtmlExportOptions()).Clone();
         operation.Validate();
@@ -29,15 +21,7 @@ public static partial class ExcelHtmlConverterExtensions {
         return new HtmlTextConversionResult(html, diagnostics);
     }
 
-    /// <summary>
-    /// Converts a worksheet to HTML.
-    /// </summary>
-    public static string ToHtml(this ExcelSheet sheet, ExcelHtmlExportOptions? options = null) {
-        return sheet.ToHtmlResult(options).Value;
-    }
-
-    /// <summary>Converts a worksheet to HTML with the shared structured result contract.</summary>
-    public static HtmlTextConversionResult ToHtmlResult(this ExcelSheet sheet, ExcelHtmlExportOptions? options = null) {
+    internal static HtmlTextConversionResult ConvertToHtmlWithEvidence(this ExcelSheet sheet, ExcelHtmlExportOptions? options = null) {
         if (sheet == null) throw new ArgumentNullException(nameof(sheet));
         ExcelHtmlExportOptions operation = (options ?? new ExcelHtmlExportOptions()).Clone();
         operation.Validate();
@@ -47,22 +31,6 @@ public static partial class ExcelHtmlConverterExtensions {
             ? ConvertSheetVisual(sheet, operation, diagnostics)
             : ConvertSheetSemantic(sheet, operation, diagnostics);
         return new HtmlTextConversionResult(html, diagnostics);
-    }
-
-    /// <summary>
-    /// Saves a workbook as HTML.
-    /// </summary>
-    public static void SaveAsHtml(this ExcelDocument workbook, string path, ExcelHtmlExportOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("HTML path cannot be empty.", nameof(path));
-        HtmlTextIO.Write(path, workbook.ToHtml(options));
-    }
-
-    /// <summary>
-    /// Saves a worksheet as HTML.
-    /// </summary>
-    public static void SaveAsHtml(this ExcelSheet sheet, string path, ExcelHtmlExportOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("HTML path cannot be empty.", nameof(path));
-        HtmlTextIO.Write(path, sheet.ToHtml(options));
     }
 
     private static string ConvertWorkbookSemantic(ExcelDocument workbook, ExcelHtmlExportOptions options, IList<HtmlDiagnostic> diagnostics) {

@@ -1,7 +1,7 @@
 namespace OfficeIMO.OneNote.Markdown;
 
 /// <summary>Controls semantic projection of offline OneNote models to Markdown.</summary>
-public sealed class OneNoteMarkdownOptions {
+public sealed class OneNoteMarkdownExportOptions {
     /// <summary>Includes conflict copies after their current page.</summary>
     public bool IncludeConflictPages { get; set; }
 
@@ -35,22 +35,26 @@ public sealed class OneNoteMarkdownOptions {
     /// </summary>
     public Func<OneNoteBinaryElement, string?>? AssetUriResolver { get; set; }
 
-    /// <summary>Creates a validated independent snapshot for one projection operation.</summary>
-    public OneNoteMarkdownOptions Clone() => CloneValidated();
+    /// <summary>Throws <see cref="OfficeConversionException"/> when the conversion reports loss.</summary>
+    public bool FailOnLoss { get; set; }
 
-    internal OneNoteMarkdownOptions CloneValidated() {
+    /// <summary>Creates a validated independent snapshot for one projection operation.</summary>
+    public OneNoteMarkdownExportOptions Clone() => CloneValidated();
+
+    internal OneNoteMarkdownExportOptions CloneValidated() {
         if (HeadingLevel < 1 || HeadingLevel > 6) throw new ArgumentOutOfRangeException(nameof(HeadingLevel), "HeadingLevel must be from 1 through 6.");
         ValidateDepth(MaxSectionGroupDepth, nameof(MaxSectionGroupDepth));
         ValidateDepth(MaxPageRelationshipDepth, nameof(MaxPageRelationshipDepth));
         ValidateDepth(MaxContentDepth, nameof(MaxContentDepth));
-        return new OneNoteMarkdownOptions {
+        return new OneNoteMarkdownExportOptions {
             IncludeConflictPages = IncludeConflictPages,
             IncludeVersionHistory = IncludeVersionHistory,
             HeadingLevel = HeadingLevel,
             MaxSectionGroupDepth = MaxSectionGroupDepth,
             MaxPageRelationshipDepth = MaxPageRelationshipDepth,
             MaxContentDepth = MaxContentDepth,
-            AssetUriResolver = AssetUriResolver
+            AssetUriResolver = AssetUriResolver,
+            FailOnLoss = FailOnLoss
         };
     }
 

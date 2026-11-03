@@ -10,7 +10,7 @@ public sealed class LegacyAnchorTests {
             ["/a.html"] = ChmFixture.Html("<p><a href='b.html#legacy'>Legacy destination</a><a href='b.html#modern'>Modern destination</a></p>"),
             ["/b.html"] = ChmFixture.Html("<a name='legacy' id='modern'>Destination</a><a name='named-only'></a><p>Target content.</p>")
         }));
-        var converted = book.ToEpubPublicationResult(); Assert.True(converted.Succeeded);
+        var converted = book.ConvertToEpubWithEvidence(); Assert.True(converted.Succeeded);
         XNamespace xhtml = "http://www.w3.org/1999/xhtml";
         var roots = converted.Publication.Manifest.Where(item => item.MediaType == "application/xhtml+xml")
             .Select(item => converted.Publication.GetContentXml(item.Id)).ToArray();

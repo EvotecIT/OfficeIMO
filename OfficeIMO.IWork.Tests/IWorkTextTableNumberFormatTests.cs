@@ -68,7 +68,7 @@ public sealed partial class IWorkBoundaryTests {
         IWorkTableCell cell;
         IWorkConversionReport report;
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+            using var result = source.ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
             Assert.False(result.IsVisualFallback);
             cell = Assert.Single(Assert.Single(result.Projection.Tables).Cells); report = result.Report;
             result.Value.Save(saved); saved.Position = 0;
@@ -77,7 +77,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(expectedText, paragraph.Text);
             if (expectedColor.Length > 0) Assert.Equal(OfficeIMO.OfficeColor.Parse(expectedColor), paragraph.Color);
         } else {
-            using var result = source.ToPowerPointDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+            using var result = source.ToPowerPointResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
             Assert.False(result.IsVisualFallback);
             cell = Assert.Single(Assert.Single(Assert.Single(result.Projection.Slides).Tables).Cells); report = result.Report;
             result.Value.Save(saved); saved.Position = 0;

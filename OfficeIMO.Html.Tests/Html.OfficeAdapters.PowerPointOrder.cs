@@ -17,7 +17,7 @@ public class HtmlOfficeAdaptersPowerPointOrder {
         string html = presentation.ToHtml(new PowerPointHtmlExportOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
         });
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence();
         using PowerPointDocument imported = result.Value;
         PowerPointSlide importedSlide = Assert.Single(imported.Slides);
 
@@ -49,7 +49,7 @@ public class HtmlOfficeAdaptersPowerPointOrder {
         string html = presentation.ToHtml(new PowerPointHtmlExportOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
         });
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence();
         using PowerPointDocument imported = result.Value;
         PowerPointSlide importedSlide = Assert.Single(imported.Slides);
         PowerPointShape[] orderedShapes = importedSlide.Shapes.OrderBy(shape => shape.DrawingOrder).ToArray();
@@ -75,7 +75,7 @@ public class HtmlOfficeAdaptersPowerPointOrder {
         string html = "<section class='officeimo-slide'><pre class='officeimo-source-markdown'>"
             + falseCandidates + "\n### Notes\nBounded presenter notes</pre></section>";
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence();
         using PowerPointDocument presentation = result.Value;
 
         Assert.Equal("Bounded presenter notes", Assert.Single(presentation.Slides).Notes.Text);

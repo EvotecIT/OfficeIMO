@@ -26,7 +26,7 @@ public sealed partial class IWorkBoundaryTests {
             (4, 1, 8, IWorkCellVerticalAlignment.Bottom)
         };
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(policy); table = Assert.Single(result.Projection.Tables);
+            using var result = source.ToWordResult(policy); table = Assert.Single(result.Projection.Tables);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = WordDocument.Load(saved);
             WordTable target = Assert.Single(reopened.Tables);
@@ -43,7 +43,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(WordTableVerticalAlignment.Top, target.Rows[0].Cells[1].VerticalAlignment);
             Assert.Empty(reopened.ValidateDocument());
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var result = source.ToExcelDocumentResult(policy); table = Assert.Single(result.Projection.Sheets[0].Tables);
+            using var result = source.ToExcelResult(policy); table = Assert.Single(result.Projection.Sheets[0].Tables);
             Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED");
             Assert.Throws<InvalidOperationException>(() => result.Report.RequireCompleteEditableReconstruction());
             result.Value.Save(saved); saved.Position = 0;
@@ -52,7 +52,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal("bottom", reopened.Sheets[0].Cell(4, 1).GetStyle().VerticalAlignment);
             Assert.Equal("top", reopened.Sheets[0].Cell(1, 2).GetStyle().VerticalAlignment);
         } else {
-            using var result = source.ToPowerPointDocumentResult(policy); table = Assert.Single(result.Projection.Slides[0].Tables);
+            using var result = source.ToPowerPointResult(policy); table = Assert.Single(result.Projection.Slides[0].Tables);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = PowerPointDocument.Load(saved);
             var target = Assert.Single(reopened.Slides[0].Tables);

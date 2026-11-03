@@ -56,8 +56,7 @@ public sealed partial class IWorkBoundaryTests {
             string path = Path.Combine(root, explicitlySelected
                 ? "native-exports/numbers-blank-explicit-percentage-v14.5.numbers"
                 : "numbers-parser/cross-table-formulas.numbers");
-            using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-                conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
+            using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
                     AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
             var table = result.Projection.Sheets.Single(s => s.Name == "Main Sheet").Tables.Single(t => t.Name == "Extra Headers");
             var cell = table.GetCell(8, 1)!;
@@ -76,9 +75,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Explicit_blank_text_formats_match_native_xlsx_after_save_and_reopen() {
         string root = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus");
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(
-            Path.Combine(root, "numbers-parser", "cross-table-formulas.numbers"),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
+        using var result = IWorkSourceDocument.Open(Path.Combine(root, "numbers-parser", "cross-table-formulas.numbers"), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
                 AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         var mapping = result.WorksheetMappings.Single(m => m.SourceSheetName == "Main Sheet" && m.SourceTableName == "Extra Headers");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
@@ -123,8 +120,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Independent_blank_number_formats_survive_saved_xlsx() {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "numbers-parser", "issue-102-v15.1.numbers");
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         Assert.False(result.IsVisualFallback);
         var mapping = Assert.Single(result.WorksheetMappings, mapping => mapping.SourceSheetName == "Cats" && mapping.SourceTableName == "Cats");
         var table = Assert.Single(Assert.Single(result.Projection.Sheets, sheet => sheet.Name == "Cats").Tables, table => table.Name == "Cats");

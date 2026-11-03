@@ -38,7 +38,7 @@ public sealed class HtmlEditableLayoutReviewWave24Tests {
             + "<div style='position:absolute;left:24px;top:20px;width:180px;height:70px'>Later-page region</div>"
             + "</section>";
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
         IReadOnlyList<IRtfBlock> blocks = result.Value.Blocks;
         int pageBreakIndex = FindParagraphIndex(blocks, paragraph => paragraph.PageBreakBefore);
         int regionIndex = FindParagraphIndex(blocks, paragraph =>
@@ -109,7 +109,7 @@ public sealed class HtmlEditableLayoutReviewWave24Tests {
         limits.MaxAbsoluteGeometry = 50D;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions {
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions {
                 Mode = HtmlImportMode.Generic,
                 Limits = limits
             });

@@ -20,7 +20,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.LessThan, "0", null, "FF0000FF", priority: 2);
         sheet.Range("C1:C2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.Between, "1", "5", "FF00FF00", priority: 3);
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         OdsDocument reopened = OdsDocument.Load(new MemoryStream(result.Value.ToBytes()));
         Assert.True(reopened.Validate().IsValid);
         OdsSheet output = reopened.Sheets.Single();
@@ -40,7 +40,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         Assert.DoesNotContain(result.Report.Mappings, mapping => mapping.Feature == "conditional-formatting"
             && mapping.Status == OdfConversionMappingStatus.Unsupported);
 
-        using ExcelDocument roundTripped = reopened.ToExcelDocument();
+        using ExcelDocument roundTripped = reopened.ToExcel();
         using ExcelDocument reopenedExcel = ExcelDocument.Load(new MemoryStream(roundTripped.ToBytes()));
         ExcelConditionalFormattingInfo[] restored = reopenedExcel.Sheets.Single().GetConditionalFormattingRules().ToArray();
         Assert.Equal(3, restored.Length);
@@ -60,7 +60,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "0", fillColor: "FFFF0000");
         sheet.Range("A2:A3").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.LessThan, "0", fillColor: "FF0000FF");
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Null(result.Value.Sheets.Single().Cell(0, 0).StyleName);
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "conditional-formatting"
             && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
@@ -74,7 +74,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         sheet.Cell(1, 3).SetValue("Styled").SetBold();
         sheet.Range("C1:C2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.LessThan, "0", fillColor: "FF0000FF");
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Null(result.Value.Sheets.Single().Cell(0, 0).StyleName);
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "conditional-formatting"
             && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
@@ -87,7 +87,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         sheet.Range("A1:A2048").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "0", fillColor: "FFFF0000");
         sheet.Range("C1:C2049").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.LessThan, "0", fillColor: "FF0000FF");
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Null(result.Value.Sheets.Single().Cell(0, 0).StyleName);
         Assert.Null(result.Value.Sheets.Single().Cell(0, 2).StyleName);
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "conditional-formatting"
@@ -106,7 +106,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
             sheet.Range(range).ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "0", null, "FFFF0000", priority: index + 1);
         }
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "conditional-formatting"
             && mapping.Status == expectedStatus && mapping.Count == ruleCount);
         Assert.Equal(expectedStatus == OdfConversionMappingStatus.Approximated,
@@ -120,7 +120,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "10", null, "FFFF0000", stopIfTrue: true, priority: 1);
         sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.Between, "1", "10", "FF00FF00", priority: 2);
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         OdsDocument reopened = OdsDocument.Load(new MemoryStream(result.Value.ToBytes()));
         Assert.True(reopened.Validate().IsValid);
         string? styleName = reopened.Sheets.Single().Cell(0, 0).StyleName;
@@ -136,7 +136,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         Assert.DoesNotContain(result.Report.Mappings, mapping => mapping.Feature == "conditional-formatting"
             && mapping.Status == OdfConversionMappingStatus.Unsupported);
 
-        using ExcelDocument roundTripped = reopened.ToExcelDocument();
+        using ExcelDocument roundTripped = reopened.ToExcel();
         using ExcelDocument reopenedExcel = ExcelDocument.Load(new MemoryStream(roundTripped.ToBytes()));
         ExcelConditionalFormattingInfo[] restored = reopenedExcel.Sheets.Single().GetConditionalFormattingRules()
             .OrderBy(rule => rule.Priority).ToArray();
@@ -152,7 +152,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "10", fillColor: "FFFF0000");
         sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.LessThan, "0", fillColor: "FF00FF00");
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Null(result.Value.Sheets.Single().Cell(0, 0).StyleName);
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "conditional-formatting"
             && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
@@ -165,7 +165,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         sheet.Cell(1, 1).SetValue("Styled").SetBold();
         sheet.Range("A1").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "0", fillColor: "FFFF0000");
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         OdsSheet output = result.Value.Sheets.Single();
         Assert.NotNull(output.Cell(0, 0).StyleName);
         OdfStyle style = result.Value.Styles.Find(OdfStyleFamily.TableCell, output.Cell(0, 0).StyleName!)!;
@@ -181,7 +181,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         using ExcelDocument source = ExcelDocument.Create();
         source.AddSheet("Data").Range("A1").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, bound, fillColor: "FFFF0000");
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Null(result.Value.Sheets.Single().Cell(0, 0).StyleName);
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "conditional-formatting"
             && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
@@ -203,7 +203,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         }
 
         using ExcelDocument imported = ExcelDocument.Load(new MemoryStream(packageStream.ToArray()));
-        OdfConversionResult<OdsDocument> result = imported.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = imported.ConvertToOpenDocumentWithEvidence();
         Assert.Null(result.Value.Sheets.Single().Cell(0, 0).StyleName);
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "conditional-formatting"
             && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
@@ -223,7 +223,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         });
         Assert.Equal(2, source.Inspect().Worksheets.Single().ConditionalFormattingRuleCount);
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "conditional-formatting"
             && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
     }
@@ -245,7 +245,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         sheet.Cell(1, 0).StyleName = ordinary.Name;
 
         OdsDocument reopened = OdsDocument.Load(new MemoryStream(source.ToBytes()));
-        OdfConversionResult<ExcelDocument> result = reopened.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = reopened.ConvertToExcelWithEvidence();
         using ExcelDocument output = result.Value;
         using ExcelDocument reopenedExcel = ExcelDocument.Load(new MemoryStream(output.ToBytes()));
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-conditional-style-maps"
@@ -279,7 +279,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         OdsDocument reopened = OdsDocument.Load(new MemoryStream(source.ToBytes()));
         Assert.Equal(new[] { "cell-content()>0", "cell-content()>10" },
             reopened.Styles.Find(OdfStyleFamily.TableCell, ordinary.Name)!.ConditionalMaps.Select(map => map.Condition));
-        OdfConversionResult<ExcelDocument> result = reopened.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = reopened.ConvertToExcelWithEvidence();
         using ExcelDocument output = result.Value;
         Assert.Equal("0", Assert.Single(output.Sheets.Single().GetConditionalFormattingRules(),
             rule => rule.Priority == 1).Formulas.Single());
@@ -313,7 +313,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         ordinary.AddConditionalMap("cell-content()>0", fill.Name);
         sheet.Cell(0, 0).StyleName = ordinary.Name;
 
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument output = result.Value;
         Assert.Empty(output.Sheets.Single().GetConditionalFormattingRules());
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-conditional-style-maps"
@@ -333,7 +333,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
             ordinary.AddConditionalMap("cell-content()>" + threshold, fill.Name);
         sheet.Cell(0, 0).StyleName = ordinary.Name;
 
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument output = result.Value;
         Assert.Equal(mapCount == 16 ? 16 : 0,
             output.Sheets.Single().GetConditionalFormattingRules().Count);
@@ -363,7 +363,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         sheet.Cell(0, 0).StyleName = ordinary.Name;
 
         OdsDocument reopened = OdsDocument.Load(new MemoryStream(source.ToBytes()));
-        OdfConversionResult<ExcelDocument> result = reopened.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = reopened.ConvertToExcelWithEvidence();
         using ExcelDocument output = result.Value;
         using ExcelDocument reopenedExcel = ExcelDocument.Load(new MemoryStream(output.ToBytes()));
 
@@ -396,7 +396,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         sheet.Cell(0, 0).StyleName = baseStyle.Name;
 
         OdsDocument reopened = OdsDocument.Load(new MemoryStream(source.ToBytes()));
-        OdfConversionResult<ExcelDocument> result = reopened.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = reopened.ConvertToExcelWithEvidence();
         using ExcelDocument output = result.Value;
         using ExcelDocument reopenedExcel = ExcelDocument.Load(new MemoryStream(output.ToBytes()));
 
@@ -423,7 +423,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         sheet.Cell(0, 0).StyleName = baseStyle.Name;
 
         OdsDocument reopened = OdsDocument.Load(new MemoryStream(source.ToBytes()));
-        OdfConversionResult<ExcelDocument> result = reopened.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = reopened.ConvertToExcelWithEvidence();
         using ExcelDocument output = result.Value;
         using ExcelDocument reopenedExcel = ExcelDocument.Load(new MemoryStream(output.ToBytes()));
 
@@ -453,7 +453,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         sheet.Cell(0, 0).StyleName = ordinary.Name;
 
         OdsDocument reopened = OdsDocument.Load(new MemoryStream(source.ToBytes()));
-        OdfConversionResult<ExcelDocument> result = reopened.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = reopened.ConvertToExcelWithEvidence();
         using ExcelDocument output = result.Value;
         using ExcelDocument reopenedExcel = ExcelDocument.Load(new MemoryStream(output.ToBytes()));
 
@@ -484,7 +484,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         ordinary.AddConditionalMap("cell-content()>0", typography.Name);
         sheet.Cell(0, 0).StyleName = ordinary.Name;
 
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument output = result.Value;
         Assert.Empty(output.Sheets.Single().GetConditionalFormattingRules());
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-conditional-style-maps"
@@ -511,7 +511,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
             .SetAttributeValue(foNamespace + "font-size", "");
         source.Package.MarkXmlDirty("styles.xml");
 
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument output = result.Value;
         if (includeFill) {
             ExcelConditionalFormattingInfo rule = Assert.Single(output.Sheets.Single().GetConditionalFormattingRules());
@@ -536,7 +536,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         ordinary.AddConditionalMap("cell-content()>0", highlight.Name);
         sheet.Cell(0, 0).StyleName = ordinary.Name;
 
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument output = result.Value;
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-conditional-style-maps"
             && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
@@ -554,7 +554,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         baseStyle.AddConditionalMap("cell-content()>0", applied.Name);
         sheet.Cell(0, 0).StyleName = baseStyle.Name;
 
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument output = result.Value;
         Assert.Empty(output.Sheets.Single().GetConditionalFormattingRules());
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-conditional-style-maps"
@@ -571,7 +571,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         mapped.AddConditionalMap("cell-content-is-between(3,1)", fill.Name);
         sheet.Cell(0, 0).StyleName = mapped.Name;
 
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument output = result.Value;
         Assert.Empty(output.Sheets.Single().GetConditionalFormattingRules());
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "source-conditional-style-maps"
@@ -591,7 +591,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         sheet.Cell(0, 0).StyleName = mapped.Name;
         sheet.Cell(0, 1).StyleName = unmodeled.Name;
 
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument output = result.Value;
 
         ExcelConditionalFormattingInfo rule = Assert.Single(output.Sheets.Single().GetConditionalFormattingRules());
@@ -618,7 +618,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
             .SetAttributeValue(tableNamespace + "number-columns-repeated", 4096);
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument output = result.Value;
         using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(output.ToBytes()));
 
@@ -643,7 +643,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
             .SetAttributeValue(tableNamespace + "number-columns-repeated", 4097);
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument output = result.Value;
 
         Assert.Empty(output.Sheets.Single().GetConditionalFormattingRules());
@@ -667,7 +667,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
             .SetAttributeValue(tableNamespace + "number-columns-repeated", 4097);
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument output = result.Value;
 
         Assert.Single(output.Sheets[0].GetConditionalFormattingRules());

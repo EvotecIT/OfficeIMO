@@ -18,13 +18,13 @@ public class RtfHtmlIoTests {
         document.AddParagraph("Clinical ż");
 
         string html = document.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile());
-        byte[] bytes = document.ToHtmlBytes(RtfHtmlExportOptions.CreateRoundTripProfile());
+        byte[] bytes = System.Text.Encoding.UTF8.GetBytes(document.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile()));
 
         Assert.Equal(html, Encoding.UTF8.GetString(bytes));
-        using MemoryStream stream = document.ToHtmlStream(RtfHtmlExportOptions.CreateRoundTripProfile());
+        using MemoryStream stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(document.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile())), writable: false);
         Assert.Equal(bytes, stream.ToArray());
 
-        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtf();
         Assert.Equal("Clinical ż", Assert.Single(roundTrip.Paragraphs).ToPlainText());
     }
 
@@ -33,9 +33,9 @@ public class RtfHtmlIoTests {
         HtmlConversionDocument source = HtmlConversionDocument.Parse("<p>Clinical ż</p>");
         var writeOptions = new RtfSaveOptions { IncludeGenerator = false };
 
-        string rtf = source.ToRtf(writeOptions: writeOptions);
-        byte[] bytes = source.ToRtfBytes(writeOptions: writeOptions);
-        using MemoryStream memoryStream = source.ToRtfStream(writeOptions: writeOptions);
+        string rtf = source.ToRtf().ToRtf(writeOptions);
+        byte[] bytes = source.ToRtf().ToBytes(writeOptions);
+        using MemoryStream memoryStream = source.ToRtf().ToStream(writeOptions);
 
         Assert.Equal(rtf, Encoding.UTF8.GetString(bytes));
         Assert.Equal(bytes, memoryStream.ToArray());
@@ -43,7 +43,7 @@ public class RtfHtmlIoTests {
 
         using var output = new MemoryStream();
         output.WriteByte(0x2A);
-        source.SaveAsRtf(output, writeOptions: writeOptions);
+        source.SaveAsRtf(output, new HtmlRtfExportOptions { SaveOptions = writeOptions });
 
         Assert.Equal(0, output.Position);
         Assert.Equal(bytes, output.ToArray());
@@ -60,8 +60,8 @@ public class RtfHtmlIoTests {
 
             HtmlConversionDocument fromFile = HtmlConversionDocument.Load(path);
             HtmlConversionDocument fromAsyncFile = await HtmlConversionDocument.LoadAsync(path);
-            Assert.Equal("File ż", Assert.Single(fromFile.ToRtfDocument().Paragraphs).ToPlainText());
-            Assert.Equal("File ż", Assert.Single(fromAsyncFile.ToRtfDocument().Paragraphs).ToPlainText());
+            Assert.Equal("File ż", Assert.Single(fromFile.ToRtf().Paragraphs).ToPlainText());
+            Assert.Equal("File ż", Assert.Single(fromAsyncFile.ToRtf().Paragraphs).ToPlainText());
 
             byte[] prefixedHtml = Encoding.UTF8.GetBytes("*" + html);
             using var sourceStream = new MemoryStream(prefixedHtml);
@@ -79,11 +79,11 @@ public class RtfHtmlIoTests {
     public async Task Html_To_Rtf_Async_APIs_Are_Target_IO_Only() {
         HtmlConversionDocument source = HtmlConversionDocument.Parse("<p>Async ż</p>");
         var writeOptions = new RtfSaveOptions { IncludeGenerator = false };
-        byte[] expected = source.ToRtfBytes(writeOptions: writeOptions);
+        byte[] expected = source.ToRtf().ToBytes(writeOptions);
 
         using var output = new MemoryStream();
         output.WriteByte(0x2A);
-        await source.SaveAsRtfAsync(output, writeOptions: writeOptions);
+        await source.SaveAsRtfAsync(output, new HtmlRtfExportOptions { SaveOptions = writeOptions });
 
         Assert.Equal(0, output.Position);
         Assert.Equal(expected, output.ToArray());

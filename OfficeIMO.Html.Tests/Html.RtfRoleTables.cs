@@ -7,7 +7,7 @@ public class HtmlRtfRoleTables {
     public void Rtf_ReportsUnsupportedAriaTableStructureAsApproximation() {
         const string html = "<div role='table'><p>Unstructured</p><div role='row'><div role='cell'>Value</div></div></div>";
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
 
         Assert.Empty(result.RequireValue().Blocks.OfType<RtfTable>());
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
@@ -25,7 +25,7 @@ public class HtmlRtfRoleTables {
             + "<style type='text/less'>p { color: blue; }</style>"
             + "</head><body><p>Content</p></body></html>";
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
 
         Assert.Equal("cid:layout.css", Assert.Single(result.Report.NativeDiagnostics,
             diagnostic => diagnostic.Code == "html-stylesheet-link-skipped").Source);
@@ -37,12 +37,12 @@ public class HtmlRtfRoleTables {
     public void Rtf_AriaRoleTable_SyntheticNodesDoNotConsumeSourceLimits() {
         const string html = "<div role='table'><div role='row'><div role='cell'></div></div></div>";
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult(
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence(
             new HtmlRtfExportOptions { MaxHtmlNodes = 6, MaxHtmlDepth = 5 });
 
         Assert.Single(result.RequireValue().Blocks.OfType<RtfTable>());
         HtmlRtfConversionLimitException exception = Assert.Throws<HtmlRtfConversionLimitException>(() =>
-            HtmlConversionDocument.Parse(html).ToRtfDocumentResult(new HtmlRtfExportOptions { MaxHtmlDepth = 4 }));
+            HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence(new HtmlRtfExportOptions { MaxHtmlDepth = 4 }));
         Assert.Equal(nameof(HtmlRtfExportOptions.MaxHtmlDepth), exception.LimitSource);
     }
 
@@ -52,7 +52,7 @@ public class HtmlRtfRoleTables {
     public void Rtf_AriaRowSpanStopsAtRowGroupBoundary(string span) {
         string html = "<div role='table'><div role='rowgroup'><div role='row'><span role='cell' aria-rowspan='" + span + "'>A</span><span role='cell'>B</span></div>"
             + "<div role='row'><span role='cell'>C</span></div></div><div role='rowgroup'><div role='row'><span role='cell'>D</span><span role='cell'>E</span></div></div></div>";
-        var result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        var result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
         var reopened = RtfDocument.Load(result.RequireValue().ToBytes());
         var table = Assert.Single(reopened.Blocks.OfType<RtfTable>());
         Assert.Equal(RtfTableCellMerge.First, table.Rows[0].Cells[0].VerticalMerge);

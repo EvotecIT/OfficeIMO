@@ -158,7 +158,7 @@ internal static class WorkflowShowcase {
                 });
                 break;
             case "opendocument":
-                OdtDocument.Load(Path.Combine(folder, "example.odt")).ToPdfDocumentResult().Save(preview);
+                OdtDocument.Load(Path.Combine(folder, "example.odt")).SaveAsPdf(preview);
                 break;
             case "rtf":
                 RtfDocument.Load(Path.Combine(folder, "example.rtf")).SaveAsPdf(preview);

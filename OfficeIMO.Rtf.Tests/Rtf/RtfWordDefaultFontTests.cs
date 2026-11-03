@@ -24,7 +24,7 @@ public sealed class RtfWordDefaultFontTests {
         Assert.All(source.Paragraphs.SelectMany(paragraph => paragraph.Runs), run => Assert.Null(run.FontId));
         string original = source.ToRtf();
 
-        using WordDocument converted = source.ToWordDocument();
+        using WordDocument converted = source.ToWord();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(converted.ToBytes()));
         using PdfPigDocument pdf = PdfPigDocument.Open((reopened.ToPdf(PortableOptions())).ToBytes());
 
@@ -45,7 +45,7 @@ public sealed class RtfWordDefaultFontTests {
         source.AddParagraph("Anchor").AddNoteReference(note);
         string original = source.ToRtf();
 
-        using WordDocument converted = source.ToWordDocument();
+        using WordDocument converted = source.ToWord();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(converted.ToBytes()));
         using PdfPigDocument pdf = PdfPigDocument.Open((reopened.ToPdf(PortableOptions())).ToBytes());
 
@@ -70,7 +70,7 @@ public sealed class RtfWordDefaultFontTests {
         run.FontId = directFont;
         string original = source.ToRtf();
 
-        using WordDocument converted = source.ToWordDocument();
+        using WordDocument converted = source.ToWord();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(converted.ToBytes()));
         using PdfPigDocument pdf = PdfPigDocument.Open((reopened.ToPdf(PortableOptions())).ToBytes());
 

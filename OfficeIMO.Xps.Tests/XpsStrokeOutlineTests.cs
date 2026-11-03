@@ -150,7 +150,7 @@ public sealed class XpsStrokeOutlineTests {
         Assert.True(image.GetPixel(76,76).B > 200 && image.GetPixel(76,76).R < 30);
         Assert.True(image.GetPixel(80,80).R > 240);
         Assert.True(doc.Pages[0].ToSvg().IsComplete);
-        Assert.DoesNotContain("/Subtype /Image", System.Text.Encoding.ASCII.GetString(doc.ToPdf()));
+        Assert.DoesNotContain("/Subtype /Image", System.Text.Encoding.ASCII.GetString(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })));
     }
 
     [Theory]
@@ -162,7 +162,7 @@ public sealed class XpsStrokeOutlineTests {
         Assert.True(image.GetPixel(35,80).R < 30);
         Assert.True(image.GetPixel(35,86).R > 240);
         Assert.True(image.GetPixel(165,86).R < 30);
-        var reimport = OfficeDrawingRasterRenderer.Render(PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf())).Pages[0].ToDrawing(), scale: 4D/3D, background: OfficeColor.White);
+        var reimport = OfficeDrawingRasterRenderer.Render(PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages[0].ToDrawing(), scale: 4D/3D, background: OfficeColor.White);
         Assert.True(reimport.GetPixel(35,80).R < 30);
         Assert.True(reimport.GetPixel(35,86).R > 240);
     }

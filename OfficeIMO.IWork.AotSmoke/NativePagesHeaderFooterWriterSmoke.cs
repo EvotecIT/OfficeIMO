@@ -50,7 +50,7 @@ internal static class NativePagesHeaderFooterWriterSmoke {
             && projection.Sections[0].DefaultPageFooterContents.Single().PlainText == footer
             && projection.PageLayout!.HeaderMarginPoints == 30 && projection.PageLayout.FooterMarginPoints == 36,
             "Page text or distances differ.");
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(new MemoryStream(bytes), conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var saved = WordprocessingDocument.Open(output, false);

@@ -27,7 +27,7 @@ public sealed class IWorkPagesRichNumberedItemWritingTests {
             Assert.False(markerDefaults.Bold); Assert.False(markerDefaults.Italic);
             Assert.False(markerDefaults.Underline); Assert.False(markerDefaults.Strikethrough);
         }
-        using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction(); using var output = new MemoryStream(); result.Value.Save(output);
         using (var reopened = WordDocument.Load(new MemoryStream(output.ToArray())))
             Assert.Equal(items.Select(paragraph => paragraph.ListNumber!.Value),

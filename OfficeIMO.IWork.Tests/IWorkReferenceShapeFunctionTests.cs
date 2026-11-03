@@ -16,7 +16,7 @@ public sealed partial class IWorkBoundaryTests {
             Message(VarintField(1, 16), VarintField(2, (ulong)index), VarintField(3, 1)));
         using var package = CreateNumbersPackage(new[] { new TableSpec("Shape", 1, 1, 42d,
             hasFormula: true, formulaPayload: formula) });
-        using var converted = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var converted = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal(name + "({1,2,3})", reopened.Sheets[0].GetFormulaText(1, 1));
@@ -42,8 +42,7 @@ public sealed partial class IWorkBoundaryTests {
         }
         nodes.Add(Message(VarintField(1, 16), VarintField(2, (ulong)index), VarintField(3, 1)));
         using var package = CrossBindingPackage(formulaPayload: SingleCellFormula(nodes.ToArray()));
-        using var converted = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new IWorkConversionOptions { NormalizeWorksheetNames = true });
+        using var converted = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { NormalizeWorksheetNames = true });
         Assert.False(converted.IsVisualFallback);
         Assert.True(converted.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.FormulaIsComplete);
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
@@ -69,7 +68,7 @@ public sealed partial class IWorkBoundaryTests {
         int index, string name, int arguments, double expected) {
         using var package = CreateNumbersPackage(new[] { new TableSpec("Shape", 1, 1, 42d,
             hasFormula: true, formulaPayload: FunctionPayload(index, arguments)) });
-        using var converted = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var converted = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal(name + "(" + (arguments == 0 ? "" : "1") + ")", reopened.Sheets[0].GetFormulaText(1, 1));

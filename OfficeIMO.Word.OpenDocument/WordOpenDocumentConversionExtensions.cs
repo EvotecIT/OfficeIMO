@@ -8,12 +8,7 @@ namespace OfficeIMO.Word.OpenDocument;
 
 /// <summary>Explicit conversions between OfficeIMO Word and native OpenDocument text models.</summary>
 public static partial class WordOpenDocumentConversionExtensions {
-    /// <summary>Converts a Word document to an in-memory ODT document.</summary>
-    public static OdtDocument ToOpenDocument(this WordDocument source,
-        WordOpenDocumentConversionOptions? options = null) => source.ToOpenDocumentResult(options).Value;
-
-    /// <summary>Converts a Word document to an in-memory ODT document and reports every lossy mapping.</summary>
-    public static OdfConversionResult<OdtDocument> ToOpenDocumentResult(this WordDocument source,
+    internal static OdfConversionResult<OdtDocument> ConvertToOpenDocumentWithEvidence(this WordDocument source,
         WordOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         WordOpenDocumentConversionOptions effective = options ?? new WordOpenDocumentConversionOptions();
@@ -165,12 +160,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         return new OdfConversionResult<OdtDocument>(target, report).ApplyPolicy(effective.LossPolicy);
     }
 
-    /// <summary>Converts an ODT document to an in-memory Word document.</summary>
-    public static WordDocument ToWordDocument(this OdtDocument source,
-        WordOpenDocumentConversionOptions? options = null) => source.ToWordDocumentResult(options).Value;
-
-    /// <summary>Converts an ODT document to an in-memory Word document and reports every lossy mapping.</summary>
-    public static OdfConversionResult<WordDocument> ToWordDocumentResult(this OdtDocument source,
+    internal static OdfConversionResult<WordDocument> ConvertToWordWithEvidence(this OdtDocument source,
         WordOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         WordOpenDocumentConversionOptions effective = options ?? new WordOpenDocumentConversionOptions();

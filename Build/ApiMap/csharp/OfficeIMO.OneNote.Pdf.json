@@ -9,6 +9,134 @@
       "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
       "category": "options",
       "applied": true
+    },
+    {
+      "old": "OneNoteSection | OneNoteNotebook.ToPdfDocument(OneNotePdfExportOptions options, CancellationToken)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OneNoteSection | OneNoteNotebook.ToPdf(OneNotePdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument",
+      "reason": "PDF converters use the shared shape: ToPdf(options[, out report], ct), ToPdfAsync returning OfficeConversionResult<PdfDocument>, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OneNoteSection | OneNoteNotebook.ToPdfDocumentResult(OneNotePdfExportOptions options, CancellationToken) : PdfDocumentConversionResult",
+      "kind": "method",
+      "action": "merge",
+      "new": "OneNoteSection | OneNoteNotebook.ToPdf(OneNotePdfExportOptions options, out OfficeConversionReport report, CancellationToken cancellationToken = default) : PdfDocument",
+      "reason": "PDF converters use the shared shape: ToPdf(options[, out report], ct), ToPdfAsync returning OfficeConversionResult<PdfDocument>, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Source and PDF-stage diagnostics are in the report.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OneNoteSection | OneNoteNotebook.ToPdfBytes(OneNotePdfExportOptions options, CancellationToken) : byte[]",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use ToPdf(options).ToBytes() or SaveAsPdf(stream, options).",
+      "reason": "Bytes come from the PDF model; the converter has one in-memory form.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OneNoteSection | OneNoteNotebook.SaveAsPdf(string | Stream, OneNotePdfExportOptions options, CancellationToken) : PdfSaveResult",
+      "kind": "method",
+      "action": "change",
+      "new": "OneNoteSection | OneNoteNotebook.SaveAsPdf(string path | Stream stream, OneNotePdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+      "reason": "PDF converters use the shared shape: ToPdf(options[, out report], ct), ToPdfAsync returning OfficeConversionResult<PdfDocument>, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OneNoteSection | OneNoteNotebook.SaveAsPdfResult / SaveAsPdfResultAsync(string | Stream, OneNotePdfExportOptions options, CancellationToken) : PdfSaveResult",
+      "kind": "method",
+      "action": "merge",
+      "new": "OneNoteSection | OneNoteNotebook.SaveAsPdf / SaveAsPdfAsync(...) : OfficeConversionReport",
+      "reason": "Failure evidence travels on OfficeConversionException.Report; a strict failure leaves the destination unchanged.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OneNoteSection | OneNoteNotebook.SaveAsPdfAsync(string | Stream, OneNotePdfExportOptions options, CancellationToken) : Task<PdfSaveResult>",
+      "kind": "method",
+      "action": "change",
+      "new": "OneNoteSection | OneNoteNotebook.SaveAsPdfAsync(string path | Stream stream, OneNotePdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>; ToPdfAsync(...) : Task<OfficeConversionResult<PdfDocument>>",
+      "reason": "PDF converters use the shared shape: ToPdf(options[, out report], ct), ToPdfAsync returning OfficeConversionResult<PdfDocument>, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Conversion runs on the thread pool, or through the asynchronous source pipeline where one exists, instead of converting before the asynchronous write.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OneNotePdfExportOptions without a loss policy",
+      "kind": "property",
+      "action": "change",
+      "new": "OneNotePdfExportOptions.FailOnLoss; OneNotePdfExportOptions.Clone()",
+      "reason": "Conversions use FailOnLoss.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OneNoteSection | OneNoteNotebook.ToVisualPdfDocument(OneNoteVisualPdfOptions options, CancellationToken)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OneNoteSection | OneNoteNotebook.ToVisualPdf(OneNoteVisualPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument",
+      "reason": "PDF converters use the shared shape: ToPdf(options[, out report], ct), ToPdfAsync returning OfficeConversionResult<PdfDocument>, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OneNoteSection | OneNoteNotebook.ToVisualPdfDocumentResult(OneNoteVisualPdfOptions options, CancellationToken) : PdfDocumentConversionResult",
+      "kind": "method",
+      "action": "merge",
+      "new": "OneNoteSection | OneNoteNotebook.ToVisualPdf(OneNoteVisualPdfExportOptions options, out OfficeConversionReport report, CancellationToken cancellationToken = default) : PdfDocument",
+      "reason": "PDF converters use the shared shape: ToPdf(options[, out report], ct), ToPdfAsync returning OfficeConversionResult<PdfDocument>, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Source and PDF-stage diagnostics are in the report.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OneNoteSection | OneNoteNotebook.ToVisualPdfBytes(OneNoteVisualPdfOptions options, CancellationToken) : byte[]",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use ToVisualPdf(options).ToBytes() or SaveAsVisualPdf(stream, options).",
+      "reason": "Bytes come from the PDF model; the converter has one in-memory form.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OneNoteSection | OneNoteNotebook.SaveAsVisualPdf(string | Stream, OneNoteVisualPdfOptions options, CancellationToken) : PdfSaveResult",
+      "kind": "method",
+      "action": "change",
+      "new": "OneNoteSection | OneNoteNotebook.SaveAsVisualPdf(string path | Stream stream, OneNoteVisualPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+      "reason": "PDF converters use the shared shape: ToPdf(options[, out report], ct), ToPdfAsync returning OfficeConversionResult<PdfDocument>, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OneNoteSection | OneNoteNotebook.SaveAsVisualPdfResult / SaveAsVisualPdfResultAsync(string | Stream, OneNoteVisualPdfOptions options, CancellationToken) : PdfSaveResult",
+      "kind": "method",
+      "action": "merge",
+      "new": "OneNoteSection | OneNoteNotebook.SaveAsVisualPdf / SaveAsVisualPdfAsync(...) : OfficeConversionReport",
+      "reason": "Failure evidence travels on OfficeConversionException.Report; a strict failure leaves the destination unchanged.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OneNoteSection | OneNoteNotebook.SaveAsVisualPdfAsync(string | Stream, OneNoteVisualPdfOptions options, CancellationToken) : Task<PdfSaveResult>",
+      "kind": "method",
+      "action": "change",
+      "new": "OneNoteSection | OneNoteNotebook.SaveAsVisualPdfAsync(string path | Stream stream, OneNoteVisualPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>; ToVisualPdfAsync(...) : Task<OfficeConversionResult<PdfDocument>>",
+      "reason": "PDF converters use the shared shape: ToPdf(options[, out report], ct), ToPdfAsync returning OfficeConversionResult<PdfDocument>, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Conversion runs on the thread pool, or through the asynchronous source pipeline where one exists, instead of converting before the asynchronous write.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OneNote.Pdf.OneNoteVisualPdfOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.OneNote.Pdf.OneNoteVisualPdfExportOptions (public Clone, FailOnLoss)",
+      "reason": "Converter options are named {Source}{Target}ExportOptions.",
+      "category": "options",
+      "applied": true
     }
   ]
 }

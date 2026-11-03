@@ -11,17 +11,7 @@ namespace OfficeIMO.PowerPoint.Html;
 /// Extension methods for importing semantic OfficeIMO PowerPoint HTML.
 /// </summary>
 public static partial class HtmlPowerPointConverterExtensions {
-    /// <summary>
-    /// Imports a prepared shared HTML conversion document without reparsing its adapter DOM.
-    /// </summary>
-    public static PptCore.PowerPointDocument ToPowerPointDocument(this HtmlConversionDocument document, HtmlPowerPointExportOptions? options = null) {
-        return GetPresentationOrThrow(ToPowerPointDocumentResult(document, options));
-    }
-
-    /// <summary>
-    /// Imports a prepared shared HTML conversion document and returns the presentation plus structured evidence.
-    /// </summary>
-    public static HtmlToPowerPointResult ToPowerPointDocumentResult(this HtmlConversionDocument document, HtmlPowerPointExportOptions? options = null) {
+    internal static HtmlToPowerPointResult ConvertToPowerPointWithEvidence(this HtmlConversionDocument document, HtmlPowerPointExportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         const HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen;
         IHtmlDocument adapterDocument = document.CreateNativeDocumentForConversion(mediaContext);

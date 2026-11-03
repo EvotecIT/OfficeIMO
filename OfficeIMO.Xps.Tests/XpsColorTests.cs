@@ -57,7 +57,7 @@ public sealed class XpsColorTests {
         Assert.Contains(uri, Relationships(package));
         var pixel = Raster(XpsDocument.Load(package).Pages[0]).GetPixel(10, 10);
         Assert.True(pixel.R >= 253 && pixel.G <= 2 && pixel.B <= 2 && pixel.A == 255);
-        Assert.NotEmpty(doc.ToPdf());
+        Assert.NotEmpty(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public sealed class XpsColorTests {
         var raster = Raster(page);
         Assert.Equal(OfficeColor.Red, raster.GetPixel(15, 20));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(65, 20));
-        Assert.NotEmpty(doc.ToPdf());
+        Assert.NotEmpty(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
     }
 
     [Fact]

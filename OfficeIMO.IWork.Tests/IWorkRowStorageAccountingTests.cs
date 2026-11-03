@@ -91,9 +91,9 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(),
             tilePayload: BytesField(5, Message(TileTestRow(0), VarintField(2, 2))));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package);
-        using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var automatic = source.ToExcelResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(automatic.IsVisualFallback);
-        using var partial = source.ToExcelDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var partial = source.ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.True(partial.Report.IsPartialEditableReconstruction);
         Assert.Throws<InvalidOperationException>(() => partial.Report.RequireCompleteEditableReconstruction());
         using var saved = new MemoryStream();

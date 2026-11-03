@@ -18,6 +18,34 @@
       "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
       "category": "options",
       "applied": true
+    },
+    {
+      "old": "RtfDocument.ToMarkdownDocument / ToMarkdownDocumentResult / ToMarkdown : string / ToMarkdownResult / ToMarkdownBytes / ToMarkdownStream",
+      "kind": "method",
+      "action": "merge",
+      "new": "RtfDocument.ToMarkdown(RtfMarkdownExportOptions options[, out OfficeConversionReport report], CancellationToken) : MarkdownDocument; ToMarkdownAsync; SaveAsMarkdown(path | stream); SaveAsMarkdownAsync",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "replacement": "Call ToMarkdown() on the returned MarkdownDocument for text.",
+      "applied": true
+    },
+    {
+      "old": "MarkdownDocument.ToRtfDocument / ToRtfDocumentResult / ToRtf(options, writeOptions) : string / ToRtfResult / ToRtfBytes / ToRtfStream / SaveAsRtf(..., writeOptions, encoding)",
+      "kind": "method",
+      "action": "merge",
+      "new": "MarkdownDocument.ToRtf(MarkdownRtfExportOptions options[, out OfficeConversionReport report], CancellationToken) : RtfDocument; ToRtfAsync; SaveAsRtf(path | stream); SaveAsRtfAsync",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "Rtf.Markdown options without loss policy or output settings",
+      "kind": "property",
+      "action": "change",
+      "new": "RtfMarkdownExportOptions.Encoding, FailOnLoss, Clone(); MarkdownRtfExportOptions.SaveOptions, Encoding, FailOnLoss, Clone()",
+      "reason": "Output settings and the loss policy live on the converter options.",
+      "category": "options",
+      "applied": true
     }
   ]
 }

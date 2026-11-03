@@ -12,7 +12,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Formula duration", 1, 1, 3600d, hasFormula: true, duration: true)
         });
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         IWorkTableCell cell = Assert.Single(Assert.Single(Assert.Single(result.Projection.Sheets).Tables).Cells);
 
         Assert.Equal(IWorkCellKind.Formula, cell.Kind);
@@ -26,7 +26,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Decimal128", 1, 1, 0d, decimal128HighBit: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
 
         Assert.False(result.IsVisualFallback);
         IWorkTableCell cell = Assert.Single(Assert.Single(Assert.Single(result.Projection.Sheets).Tables).Cells);
@@ -82,7 +82,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(Array.Empty<TableSpec>(), includePreview: true,
             sheetReferenceCount: 2);
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -95,7 +95,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Table", 1, 1, 1d)
         }, includePreview: true, duplicateFirstDrawable: true);
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -117,7 +117,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Duplicate_keynote_slide_references_disable_editable_reconstruction() {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(2);
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -128,7 +128,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Malformed_declared_pages_section_tables_disable_editable_reconstruction() {
         using MemoryStream package = CreatePagesPackageWithMalformedSectionTable();
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -140,7 +140,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: null, includePreview: true,
             bodyBytes: new byte[] { 0xc3, 0x28 });
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -152,7 +152,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(Array.Empty<TableSpec>(), includePreview: true,
             textBoxBytes: new byte[] { 0xc3, 0x28 });
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -163,7 +163,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Invalid_keynote_text_runs_disable_editable_reconstruction() {
         using MemoryStream package = CreateKeynotePackageWithInvalidText();
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -174,7 +174,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Wrong_pages_header_storage_types_disable_editable_reconstruction() {
         using MemoryStream package = CreatePagesPackageWithWrongHeaderStorage();
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -210,7 +210,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Pages_visual_fallback_fits_inside_the_word_section_content_area() {
         using MemoryStream package = CreatePagesPackage(includeBody: false, textBox: null, includePreview: true);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         WordSection section = result.Value.Sections[0];
         double contentWidth = ((long)(checked((uint?)(section.PageSetup.Size.Width?.ToTwips())) ?? checked((uint)(WordPageSizes.Letter.Width.ToTwips())))
@@ -227,7 +227,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_rotation_outside_the_pptx_range_uses_visual_fallback() {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1, rotation: float.MaxValue);
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -237,7 +237,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_font_size_outside_the_pptx_range_uses_visual_fallback() {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1, fontSize: 5000f);
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -247,7 +247,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Wrong_wire_keynote_slide_size_disables_editable_reconstruction() {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1, wrongWireSlideSize: true);
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -262,7 +262,7 @@ public sealed partial class IWorkBoundaryTests {
                      CreateKeynotePackageWithRepeatedSlides(1, slideType: 9999)
                  }) {
             using (package)
-            using (var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false })) {
+            using (var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false })) {
                 Assert.True(result.IsVisualFallback);
                 Assert.False(result.Projection.HasEditableContent);
             }
@@ -277,11 +277,9 @@ public sealed partial class IWorkBoundaryTests {
             includePreview: true, textBoxBytes: new byte[] { 0x01 });
         using MemoryStream keynotePackage = CreateKeynotePackageWithInvalidText(new byte[] { 0x01 });
 
-        using var pages = WordIWorkConverter.ConvertPagesToWordResult(pagesPackage, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
-        using var numbers = ExcelIWorkConverter.ConvertNumbersToExcelResult(numbersPackage,
-            conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
-        using var keynote = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(keynotePackage,
-            conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var pages = IWorkSourceDocument.Open(pagesPackage, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var numbers = IWorkSourceDocument.Open(numbersPackage, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var keynote = IWorkSourceDocument.Open(keynotePackage, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(pages.IsVisualFallback);
         Assert.True(numbers.IsVisualFallback);
@@ -293,7 +291,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1, rotation: 0f,
             omitPositiveSize: true);
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>

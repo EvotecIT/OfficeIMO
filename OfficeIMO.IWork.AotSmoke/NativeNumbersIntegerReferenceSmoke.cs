@@ -8,8 +8,7 @@ internal static class NativeNumbersIntegerReferenceSmoke {
         string path = Path.Combine(AppContext.BaseDirectory, "integer-references.numbers");
         const string expectedHash = "A09E06AF365CFBE210DF7C1F5DC781630061DF61C0E74ED2571A9E0C834B4970";
         Require(Hash(path) == expectedHash, "Native integer reference fixture changed.");
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         IWorkTable table = result.Projection.Sheets.Single().Tables.Single();
         Require(table.Cells.Count(c => c.Kind == IWorkCellKind.Formula && c.FormulaIsComplete) == 39
             && !table.GetCell(10, 6)!.FormulaIsComplete && (double)table.GetCell(10, 6)!.Value! == 0,

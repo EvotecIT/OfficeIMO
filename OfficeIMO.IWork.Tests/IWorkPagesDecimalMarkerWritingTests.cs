@@ -69,7 +69,7 @@ public sealed class IWorkPagesDecimalMarkerWritingTests {
             Assert.All(items.Where(p => p.Text != "Other root three"), p => Assert.Equal(sample, p.ListLabel));
             Assert.All(items, p => Assert.Equal(new string(' ', p.ListLevel * 2) + p.ListNumber + ". " + p.Text,
                 IWorkReadProjection.RichTextMarkdown(p)));
-            using var result = input.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+            using var result = input.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
             result.RequireCompleteEditableReconstruction();
             using var savedBytes = new MemoryStream(); result.Value.Save(savedBytes); savedBytes.Position = 0;
             using var saved = WordDocument.Load(savedBytes);
@@ -117,7 +117,7 @@ public sealed class IWorkPagesDecimalMarkerWritingTests {
                 Assert.Equal("Level EIGHT", projection.Body.Paragraphs[9].Text);
                 Assert.Equal("Native deep two", items[^1].Text);
             }
-            using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+            using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
             result.RequireCompleteEditableReconstruction(); using var bytes = new MemoryStream(); result.Value.Save(bytes); bytes.Position = 0;
             using var saved = WordDocument.Load(bytes);
             Assert.Equal(items.Select(p => p.Text == "Other root three" ? "3."

@@ -14,17 +14,17 @@ public class RtfMarkdownConverterTests {
         RtfDocument rtf = RtfDocument.Create();
         rtf.AddParagraph("RTF to Markdown");
 
-        Assert.Equal("RTF to Markdown", Encoding.UTF8.GetString(rtf.ToMarkdownBytes()).Trim());
-        using MemoryStream markdownStream = rtf.ToMarkdownStream();
+        Assert.Equal("RTF to Markdown", Encoding.UTF8.GetString(System.Text.Encoding.UTF8.GetBytes(rtf.ToMarkdown().ToMarkdown())).Trim());
+        using MemoryStream markdownStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(rtf.ToMarkdown().ToMarkdown()));
         Assert.Equal(0, markdownStream.Position);
         using var savedMarkdown = new MemoryStream();
         await rtf.SaveAsMarkdownAsync(savedMarkdown);
         Assert.Contains("RTF to Markdown", Encoding.UTF8.GetString(savedMarkdown.ToArray()), StringComparison.Ordinal);
 
         MarkdownDocument markdown = MarkdownDocument.Create().P("Markdown to RTF");
-        byte[] rtfBytes = markdown.ToRtfBytes();
+        byte[] rtfBytes = markdown.ToRtf().ToBytes();
         Assert.StartsWith("{\\rtf", Encoding.UTF8.GetString(rtfBytes), StringComparison.Ordinal);
-        using MemoryStream rtfStream = markdown.ToRtfStream();
+        using MemoryStream rtfStream = markdown.ToRtf().ToStream();
         Assert.Equal(0, rtfStream.Position);
         using var savedRtf = new MemoryStream();
         await markdown.SaveAsRtfAsync(savedRtf);
@@ -58,7 +58,7 @@ public class RtfMarkdownConverterTests {
         table.Rows[1].Cells[0].AddParagraph("Alpha");
         table.Rows[1].Cells[1].AddParagraph("Beta");
 
-        string markdown = document.ToMarkdown();
+        string markdown = document.ToMarkdown().ToMarkdown();
 
         Assert.Contains("**bold**", markdown);
         Assert.Contains("*italic*", markdown);
@@ -84,7 +84,7 @@ public class RtfMarkdownConverterTests {
             | Alpha | Beta |
             """;
 
-        RtfDocument document = MarkdownDocument.Parse(markdown).ToRtfDocument();
+        RtfDocument document = MarkdownDocument.Parse(markdown).ToRtf();
 
         Assert.Equal("Title", document.Paragraphs[0].ToPlainText());
         Assert.Equal(0, document.Paragraphs[0].OutlineLevel);
@@ -103,8 +103,8 @@ public class RtfMarkdownConverterTests {
             This is **important** and includes `code`.
             """;
 
-        RtfDocument document = MarkdownDocument.Parse(markdown).ToRtfDocument();
-        string roundTripMarkdown = document.ToMarkdown();
+        RtfDocument document = MarkdownDocument.Parse(markdown).ToRtf();
+        string roundTripMarkdown = document.ToMarkdown().ToMarkdown();
 
         Assert.Contains("## Overview", roundTripMarkdown);
         Assert.Contains("**important**", roundTripMarkdown);
@@ -115,7 +115,7 @@ public class RtfMarkdownConverterTests {
     public void MarkdownImagesEmitDiagnosticWhenBinaryPayloadIsNotProvided() {
         var options = new MarkdownRtfExportOptions();
 
-        RtfConversionResult<RtfDocument> result = MarkdownDocument.Parse("![Logo](logo.png)").ToRtfDocumentResult(options);
+        RtfConversionResult<RtfDocument> result = MarkdownDocument.Parse("![Logo](logo.png)").ConvertToRtfWithEvidence(options);
         RtfDocument document = result.Value;
 
         Assert.Contains(document.Paragraphs, paragraph => paragraph.ToPlainText().Contains("[Image: Logo]", StringComparison.Ordinal));
@@ -131,8 +131,8 @@ public class RtfMarkdownConverterTests {
         table.Rows[0].Cells[0].AddParagraph("Header");
         table.Rows[1].Cells[0].AddParagraph("**not bold**");
 
-        string markdown = document.ToMarkdown();
-        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtfDocument();
+        string markdown = document.ToMarkdown().ToMarkdown();
+        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtf();
 
         Assert.Contains("&lt;u&gt;literal&lt;/u&gt;", markdown, StringComparison.Ordinal);
         Assert.Contains(@"\*\*not bold\*\*", markdown, StringComparison.Ordinal);
@@ -150,8 +150,8 @@ public class RtfMarkdownConverterTests {
         paragraph.AddText(" ");
         paragraph.AddText("underlined").SetBold().SetUnderline(RtfUnderlineStyle.Single);
 
-        string markdown = document.ToMarkdown();
-        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtfDocument();
+        string markdown = document.ToMarkdown().ToMarkdown();
+        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtf();
 
         Assert.Contains("[**link**](https://evotec.xyz/)", markdown, StringComparison.Ordinal);
         Assert.Contains("**<u>underlined</u>**", markdown, StringComparison.Ordinal);
@@ -164,8 +164,8 @@ public class RtfMarkdownConverterTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph().AddText("raised").SetUnderline(RtfUnderlineStyle.Single).VerticalPosition = RtfVerticalPosition.Superscript;
 
-        string markdown = document.ToMarkdown();
-        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtfDocument();
+        string markdown = document.ToMarkdown().ToMarkdown();
+        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtf();
 
         Assert.Contains("<u><sup>raised</sup></u>", markdown, StringComparison.Ordinal);
         Assert.Contains(roundTrip.Paragraphs[0].Runs, run =>
@@ -176,7 +176,7 @@ public class RtfMarkdownConverterTests {
 
     [Fact]
     public void MarkdownToRtfDocumentPreservesHtmlInlineFormattingTags() {
-        RtfDocument document = MarkdownDocument.Parse("<u>under</u> <sup>up</sup> <sub>down</sub>").ToRtfDocument();
+        RtfDocument document = MarkdownDocument.Parse("<u>under</u> <sup>up</sup> <sub>down</sub>").ToRtf();
 
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         Assert.Contains(paragraph.Runs, run => run.Text == "under" && run.UnderlineStyle != RtfUnderlineStyle.None);
@@ -188,7 +188,7 @@ public class RtfMarkdownConverterTests {
     public void MarkdownToRtfDocumentRejectsUnsupportedHtmlNestedInSupportedWrapper() {
         var options = new MarkdownRtfExportOptions();
 
-        RtfConversionResult<RtfDocument> result = MarkdownDocument.Parse("<u><span>x</span></u>").ToRtfDocumentResult(options);
+        RtfConversionResult<RtfDocument> result = MarkdownDocument.Parse("<u><span>x</span></u>").ConvertToRtfWithEvidence(options);
         RtfDocument document = result.Value;
 
         Assert.Empty(document.Paragraphs);
@@ -197,7 +197,7 @@ public class RtfMarkdownConverterTests {
 
     [Fact]
     public void MarkdownToRtfDocumentPreservesDecodedEntityTextInsideHtmlWrappers() {
-        RtfDocument document = MarkdownDocument.Parse("<u>&amp;lt;</u>").ToRtfDocument();
+        RtfDocument document = MarkdownDocument.Parse("<u>&amp;lt;</u>").ToRtf();
 
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         RtfRun run = Assert.Single(paragraph.Runs);
@@ -214,7 +214,7 @@ public class RtfMarkdownConverterTests {
             <!-- hidden -->
 
             Visible
-            """).ToRtfDocumentResult(options);
+            """).ConvertToRtfWithEvidence(options);
         RtfDocument document = result.Value;
 
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
@@ -224,7 +224,7 @@ public class RtfMarkdownConverterTests {
 
     [Fact]
     public void MarkdownToRtfDocumentKeepsEntitiesLiteralInsideCodeSpans() {
-        RtfDocument document = MarkdownDocument.Parse("`&lt;tag&gt;` &lt;tag&gt;").ToRtfDocument();
+        RtfDocument document = MarkdownDocument.Parse("`&lt;tag&gt;` &lt;tag&gt;").ToRtf();
 
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
 
@@ -234,7 +234,7 @@ public class RtfMarkdownConverterTests {
 
     [Fact]
     public void MarkdownToRtfDocument_Renders_SoftBreak_As_Space() {
-        RtfDocument document = MarkdownDocument.Parse("Alpha\nBeta").ToRtfDocument();
+        RtfDocument document = MarkdownDocument.Parse("Alpha\nBeta").ToRtf();
 
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
 
@@ -251,8 +251,8 @@ public class RtfMarkdownConverterTests {
             ```
             """;
 
-        RtfDocument serialized = RtfDocument.ParseResult(MarkdownDocument.Parse(markdown).ToRtf()).Document;
-        string roundTripMarkdown = serialized.ToMarkdown().Replace("\r\n", "\n");
+        RtfDocument serialized = RtfDocument.ParseResult(MarkdownDocument.Parse(markdown).ToRtf().ToRtf()).Document;
+        string roundTripMarkdown = serialized.ToMarkdown().ToMarkdown().Replace("\r\n", "\n");
         CodeBlock code = Assert.IsType<CodeBlock>(Assert.Single(MarkdownDocument.Parse(roundTripMarkdown).Blocks));
 
         Assert.Contains("```csharp\n# not heading\n- not list\n```", roundTripMarkdown, StringComparison.Ordinal);
@@ -268,8 +268,8 @@ public class RtfMarkdownConverterTests {
             ```
             """;
 
-        RtfDocument serialized = RtfDocument.ParseResult(MarkdownDocument.Parse(markdown).ToRtf()).Document;
-        string roundTripMarkdown = serialized.ToMarkdown().Replace("\r\n", "\n");
+        RtfDocument serialized = RtfDocument.ParseResult(MarkdownDocument.Parse(markdown).ToRtf().ToRtf()).Document;
+        string roundTripMarkdown = serialized.ToMarkdown().ToMarkdown().Replace("\r\n", "\n");
         CodeBlock code = Assert.IsType<CodeBlock>(Assert.Single(MarkdownDocument.Parse(roundTripMarkdown).Blocks));
 
         Assert.Contains("```c++ title=\"demo\"", roundTripMarkdown, StringComparison.Ordinal);
@@ -288,7 +288,7 @@ public class RtfMarkdownConverterTests {
             | **Bold** | [Link](https://evotec.xyz) |
             """;
 
-        RtfDocument document = MarkdownDocument.Parse(markdown).ToRtfDocument();
+        RtfDocument document = MarkdownDocument.Parse(markdown).ToRtf();
 
         RtfParagraph parent = Assert.Single(document.Paragraphs, paragraph => paragraph.ToPlainText() == "Parent");
         RtfParagraph child = Assert.Single(document.Paragraphs, paragraph => paragraph.ToPlainText() == "Child");
@@ -314,7 +314,7 @@ public class RtfMarkdownConverterTests {
               repeat
             """;
 
-        RtfDocument document = MarkdownDocument.Parse(markdown).ToRtfDocument();
+        RtfDocument document = MarkdownDocument.Parse(markdown).ToRtf();
         var plainText = document.Paragraphs.Select(paragraph => paragraph.ToPlainText()).ToArray();
 
         Assert.Equal(2, plainText.Count(text => text == "repeat"));
@@ -326,7 +326,7 @@ public class RtfMarkdownConverterTests {
         RtfDocument document = MarkdownDocument.Parse("""
             3. Parent
                - Child
-            """).ToRtfDocument();
+            """).ToRtf();
 
         RtfParagraph parent = Assert.Single(document.Paragraphs, paragraph => paragraph.ToPlainText() == "Parent");
         RtfParagraph child = Assert.Single(document.Paragraphs, paragraph => paragraph.ToPlainText() == "Child");
@@ -346,7 +346,7 @@ public class RtfMarkdownConverterTests {
         RtfDocument document = MarkdownDocument.Parse("""
             1. Parent
                5. Child
-            """).ToRtfDocument();
+            """).ToRtf();
 
         RtfParagraph parent = Assert.Single(document.Paragraphs, paragraph => paragraph.ToPlainText() == "Parent");
         RtfParagraph child = Assert.Single(document.Paragraphs, paragraph => paragraph.ToPlainText() == "Child");
@@ -367,7 +367,7 @@ public class RtfMarkdownConverterTests {
         string rtf = MarkdownDocument.Parse("""
             1. Parent
                5. Child
-            """).ToRtf();
+            """).ToRtf().ToRtf();
 
         Assert.Contains(@"\listoverridecount0", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\listoverridecount9", rtf, StringComparison.Ordinal);
@@ -381,7 +381,7 @@ public class RtfMarkdownConverterTests {
             | Name | Count | Status |
             | :--- | ---: | :---: |
             | Alpha | 42 | Ready |
-            """).ToRtfDocument();
+            """).ToRtf();
 
         RtfTable table = Assert.IsType<RtfTable>(document.Blocks.OfType<RtfTable>().Single());
 
@@ -400,8 +400,8 @@ public class RtfMarkdownConverterTests {
         table.Rows[1].Cells[0].AddParagraph("Alpha").SetAlignment(RtfTextAlignment.Center);
         table.Rows[1].Cells[1].AddParagraph("42").SetAlignment(RtfTextAlignment.Right);
 
-        string markdown = document.ToMarkdown();
-        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtfDocument();
+        string markdown = document.ToMarkdown().ToMarkdown();
+        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtf();
         RtfTable roundTripTable = Assert.IsType<RtfTable>(roundTrip.Blocks.OfType<RtfTable>().Single());
 
         Assert.Contains("| :---: | ---: |", markdown, StringComparison.Ordinal);
@@ -415,7 +415,7 @@ public class RtfMarkdownConverterTests {
         document.AddParagraph("[x] Done").SetList(kind: RtfListKind.Bullet);
         document.AddParagraph("[ ] Todo").SetList(kind: RtfListKind.Bullet);
 
-        string markdown = document.ToMarkdown();
+        string markdown = document.ToMarkdown().ToMarkdown();
         MarkdownDocument parsed = MarkdownDocument.Parse(markdown);
         UnorderedListBlock list = Assert.IsType<UnorderedListBlock>(Assert.Single(parsed.Blocks));
 
@@ -434,7 +434,7 @@ public class RtfMarkdownConverterTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("[x]ylophone").SetList(kind: RtfListKind.Bullet);
 
-        string markdown = document.ToMarkdown();
+        string markdown = document.ToMarkdown().ToMarkdown();
         MarkdownDocument parsed = MarkdownDocument.Parse(markdown);
         UnorderedListBlock list = Assert.IsType<UnorderedListBlock>(Assert.Single(parsed.Blocks));
 
@@ -447,8 +447,8 @@ public class RtfMarkdownConverterTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("# Heading\n- item\n1. item\n---\nTerm: Definition");
 
-        string markdown = document.ToMarkdown();
-        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtfDocument();
+        string markdown = document.ToMarkdown().ToMarkdown();
+        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtf();
 
         Assert.Contains(@"\# Heading", markdown, StringComparison.Ordinal);
         Assert.Contains(@"\- item", markdown, StringComparison.Ordinal);
@@ -467,8 +467,8 @@ public class RtfMarkdownConverterTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("~~not strike~~ ==not mark==");
 
-        string markdown = document.ToMarkdown();
-        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtfDocument();
+        string markdown = document.ToMarkdown().ToMarkdown();
+        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtf();
 
         Assert.Contains(@"\~\~not strike\~\~", markdown, StringComparison.Ordinal);
         Assert.Contains(@"\=\=not mark\=\=", markdown, StringComparison.Ordinal);
@@ -481,8 +481,8 @@ public class RtfMarkdownConverterTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("&lt; &#42;");
 
-        string markdown = document.ToMarkdown();
-        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtfDocument();
+        string markdown = document.ToMarkdown().ToMarkdown();
+        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtf();
 
         Assert.Contains("&amp;lt; &amp;#42;", markdown, StringComparison.Ordinal);
         Assert.Equal("&lt; &#42;", roundTrip.Paragraphs[0].ToPlainText());
@@ -500,8 +500,8 @@ public class RtfMarkdownConverterTests {
         table.Rows[1].Cells[1].AddParagraph().AddText("up").VerticalPosition = RtfVerticalPosition.Superscript;
         table.Rows[1].Cells[2].AddParagraph().AddText("down").VerticalPosition = RtfVerticalPosition.Subscript;
 
-        string markdown = document.ToMarkdown();
-        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtfDocument();
+        string markdown = document.ToMarkdown().ToMarkdown();
+        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtf();
         RtfTable roundTripTable = Assert.IsType<RtfTable>(roundTrip.Blocks.OfType<RtfTable>().Single());
 
         Assert.Contains("<u>under</u>", markdown, StringComparison.Ordinal);
@@ -522,8 +522,8 @@ public class RtfMarkdownConverterTests {
         table.Rows[0].Cells[0].AddParagraph("Value");
         table.Rows[1].Cells[0].AddParagraph(literal);
 
-        string markdown = document.ToMarkdown();
-        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtfDocument();
+        string markdown = document.ToMarkdown().ToMarkdown();
+        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtf();
         RtfTable roundTripTable = Assert.IsType<RtfTable>(roundTrip.Blocks.OfType<RtfTable>().Single());
 
         Assert.Contains("| " + encoded + " |", markdown, StringComparison.Ordinal);
@@ -538,8 +538,8 @@ public class RtfMarkdownConverterTests {
         table.Rows[0].Cells[0].AddParagraph("Value");
         table.Rows[1].Cells[0].AddParagraph("Key: value");
 
-        string markdown = document.ToMarkdown();
-        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtfDocument();
+        string markdown = document.ToMarkdown().ToMarkdown();
+        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtf();
         RtfTable roundTripTable = Assert.IsType<RtfTable>(roundTrip.Blocks.OfType<RtfTable>().Single());
 
         Assert.Contains("| Key: value |", markdown, StringComparison.Ordinal);
@@ -549,7 +549,7 @@ public class RtfMarkdownConverterTests {
 
     [Fact]
     public void MarkdownToRtfDocumentPreservesDefinitionListTermsAndInlineFormatting() {
-        RtfDocument document = MarkdownDocument.Parse("Term: **Definition**").ToRtfDocument();
+        RtfDocument document = MarkdownDocument.Parse("Term: **Definition**").ToRtf();
 
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         Assert.Equal("Term: Definition", paragraph.ToPlainText());
@@ -564,7 +564,7 @@ public class RtfMarkdownConverterTests {
             [^1]: Note **bold**
             """;
 
-        RtfDocument document = MarkdownDocument.Parse(markdown).ToRtfDocument();
+        RtfDocument document = MarkdownDocument.Parse(markdown).ToRtf();
 
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         RtfGeneratedText reference = Assert.Single(paragraph.Inlines.OfType<RtfGeneratedText>());
@@ -583,7 +583,7 @@ public class RtfMarkdownConverterTests {
             [^1]: see [^1]
             """;
 
-        RtfConversionResult<RtfDocument> result = MarkdownDocument.Parse(markdown).ToRtfDocumentResult(options);
+        RtfConversionResult<RtfDocument> result = MarkdownDocument.Parse(markdown).ConvertToRtfWithEvidence(options);
         RtfDocument document = result.Value;
 
         RtfGeneratedText reference = Assert.Single(document.Paragraphs[0].Inlines.OfType<RtfGeneratedText>());
@@ -601,8 +601,8 @@ public class RtfMarkdownConverterTests {
                1. second
             """;
 
-        RtfDocument serialized = RtfDocument.ParseResult(MarkdownDocument.Parse(markdown).ToRtf()).Document;
-        string roundTripMarkdown = serialized.ToMarkdown().Replace("\r\n", "\n");
+        RtfDocument serialized = RtfDocument.ParseResult(MarkdownDocument.Parse(markdown).ToRtf().ToRtf()).Document;
+        string roundTripMarkdown = serialized.ToMarkdown().ToMarkdown().Replace("\r\n", "\n");
 
         Assert.Contains("5. first", roundTripMarkdown, StringComparison.Ordinal);
         Assert.Contains("1. second", roundTripMarkdown, StringComparison.Ordinal);
@@ -618,7 +618,7 @@ public class RtfMarkdownConverterTests {
         MarkdownDocument markdownDoc = MarkdownDocument.Create();
         markdownDoc.Add(list);
 
-        RtfDocument listDocument = markdownDoc.ToRtfDocument();
+        RtfDocument listDocument = markdownDoc.ToRtf();
 
         Assert.Contains(listDocument.Paragraphs, paragraph => paragraph.ToPlainText() == "Lead" && paragraph.ListKind == RtfListKind.Bullet);
         Assert.Contains(listDocument.Paragraphs, paragraph => paragraph.ToPlainText() == "Continuation" && paragraph.ListKind == RtfListKind.None);
@@ -627,14 +627,14 @@ public class RtfMarkdownConverterTests {
             | Name | Value |
             | --- | --- |
             | Alpha | Beta |
-            """).ToRtfDocument();
+            """).ToRtf();
         RtfTable table = Assert.IsType<RtfTable>(tableDocument.Blocks.OfType<RtfTable>().Single());
         Assert.True(table.Rows[0].RepeatHeader);
-        string tableRoundTripMarkdown = tableDocument.ToMarkdown();
+        string tableRoundTripMarkdown = tableDocument.ToMarkdown().ToMarkdown();
         Assert.Contains("| Name | Value |", tableRoundTripMarkdown, StringComparison.Ordinal);
         Assert.Contains("| --- | --- |", tableRoundTripMarkdown, StringComparison.Ordinal);
 
-        RtfDocument escaped = MarkdownDocument.Parse(@"&amp;lt; &amp;#42;").ToRtfDocument();
+        RtfDocument escaped = MarkdownDocument.Parse(@"&amp;lt; &amp;#42;").ToRtf();
         Assert.Equal("&lt; &#42;", escaped.Paragraphs[0].ToPlainText());
     }
 
@@ -644,8 +644,8 @@ public class RtfMarkdownConverterTests {
         RtfTable table = document.AddTable(1, 1);
         table.Rows[0].Cells[0].AddParagraph("Only row");
 
-        string markdown = document.ToMarkdown();
-        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtfDocument();
+        string markdown = document.ToMarkdown().ToMarkdown();
+        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtf();
 
         Assert.Equal("""
             <!-- OfficeIMO:RTF:HeaderlessSingleRowTable -->
@@ -668,7 +668,7 @@ public class RtfMarkdownConverterTests {
         RtfDocument document = MarkdownDocument.Parse("""
             <!-- OfficeIMO:RTF:HeaderlessSingleRowTable -->
             | Only row |
-            """, options.ReaderOptions).ToRtfDocument(options);
+            """, options.ReaderOptions).ToRtf(options);
 
         RtfTable table = Assert.IsType<RtfTable>(document.Blocks.OfType<RtfTable>().Single());
         Assert.Single(table.Rows);
@@ -688,7 +688,7 @@ public class RtfMarkdownConverterTests {
         levelOverride.StartAt = 9;
         document.AddParagraph("Three").SetList(listId: 7, level: 0, kind: RtfListKind.Decimal).ListDefinitionId = 100;
 
-        string markdown = document.ToMarkdown();
+        string markdown = document.ToMarkdown().ToMarkdown();
 
         Assert.Contains("3. Three", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("9. Three", markdown, StringComparison.Ordinal);
@@ -700,7 +700,7 @@ public class RtfMarkdownConverterTests {
         document.AddParagraph("Item").SetList(kind: RtfListKind.Bullet);
         document.AddParagraph("Indented standalone").SetIndentation(leftTwips: 720);
 
-        string markdown = document.ToMarkdown();
+        string markdown = document.ToMarkdown().ToMarkdown();
         MarkdownDocument parsed = MarkdownDocument.Parse(markdown);
 
         Assert.Collection(parsed.Blocks,
@@ -733,9 +733,9 @@ public class RtfMarkdownConverterTests {
             - Next
             """;
 
-        RtfDocument document = MarkdownDocument.Parse(markdown).ToRtfDocument();
+        RtfDocument document = MarkdownDocument.Parse(markdown).ToRtf();
         RtfDocument serialized = RtfDocument.ParseResult(document.ToRtf()).Document;
-        string roundTripMarkdown = serialized.ToMarkdown().Replace("\r\n", "\n");
+        string roundTripMarkdown = serialized.ToMarkdown().ToMarkdown().Replace("\r\n", "\n");
         MarkdownDocument parsed = MarkdownDocument.Parse(roundTripMarkdown);
         UnorderedListBlock list = Assert.IsType<UnorderedListBlock>(Assert.Single(parsed.Blocks));
 
@@ -754,7 +754,7 @@ public class RtfMarkdownConverterTests {
         document.AddParagraph().AddFootnote("1", "Footnote body");
         var options = new RtfMarkdownExportOptions();
 
-        RtfConversionResult<string> result = document.ToMarkdownResult(options);
+        RtfConversionResult<string> result = document.ConvertToMarkdownTextWithEvidence(options);
         string markdown = result.Value.Replace("\r\n", "\n");
 
         Assert.Contains("<sup>1</sup>[^fn1]", markdown, StringComparison.Ordinal);
@@ -777,7 +777,7 @@ public class RtfMarkdownConverterTests {
         document.AddParagraph("Body").AddNoteReference(note, "1");
         var options = new RtfMarkdownExportOptions();
 
-        RtfConversionResult<string> result = document.ToMarkdownResult(options);
+        RtfConversionResult<string> result = document.ConvertToMarkdownTextWithEvidence(options);
         string markdown = result.Value.Replace("\r\n", "\n");
         MarkdownDocument parsed = MarkdownDocument.Parse(markdown);
         FootnoteDefinitionBlock definition = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(parsed.Blocks, block => block is FootnoteDefinitionBlock));
@@ -795,7 +795,7 @@ public class RtfMarkdownConverterTests {
         RtfRun hiddenReference = document.AddParagraph().AddFootnote("1", "Hidden footnote body");
         hiddenReference.Hidden = true;
 
-        string markdown = document.ToMarkdown(new RtfMarkdownExportOptions { IncludeHiddenText = false });
+        string markdown = document.ToMarkdown(new RtfMarkdownExportOptions { IncludeHiddenText = false }).ToMarkdown();
 
         Assert.DoesNotContain("fn1", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("Hidden footnote body", markdown, StringComparison.Ordinal);
@@ -807,7 +807,7 @@ public class RtfMarkdownConverterTests {
         document.AddParagraph().AddPageNumber();
         var options = new RtfMarkdownExportOptions();
 
-        RtfConversionResult<string> result = document.ToMarkdownResult(options);
+        RtfConversionResult<string> result = document.ConvertToMarkdownTextWithEvidence(options);
         string markdown = result.Value;
 
         Assert.Contains("RTF generated text omitted", markdown, StringComparison.Ordinal);
@@ -822,7 +822,7 @@ public class RtfMarkdownConverterTests {
         document.AddParagraph("Body");
         var options = new RtfMarkdownExportOptions();
 
-        RtfConversionResult<string> result = document.ToMarkdownResult(options);
+        RtfConversionResult<string> result = document.ConvertToMarkdownTextWithEvidence(options);
         string markdown = result.Value;
 
         Assert.Contains("Body", markdown, StringComparison.Ordinal);
@@ -843,7 +843,7 @@ public class RtfMarkdownConverterTests {
         run.Shadow = true;
         run.CharacterSpacingTwips = 20;
 
-        RtfConversionResult<string> result = document.ToMarkdownResult();
+        RtfConversionResult<string> result = document.ConvertToMarkdownTextWithEvidence();
 
         Assert.Contains("Premium text", result.Value, StringComparison.Ordinal);
         Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "RTFMD021" &&
@@ -858,7 +858,7 @@ public class RtfMarkdownConverterTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph().AddText("Hidden").SetHidden();
 
-        RtfConversionResult<string> result = document.ToMarkdownResult(new RtfMarkdownExportOptions {
+        RtfConversionResult<string> result = document.ConvertToMarkdownTextWithEvidence(new RtfMarkdownExportOptions {
             IncludeHiddenText = true
         });
 
@@ -876,8 +876,8 @@ public class RtfMarkdownConverterTests {
         paragraph.AddObject(RtfObjectKind.Embedded, new byte[] { 1, 2 });
         paragraph.AddText(" after");
 
-        string markdown = document.ToMarkdown();
-        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtfDocument();
+        string markdown = document.ToMarkdown().ToMarkdown();
+        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtf();
 
         Assert.DoesNotContain("<!-- RTF object inline omitted", markdown, StringComparison.Ordinal);
         Assert.Contains("\\[RTF object inline omitted\\]", markdown, StringComparison.Ordinal);
@@ -892,8 +892,8 @@ public class RtfMarkdownConverterTests {
         document.AddParagraph("Child").SetList(listId: 7, level: 1, kind: RtfListKind.Bullet);
         document.AddParagraph("Next").SetList(listId: 7, level: 0, kind: RtfListKind.Decimal);
 
-        string markdown = document.ToMarkdown().Replace("\r\n", "\n");
-        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtfDocument();
+        string markdown = document.ToMarkdown().ToMarkdown().Replace("\r\n", "\n");
+        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtf();
 
         Assert.Contains("1. Parent\n\n   - Child\n\n2. Next", markdown, StringComparison.Ordinal);
         Assert.Contains(roundTrip.Paragraphs, paragraph => paragraph.ToPlainText() == "Parent" && paragraph.ListKind == RtfListKind.Decimal && paragraph.ListLevel == 0);
@@ -921,7 +921,7 @@ public class RtfMarkdownConverterTests {
         document.AddParagraph("Parent B").SetList(listId: 10, level: 0, kind: RtfListKind.Decimal).ListDefinitionId = 100;
         document.AddParagraph("One").SetList(listId: 30, level: 1, kind: RtfListKind.Decimal).ListDefinitionId = 300;
 
-        string markdown = document.ToMarkdown().Replace("\r\n", "\n");
+        string markdown = document.ToMarkdown().ToMarkdown().Replace("\r\n", "\n");
 
         Assert.Contains("1. Parent A\n\n   5. Five\n\n2. Parent B\n\n   1. One", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("   6. One", markdown, StringComparison.Ordinal);
@@ -941,7 +941,7 @@ public class RtfMarkdownConverterTests {
                 .ListDefinitionId = definitionId;
         }
 
-        string markdown = document.ToMarkdown();
+        string markdown = document.ToMarkdown().ToMarkdown();
 
         Assert.Contains("1. Item 1", markdown, StringComparison.Ordinal);
         Assert.Contains(listCount + ". Item " + listCount, markdown, StringComparison.Ordinal);
@@ -961,7 +961,7 @@ public class RtfMarkdownConverterTests {
         table.Rows[0].Cells[0].AddParagraph("Data one");
         table.Rows[1].Cells[0].AddParagraph("Data two");
 
-        string markdown = document.ToMarkdown();
+        string markdown = document.ToMarkdown().ToMarkdown();
 
         Assert.Contains("5. Five", markdown, StringComparison.Ordinal);
         Assert.Contains("6. Six", markdown, StringComparison.Ordinal);
@@ -976,8 +976,8 @@ public class RtfMarkdownConverterTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph().AddText("file").SetHyperlink(new Uri("docs/My File.docx", UriKind.Relative));
 
-        string markdown = document.ToMarkdown();
-        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtfDocument();
+        string markdown = document.ToMarkdown().ToMarkdown();
+        RtfDocument roundTrip = MarkdownDocument.Parse(markdown).ToRtf();
 
         Assert.Contains("[file](docs/My%20File.docx)", markdown, StringComparison.Ordinal);
         Assert.Contains(roundTrip.Paragraphs[0].Runs, run => run.Text == "file" && run.Hyperlink != null);
@@ -991,7 +991,7 @@ public class RtfMarkdownConverterTests {
             ImagePathFactory = (_, _) => "images/My File.png"
         };
 
-        string markdown = document.ToMarkdown(options);
+        string markdown = document.ToMarkdown(options).ToMarkdown();
         MarkdownDocument parsed = MarkdownDocument.Parse(markdown);
         ImageBlock image = Assert.IsType<ImageBlock>(Assert.Single(parsed.Blocks));
 
@@ -1010,7 +1010,7 @@ public class RtfMarkdownConverterTests {
             ImageExporter = (image, index, path) => exported.Add((image, index, path))
         };
 
-        string markdown = document.ToMarkdown(options);
+        string markdown = document.ToMarkdown(options).ToMarkdown();
 
         Assert.Equal(2, exported.Count);
         Assert.Equal((block, 0, "media/image 0.png"), exported[0]);
@@ -1023,8 +1023,8 @@ public class RtfMarkdownConverterTests {
     public void ReusingOptionsDoesNotLeakDiagnosticsAcrossConversions() {
         var options = new MarkdownRtfExportOptions();
 
-        RtfConversionResult<RtfDocument> lossy = MarkdownDocument.Parse("![Logo](logo.png)").ToRtfDocumentResult(options);
-        RtfConversionResult<RtfDocument> clean = MarkdownDocument.Parse("Plain text").ToRtfDocumentResult(options);
+        RtfConversionResult<RtfDocument> lossy = MarkdownDocument.Parse("![Logo](logo.png)").ConvertToRtfWithEvidence(options);
+        RtfConversionResult<RtfDocument> clean = MarkdownDocument.Parse("Plain text").ConvertToRtfWithEvidence(options);
 
         Assert.Contains(lossy.Report.Diagnostics, diagnostic => diagnostic.Code == "MDRTF003");
         Assert.Empty(clean.Report.Diagnostics);

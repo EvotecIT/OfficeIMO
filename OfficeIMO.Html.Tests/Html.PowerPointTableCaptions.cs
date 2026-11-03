@@ -17,7 +17,7 @@ public sealed class HtmlPowerPointTableCaptionTests {
         string html = "<main><h1>Drinking water</h1><table><caption>"
             + RegulatoryTableCaption + "</caption>" + rows + "</table></main>";
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence(
             new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.RequireValue();
         PowerPointSlide captionSlide = Assert.Single(presentation.Slides,
@@ -37,7 +37,7 @@ public sealed class HtmlPowerPointTableCaptionTests {
         const string html = "<main><h1>Water</h1><table><caption>Caption exceeds metadata limit</caption>"
             + "<tr><th>Term</th><th>Value</th></tr><tr><td>pH</td><td>7</td></tr></table></main>";
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence(
             new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using PowerPointDocument presentation = result.RequireValue();
         Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
@@ -54,7 +54,7 @@ public sealed class HtmlPowerPointTableCaptionTests {
             + "<caption>" + RegulatoryTableCaption + "</caption>"
             + "<tr><th>Term</th><th>Value</th></tr><tr><td>pH</td><td>7</td></tr></table></main>";
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence(
             new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.RequireValue();
         Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));

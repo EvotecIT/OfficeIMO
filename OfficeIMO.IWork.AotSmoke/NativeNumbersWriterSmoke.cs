@@ -34,8 +34,7 @@ internal static class NativeNumbersWriterSmoke {
             && table.GetCell(3, 4)!.Kind == IWorkCellKind.Text && table.RowHeights[1] == 36
             && table.ColumnWidths[1] == 130 && empty.RowCount == 2 && empty.ColumnCount == 3 && empty.Cells.Count == 0,
             "Numbers scalar types, Unicode, dimensions or empty positions differ.");
-        using var converted = ExcelIWorkConverter.ConvertNumbersToExcelResult(new MemoryStream(bytes),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Require(converted.Report.IsPartialEditableReconstruction
             && converted.Report.Diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED")
             && empty.GetPadding(2, 3)?.BottomPoints == 4, "Native Numbers region padding was silently discarded.");

@@ -62,8 +62,7 @@ public sealed class IWorkNativePreservationTests {
             Assert.Equal(record.Versions, output.Versions); Assert.Equal(record.ObjectReferences, output.ObjectReferences); Assert.Equal(record.DataReferences, output.DataReferences);
             if (record.Identifier != image.SourceIdentity.RecordIdentifier) Assert.Equal(record.GetPayload(), output.GetPayload());
         }
-        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(result.GetPackageBytes()),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(result.GetPackageBytes()), IWorkDocumentKind.Keynote).ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction();
         using var outputStream = new MemoryStream(); converted.Value.Save(outputStream); outputStream.Position = 0;
         using var reopened = PowerPointDocument.Load(outputStream);
@@ -195,7 +194,7 @@ public sealed class IWorkNativePreservationTests {
         var nativeImages = native.ReadKeynote().Slides.SelectMany(slide => slide.Images).ToArray();
         Assert.Equal(originalImages.Length, nativeImages.Length);
         for (int i = 0; i < originalImages.Length; i++) Assert.Equal(originalImages[i].GetBytes(), nativeImages[i].GetBytes());
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(path, conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Keynote).ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction(); using var stream = new MemoryStream(); result.Value.Save(stream); stream.Position = 0;
         using var saved = PowerPointDocument.Load(stream); Assert.Equal(3, saved.Slides.Count); Assert.Empty(saved.ValidateDocument());
     }

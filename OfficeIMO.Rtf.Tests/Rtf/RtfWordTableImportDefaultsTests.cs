@@ -20,7 +20,7 @@ public class RtfWordTableImportDefaultsTests {
         Assert.Equal(0, sourceTable.Rows[0].LeftIndentTwips);
         Assert.Null(sourceTable.Rows[0].Cells[0].PaddingLeftTwips);
 
-        using WordDocument mapped = source.ToWordDocument();
+        using WordDocument mapped = source.ToWord();
         XDocument document = ReadPart(mapped.ToBytes(), "word/document.xml");
         XElement table = Assert.Single(document.Descendants(W + "tbl"));
 
@@ -46,7 +46,7 @@ public class RtfWordTableImportDefaultsTests {
         using WordDocument native = WordDocument.Load(fixtureStream);
         Assert.Equal(WordCompatibilityMode.Word2003, native.CompatibilitySettings.CompatibilityMode);
 
-        RtfDocument converted = native.ToRtfDocument();
+        RtfDocument converted = native.ToRtf();
         IEnumerable<IRtfBlock> blocks = converted.Sections.Count > 0
             ? converted.Sections.SelectMany(section => section.Blocks)
             : converted.Blocks;
@@ -59,7 +59,7 @@ public class RtfWordTableImportDefaultsTests {
         Assert.Null(cell.PaddingRightTwips);
         Assert.Equal(ExpectedCellText, WithoutWhiteSpace(string.Concat(cell.Paragraphs.Select(paragraph => paragraph.ToPlainText()))));
 
-        using WordDocument returned = converted.ToWordDocument();
+        using WordDocument returned = converted.ToWord();
         XElement returnedTable = Assert.Single(ReadPart(returned.ToBytes(), "word/document.xml").Descendants(W + "tbl"));
         AssertGapProperties(returnedTable, gapTwips, expectedIndentTwips: 0);
         Assert.Equal(ExpectedCellText, WithoutWhiteSpace(string.Concat(returnedTable.Descendants(W + "t").Select(item => item.Value))));
@@ -84,7 +84,7 @@ public class RtfWordTableImportDefaultsTests {
         endnote.AddParagraph("Cell endnote");
         paragraph.AddNoteReference(endnote, "2");
 
-        using WordDocument mapped = source.ToWordDocument();
+        using WordDocument mapped = source.ToWord();
         byte[] docx = mapped.ToBytes();
         XDocument document = ReadPart(docx, "word/document.xml");
         XElement[] tables = document.Descendants(W + "tbl").ToArray();
@@ -110,7 +110,7 @@ public class RtfWordTableImportDefaultsTests {
         string rtf = @"{\rtf1\ansi{\colortbl;\red68\green114\blue196;}\trowd\trgaph" +
             gapTwips.ToString(System.Globalization.CultureInfo.InvariantCulture) +
             @"\trleft0\clpadt120\clpadft3\clpadl180\clpadfl3\clpadb240\clpadfb3\clpadr300\clpadfr3\clbrdrt\brdrs\brdrw30\brdrcf1\cellx2400\cellx4800\clpadl0\clpadfl3\clpadr0\clpadfr3\cellx7200\pard\intbl Explicit\cell\pard\intbl Plain\cell\pard\intbl Zero\cell\row}";
-        using WordDocument mapped = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
+        using WordDocument mapped = RtfDocument.ParseResult(rtf).Document.ToWord();
         XElement table = Assert.Single(ReadPart(mapped.ToBytes(), "word/document.xml").Descendants(W + "tbl"));
         XElement[] cells = table.Descendants(W + "tc").ToArray();
 
@@ -134,7 +134,7 @@ public class RtfWordTableImportDefaultsTests {
         row.Cells[0].SetPadding(leftTwips: 180, rightTwips: 240);
         row.Cells[2].SetPadding(topTwips: 0, leftTwips: 0, bottomTwips: 0, rightTwips: 0);
 
-        using WordDocument mapped = source.ToWordDocument();
+        using WordDocument mapped = source.ToWord();
         XElement table = Assert.Single(ReadPart(mapped.ToBytes(), "word/document.xml").Descendants(W + "tbl"));
         XElement[] cells = table.Elements(W + "tr").SelectMany(item => item.Elements(W + "tc")).ToArray();
         AssertGapProperties(table, 300, expectedIndentTwips: 0);
@@ -155,7 +155,7 @@ public class RtfWordTableImportDefaultsTests {
         table.Rows[0].Cells[0].AddParagraph("FIRST");
         table.Rows[1].Cells[0].AddParagraph("SECOND");
 
-        RtfConversionResult<WordDocument> result = source.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> result = source.ConvertToWordWithEvidence();
         using WordDocument mapped = result.Value;
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RtfWordTableCellGapFlattened");
         Assert.True(result.Report.HasLoss);
@@ -169,7 +169,7 @@ public class RtfWordTableImportDefaultsTests {
     public void Rtf_Import_Defaults_Do_Not_Change_Word_Authoring_Or_Caller_Style() {
         RtfDocument source = RtfDocument.Create();
         source.AddTable(1, 1).Rows[0].SetCellGap(0);
-        using WordDocument mapped = source.ToWordDocument();
+        using WordDocument mapped = source.ToWord();
         mapped.AddTable(1, 1); // Existing public Word authoring default.
         WordTable callerStyled = mapped.AddTable(1, 1, WordTableStyle.TableGrid);
         callerStyled.Rows[0].Cells[0].MarginLeft = global::OfficeIMO.OfficeLength.Points(9D);

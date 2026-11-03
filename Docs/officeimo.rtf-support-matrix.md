@@ -136,13 +136,12 @@ using FileStream input = File.OpenRead("upload.rtf");
 RtfReadResult read = await RtfDocument.LoadResultAsync(input, limits, cancellationToken: cancellationToken);
 
 var htmlOptions = RtfHtmlExportOptions.CreateWebSafeProfile();
-RtfToHtmlResult converted = read.Document.ToHtmlResult(htmlOptions);
-string html = converted.Value;
+string html = read.Document.ToHtml(htmlOptions, out OfficeConversionReport conversion);
 
 var report = new RtfConversionReport();
 report.AddReadDiagnostics(read.Diagnostics, "upload.rtf");
-report.Merge(converted.RtfReport);
 report.ThrowIfLoss();
+conversion.ThrowIfLoss();
 ```
 
 Use strict mode when the workflow must reject any degradation. For display or extraction workflows, inspect `Diagnostics` and decide which explicit flatten/omit/block actions are acceptable.

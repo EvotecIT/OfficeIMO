@@ -18,7 +18,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(IWorkCellUnsupportedFeatures.None, cell.UnsupportedFeatures);
         Assert.Equal(IWorkNumberFormatKind.Duration, cell.NumberFormat!.Kind);
         if (kind != IWorkDocumentKind.Numbers) return;
-        using var converted = source.ToExcelDocumentResult();
+        using var converted = source.ToExcelResult();
         Assert.False(converted.IsVisualFallback);
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
@@ -60,7 +60,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(129600d, "36h 0m")]
     public void Qualified_duration_format_survives_saved_xlsx(double seconds, string expected) {
         using var package = DurationFormatPackage(IWorkDocumentKind.Numbers, seconds);
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.False(result.IsVisualFallback);
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED");
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_DURATION_DISPLAY_APPROXIMATED");
@@ -78,13 +78,13 @@ public sealed partial class IWorkBoundaryTests {
         var source = IWorkSourceDocument.Open(package, kind);
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }); Assert.False(result.IsVisualFallback);
+            using var result = source.ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }); Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
             Assert.Equal("-2h 24m", reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
             Assert.Empty(reopened.ValidateDocument());
         } else {
-            using var result = source.ToPowerPointDocumentResult(); Assert.False(result.IsVisualFallback);
+            using var result = source.ToPowerPointResult(); Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             Assert.Equal("-2h 24m", Assert.Single(reopened.Slides[0].Tables).GetCell(0, 0).Text);

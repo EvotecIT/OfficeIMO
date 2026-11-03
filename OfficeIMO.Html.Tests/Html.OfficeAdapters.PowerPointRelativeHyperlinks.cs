@@ -18,7 +18,7 @@ public partial class HtmlOfficeAdapters {
         options.HyperlinkUrlPolicy.ResolvedUrlTransform = value => value.EndsWith("/reject", StringComparison.Ordinal) ? null : "https://safe.example/rewritten";
         foreach (string target in new[] { "http://example.test/blocked", "https://example.test/reject", "https://example.test/allowed" }) {
             string html = string.Format(wrapper, "<a href='" + target + "'>" + image + "</a>");
-            using var presentation = HtmlConversionDocument.Parse(html).ToPowerPointDocument(options);
+            using var presentation = HtmlConversionDocument.Parse(html).ToPowerPoint(options);
             var picture = Assert.Single(presentation.Slides.SelectMany(slide => slide.Images));
             Assert.Equal(target.EndsWith("/allowed", StringComparison.Ordinal) ? "https://safe.example/rewritten" : null, picture.Hyperlink?.OriginalString);
         }
@@ -29,7 +29,7 @@ public partial class HtmlOfficeAdapters {
         const string html = "<p><a href='#slide-2'>Fragment</a> <a href='/docs'>Root</a> <a href='javascript:alert(1)'>Rejected</a></p>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.RequireValue();
         IReadOnlyList<PowerPointTextRun> runs = Assert.Single(presentation.Slides).TextBoxes
             .SelectMany(textBox => textBox.Paragraphs)
@@ -47,7 +47,7 @@ public partial class HtmlOfficeAdapters {
     public void PowerPointHtmlRetainsLinkedPicturesAfterNativeReopen(string template) {
         const string image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNg+P//HwAF/gL9HjcXBgAAAABJRU5ErkJggg==";
         string html = string.Format(System.Globalization.CultureInfo.InvariantCulture, template, image);
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence(
             new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
         using PowerPointDocument presentation = result.RequireValue();
         using var stream = new MemoryStream();
@@ -66,7 +66,7 @@ public partial class HtmlOfficeAdapters {
         const string image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNg+P//HwAF/gL9HjcXBgAAAABJRU5ErkJggg==";
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(
             "<p><a href='#slide-1'><img src='" + image + "' alt='Back to start'></a></p>")
-            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions {
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions {
                 Mode = HtmlImportMode.Generic,
                 ImportEditableLayoutRegions = false
             });
@@ -88,7 +88,7 @@ public partial class HtmlOfficeAdapters {
         options.HyperlinkUrlPolicy.AllowedUrlSchemes.Add("https");
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(options);
+            .ConvertToPowerPointWithEvidence(options);
         using PowerPointDocument presentation = result.RequireValue();
         IReadOnlyList<PowerPointTextRun> runs = Assert.Single(presentation.Slides).TextBoxes
             .SelectMany(textBox => textBox.Paragraphs)
@@ -108,7 +108,7 @@ public partial class HtmlOfficeAdapters {
             value.EndsWith("/reject", StringComparison.Ordinal) ? null : "https://safe.example/rewritten";
 
         using PowerPointDocument presentation = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(options).RequireValue();
+            .ConvertToPowerPointWithEvidence(options).RequireValue();
         IReadOnlyList<PowerPointTextRun> runs = Assert.Single(presentation.Slides).TextBoxes
             .SelectMany(textBox => textBox.Paragraphs).SelectMany(paragraph => paragraph.Runs).ToList();
 
@@ -125,7 +125,7 @@ public partial class HtmlOfficeAdapters {
 
         using PowerPointDocument presentation = HtmlConversionDocument.Parse(
             "<p><a href='https://example.com/path'>Link</a></p>", documentOptions)
-            .ToPowerPointDocumentResult(adapterOptions).RequireValue();
+            .ConvertToPowerPointWithEvidence(adapterOptions).RequireValue();
         PowerPointTextRun run = Assert.Single(Assert.Single(presentation.Slides).TextBoxes
             .SelectMany(textBox => textBox.Paragraphs).SelectMany(paragraph => paragraph.Runs),
             item => item.Text == "Link");
@@ -142,7 +142,7 @@ public partial class HtmlOfficeAdapters {
 
         using PowerPointDocument presentation = HtmlConversionDocument.Parse(
             "<table><tr><td><a href='https://example.com/path'>Link</a></td></tr></table>", documentOptions)
-            .ToPowerPointDocumentResult(adapterOptions).RequireValue();
+            .ConvertToPowerPointWithEvidence(adapterOptions).RequireValue();
         PowerPointTextRun run = Assert.Single(Assert.Single(Assert.Single(presentation.Slides).Tables)
             .GetCell(0, 0).Paragraphs.SelectMany(paragraph => paragraph.Runs),
             item => item.Text == "Link");

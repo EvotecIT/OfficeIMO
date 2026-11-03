@@ -29,7 +29,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Scalar_math_native_functions_save_reopen_and_recalculate_numeric_caches(int index, string name, int count, double expected) {
         using var package = CreateNumbersPackage(new[] { new TableSpec("Functions", 1, 1, 42d,
             hasFormula: true, formulaPayload: FunctionPayload(index, count)) });
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         var cell = result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!;
         string expression = name + "(" + string.Join(",", Enumerable.Range(1, count)) + ")";
         Assert.True(cell.FormulaIsComplete);
@@ -61,7 +61,7 @@ public sealed partial class IWorkBoundaryTests {
         nodes.Add(BytesField(1, Message(VarintField(1, 16), VarintField(2, (ulong)index), VarintField(3, (ulong)operands.Length))));
         using var package = CreateNumbersPackage(new[] { new TableSpec("Functions", 1, 1, 42d,
             hasFormula: true, formulaPayload: BytesField(1, Message(nodes.ToArray()))) });
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.Equal("=" + expression, result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.Formula);
         Assert.Equal(42d, result.Value.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.Equal(1, result.Value.Calculate());
@@ -112,7 +112,7 @@ public sealed partial class IWorkBoundaryTests {
         nodes.Add(BytesField(1, Message(VarintField(1, 16), VarintField(2, (ulong)index), VarintField(3, digits.HasValue ? 2ul : 1ul))));
         using var package = CreateNumbersPackage(new[] { new TableSpec("Functions", 1, 1, 42d,
             hasFormula: true, formulaPayload: BytesField(1, Message(nodes.ToArray()))) });
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.Equal("=" + expression, result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.Formula);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);

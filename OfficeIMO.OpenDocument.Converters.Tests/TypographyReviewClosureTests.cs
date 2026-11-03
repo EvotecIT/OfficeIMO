@@ -15,7 +15,7 @@ public sealed class TypographyReviewClosureTests {
         cell.SetString("i");
         cell.TextTransform = OdfTextTransform.Uppercase;
 
-        using ExcelDocument target = source.ToExcelDocumentResult().Value;
+        using ExcelDocument target = source.ConvertToExcelWithEvidence().Value;
 
         Assert.Equal("İ", target.Sheets.Single().Cell(1, 1).GetValue().Value);
     }
@@ -28,7 +28,7 @@ public sealed class TypographyReviewClosureTests {
         cell.SetString("i");
         cell.TextTransform = OdfTextTransform.Uppercase;
 
-        using ExcelDocument target = source.ToExcelDocumentResult().Value;
+        using ExcelDocument target = source.ConvertToExcelWithEvidence().Value;
 
         Assert.Equal("I", target.Sheets.Single().Cell(1, 1).GetValue().Value);
     }
@@ -41,7 +41,7 @@ public sealed class TypographyReviewClosureTests {
         cell.SetString("MiXeD");
         cell.TextTransform = OdfTextTransform.Uppercase;
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> conversion = source.ConvertToExcelWithEvidence();
         using ExcelDocument target = conversion.Value;
         ExcelCellData converted = target.Sheets.Single().Cell(1, 1).GetValue();
 

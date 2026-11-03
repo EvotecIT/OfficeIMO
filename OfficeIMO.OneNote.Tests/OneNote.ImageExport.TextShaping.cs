@@ -38,7 +38,7 @@ public sealed class OneNoteImageExportTextShapingTests {
             PageSize = OneNotePageSize.IndexCard
         });
         var provider = new ManagedTextShapingTestAssets.RecordingProvider();
-        var options = new OneNoteVisualPdfOptions {
+        var options = new OneNoteVisualPdfExportOptions {
             RasterScale = 0.25D,
             PageRendering = new OneNotePageRenderingOptions {
                 DefaultFont = new OfficeFontInfo(ManagedTextShapingTestAssets.FamilyName, 12D),
@@ -50,10 +50,9 @@ public sealed class OneNoteImageExportTextShapingTests {
             ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFont('A'));
 
-        OfficeIMO.Pdf.PdfDocumentConversionResult result =
-            section.ToVisualPdfDocumentResult(options);
+        OfficeIMO.Pdf.PdfDocument result = section.ToVisualPdf(options, out OfficeConversionReport resultReport);
 
-        Assert.NotEmpty(result.Value.ToBytes());
+        Assert.NotEmpty(result.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Contains(provider.Requests, request =>
             request.Text == "A" &&
             request.Language == "ar-SA");
@@ -67,7 +66,7 @@ public sealed class OneNoteImageExportTextShapingTests {
             PageSize = OneNotePageSize.IndexCard
         });
         var provider = new ManagedTextShapingTestAssets.RecordingProvider();
-        var options = new OneNoteVisualPdfOptions {
+        var options = new OneNoteVisualPdfExportOptions {
             RasterScale = 0.25D,
             PageRendering = new OneNotePageRenderingOptions {
                 DefaultFont = new OfficeFontInfo(ManagedTextShapingTestAssets.FamilyName, 12D),

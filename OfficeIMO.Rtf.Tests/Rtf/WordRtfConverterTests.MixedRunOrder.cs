@@ -27,7 +27,7 @@ public partial class WordRtfConverterTests {
         using WordDocument opened = ReopenMixedRunSource(source);
         Dictionary<string, string> before = SnapshotMixedRunSource(opened);
 
-        RtfDocument converted = opened.ToRtfDocument();
+        RtfDocument converted = opened.ToRtf();
         AssertMixedRunBreakOrder(SelectMixedRunStory(converted, story));
         string artifact = converted.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfDocument readback = RtfDocument.ParseResult(artifact).Document;
@@ -58,7 +58,7 @@ public partial class WordRtfConverterTests {
         using WordDocument opened = ReopenMixedRunSource(source);
         Dictionary<string, string> before = SnapshotMixedRunSource(opened);
 
-        RtfDocument converted = opened.ToRtfDocument();
+        RtfDocument converted = opened.ToRtf();
         RtfParagraph paragraph = Assert.Single(MixedRunBodyBlocks(converted).OfType<RtfParagraph>());
         RtfNoteKind kind = endnote ? RtfNoteKind.Endnote : RtfNoteKind.Footnote;
         Assert.Collection(paragraph.Inlines,
@@ -104,7 +104,7 @@ public partial class WordRtfConverterTests {
         using WordDocument opened = ReopenMixedRunSource(source);
         Dictionary<string, string> before = SnapshotMixedRunSource(opened);
 
-        RtfDocument converted = opened.ToRtfDocument();
+        RtfDocument converted = opened.ToRtf();
         RtfParagraph paragraph = Assert.Single(MixedRunBodyBlocks(converted).OfType<RtfParagraph>());
         if (noteOnly) {
             Assert.Collection(paragraph.Inlines,

@@ -3266,7 +3266,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Pdf
 
 <details>
-<summary>281 changes</summary>
+<summary>290 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -3519,6 +3519,8 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | cancellation | `OfficeIMO.Pdf.PdfBatesNumberingOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
 | cancellation | `OfficeIMO.Pdf.PdfCanvasStampOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
 | cancellation | `OfficeIMO.Pdf.PdfDestructiveCropOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
+| cancellation | `OfficeIMO.Pdf.PdfDocumentPages.DestructiveCrop(double left, double bottom, double right, double top, PdfDestructiveCropOptions options = null, params int[] pageNumbers)` | Changed | `OfficeIMO.Pdf.PdfDocumentPages.DestructiveCrop(double left, double bottom, double right, double top, PdfDestructiveCropOptions options = null, PdfPageSelection selection = null, CancellationToken cancellationToken = default)` | Pass PdfPageSelection.From(1) for selected pages, or null for every page. |
+| cancellation | `OfficeIMO.Pdf.PdfDocumentPages.Resize(PdfPageResizeOptions options, params int[] pageNumbers)` | Changed | `OfficeIMO.Pdf.PdfDocumentPages.Resize(PdfPageResizeOptions options, PdfPageSelection selection = null, CancellationToken cancellationToken = default)` | Pass PdfPageSelection.From(1, 3) for selected pages, or null for every page. |
 | cancellation | `OfficeIMO.Pdf.PdfExternalSignatureOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
 | cancellation | `OfficeIMO.Pdf.PdfFormFillerOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
 | cancellation | `OfficeIMO.Pdf.PdfImageStampOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
@@ -3539,6 +3541,13 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | cancellation | `OfficeIMO.Pdf.PdfTextStampOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
 | cancellation | `OfficeIMO.Pdf.PdfWatermarkOptions.CancellationToken` | Removed | &mdash; | Pass cancellationToken as the final argument of the operation that takes these options. |
 | cancellation | `PDF operations taking the options above` | Changed | `Each public operation that takes these options gains a final CancellationToken cancellationToken = default parameter (async forms too).` | One cancellation shape across packages (F15). |
+| cancellation | `PdfDocumentPages.ApplyAttributes(CancellationToken cancellationToken, params PdfPageAttributeEdit[] edits)` | Changed | `PdfDocumentPages.ApplyAttributes(IReadOnlyList<PdfPageAttributeEdit> edits, CancellationToken cancellationToken = default)` | Cancellable operations take a final CancellationToken cancellationToken = default; page lists use PdfPageSelection. |
+| cancellation | `PdfDocumentPages.BookmarkPageRanges / SplitByBookmarks([int level,] CancellationToken cancellationToken, params string[] bookmarkTitles)` | Changed | `([int level,] IReadOnlyList<string> bookmarkTitles, CancellationToken cancellationToken = default)` | Cancellable operations take a final CancellationToken cancellationToken = default; page lists use PdfPageSelection. |
+| cancellation | `PdfDocumentPages.Delete / Reorder / Duplicate / Move / Rotate / RotateBy(..., CancellationToken cancellationToken, params int[] pageNumbers)` | Merged | `The existing (..., PdfPageSelection selection, CancellationToken cancellationToken) overloads` | Cancellable operations take a final CancellationToken cancellationToken = default; page lists use PdfPageSelection. |
+| cancellation | `PdfDocumentPages.ReorderWithMapping(CancellationToken cancellationToken, params int[] pageNumbers)` | Changed | `PdfDocumentPages.ReorderWithMapping(PdfPageSelection order, CancellationToken cancellationToken = default)` | Cancellable operations take a final CancellationToken cancellationToken = default; page lists use PdfPageSelection. |
+| cancellation | `PdfDocumentPages.SetPageBox / SetMediaBox / SetCropBox / SetBleedBox / SetTrimBox / SetArtBox / CropAndTranslate / Resize(PdfPageSize)(..., CancellationToken cancellationToken, params int[] pageNumbers)` | Changed | `(..., PdfPageSelection? selection, CancellationToken cancellationToken = default); null selects every page` | Cancellable operations take a final CancellationToken cancellationToken = default; page lists use PdfPageSelection. |
+| cancellation | `PdfDocumentPages.Split(CancellationToken cancellationToken, params PdfPageSelection[] selections)` | Changed | `PdfDocumentPages.Split(IReadOnlyList<PdfPageSelection> selections, CancellationToken cancellationToken = default)` | Cancellable operations take a final CancellationToken cancellationToken = default; page lists use PdfPageSelection. |
+| cancellation | `PdfDocumentRedactions.Plan(IEnumerable<PdfRedactionRegion \| PdfRedactionArea>, CancellationToken cancellationToken, PdfTextLayoutOptions layoutOptions = null, PdfLoadOptions options = null) and the token-less twin` | Merged | `PdfDocumentRedactions.Plan(regions \| areas, PdfTextLayoutOptions layoutOptions = null, PdfLoadOptions options = null, CancellationToken cancellationToken = default)` | Cancellable operations take a final CancellationToken cancellationToken = default; page lists use PdfPageSelection. |
 | geometry | `OfficeIMO.Pdf.PdfContentBuilder.TextField(... double geometry ...)` | Changed | `OfficeIMO.Pdf.PdfContentBuilder.TextField(... OfficeLength geometry ...)` | Require explicit physical units for width, height, fontSize, spacingBefore, spacingAfter. Omitted defaults preserve native point dimensions. |
 | geometry | `OfficeIMO.Pdf.PdfPageCanvas.TextField(... double geometry ...)` | Changed | `OfficeIMO.Pdf.PdfPageCanvas.TextField(... OfficeLength geometry ...)` | Require explicit physical units for x, y, width, height, fontSize. Omitted defaults preserve native point dimensions. |
 | geometry | `OfficeIMO.Pdf.PdfTableCellFormField.TextField(... double geometry ...)` | Changed | `OfficeIMO.Pdf.PdfTableCellFormField.TextField(... OfficeLength geometry ...)` | Require explicit physical units for width, height, fontSize. Omitted defaults preserve native point dimensions. |
@@ -3790,10 +3799,17 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.AsciiDoc.Pdf
 
 <details>
-<summary>1 change</summary>
+<summary>8 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
+| Conversion | `AsciiDocDocument.SaveAsPdf(string \| Stream, AsciiDocPdfExportOptions options, CancellationToken) : PdfSaveResult` | Changed | `AsciiDocDocument.SaveAsPdf(string path \| Stream stream, AsciiDocPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `AsciiDocDocument.SaveAsPdfAsync(string \| Stream, AsciiDocPdfExportOptions options, CancellationToken) : Task<PdfSaveResult>` | Changed | `AsciiDocDocument.SaveAsPdfAsync(string path \| Stream stream, AsciiDocPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>; ToPdfAsync(...) : Task<OfficeConversionResult<PdfDocument>>` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Conversion runs on the thread pool, or through the asynchronous source pipeline where one exists, instead of converting before the asynchronous write. |
+| Conversion | `AsciiDocDocument.SaveAsPdfResult / SaveAsPdfResultAsync(string \| Stream, AsciiDocPdfExportOptions options, CancellationToken) : PdfSaveResult` | Merged | `AsciiDocDocument.SaveAsPdf / SaveAsPdfAsync(...) : OfficeConversionReport` | Failure evidence travels on OfficeConversionException.Report; a strict failure leaves the destination unchanged. |
+| Conversion | `AsciiDocDocument.ToPdfBytes(AsciiDocPdfExportOptions options, CancellationToken) : byte[]` | Removed | &mdash; | Use ToPdf(options).ToBytes() or SaveAsPdf(stream, options). |
+| Conversion | `AsciiDocDocument.ToPdfDocument(AsciiDocPdfExportOptions options, CancellationToken)` | Renamed | `AsciiDocDocument.ToPdf(AsciiDocPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `AsciiDocDocument.ToPdfDocumentResult(AsciiDocPdfExportOptions options, CancellationToken) : PdfDocumentConversionResult` | Merged | `AsciiDocDocument.ToPdf(AsciiDocPdfExportOptions options, out OfficeConversionReport report, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Source and PDF-stage diagnostics are in the report. |
+| Conversion | `AsciiDocPdfExportOptions without a loss policy` | Changed | `AsciiDocPdfExportOptions.FailOnLoss; AsciiDocPdfExportOptions.Clone()` | Conversions use FailOnLoss. |
 | Options | `OfficeIMO.AsciiDoc.Pdf.AsciiDocToPdfOptions` | Renamed | `OfficeIMO.AsciiDoc.Pdf.AsciiDocPdfExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
 
 </details>
@@ -3818,6 +3834,49 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
 | Options | `OfficeIMO.Chm.ChmReadOptions` | Renamed | `OfficeIMO.Chm.ChmLoadOptions` | Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers. |
+
+</details>
+
+#### OfficeIMO.Chm.Epub
+
+<details>
+<summary>3 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Conversion | `ChmDocument.ToEpubBytesResult(ChmConversionOptions, EpubManuscriptOptions, EpubSaveOptions, CancellationToken)` | Merged | `ChmDocument.SaveAsEpub(string path \| Stream stream, ChmEpubExportOptions options = null, CancellationToken) : OfficeConversionReport; SaveAsEpubAsync` | Converters use the shared shape: To{Target}(options\[, out OfficeConversionReport\], ct), To{Target}Async returning OfficeConversionResult&lt;T&gt;, and SaveAs{Target}(path \| stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed. |
+| Conversion | `ChmDocument.ToEpubPublicationResult(ChmConversionOptions, EpubManuscriptOptions, CancellationToken) / ToEpubPublicationResultAsync` | Merged | `ChmDocument.ToEpub(ChmEpubExportOptions options[, out OfficeConversionReport report], CancellationToken) : EpubPublication; ToEpubAsync : Task<OfficeConversionResult<EpubPublication>>` | Converters use the shared shape: To{Target}(options\[, out OfficeConversionReport\], ct), To{Target}Async returning OfficeConversionResult&lt;T&gt;, and SaveAs{Target}(path \| stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed. |
+| Options | `ChmConversionOptions + EpubManuscriptOptions + EpubSaveOptions parameters` | Changed | `OfficeIMO.Chm.ChmEpubExportOptions { ConversionOptions, EpubOptions, SaveOptions, FailOnLoss }` | Converter options are named {Source}{Target}ExportOptions and carry FailOnLoss. |
+
+</details>
+
+#### OfficeIMO.Chm.Markdown
+
+<details>
+<summary>2 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Conversion | `ChmDocument.ToMarkdown(ChmConversionOptions, HtmlMarkdownExportOptions, CancellationToken) : string / ToMarkdownResult / ToMarkdownDocumentResult` | Merged | `ChmDocument.ToMarkdown(ChmMarkdownExportOptions options[, out OfficeConversionReport report], CancellationToken) : MarkdownDocument; ToMarkdownAsync; SaveAsMarkdown(path \| stream); SaveAsMarkdownAsync` | Call ToMarkdown() on the returned MarkdownDocument for text, or SaveAsMarkdown for a file. |
+| Options | `ChmConversionOptions + HtmlMarkdownExportOptions parameters` | Changed | `OfficeIMO.Chm.ChmMarkdownExportOptions { ConversionOptions, MarkdownOptions, FailOnLoss }` | Converter options are named {Source}{Target}ExportOptions and carry FailOnLoss. |
+
+</details>
+
+#### OfficeIMO.Chm.Pdf
+
+<details>
+<summary>8 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Conversion | `ChmDocument.SaveAsPdf(string \| Stream, ChmConversionOptions, HtmlPdfExportOptions options, CancellationToken) : PdfSaveResult` | Changed | `ChmDocument.SaveAsPdf(string path \| Stream stream, ChmPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `ChmDocument.SaveAsPdfAsync(string \| Stream, ChmConversionOptions, HtmlPdfExportOptions options, CancellationToken) : Task<PdfSaveResult>` | Changed | `ChmDocument.SaveAsPdfAsync(string path \| Stream stream, ChmPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>; ToPdfAsync(...) : Task<OfficeConversionResult<PdfDocument>>` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Conversion runs on the thread pool, or through the asynchronous source pipeline where one exists, instead of converting before the asynchronous write. |
+| Conversion | `ChmDocument.SaveAsPdfResult / SaveAsPdfResultAsync(string \| Stream, ChmConversionOptions, HtmlPdfExportOptions options, CancellationToken) : PdfSaveResult` | Merged | `ChmDocument.SaveAsPdf / SaveAsPdfAsync(...) : OfficeConversionReport` | Failure evidence travels on OfficeConversionException.Report; a strict failure leaves the destination unchanged. |
+| Conversion | `ChmDocument.ToPdfBytes(ChmConversionOptions, HtmlPdfExportOptions options, CancellationToken) : byte[]` | Removed | &mdash; | Use ToPdf(options).ToBytes() or SaveAsPdf(stream, options). |
+| Conversion | `ChmDocument.ToPdfBytesResult(ChmConversionOptions options, HtmlPdfExportOptions pdfOptions, CancellationToken) : ChmConversionResult<byte[]>` | Merged | `ChmDocument.SaveAsPdf(string path \| Stream stream, ChmPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport, or ToPdf(options, out report).ToBytes()` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `ChmDocument.ToPdfDocument(ChmConversionOptions, HtmlPdfExportOptions options, CancellationToken)` | Renamed | `ChmDocument.ToPdf(ChmPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `ChmDocument.ToPdfDocumentResult(ChmConversionOptions, HtmlPdfExportOptions options, CancellationToken) : PdfDocumentConversionResult` | Merged | `ChmDocument.ToPdf(ChmPdfExportOptions options, out OfficeConversionReport report, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Source and PDF-stage diagnostics are in the report. |
+| Options | `(ChmConversionOptions options, HtmlPdfExportOptions pdfOptions) parameter pair` | Changed | `OfficeIMO.Chm.ChmPdfExportOptions { ConversionOptions, PdfOptions, FailOnLoss }` | Converter options are one {Source}{Target}ExportOptions object. |
 
 </details>
 
@@ -3943,10 +4002,18 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.DjVu.Pdf
 
 <details>
-<summary>1 change</summary>
+<summary>9 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
+| Conversion | `DjVuDocument.SaveAsPdf(string \| Stream, DjVuPdfExportOptions options, CancellationToken) : PdfSaveResult` | Changed | `DjVuDocument.SaveAsPdf(string path \| Stream stream, DjVuPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `DjVuDocument.SaveAsPdfAsync(string \| Stream, DjVuPdfExportOptions options, CancellationToken) : Task<PdfSaveResult>` | Changed | `DjVuDocument.SaveAsPdfAsync(string path \| Stream stream, DjVuPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>; ToPdfAsync(...) : Task<OfficeConversionResult<PdfDocument>>` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Conversion runs on the thread pool, or through the asynchronous source pipeline where one exists, instead of converting before the asynchronous write. |
+| Conversion | `DjVuDocument.SaveAsPdfResult / SaveAsPdfResultAsync(string \| Stream, DjVuPdfExportOptions options, CancellationToken) : PdfSaveResult` | Merged | `DjVuDocument.SaveAsPdf / SaveAsPdfAsync(...) : OfficeConversionReport` | Failure evidence travels on OfficeConversionException.Report; a strict failure leaves the destination unchanged. |
+| Conversion | `DjVuDocument.ToPdfBytes(DjVuPdfExportOptions options, CancellationToken) : byte[]` | Removed | &mdash; | Use ToPdf(options).ToBytes() or SaveAsPdf(stream, options). |
+| Conversion | `DjVuDocument.ToPdfDocument(DjVuPdfExportOptions options, CancellationToken)` | Renamed | `DjVuDocument.ToPdf(DjVuPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `DjVuDocument.ToPdfDocumentResult(DjVuPdfExportOptions options, CancellationToken) : PdfDocumentConversionResult` | Merged | `DjVuDocument.ToPdf(DjVuPdfExportOptions options, out OfficeConversionReport report, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Source and PDF-stage diagnostics are in the report. |
+| Conversion | `DjVuDocument.ToPdfDocumentResultAsync / ToPdfBytesAsync(DjVuPdfExportOptions, CancellationToken)` | Merged | `DjVuDocument.ToPdfAsync(DjVuPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionResult<PdfDocument>>` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Only the asynchronous forms run an explicit OcrEngine. |
+| Conversion | `DjVuPdfExportOptions without a loss policy` | Changed | `DjVuPdfExportOptions.FailOnLoss` | Conversions use FailOnLoss. |
 | Options | `OfficeIMO.DjVu.Pdf.DjVuToPdfOptions` | Renamed | `OfficeIMO.DjVu.Pdf.DjVuPdfExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
 
 </details>
@@ -4007,10 +4074,14 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Excel.Html
 
 <details>
-<summary>4 changes</summary>
+<summary>8 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
+| Conversion | `ExcelDocument/ExcelSheet.SaveAsHtml(string \| Stream, ExcelHtmlExportOptions) : void / SaveAsHtmlAsync : Task` | Changed | `ExcelDocument/ExcelSheet.SaveAsHtml(string path \| Stream stream, ExcelHtmlExportOptions options = null, CancellationToken) : OfficeConversionReport; SaveAsHtmlAsync : Task<OfficeConversionReport>` | Converters use the shared shape: To{Target}(options\[, out OfficeConversionReport\], ct), To{Target}Async returning OfficeConversionResult&lt;T&gt;, and SaveAs{Target}(path \| stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed. |
+| Conversion | `ExcelDocument/ExcelSheet.ToHtmlResult(ExcelHtmlExportOptions) : HtmlTextConversionResult` | Merged | `ExcelDocument/ExcelSheet.ToHtml(ExcelHtmlExportOptions options, out OfficeConversionReport report, CancellationToken) : string` | Converters use the shared shape: To{Target}(options\[, out OfficeConversionReport\], ct), To{Target}Async returning OfficeConversionResult&lt;T&gt;, and SaveAs{Target}(path \| stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed. |
+| Conversion | `HtmlConversionDocument.ToExcelDocument(HtmlExcelExportOptions) / ToExcelDocumentResult : HtmlToExcelResult` | Merged | `HtmlConversionDocument.ToExcel(HtmlExcelExportOptions options[, out OfficeConversionReport report], CancellationToken) : ExcelDocument; ToExcelAsync; SaveAsExcel(path \| stream); SaveAsExcelAsync` | Converters use the shared shape: To{Target}(options\[, out OfficeConversionReport\], ct), To{Target}Async returning OfficeConversionResult&lt;T&gt;, and SaveAs{Target}(path \| stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed. |
+| Options | `(Excel HTML options) no loss policy` | Changed | `ExcelHtmlExportOptions.FailOnLoss / HtmlExcelExportOptions.FailOnLoss; HtmlExcelExportOptions.Clone() is public` | Conversions use FailOnLoss. |
 | Options | `OfficeIMO.Excel.Html.ExcelHtmlCapabilityGalleryOptions.VisualOptions : ExcelWorkbookImageExportOptions` | Merged | `OfficeIMO.Excel.Html.ExcelHtmlCapabilityGalleryOptions.VisualOptions : ExcelImageExportOptions` | The rendering package now exposes one image options type. The adapter preserves source conversion, selection, diagnostic attachment and cancellation behavior. |
 | Options | `OfficeIMO.Excel.Html.ExcelHtmlSaveOptions` | Renamed | `OfficeIMO.Excel.Html.ExcelHtmlExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
 | Options | `OfficeIMO.Excel.Html.ExcelHtmlSaveOptions.VisualOptions : ExcelWorkbookImageExportOptions` | Merged | `OfficeIMO.Excel.Html.ExcelHtmlExportOptions.VisualOptions : ExcelImageExportOptions` | The rendering package now exposes one image options type. The adapter preserves source conversion, selection, diagnostic attachment and cancellation behavior. |
@@ -4018,22 +4089,39 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 
 </details>
 
-#### OfficeIMO.Excel.OpenDocument
+#### OfficeIMO.Excel.IWork
 
 <details>
-<summary>2 changes</summary>
+<summary>4 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
+| Conversion | `ExcelIWorkConverter.ConvertNumbersToExcel(path \| stream, IWorkReadOptions, IWorkConversionOptions[, CancellationToken]) / ConvertNumbersToExcelResult` | Removed | `IWorkSourceDocument.Open(path \| stream, IWorkDocumentKind.Numbers, readOptions[, ct]).ToExcel(...) / ToExcelResult(...)` | Open the source with IWorkSourceDocument.Open and call ToExcel, SaveAsExcel or ToExcelResult; append RequireCompleteEditableReconstruction() to keep the strict behaviour. |
+| Conversion | `IWorkSourceDocument.ToExcelDocument(IWorkConversionOptions)` | Merged | `IWorkSourceDocument.ToExcel(NumbersExcelExportOptions options[, out OfficeConversionReport report], CancellationToken); ToExcelAsync; SaveAsExcel(path \| stream); SaveAsExcelAsync` | ToExcel returns partial reconstructions with their report; use ToExcelResult(...).RequireCompleteEditableReconstruction() for the previous strict behaviour. |
+| Conversion | `IWorkSourceDocument.ToExcelDocumentResult(IWorkConversionOptions) : NumbersToExcelResult` | Renamed | `IWorkSourceDocument.ToExcelResult(IWorkConversionOptions options = null, CancellationToken cancellationToken = default) : NumbersToExcelResult` | The result keeps the source package and the typed source projection, which the common report does not carry, so it stays as a distinct evidence operation. |
+| Options | `IWorkConversionOptions parameter` | Changed | `OfficeIMO.Excel.IWork.NumbersExcelExportOptions { ConversionOptions, FailOnLoss }` | Converter options are named {Source}{Target}ExportOptions. |
+
+</details>
+
+#### OfficeIMO.Excel.OpenDocument
+
+<details>
+<summary>5 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Conversion | `ExcelDocument.ToOpenDocument(options) / ToOpenDocumentResult(options) : OdfConversionResult<OdsDocument>` | Merged | `ExcelDocument.ToOpenDocument(ExcelOpenDocumentConversionOptions options[, out OfficeConversionReport report], CancellationToken) : OdsDocument; ToOpenDocumentAsync; SaveAsOpenDocument(path \| stream); SaveAsOpenDocumentAsync` | The out report is the typed OdfConversionReport with per-feature mappings. |
+| Conversion | `OdsDocument.ToExcelDocument(options) / ToExcelDocumentResult(options)` | Merged | `OdsDocument.ToExcel(ExcelOpenDocumentConversionOptions options[, out OfficeConversionReport report], CancellationToken); ToExcelAsync; SaveAsExcel(path \| stream); SaveAsExcelAsync` | Converters use the shared shape: To{Target}(options\[, out OfficeConversionReport\], ct), To{Target}Async returning OfficeConversionResult&lt;T&gt;, and SaveAs{Target}(path \| stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed. |
 | Options | `ExcelOpenDocumentImageExportExtensions.ExportImages(OdsDocument, OfficeImageExportFormat, ExcelWorkbookImageExportOptions, ExcelOpenDocumentConversionOptions, CancellationToken)` | Merged | `ExcelOpenDocumentImageExportExtensions.ExportImages(OdsDocument, OfficeImageExportFormat, ExcelImageExportOptions, ExcelOpenDocumentConversionOptions, CancellationToken)` | The rendering package now exposes one image options type. The adapter preserves source conversion, selection, diagnostic attachment and cancellation behavior. |
 | Options | `ExcelOpenDocumentImageExportExtensions.ExportImages(OdsDocument, OfficeImageExportFormat, OfficeImageExportConsumer, ExcelWorkbookImageExportOptions, ExcelOpenDocumentConversionOptions, CancellationToken)` | Merged | `ExcelOpenDocumentImageExportExtensions.ExportImages(OdsDocument, OfficeImageExportFormat, OfficeImageExportConsumer, ExcelImageExportOptions, ExcelOpenDocumentConversionOptions, CancellationToken)` | The rendering package now exposes one image options type. The adapter preserves source conversion, selection, diagnostic attachment and cancellation behavior. |
+| Options | `OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions` | Changed | `OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions.Clone()` | Both directions share every setting, so one options type stays; LossPolicy keeps its three levels instead of FailOnLoss. |
 
 </details>
 
 #### OfficeIMO.Html
 
 <details>
-<summary>30 changes</summary>
+<summary>31 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -4041,6 +4129,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Conversion | `OfficeHtmlDocumentOptions.Theme selects only OfficeVisualThemeKind presets` | Changed | `OfficeHtmlDocumentOptions.DocumentTheme accepts an OfficeTheme; when set, it overrides the preset palette and font choices` | Use the same immutable document theme for semantic HTML and Office files. The shared HTML shell projects its palette, font stack, table-header text and light or dark color scheme. Existing enum presets remain available when DocumentTheme is omitted. `New-OfficePowerPointHtmlOptions` defaults its shared document theme to Modern. |
 | Naming | `OfficeIMO.Html.HtmlRenderFidelityPolicy.RequireNoLoss` | Renamed | `OfficeIMO.Html.HtmlRenderFidelityPolicy.FailOnLoss` | One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception. |
 | Options | `HtmlRenderOptions batch image selection` | Changed | `HtmlRenderOptions.PageSelection (PdfPageSelection)` | Batch image export can select noncontiguous one-based retained surfaces in caller order, including repeats, through the canonical PDF page selector and selected-count limits. The request page set, HTML layout, PDF output, archives and single-image operations retain their existing selection contracts. |
+| cancellation | `HtmlConversionDocument.SaveAsPng / SaveAsJpeg / SaveAsTiff / SaveAsWebp / SaveAsSvg(path \| stream, HtmlRenderOptions options = null, int pageIndex = 0)` | Changed | `... same, plus CancellationToken cancellationToken = default (package OfficeIMO.Html.Pdf)` | Cancellable operations take a final CancellationToken. |
 | cancellation | `HtmlConversionDocument.ToPng / ToJpeg / ToTiff / ToWebp / ToSvg(HtmlRenderOptions options = null, int pageIndex = 0)` | Changed | `HtmlConversionDocument.ToPng / ToJpeg / ToTiff / ToWebp / ToSvg(HtmlRenderOptions options = null, int pageIndex = 0, CancellationToken cancellationToken = default) (package OfficeIMO.Html.Pdf)` | Cancellable operations take a final CancellationToken cancellationToken = default, in synchronous and asynchronous forms alike. |
 | contract | `OfficeIMO.Html.HtmlConversionException : InvalidOperationException` | Changed | `OfficeIMO.Html.HtmlConversionException : OfficeConversionException` | Report carries the HTML diagnostics. |
 | contract | `OfficeIMO.Html.HtmlConversionReport.Diagnostics / HtmlRenderDocument.Diagnostics` | Renamed | `NativeDiagnostics` | Diagnostics is now the common OfficeDiagnostic list. |
@@ -4085,12 +4174,15 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Html.Rtf
 
 <details>
-<summary>3 changes</summary>
+<summary>6 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
+| Conversion | `HtmlConversionDocument.ToRtfDocument / ToRtfDocumentResult / ToRtf(readOptions, writeOptions) : string / ToRtfBytes / ToRtfStream` | Merged | `HtmlConversionDocument.ToRtf(HtmlRtfExportOptions options[, out OfficeConversionReport report], CancellationToken) : RtfDocument; ToRtfAsync; SaveAsRtf(path \| stream); SaveAsRtfAsync` | Call ToRtf()/ToBytes()/ToStream() on the returned RtfDocument; writer settings and encoding move to HtmlRtfExportOptions.SaveOptions and Encoding. |
+| Conversion | `RtfDocument.ToHtml(RtfHtmlExportOptions) / ToHtmlResult : RtfToHtmlResult / ToHtmlBytes / ToHtmlStream` | Merged | `RtfDocument.ToHtml(RtfHtmlExportOptions options[, out OfficeConversionReport report], CancellationToken) : string; ToHtmlAsync; SaveAsHtml(path \| stream) : OfficeConversionReport; SaveAsHtmlAsync` | Output encoding moves to RtfHtmlExportOptions.Encoding. |
 | Options | `OfficeIMO.Html.HtmlToRtfOptions` | Renamed | `OfficeIMO.Html.HtmlRtfExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
 | Options | `OfficeIMO.Html.RtfToHtmlOptions` | Renamed | `OfficeIMO.Html.RtfHtmlExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+| Options | `RTF/HTML options without loss policy or output settings` | Changed | `RtfHtmlExportOptions.Encoding, FailOnLoss; HtmlRtfExportOptions.SaveOptions, Encoding, FailOnLoss` | Output settings and the loss policy live on the converter options. |
 | limits | `OfficeIMO.Html.Rtf.HtmlToRtfOptions.CreateUntrustedHtmlProfile()` | Renamed | `OfficeIMO.Html.Rtf.HtmlRtfExportOptions.UntrustedDefaults` | Profiles for untrusted input use one discoverable name across formats. |
 
 </details>
@@ -4132,10 +4224,17 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Latex.Pdf
 
 <details>
-<summary>1 change</summary>
+<summary>8 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
+| Conversion | `LatexDocument.SaveAsPdf(string \| Stream, LatexPdfExportOptions options, CancellationToken) : PdfSaveResult` | Changed | `LatexDocument.SaveAsPdf(string path \| Stream stream, LatexPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `LatexDocument.SaveAsPdfAsync(string \| Stream, LatexPdfExportOptions options, CancellationToken) : Task<PdfSaveResult>` | Changed | `LatexDocument.SaveAsPdfAsync(string path \| Stream stream, LatexPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>; ToPdfAsync(...) : Task<OfficeConversionResult<PdfDocument>>` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Conversion runs on the thread pool, or through the asynchronous source pipeline where one exists, instead of converting before the asynchronous write. |
+| Conversion | `LatexDocument.SaveAsPdfResult / SaveAsPdfResultAsync(string \| Stream, LatexPdfExportOptions options, CancellationToken) : PdfSaveResult` | Merged | `LatexDocument.SaveAsPdf / SaveAsPdfAsync(...) : OfficeConversionReport` | Failure evidence travels on OfficeConversionException.Report; a strict failure leaves the destination unchanged. |
+| Conversion | `LatexDocument.ToPdfBytes(LatexPdfExportOptions options, CancellationToken) : byte[]` | Removed | &mdash; | Use ToPdf(options).ToBytes() or SaveAsPdf(stream, options). |
+| Conversion | `LatexDocument.ToPdfDocument(LatexPdfExportOptions options, CancellationToken)` | Renamed | `LatexDocument.ToPdf(LatexPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `LatexDocument.ToPdfDocumentResult(LatexPdfExportOptions options, CancellationToken) : PdfDocumentConversionResult` | Merged | `LatexDocument.ToPdf(LatexPdfExportOptions options, out OfficeConversionReport report, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Source and PDF-stage diagnostics are in the report. |
+| Conversion | `LatexPdfExportOptions without a loss policy` | Changed | `LatexPdfExportOptions.FailOnLoss; LatexPdfExportOptions.Clone()` | Conversions use FailOnLoss. |
 | Options | `OfficeIMO.Latex.Pdf.LatexToPdfOptions` | Renamed | `OfficeIMO.Latex.Pdf.LatexPdfExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
 
 </details>
@@ -4173,25 +4272,72 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 
 </details>
 
-#### OfficeIMO.OneNote.Html
+#### OfficeIMO.Mhtml.Pdf
 
 <details>
-<summary>1 change</summary>
+<summary>7 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
+| Conversion | `MhtmlDocument.SaveAsPdf(string \| Stream, HtmlPdfExportOptions options, CancellationToken) : PdfSaveResult` | Changed | `MhtmlDocument.SaveAsPdf(string path \| Stream stream, HtmlPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `MhtmlDocument.SaveAsPdfAsync(string \| Stream, HtmlPdfExportOptions options, CancellationToken) : Task<PdfSaveResult>` | Changed | `MhtmlDocument.SaveAsPdfAsync(string path \| Stream stream, HtmlPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>; ToPdfAsync(...) : Task<OfficeConversionResult<PdfDocument>>` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Conversion runs on the thread pool, or through the asynchronous source pipeline where one exists, instead of converting before the asynchronous write. |
+| Conversion | `MhtmlDocument.SaveAsPdfResult / SaveAsPdfResultAsync(string \| Stream, HtmlPdfExportOptions options, CancellationToken) : PdfSaveResult` | Merged | `MhtmlDocument.SaveAsPdf / SaveAsPdfAsync(...) : OfficeConversionReport` | Failure evidence travels on OfficeConversionException.Report; a strict failure leaves the destination unchanged. |
+| Conversion | `MhtmlDocument.ToPdfBytes(HtmlPdfExportOptions options, CancellationToken) : byte[]` | Removed | &mdash; | Use ToPdf(options).ToBytes() or SaveAsPdf(stream, options). |
+| Conversion | `MhtmlDocument.ToPdfDocument(HtmlPdfExportOptions options, CancellationToken)` | Renamed | `MhtmlDocument.ToPdf(HtmlPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `MhtmlDocument.ToPdfDocumentAsync / ToPdfDocumentResultAsync / ToPdfBytesAsync(HtmlPdfExportOptions, CancellationToken)` | Merged | `MhtmlDocument.ToPdfAsync(HtmlPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionResult<PdfDocument>>` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `MhtmlDocument.ToPdfDocumentResult(HtmlPdfExportOptions options, CancellationToken) : PdfDocumentConversionResult` | Merged | `MhtmlDocument.ToPdf(HtmlPdfExportOptions options, out OfficeConversionReport report, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Source and PDF-stage diagnostics are in the report. |
+
+</details>
+
+#### OfficeIMO.OneNote.Html
+
+<details>
+<summary>5 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Conversion | `HtmlConversionDocument.ToOneNoteSection / ToOneNoteSectionResult / ToOneNoteNotebook / ToOneNoteNotebookResult` | Merged | `HtmlConversionDocument.ToOneNoteSection / ToOneNoteNotebook(HtmlOneNoteExportOptions options[, out OfficeConversionReport report], CancellationToken); ToOneNoteSectionAsync / ToOneNoteNotebookAsync` | Converters use the shared shape: To{Target}(options\[, out OfficeConversionReport\], ct), To{Target}Async returning OfficeConversionResult&lt;T&gt;, and SaveAs{Target}(path \| stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed. |
+| Conversion | `OneNoteSection/OneNoteNotebook.ToHtmlDocument / ToHtmlDocumentResult / ToHtmlFragment / ToHtmlBytes(projectionOptions, htmlOptions); SaveAsHtml(path \| stream, projectionOptions, htmlOptions)` | Merged | `OneNoteSection/OneNoteNotebook.ToHtml(OneNoteHtmlExportOptions options[, out OfficeConversionReport report], CancellationToken) : string; ToHtmlAsync; SaveAsHtml(path \| stream) : OfficeConversionReport; SaveAsHtmlAsync` | OneNoteHtmlExportOptions { ProjectionOptions, HtmlOptions, Fragment, FailOnLoss }. |
+| Conversion | `ToVisualHtmlDocument / ToVisualHtmlFragment / ToVisualHtmlBytes; SaveAsVisualHtml : void / Task` | Merged | `ToVisualHtml(OneNoteVisualHtmlExportOptions options[, out OfficeConversionReport report], CancellationToken) : string; ToVisualHtmlAsync; SaveAsVisualHtml(path \| stream) : OfficeConversionReport; SaveAsVisualHtmlAsync` | Set Fragment = true for page figures without a document shell; image diagnostics appear in the report. |
 | Options | `OfficeIMO.OneNote.Html.HtmlToOneNoteOptions` | Renamed | `OfficeIMO.OneNote.Html.HtmlOneNoteExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+| Options | `OfficeIMO.OneNote.Html.OneNoteVisualHtmlOptions` | Renamed | `OfficeIMO.OneNote.Html.OneNoteVisualHtmlExportOptions (Fragment, FailOnLoss, public Clone)` | Converter options are named {Source}{Target}ExportOptions. |
+
+</details>
+
+#### OfficeIMO.OneNote.Markdown
+
+<details>
+<summary>2 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Conversion | `OneNoteSection/OneNoteNotebook.ToMarkdown : string / ToMarkdownDocument / ToMarkdownDocumentResult / ToMarkdownBytes` | Merged | `OneNoteSection/OneNoteNotebook.ToMarkdown(OneNoteMarkdownExportOptions options[, out OfficeConversionReport report], CancellationToken) : MarkdownDocument; ToMarkdownAsync; SaveAsMarkdown(path \| stream); SaveAsMarkdownAsync` | SaveAsMarkdown writes the projection text; ToMarkdown() on the model reserializes it. |
+| Options | `OfficeIMO.OneNote.Markdown.OneNoteMarkdownOptions` | Renamed | `OfficeIMO.OneNote.Markdown.OneNoteMarkdownExportOptions (with FailOnLoss)` | Converter options are named {Source}{Target}ExportOptions. |
 
 </details>
 
 #### OfficeIMO.OneNote.Pdf
 
 <details>
-<summary>1 change</summary>
+<summary>15 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
+| Conversion | `OneNotePdfExportOptions without a loss policy` | Changed | `OneNotePdfExportOptions.FailOnLoss; OneNotePdfExportOptions.Clone()` | Conversions use FailOnLoss. |
+| Conversion | `OneNoteSection \| OneNoteNotebook.SaveAsPdf(string \| Stream, OneNotePdfExportOptions options, CancellationToken) : PdfSaveResult` | Changed | `OneNoteSection \| OneNoteNotebook.SaveAsPdf(string path \| Stream stream, OneNotePdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `OneNoteSection \| OneNoteNotebook.SaveAsPdfAsync(string \| Stream, OneNotePdfExportOptions options, CancellationToken) : Task<PdfSaveResult>` | Changed | `OneNoteSection \| OneNoteNotebook.SaveAsPdfAsync(string path \| Stream stream, OneNotePdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>; ToPdfAsync(...) : Task<OfficeConversionResult<PdfDocument>>` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Conversion runs on the thread pool, or through the asynchronous source pipeline where one exists, instead of converting before the asynchronous write. |
+| Conversion | `OneNoteSection \| OneNoteNotebook.SaveAsPdfResult / SaveAsPdfResultAsync(string \| Stream, OneNotePdfExportOptions options, CancellationToken) : PdfSaveResult` | Merged | `OneNoteSection \| OneNoteNotebook.SaveAsPdf / SaveAsPdfAsync(...) : OfficeConversionReport` | Failure evidence travels on OfficeConversionException.Report; a strict failure leaves the destination unchanged. |
+| Conversion | `OneNoteSection \| OneNoteNotebook.SaveAsVisualPdf(string \| Stream, OneNoteVisualPdfOptions options, CancellationToken) : PdfSaveResult` | Changed | `OneNoteSection \| OneNoteNotebook.SaveAsVisualPdf(string path \| Stream stream, OneNoteVisualPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `OneNoteSection \| OneNoteNotebook.SaveAsVisualPdfAsync(string \| Stream, OneNoteVisualPdfOptions options, CancellationToken) : Task<PdfSaveResult>` | Changed | `OneNoteSection \| OneNoteNotebook.SaveAsVisualPdfAsync(string path \| Stream stream, OneNoteVisualPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>; ToVisualPdfAsync(...) : Task<OfficeConversionResult<PdfDocument>>` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Conversion runs on the thread pool, or through the asynchronous source pipeline where one exists, instead of converting before the asynchronous write. |
+| Conversion | `OneNoteSection \| OneNoteNotebook.SaveAsVisualPdfResult / SaveAsVisualPdfResultAsync(string \| Stream, OneNoteVisualPdfOptions options, CancellationToken) : PdfSaveResult` | Merged | `OneNoteSection \| OneNoteNotebook.SaveAsVisualPdf / SaveAsVisualPdfAsync(...) : OfficeConversionReport` | Failure evidence travels on OfficeConversionException.Report; a strict failure leaves the destination unchanged. |
+| Conversion | `OneNoteSection \| OneNoteNotebook.ToPdfBytes(OneNotePdfExportOptions options, CancellationToken) : byte[]` | Removed | &mdash; | Use ToPdf(options).ToBytes() or SaveAsPdf(stream, options). |
+| Conversion | `OneNoteSection \| OneNoteNotebook.ToPdfDocument(OneNotePdfExportOptions options, CancellationToken)` | Renamed | `OneNoteSection \| OneNoteNotebook.ToPdf(OneNotePdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `OneNoteSection \| OneNoteNotebook.ToPdfDocumentResult(OneNotePdfExportOptions options, CancellationToken) : PdfDocumentConversionResult` | Merged | `OneNoteSection \| OneNoteNotebook.ToPdf(OneNotePdfExportOptions options, out OfficeConversionReport report, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Source and PDF-stage diagnostics are in the report. |
+| Conversion | `OneNoteSection \| OneNoteNotebook.ToVisualPdfBytes(OneNoteVisualPdfOptions options, CancellationToken) : byte[]` | Removed | &mdash; | Use ToVisualPdf(options).ToBytes() or SaveAsVisualPdf(stream, options). |
+| Conversion | `OneNoteSection \| OneNoteNotebook.ToVisualPdfDocument(OneNoteVisualPdfOptions options, CancellationToken)` | Renamed | `OneNoteSection \| OneNoteNotebook.ToVisualPdf(OneNoteVisualPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `OneNoteSection \| OneNoteNotebook.ToVisualPdfDocumentResult(OneNoteVisualPdfOptions options, CancellationToken) : PdfDocumentConversionResult` | Merged | `OneNoteSection \| OneNoteNotebook.ToVisualPdf(OneNoteVisualPdfExportOptions options, out OfficeConversionReport report, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Source and PDF-stage diagnostics are in the report. |
 | Options | `OfficeIMO.OneNote.Pdf.OneNoteToPdfOptions` | Renamed | `OfficeIMO.OneNote.Pdf.OneNotePdfExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+| Options | `OfficeIMO.OneNote.Pdf.OneNoteVisualPdfOptions` | Renamed | `OfficeIMO.OneNote.Pdf.OneNoteVisualPdfExportOptions (public Clone, FailOnLoss)` | Converter options are named {Source}{Target}ExportOptions. |
 
 </details>
 
@@ -4211,11 +4357,84 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.OpenDocument.Odg.Pdf
 
 <details>
-<summary>1 change</summary>
+<summary>8 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
+| Conversion | `OdgDocument.SaveAsPdf(string \| Stream, OdgPdfExportOptions options, CancellationToken) : PdfSaveResult` | Changed | `OdgDocument.SaveAsPdf(string path \| Stream stream, OdgPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `OdgDocument.SaveAsPdfAsync(string \| Stream, OdgPdfExportOptions options, CancellationToken) : Task<PdfSaveResult>` | Changed | `OdgDocument.SaveAsPdfAsync(string path \| Stream stream, OdgPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>; ToPdfAsync(...) : Task<OfficeConversionResult<PdfDocument>>` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Conversion runs on the thread pool, or through the asynchronous source pipeline where one exists, instead of converting before the asynchronous write. |
+| Conversion | `OdgDocument.SaveAsPdfResult / SaveAsPdfResultAsync(string \| Stream, OdgPdfExportOptions options, CancellationToken) : PdfSaveResult` | Merged | `OdgDocument.SaveAsPdf / SaveAsPdfAsync(...) : OfficeConversionReport` | Failure evidence travels on OfficeConversionException.Report; a strict failure leaves the destination unchanged. |
+| Conversion | `OdgDocument.ToPdfBytes(OdgPdfExportOptions options, CancellationToken) : byte[]` | Removed | &mdash; | Use ToPdf(options).ToBytes() or SaveAsPdf(stream, options). |
+| Conversion | `OdgDocument.ToPdfDocument(OdgPdfExportOptions options, CancellationToken)` | Renamed | `OdgDocument.ToPdf(OdgPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `OdgDocument.ToPdfDocumentResult(OdgPdfExportOptions options, CancellationToken) : PdfDocumentConversionResult` | Merged | `OdgDocument.ToPdf(OdgPdfExportOptions options, out OfficeConversionReport report, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Source and PDF-stage diagnostics are in the report. |
+| Conversion | `OdgPdfExportOptions without FailOnLoss` | Changed | `OdgPdfExportOptions.FailOnLoss` | Conversions use FailOnLoss; LossPolicy keeps the OpenDocument stage policy. |
 | Options | `OfficeIMO.OpenDocument.Odg.Pdf.OdgToPdfOptions` | Renamed | `OfficeIMO.OpenDocument.Odg.Pdf.OdgPdfExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+
+</details>
+
+#### OfficeIMO.OpenDocument.Odp.Pdf
+
+<details>
+<summary>12 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Conversion | `OdpPresentation.SaveAsPdf(string \| Stream, PowerPointOpenDocumentConversionOptions, PowerPointPdfExportOptions options, CancellationToken) : PdfSaveResult` | Changed | `OdpPresentation.SaveAsPdf(string path \| Stream stream, OdpPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `OdpPresentation.SaveAsPdfAsync(string \| Stream, PowerPointOpenDocumentConversionOptions, PowerPointPdfExportOptions options, CancellationToken) : Task<PdfSaveResult>` | Changed | `OdpPresentation.SaveAsPdfAsync(string path \| Stream stream, OdpPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>; ToPdfAsync(...) : Task<OfficeConversionResult<PdfDocument>>` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Conversion runs on the thread pool, or through the asynchronous source pipeline where one exists, instead of converting before the asynchronous write. |
+| Conversion | `OdpPresentation.SaveAsPdfResult / SaveAsPdfResultAsync(string \| Stream, PowerPointOpenDocumentConversionOptions, PowerPointPdfExportOptions options, CancellationToken) : PdfSaveResult` | Merged | `OdpPresentation.SaveAsPdf / SaveAsPdfAsync(...) : OfficeConversionReport` | Failure evidence travels on OfficeConversionException.Report; a strict failure leaves the destination unchanged. |
+| Conversion | `OdpPresentation.ToPdfBytes(PowerPointOpenDocumentConversionOptions, PowerPointPdfExportOptions options, CancellationToken) : byte[]` | Removed | &mdash; | Use ToPdf(options).ToBytes() or SaveAsPdf(stream, options). |
+| Conversion | `OdpPresentation.ToPdfDocument(PowerPointOpenDocumentConversionOptions, PowerPointPdfExportOptions options, CancellationToken)` | Renamed | `OdpPresentation.ToPdf(OdpPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `OdpPresentation.ToPdfDocumentResult(PowerPointOpenDocumentConversionOptions, PowerPointPdfExportOptions options, CancellationToken) : PdfDocumentConversionResult` | Merged | `OdpPresentation.ToPdf(OdpPdfExportOptions options, out OfficeConversionReport report, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Source and PDF-stage diagnostics are in the report. |
+| Conversion | `OfficeIMO.OpenDocument.Odp.Pdf.PdfOdpConversionResult` | Internal | &mdash; | Use ToOdp(options, out report) or ToOdpAsync; the typed PdfOdpConversionReport stays public. |
+| Conversion | `PdfDocument \| PdfDocumentReadResult.SaveAsOdp / SaveAsOdpAsync(..., PdfPowerPointExportOptions pdfOptions, PowerPointOpenDocumentConversionOptions openDocumentOptions) : OfficeOutputResult<PdfOdpConversionReport>` | Changed | `SaveAsOdp(string path \| Stream stream, PdfOdpExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport; SaveAsOdpAsync(...) : Task<OfficeConversionReport>; ToOdpAsync(...) : Task<OfficeConversionResult<OdpPresentation>>` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `PdfDocument \| PdfDocumentReadResult.ToOdpPresentation(PdfPowerPointExportOptions pdfOptions, PowerPointOpenDocumentConversionOptions openDocumentOptions, CancellationToken)` | Renamed | `PdfDocument \| PdfDocumentReadResult.ToOdp(PdfOdpExportOptions options = null, CancellationToken cancellationToken = default) : OdpPresentation` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `PdfDocument \| PdfDocumentReadResult.ToOdpPresentationResult(...) : PdfOdpConversionResult` | Merged | `ToOdp(PdfOdpExportOptions options, out OfficeConversionReport report, CancellationToken cancellationToken = default); the report is a PdfOdpConversionReport with both stage reports` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Options | `(PdfPowerPointExportOptions pdfOptions, PowerPointOpenDocumentConversionOptions openDocumentOptions) parameter pair` | Changed | `OfficeIMO.OpenDocument.Odp.Pdf.PdfOdpExportOptions { PdfOptions, OpenDocumentOptions, FailOnLoss }` | Converter options are one {Source}{Target}ExportOptions object. |
+| Options | `(PowerPointOpenDocumentConversionOptions conversionOptions, PowerPointPdfExportOptions pdfOptions) parameter pair` | Changed | `OfficeIMO.OpenDocument.Odp.Pdf.OdpPdfExportOptions { ConversionOptions, PdfOptions, FailOnLoss }` | Converter options are one {Source}{Target}ExportOptions object. |
+
+</details>
+
+#### OfficeIMO.OpenDocument.Ods.Pdf
+
+<details>
+<summary>12 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Conversion | `OdsDocument.SaveAsPdf(string \| Stream, ExcelOpenDocumentConversionOptions, ExcelPdfExportOptions options, CancellationToken) : PdfSaveResult` | Changed | `OdsDocument.SaveAsPdf(string path \| Stream stream, OdsPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `OdsDocument.SaveAsPdfAsync(string \| Stream, ExcelOpenDocumentConversionOptions, ExcelPdfExportOptions options, CancellationToken) : Task<PdfSaveResult>` | Changed | `OdsDocument.SaveAsPdfAsync(string path \| Stream stream, OdsPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>; ToPdfAsync(...) : Task<OfficeConversionResult<PdfDocument>>` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Conversion runs on the thread pool, or through the asynchronous source pipeline where one exists, instead of converting before the asynchronous write. |
+| Conversion | `OdsDocument.SaveAsPdfResult / SaveAsPdfResultAsync(string \| Stream, ExcelOpenDocumentConversionOptions, ExcelPdfExportOptions options, CancellationToken) : PdfSaveResult` | Merged | `OdsDocument.SaveAsPdf / SaveAsPdfAsync(...) : OfficeConversionReport` | Failure evidence travels on OfficeConversionException.Report; a strict failure leaves the destination unchanged. |
+| Conversion | `OdsDocument.ToPdfBytes(ExcelOpenDocumentConversionOptions, ExcelPdfExportOptions options, CancellationToken) : byte[]` | Removed | &mdash; | Use ToPdf(options).ToBytes() or SaveAsPdf(stream, options). |
+| Conversion | `OdsDocument.ToPdfDocument(ExcelOpenDocumentConversionOptions, ExcelPdfExportOptions options, CancellationToken)` | Renamed | `OdsDocument.ToPdf(OdsPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `OdsDocument.ToPdfDocumentResult(ExcelOpenDocumentConversionOptions, ExcelPdfExportOptions options, CancellationToken) : PdfDocumentConversionResult` | Merged | `OdsDocument.ToPdf(OdsPdfExportOptions options, out OfficeConversionReport report, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Source and PDF-stage diagnostics are in the report. |
+| Conversion | `OfficeIMO.OpenDocument.Ods.Pdf.PdfOdsConversionResult` | Internal | &mdash; | Use ToOds(options, out report) or ToOdsAsync; the typed PdfOdsConversionReport stays public. |
+| Conversion | `PdfDocument \| PdfDocumentReadResult.SaveAsOds / SaveAsOdsAsync(..., PdfExcelExportOptions pdfOptions, ExcelOpenDocumentConversionOptions openDocumentOptions) : OfficeOutputResult<PdfOdsConversionReport>` | Changed | `SaveAsOds(string path \| Stream stream, PdfOdsExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport; SaveAsOdsAsync(...) : Task<OfficeConversionReport>; ToOdsAsync(...) : Task<OfficeConversionResult<OdsDocument>>` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `PdfDocument \| PdfDocumentReadResult.ToOdsDocument(PdfExcelExportOptions pdfOptions, ExcelOpenDocumentConversionOptions openDocumentOptions, CancellationToken)` | Renamed | `PdfDocument \| PdfDocumentReadResult.ToOds(PdfOdsExportOptions options = null, CancellationToken cancellationToken = default) : OdsDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `PdfDocument \| PdfDocumentReadResult.ToOdsDocumentResult(...) : PdfOdsConversionResult` | Merged | `ToOds(PdfOdsExportOptions options, out OfficeConversionReport report, CancellationToken cancellationToken = default); the report is a PdfOdsConversionReport with both stage reports` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Options | `(ExcelOpenDocumentConversionOptions conversionOptions, ExcelPdfExportOptions pdfOptions) parameter pair` | Changed | `OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfExportOptions { ConversionOptions, PdfOptions, FailOnLoss }` | Converter options are one {Source}{Target}ExportOptions object. |
+| Options | `(PdfExcelExportOptions pdfOptions, ExcelOpenDocumentConversionOptions openDocumentOptions) parameter pair` | Changed | `OfficeIMO.OpenDocument.Ods.Pdf.PdfOdsExportOptions { PdfOptions, OpenDocumentOptions, FailOnLoss }` | Converter options are one {Source}{Target}ExportOptions object. |
+
+</details>
+
+#### OfficeIMO.OpenDocument.Odt.Pdf
+
+<details>
+<summary>12 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Conversion | `OdtDocument.SaveAsPdf(string \| Stream, WordOpenDocumentConversionOptions, WordPdfExportOptions options, CancellationToken) : PdfSaveResult` | Changed | `OdtDocument.SaveAsPdf(string path \| Stream stream, OdtPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `OdtDocument.SaveAsPdfAsync(string \| Stream, WordOpenDocumentConversionOptions, WordPdfExportOptions options, CancellationToken) : Task<PdfSaveResult>` | Changed | `OdtDocument.SaveAsPdfAsync(string path \| Stream stream, OdtPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>; ToPdfAsync(...) : Task<OfficeConversionResult<PdfDocument>>` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Conversion runs on the thread pool, or through the asynchronous source pipeline where one exists, instead of converting before the asynchronous write. |
+| Conversion | `OdtDocument.SaveAsPdfResult / SaveAsPdfResultAsync(string \| Stream, WordOpenDocumentConversionOptions, WordPdfExportOptions options, CancellationToken) : PdfSaveResult` | Merged | `OdtDocument.SaveAsPdf / SaveAsPdfAsync(...) : OfficeConversionReport` | Failure evidence travels on OfficeConversionException.Report; a strict failure leaves the destination unchanged. |
+| Conversion | `OdtDocument.ToPdfBytes(WordOpenDocumentConversionOptions, WordPdfExportOptions options, CancellationToken) : byte[]` | Removed | &mdash; | Use ToPdf(options).ToBytes() or SaveAsPdf(stream, options). |
+| Conversion | `OdtDocument.ToPdfDocument(WordOpenDocumentConversionOptions, WordPdfExportOptions options, CancellationToken)` | Renamed | `OdtDocument.ToPdf(OdtPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `OdtDocument.ToPdfDocumentResult(WordOpenDocumentConversionOptions, WordPdfExportOptions options, CancellationToken) : PdfDocumentConversionResult` | Merged | `OdtDocument.ToPdf(OdtPdfExportOptions options, out OfficeConversionReport report, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Source and PDF-stage diagnostics are in the report. |
+| Conversion | `OfficeIMO.OpenDocument.Odt.Pdf.PdfOdtConversionResult` | Internal | &mdash; | Use ToOdt(options, out report) or ToOdtAsync; the typed PdfOdtConversionReport stays public. |
+| Conversion | `PdfDocument \| PdfDocumentReadResult.SaveAsOdt / SaveAsOdtAsync(..., PdfWordExportOptions pdfOptions, WordOpenDocumentConversionOptions openDocumentOptions) : OfficeOutputResult<PdfOdtConversionReport>` | Changed | `SaveAsOdt(string path \| Stream stream, PdfOdtExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport; SaveAsOdtAsync(...) : Task<OfficeConversionReport>; ToOdtAsync(...) : Task<OfficeConversionResult<OdtDocument>>` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `PdfDocument \| PdfDocumentReadResult.ToOdtDocument(PdfWordExportOptions pdfOptions, WordOpenDocumentConversionOptions openDocumentOptions, CancellationToken)` | Renamed | `PdfDocument \| PdfDocumentReadResult.ToOdt(PdfOdtExportOptions options = null, CancellationToken cancellationToken = default) : OdtDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `PdfDocument \| PdfDocumentReadResult.ToOdtDocumentResult(...) : PdfOdtConversionResult` | Merged | `ToOdt(PdfOdtExportOptions options, out OfficeConversionReport report, CancellationToken cancellationToken = default); the report is a PdfOdtConversionReport with both stage reports` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Options | `(PdfWordExportOptions pdfOptions, WordOpenDocumentConversionOptions openDocumentOptions) parameter pair` | Changed | `OfficeIMO.OpenDocument.Odt.Pdf.PdfOdtExportOptions { PdfOptions, OpenDocumentOptions, FailOnLoss }` | Converter options are one {Source}{Target}ExportOptions object. |
+| Options | `(WordOpenDocumentConversionOptions conversionOptions, WordPdfExportOptions pdfOptions) parameter pair` | Changed | `OfficeIMO.OpenDocument.Odt.Pdf.OdtPdfExportOptions { ConversionOptions, PdfOptions, FailOnLoss }` | Converter options are one {Source}{Target}ExportOptions object. |
 
 </details>
 
@@ -4271,28 +4490,47 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.PowerPoint.Html
 
 <details>
-<summary>8 changes</summary>
+<summary>10 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
+| Conversion | `HtmlConversionDocument.ToPowerPointDocument(HtmlPowerPointExportOptions) / ToPowerPointDocumentResult : HtmlToPowerPointResult` | Merged | `HtmlConversionDocument.ToPowerPoint(HtmlPowerPointExportOptions options[, out OfficeConversionReport report], CancellationToken) : PowerPointDocument; ToPowerPointAsync; SaveAsPowerPoint(path \| stream); SaveAsPowerPointAsync` | Converters use the shared shape: To{Target}(options\[, out OfficeConversionReport\], ct), To{Target}Async returning OfficeConversionResult&lt;T&gt;, and SaveAs{Target}(path \| stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed. |
 | Conversion | `OfficeIMO.PowerPoint.Html.PowerPointHtmlConverterExtensions.SaveAsHtml(PowerPointDocument, string \| Stream, PowerPointHtmlSaveOptions) : void` | Changed | `PowerPointDocument.SaveAsHtml(string path \| Stream stream, PowerPointHtmlExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | PowerPoint to HTML matches Word to HTML: ToHtml returns text with an optional report, SaveAsHtml returns OfficeConversionReport, and ToHtmlAsync returns OfficeConversionResult&lt;string&gt;. |
 | Conversion | `OfficeIMO.PowerPoint.Html.PowerPointHtmlConverterExtensions.SaveAsHtmlAsync(PowerPointDocument, string \| Stream, PowerPointHtmlSaveOptions, CancellationToken) : Task` | Changed | `PowerPointDocument.SaveAsHtmlAsync(string path \| Stream stream, PowerPointHtmlExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>` | PowerPoint to HTML matches Word to HTML: ToHtml returns text with an optional report, SaveAsHtml returns OfficeConversionReport, and ToHtmlAsync returns OfficeConversionResult&lt;string&gt;. Conversion runs on the thread pool instead of blocking before the asynchronous write. |
 | Conversion | `OfficeIMO.PowerPoint.Html.PowerPointHtmlConverterExtensions.ToHtml(PowerPointDocument, PowerPointHtmlSaveOptions)` | Changed | `PowerPointDocument.ToHtml(PowerPointHtmlExportOptions options = null, CancellationToken cancellationToken = default) : string; ToHtmlAsync(...) : Task<OfficeConversionResult<string>>` | PowerPoint to HTML matches Word to HTML: ToHtml returns text with an optional report, SaveAsHtml returns OfficeConversionReport, and ToHtmlAsync returns OfficeConversionResult&lt;string&gt;. |
 | Conversion | `OfficeIMO.PowerPoint.Html.PowerPointHtmlConverterExtensions.ToHtmlResult(PowerPointDocument, PowerPointHtmlSaveOptions) : PowerPointToHtmlResult` | Merged | `PowerPointDocument.ToHtml(PowerPointHtmlExportOptions options, out OfficeConversionReport report, CancellationToken cancellationToken = default) : string` | PowerPoint to HTML matches Word to HTML: ToHtml returns text with an optional report, SaveAsHtml returns OfficeConversionReport, and ToHtmlAsync returns OfficeConversionResult&lt;string&gt;. Snapshot image diagnostics are part of the report. |
 | Conversion | `OfficeIMO.PowerPoint.Html.PowerPointToHtmlResult` | Internal | &mdash; | Use the OfficeConversionReport from ToHtml(options, out report); ImageDiagnostics are report diagnostics with the same codes. |
 | Conversion | `PowerPointHtmlSaveOptions without a loss policy` | Changed | `PowerPointHtmlExportOptions.FailOnLoss` | Conversions use FailOnLoss to make reported loss an error. |
+| Options | `HtmlPowerPointExportOptions without a loss policy` | Changed | `HtmlPowerPointExportOptions.FailOnLoss; Clone() is public` | Conversions use FailOnLoss. |
 | Options | `OfficeIMO.PowerPoint.Html.HtmlToPowerPointOptions` | Renamed | `OfficeIMO.PowerPoint.Html.HtmlPowerPointExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
 | Options | `OfficeIMO.PowerPoint.Html.PowerPointHtmlSaveOptions` | Renamed | `OfficeIMO.PowerPoint.Html.PowerPointHtmlExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+
+</details>
+
+#### OfficeIMO.PowerPoint.IWork
+
+<details>
+<summary>4 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Conversion | `IWorkSourceDocument.ToPowerPointDocument(IWorkConversionOptions)` | Merged | `IWorkSourceDocument.ToPowerPoint(KeynotePowerPointExportOptions options[, out OfficeConversionReport report], CancellationToken); ToPowerPointAsync; SaveAsPowerPoint(path \| stream); SaveAsPowerPointAsync` | ToPowerPoint returns partial reconstructions with their report; use ToPowerPointResult(...).RequireCompleteEditableReconstruction() for the previous strict behaviour. |
+| Conversion | `IWorkSourceDocument.ToPowerPointDocumentResult(IWorkConversionOptions) : KeynoteToPowerPointResult` | Renamed | `IWorkSourceDocument.ToPowerPointResult(IWorkConversionOptions options = null, CancellationToken cancellationToken = default) : KeynoteToPowerPointResult` | The result keeps the source package and the typed source projection, which the common report does not carry, so it stays as a distinct evidence operation. |
+| Conversion | `PowerPointIWorkConverter.ConvertKeynoteToPowerPoint(path \| stream, IWorkReadOptions, IWorkConversionOptions[, CancellationToken]) / ConvertKeynoteToPowerPointResult` | Removed | `IWorkSourceDocument.Open(path \| stream, IWorkDocumentKind.Keynote, readOptions[, ct]).ToPowerPoint(...) / ToPowerPointResult(...)` | Open the source with IWorkSourceDocument.Open and call ToPowerPoint, SaveAsPowerPoint or ToPowerPointResult; append RequireCompleteEditableReconstruction() to keep the strict behaviour. |
+| Options | `IWorkConversionOptions parameter` | Changed | `OfficeIMO.PowerPoint.IWork.KeynotePowerPointExportOptions { ConversionOptions, FailOnLoss }` | Converter options are named {Source}{Target}ExportOptions. |
 
 </details>
 
 #### OfficeIMO.PowerPoint.OpenDocument
 
 <details>
-<summary>2 changes</summary>
+<summary>5 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
+| Conversion | `OdpPresentation.ToPowerPointDocument(options) / ToPowerPointDocumentResult(options)` | Merged | `OdpPresentation.ToPowerPoint(PowerPointOpenDocumentConversionOptions options[, out OfficeConversionReport report], CancellationToken); ToPowerPointAsync; SaveAsPowerPoint(path \| stream); SaveAsPowerPointAsync` | Converters use the shared shape: To{Target}(options\[, out OfficeConversionReport\], ct), To{Target}Async returning OfficeConversionResult&lt;T&gt;, and SaveAs{Target}(path \| stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed. |
+| Conversion | `PowerPointDocument.ToOpenDocument(options) / ToOpenDocumentResult(options) : OdfConversionResult<OdpPresentation>` | Merged | `PowerPointDocument.ToOpenDocument(PowerPointOpenDocumentConversionOptions options[, out OfficeConversionReport report], CancellationToken) : OdpPresentation; ToOpenDocumentAsync; SaveAsOpenDocument(path \| stream); SaveAsOpenDocumentAsync` | The out report is the typed OdfConversionReport with per-feature mappings. |
+| Options | `OfficeIMO.PowerPoint.OpenDocument.PowerPointOpenDocumentConversionOptions` | Changed | `OfficeIMO.PowerPoint.OpenDocument.PowerPointOpenDocumentConversionOptions.Clone()` | Both directions share every setting, so one options type stays; LossPolicy keeps its three levels instead of FailOnLoss. |
 | Options | `PowerPointOpenDocumentImageExportExtensions.ExportImages(OdpPresentation, OfficeImageExportFormat, OfficeImageExportConsumer, PowerPointDocumentImageExportOptions, PowerPointOpenDocumentConversionOptions, CancellationToken)` | Merged | `PowerPointOpenDocumentImageExportExtensions.ExportImages(OdpPresentation, OfficeImageExportFormat, OfficeImageExportConsumer, PowerPointImageExportOptions, PowerPointOpenDocumentConversionOptions, CancellationToken)` | The rendering package now exposes one image options type. The adapter preserves source conversion, selection, diagnostic attachment and cancellation behavior. |
 | Options | `PowerPointOpenDocumentImageExportExtensions.ExportImages(OdpPresentation, OfficeImageExportFormat, PowerPointDocumentImageExportOptions, PowerPointOpenDocumentConversionOptions, CancellationToken)` | Merged | `PowerPointOpenDocumentImageExportExtensions.ExportImages(OdpPresentation, OfficeImageExportFormat, PowerPointImageExportOptions, PowerPointOpenDocumentConversionOptions, CancellationToken)` | The rendering package now exposes one image options type. The adapter preserves source conversion, selection, diagnostic attachment and cancellation behavior. |
 
@@ -4387,12 +4625,15 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Rtf.Markdown
 
 <details>
-<summary>2 changes</summary>
+<summary>5 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
+| Conversion | `MarkdownDocument.ToRtfDocument / ToRtfDocumentResult / ToRtf(options, writeOptions) : string / ToRtfResult / ToRtfBytes / ToRtfStream / SaveAsRtf(..., writeOptions, encoding)` | Merged | `MarkdownDocument.ToRtf(MarkdownRtfExportOptions options[, out OfficeConversionReport report], CancellationToken) : RtfDocument; ToRtfAsync; SaveAsRtf(path \| stream); SaveAsRtfAsync` | Converters use the shared shape: To{Target}(options\[, out OfficeConversionReport\], ct), To{Target}Async returning OfficeConversionResult&lt;T&gt;, and SaveAs{Target}(path \| stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed. |
+| Conversion | `RtfDocument.ToMarkdownDocument / ToMarkdownDocumentResult / ToMarkdown : string / ToMarkdownResult / ToMarkdownBytes / ToMarkdownStream` | Merged | `RtfDocument.ToMarkdown(RtfMarkdownExportOptions options[, out OfficeConversionReport report], CancellationToken) : MarkdownDocument; ToMarkdownAsync; SaveAsMarkdown(path \| stream); SaveAsMarkdownAsync` | Call ToMarkdown() on the returned MarkdownDocument for text. |
 | Options | `OfficeIMO.Rtf.Markdown.MarkdownToRtfOptions` | Renamed | `OfficeIMO.Rtf.Markdown.MarkdownRtfExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
 | Options | `OfficeIMO.Rtf.Markdown.RtfToMarkdownOptions` | Renamed | `OfficeIMO.Rtf.Markdown.RtfMarkdownExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
+| Options | `Rtf.Markdown options without loss policy or output settings` | Changed | `RtfMarkdownExportOptions.Encoding, FailOnLoss, Clone(); MarkdownRtfExportOptions.SaveOptions, Encoding, FailOnLoss, Clone()` | Output settings and the loss policy live on the converter options. |
 
 </details>
 
@@ -4449,6 +4690,46 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 
 </details>
 
+#### OfficeIMO.Word.IWork
+
+<details>
+<summary>4 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Conversion | `IWorkSourceDocument.ToWordDocument(IWorkConversionOptions)` | Merged | `IWorkSourceDocument.ToWord(PagesWordExportOptions options[, out OfficeConversionReport report], CancellationToken); ToWordAsync; SaveAsWord(path \| stream); SaveAsWordAsync` | ToWord returns partial reconstructions with their report; use ToWordResult(...).RequireCompleteEditableReconstruction() for the previous strict behaviour. |
+| Conversion | `IWorkSourceDocument.ToWordDocumentResult(IWorkConversionOptions) : PagesToWordResult` | Renamed | `IWorkSourceDocument.ToWordResult(IWorkConversionOptions options = null, CancellationToken cancellationToken = default) : PagesToWordResult` | The result keeps the source package and the typed source projection, which the common report does not carry, so it stays as a distinct evidence operation. |
+| Conversion | `WordIWorkConverter.ConvertPagesToWord(path \| stream, IWorkReadOptions, IWorkConversionOptions[, CancellationToken]) / ConvertPagesToWordResult` | Removed | `IWorkSourceDocument.Open(path \| stream, IWorkDocumentKind.Pages, readOptions[, ct]).ToWord(...) / ToWordResult(...)` | Open the source with IWorkSourceDocument.Open and call ToWord, SaveAsWord or ToWordResult; append RequireCompleteEditableReconstruction() to keep the strict behaviour. |
+| Options | `IWorkConversionOptions parameter` | Changed | `OfficeIMO.Word.IWork.PagesWordExportOptions { ConversionOptions, FailOnLoss }` | Converter options are named {Source}{Target}ExportOptions. |
+
+</details>
+
+#### OfficeIMO.Word.OpenDocument
+
+<details>
+<summary>3 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Conversion | `OdtDocument.ToWordDocument(options) / ToWordDocumentResult(options)` | Merged | `OdtDocument.ToWord(WordOpenDocumentConversionOptions options[, out OfficeConversionReport report], CancellationToken); ToWordAsync; SaveAsWord(path \| stream); SaveAsWordAsync` | Converters use the shared shape: To{Target}(options\[, out OfficeConversionReport\], ct), To{Target}Async returning OfficeConversionResult&lt;T&gt;, and SaveAs{Target}(path \| stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed. |
+| Conversion | `WordDocument.ToOpenDocument(options) / ToOpenDocumentResult(options) : OdfConversionResult<OdtDocument>` | Merged | `WordDocument.ToOpenDocument(WordOpenDocumentConversionOptions options[, out OfficeConversionReport report], CancellationToken) : OdtDocument; ToOpenDocumentAsync; SaveAsOpenDocument(path \| stream); SaveAsOpenDocumentAsync` | The out report is the typed OdfConversionReport with per-feature mappings. |
+| Options | `OfficeIMO.Word.OpenDocument.WordOpenDocumentConversionOptions` | Changed | `OfficeIMO.Word.OpenDocument.WordOpenDocumentConversionOptions.Clone()` | Both directions share every setting, so one options type stays; LossPolicy keeps its three levels instead of FailOnLoss. |
+
+</details>
+
+#### OfficeIMO.Word.Rtf
+
+<details>
+<summary>3 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Conversion | `RtfDocument.ToWordDocument() / ToWordDocumentResult(); RtfReadResult.ToWordDocumentResult(sourcePath)` | Merged | `RtfDocument/RtfReadResult.ToWord(RtfWordExportOptions options[, out OfficeConversionReport report], CancellationToken) : WordDocument; ToWordAsync; SaveAsWord(path \| stream); SaveAsWordAsync` | RtfWordExportOptions.SourcePath labels read diagnostics. |
+| Conversion | `WordDocument.ToRtfDocument() / ToRtfDocumentResult() / ToRtf(RtfSaveOptions) : string / ToRtfBytes / ToRtfStream` | Merged | `WordDocument.ToRtf(WordRtfExportOptions options[, out OfficeConversionReport report], CancellationToken) : RtfDocument; ToRtfAsync; SaveAsRtf(path \| stream, WordRtfExportOptions) : OfficeConversionReport; SaveAsRtfAsync` | word.ToRtf().ToRtf(saveOptions) for text; SaveOptions and Encoding move to WordRtfExportOptions. |
+| Options | `RtfSaveOptions + Encoding parameters` | Changed | `OfficeIMO.Word.Rtf.WordRtfExportOptions { SaveOptions, Encoding, FailOnLoss }; OfficeIMO.Word.Rtf.RtfWordExportOptions { SourcePath, FailOnLoss }` | Converter options are named {Source}{Target}ExportOptions. |
+
+</details>
+
 #### OfficeIMO.Xps
 
 <details>
@@ -4465,10 +4746,19 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Xps.Pdf
 
 <details>
-<summary>1 change</summary>
+<summary>10 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
+| Conversion | `XpsDocument.SaveAsPdf(string \| Stream, XpsPdfExportOptions options, CancellationToken) : PdfSaveResult` | Changed | `XpsDocument.SaveAsPdf(string path \| Stream stream, XpsPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `XpsDocument.SaveAsPdfAsync(string \| Stream, XpsPdfExportOptions options, CancellationToken) : Task<PdfSaveResult>` | Changed | `XpsDocument.SaveAsPdfAsync(string path \| Stream stream, XpsPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>; ToPdfAsync(...) : Task<OfficeConversionResult<PdfDocument>>` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Conversion runs on the thread pool, or through the asynchronous source pipeline where one exists, instead of converting before the asynchronous write. |
+| Conversion | `XpsDocument.SaveAsPdfResult / SaveAsPdfResultAsync(string \| Stream, XpsPdfExportOptions options, CancellationToken) : PdfSaveResult` | Merged | `XpsDocument.SaveAsPdf / SaveAsPdfAsync(...) : OfficeConversionReport` | Failure evidence travels on OfficeConversionException.Report; a strict failure leaves the destination unchanged. |
+| Conversion | `XpsDocument.SavePdf(Stream output, XpsPdfExportOptions options, CancellationToken) : PdfSaveResult` | Renamed | `XpsDocument.SaveAsPdf(string path \| Stream stream, XpsPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. The stream is written at its current position like the other converters; it is no longer replaced and rewound. |
+| Conversion | `XpsDocument.ToPdf(CancellationToken cancellationToken = default, bool preserveLogicalStructure = true) : byte[]` | Changed | `XpsDocument.ToPdf(XpsPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. PreserveLogicalStructure is an option; serialize with ToBytes(). |
+| Conversion | `XpsDocument.ToPdfBytes(XpsPdfExportOptions options, CancellationToken) : byte[]` | Removed | &mdash; | Use ToPdf(options).ToBytes() or SaveAsPdf(stream, options). |
+| Conversion | `XpsDocument.ToPdfDocument(XpsPdfExportOptions options, CancellationToken)` | Renamed | `XpsDocument.ToPdf(XpsPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. |
+| Conversion | `XpsDocument.ToPdfDocumentResult(XpsPdfExportOptions options, CancellationToken) : PdfDocumentConversionResult` | Merged | `XpsDocument.ToPdf(XpsPdfExportOptions options, out OfficeConversionReport report, CancellationToken cancellationToken = default) : PdfDocument` | PDF converters use the shared shape: ToPdf(options\[, out report\], ct), ToPdfAsync returning OfficeConversionResult&lt;PdfDocument&gt;, and SaveAsPdf/SaveAsPdfAsync returning OfficeConversionReport. Strict failures throw OfficeConversionException with the stage report. Source and PDF-stage diagnostics are in the report. |
+| Conversion | `XpsPdfExportOptions without a loss policy` | Changed | `XpsPdfExportOptions.FailOnLoss` | Conversions use FailOnLoss. |
 | Options | `OfficeIMO.Xps.XpsToPdfOptions` | Renamed | `OfficeIMO.Xps.XpsPdfExportOptions` | Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package. |
 
 </details>
@@ -5201,7 +5491,7 @@ using OfficeIMO.Excel.IWork;
 using OfficeIMO.IWork;
 
 IWorkSourceDocument source = IWorkSourceDocument.Open("source.numbers");
-using NumbersToExcelResult result = source.ToExcelDocumentResult(
+using NumbersToExcelResult result = source.ToExcelResult(
     new IWorkConversionOptions {
         Mode = IWorkConversionMode.EditableOnly,
         AllowPartialEditableReconstruction = true
@@ -7730,7 +8020,7 @@ Applications that intentionally import opaque package bytes can keep using the b
 
 Direct `OfficeImageExportResult` construction now applies the same complete-content check. A recognizable header is no longer enough: truncated, corrupt, undecodable, or dimension-mismatched bytes throw `ArgumentException`. Call `OfficeImageReader.TryValidateContent(...)` before construction when the application needs to handle invalid output without an exception.
 
-Word/RTF result conversions now validate and inventory images across the document body, section headers and footers, fields, revisions, notes, and comments. Images that the target format cannot emit remain in the conversion report instead of disappearing silently. Use `ToRtfDocumentResult(...)` or `ToWordDocumentResult(...)`, inspect `Report`, and call `ThrowIfLoss()` when omitted image content must stop the workflow.
+Word/RTF result conversions now validate and inventory images across the document body, section headers and footers, fields, revisions, notes, and comments. Images that the target format cannot emit remain in the conversion report instead of disappearing silently. Use `ToRtf(options, out report)` or `ToWord(options, out report)`, inspect the report, and call `ThrowIfLoss()` when omitted image content must stop the workflow.
 
 Word-to-ODT and PowerPoint-to-ODP conversion now preserves only images that pass `OfficeImageReader.TryValidateContent(...)`. Valid payloads with misleading extensions are stored under the detected format; corrupt, truncated, unsupported, and general WebP payloads outside OfficeIMO's managed decoder subset are omitted and reported as unsupported. Each conversion validates at most 256 image payloads, 128 MiB of aggregate encoded image data, and 100 million aggregate raster pixels; later images are omitted and reported once a ceiling is reached. Split larger trusted documents before conversion when every image must be retained. Inspect the returned `OdfConversionResult<T>.Report`, call `ThrowIfLoss()`, or set the conversion option `LossPolicy` when image loss must fail the conversion.
 

@@ -66,7 +66,7 @@ public sealed class XpsJpegPrecisionTests {
             var images = new[] {
                 OfficeDrawingRasterRenderer.Render(page.ToDrawing()),
                 OfficeDrawingRasterRenderer.Render(svgDrawing!),
-                OfficeDrawingRasterRenderer.Render(PdfDocument.Load(new System.IO.MemoryStream(loaded.ToPdf())).Pages[0].ToDrawing(), scale: 4D / 3D)
+                OfficeDrawingRasterRenderer.Render(PdfDocument.Load(new System.IO.MemoryStream(loaded.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages[0].ToDrawing(), scale: 4D / 3D)
             };
             for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
                 var expected = source!.GetPixel(x, y);

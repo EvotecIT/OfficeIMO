@@ -15,9 +15,8 @@ public sealed partial class IWorkBoundaryTests {
         VerifyInputs();
         JsonElement native = evidence.GetProperty("cases")[filled ? 1 : 0];
         JsonElement edited = evidence.GetProperty("cases")[1];
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(CorpusFixture(
-            "native-exports/" + native.GetProperty("source").GetString()),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(CorpusFixture(
+            "native-exports/" + native.GetProperty("source").GetString()), IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Report.IsPartialEditableReconstruction);
         IWorkTable operands = result.Projection.Sheets[0].Tables.Single();

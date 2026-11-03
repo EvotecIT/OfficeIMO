@@ -26,7 +26,7 @@ public class HtmlArtifactRoundTrips {
         wordResult.Value.Save(docx);
         using WordDocument reopenedWord = WordDocument.Load(new MemoryStream(docx.ToArray()), new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
 
-        HtmlToRtfResult rtfResult = source.ToRtfDocumentResult();
+        HtmlToRtfResult rtfResult = source.ConvertToRtfWithEvidence();
         string rtf = rtfResult.Value.ToRtf();
         RtfReadResult reopenedRtf = RtfDocument.ParseResult(rtf);
 
@@ -63,7 +63,7 @@ public class HtmlArtifactRoundTrips {
         sourceSheet.Cell(1, 1).SetValue("Label");
         sourceSheet.Cell(2, 1).SetValue(Marker);
         sourceSheet.Range("A2:B2").Merge();
-        HtmlToExcelResult excelResult = OfficeIMO.Html.HtmlConversionDocument.Parse(sourceWorkbook.ToHtml()).ToExcelDocumentResult();
+        HtmlToExcelResult excelResult = OfficeIMO.Html.HtmlConversionDocument.Parse(sourceWorkbook.ToHtml()).ConvertToExcelWithEvidence();
         using var xlsx = new MemoryStream();
         excelResult.Value.Save(xlsx);
         using ExcelDocument reopenedWorkbook = ExcelDocument.Load(new MemoryStream(xlsx.ToArray()), new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
@@ -73,7 +73,7 @@ public class HtmlArtifactRoundTrips {
         PowerPointTable sourceTable = sourceSlide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(60),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(120));
         sourceTable.GetCell(0, 0).Text = Marker;
         sourceTable.MergeCells(0, 0, 0, 1);
-        HtmlToPowerPointResult powerPointResult = OfficeIMO.Html.HtmlConversionDocument.Parse(sourcePresentation.ToHtml()).ToPowerPointDocumentResult();
+        HtmlToPowerPointResult powerPointResult = OfficeIMO.Html.HtmlConversionDocument.Parse(sourcePresentation.ToHtml()).ConvertToPowerPointWithEvidence();
         using var pptx = new MemoryStream();
         powerPointResult.Value.Save(pptx);
         using PowerPointDocument reopenedPresentation = PowerPointDocument.Load(

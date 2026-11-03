@@ -37,7 +37,6 @@ public sealed partial class IWorkBoundaryTests {
             && d.Kind == IWorkSourceDeclarationIssueKind.UnsupportedField);
         if (kind != IWorkDocumentKind.Numbers) return;
         package.Position = 0;
-        Assert.Throws<InvalidDataException>(() => ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly }));
+        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly }));
     }
 }

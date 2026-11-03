@@ -33,9 +33,9 @@ public partial class WordRtfConverterTests {
         word.ApplicationProperties.CharactersWithSpaces = "150";
         word.AddParagraph("Body");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         Assert.Equal("Bridge Title", rtfDocument.Properties.Title);
         Assert.Equal("Bridge Subject", rtfDocument.Properties.Subject);
@@ -79,9 +79,9 @@ public partial class WordRtfConverterTests {
         word.SetDocumentVariable("Mode", "Draft");
         word.AddParagraph("Body");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         Assert.Collection(rtfDocument.UserProperties,
             property => {
@@ -136,7 +136,7 @@ public partial class WordRtfConverterTests {
         property.LinkedValue = "Sheet1!A1";
         rtfDocument.AddParagraph("Body");
 
-        using WordDocument word = rtfDocument.ToWordDocument();
+        using WordDocument word = rtfDocument.ToWord();
 
         WordCustomProperty customProperty = word.CustomProperties["External"];
         Assert.Equal(WordCustomPropertyType.Text, customProperty.PropertyType);

@@ -23,8 +23,7 @@ public sealed class IWorkAppleExportQualificationTests {
             Assert.Equal(artifact.GetProperty("sha256").GetString(),
                 Hash(Path.Combine(references, artifact.GetProperty("path").GetString()!)));
         }
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(sourcePath,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(sourcePath, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         IWorkTestPolicy.AssertCellPaddingOmission(result.Report);
         Assert.Empty(result.Report.SourceDeclarationIssues);
@@ -75,9 +74,7 @@ public sealed class IWorkAppleExportQualificationTests {
     [Fact]
     public void Numbers_percentage_formula_keeps_numeric_cache_and_percentage_style_after_save() {
         string corpus = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus");
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(
-            Path.Combine(corpus, "numbers-parser", "test-10-formulas.numbers"),
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(Path.Combine(corpus, "numbers-parser", "test-10-formulas.numbers"), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         IWorkTestPolicy.AssertCellPaddingOmission(result.Report);
         Assert.Empty(result.Report.SourceDeclarationIssues);
         using var saved = new MemoryStream();
@@ -116,8 +113,7 @@ public sealed class IWorkAppleExportQualificationTests {
         foreach (JsonElement artifact in evidence.GetProperty("artifacts").EnumerateArray())
             Assert.Equal(artifact.GetProperty("sha256").GetString(),
                 Hash(Path.Combine(references, artifact.GetProperty("path").GetString()!)));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(sourcePath,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(sourcePath, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         IWorkTestPolicy.AssertCellPaddingOmission(result.Report);
         Assert.Empty(result.Report.SourceDeclarationIssues);

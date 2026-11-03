@@ -18,7 +18,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(content.IsFormattingComplete);
         if (kind != IWorkDocumentKind.Pages) return;
         package.Position = 0;
-        using var result = IWorkSourceDocument.Open(package).ToWordDocumentResult(
+        using var result = IWorkSourceDocument.Open(package).ToWordResult(
             new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
                 AllowPartialEditableReconstruction = true });
         using var saved = new MemoryStream();

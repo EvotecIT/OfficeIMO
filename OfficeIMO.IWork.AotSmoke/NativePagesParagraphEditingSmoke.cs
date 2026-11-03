@@ -34,8 +34,7 @@ internal static class NativePagesParagraphEditingSmoke {
             && pages.Paragraphs[0] == "Edited paragraph layout" && pages.Paragraphs[2] == "Start\tLeft\tCenter\tRight\t234.56"
             && pages.Paragraphs[5] == "Rich layout plain Zażółć 😀" && pages.Body.Paragraphs[5].Runs.Count == 2
             && pages.Paragraphs[6] == finalParagraph, "Edited Pages content or rich paragraph differs.");
-        using var converted = WordIWorkConverter.ConvertPagesToWordResult(new MemoryStream(source.BeginEdit().SaveBytes()),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(source.BeginEdit().SaveBytes()), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction();
         using var bytes = new MemoryStream(); converted.Value.Save(bytes); bytes.Position = 0;
         using var saved = WordDocument.Load(bytes);

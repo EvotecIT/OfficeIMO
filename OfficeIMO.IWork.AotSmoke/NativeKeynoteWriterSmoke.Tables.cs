@@ -28,8 +28,7 @@ internal static partial class NativeKeynoteWriterSmoke {
         Require(projection.Slides[2].Tables.Single().Cells.Count == 0, "NativeAOT empty table gained content.");
         Require(table.GetBorders(2, 2).Bottom is { Width: 1 } border && border.Color.ToRgbHex() == "000000",
             "NativeAOT table default borders differ.");
-        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(bytes),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
         using var saved = PowerPointDocument.Load(output);
@@ -52,8 +51,7 @@ internal static partial class NativeKeynoteWriterSmoke {
         byte[] bytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "native-table-borders.key"));
         Require(Convert.ToHexString(SHA256.HashData(bytes)) == "2032CE6CDEE7F75DA8DE21D502B47D4E5C7F4EB4D152786A84DD81FEDA176D45",
             "NativeAOT controlled border source changed.");
-        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(bytes),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         var table = converted.Projection.Slides[0].Tables.Single();
         Require(table.GetBorders(2, 2).Bottom is { Width: 3 } red && red.Color.ToRgbHex() == "FF3333"

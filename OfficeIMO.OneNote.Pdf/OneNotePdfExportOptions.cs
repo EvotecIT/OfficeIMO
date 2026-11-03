@@ -11,14 +11,17 @@ public enum OneNotePdfProjectionMode {
 
 /// <summary>Controls explicit semantic OneNote-to-PDF projection.</summary>
 public sealed class OneNotePdfExportOptions {
-    private OneNoteMarkdownOptions _projectionOptions = new OneNoteMarkdownOptions();
+    /// <summary>Throws <see cref="OfficeConversionException"/> when the conversion reports loss.</summary>
+    public bool FailOnLoss { get; set; }
+
+    private OneNoteMarkdownExportOptions _projectionOptions = new OneNoteMarkdownExportOptions();
     private MarkdownPdfExportOptions _markdownOptions = new MarkdownPdfExportOptions();
 
     /// <summary>Projection mode. OfficeIMO currently supports only the explicit semantic-document contract.</summary>
     public OneNotePdfProjectionMode ProjectionMode { get; set; } = OneNotePdfProjectionMode.SemanticDocument;
 
     /// <summary>OneNote hierarchy, related-page, and binary-asset projection settings.</summary>
-    public OneNoteMarkdownOptions ProjectionOptions {
+    public OneNoteMarkdownExportOptions ProjectionOptions {
         get => _projectionOptions;
         set => _projectionOptions = value ?? throw new ArgumentNullException(nameof(value));
     }
@@ -38,5 +41,12 @@ public sealed class OneNotePdfExportOptions {
             ProjectionOptions = ProjectionOptions.Clone(),
             MarkdownOptions = MarkdownOptions.Clone()
         };
+    }
+
+    /// <summary>Creates an independent copy of these settings.</summary>
+    public OneNotePdfExportOptions Clone() {
+        OneNotePdfExportOptions copy = CloneForConversion();
+        copy.FailOnLoss = FailOnLoss;
+        return copy;
     }
 }

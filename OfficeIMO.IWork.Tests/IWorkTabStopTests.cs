@@ -20,15 +20,15 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         var options = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: options);
+            using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(options);
             Assert.Empty(result.Report.SourceDeclarationIssues);
             result.Value.Save(saved);
         } else if (kind == IWorkDocumentKind.Keynote) {
-            using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: options);
+            using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(options);
             Assert.Empty(result.Report.SourceDeclarationIssues);
             result.Value.Save(saved);
         } else {
-            using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: options);
+            using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(options);
             Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_RICH_TEXT_PARTIAL");
             Assert.Equal("Value", result.Value.Sheets[0].Cell(1, 1).GetValue<string>());
             return;

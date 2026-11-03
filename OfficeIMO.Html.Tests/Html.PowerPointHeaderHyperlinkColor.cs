@@ -21,7 +21,7 @@ public class HtmlPowerPointHeaderHyperlinkColorTests {
             + (authoredColor ? " style='background-color:#123456;color:#ffdd00'" : "")
             + "><a href='https://example.test/source'>Source</a></th></tr></thead><tbody>" + rows + "</tbody></table>";
         using PowerPointDocument presentation = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions {
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions {
                 Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false
             }).RequireValue();
         var tables = presentation.Slides.SelectMany(slide => slide.Tables).ToArray();
@@ -54,7 +54,7 @@ public class HtmlPowerPointHeaderHyperlinkColorTests {
         run.SetHyperlink("https://example.test/source");
         run.HyperlinkUsesTextColor = textColor;
         using PowerPointDocument imported = HtmlConversionDocument.Parse(source.ToHtml())
-            .ToPowerPointDocumentResult().RequireValue();
+            .ConvertToPowerPointWithEvidence().RequireValue();
         var actual = imported.Slides.Single().TextBoxes.Single().Paragraphs.Single().Runs.Single();
         Assert.Equal(textColor, actual.HyperlinkUsesTextColor);
         Assert.Equal(OfficeColor.Parse("FFDD00"), actual.Color);

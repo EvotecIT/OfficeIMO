@@ -10,7 +10,7 @@ internal static class DjVuPdfConversionEngine {
         if (document == null) throw new ArgumentNullException(nameof(document));
         token.ThrowIfCancellationRequested();
         var settings = (options ?? new DjVuPdfExportOptions()).Clone();
-        if (settings.OcrEngine != null) throw new InvalidOperationException("An explicit OCR engine requires ToPdfDocumentResultAsync or another asynchronous conversion entrypoint.");
+        if (settings.OcrEngine != null) throw new InvalidOperationException("An explicit OCR engine requires ToPdfAsync, SaveAsPdfAsync or another asynchronous conversion entrypoint.");
         return Build(document, settings, Select(document, settings, token), null, token);
     }
 

@@ -12,7 +12,7 @@ public sealed partial class IWorkBoundaryTests {
         string path = CorpusFixture("native-exports/keynote-table-borders-v15.4.key");
         Assert.Equal("2032CE6CDEE7F75DA8DE21D502B47D4E5C7F4EB4D152786A84DD81FEDA176D45",
             Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(path))));
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(path);
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Keynote).ToPowerPointResult();
         Assert.False(result.IsVisualFallback);
         var table = Assert.Single(result.Projection.Slides[0].Tables);
         Assert.True(table.HasBorderDeclarations);

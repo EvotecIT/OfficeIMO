@@ -24,7 +24,7 @@ internal static partial class FixtureCorpus {
                 body.FontFamily = family; body.FontSize = OfficeLength.Points(12);
             }
             word.Save(Path.Combine(output, "service-review.docx"));
-            word.ToOpenDocumentResult().Value.Save(Path.Combine(output, "service-review.odt"));
+            using (var converted = word.ToOpenDocument()) converted.Save(Path.Combine(output, "service-review.odt"));
         }
         using (var excel = ExcelDocument.Create()) {
             for (int page = 1; page <= 2; page++) {
@@ -46,7 +46,7 @@ internal static partial class FixtureCorpus {
                 .Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().First();
             defaultFont.FontName = new DocumentFormat.OpenXml.Spreadsheet.FontName { Val = family };
             excel.Save(Path.Combine(output, "service-review.xlsx"));
-            excel.ToOpenDocumentResult().Value.Save(Path.Combine(output, "service-review.ods"));
+            using (var converted = excel.ToOpenDocument()) converted.Save(Path.Combine(output, "service-review.ods"));
         }
         using (var presentation = PowerPointDocument.Create()) {
             presentation.SlideSize.Width= OfficeIMO.OfficeLength.Centimeters(12.7);
@@ -54,12 +54,12 @@ internal static partial class FixtureCorpus {
             for (int page = 1; page <= 2; page++) {
                 var slide = presentation.AddSlide();
                 var heading = slide.AddTextBox("SERVICE REVIEW " + page,global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(320),global::OfficeIMO.OfficeLength.Points(30));
-                heading.FontName = family; heading.FontSize = OfficeLength.Points(18);
+                heading.FontFamily = family; heading.FontSize = OfficeLength.Points(18);
                 var body = slide.AddTextBox("Completed actions: 9 of 12",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(66),global::OfficeIMO.OfficeLength.Points(320),global::OfficeIMO.OfficeLength.Points(30));
-                body.FontName = family; body.FontSize = OfficeLength.Points(12);
+                body.FontFamily = family; body.FontSize = OfficeLength.Points(12);
             }
             presentation.Save(Path.Combine(output, "service-review.pptx"));
-            presentation.ToOpenDocumentResult().Value.Save(Path.Combine(output, "service-review.odp"));
+            using (var converted = presentation.ToOpenDocument()) converted.Save(Path.Combine(output, "service-review.odp"));
         }
         var section = new OneNoteSection { Name = "Service review" };
         for (int number = 1; number <= 2; number++) {

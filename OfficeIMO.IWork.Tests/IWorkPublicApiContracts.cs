@@ -20,9 +20,9 @@ public sealed class IWorkPublicApiContracts {
         Assert.Null(typeof(IWorkReadOptions).GetProperty("ImportMode"));
         Assert.NotNull(typeof(IWorkConversionOptions).GetProperty("Mode"));
 
-        AssertSourceExtension(typeof(WordIWorkConverter), "ToWordDocumentResult");
-        AssertSourceExtension(typeof(ExcelIWorkConverter), "ToExcelDocumentResult");
-        AssertSourceExtension(typeof(PowerPointIWorkConverter), "ToPowerPointDocumentResult");
+        AssertSourceExtension(typeof(WordIWorkConverter), "ToWordResult");
+        AssertSourceExtension(typeof(ExcelIWorkConverter), "ToExcelResult");
+        AssertSourceExtension(typeof(PowerPointIWorkConverter), "ToPowerPointResult");
 
         MethodInfo[] converterMethods = new[] {
                 typeof(WordIWorkConverter),

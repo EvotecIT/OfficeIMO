@@ -39,7 +39,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(259u, 253u, 0u, 0u, "0.###############E+00")]
     public void Excel_numeric_format_survives_save_with_typed_cache(uint type, uint decimals, uint negative, uint grouping, string code) {
         using MemoryStream package = NumberFormatPackage(IWorkDocumentKind.Numbers, NumericFormat(type, decimals, negative, grouping), value: -0.5d);
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.False(result.IsVisualFallback);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = global::OfficeIMO.Excel.ExcelDocument.Load(saved);
@@ -163,7 +163,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(IWorkNumberFormatKind.Percentage, cell.NumberFormat!.Kind);
         if (kind != IWorkDocumentKind.Numbers) return;
         package.Position = 0;
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = global::OfficeIMO.Excel.ExcelDocument.Load(saved);
         Assert.Equal("0.00%", reopened.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode);

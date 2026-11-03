@@ -11,8 +11,7 @@ public sealed class IWorkKeynoteImageWritingTests {
     public void Image_creation_matches_the_Apple_qualified_graph_and_exported_PowerPoint() {
         byte[] expected = File.ReadAllBytes(Fixture("keynote-created-images-v15.4.key"));
         Assert.Equal(expected, ImageExample().SaveBytes());
-        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(expected),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(expected), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
         using var saved = PowerPointDocument.Load(output);
@@ -48,8 +47,7 @@ public sealed class IWorkKeynoteImageWritingTests {
             Assert.Equal(expected.Geometry.WidthPoints, actual.Geometry.WidthPoints);
             Assert.Equal(expected.Geometry.HeightPoints, actual.Geometry.HeightPoints);
         }
-        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(editedPath,
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(editedPath, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
         using var reopened = PowerPointDocument.Load(output);
@@ -99,8 +97,7 @@ public sealed class IWorkKeynoteImageWritingTests {
         Assert.Equal(20, image.Geometry!.LeftPoints); Assert.Equal(40, image.Geometry.TopPoints);
         Assert.Equal(120, image.Geometry.WidthPoints); Assert.Equal(80, image.Geometry.HeightPoints);
         Assert.False(image.HasMask);
-        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(package),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(package), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = PowerPointDocument.Load(saved);

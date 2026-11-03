@@ -22,20 +22,20 @@ public static partial class HtmlImageExportExtensions {
         Encoding.UTF8.GetString((await document.ExportImageAsync(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options, pageIndex, cancellationToken).ConfigureAwait(false)).Bytes);
 
     /// <summary>Saves a shared HTML conversion document as a PNG file.</summary>
-    public static OfficeIMO.Drawing.OfficeImageExportResult SaveAsPng(this HtmlConversionDocument document, string path, HtmlRenderOptions? options = null, int pageIndex = 0) =>
-        CreateImageExportOperation(document, options, OfficeIMO.Drawing.OfficeImageExportFormat.Png, pageIndex).Save(path);
+    public static OfficeIMO.Drawing.OfficeImageExportResult SaveAsPng(this HtmlConversionDocument document, string path, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
+        CreateImageExportOperation(document, options, OfficeIMO.Drawing.OfficeImageExportFormat.Png, pageIndex).Save(path, cancellationToken);
 
     /// <summary>Saves a shared HTML conversion document as an SVG file.</summary>
-    public static OfficeIMO.Drawing.OfficeImageExportResult SaveAsSvg(this HtmlConversionDocument document, string path, HtmlRenderOptions? options = null, int pageIndex = 0) =>
-        CreateImageExportOperation(document, options, OfficeIMO.Drawing.OfficeImageExportFormat.Svg, pageIndex).Save(path);
+    public static OfficeIMO.Drawing.OfficeImageExportResult SaveAsSvg(this HtmlConversionDocument document, string path, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
+        CreateImageExportOperation(document, options, OfficeIMO.Drawing.OfficeImageExportFormat.Svg, pageIndex).Save(path, cancellationToken);
 
     /// <summary>Writes a shared HTML conversion document as PNG to a caller-owned stream.</summary>
-    public static OfficeIMO.Drawing.OfficeImageExportResult SaveAsPng(this HtmlConversionDocument document, Stream stream, HtmlRenderOptions? options = null, int pageIndex = 0) =>
-        CreateImageExportOperation(document, options, OfficeIMO.Drawing.OfficeImageExportFormat.Png, pageIndex).Save(stream);
+    public static OfficeIMO.Drawing.OfficeImageExportResult SaveAsPng(this HtmlConversionDocument document, Stream stream, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
+        CreateImageExportOperation(document, options, OfficeIMO.Drawing.OfficeImageExportFormat.Png, pageIndex).Save(stream, cancellationToken);
 
     /// <summary>Writes a shared HTML conversion document as SVG to a caller-owned stream.</summary>
-    public static OfficeIMO.Drawing.OfficeImageExportResult SaveAsSvg(this HtmlConversionDocument document, Stream stream, HtmlRenderOptions? options = null, int pageIndex = 0) =>
-        CreateImageExportOperation(document, options, OfficeIMO.Drawing.OfficeImageExportFormat.Svg, pageIndex).Save(stream);
+    public static OfficeIMO.Drawing.OfficeImageExportResult SaveAsSvg(this HtmlConversionDocument document, Stream stream, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
+        CreateImageExportOperation(document, options, OfficeIMO.Drawing.OfficeImageExportFormat.Svg, pageIndex).Save(stream, cancellationToken);
 
     /// <summary>Asynchronously resolves resources and saves a shared HTML conversion document as a PNG file.</summary>
     public static Task<OfficeIMO.Drawing.OfficeImageExportResult> SaveAsPngAsync(this HtmlConversionDocument document, string path, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>

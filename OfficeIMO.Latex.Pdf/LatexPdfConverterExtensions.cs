@@ -1,75 +1,109 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using OfficeIMO.Pdf;
 using OfficeIMO.Latex;
-using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Latex.Pdf;
 
 /// <summary>Converts bounded-profile LaTeX documents through the loss-aware Markdown projection to first-party PDFs.</summary>
 public static class LatexPdfConverterExtensions {
-    /// <summary>Converts a LaTeX document to a first-party PDF document.</summary>
-    public static PdfCore.PdfDocument ToPdfDocument(this LatexDocument document, LatexPdfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
-        document.ToPdfDocumentResult(options, cancellationToken).Value;
+    private const string Source = "Latex";
 
-    /// <summary>Converts a LaTeX document and combines parser, semantic-projection, and PDF diagnostics.</summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this LatexDocument document, LatexPdfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+    internal static PdfDocumentConversionResult ConvertToPdfWithEvidence(this LatexDocument document, LatexPdfExportOptions? options,
+        CancellationToken cancellationToken) =>
         LatexPdfConversionEngine.Convert(document, options, cancellationToken);
 
-    /// <summary>Converts a LaTeX document to PDF bytes.</summary>
-    public static byte[] ToPdfBytes(this LatexDocument document, LatexPdfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
-        document.ToPdfDocumentResult(options, cancellationToken).ToBytes(cancellationToken);
+    /// <summary>Converts the LaTeX document to a PDF model.</summary>
+    public static PdfDocument ToPdf(this LatexDocument document, LatexPdfExportOptions? options = null,
+        CancellationToken cancellationToken = default) =>
+        document.ToPdf(options, out _, cancellationToken);
 
-    /// <summary>Saves a LaTeX document as PDF and returns combined conversion diagnostics.</summary>
-    public static PdfCore.PdfSaveResult SaveAsPdf(this LatexDocument document, string path, LatexPdfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
-        document.ToPdfDocumentResult(options, cancellationToken).Save(path, cancellationToken);
-
-    /// <summary>Writes a LaTeX document as PDF to a caller-owned stream.</summary>
-    public static PdfCore.PdfSaveResult SaveAsPdf(this LatexDocument document, Stream stream, LatexPdfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
-        document.ToPdfDocumentResult(options, cancellationToken).Save(stream, cancellationToken);
-
-    /// <summary>Attempts to save a LaTeX PDF and returns structured failure evidence.</summary>
-    public static PdfCore.PdfSaveResult SaveAsPdfResult(this LatexDocument document, string path, LatexPdfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+    /// <summary>Converts the LaTeX document and returns its completed conversion findings.</summary>
+    public static PdfDocument ToPdf(this LatexDocument document, LatexPdfExportOptions? options,
+        out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return document.ToPdfDocumentResult(options, cancellationToken).TrySaveWithEvidence(path, cancellationToken); }
-        catch (OperationCanceledException) { throw; }
-        catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(path, exception); }
+        var timer = Stopwatch.StartNew();
+        PdfDocumentConversionResult converted = document.ConvertToPdfWithEvidence(options, cancellationToken);
+        return PdfConversionEvidence.CompleteModel(converted, Source, options?.FailOnLoss == true,
+            timer, cancellationToken, out report);
     }
 
-    /// <summary>Attempts to write a LaTeX PDF to a caller-owned stream.</summary>
-    public static PdfCore.PdfSaveResult SaveAsPdfResult(this LatexDocument document, Stream stream, LatexPdfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+    /// <summary>Converts the LaTeX document, returning the model and report together.</summary>
+    /// <remarks>Conversion is CPU-bound and runs on the thread pool so the caller is not blocked.</remarks>
+    public static async Task<OfficeConversionResult<PdfDocument>> ToPdfAsync(this LatexDocument document,
+        LatexPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return document.ToPdfDocumentResult(options, cancellationToken).TrySaveWithEvidence(stream, cancellationToken); }
-        catch (OperationCanceledException) { throw; }
-        catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(null, exception); }
+        options = (options ?? new LatexPdfExportOptions()).Clone();
+        var timer = Stopwatch.StartNew();
+        PdfDocumentConversionResult converted = await Task.Run(
+            () => document.ConvertToPdfWithEvidence(options, cancellationToken), cancellationToken).ConfigureAwait(false);
+        PdfDocument value = PdfConversionEvidence.CompleteModel(converted, Source, options.FailOnLoss,
+            timer, cancellationToken, out OfficeConversionReport report);
+        return new OfficeConversionResult<PdfDocument>(value, report);
     }
 
-    /// <summary>Converts synchronously, then asynchronously writes a LaTeX PDF to a path.</summary>
-    public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(this LatexDocument document, string path, LatexPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
+    /// <summary>Writes the LaTeX document as a PDF file and returns the complete conversion report.</summary>
+    public static OfficeConversionReport SaveAsPdf(this LatexDocument document, string path,
+        LatexPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        return document.ToPdfDocumentResult(options, cancellationToken).SaveAsync(path, cancellationToken);
+        PdfConversionEvidence.ValidateDestination(path);
+        var timer = Stopwatch.StartNew();
+        PdfDocumentConversionResult converted = document.ConvertToPdfWithEvidence(options, cancellationToken);
+        using PdfDocument model = converted.Value;
+        PdfSaveResult saved = options?.FailOnLoss == true
+            ? PdfConversionEvidence.SaveLossless(converted, Source, path, timer, cancellationToken)
+            : PdfConversionEvidence.RunOutput(converted, Source, () => converted.Save(path, cancellationToken));
+        return PdfConversionEvidence.CreateReport(Source, saved.ConversionReports, saved.OutputPath, timer.Elapsed, saved.Pipeline.Output?.PageCount ?? 0);
     }
 
-    /// <summary>Converts synchronously, then asynchronously writes a LaTeX PDF to a caller-owned stream.</summary>
-    public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(this LatexDocument document, Stream stream, LatexPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
+    /// <summary>Writes the LaTeX document as PDF to a caller-owned stream and returns the complete conversion report.</summary>
+    public static OfficeConversionReport SaveAsPdf(this LatexDocument document, Stream stream,
+        LatexPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        return document.ToPdfDocumentResult(options, cancellationToken).SaveAsync(stream, cancellationToken);
+        PdfConversionEvidence.ValidateDestination(stream);
+        var timer = Stopwatch.StartNew();
+        PdfDocumentConversionResult converted = document.ConvertToPdfWithEvidence(options, cancellationToken);
+        using PdfDocument model = converted.Value;
+        PdfSaveResult saved = options?.FailOnLoss == true
+            ? PdfConversionEvidence.SaveLossless(converted, Source, stream, timer, cancellationToken)
+            : PdfConversionEvidence.RunOutput(converted, Source, () => converted.Save(stream, cancellationToken));
+        return PdfConversionEvidence.CreateReport(Source, saved.ConversionReports, elapsed: timer.Elapsed, itemsWritten: saved.Pipeline.Output?.PageCount ?? 0);
     }
 
-    /// <summary>Converts synchronously, then attempts to asynchronously save a LaTeX PDF.</summary>
-    public static async Task<PdfCore.PdfSaveResult> SaveAsPdfResultAsync(this LatexDocument document, string path, LatexPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
+    /// <summary>Asynchronously writes the LaTeX document as a PDF file and returns the complete conversion report.</summary>
+    /// <remarks>Conversion is CPU-bound and runs on the thread pool so the caller is not blocked. The file is written asynchronously.</remarks>
+    public static async Task<OfficeConversionReport> SaveAsPdfAsync(this LatexDocument document, string path,
+        LatexPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return await document.ToPdfDocumentResult(options, cancellationToken).TrySaveWithEvidenceAsync(path, cancellationToken).ConfigureAwait(false); }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
-        catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(path, exception); }
+        PdfConversionEvidence.ValidateDestination(path);
+        options = (options ?? new LatexPdfExportOptions()).Clone();
+        var timer = Stopwatch.StartNew();
+        PdfDocumentConversionResult converted = await Task.Run(
+            () => document.ConvertToPdfWithEvidence(options, cancellationToken), cancellationToken).ConfigureAwait(false);
+        using PdfDocument model = converted.Value;
+        PdfSaveResult saved = options.FailOnLoss
+            ? await PdfConversionEvidence.SaveLosslessAsync(converted, Source, path, timer, cancellationToken).ConfigureAwait(false)
+            : await PdfConversionEvidence.RunOutputAsync(converted, Source, () => converted.SaveAsync(path, cancellationToken)).ConfigureAwait(false);
+        return PdfConversionEvidence.CreateReport(Source, saved.ConversionReports, saved.OutputPath, timer.Elapsed, saved.Pipeline.Output?.PageCount ?? 0);
     }
 
-    /// <summary>Converts synchronously, then attempts to asynchronously write a LaTeX PDF.</summary>
-    public static async Task<PdfCore.PdfSaveResult> SaveAsPdfResultAsync(this LatexDocument document, Stream stream, LatexPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
+    /// <summary>Asynchronously writes the LaTeX document as PDF to a caller-owned stream and returns the complete conversion report.</summary>
+    /// <remarks>Conversion is CPU-bound and runs on the thread pool so the caller is not blocked. The stream is written asynchronously.</remarks>
+    public static async Task<OfficeConversionReport> SaveAsPdfAsync(this LatexDocument document, Stream stream,
+        LatexPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        try { return await document.ToPdfDocumentResult(options, cancellationToken).TrySaveWithEvidenceAsync(stream, cancellationToken).ConfigureAwait(false); }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
-        catch (Exception exception) { return PdfCore.PdfSaveResult.FromFailure(null, exception); }
+        PdfConversionEvidence.ValidateDestination(stream);
+        options = (options ?? new LatexPdfExportOptions()).Clone();
+        var timer = Stopwatch.StartNew();
+        PdfDocumentConversionResult converted = await Task.Run(
+            () => document.ConvertToPdfWithEvidence(options, cancellationToken), cancellationToken).ConfigureAwait(false);
+        using PdfDocument model = converted.Value;
+        PdfSaveResult saved = options.FailOnLoss
+            ? await PdfConversionEvidence.SaveLosslessAsync(converted, Source, stream, timer, cancellationToken).ConfigureAwait(false)
+            : await PdfConversionEvidence.RunOutputAsync(converted, Source, () => converted.SaveAsync(stream, cancellationToken)).ConfigureAwait(false);
+        return PdfConversionEvidence.CreateReport(Source, saved.ConversionReports, elapsed: timer.Elapsed, itemsWritten: saved.Pipeline.Output?.PageCount ?? 0);
     }
 }

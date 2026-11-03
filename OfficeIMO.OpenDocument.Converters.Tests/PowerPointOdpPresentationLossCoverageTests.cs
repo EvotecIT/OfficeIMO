@@ -102,7 +102,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     [Fact]
     public void AuthoredColorMapOverrideIsExplicitLossWithoutFlaggingDefaultMarker() {
         using PowerPointDocument source = CreateBlankPowerPoint();
-        OdfConversionResult<OdpPresentation> baseline = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> baseline = source.ConvertToOpenDocumentWithEvidence();
         Assert.DoesNotContain(baseline.Report.Mappings, mapping => mapping.Feature == "theme");
         SlidePart slide = source.OpenXmlDocument.PresentationPart!.SlideParts.First();
         slide.Slide!.ColorMapOverride = new ColorMapOverride(new A.OverrideColorMapping {
@@ -253,7 +253,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
         source.Slides[0].Notes.Text = "Speaker note";
         NotesSlide notes = source.OpenXmlDocument.PresentationPart!.SlideParts.First()
             .NotesSlidePart!.NotesSlide!;
-        OdfConversionResult<OdpPresentation> baseline = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> baseline = source.ConvertToOpenDocumentWithEvidence();
         Assert.DoesNotContain(baseline.Report.Mappings, mapping => mapping.Feature == "notes-slide-appearance");
         notes.CommonSlideData!.Background = new Background(new BackgroundProperties(
             new A.SolidFill(new A.RgbColorModelHex { Val = "336699" })));
@@ -326,7 +326,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
         using var image = new MemoryStream(png, writable: false);
         source.Slides[0].AddImage(image, OfficeImageFormat.Png);
-        OdfConversionResult<OdpPresentation> baseline = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> baseline = source.ConvertToOpenDocumentWithEvidence();
         Assert.DoesNotContain(baseline.Report.Mappings, mapping => mapping.Feature == "shape-locks");
 
         Picture picture = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
@@ -354,7 +354,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     [Fact]
     public void AuthoredViewPropertiesAreExplicitLossWithoutFlaggingStockDefaults() {
         using PowerPointDocument source = CreateBlankPowerPoint();
-        OdfConversionResult<OdpPresentation> baseline = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> baseline = source.ConvertToOpenDocumentWithEvidence();
         Assert.DoesNotContain(baseline.Report.Mappings, mapping => mapping.Feature == "view-settings");
         source.OpenXmlDocument.PresentationPart!.ViewPropertiesPart!.ViewProperties!
             .SlideViewProperties!.CommonSlideViewProperties!.SnapToGrid = true;
@@ -399,7 +399,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
         shape.NonVisualShapeProperties!.NonVisualDrawingProperties!
             .Append(new A.NonVisualDrawingPropertiesExtensionList());
 
-        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.DoesNotContain(conversion.Report.Mappings, mapping =>
             mapping.Feature == "shape-accessibility");
     }
@@ -494,7 +494,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
             .SetAttributeValue(OdfNamespaces.Draw + "nav-order", "shape2 shape1");
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "shape-layers" &&
             mapping.Count >= 2);
@@ -518,7 +518,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
             source.OpenXmlDocument.DeletePart(existingPart);
         Assert.Null(source.OpenXmlDocument.ExtendedFilePropertiesPart);
 
-        _ = source.ToOpenDocumentResult();
+        _ = source.ConvertToOpenDocumentWithEvidence();
 
         Assert.Null(source.OpenXmlDocument.ExtendedFilePropertiesPart);
     }
@@ -540,11 +540,11 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
             new XElement(OdfNamespaces.Text + "p", "Line label"));
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "shape-text" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 3);
-        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToPowerPointWithEvidence(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -632,7 +632,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
                 new XAttribute(OdfNamespaces.Fo + "font-style", "normal"))));
         source.Package.MarkXmlDirty("styles.xml");
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
         Assert.DoesNotContain(conversion.Report.Mappings, mapping =>
             mapping.Feature == "text-effects" && mapping.Status != OdfConversionMappingStatus.Converted);
@@ -646,19 +646,19 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     }
 
     private static void AssertLoss(PowerPointDocument source, string feature) {
-        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == feature &&
             mapping.Status != OdfConversionMappingStatus.Converted);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
     private static void AssertLoss(OdpPresentation source, string feature) {
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == feature &&
             mapping.Status != OdfConversionMappingStatus.Converted);
-        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToPowerPointWithEvidence(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 }

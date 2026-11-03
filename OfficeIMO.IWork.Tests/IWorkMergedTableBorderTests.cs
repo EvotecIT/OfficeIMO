@@ -56,7 +56,7 @@ public sealed partial class IWorkBoundaryTests {
         var source = IWorkSourceDocument.Open(package);
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(); result.Report.RequireCompleteEditableReconstruction();
+            using var result = source.ToWordResult(); result.Report.RequireCompleteEditableReconstruction();
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = WordDocument.Load(saved); var table = reopened.Tables[0];
             Assert.Equal(global::OfficeIMO.OfficeLength.Points(columns == 2 ? 2 : 1), table.Rows[0].Cells[0].Borders.RightSize);
@@ -64,13 +64,13 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(global::OfficeIMO.OfficeLength.Points(2), table.Rows[0].Cells[0].Borders.TopSize);
             if (rows > 1) Assert.Equal(WordBorderStyle.Nil, table.Rows[0].Cells[0].Borders.BottomStyle);
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var result = source.ToExcelDocumentResult(); result.Report.RequireCompleteEditableReconstruction();
+            using var result = source.ToExcelResult(); result.Report.RequireCompleteEditableReconstruction();
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = ExcelDocument.Load(saved); var borders = reopened.Sheets[0].Cell(1, 1).GetStyle().Border!;
             Assert.Equal(columns == 2 ? "medium" : "thin", borders.Right!.Style);
             Assert.Equal(rows == 3 ? "medium" : "thin", borders.Bottom!.Style);
         } else {
-            using var result = source.ToPowerPointDocumentResult(); result.Report.RequireCompleteEditableReconstruction();
+            using var result = source.ToPowerPointResult(); result.Report.RequireCompleteEditableReconstruction();
             // Border evidence does not depend on the host's minimum font line box.
             var authoredTable = result.Value.Slides[0].Tables.First();
             for (int row = 0; row < authoredTable.Rows; row++) authoredTable.SetRowHeight(row, OfficeIMO.OfficeLength.Points(60D));
@@ -120,15 +120,15 @@ public sealed partial class IWorkBoundaryTests {
         var source = IWorkSourceDocument.Open(package);
         var strict = new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly };
         Assert.Contains("merged", Assert.Throws<InvalidDataException>(() => {
-            if (kind == IWorkDocumentKind.Pages) { using var result = source.ToWordDocumentResult(strict); }
-            else if (kind == IWorkDocumentKind.Numbers) { using var result = source.ToExcelDocumentResult(strict); }
-            else { using var result = source.ToPowerPointDocumentResult(strict); }
+            if (kind == IWorkDocumentKind.Pages) { using var result = source.ToWordResult(strict); }
+            else if (kind == IWorkDocumentKind.Numbers) { using var result = source.ToExcelResult(strict); }
+            else { using var result = source.ToPowerPointResult(strict); }
         }).Message, StringComparison.OrdinalIgnoreCase);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         IWorkConversionReport report;
-        if (kind == IWorkDocumentKind.Pages) { using var result = source.ToWordDocumentResult(policy); report = result.Report; }
-        else if (kind == IWorkDocumentKind.Numbers) { using var result = source.ToExcelDocumentResult(policy); report = result.Report; }
-        else { using var result = source.ToPowerPointDocumentResult(policy); report = result.Report; }
+        if (kind == IWorkDocumentKind.Pages) { using var result = source.ToWordResult(policy); report = result.Report; }
+        else if (kind == IWorkDocumentKind.Numbers) { using var result = source.ToExcelResult(policy); report = result.Report; }
+        else { using var result = source.ToPowerPointResult(policy); report = result.Report; }
         Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code.EndsWith("MERGED_TABLE_BORDERS_APPROXIMATED", StringComparison.Ordinal)
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
     }
@@ -139,7 +139,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Saved_Excel_merge_clears_interior_border_when_its_perimeter_is_undeclared(bool horizontalEdge) {
         using var package = MergedBorderPackage(IWorkDocumentKind.Numbers, horizontalEdge ? 3 : 1, horizontalEdge ? 1 : 2,
             missingOuterVertical: !horizontalEdge, missingOuterHorizontal: horizontalEdge);
-        using var result = IWorkSourceDocument.Open(package).ToExcelDocumentResult();
+        using var result = IWorkSourceDocument.Open(package).ToExcelResult();
         result.Report.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);

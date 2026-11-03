@@ -14,8 +14,7 @@ internal static class NativePagesBorderSmoke {
         using var expected = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "native-pages-borders-decode.json")));
         Require(Hash(source) == expected.RootElement.GetProperty("sourceSha256").GetString(), "Native Pages border source changed.");
         Require(Hash(reference) == expected.RootElement.GetProperty("nativeDocxSha256").GetString(), "Native Pages DOCX changed.");
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(source,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(source, IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.Report.RequireCompleteEditableReconstruction();
         Require(!result.Report.IsPartialEditableReconstruction
             && !result.Report.Diagnostics.Any(d => d.Code == "IWORK_PAGES_DOCX_PRECISION")

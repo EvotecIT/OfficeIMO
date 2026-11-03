@@ -52,4 +52,10 @@
     <Using Include="OfficeIMO.Rtf" />
     <Using Include="OfficeIMO.Word" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Rtf.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Word.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Workflows" />
+    <InternalsVisibleTo Include="OfficeIMO" />
+  </ItemGroup>
 </Project>

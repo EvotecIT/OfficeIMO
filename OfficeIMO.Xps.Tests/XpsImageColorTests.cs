@@ -38,7 +38,7 @@ public sealed class XpsImageColorTests {
             Assert.InRange(Math.Abs(pixel.G - int.Parse(values[3])), 0, 2);
             Assert.InRange(Math.Abs(pixel.B - int.Parse(values[4])), 0, 2);
             Assert.Equal(int.Parse(values[5]), (int)pixel.A);
-            Assert.NotEmpty(doc.ToPdf());
+            Assert.NotEmpty(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         }
     }
 
@@ -81,7 +81,7 @@ public sealed class XpsImageColorTests {
         page = XpsDocument.Load(document.ToBytes()).Pages[0];
         Assert.Empty(page.ToSvg().Diagnostics);
         Assert.Equal(expected, Raster(page).GetPixel(8, 8));
-        Assert.NotEmpty(document.ToPdf());
+        Assert.NotEmpty(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
     }
 
     [Theory]
@@ -95,7 +95,7 @@ public sealed class XpsImageColorTests {
         var page = document.AddPage(16, 16).AddImage(source, 0, 0, 16, 16);
         Assert.Throws<NotSupportedException>(() => page.ToSvg());
         Assert.Contains("CMYK image requires a usable ICC profile", page.ToSvg(true).Diagnostics);
-        Assert.Throws<NotSupportedException>(() => document.ToPdf());
+        Assert.Throws<NotSupportedException>(() => document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
     }
 
     [Fact]

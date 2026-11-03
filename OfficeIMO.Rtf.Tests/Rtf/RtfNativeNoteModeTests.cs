@@ -29,7 +29,7 @@ public class RtfNativeNoteModeTests {
         Assert.Equal(alternate ? RtfNoteKind.Endnote : RtfNoteKind.Footnote, raw.Kind);
         Assert.Equal(new[] { "First note paragraph", "Second note paragraph" }, raw.Paragraphs.Select(p => p.ToPlainText()));
 
-        using WordDocument word = read.Document.ToWordDocument();
+        using WordDocument word = read.Document.ToWord();
         using var stream = new MemoryStream();
         word.Save(stream);
         stream.Position = 0;
@@ -64,8 +64,8 @@ public class RtfNativeNoteModeTests {
         string written = copy.ToRtf();
         Assert.Contains(normalizedMode, written);
         if (normalizedMode != @"\fet2") Assert.DoesNotContain(@"\fet2", written);
-        using WordDocument direct = copy.ToWordDocument();
-        using WordDocument normalized = RtfDocument.ParseResult(written).Document.ToWordDocument();
+        using WordDocument direct = copy.ToWord();
+        using WordDocument normalized = RtfDocument.ParseResult(written).Document.ToWord();
         Assert.Equal(endnote ? 1 : 0, direct.EndNotes.Count);
         Assert.Equal(endnote ? 1 : 0, normalized.EndNotes.Count);
         Assert.Equal(endnote ? 0 : 1, normalized.FootNotes.Count);
@@ -78,7 +78,7 @@ public class RtfNativeNoteModeTests {
         RtfDocument destination = RtfDocument.Create();
         RtfDocumentMergeResult result = destination.AppendDocument(source);
         result.Report.ThrowIfLoss();
-        using WordDocument word = destination.ToWordDocument();
+        using WordDocument word = destination.ToWord();
         Assert.Single(word.EndNotes);
         Assert.Empty(word.FootNotes);
         Assert.Equal(3, word.EndnoteSettings.StartNumber);
@@ -106,7 +106,7 @@ public class RtfNativeNoteModeTests {
         source.AddParagraph("Body").AddNoteReference(note);
         string written = source.ToRtf();
         Assert.Contains(@"\fet2", written);
-        using WordDocument word = RtfDocument.ParseResult(written).Document.ToWordDocument();
+        using WordDocument word = RtfDocument.ParseResult(written).Document.ToWord();
         Assert.Single(word.FootNotes);
         Assert.Empty(word.EndNotes);
     }
@@ -114,7 +114,7 @@ public class RtfNativeNoteModeTests {
     [Fact]
     public void Projected_Ordinary_And_Explicit_Endnote_Group_Collision_Is_Reported() {
         RtfDocument source = RtfDocument.ParseResult(@"{\rtf1\ansi\pard Body{\footnote First}{\footnote\ftnalt Second}\par}").Document;
-        RtfConversionResult<WordDocument> result = source.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> result = source.ConvertToWordWithEvidence();
         using WordDocument word = result.Value;
         Assert.Equal(2, word.EndNotes.Count);
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "RtfWordNoteGroupsFlattened");
@@ -128,7 +128,7 @@ public class RtfNativeNoteModeTests {
         string documentPlacement, string sectionPlacement, bool endnote) {
         RtfDocument source = RtfDocument.ParseResult(@"{\rtf1\ansi" + documentPlacement + @"\sectd" + sectionPlacement +
             @"\trowd\cellx2400\pard\intbl Cell{\footnote\pard First\par Second}\cell\row}").Document;
-        using WordDocument word = source.ToWordDocument();
+        using WordDocument word = source.ToWord();
         Assert.Equal(endnote ? 1 : 0, word.EndNotes.Count);
         Assert.Equal(endnote ? 0 : 1, word.FootNotes.Count);
         Assert.Equal(2, endnote ? Assert.Single(word.EndNotes).Paragraphs!.Select(p => p._paragraph).Distinct().Count()

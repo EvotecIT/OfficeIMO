@@ -1,8 +1,7 @@
 namespace OfficeIMO.Html;
 
 public static partial class HtmlRtfConverterExtensions {
-    /// <summary>Imports a prepared shared HTML document into RTF and returns structured evidence.</summary>
-    public static HtmlToRtfResult ToRtfDocumentResult(this HtmlConversionDocument document, HtmlRtfExportOptions? options = null) {
+    internal static HtmlToRtfResult ConvertToRtfWithEvidence(this HtmlConversionDocument document, HtmlRtfExportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         HtmlRtfExportOptions resolved = (options ?? new HtmlRtfExportOptions()).Clone();
         HtmlUrlPolicy requestedHyperlinkPolicy = resolved.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
@@ -281,8 +280,7 @@ public static partial class HtmlRtfConverterExtensions {
         return true;
     }
 
-    /// <summary>Exports RTF to semantic HTML and returns structured conversion evidence.</summary>
-    public static RtfToHtmlResult ToHtmlResult(this RtfDocument document, RtfHtmlExportOptions? options = null) {
+    internal static RtfToHtmlResult ConvertToHtmlWithEvidence(this RtfDocument document, RtfHtmlExportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         RtfHtmlExportOptions resolved = (options ?? new RtfHtmlExportOptions()).Clone();
         string html = ToHtmlCore(document, resolved);

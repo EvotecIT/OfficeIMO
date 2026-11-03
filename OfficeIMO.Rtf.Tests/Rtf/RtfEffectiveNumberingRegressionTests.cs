@@ -16,12 +16,12 @@ public class RtfEffectiveNumberingRegressionTests {
         document.ListDefinitions[0].Levels[0].NumberFormat = 10;
         document.AddParagraph("Numbered").SetList(3);
         Assert.False(new RtfListNumbering(document).Next(document.Paragraphs[0])!.IsNumberFormatSupported);
-        Assert.Contains(document.ToHtmlResult().RtfReport.NativeDiagnostics, item => item.Code == "RtfHtmlListNumberFormatFlattened" && item.Action == RtfConversionAction.Flattened);
+        Assert.Contains(document.ConvertToHtmlWithEvidence().RtfReport.NativeDiagnostics, item => item.Code == "RtfHtmlListNumberFormatFlattened" && item.Action == RtfConversionAction.Flattened);
         Assert.Contains(document.ConvertToPdfWithEvidence().Warnings, item => item.Code == "ListNumberFormatFlattened" && item.Details["RtfAction"] == nameof(RtfConversionAction.Flattened));
-        Assert.Contains(document.ToMarkdownResult().Report.NativeDiagnostics, item => item.Code == "RTFMD017" && item.Action == RtfConversionAction.Flattened);
+        Assert.Contains(document.ConvertToMarkdownTextWithEvidence().Report.NativeDiagnostics, item => item.Code == "RTFMD017" && item.Action == RtfConversionAction.Flattened);
         document.ListDefinitions[0].Levels[0].NumberFormat = 1;
-        Assert.Contains(document.ToMarkdownResult().Report.NativeDiagnostics, item => item.Code == "RTFMD017" && item.Action == RtfConversionAction.Flattened);
-        Assert.DoesNotContain(document.ToHtmlResult().RtfReport.Diagnostics, item => item.Code == "RtfHtmlListNumberFormatFlattened");
+        Assert.Contains(document.ConvertToMarkdownTextWithEvidence().Report.NativeDiagnostics, item => item.Code == "RTFMD017" && item.Action == RtfConversionAction.Flattened);
+        Assert.DoesNotContain(document.ConvertToHtmlWithEvidence().RtfReport.Diagnostics, item => item.Code == "RtfHtmlListNumberFormatFlattened");
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public class RtfEffectiveNumberingRegressionTests {
         RtfDocument native = RtfDocument.ParseResult(document.ToRtf()).Document;
         Assert.Equal(0, native.Paragraphs[0].ListId);
         Assert.Null(native.ResolveListFormatting(native.Paragraphs[0]));
-        RtfDocument html = HtmlConversionDocument.Parse(document.ToHtml(new RtfHtmlExportOptions { IncludeRoundTripMetadata = true })).ToRtfDocument();
+        RtfDocument html = HtmlConversionDocument.Parse(document.ToHtml(new RtfHtmlExportOptions { IncludeRoundTripMetadata = true })).ToRtf();
         Assert.Equal(0, html.Paragraphs[0].ListId);
         Assert.Null(html.ResolveListFormatting(html.Paragraphs[0]));
     }
@@ -142,7 +142,7 @@ public class RtfEffectiveNumberingRegressionTests {
 
     [Fact]
     public void Html_Renders_Proper_Nesting_And_Preserves_External_Start_Type_And_Value_Resets() {
-        RtfDocument external = HtmlConversionDocument.Parse("<ol start='5' type='i'><li>First</li><li value='9'>Reset</li><li>Next</li></ol>").ToRtfDocument();
+        RtfDocument external = HtmlConversionDocument.Parse("<ol start='5' type='i'><li>First</li><li value='9'>Reset</li><li>Next</li></ol>").ToRtf();
         var numbering = new RtfListNumbering(external);
         Assert.Equal(new[] { "v.", "ix.", "x." }, external.Paragraphs.Select(paragraph => numbering.Next(paragraph)!.Text));
         RtfDocument document = CreateNestedList();
@@ -155,7 +155,7 @@ public class RtfEffectiveNumberingRegressionTests {
         AngleSharp.Html.Dom.IHtmlDocument dom = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
         Assert.Single(dom.QuerySelectorAll("ol > li > ol > li"));
         Assert.Equal(2, dom.QuerySelectorAll("body > ol").Length);
-        RtfDocument reopened = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument reopened = HtmlConversionDocument.Parse(html).ToRtf();
         Assert.Equal(new[] { "Parent", "Child", "Second", "Other" }, reopened.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
         numbering = new RtfListNumbering(reopened);
         Assert.Equal(new[] { "IV.", "IV.a.", "V.", "IV." }, reopened.Paragraphs.Select(paragraph => numbering.Next(paragraph)!.Text));
@@ -176,8 +176,8 @@ public class RtfEffectiveNumberingRegressionTests {
             var numbering = new RtfListNumbering(value);
             Assert.Equal(new[] { "IV.", "V.", "(vi)", "IV.", "V.", "VI." }, value.Paragraphs.Select(paragraph => numbering.Next(paragraph)!.Text));
         }
-        using WordDocument word = document.ToWordDocument();
-        RtfDocument imported = word.ToRtfDocument();
+        using WordDocument word = document.ToWord();
+        RtfDocument imported = word.ToRtf();
         var wordNumbering = new RtfListNumbering(imported);
         Assert.Equal(new[] { "IV.", "V.", "(vi)", "IV.", "V.", "VI." }, imported.Paragraphs.Select(paragraph => wordNumbering.Next(paragraph)!.Text));
     }
@@ -193,7 +193,7 @@ public class RtfEffectiveNumberingRegressionTests {
         document.AddParagraph("Between");
         document.AddParagraph("Continued").SetList(3);
         document.AddParagraph("Other").SetList(4);
-        MarkdownDocument markdown = document.ToMarkdownDocument();
+        MarkdownDocument markdown = document.ToMarkdown();
         Assert.Equal(new[] { 3, 4, 2 }, markdown.Blocks.OfType<OrderedListBlock>().Select(list => list.Start));
         string text = OfficeIMO.Pdf.PdfReadDocument.Open((document.ToPdf()).ToBytes()).ExtractText();
         Assert.Contains("3. First", text, StringComparison.Ordinal);
@@ -212,13 +212,13 @@ public class RtfEffectiveNumberingRegressionTests {
         style.ListId = 3;
         style.ListLevel = 2;
         document.AddParagraph("Styled").StyleId = 1;
-        using WordDocument word = document.ToWordDocument();
+        using WordDocument word = document.ToWord();
         Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(word._wordprocessingDocument));
         using var bytes = new MemoryStream();
         word.Save(bytes);
         bytes.Position = 0;
         using WordDocument opened = WordDocument.Load(bytes);
-        RtfDocument reopened = opened.ToRtfDocument();
+        RtfDocument reopened = opened.ToRtf();
         RtfListFormatting effective = reopened.ResolveListFormatting(reopened.Paragraphs[0])!;
         Assert.Equal(2, effective.Level.NumberFormat);
         Assert.Equal("%3)", effective.Level.Text);

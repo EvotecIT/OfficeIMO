@@ -374,7 +374,7 @@
       "package": "OfficeIMO.AsciiDoc.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "AsciiDocDocument.ParseResult(source).Document.ToPdfDocumentResult(options)",
+      "api": "AsciiDocDocument.ParseResult(source).Document.SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -760,7 +760,7 @@
       "package": "OfficeIMO.Chm.Epub",
       "support": "Targeted",
       "fidelity": "Semantic",
-      "api": "ChmDocument.Load(stream).ToEpubBytesResult(options)",
+      "api": "ChmDocument.Load(stream).SaveAsEpub(output, options)",
       "surfaces": [
         "dotnet",
         "cli",
@@ -774,7 +774,7 @@
       "package": "OfficeIMO.Chm.Markdown",
       "support": "Targeted",
       "fidelity": "Semantic",
-      "api": "ChmDocument.Load(stream).ToMarkdownResult(options)",
+      "api": "ChmDocument.Load(stream).SaveAsMarkdown(output, options)",
       "surfaces": [
         "dotnet",
         "cli",
@@ -788,7 +788,7 @@
       "package": "OfficeIMO.Chm.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "ChmDocument.Load(stream).ToPdfBytesResult(options)",
+      "api": "ChmDocument.Load(stream).SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet",
         "cli",
@@ -971,7 +971,7 @@
       "package": "OfficeIMO.Word.OpenDocument",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "WordDocument.Load(stream).ToOpenDocumentResult(options)",
+      "api": "WordDocument.Load(stream).SaveAsOpenDocument(output, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -1019,7 +1019,7 @@
       "package": "OfficeIMO.Word.Rtf",
       "support": "Established",
       "fidelity": "Editable",
-      "api": "WordDocument.Load(stream).ToRtfDocumentResult()",
+      "api": "WordDocument.Load(stream).SaveAsRtf(output, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -1521,7 +1521,7 @@
       "package": "OfficeIMO.OneNote.Html",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "HtmlConversionDocument.Parse(html).ToOneNoteSectionResult(options)",
+      "api": "HtmlConversionDocument.Parse(html).ToOneNoteSection(options, out report)",
       "surfaces": [
         "dotnet"
       ]
@@ -1563,7 +1563,7 @@
       "package": "OfficeIMO.PowerPoint.Html",
       "support": "Established",
       "fidelity": "Editable",
-      "api": "HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(options)",
+      "api": "HtmlConversionDocument.Parse(html).SaveAsPowerPoint(output, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -1575,7 +1575,7 @@
       "package": "OfficeIMO.Html.Rtf",
       "support": "Established",
       "fidelity": "Editable",
-      "api": "HtmlConversionDocument.Parse(html).ToRtfDocumentResult(options)",
+      "api": "HtmlConversionDocument.Parse(html).SaveAsRtf(output, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -1626,7 +1626,7 @@
       "package": "OfficeIMO.Excel.Html",
       "support": "Established",
       "fidelity": "Editable",
-      "api": "HtmlConversionDocument.Parse(html).ToExcelDocumentResult(options)",
+      "api": "HtmlConversionDocument.Parse(html).SaveAsExcel(output, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -1652,7 +1652,7 @@
       "package": "OfficeIMO.PowerPoint.IWork",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(path, readOptions, conversionOptions)",
+      "api": "IWorkSourceDocument.Open(path, IWorkDocumentKind.Keynote, readOptions).SaveAsPowerPoint(output, options)",
       "surfaces": [
         "dotnet",
         "cli",
@@ -1684,7 +1684,7 @@
       "package": "OfficeIMO.Latex.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "LatexDocument.ParseResult(source).Document.ToPdfDocumentResult(options)",
+      "api": "LatexDocument.ParseResult(source).Document.SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -1814,7 +1814,7 @@
       "package": "OfficeIMO.Rtf.Markdown",
       "support": "Established",
       "fidelity": "Editable",
-      "api": "MarkdownDocument.Parse(markdown).ToRtfDocumentResult(options)",
+      "api": "MarkdownDocument.Parse(markdown).SaveAsRtf(output, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -1829,7 +1829,7 @@
       "package": "OfficeIMO.Mhtml.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "MhtmlDocument.Load(stream, options).ToPdfDocumentResult(pdfOptions)",
+      "api": "MhtmlDocument.Load(stream, options).SaveAsPdf(output, pdfOptions)",
       "surfaces": [
         "dotnet"
       ]
@@ -2119,7 +2119,7 @@
       "package": "OfficeIMO.Excel.IWork",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "ExcelIWorkConverter.ConvertNumbersToExcelResult(path, readOptions, conversionOptions)",
+      "api": "IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers, readOptions).SaveAsExcel(output, options)",
       "surfaces": [
         "dotnet",
         "cli",
@@ -2136,7 +2136,7 @@
       "package": "OfficeIMO.OpenDocument.Odg.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdgDocument.Load(stream) or LoadFlatXml(stream), then ToPdfDocumentResult(options)",
+      "api": "OdgDocument.Load(stream) or LoadFlatXml(stream), then SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet",
         "cli",
@@ -2162,7 +2162,7 @@
       "package": "OfficeIMO.OpenDocument.Odp.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdpPresentation.Load(stream).ToPdfDocumentResult(conversionOptions, pdfOptions)",
+      "api": "OdpPresentation.Load(stream).SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2186,7 +2186,7 @@
       "package": "OfficeIMO.PowerPoint.OpenDocument",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "OdpPresentation.Load(stream).ToPowerPointDocumentResult(options)",
+      "api": "OdpPresentation.Load(stream).SaveAsPowerPoint(output, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2249,7 +2249,7 @@
       "package": "OfficeIMO.OpenDocument.Ods.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdsDocument.Load(stream).ToPdfDocumentResult(conversionOptions, pdfOptions)",
+      "api": "OdsDocument.Load(stream).SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2309,7 +2309,7 @@
       "package": "OfficeIMO.Excel.OpenDocument",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "OdsDocument.Load(stream).ToExcelDocumentResult(options)",
+      "api": "OdsDocument.Load(stream).SaveAsExcel(output, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2324,7 +2324,7 @@
       "package": "OfficeIMO.Word.OpenDocument",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "OdtDocument.Load(stream).ToWordDocumentResult(options)",
+      "api": "OdtDocument.Load(stream).SaveAsWord(output, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2351,7 +2351,7 @@
       "package": "OfficeIMO.OpenDocument.Odt.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OdtDocument.Load(stream).ToPdfDocumentResult(conversionOptions, pdfOptions)",
+      "api": "OdtDocument.Load(stream).SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2447,7 +2447,7 @@
       "package": "OfficeIMO.OneNote.Html",
       "support": "Targeted",
       "fidelity": "Semantic",
-      "api": "section.ToHtmlDocumentResult(projectionOptions, htmlOptions)",
+      "api": "section.SaveAsHtml(output, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2474,7 +2474,7 @@
       "package": "OfficeIMO.OneNote.Markdown",
       "support": "Targeted",
       "fidelity": "Semantic",
-      "api": "section.ToMarkdownDocumentResult(options)",
+      "api": "section.SaveAsMarkdown(output, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2489,7 +2489,7 @@
       "package": "OfficeIMO.OneNote.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "section.ToPdfDocumentResult(options)",
+      "api": "section.SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2552,7 +2552,7 @@
       "package": "OfficeIMO.Word.IWork",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "WordIWorkConverter.ConvertPagesToWordResult(path, readOptions, conversionOptions)",
+      "api": "IWorkSourceDocument.Open(path, IWorkDocumentKind.Pages, readOptions).SaveAsWord(output, options)",
       "surfaces": [
         "dotnet",
         "cli",
@@ -2634,7 +2634,7 @@
       "package": "OfficeIMO.OpenDocument.Odp.Pdf",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "PdfDocument.Load(stream).ToOdpPresentationResult(pdfOptions, openDocumentOptions)",
+      "api": "PdfDocument.Load(stream).SaveAsOdp(output, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2646,7 +2646,7 @@
       "package": "OfficeIMO.OpenDocument.Ods.Pdf",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "PdfDocument.Load(stream).ToOdsDocumentResult(pdfOptions, openDocumentOptions)",
+      "api": "PdfDocument.Load(stream).SaveAsOds(output, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2658,7 +2658,7 @@
       "package": "OfficeIMO.OpenDocument.Odt.Pdf",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "PdfDocument.Load(stream).ToOdtDocumentResult(pdfOptions, openDocumentOptions)",
+      "api": "PdfDocument.Load(stream).SaveAsOdt(output, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2836,7 +2836,7 @@
       "package": "OfficeIMO.PowerPoint.OpenDocument",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "PowerPointDocument.Load(stream).ToOpenDocumentResult(options)",
+      "api": "PowerPointDocument.Load(stream).SaveAsOpenDocument(output, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2955,7 +2955,7 @@
       "package": "OfficeIMO.Word.Rtf",
       "support": "Established",
       "fidelity": "Editable",
-      "api": "RtfDocument.LoadResult(stream, readOptions).ToWordDocumentResult(sourcePath)",
+      "api": "RtfDocument.LoadResult(stream, readOptions).SaveAsWord(output, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2970,7 +2970,7 @@
       "package": "OfficeIMO.Html.Rtf",
       "support": "Established",
       "fidelity": "Semantic",
-      "api": "RtfDocument.LoadResult(stream, readOptions).Document.ToHtmlResult(options)",
+      "api": "RtfDocument.LoadResult(stream, readOptions).Document.SaveAsHtml(output, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2985,7 +2985,7 @@
       "package": "OfficeIMO.Rtf.Markdown",
       "support": "Established",
       "fidelity": "Semantic",
-      "api": "RtfDocument.LoadResult(stream, readOptions).Document.ToMarkdownResult(options)",
+      "api": "RtfDocument.LoadResult(stream, readOptions).Document.SaveAsMarkdown(output, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -3231,7 +3231,7 @@
       "package": "OfficeIMO.Excel.Html",
       "support": "Established",
       "fidelity": "Semantic",
-      "api": "ExcelDocument.Load(stream).ToHtmlResult(options)",
+      "api": "ExcelDocument.Load(stream).SaveAsHtml(output, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -3261,7 +3261,7 @@
       "package": "OfficeIMO.Excel.OpenDocument",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "ExcelDocument.Load(stream).ToOpenDocumentResult(options)",
+      "api": "ExcelDocument.Load(stream).SaveAsOpenDocument(output, options)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -3354,7 +3354,7 @@
       "package": "OfficeIMO.Xps.Pdf",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "XpsDocument.Load(stream).SavePdf(output, options)",
+      "api": "XpsDocument.Load(stream).SaveAsPdf(output, options)",
       "surfaces": [
         "dotnet",
         "cli",

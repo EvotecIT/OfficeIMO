@@ -15,7 +15,7 @@ public class RtfMarkdownSecurityLimitTests {
         markdown.Add(table);
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-            markdown.ToRtfDocument(new MarkdownRtfExportOptions { MaxTableCells = 3 }));
+            markdown.ToRtf(new MarkdownRtfExportOptions { MaxTableCells = 3 }));
 
         Assert.Contains("exceeding the configured limit of 3", exception.Message, StringComparison.Ordinal);
     }
@@ -31,7 +31,7 @@ public class RtfMarkdownSecurityLimitTests {
         markdown.Add(new UnorderedListBlock { Items = { item } });
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-            markdown.ToRtfDocument(new MarkdownRtfExportOptions { MaxTableCells = 3 }));
+            markdown.ToRtf(new MarkdownRtfExportOptions { MaxTableCells = 3 }));
 
         Assert.Contains("exceeding the configured limit of 3", exception.Message, StringComparison.Ordinal);
     }
@@ -39,7 +39,7 @@ public class RtfMarkdownSecurityLimitTests {
     [Fact]
     public void MarkdownListConversionCapsAuthoredRtfLevels() {
         string markdownText = "- zero\n  - one\n    - two\n      - three\n        - four\n";
-        RtfConversionResult<OfficeIMO.Rtf.RtfDocument> result = MarkdownDocument.Parse(markdownText).ToRtfDocumentResult(
+        RtfConversionResult<OfficeIMO.Rtf.RtfDocument> result = MarkdownDocument.Parse(markdownText).ConvertToRtfWithEvidence(
             new MarkdownRtfExportOptions { MaxListNestingDepth = 3 });
 
         Assert.All(result.Value.ListDefinitions, definition => Assert.InRange(definition.Levels.Count, 1, 3));
@@ -57,7 +57,7 @@ public class RtfMarkdownSecurityLimitTests {
         MarkdownDocument markdown = MarkdownDocument.Create();
         markdown.Add(new UnorderedListBlock { Items = { root } });
 
-        string roundTrip = markdown.ToRtfDocument(new MarkdownRtfExportOptions { MaxListNestingDepth = 1 }).ToMarkdown();
+        string roundTrip = markdown.ToRtf(new MarkdownRtfExportOptions { MaxListNestingDepth = 1 }).ToMarkdown().ToMarkdown();
 
         int firstIndex = roundTrip.IndexOf("AlphaParent", StringComparison.Ordinal);
         int childIndex = roundTrip.IndexOf("AlphaChild", StringComparison.Ordinal);
@@ -77,9 +77,9 @@ public class RtfMarkdownSecurityLimitTests {
         MarkdownDocument markdown = MarkdownDocument.Create();
         markdown.Add(new UnorderedListBlock { Items = { root } });
 
-        RtfDocument rtf = markdown.ToRtfDocument(new MarkdownRtfExportOptions { MaxListNestingDepth = 1 });
+        RtfDocument rtf = markdown.ToRtf(new MarkdownRtfExportOptions { MaxListNestingDepth = 1 });
         string plainText = string.Join("\n", rtf.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
-        string roundTrip = rtf.ToMarkdown();
+        string roundTrip = rtf.ToMarkdown().ToMarkdown();
 
         Assert.Contains("[x] Finished", plainText, StringComparison.Ordinal);
         Assert.Contains("[ ] Pending", plainText, StringComparison.Ordinal);
@@ -100,7 +100,7 @@ public class RtfMarkdownSecurityLimitTests {
         MarkdownDocument markdown = MarkdownDocument.Create();
         markdown.Add(new UnorderedListBlock { Items = { root } });
 
-        RtfDocument rtf = markdown.ToRtfDocument(new MarkdownRtfExportOptions { MaxListNestingDepth = 1 });
+        RtfDocument rtf = markdown.ToRtf(new MarkdownRtfExportOptions { MaxListNestingDepth = 1 });
         string plainText = string.Join("\n", rtf.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
 
         Assert.Contains("3. Third", plainText, StringComparison.Ordinal);
@@ -119,7 +119,7 @@ public class RtfMarkdownSecurityLimitTests {
         MarkdownDocument markdown = MarkdownDocument.Create();
         markdown.Add(new UnorderedListBlock { Items = { root } });
 
-        RtfDocument rtf = markdown.ToRtfDocument(new MarkdownRtfExportOptions { MaxListNestingDepth = 1 });
+        RtfDocument rtf = markdown.ToRtf(new MarkdownRtfExportOptions { MaxListNestingDepth = 1 });
         string plainText = string.Join("\n", rtf.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
 
         Assert.Contains("- First child", plainText, StringComparison.Ordinal);
@@ -132,7 +132,7 @@ public class RtfMarkdownSecurityLimitTests {
         MarkdownDocument markdown = MarkdownDocument.Create();
         markdown.Add(new CodeBlock(infoString, "value"));
 
-        string roundTrip = markdown.ToRtfDocument().ToMarkdown();
+        string roundTrip = markdown.ToRtf().ToMarkdown().ToMarkdown();
 
         Assert.Contains(new string('x', 1_024), roundTrip, StringComparison.Ordinal);
         Assert.DoesNotContain(new string('x', 1_025), roundTrip, StringComparison.Ordinal);
@@ -147,6 +147,6 @@ public class RtfMarkdownSecurityLimitTests {
             MaxTableCells = maxCells
         };
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => MarkdownDocument.Create().ToRtfDocument(options));
+        Assert.Throws<ArgumentOutOfRangeException>(() => MarkdownDocument.Create().ToRtf(options));
     }
 }

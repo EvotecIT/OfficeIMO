@@ -6,6 +6,9 @@ namespace OfficeIMO.Latex.Pdf;
 
 /// <summary>Controls the loss-aware LaTeX-to-PDF route.</summary>
 public sealed class LatexPdfExportOptions {
+    /// <summary>Throws <see cref="OfficeConversionException"/> when the conversion reports loss.</summary>
+    public bool FailOnLoss { get; set; }
+
     private LatexMarkdownExportOptions _projectionOptions = new LatexMarkdownExportOptions();
     private MarkdownPdfExportOptions _markdownOptions = new MarkdownPdfExportOptions();
 
@@ -28,4 +31,11 @@ public sealed class LatexPdfExportOptions {
         },
         MarkdownOptions = MarkdownOptions.Clone()
     };
+
+    /// <summary>Creates an independent copy of these settings.</summary>
+    public LatexPdfExportOptions Clone() {
+        LatexPdfExportOptions copy = CloneForConversion();
+        copy.FailOnLoss = FailOnLoss;
+        return copy;
+    }
 }

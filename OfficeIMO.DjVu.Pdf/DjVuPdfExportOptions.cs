@@ -6,6 +6,9 @@ namespace OfficeIMO.DjVu.Pdf;
 
 /// <summary>Bounded scanned-page PDF conversion, retaining stored text and optionally recognizing missing text.</summary>
 public sealed class DjVuPdfExportOptions {
+    /// <summary>Throws <see cref="OfficeConversionException"/> when the conversion reports loss.</summary>
+    public bool FailOnLoss { get; set; }
+
     /// <summary>One-based source pages in output order. Null selects all pages; duplicates are rejected.</summary>
     public IReadOnlyList<int>? PageNumbers { get; set; }
     /// <summary>Whether stored or explicitly recognized text is embedded as a searchable layer.</summary>

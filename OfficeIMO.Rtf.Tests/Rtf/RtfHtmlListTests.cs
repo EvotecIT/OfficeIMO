@@ -9,7 +9,7 @@ public class RtfHtmlListTests {
     public void Html_ToRtfDocument_Assigns_Rtf_List_Ids_And_Levels() {
         const string html = "<ul><li>Allergy</li><li>Medication</li></ul><ol><li>Step</li></ol>";
 
-        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtf();
 
         Assert.Equal(RtfListKind.Bullet, document.Paragraphs[0].ListKind);
         Assert.Equal(1, document.Paragraphs[0].ListId);
@@ -48,14 +48,14 @@ public class RtfHtmlListTests {
         Assert.Contains("<ol start=\"7\">", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-list-marker=\"true\"", html, StringComparison.Ordinal);
 
-        RtfParagraph roundTripParagraph = Assert.Single(HtmlConversionDocument.Parse(html).ToRtfDocument().Paragraphs);
+        RtfParagraph roundTripParagraph = Assert.Single(HtmlConversionDocument.Parse(html).ToRtf().Paragraphs);
         Assert.Equal(RtfListKind.Decimal, roundTripParagraph.ListKind);
         Assert.Equal(42, roundTripParagraph.ListId);
         Assert.Equal(100, roundTripParagraph.ListDefinitionId);
         Assert.Equal(2, roundTripParagraph.ListLevel);
         Assert.Equal("7.", roundTripParagraph.ListText?.ToPlainText());
 
-        string rtf = HtmlConversionDocument.Parse(html).ToRtfDocument().ToRtf();
+        string rtf = HtmlConversionDocument.Parse(html).ToRtf().ToRtf();
         Assert.Contains(@"\ls42\ilvl2", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\listtext 7.}", rtf, StringComparison.Ordinal);
     }
@@ -64,7 +64,7 @@ public class RtfHtmlListTests {
     public void Html_ToRtfDocument_Parses_List_Metadata_Attributes() {
         const string html = "<ul><li data-officeimo-rtf-list-kind=\"decimal\" data-officeimo-rtf-list-id=\"9\" data-officeimo-rtf-list-definition-id=\"90\" data-officeimo-rtf-list-level=\"3\" data-officeimo-rtf-list-text=\"3.\">Nested</li></ul>";
 
-        RtfParagraph paragraph = Assert.Single(HtmlConversionDocument.Parse(html).ToRtfDocument().Paragraphs);
+        RtfParagraph paragraph = Assert.Single(HtmlConversionDocument.Parse(html).ToRtf().Paragraphs);
 
         Assert.Equal(RtfListKind.Decimal, paragraph.ListKind);
         Assert.Equal(9, paragraph.ListId);

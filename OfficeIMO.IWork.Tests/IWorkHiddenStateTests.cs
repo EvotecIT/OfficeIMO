@@ -163,9 +163,9 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = HiddenStatePackage(IWorkDocumentKind.Numbers,
             HiddenOwner(rowFields: BytesField(2, VarintField(2, 1))));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package);
-        using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var automatic = source.ToExcelResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(automatic.IsVisualFallback);
-        using var partial = source.ToExcelDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var partial = source.ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.True(partial.Report.IsPartialEditableReconstruction);
         using var saved = new MemoryStream(); partial.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);

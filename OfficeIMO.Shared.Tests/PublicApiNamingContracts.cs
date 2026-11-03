@@ -1,3 +1,4 @@
+using System;
 using System.Reflection;
 using System.Threading;
 using OfficeIMO.CSV;
@@ -59,14 +60,14 @@ public sealed class PublicApiNamingContracts {
     }
 
     [Fact]
-    public void RtfHtmlMemoryOutputUsesStreamVocabulary() {
+    public void RtfHtmlOutputUsesSharedConverterVocabulary() {
         string[] methodNames = typeof(HtmlRtfConverterExtensions)
             .GetMethods(BindingFlags.Public | BindingFlags.Static)
             .Select(method => method.Name)
             .ToArray();
 
-        Assert.Contains("ToHtmlStream", methodNames);
-        Assert.DoesNotContain("ToHtmlMemoryStream", methodNames);
+        Assert.Contains("SaveAsHtml", methodNames);
+        Assert.DoesNotContain(methodNames, name => name.EndsWith("Stream", StringComparison.Ordinal) || name.EndsWith("Bytes", StringComparison.Ordinal));
     }
 
     [Fact]

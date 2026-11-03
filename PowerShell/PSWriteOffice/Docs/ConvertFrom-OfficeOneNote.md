@@ -11,7 +11,7 @@ Converts an offline OneNote section or notebook to semantic Markdown, HTML, or P
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-ConvertFrom-OfficeOneNote [-Path] <string> [-OutputPath] <string> [-ReadOptions <OneNoteReaderOptions>] [-NotebookOptions <OneNoteNotebookReaderOptions>] [-ProjectionOptions <OneNoteMarkdownOptions>] [-HtmlOptions <MarkdownHtmlExportOptions>] [-PdfOptions <OneNotePdfExportOptions>] [-FailOnLoss] [-Force] [-PassThruReport] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertFrom-OfficeOneNote [-Path] <string> [-OutputPath] <string> [-ReadOptions <OneNoteReaderOptions>] [-NotebookOptions <OneNoteNotebookReaderOptions>] [-ProjectionOptions <OneNoteMarkdownExportOptions>] [-HtmlOptions <MarkdownHtmlExportOptions>] [-PdfOptions <OneNotePdfExportOptions>] [-FailOnLoss] [-Force] [-PassThruReport] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -160,7 +160,7 @@ Accept wildcard characters: False
 OneNote hierarchy, history, and binary-asset projection settings.
 
 ```yaml
-Type: OneNoteMarkdownOptions
+Type: OneNoteMarkdownExportOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -200,7 +200,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 - `System.IO.FileInfo`
 - `OfficeIMO.OneNote.Markdown.OneNoteMarkdownConversionReport`
 - `OfficeIMO.Html.HtmlConversionReport`
-- `OfficeIMO.Pdf.PdfDocumentConversionResult`
+- `OfficeIMO.OfficeConversionReport`
 
 ## RELATED LINKS
 

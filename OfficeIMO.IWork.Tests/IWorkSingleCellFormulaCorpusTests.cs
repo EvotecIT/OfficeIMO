@@ -34,7 +34,7 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
             Assert.Equal((row == 20 ? "=COLUMNS" : "=ROWS") + "({1,2,3})", referenceTable.GetCell(row, 2)!.Formula);
             Assert.True(referenceTable.GetCell(row, 2)!.CachedValueIsComplete);
         }
-        using var result = source.ToExcelDocumentResult(IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions {
+        using var result = source.ToExcelResult(IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions {
             AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true }));
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED"
@@ -44,8 +44,7 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
     [Fact]
     public void Independent_endpoint_ranges_and_single_cell_offset_preserve_saved_formulas_caches_and_edited_calculation() {
         using var manifest = ReadManifest("endpoint-formulas", out string path);
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         Assert.False(result.IsVisualFallback, string.Join("\n", result.Report.Diagnostics.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message)));
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);

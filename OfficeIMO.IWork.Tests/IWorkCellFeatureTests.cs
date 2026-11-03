@@ -98,9 +98,9 @@ public sealed partial class IWorkBoundaryTests {
     public void Partial_feature_conversion_saves_values_and_reader_retains_the_unassessed_warning() {
         using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), cellPayload: FeatureCell(empty: false));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package);
-        using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var automatic = source.ToExcelResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(automatic.IsVisualFallback);
-        using var partial = source.ToExcelDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var partial = source.ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.True(partial.Report.IsPartialEditableReconstruction);
         using var saved = new MemoryStream(); partial.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
@@ -116,7 +116,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Feature_presence_survives_cross_table_formula_binding_and_saved_formula_output() {
         using MemoryStream package = CrossBindingPackage(sourceCellPayload:
             FeatureCell(empty: false, (1u << 9) | (1u << 19)));
-        using var result = IWorkSourceDocument.Open(package).ToExcelDocumentResult(new IWorkConversionOptions {
+        using var result = IWorkSourceDocument.Open(package).ToExcelResult(new IWorkConversionOptions {
             AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true
         });
         IWorkTableCell cell = result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!;

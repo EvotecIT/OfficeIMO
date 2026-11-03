@@ -13,7 +13,7 @@ internal static partial class PdfPageImporter {
     /// When no page numbers are supplied, all source pages are appended.
     /// </summary>
     public static byte[] AppendPages(byte[] targetPdf, byte[] sourcePdf, params int[] sourcePageNumbers) {
-        return AppendPages(new PdfPageImportOptions(), targetPdf, sourcePdf, sourcePageNumbers);
+        return AppendPages(new PdfPageImportOptions(), targetPdf, sourcePdf, targetReadOptions: null, sourcePageNumbers);
     }
 
     /// <summary>
@@ -21,7 +21,7 @@ internal static partial class PdfPageImporter {
     /// When no page numbers are supplied, all source pages are prepended.
     /// </summary>
     public static byte[] PrependPages(byte[] targetPdf, byte[] sourcePdf, params int[] sourcePageNumbers) {
-        return PrependPages(new PdfPageImportOptions(), targetPdf, sourcePdf, sourcePageNumbers);
+        return PrependPages(new PdfPageImportOptions(), targetPdf, sourcePdf, targetReadOptions: null, sourcePageNumbers);
     }
 
     /// <summary>
@@ -29,7 +29,7 @@ internal static partial class PdfPageImporter {
     /// Use target page count + 1 to insert at the end. When no page numbers are supplied, all source pages are inserted.
     /// </summary>
     public static byte[] InsertPages(byte[] targetPdf, byte[] sourcePdf, int insertBeforePageNumber, params int[] sourcePageNumbers) {
-        return InsertPages(new PdfPageImportOptions(), targetPdf, sourcePdf, insertBeforePageNumber, sourcePageNumbers);
+        return InsertPages(new PdfPageImportOptions(), targetPdf, sourcePdf, insertBeforePageNumber, targetReadOptions: null, sourcePageNumbers);
     }
 
     /// <summary>

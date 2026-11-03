@@ -10,8 +10,7 @@ internal static class NativeNumbersConditionalAggregateSmoke {
         string edited = Fixture("conditional-aggregates-excel-edited.xlsx", "9F706AAFD6278037B87CCC340DA3CCE88DA67C72D7098B0F8BBB0DD12A3AD79B");
         using var originalReference = ExcelDocument.Load(native);
         using var editedReference = ExcelDocument.Load(edited);
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(source,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(source, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         var table = result.Projection.Sheets.Single().Tables.Single();
         Require(!result.IsVisualFallback && result.Report.IsPartialEditableReconstruction
             && result.Report.Diagnostics.Any(d => d.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED")

@@ -8,10 +8,10 @@ using OfficeIMO.Excel.OpenDocument;
 using OfficeIMO.OpenDocument;
 
 using ExcelDocument workbook = ExcelDocument.Load("report.xlsx");
-OdfConversionResult<OdsDocument> conversion = workbook.ToOpenDocumentResult();
-conversion.Value.Save("report.ods");
+using OdsDocument converted = workbook.ToOpenDocument(null, out OfficeConversionReport report);
+converted.Save("report.ods");
 
-foreach (var mapping in conversion.Report.Mappings) {
+foreach (var mapping in ((OdfConversionReport)report).Mappings) {
     Console.WriteLine($"{mapping.Feature}: {mapping.Status} ({mapping.Count})");
 }
 ```

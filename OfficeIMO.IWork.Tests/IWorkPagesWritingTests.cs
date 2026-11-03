@@ -22,8 +22,7 @@ public sealed class IWorkPagesWritingTests {
         Assert.Equal(84, projection.Paragraphs.Count); // Native terminating LF also projects an empty trailing paragraph.
         Assert.Equal("", projection.Paragraphs[2]);
         VerifyRichRuns(projection, " plain reset");
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(new MemoryStream(bytes),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var saved = WordprocessingDocument.Open(output, false);
@@ -48,8 +47,7 @@ public sealed class IWorkPagesWritingTests {
         Assert.Empty(projection.SourceDeclarationIssues); Assert.Empty(projection.SourceReferenceIssues);
         Assert.Empty(projection.Diagnostics);
         VerifyRichRuns(projection, " plain edited");
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(path,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var saved = WordprocessingDocument.Open(output, false);
@@ -87,7 +85,7 @@ public sealed class IWorkPagesWritingTests {
         Assert.Equal(landscape, layout.IsLandscape);
         Assert.Equal(36, layout.LeftMarginPoints); Assert.Equal(54, layout.RightMarginPoints);
         Assert.Equal(45, layout.TopMarginPoints); Assert.Equal(63, layout.BottomMarginPoints);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(new MemoryStream(bytes));
+        using var result = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult();
         result.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var package = WordprocessingDocument.Open(saved, false);

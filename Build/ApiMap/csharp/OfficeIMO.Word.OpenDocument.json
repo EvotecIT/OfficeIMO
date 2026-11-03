@@ -1,7 +1,36 @@
 {
   "package": "OfficeIMO.Word.OpenDocument",
   "summary": "Word snapshot geometry consumers retain physical measurements at the OpenDocument boundary.",
-  "changes": [],
+  "changes": [
+    {
+      "old": "WordDocument.ToOpenDocument(options) / ToOpenDocumentResult(options) : OdfConversionResult<OdtDocument>",
+      "kind": "method",
+      "action": "merge",
+      "new": "WordDocument.ToOpenDocument(WordOpenDocumentConversionOptions options[, out OfficeConversionReport report], CancellationToken) : OdtDocument; ToOpenDocumentAsync; SaveAsOpenDocument(path | stream); SaveAsOpenDocumentAsync",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "replacement": "The out report is the typed OdfConversionReport with per-feature mappings.",
+      "applied": true
+    },
+    {
+      "old": "OdtDocument.ToWordDocument(options) / ToWordDocumentResult(options)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OdtDocument.ToWord(WordOpenDocumentConversionOptions options[, out OfficeConversionReport report], CancellationToken); ToWordAsync; SaveAsWord(path | stream); SaveAsWordAsync",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Word.OpenDocument.WordOpenDocumentConversionOptions",
+      "kind": "type",
+      "action": "change",
+      "new": "OfficeIMO.Word.OpenDocument.WordOpenDocumentConversionOptions.Clone()",
+      "reason": "Both directions share every setting, so one options type stays; LossPolicy keeps its three levels instead of FailOnLoss.",
+      "category": "options",
+      "applied": true
+    }
+  ],
   "extraChanges": [
     {
       "phase": "B",

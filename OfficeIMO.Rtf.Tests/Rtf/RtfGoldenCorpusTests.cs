@@ -89,7 +89,7 @@ public class RtfGoldenCorpusTests {
             }
 
             if (fixture.Adapters.Contains("Markdown")) {
-                Assert.False(string.IsNullOrWhiteSpace(document.ToMarkdown()), fixture.Id + ": Markdown");
+                Assert.False(string.IsNullOrWhiteSpace(document.ToMarkdown().ToMarkdown()), fixture.Id + ": Markdown");
             }
 
             if (fixture.Adapters.Contains("Pdf")) {
@@ -97,8 +97,8 @@ public class RtfGoldenCorpusTests {
             }
 
             if (fixture.Adapters.Contains("Word")) {
-                using WordDocument word = document.ToWordDocumentResult().Value;
-                RtfDocument roundTrip = word.ToRtfDocument();
+                using WordDocument word = document.ConvertToWordWithEvidence().Value;
+                RtfDocument roundTrip = word.ToRtf();
                 Assert.False(string.IsNullOrWhiteSpace(roundTrip.ToRtf()), fixture.Id + ": Word");
             }
         }

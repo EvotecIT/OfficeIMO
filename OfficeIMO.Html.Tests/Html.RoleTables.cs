@@ -15,7 +15,7 @@ public partial class HtmlOfficeAdapters {
             + "</div>";
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
 
-        HtmlToOneNoteSectionResult oneNoteResult = source.ToOneNoteSectionResult();
+        HtmlToOneNoteSectionResult oneNoteResult = source.ConvertToOneNoteSectionWithEvidence();
         OneNoteSection section = oneNoteResult.RequireValue();
         OneNoteSection reopenedSection = OneNoteSectionReader.Read(
             new MemoryStream(OneNoteSectionWriter.Write(section)));
@@ -25,7 +25,7 @@ public partial class HtmlOfficeAdapters {
         Assert.Equal(2, oneNoteTable.Rows[1].Cells.Count);
         Assert.False(oneNoteResult.Report.HasLoss);
 
-        HtmlToRtfResult rtfResult = source.ToRtfDocumentResult();
+        HtmlToRtfResult rtfResult = source.ConvertToRtfWithEvidence();
         RtfDocument reloaded = RtfDocument.Load(rtfResult.RequireValue().ToBytes());
         RtfTable rtfTable = Assert.Single(reloaded.Blocks.OfType<RtfTable>());
         Assert.Equal(2, rtfTable.Rows.Count);
@@ -39,7 +39,7 @@ public partial class HtmlOfficeAdapters {
         const string html = "<table><tr><th colspan='2'>SI base units</th></tr>"
             + "<tr><td>Length</td><td>meter</td></tr><tr><td>Time</td></tr></table>";
 
-        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult();
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ConvertToOneNoteSectionWithEvidence();
         OneNoteSection reopened = OneNoteSectionReader.Read(
             new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
         OneNoteTable table = Assert.Single(reopened.Pages.SelectMany(page => page.Outlines)
@@ -47,8 +47,8 @@ public partial class HtmlOfficeAdapters {
 
         Assert.Equal(3, table.Rows.Count);
         Assert.All(table.Rows, row => Assert.Equal(2, row.Cells.Count));
-        Assert.Contains("SI base units", reopened.ToHtmlDocument(), StringComparison.Ordinal);
-        Assert.Contains("meter", reopened.ToHtmlDocument(), StringComparison.Ordinal);
+        Assert.Contains("SI base units", reopened.ConvertToHtmlWithEvidence().RequireValue(), StringComparison.Ordinal);
+        Assert.Contains("meter", reopened.ConvertToHtmlWithEvidence().RequireValue(), StringComparison.Ordinal);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
@@ -60,7 +60,7 @@ public partial class HtmlOfficeAdapters {
             + "<tr><td rowspan='2'>Basic</td><td>30 minutes</td><td>Improved source</td></tr>"
             + "<tr><td>Limited</td><td>Over 30 minutes</td></tr></table>";
 
-        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult();
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ConvertToOneNoteSectionWithEvidence();
         OneNoteSection reopened = OneNoteSectionReader.Read(
             new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
         OneNoteTable table = Assert.Single(reopened.Pages.SelectMany(page => page.Outlines)
@@ -92,7 +92,7 @@ public partial class HtmlOfficeAdapters {
         limits.MaxTables = 1;
         limits.MaxTableCells = 3;
 
-        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult(
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ConvertToOneNoteSectionWithEvidence(
             new HtmlOneNoteExportOptions { Limits = limits });
         OneNoteSection reopened = OneNoteSectionReader.Read(
             new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
@@ -115,7 +115,7 @@ public partial class HtmlOfficeAdapters {
             .CreateSemanticDocumentForConversion(HtmlCssMediaContext.Screen).RootTables).Table!;
         Assert.Equal(new[] { 0, 2 }, semantic.Rows.Select(row => row.SourceRowIndex));
 
-        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult();
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ConvertToOneNoteSectionWithEvidence();
         OneNoteSection reopened = OneNoteSectionReader.Read(
             new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
         OneNoteTable table = Assert.Single(reopened.Pages.SelectMany(page => page.Outlines)
@@ -133,7 +133,7 @@ public partial class HtmlOfficeAdapters {
     public void Rtf_ReportsUnsupportedAriaTableStructureAsApproximation() {
         const string html = "<div role='table'><p>Unstructured</p><div role='row'><div role='cell'>Value</div></div></div>";
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
 
         Assert.Empty(result.RequireValue().Blocks.OfType<RtfTable>());
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
@@ -151,7 +151,7 @@ public partial class HtmlOfficeAdapters {
             + "<style type='text/less'>p { color: blue; }</style>"
             + "</head><body><p>Content</p></body></html>";
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
 
         Assert.Equal("cid:layout.css", Assert.Single(result.Report.NativeDiagnostics,
             diagnostic => diagnostic.Code == "html-stylesheet-link-skipped").Source);
@@ -163,12 +163,12 @@ public partial class HtmlOfficeAdapters {
     public void Rtf_AriaRoleTable_SyntheticNodesDoNotConsumeSourceLimits() {
         const string html = "<div role='table'><div role='row'><div role='cell'></div></div></div>";
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult(
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence(
             new HtmlRtfExportOptions { MaxHtmlNodes = 6, MaxHtmlDepth = 5 });
 
         Assert.Single(result.RequireValue().Blocks.OfType<RtfTable>());
         HtmlRtfConversionLimitException exception = Assert.Throws<HtmlRtfConversionLimitException>(() =>
-            HtmlConversionDocument.Parse(html).ToRtfDocumentResult(new HtmlRtfExportOptions { MaxHtmlDepth = 4 }));
+            HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence(new HtmlRtfExportOptions { MaxHtmlDepth = 4 }));
         Assert.Equal(nameof(HtmlRtfExportOptions.MaxHtmlDepth), exception.LimitSource);
     }
 

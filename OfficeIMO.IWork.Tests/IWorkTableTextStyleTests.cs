@@ -42,8 +42,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Native_Keynote_table_fonts_alignment_and_pagination_loss_survive_saved_PPTX() {
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(CorpusFixture("keynotekit/tabledeck-v15.2.1.key"),
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(CorpusFixture("keynotekit/tabledeck-v15.2.1.key"), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Report.IsPartialEditableReconstruction);
         Assert.Throws<InvalidOperationException>(() => result.Report.RequireCompleteEditableReconstruction());
@@ -61,14 +60,13 @@ public sealed partial class IWorkBoundaryTests {
         }
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED"
             && d.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission);
-        using var strict = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(CorpusFixture("keynotekit/tabledeck-v15.2.1.key"), conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var strict = IWorkSourceDocument.Open(CorpusFixture("keynotekit/tabledeck-v15.2.1.key"), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(strict.IsVisualFallback);
     }
 
     [Fact]
     public void Native_Pages_selected_table_fonts_survive_saved_DOCX_including_empty_rich_paragraphs() {
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(CorpusFixture("picodocs/sample-v14.4.pages"),
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(CorpusFixture("picodocs/sample-v14.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
         for (int index = 0; index < result.Projection.Tables.Count; index++) {
@@ -110,7 +108,7 @@ public sealed partial class IWorkBoundaryTests {
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(policy); Assert.False(result.IsVisualFallback);
+            using var result = source.ToWordResult(policy); Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
             var numeric = reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0];
@@ -118,7 +116,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(OfficeIMO.Word.WordParagraphAlignment.Right, numeric.ParagraphAlignment);
             Assert.Equal(20, reopened.Tables[0].Rows[2].Cells[1].Paragraphs[0].FontSize?.ToPoints());
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var result = source.ToExcelDocumentResult(policy); Assert.False(result.IsVisualFallback);
+            using var result = source.ToExcelResult(policy); Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
             var sheet = reopened.Sheets[0]; Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out var value)); Assert.Equal(OfficeIMO.Excel.ExcelCellValueKind.Number, value!.Kind); Assert.Equal("42", value.RawValue);
@@ -126,7 +124,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal("right", sheet.Cell(1, 1).GetStyle().HorizontalAlignment);
             Assert.Equal(20, sheet.Cell(3, 2).GetStyle().FontSize?.ToPoints());
         } else {
-            using var result = source.ToPowerPointDocumentResult(policy); Assert.False(result.IsVisualFallback);
+            using var result = source.ToPowerPointResult(policy); Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             var target = Assert.Single(reopened.Slides[0].Tables);
@@ -184,13 +182,13 @@ public sealed partial class IWorkBoundaryTests {
         var source = IWorkSourceDocument.Open(package);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(IWorkTestPolicy.ForIncompletePreview(policy));
+            using var result = source.ToWordResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.True(result.IsVisualFallback); Assert.Equal(size, result.Projection.Tables[0].GetParagraphStyle(1, 1)!.TextStyle.FontSizePoints);
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var result = source.ToExcelDocumentResult(IWorkTestPolicy.ForIncompletePreview(policy));
+            using var result = source.ToExcelResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.True(result.IsVisualFallback); Assert.Equal(size, result.Projection.Sheets[0].Tables[0].GetParagraphStyle(1, 1)!.TextStyle.FontSizePoints);
         } else {
-            using var result = source.ToPowerPointDocumentResult(IWorkTestPolicy.ForIncompletePreview(policy));
+            using var result = source.ToPowerPointResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.True(result.IsVisualFallback); Assert.Equal(size, result.Projection.Slides[0].Tables[0].GetParagraphStyle(1, 1)!.TextStyle.FontSizePoints);
         }
     }
@@ -200,7 +198,7 @@ public sealed partial class IWorkBoundaryTests {
         string name = new string('A', 256);
         using var package = TableTextStylePackage(IWorkDocumentKind.Numbers,
             TableParagraphStyle(30, 18, false, fontName: name));
-        using var result = IWorkSourceDocument.Open(package).ToExcelDocumentResult(
+        using var result = IWorkSourceDocument.Open(package).ToExcelResult(
             IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
 
         Assert.True(result.IsVisualFallback);
@@ -213,7 +211,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Numbers_rich_text_run_oversized_font_name_falls_back_before_cell_style_expansion() {
         string name = new string('B', 256);
         using var package = TableTextStylePackage(IWorkDocumentKind.Numbers, richRunFontName: name);
-        using var result = IWorkSourceDocument.Open(package).ToExcelDocumentResult(
+        using var result = IWorkSourceDocument.Open(package).ToExcelResult(
             IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
 
         Assert.True(result.IsVisualFallback);
@@ -252,7 +250,7 @@ public sealed partial class IWorkBoundaryTests {
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(policy); Assert.False(result.IsVisualFallback);
+            using var result = source.ToWordResult(policy); Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
             var paragraphs = reopened.Tables[0].Rows[0].Cells[0].Paragraphs;
@@ -260,7 +258,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.All(paragraphs, paragraph => { Assert.Equal(36, paragraph.FontSize?.ToPoints()); Assert.True(paragraph.Bold); });
             Assert.Equal(18, reopened.Tables[0].Rows[0].Cells[1].Paragraphs[0].FontSize?.ToPoints());
         } else {
-            using var result = source.ToPowerPointDocumentResult(policy); Assert.False(result.IsVisualFallback);
+            using var result = source.ToPowerPointResult(policy); Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             var target = Assert.Single(reopened.Slides[0].Tables);
@@ -288,7 +286,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal((double?)before, paragraph.Style.SpaceBeforePoints);
             Assert.Equal((double?)after, paragraph.Style.SpaceAfterPoints);
         });
-        using var result = source.ToWordDocumentResult(new IWorkConversionOptions {
+        using var result = source.ToWordResult(new IWorkConversionOptions {
             AllowPartialEditableReconstruction = true
         });
         Assert.False(result.IsVisualFallback);
@@ -314,11 +312,11 @@ public sealed partial class IWorkBoundaryTests {
         var source = IWorkSourceDocument.Open(package);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(IWorkTestPolicy.ForIncompletePreview(policy));
+            using var result = source.ToWordResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.True(result.IsVisualFallback);
             Assert.Equal(fontSize, result.Projection.Tables[0].GetCell(1, 1)!.RichText!.Paragraphs[0].Style.TextStyle.FontSizePoints);
         } else {
-            using var result = source.ToPowerPointDocumentResult(IWorkTestPolicy.ForIncompletePreview(policy));
+            using var result = source.ToPowerPointResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.True(result.IsVisualFallback);
             Assert.Equal(fontSize, result.Projection.Slides[0].Tables[0].GetCell(1, 1)!.RichText!.Paragraphs[0].Style.TextStyle.FontSizePoints);
         }
@@ -351,7 +349,7 @@ public sealed partial class IWorkBoundaryTests {
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(policy);
+            using var result = source.ToWordResult(policy);
             Assert.Null(result.Projection.Tables[0].GetParagraphStyle(1, 1)!.TextStyle.Bold);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
@@ -360,7 +358,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(richText ? "Styled" : "42", paragraph.Text);
             Assert.False(paragraph.Bold);
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var result = source.ToExcelDocumentResult(policy);
+            using var result = source.ToExcelResult(policy);
             Assert.Null(result.Projection.Sheets[0].Tables[0].GetParagraphStyle(1, 1)!.TextStyle.Bold);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
@@ -368,7 +366,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.True(reopened.Sheets[0].TryGetCellValueSnapshot(1, 1, out var value));
             Assert.Equal(richText ? "Styled\n" : "42", richText ? value!.Text : value!.RawValue);
         } else {
-            using var result = source.ToPowerPointDocumentResult(policy);
+            using var result = source.ToPowerPointResult(policy);
             Assert.Null(result.Projection.Slides[0].Tables[0].GetParagraphStyle(1, 1)!.TextStyle.Bold);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);

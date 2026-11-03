@@ -18,7 +18,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Qualified_source_date_patterns_preserve_typed_values_and_saved_xlsx(string pattern, string code, string expected) {
         DateTime value = new(2026, 1, 5, 13, 4, 9, DateTimeKind.Utc);
         using var package = DateFormatPackage(IWorkDocumentKind.Numbers, pattern, value);
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.False(result.IsVisualFallback);
         var cell = result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!;
         Assert.Equal(value, cell.Value);
@@ -49,13 +49,13 @@ public sealed partial class IWorkBoundaryTests {
             Assert.True(cell.TryGetFormattedNumber(out string text, out _)); Assert.Equal(expected, text);
             using var saved = new MemoryStream();
             if (kind == IWorkDocumentKind.Pages) {
-                using var result = source.ToWordDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+                using var result = source.ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
                 result.Value.Save(saved); saved.Position = 0;
                 using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
                 Assert.Equal(expected, reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Empty(reopened.ValidateDocument());
             } else {
-                using var result = source.ToPowerPointDocumentResult(); Assert.False(result.IsVisualFallback);
+                using var result = source.ToPowerPointResult(); Assert.False(result.IsVisualFallback);
                 result.Value.Save(saved); saved.Position = 0;
                 using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
                 Assert.Equal(expected, Assert.Single(reopened.Slides[0].Tables).GetCell(0, 0).Text);
@@ -76,7 +76,7 @@ public sealed partial class IWorkBoundaryTests {
         var source = IWorkSourceDocument.Open(package);
         var cell = Assert.Single(source.ReadNumbers().Sheets[0].Tables[0].Cells);
         Assert.True(cell.TryGetFormattedNumber(out string text, out _)); Assert.Equal(expected, text);
-        using var result = source.ToExcelDocumentResult(IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
+        using var result = source.ToExcelResult(IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED");
     }
@@ -84,8 +84,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Qualified_date_patterns_do_not_bypass_xlsx_submillisecond_precision_guards() {
         using var package = DateFormatPackage(IWorkDocumentKind.Numbers, "HH:mm:ss", new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddTicks(1));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED");
     }
@@ -122,7 +121,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Qualified_date_patterns_preserve_blank_cells_and_consume_existing_budgets() {
         using var package = DateFormatPackage(IWorkDocumentKind.Numbers, "dd/MM/y", new DateTime(2026, 1, 5), empty: true);
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.Single(result.Projection.Sheets[0].Tables[0].Cells);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);

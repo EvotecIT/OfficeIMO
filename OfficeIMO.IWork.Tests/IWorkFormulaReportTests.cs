@@ -11,9 +11,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Same", 1, 1, 84d, hasFormula: true, completeFormula: true),
             new TableSpec("Ordinary", 1, 1, 21d)
         });
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            readOptions: new IWorkReadOptions { PreserveSourceRecords = false },
-            conversionOptions: new IWorkConversionOptions { NormalizeWorksheetNames = true });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers, new IWorkReadOptions { PreserveSourceRecords = false }).ToExcelResult(new IWorkConversionOptions { NormalizeWorksheetNames = true });
         Assert.Empty(result.Report.PreservedRecords);
         Assert.Equal(2, result.Report.FormulaSummary.TotalCount);
         Assert.Equal(1, result.Report.FormulaSummary.CompleteExpressionCount);
@@ -40,8 +38,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Missing", 1, 1, 0d, hasFormula: true, formulaWithoutCachedValue: true),
             new TableSpec("Undecoded", 1, 1, 84d, hasFormula: true, unknownCellValueFlag: true)
         }, includePreview: true);
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         IWorkFormulaSummary summary = result.Report.FormulaSummary;
         Assert.Equal(3, summary.TotalCount);
         Assert.Equal(1, summary.CompleteExpressionCount);

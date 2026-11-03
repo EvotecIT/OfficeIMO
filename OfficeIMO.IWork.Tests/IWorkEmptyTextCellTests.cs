@@ -14,7 +14,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Empty text", 1, 1, 0d, textValue: string.Empty,
                 hasFormula: formula, formulaPayload: formula ? expression : null)
         });
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         var source = Assert.Single(result.Projection.Sheets.Single().Tables.Single().Cells);
         Assert.Equal(formula ? IWorkCellKind.Formula : IWorkCellKind.Text, source.Kind);
         Assert.Equal(IWorkCellKind.Text, source.ValueKind);

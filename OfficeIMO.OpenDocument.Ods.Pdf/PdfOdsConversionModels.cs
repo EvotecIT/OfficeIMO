@@ -25,7 +25,7 @@ public sealed class PdfOdsConversionReport : OfficeConversionReport {
 }
 
 /// <summary>An ODS document with diagnostics from both conversion stages.</summary>
-public sealed class PdfOdsConversionResult : OfficeConversionResult<OdsDocument> {
+internal sealed class PdfOdsConversionResult : OfficeConversionResult<OdsDocument> {
     /// <summary>Gets the typed conversion report.</summary>
     public new PdfOdsConversionReport Report => (PdfOdsConversionReport)base.Report;
 

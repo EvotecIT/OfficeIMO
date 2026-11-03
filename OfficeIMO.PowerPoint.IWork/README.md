@@ -11,7 +11,7 @@ using OfficeIMO.IWork;
 using OfficeIMO.PowerPoint.IWork;
 
 IWorkSourceDocument source = IWorkSourceDocument.Open("source.key");
-using KeynoteToPowerPointResult result = source.ToPowerPointDocumentResult(
+using KeynoteToPowerPointResult result = source.ToPowerPointResult(
     new IWorkConversionOptions { Mode = IWorkConversionMode.Auto });
 
 Console.WriteLine(result.Report.ProjectionKind);
@@ -19,7 +19,7 @@ Console.WriteLine(result.HasLoss);
 result.Value.Save("converted.pptx");
 ```
 
-`IWorkSourceDocument.Open` reads and bounds the source independently of destination policy. `ToPowerPointDocument` returns a complete editable presentation and rejects partial reconstruction or preview output; `ToPowerPointDocumentResult` also exposes the typed Keynote projection, diagnostics, preserved source records, and exact editable-versus-visual-fallback result. `PowerPointIWorkConverter.ConvertKeynoteToPowerPoint*` provides equivalent path and stream convenience entry points.
+`IWorkSourceDocument.Open` reads and bounds the source independently of destination policy. `ToPowerPoint(options, out report)` and `SaveAsPowerPoint` return the presentation with the common `OfficeConversionReport`; `FailOnLoss` rejects reported loss. `ToPowerPointResult` is the evidence operation: it also exposes the typed Keynote projection, diagnostics, preserved source records, and exact editable-versus-visual-fallback result.
 
 Qualified opaque slide background colors and explicit no-fill overrides survive PPTX save/reopen, including selected style inheritance. Unsupported backgrounds require visual fallback or explicit partial conversion and retain source diagnostics. See the [background contract and native evidence](../Docs/officeimo.iwork-support-matrix.md#keynote-slide-backgrounds) for the supported color subset and remaining master/export limits.
 
@@ -57,13 +57,13 @@ The [counter component references](../OfficeIMO.TestAssets/Documents/IWorkCorpus
 
 Keep-lines is inactive in qualified unlinked, horizontal, single-column fixed frames. Keep-with-next, page breaks, unknown frame layouts, linked flows, presenter notes and table-cell pagination retain the strict checks. Under the partial policy, recovered slides remain editable when those paragraph flags cannot be represented; the report retains the pagination diagnostic and partial-reconstruction finding.
 
-The path and stream convenience APIs accept cancellation after the options:
+Opening and converting both accept cancellation:
 
 ```csharp
 using var cancellation = new CancellationTokenSource();
-using KeynoteToPowerPointResult cancellable = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(
-    "source.key", readOptions: null, conversionOptions: options,
-    cancellationToken: cancellation.Token);
+IWorkSourceDocument cancellableSource = IWorkSourceDocument.Open(
+    "source.key", IWorkDocumentKind.Keynote, null, cancellation.Token);
+using KeynoteToPowerPointResult cancellable = cancellableSource.ToPowerPointResult(options, cancellation.Token);
 ```
 
 This token governs loading, projection, and destination construction. It also governs later projections from `cancellable.Source`; use `cancellable.Source.WithCancellation(newToken)` to reuse the loaded package with a new operation token. This replaces the previous token while sharing source bytes and parsed messages. Saving is a separate destination-owner operation.

@@ -32,7 +32,7 @@ public sealed class XpsRadialExteriorSpreadTests {
             Assert.InRange(Math.Abs(pixel.G - 255 * (1 - opacity)), 0, 4);
             Assert.InRange(Math.Abs(pixel.B - (255 * ratio * opacity + 255 * (1 - opacity))), 0, 4);
         }
-        var pdfPage = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf())).Pages);
+        var pdfPage = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages);
         if (!alpha && !stroke) {
             var readback = OfficeDrawingRasterRenderer.Render(pdfPage.ToDrawing(), scale: 4D / 3D, background: OfficeColor.White);
             foreach (var xy in points) {

@@ -29,7 +29,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
             .ChartSpace!.Descendants<C.DataPoint>().Single().ChartShapeProperties!;
         properties.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute("", "bwMode", "", "black"));
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
         Assert.Contains(result.Report.Mappings, mapping =>
             mapping.Feature == "charts" && mapping.Status == OdfConversionMappingStatus.Unsupported);
@@ -50,7 +50,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
         source.Package.AddOrReplaceEntry("Object 1/content.xml",
             Encoding.UTF8.GetBytes(part.ToString(SaveOptions.DisableFormatting)), "text/xml");
 
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument converted = result.Value;
         Assert.Single(converted["Data"].Charts);
         Assert.DoesNotContain(result.Report.Mappings, mapping =>
@@ -65,7 +65,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
         OfficeChartType targetType) {
         OdsDocument source = CreateStyledOdsChart(sourceType);
 
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument converted = result.Value;
         ExcelChart chart = Assert.Single(converted["Data"].Charts);
         Assert.Equal(targetType, chart.ChartType);
@@ -87,7 +87,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
             Assert.NotNull(outlined.GetFirstChild<A.Outline>());
         }
 
-        OdsDocument roundTripped = converted.ToOpenDocumentResult().Value;
+        OdsDocument roundTripped = converted.ConvertToOpenDocumentWithEvidence().Value;
         OfficeChartPointStyle?[] styles = Assert.Single(
             Assert.Single(roundTripped.GetSheet("Data")!.Charts).Series).PointStyles!.ToArray();
         Assert.Equal(OfficeColor.Parse("#228844"), styles[0]!.FillColor);
@@ -110,7 +110,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
                 .WithPointStyles(CreatePointStyles()) });
         sheet.AddChart(sourceType, data, new ExcelChartOptions { Row = 2, Column = 4, Title = "Status" });
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         OdsChart chart = Assert.Single(result.Value.GetSheet("Summary")!.Charts);
         Assert.Equal(chartClass, chart.ChartClass);
         OfficeChartPointStyle?[] styles = Assert.Single(chart.Series).PointStyles!.ToArray();
@@ -137,7 +137,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
                 sourceType == OfficeChartType.Pie ? 45 : 0,
                 sourceType == OfficeChartType.Doughnut ? 65 : 50));
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
         Assert.Contains(result.Report.Mappings, mapping =>
             mapping.Feature == "chart-radial-layout" && mapping.Status == OdfConversionMappingStatus.Unsupported);
@@ -153,7 +153,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
         source.Package.AddOrReplaceEntry("Object 1/styles.xml",
             Encoding.UTF8.GetBytes(styles.ToString(SaveOptions.DisableFormatting)), "text/xml");
 
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument converted = result.Value;
         Assert.Empty(converted["Data"].Charts);
         Assert.Contains(result.Report.Mappings, mapping =>
@@ -172,7 +172,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
         source.Package.AddOrReplaceEntry("Object 1/content.xml",
             Encoding.UTF8.GetBytes(part.ToString(SaveOptions.DisableFormatting)), "text/xml");
 
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument converted = result.Value;
         Assert.Single(converted["Data"].Charts);
         using (SpreadsheetDocument package = SpreadsheetDocument.Open(
@@ -202,7 +202,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
         source.Package.AddOrReplaceEntry("Object 1/content.xml",
             Encoding.UTF8.GetBytes(part.ToString(SaveOptions.DisableFormatting)), "text/xml");
 
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument converted = result.Value;
         Assert.Empty(converted["Data"].Charts);
         Assert.Contains(result.Report.Mappings, mapping =>
@@ -225,7 +225,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
         source.Package.AddOrReplaceEntry("Object 1/content.xml",
             Encoding.UTF8.GetBytes(part.ToString(SaveOptions.DisableFormatting)), "text/xml");
 
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument converted = result.Value;
         Assert.Empty(converted["Data"].Charts);
         Assert.Contains(result.Report.Mappings, mapping =>
@@ -257,7 +257,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
         source.Package.AddOrReplaceEntry("Object 1/content.xml",
             Encoding.UTF8.GetBytes(part.ToString(SaveOptions.DisableFormatting)), "text/xml");
 
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument converted = result.Value;
         Assert.Empty(converted["Data"].Charts);
         Assert.Contains(result.Report.Mappings, mapping =>
@@ -278,7 +278,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
         source.Package.AddOrReplaceEntry("Object 1/content.xml",
             Encoding.UTF8.GetBytes(part.ToString(SaveOptions.DisableFormatting)), "text/xml");
 
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument converted = result.Value;
         Assert.Empty(converted["Data"].Charts);
         Assert.Contains(result.Report.Mappings, mapping =>
@@ -310,7 +310,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
         source.Package.AddOrReplaceEntry("Object 1/content.xml",
             Encoding.UTF8.GetBytes(part.ToString(SaveOptions.DisableFormatting)), "text/xml");
 
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument converted = result.Value;
         Assert.Single(converted["Data"].Charts);
         Assert.DoesNotContain(result.Report.Mappings, mapping =>
@@ -345,7 +345,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
         source.Package.AddOrReplaceEntry("Object 1/content.xml",
             Encoding.UTF8.GetBytes(part.ToString(SaveOptions.DisableFormatting)), "text/xml");
 
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         using ExcelDocument converted = result.Value;
         Assert.Empty(converted["Data"].Charts);
         Assert.Contains(result.Report.Mappings, mapping =>
@@ -364,7 +364,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
                 }) });
         sheet.AddChart(OfficeChartType.Line, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 4 });
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
         Assert.Contains(result.Report.Mappings, mapping =>
             mapping.Feature == "charts" && mapping.Status == OdfConversionMappingStatus.Unsupported &&
@@ -384,7 +384,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
             new C.InvertIfNegative { Val = true }), true);
         Assert.False(chart.TryGetSnapshot(out _));
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
         Assert.Contains(result.Report.Mappings, mapping =>
             mapping.Feature == "charts" && mapping.Status == OdfConversionMappingStatus.Unsupported &&
@@ -407,7 +407,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
             })
         }, 2L, 4L, OdfRect.FromCentimeters(0, 0, 10, 7));
 
-        using ExcelDocument excel = source.ToExcelDocumentResult().Value;
+        using ExcelDocument excel = source.ConvertToExcelWithEvidence().Value;
         ExcelChart converted = Assert.Single(excel["Data"].Charts);
         Assert.True(converted.TryGetSnapshot(out ExcelChartInfo snapshot));
         Assert.Equal(2, snapshot.Data.Series.Count);
@@ -421,7 +421,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
                 .GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.SolidFill>());
         }
 
-        OdsDocument restored = excel.ToOpenDocumentResult().Value;
+        OdsDocument restored = excel.ConvertToOpenDocumentWithEvidence().Value;
         OdsChart chart = Assert.Single(restored.GetSheet("Data")!.Charts);
         Assert.Equal(2, chart.Series.Count);
         Assert.Equal(OfficeColor.Parse("#4466AA"), chart.Series[1].PointStyles![0]!.FillColor);
@@ -437,7 +437,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
                 .WithPointStyles(CreatePointStyles()).WithPointExplosions(new[] { 0, 25, 0 }) });
         sheet.AddChart(OfficeChartType.Pie, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 4 });
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
         Assert.Contains(result.Report.Mappings, mapping =>
             mapping.Feature == "charts" && mapping.Status == OdfConversionMappingStatus.Unsupported &&
@@ -456,7 +456,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
                 }) });
         sheet.AddChart(OfficeChartType.Pie, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 4 });
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         OdsSheet converted = result.Value.GetSheet("Summary")!;
         Assert.Equal("Retained cell", converted.Cell(0, 0).Value.DisplayText);
         Assert.Empty(converted.Charts);

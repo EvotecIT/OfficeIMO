@@ -38,8 +38,7 @@ internal static partial class NativeKeynoteWriterSmoke {
             "NativeAOT rich run lost decoration.");
         Require(reset.Bold == false && reset.Italic == false && reset.Underline == false && reset.Strikethrough == false
             && reset.FontSizePoints == 24 && reset.Color?.RgbHex == "000000", "NativeAOT plain run failed to reset formatting.");
-        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(bytes),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
         using var saved = PowerPointDocument.Load(output);

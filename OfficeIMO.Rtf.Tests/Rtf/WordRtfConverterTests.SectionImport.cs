@@ -38,7 +38,7 @@ public partial class WordRtfConverterTests {
         rtfDocument.AddFooter(RtfHeaderFooterKind.LeftFooter).AddParagraph("Even footer");
         rtfDocument.AddParagraph("Body");
 
-        using WordDocument word = rtfDocument.ToWordDocument();
+        using WordDocument word = rtfDocument.ToWord();
 
         Assert.Equal(OfficePageOrientation.Landscape, word.PageSetup.Orientation);
         Assert.Equal(16838U, checked((uint?)(word.PageSetup.Size.Width?.ToTwips())));
@@ -140,8 +140,8 @@ public partial class WordRtfConverterTests {
         });
         second.ColumnCount = 1;
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
         Assert.Equal(2, rtfDocument.Sections.Count);
         Assert.Equal(RtfSectionBreakKind.Continuous, rtfDocument.Sections[1].BreakKind);
@@ -228,8 +228,8 @@ public partial class WordRtfConverterTests {
         word.Sections[0]._sectionProperties.Append(new VerticalTextAlignmentOnPage { Val = VerticalJustificationValues.Bottom });
         word.Sections[0].AddParagraph("Single section");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
         RtfSection section = Assert.Single(rtfDocument.Sections);
         Assert.Equal(RtfSectionVerticalAlignment.Bottom, section.VerticalAlignment);
@@ -272,7 +272,7 @@ public partial class WordRtfConverterTests {
         sectionRow.AddCell(2400).AddParagraph("S2A");
         sectionRow.AddCell(4800).AddParagraph("S2B");
 
-        using WordDocument word = rtfDocument.ToWordDocument();
+        using WordDocument word = rtfDocument.ToWord();
 
         Assert.Equal(2, word.Sections.Count);
         Assert.True(word.Sections[0].PageSetup.Orientation == OfficePageOrientation.Landscape);

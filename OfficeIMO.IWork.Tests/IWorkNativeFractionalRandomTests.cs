@@ -11,8 +11,7 @@ public sealed partial class IWorkBoundaryTests {
         var fixture = Assert.Single(manifest.RootElement.GetProperty("fixtures").EnumerateArray());
         foreach (var artifact in fixture.GetProperty("artifacts").EnumerateArray())
             Assert.Equal(artifact.GetProperty("sha256").GetString(), HashFile(CorpusFixture("native-exports/" + artifact.GetProperty("path").GetString())));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(CorpusFixture("native-exports/" + fixture.GetProperty("source").GetString()),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(CorpusFixture("native-exports/" + fixture.GetProperty("source").GetString()), IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         var sourceSheet = Assert.Single(result.Projection.Sheets);
         Assert.Single(sourceSheet.Drawables); // No unrelated text boxes in the native fixture.
         var table = Assert.Single(sourceSheet.Tables);

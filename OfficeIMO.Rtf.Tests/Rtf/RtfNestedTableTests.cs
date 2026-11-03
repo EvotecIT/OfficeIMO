@@ -138,7 +138,7 @@ public class RtfNestedTableTests {
     public void Html_Reader_Preserves_Nested_Table_And_Following_Outer_Cell_Content() {
         const string html = "<table><tr><td><p>Outer before</p><table><tr><td>Inner A</td><td>Inner B</td></tr></table><p>Outer after</p></td></tr></table>";
 
-        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtf();
 
         RtfTable outer = Assert.IsType<RtfTable>(Assert.Single(document.Blocks));
         RtfTableCell outerCell = Assert.Single(Assert.Single(outer.Rows).Cells);
@@ -151,14 +151,14 @@ public class RtfNestedTableTests {
     public void Word_Bridge_Preserves_Nested_Tables_In_Both_Directions() {
         RtfDocument source = CreateNestedDocument();
 
-        RtfConversionResult<WordDocument> toWord = source.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> toWord = source.ConvertToWordWithEvidence();
         using WordDocument word = toWord.Value;
         WordTable outerWordTable = Assert.Single(word.Tables);
         WordTableCell outerWordCell = Assert.Single(Assert.Single(outerWordTable.Rows).Cells);
         Assert.True(outerWordCell.HasNestedTables);
         Assert.Equal(2, Assert.Single(outerWordCell.NestedTables).Rows[0].Cells.Count);
 
-        RtfDocument roundTrip = word.ToRtfDocument();
+        RtfDocument roundTrip = word.ToRtf();
         RtfTable outer = Assert.IsType<RtfTable>(Assert.Single(roundTrip.Blocks));
         RtfTable nested = Assert.Single(Assert.Single(Assert.Single(outer.Rows).Cells).Blocks.OfType<RtfTable>());
         Assert.Equal(new[] { "Inner A", "Inner B" }, nested.Rows[0].Cells.Select(cell => cell.Paragraphs[0].ToPlainText()));
@@ -168,7 +168,7 @@ public class RtfNestedTableTests {
     public void Markdown_Flattens_Nested_Table_With_Explicit_Loss_Report() {
         var options = new RtfMarkdownExportOptions();
 
-        RtfConversionResult<string> result = CreateNestedDocument().ToMarkdownResult(options);
+        RtfConversionResult<string> result = CreateNestedDocument().ConvertToMarkdownTextWithEvidence(options);
         string markdown = result.Value;
 
         Assert.Contains("Outer before", markdown, StringComparison.Ordinal);
@@ -203,7 +203,7 @@ public class RtfNestedTableTests {
         AssertTableDepthLimit(() => document.ToHtml());
         AssertTableDepthLimit(() => document.ToMarkdown());
         AssertTableDepthLimit(() => document.ToPdf());
-        AssertTableDepthLimit(() => document.ToWordDocument());
+        AssertTableDepthLimit(() => document.ToWord());
     }
 
     [Fact]
@@ -214,7 +214,7 @@ public class RtfNestedTableTests {
             table = table.Rows[0].Cells[0].AddTable(1, 1);
         }
 
-        AssertTableDepthLimit(() => document.ToRtfDocument());
+        AssertTableDepthLimit(() => document.ToRtf());
     }
 
     [Fact]
