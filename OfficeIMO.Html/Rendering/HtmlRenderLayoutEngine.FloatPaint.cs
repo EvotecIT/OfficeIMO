@@ -67,20 +67,38 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // Effects, positioned contexts, floats and independent formatting boxes
         // own their descendants' order and remain atomic in the parent phases.
         IReadOnlyList<HtmlRenderVisual>? groupChildren = visual.StackingContext == null
-            && visual.PaintPhase == HtmlRenderPaintPhase.Content ? GetFlowPaintChildren(visual) : null;
+            && visual.PaintPhase == HtmlRenderPaintPhase.Content ? GetFlowPaintChildren(visual, invariantOnly: true) : null;
         if (groupChildren != null) {
+            // Phases do not change under translation, so a pending move is filtered in source
+            // coordinates and carried by the fragment instead of copying every child here.
+            HtmlRenderSemanticGroup? pendingGroup = null;
+            HtmlRenderOffset[]? pendingOffsets = null;
+            if (visual is HtmlRenderSemanticGroup semantic) {
+                if (semantic.TryGetPendingTranslation(out IReadOnlyList<HtmlRenderVisual> source, out HtmlRenderOffset[] offsets)) {
+                    pendingGroup = semantic;
+                    pendingOffsets = offsets;
+                    groupChildren = source;
+                } else {
+                    groupChildren = semantic.Visuals;
+                }
+            }
             var filtered = new List<HtmlRenderVisual>(groupChildren.Count);
             for (int index = 0; index < groupChildren.Count; index++) {
                 HtmlRenderVisual? child = FilterFlowPaint(groupChildren[index], phase, projectionIdentities);
+                if (child == null) continue;
                 // Number children as the caller's renumbering copy would, so the fragment needs none.
-                if (child != null) filtered.Add(child.WithPaintOrder(filtered.Count, owned: !ReferenceEquals(child, groupChildren[index])));
+                // Pending children are numbered by position when the fragment is read.
+                filtered.Add(pendingOffsets != null ? child
+                    : child.WithPaintOrder(filtered.Count, owned: !ReferenceEquals(child, groupChildren[index])));
             }
             if (filtered.Count == 0) return null;
-            HtmlRenderVisual[] children = filtered.ToArray();
-            HtmlRenderVisual fragment = visual is HtmlRenderLogicalTextGroup text
-                ? visual.CopyStackingContextTo(text.ProjectPaint(children, 0D, 0D, visual.PaintOrder,
+            // Group constructors copy their children, so the working list can be passed directly.
+            HtmlRenderVisual fragment = pendingGroup != null
+                ? visual.CopyStackingContextTo(pendingGroup.WithPendingChildren(filtered, pendingOffsets!))
+                : visual is HtmlRenderLogicalTextGroup text
+                ? visual.CopyStackingContextTo(text.ProjectPaint(filtered, 0D, 0D, visual.PaintOrder,
                     ownsLogicalText: phase == HtmlRenderPaintPhase.Content))
-                : CloneGroupWithChildren(visual, children);
+                : CloneGroupWithChildren(visual, filtered);
             if (!projectionIdentities.TryGetValue(visual, out object? identity)) {
                 identity = visual.PaintProjectionIdentity ?? new object();
                 projectionIdentities.Add(visual, identity);
@@ -142,7 +160,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // formatting/effect/stacking contexts retain their existing order.
             if (visual.PaintPhase == HtmlRenderPaintPhase.Atomic && visual.StackingContext == null
                 && visual.AtomicSourcePaintPhase is { } sourcePhase) {
-                HtmlRenderVisual root = GetFlowPaintChildren(visual) is { } children
+                HtmlRenderVisual root = visual is HtmlRenderSemanticGroup semantic
+                    && semantic.TryGetPendingTranslation(out IReadOnlyList<HtmlRenderVisual> source, out HtmlRenderOffset[] offsets)
+                    && source.Count > 0
+                    ? visual.CopyStackingContextTo(semantic.WithPendingChildren(source, offsets))
+                    : GetFlowPaintChildren(visual) is { } children
                     ? CloneGroupWithChildren(visual, children)
                     : visual.Translate(0D, 0D, visual.PaintOrder);
                 root.PaintPhase = sourcePhase;

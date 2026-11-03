@@ -172,6 +172,21 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
     internal IReadOnlyList<HtmlRenderVisual> InvariantVisuals =>
         Volatile.Read(ref _pending)?.Source ?? Volatile.Read(ref _visuals) ?? Visuals;
 
+    /// <summary>Reads the untranslated children and the steps a read of <see cref="Visuals"/> would apply.</summary>
+    internal bool TryGetPendingTranslation(out IReadOnlyList<HtmlRenderVisual> source, out HtmlRenderOffset[] offsets) {
+        PendingVisuals? pending = Volatile.Read(ref _pending);
+        source = pending?.Source!;
+        offsets = pending?.Offsets!;
+        return pending != null;
+    }
+
+    /// <summary>
+    /// A copy of this group whose children are <paramref name="sourceChildren"/> moved by <paramref name="offsets"/>
+    /// and numbered by position when read. The caller passes a list it no longer changes.
+    /// </summary>
+    internal HtmlRenderSemanticGroup WithPendingChildren(IReadOnlyList<HtmlRenderVisual> sourceChildren, HtmlRenderOffset[] offsets) =>
+        new(Role, X, Y, Width, Height, new PendingVisuals(sourceChildren, offsets), PaintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource, LogicalOrder, ListStyleType);
+
     internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
         TranslateThroughCore(new[] { new HtmlRenderOffset(offsetX, offsetY, paintOnly: false) }, paintOrder);
 
