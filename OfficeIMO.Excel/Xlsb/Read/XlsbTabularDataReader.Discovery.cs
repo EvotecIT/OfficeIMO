@@ -48,7 +48,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 int pendingRecordBudget = 0;
                 int pendingCellBudget = 0;
                 var currentRowSpanBounds = new int[32];
-                var rowPlanBuilder = new XlsbValidatedRowPlanBuilder();
+                XlsbValidatedRowPlanBuilder? rowPlanBuilder = new XlsbValidatedRowPlanBuilder();
                 int currentRowSpanCount = 0;
                 cancellationToken.ThrowIfCancellationRequested();
                 // Discovery is the full-buffer validation pass. Fuse BIFF12 framing with the
@@ -199,7 +199,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
                         currentRow = nextRow;
                         previousCellColumn = -1;
-                        rowPlanBuilder.BeginRow(nextRow, position);
+                        rowPlanBuilder = rowPlanBuilder?.BeginRow(nextRow, position);
                         continue;
                     }
                     if (!IsCellRecord(recordType)) {
@@ -291,7 +291,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             $"The XLSB cell record at offset {recordOffset} is duplicated or out of order within its row.");
                     }
                     previousCellColumn = column;
-                    rowPlanBuilder.ObserveCell(
+                    rowPlanBuilder?.ObserveCell(
                         recordType,
                         payloadOffset,
                         recordSize,
@@ -336,7 +336,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     throw new InvalidDataException(
                         "The XLSB worksheet ended before the required BrtEndSheetData record.");
                 }
-                validatedRowPlan = rowPlanBuilder.Build();
+                validatedRowPlan = rowPlanBuilder?.Build();
             }
         }
 

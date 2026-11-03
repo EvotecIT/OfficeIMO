@@ -15,7 +15,7 @@ PdfFormField -Name Reviewer -Type Text -Value 'Unassigned' -Width 320 -Height 24
 PdfFormField -Name Decision -Type Choice -Options Approve,Reject,Defer -Value Defer
 ```
 
-The [forms recipe](https://github.com/EvotecIT/OfficeIMO/blob/e18316ebaee4f069f2c25ea99012f28b1e07071a/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-Forms.ps1) creates text, choice, and check-box fields in one composition block.
+The [forms recipe](https://github.com/EvotecIT/OfficeIMO/blob/c1f0e5322ee8119ac229d463b8e42e1423a3c7f6/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-Forms.ps1) creates text, choice, and check-box fields in one composition block.
 
 ## Fill, inspect, or flatten
 

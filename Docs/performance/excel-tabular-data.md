@@ -443,6 +443,96 @@ cases pass. netstandard2.0, net8.0, net10.0 and net472 builds have zero warnings
 osx-arm64 NativeAOT publish and smoke pass. Independent read-only review finds
 no actionable issues. net472 remains a cross-build without a Windows runtime run.
 
+## XLSB discovery after a row-layout change (3 November)
+
+I stop feeding the optional XLSB row-layout builder once discovery proves that
+it cannot produce a delivery plan. The builder's lifetime replaces its disabled
+flag. The complete worksheet-validation pass keeps every framing, coordinate,
+style, string, cancellation and resource-budget check; only later no-op layout
+observations disappear. Stable layouts retain the same delivery plan. The change
+is confined to two private reader files.
+
+Sampling still points to string materialization, inflation and XLSX indexing as
+larger costs. Duplicate date conversion is not a leading sampled cost, so I leave
+it unchanged. Managed sampling does not isolate native inflater throughput. The
+[normalized evidence](excel-xlsb-discovery-2026-11-03.json) retains the profile
+summaries, source and assembly hashes, inputs and every measured sample.
+
+The final bracket uses one baseline between two candidates, the identical Excel
+benchmark binary, eight warmups, twelve samples, sixteen invocations and all
+outliers. Excel uses the pinned four-column input; CSV uses its existing
+mixed ten-column workload and the identical unchanged binary in all three
+launches. Every participant validates all values in preflight and produces or
+consumes the complete output during timing. The typed-cell XLSB write remains a separate
+diagnostic outside the comparison ranking.
+
+XLSB direct reading improves by 2.0–2.5% in this cohort; typed parsing improves by
+1.0–1.8%. Allocation is effectively unchanged. The earlier 32-invocation trial
+improves parsing by 2.7–3.3% but shows no direct-read improvement; that trial is
+retained too. Unchanged controls also move, especially CSV writing. I make no
+portable ranking or broader read/write improvement claim.
+
+Excel controls and changed lanes (50,000 rows):
+
+| Lane | Library | Before ms | Candidate 1 / 2 ms | Before → candidate 1 / 2 MiB |
+|---|---|---:|---:|---:|
+| XLSB typed cells (diagnostic) | OfficeIMO | 14.933 | 14.760 / 14.950 | 12.737 → 12.737 / 12.737 |
+| XLSX parse | OfficeIMO | 10.762 | 10.797 / 10.986 | 4.563 → 4.563 / 4.563 |
+| XLSX parse | ExcelReader.NET | 8.298 | 8.160 / 8.355 | 4.506 → 4.506 / 4.506 |
+| XLS parse | OfficeIMO | 6.686 | 6.647 / 6.648 | 5.558 → 5.558 / 5.558 |
+| XLS parse | ExcelReader.NET | 7.643 | 7.652 / 7.598 | 6.051 → 6.051 / 6.051 |
+| XLSB parse | OfficeIMO | 7.080 | 7.006 / 6.951 | 4.574 → 4.574 / 4.574 |
+| XLSB parse | ExcelReader.NET | 6.220 | 6.286 / 6.012 | 4.506 → 4.506 / 4.506 |
+| XLSX read | OfficeIMO | 9.954 | 10.002 / 10.002 | 2.274 → 2.274 / 2.274 |
+| XLSX read | Sylvan | 30.281 | 30.199 / 30.761 | 2.546 → 2.546 / 2.546 |
+| XLSX read | ExcelDataReader | 67.216 | 65.489 / 65.704 | 33.881 → 33.881 / 33.881 |
+| XLSX read | ExcelReader.NET | 6.414 | 6.390 / 6.387 | 2.217 → 2.217 / 2.217 |
+| XLS read | OfficeIMO | 5.253 | 5.266 / 5.257 | 3.269 → 3.269 / 3.269 |
+| XLS read | Sylvan | 5.154 | 5.148 / 5.103 | 2.717 → 2.716 / 2.716 |
+| XLS read | ExcelDataReader | 42.652 | 42.842 / 42.769 | 50.962 → 50.962 / 50.962 |
+| XLS read | ExcelReader.NET | 4.607 | 4.649 / 4.599 | 3.762 → 3.762 / 3.762 |
+| XLSB read | OfficeIMO | 6.347 | 6.218 / 6.190 | 2.284 → 2.284 / 2.284 |
+| XLSB read | Sylvan | 5.649 | 5.644 / 5.620 | 2.464 → 2.464 / 2.464 |
+| XLSB read | ExcelDataReader | 22.671 | 22.726 / 22.776 | 18.702 → 18.702 / 18.702 |
+| XLSB read | ExcelReader.NET | 4.776 | 4.730 / 4.777 | 2.217 → 2.217 / 2.217 |
+| XLS write | OfficeIMO | 14.931 | 14.869 / 14.985 | 28.241 → 28.241 / 28.241 |
+| XLS write | ExcelReader.NET | 4.233 | 4.411 / 4.217 | 17.075 → 17.075 / 17.075 |
+| XLSB write | OfficeIMO | 15.125 | 15.232 / 15.260 | 13.368 → 13.368 / 13.369 |
+| XLSB write | ExcelReader.NET | 5.471 | 5.629 / 5.492 | 8.829 → 8.829 / 8.829 |
+| XLSX write | OfficeIMO | 9.898 | 9.914 / 9.929 | 9.066 → 9.066 / 9.066 |
+| XLSX write | ExcelReader.NET | 8.011 | 7.975 / 8.029 | 9.008 → 9.008 / 9.008 |
+| XLSX write | SpreadCheetah | 11.334 | 11.349 / 11.829 | 11.135 → 11.135 / 11.135 |
+
+CSV controls and changed lanes (50,000 rows):
+
+| Lane | Library | Before ms | Candidate 1 / 2 ms | Before → candidate 1 / 2 MiB |
+|---|---|---:|---:|---:|
+| CSV read | OfficeIMO | 8.039 | 8.043 / 8.011 | 21.511 → 21.511 / 21.511 |
+| CSV read | ExcelReader.NET | 7.497 | 8.143 / 7.449 | 21.508 → 21.508 / 21.508 |
+| CSV read | Sylvan | 8.890 | 8.850 / 8.862 | 21.542 → 21.542 / 21.542 |
+| CSV read | Sep | 4.576 | 4.575 / 4.656 | 20.835 → 20.835 / 20.835 |
+| CSV read | CsvHelper | 18.352 | 18.295 / 18.259 | 21.529 → 21.529 / 21.529 |
+| CSV read | Dataplat | 10.980 | 10.941 / 10.970 | 21.514 → 21.514 / 21.514 |
+| CSV parse | OfficeIMO | 10.793 | 10.837 / 10.772 | 16.782 → 16.782 / 16.782 |
+| CSV parse | ExcelReader.NET | 13.857 | 13.826 / 13.758 | 16.779 → 16.779 / 16.779 |
+| CSV parse | CsvHelper | 32.545 | 32.235 / 32.235 | 32.274 → 32.274 / 32.274 |
+| CSV write | OfficeIMO | 6.202 | 6.446 / 6.933 | 16.009 → 16.009 / 16.009 |
+| CSV write | ExcelReader.NET | 6.590 | 6.548 / 6.614 | 15.960 → 15.961 / 15.961 |
+
+Existing boundary tests cover stable layouts, layout changes and trailing empty
+rows, so I add no tests. The final focused run passes 77 cases, including all
+twelve hand-authored omitted-reference cases. The full net10.0 Excel suite passes
+7,754 tests with five skips; CSV passes all 938 tests, with `Category!=Performance`.
+netstandard2.0, net8.0, net10.0 and net472 builds pass without warnings or errors.
+The net10.0 osx-arm64 NativeAOT publish and smoke checks pass. net472 remains a
+cross-build without a Windows runtime run.
+
+The public API, dependencies, selector timing, writers, row mapping and worksheet
+grid loader are unchanged in this pass. The existing omitted-reference fix and
+its reader-boundary regression remain intact. Read validation/indexing and
+inflation, owned strings, selector boxing and binary write staging remain the
+larger unresolved costs.
+
 ## Remaining costs and limits
 
 Parity is incomplete; the earlier cohorts still show gaps against ExcelReader.NET
