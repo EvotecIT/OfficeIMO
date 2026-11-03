@@ -13,7 +13,7 @@ public sealed class OfficeDocumentLinkNormalizationProcessor : OfficeDocumentPro
     public override OfficeDocumentReadResult Process(
         OfficeDocumentReadResult document,
         OfficeDocumentProcessorContext context) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         foreach (OfficeDocumentLink link in OfficeDocumentModelTraversal.Links(document)) {
             context.CancellationToken.ThrowIfCancellationRequested();
             link.Id = (link.Id ?? string.Empty).Trim();

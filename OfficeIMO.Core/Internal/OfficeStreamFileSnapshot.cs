@@ -27,9 +27,9 @@ namespace OfficeIMO.Core.Internal {
         internal static async Task<OfficeStreamFileSnapshot> CaptureAsync(
             Func<CancellationToken, Task<Stream>> openRead, string extension, long maximumBytes,
             string? expectedFingerprint, CancellationToken token) {
-            if (openRead == null) throw new ArgumentNullException(nameof(openRead));
+            ArgumentNullException.ThrowIfNull(openRead);
             // A zero remaining aggregate budget can still capture an empty member.
-            if (maximumBytes < 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+            ArgumentOutOfRangeException.ThrowIfNegative(maximumBytes);
             if (extension == null || extension.Length < 2 || extension.Length > 17 || extension[0] != '.') {
                 throw new ArgumentException("A short file extension is required.", nameof(extension));
             }

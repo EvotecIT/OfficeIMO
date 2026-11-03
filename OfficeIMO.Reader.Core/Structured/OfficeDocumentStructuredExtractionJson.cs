@@ -8,7 +8,7 @@ namespace OfficeIMO.Reader;
 public static class OfficeDocumentStructuredExtractionJson {
     /// <summary>Serializes a current structured extraction result.</summary>
     public static string Serialize(OfficeDocumentStructuredExtractionResult result, bool indented = false) {
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(result);
         if (!string.Equals(result.SchemaId, OfficeDocumentStructuredExtractionSchema.Id, StringComparison.Ordinal) ||
             result.SchemaVersion != OfficeDocumentStructuredExtractionSchema.Version) {
             throw new InvalidOperationException(

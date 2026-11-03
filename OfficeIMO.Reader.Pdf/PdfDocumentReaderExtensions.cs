@@ -19,8 +19,8 @@ public static class PdfDocumentReaderExtensions {
         ReaderOptions? readerOptions = null,
         ReaderPdfOptions? pdfOptions = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(sourceName);
         cancellationToken.ThrowIfCancellationRequested();
         ReaderOptions effective = DocumentReaderEngine.NormalizeOptions(readerOptions);
         using var scope = ReaderReadScope.Enter(effective);
@@ -43,8 +43,8 @@ public static class PdfDocumentReaderExtensions {
         ReaderOptions? readerOptions = null,
         ReaderPdfOptions? pdfOptions = null,
         CancellationToken cancellationToken = default) {
-        if (inspection == null) throw new ArgumentNullException(nameof(inspection));
-        if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
+        ArgumentNullException.ThrowIfNull(inspection);
+        ArgumentNullException.ThrowIfNull(sourceName);
         cancellationToken.ThrowIfCancellationRequested();
         ReaderOptions effective = DocumentReaderEngine.NormalizeOptions(readerOptions);
         effective.Inspection ??= new ReaderInspectionOptions();

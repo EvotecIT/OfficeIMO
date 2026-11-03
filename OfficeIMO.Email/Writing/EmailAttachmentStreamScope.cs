@@ -15,7 +15,7 @@ internal sealed class EmailAttachmentStreamScope : IDisposable {
     }
 
     internal static IDisposable Begin(IReadOnlyDictionary<EmailAttachment, IEmailContentSource> sources) {
-        if (sources == null) throw new ArgumentNullException(nameof(sources));
+        ArgumentNullException.ThrowIfNull(sources);
         return new EmailAttachmentStreamScope(sources);
     }
 
@@ -23,7 +23,7 @@ internal sealed class EmailAttachmentStreamScope : IDisposable {
         CurrentScope.Value?._sources.ContainsKey(attachment) == true;
 
     internal static Stream OpenRead(EmailAttachment attachment) {
-        if (attachment == null) throw new ArgumentNullException(nameof(attachment));
+        ArgumentNullException.ThrowIfNull(attachment);
         if (CurrentScope.Value?._sources.TryGetValue(attachment, out IEmailContentSource? source) == true) {
             Stream stream = source.OpenRead();
             if (stream == null || !stream.CanRead) {

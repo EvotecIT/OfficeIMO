@@ -31,10 +31,10 @@ internal static class OfficeCompatibilitySourceCarrier {
         string fileName,
         OfficeCompatibilityMode mode,
         byte[] sourceBytes) {
-        if (compoundBytes == null) throw new ArgumentNullException(nameof(compoundBytes));
+        ArgumentNullException.ThrowIfNull(compoundBytes);
         if (string.IsNullOrWhiteSpace(formatId)) throw new ArgumentException("Format id cannot be empty.", nameof(formatId));
         if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("File name cannot be empty.", nameof(fileName));
-        if (sourceBytes == null) throw new ArgumentNullException(nameof(sourceBytes));
+        ArgumentNullException.ThrowIfNull(sourceBytes);
         ValidateSourcePayloadSize(sourceBytes.LongLength);
         if (!OfficeCompoundFileReader.TryRead(compoundBytes, out OfficeCompoundFile? compound, out string? error)
             || compound == null) {
@@ -81,10 +81,10 @@ internal static class OfficeCompatibilitySourceCarrier {
         string fileName,
         OfficeCompatibilityMode mode,
         byte[] sourceBytes) {
-        if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
+        ArgumentNullException.ThrowIfNull(packageBytes);
         if (string.IsNullOrWhiteSpace(formatId)) throw new ArgumentException("Format id cannot be empty.", nameof(formatId));
         if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("File name cannot be empty.", nameof(fileName));
-        if (sourceBytes == null) throw new ArgumentNullException(nameof(sourceBytes));
+        ArgumentNullException.ThrowIfNull(sourceBytes);
         ValidateSourcePayloadSize(sourceBytes.LongLength);
 
         using var input = new MemoryStream(packageBytes, writable: false);

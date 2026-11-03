@@ -54,7 +54,7 @@ public static class AsciiDocSubstitutionResolver {
 
     /// <summary>Gets the effective ordered plan for a block.</summary>
     public static AsciiDocSubstitutionPlan GetPlan(AsciiDocBlock block) {
-        if (block == null) throw new ArgumentNullException(nameof(block));
+        ArgumentNullException.ThrowIfNull(block);
         string? custom = GetSubs(block);
         if (custom != null) return ParseOverride(custom);
         if (block is AsciiDocHeading || block is AsciiDocBlockTitle || block is AsciiDocAttributeEntry) {

@@ -98,7 +98,7 @@ namespace OfficeIMO.Word {
         /// <param name="height">Optional physical height of the image.</param>
         /// <returns>The current instance.</returns>
         public WordBackground SetImage(Stream imageStream, string fileName, OfficeLength? width = null, OfficeLength? height = null) {
-            if (imageStream == null) throw new ArgumentNullException(nameof(imageStream));
+            ArgumentNullException.ThrowIfNull(imageStream);
             if (string.IsNullOrEmpty(fileName)) throw new ArgumentNullException(nameof(fileName));
 
             _ = _document.Settings;

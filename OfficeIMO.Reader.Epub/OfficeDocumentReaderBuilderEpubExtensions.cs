@@ -18,7 +18,7 @@ public static class OfficeDocumentReaderBuilderEpubExtensions {
         this OfficeDocumentReaderBuilder builder,
         EpubReadOptions? epubOptions = null,
         bool replaceExisting = false) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderHandlerRegistration registration = CreateRegistration(epubOptions);
         return builder.AddHandler(registration, replaceExisting);
     }

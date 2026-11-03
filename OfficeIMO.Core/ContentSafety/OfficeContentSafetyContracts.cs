@@ -91,10 +91,10 @@ public sealed class OfficeContentSafetyOptions {
 
     internal void Validate() {
         if (MaxInputBytes <= 0 || MaxInputBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(MaxInputBytes));
-        if (MaxPackageEntries <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPackageEntries));
-        if (MaxExpandedPackageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxExpandedPackageBytes));
-        if (MaxCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxCharacters));
-        if (MaxFindings <= 0) throw new ArgumentOutOfRangeException(nameof(MaxFindings));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxPackageEntries);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxExpandedPackageBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxCharacters);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxFindings);
         if (MaxPreviewCharacters <= 0 || MaxPreviewCharacters > 4096) throw new ArgumentOutOfRangeException(nameof(MaxPreviewCharacters));
         if (MaximumTinyFontSize < OfficeLength.Zero || MaximumTinyFontSize > OfficeLength.Points(72)) {
             throw new ArgumentOutOfRangeException(nameof(MaximumTinyFontSize));
@@ -127,7 +127,7 @@ public sealed class OfficeContentSafetyFinding {
         if (string.IsNullOrWhiteSpace(format)) throw new ArgumentException("A format name is required.", nameof(format));
         if (string.IsNullOrWhiteSpace(location)) throw new ArgumentException("A logical location is required.", nameof(location));
         if (string.IsNullOrWhiteSpace(evidence)) throw new ArgumentException("Exact concealment evidence is required.", nameof(evidence));
-        if (textLength < 0) throw new ArgumentOutOfRangeException(nameof(textLength));
+        ArgumentOutOfRangeException.ThrowIfNegative(textLength);
         if (sourceTextOffset.HasValue && sourceTextOffset.Value < 0) throw new ArgumentOutOfRangeException(nameof(sourceTextOffset));
         if (sourceTextLength.HasValue && sourceTextLength.Value <= 0) throw new ArgumentOutOfRangeException(nameof(sourceTextLength));
         if (string.IsNullOrWhiteSpace(contentHash)) throw new ArgumentException("A content hash is required.", nameof(contentHash));
@@ -212,7 +212,7 @@ public sealed class OfficeContentSafetyReport {
 public sealed class OfficeContentCleanupSelection {
     /// <summary>Creates a selection from stable finding ids.</summary>
     public OfficeContentCleanupSelection(IEnumerable<string> findingIds) {
-        if (findingIds == null) throw new ArgumentNullException(nameof(findingIds));
+        ArgumentNullException.ThrowIfNull(findingIds);
         string[] ids = findingIds.Select(item => item?.Trim() ?? string.Empty).ToArray();
         if (ids.Any(string.IsNullOrWhiteSpace)) throw new ArgumentException("Finding ids cannot be empty.", nameof(findingIds));
         if (ids.Length != ids.Distinct(StringComparer.Ordinal).Count()) throw new ArgumentException("Finding ids must be unique.", nameof(findingIds));
@@ -231,7 +231,7 @@ public sealed class OfficeContentCleanupOptions {
     public OfficeIMO.OfficeSignatureMutationPolicy SignatureMutationPolicy { get; set; } = OfficeIMO.OfficeSignatureMutationPolicy.BlockSave;
 
     internal void Validate() {
-        if (Inspection == null) throw new ArgumentNullException(nameof(Inspection));
+        ArgumentNullException.ThrowIfNull(Inspection);
         Inspection.Validate();
         if (!Enum.IsDefined(typeof(OfficeIMO.OfficeSignatureMutationPolicy), SignatureMutationPolicy)) {
             throw new ArgumentOutOfRangeException(nameof(SignatureMutationPolicy));
@@ -273,7 +273,7 @@ public sealed class OfficeContentCleanupResult {
         OfficeContentSafetyReport after,
         IReadOnlyList<OfficeContentCleanupChange> changes,
         bool takeOutputOwnership) {
-        if (output == null) throw new ArgumentNullException(nameof(output));
+        ArgumentNullException.ThrowIfNull(output);
         Output = takeOutputOwnership ? output : (byte[])output.Clone();
         Before = before ?? throw new ArgumentNullException(nameof(before));
         After = after ?? throw new ArgumentNullException(nameof(after));

@@ -16,10 +16,10 @@ public sealed class OfficeEmbeddedPayloadInspectionOptions {
     public bool IncludeSha256 { get; set; }
 
     internal OfficeEmbeddedPayloadInspectionOptions Snapshot() {
-        if (MaxPayloads < 0) throw new ArgumentOutOfRangeException(nameof(MaxPayloads));
-        if (MaxPayloadBytes < 0) throw new ArgumentOutOfRangeException(nameof(MaxPayloadBytes));
-        if (MaxTotalPayloadBytes < 0) throw new ArgumentOutOfRangeException(nameof(MaxTotalPayloadBytes));
-        if (MaxReadBytes < 0) throw new ArgumentOutOfRangeException(nameof(MaxReadBytes));
+        ArgumentOutOfRangeException.ThrowIfNegative(MaxPayloads);
+        ArgumentOutOfRangeException.ThrowIfNegative(MaxPayloadBytes);
+        ArgumentOutOfRangeException.ThrowIfNegative(MaxTotalPayloadBytes);
+        ArgumentOutOfRangeException.ThrowIfNegative(MaxReadBytes);
         return new OfficeEmbeddedPayloadInspectionOptions {
             MaxPayloads = MaxPayloads, MaxPayloadBytes = MaxPayloadBytes,
             MaxTotalPayloadBytes = MaxTotalPayloadBytes, MaxReadBytes = MaxReadBytes, IncludeSha256 = IncludeSha256

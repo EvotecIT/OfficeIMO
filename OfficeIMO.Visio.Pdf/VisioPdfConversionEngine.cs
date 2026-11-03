@@ -8,7 +8,7 @@ internal static partial class VisioPdfConversionEngine {
         VisioDocument document,
         VisioToPdfOptions? options,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         VisioToPdfOptions operation = options ?? new VisioToPdfOptions();
         operation.Validate();
         cancellationToken.ThrowIfCancellationRequested();

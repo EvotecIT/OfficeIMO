@@ -6,7 +6,7 @@ internal static class OfficeDocumentHeadingPath {
     internal const int MaximumCharacters = 1_024;
 
     internal static string Append(string? parent, string? value, string separator) {
-        if (separator == null) throw new ArgumentNullException(nameof(separator));
+        ArgumentNullException.ThrowIfNull(separator);
         parent ??= string.Empty;
         value ??= string.Empty;
         if (parent.Length == 0) return Truncate(value);

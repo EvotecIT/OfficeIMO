@@ -35,7 +35,7 @@ public partial class ExcelSheet {
 
     /// <summary>Adds an editable native table from a data table, preserving its typed cell values.</summary>
     public ExcelTable AddTable(DataTable data, OfficeTableOptions? options = null, int row = 1, int column = 1) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         ValidateTypedTableOrigin(row, column);
         ObjectDataHelpers.ValidateTableAlignments(options);
         bool headers = options?.IncludeHeaders ?? true;

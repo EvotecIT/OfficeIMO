@@ -148,7 +148,7 @@ public class OfficeImageExportOptions {
     /// Format packages call this at their direct export boundary so fluent and non-fluent APIs behave identically.
     /// </summary>
     public OfficeImageExportResult EnsureAccepted(OfficeImageExportResult result) {
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(result);
         ValidateImageExportOptions();
         Policy.EnsureAccepted(result.Diagnostics);
         if (FailOnLoss) OfficeImageExportEvidence.CreateReport(result.Source ?? "Image", result).ThrowIfLoss();
@@ -157,7 +157,7 @@ public class OfficeImageExportOptions {
 
     /// <summary>Copies the shared image-export settings to another options instance.</summary>
     protected internal T CopyImageExportOptionsTo<T>(T target) where T : OfficeImageExportOptions {
-        if (target == null) throw new ArgumentNullException(nameof(target));
+        ArgumentNullException.ThrowIfNull(target);
         target.Format = Format;
         target.FileConflictPolicy = FileConflictPolicy;
         target.FailOnLoss = FailOnLoss;
@@ -234,16 +234,16 @@ public class OfficeImageExportOptions {
             ? null
             : TextShapingLanguage!.Trim();
         if (Policy == null) throw new InvalidOperationException("Image export policy cannot be null.");
-        if (MaximumOutputCount < 1) throw new ArgumentOutOfRangeException(nameof(MaximumOutputCount));
-        if (MaximumTotalRasterPixels < 1L) throw new ArgumentOutOfRangeException(nameof(MaximumTotalRasterPixels));
-        if (MaximumTotalEncodedBytes < 1L) throw new ArgumentOutOfRangeException(nameof(MaximumTotalEncodedBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumOutputCount, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumTotalRasterPixels, 1L);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumTotalEncodedBytes, 1L);
         if (RenderTimeout != System.Threading.Timeout.InfiniteTimeSpan &&
             (RenderTimeout <= TimeSpan.Zero || RenderTimeout.TotalMilliseconds > int.MaxValue)) {
             throw new ArgumentOutOfRangeException(
                 nameof(RenderTimeout),
                 "Render timeout must be positive, no greater than Int32.MaxValue milliseconds, or infinite.");
         }
-        if (MaximumDegreeOfParallelism < 1) throw new ArgumentOutOfRangeException(nameof(MaximumDegreeOfParallelism));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumDegreeOfParallelism, 1);
     }
 
     private static void ValidateDpi(double value, string name) {

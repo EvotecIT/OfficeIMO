@@ -12,9 +12,7 @@ public static partial class HtmlRtfConverterExtensions {
     }
 
     private static string ToHtmlCore(RtfDocument document, RtfToHtmlOptions effectiveOptions) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
         HtmlConversionProfileContracts.Get(effectiveOptions.SharedProfile);
         effectiveOptions.DocumentOutput.Validate();
@@ -65,26 +63,18 @@ public static partial class HtmlRtfConverterExtensions {
 
     /// <summary>Saves an RTF document as semantic HTML at the specified path.</summary>
     public static void SaveAsHtml(this RtfDocument document, string path, RtfToHtmlOptions? options = null, Encoding? encoding = null) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
-        if (path == null) {
-            throw new ArgumentNullException(nameof(path));
-        }
+        ArgumentNullException.ThrowIfNull(path);
 
         OfficeFileCommit.WriteAllBytes(path, (encoding ?? Encoding.UTF8).GetBytes(document.ToHtml(options)));
     }
 
     /// <summary>Saves an RTF document as semantic HTML to a writable stream.</summary>
     public static void SaveAsHtml(this RtfDocument document, Stream stream, RtfToHtmlOptions? options = null, Encoding? encoding = null) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
-        if (stream == null) {
-            throw new ArgumentNullException(nameof(stream));
-        }
+        ArgumentNullException.ThrowIfNull(stream);
 
         OfficeStreamWriter.WriteAllBytes(stream, document.ToHtmlBytes(options, encoding));
     }
@@ -111,18 +101,14 @@ public static partial class HtmlRtfConverterExtensions {
 
     /// <summary>Saves semantic HTML as an RTF file at the specified path.</summary>
     public static void SaveAsRtf(this HtmlConversionDocument document, string path, HtmlToRtfOptions? readOptions = null, RtfWriteOptions? writeOptions = null, Encoding? encoding = null) {
-        if (path == null) {
-            throw new ArgumentNullException(nameof(path));
-        }
+        ArgumentNullException.ThrowIfNull(path);
 
         document.ToRtfDocument(readOptions).Save(path, writeOptions, encoding);
     }
 
     /// <summary>Saves semantic HTML as RTF to a stream without closing or rewinding the stream.</summary>
     public static void SaveAsRtf(this HtmlConversionDocument document, Stream stream, HtmlToRtfOptions? readOptions = null, RtfWriteOptions? writeOptions = null, Encoding? encoding = null) {
-        if (stream == null) {
-            throw new ArgumentNullException(nameof(stream));
-        }
+        ArgumentNullException.ThrowIfNull(stream);
 
         document.ToRtfDocument(readOptions).Save(stream, writeOptions, encoding);
     }

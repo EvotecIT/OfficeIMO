@@ -11,8 +11,8 @@ public static partial class HtmlPdfConverterExtensions {
         this HtmlConversionDocument document,
         HtmlRenderRequest request,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(request);
         return HtmlPdfRenderedConverter.ConvertToBytes(
             document, request, ResolvePdfOptions(request), cancellationToken);
     }
@@ -22,8 +22,8 @@ public static partial class HtmlPdfConverterExtensions {
         this HtmlConversionDocument document,
         HtmlRenderRequest request,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(request);
         return await HtmlPdfRenderedConverter.ConvertToBytesAsync(
             document, request, ResolvePdfOptions(request), cancellationToken).ConfigureAwait(false);
     }
@@ -33,8 +33,8 @@ public static partial class HtmlPdfConverterExtensions {
         this HtmlConversionDocument document,
         HtmlRenderRequest request,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(request);
         HtmlPdfRenderResult rendered = HtmlPdfRenderedConverter.Convert(
             document, request, ResolvePdfOptions(request), cancellationToken);
         return CreateRequestResult(rendered);
@@ -45,8 +45,8 @@ public static partial class HtmlPdfConverterExtensions {
         this HtmlConversionDocument document,
         HtmlRenderRequest request,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(request);
         HtmlPdfRenderResult rendered = await HtmlPdfRenderedConverter.ConvertAsync(
             document, request, ResolvePdfOptions(request), cancellationToken).ConfigureAwait(false);
         return CreateRequestResult(rendered);

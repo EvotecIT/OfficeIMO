@@ -93,7 +93,8 @@ namespace OfficeIMO.Word {
         /// <returns>The concatenated text content of the targeted node, or an empty string when the node has no text.</returns>
         public string GetNodeText(int index) {
             var (xdoc, ns, paras) = LoadNodeParagraphs();
-            if (index < 0 || index >= paras.Count) throw new ArgumentOutOfRangeException(nameof(index));
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, paras.Count);
             var a = ns.a;
             var p = paras[index];
             var text = string.Concat(p.Elements(a + "r").Elements(a + "t").Select(t => (string)t));
@@ -107,7 +108,8 @@ namespace OfficeIMO.Word {
         /// <param name="text">The replacement text to apply to the node.</param>
         public void SetNodeText(int index, string text) {
             var (xdoc, ns, paras, dataPart) = LoadNodeParagraphsWithPart();
-            if (index < 0 || index >= paras.Count) throw new ArgumentOutOfRangeException(nameof(index));
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, paras.Count);
             ReplaceParagraphText(paras[index], ns.a, text);
             SaveDiagramData(dataPart, xdoc);
         }
@@ -177,7 +179,8 @@ namespace OfficeIMO.Word {
         /// <param name="italic">True to render the new text in italics; otherwise false.</param>
         public void SetNodeText(int index, string text, bool bold, bool italic) {
             var (xdoc, ns, paras, dataPart) = LoadNodeParagraphsWithPart();
-            if (index < 0 || index >= paras.Count) throw new ArgumentOutOfRangeException(nameof(index));
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, paras.Count);
             ReplaceParagraphText(paras[index], ns.a, text, bold, italic);
             SaveDiagramData(dataPart, xdoc);
         }
@@ -195,7 +198,8 @@ namespace OfficeIMO.Word {
         public void SetNodeText(int index, string text, bool bold, bool italic, bool underline, string? colorHex, OfficeLength? fontSize) {
             int? nativeFontSize = GetSmartArtFontSize(fontSize);
             var (xdoc, ns, paras, dataPart) = LoadNodeParagraphsWithPart();
-            if (index < 0 || index >= paras.Count) throw new ArgumentOutOfRangeException(nameof(index));
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, paras.Count);
             ReplaceParagraphText(paras[index], ns.a, text, bold, italic, underline, colorHex, nativeFontSize);
             SaveDiagramData(dataPart, xdoc);
         }
@@ -277,7 +281,8 @@ namespace OfficeIMO.Word {
 
             // Resequence existing srcOrd >= index
             List<List<XElement>> connectionGroups = GetDocumentChildConnectionGroups(cxnLst, dgm, docId);
-            if (index < 0 || index > connectionGroups.Count) throw new ArgumentOutOfRangeException(nameof(index));
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(index, connectionGroups.Count);
             for (int groupIndex = 0; groupIndex < connectionGroups.Count; groupIndex++) {
                 int order = groupIndex < index ? groupIndex : groupIndex + 1;
                 foreach (XElement connection in connectionGroups[groupIndex]) {
@@ -346,7 +351,8 @@ namespace OfficeIMO.Word {
         public void RemoveNodeAt(int index) {
             if (!CanModifyNodes) throw new NotSupportedException("Removing nodes is supported only for algorithmic layouts (BasicProcess, Cycle).");
             var (xdoc, ns, paras, dataPart) = LoadNodeParagraphsWithPart();
-            if (index < 0 || index >= paras.Count) throw new ArgumentOutOfRangeException(nameof(index));
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, paras.Count);
             var dgm = ns.dgm;
 
             List<XElement> nodePts = GetOrderedEditableNodePoints(xdoc, dgm);
@@ -383,8 +389,10 @@ namespace OfficeIMO.Word {
         public void MoveNode(int fromIndex, int toIndex) {
             if (!CanModifyNodes) throw new NotSupportedException("Reordering nodes is supported only for algorithmic layouts (BasicProcess, Cycle).");
             var (xdoc, ns, paras, dataPart) = LoadNodeParagraphsWithPart();
-            if (fromIndex < 0 || fromIndex >= paras.Count) throw new ArgumentOutOfRangeException(nameof(fromIndex));
-            if (toIndex < 0 || toIndex >= paras.Count) throw new ArgumentOutOfRangeException(nameof(toIndex));
+            ArgumentOutOfRangeException.ThrowIfNegative(fromIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(fromIndex, paras.Count);
+            ArgumentOutOfRangeException.ThrowIfNegative(toIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(toIndex, paras.Count);
             if (fromIndex == toIndex) return;
 
             XNamespace dgm = ns.dgm;

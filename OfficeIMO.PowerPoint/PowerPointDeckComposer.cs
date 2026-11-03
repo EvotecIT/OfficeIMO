@@ -207,9 +207,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds all slides described by a semantic deck plan using the active deck design.
         /// </summary>
         public IReadOnlyList<PowerPointSlide> AddSlides(PowerPointDeckPlan plan, bool validate) {
-            if (plan == null) {
-                throw new ArgumentNullException(nameof(plan));
-            }
+            ArgumentNullException.ThrowIfNull(plan);
 
             if (validate) {
                 IReadOnlyList<PowerPointDeckPlanDiagnostic> diagnostics = plan.ValidateSlides();
@@ -238,9 +236,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<PowerPointSlide> AddSlidesWithContinuation(PowerPointDeckPlan plan,
             PowerPointDeckContinuationOptions? options = null, bool validate = true) {
-            if (plan == null) {
-                throw new ArgumentNullException(nameof(plan));
-            }
+            ArgumentNullException.ThrowIfNull(plan);
 
             return AddSlides(plan.WithContinuations(options), validate);
         }
@@ -250,9 +246,7 @@ namespace OfficeIMO.PowerPoint {
         ///     current slide position.
         /// </summary>
         public IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> DescribeSlides(PowerPointDeckPlan plan) {
-            if (plan == null) {
-                throw new ArgumentNullException(nameof(plan));
-            }
+            ArgumentNullException.ThrowIfNull(plan);
 
             return plan.DescribeSlides(_design, _slideIndex);
         }
@@ -322,9 +316,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public static PowerPointDeckComposer UseDesigner(this PowerPointDocument presentation,
             PowerPointDesignBrief brief, int alternativeIndex = 0, bool applyTheme = true) {
-            if (brief == null) {
-                throw new ArgumentNullException(nameof(brief));
-            }
+            ArgumentNullException.ThrowIfNull(brief);
 
             return new PowerPointDeckComposer(presentation, brief.CreateDesign(alternativeIndex), applyTheme);
         }
@@ -334,12 +326,8 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public static PowerPointDeckComposer UseDesigner(this PowerPointDocument presentation,
             PowerPointDesignBrief brief, PowerPointDeckPlan plan, int alternativeCount = 0, bool applyTheme = true) {
-            if (brief == null) {
-                throw new ArgumentNullException(nameof(brief));
-            }
-            if (plan == null) {
-                throw new ArgumentNullException(nameof(plan));
-            }
+            ArgumentNullException.ThrowIfNull(brief);
+            ArgumentNullException.ThrowIfNull(plan);
 
             PowerPointDeckPlanAlternativeSummary recommendation =
                 brief.RecommendDeckPlanAlternative(plan, alternativeCount);
@@ -353,9 +341,7 @@ namespace OfficeIMO.PowerPoint {
             string accentColor, string seed, PowerPointDesignRecipe recipe, int alternativeIndex = 0,
             string? name = null, string? eyebrow = null, string? footerLeft = null, string? footerRight = null,
             bool applyTheme = true) {
-            if (recipe == null) {
-                throw new ArgumentNullException(nameof(recipe));
-            }
+            ArgumentNullException.ThrowIfNull(recipe);
             if (alternativeIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(alternativeIndex),
                     "Design alternative index cannot be negative.");

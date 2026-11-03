@@ -4,7 +4,7 @@ namespace OfficeIMO.IWork;
 public sealed class IWorkPagesParagraphData : IWorkPagesBodyBlock {
     internal IWorkPagesParagraphData(IEnumerable<IWorkTextRunData> runs, IWorkPagesParagraphLayout? layout = null,
         IWorkPagesNumberedList? numberedList = null, int listLevel = -1, int? listNumber = null, int? listRestartNumber = null) {
-        if (runs == null) throw new ArgumentNullException(nameof(runs));
+        ArgumentNullException.ThrowIfNull(runs);
         IWorkTextRunData[] input = runs.ToArray();
         if (input.Length == 0 || input.Any(run => run == null))
             throw new ArgumentException("At least one non-null character run is required.", nameof(runs));

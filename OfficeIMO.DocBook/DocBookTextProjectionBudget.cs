@@ -21,7 +21,7 @@ internal sealed class DocBookTextProjectionBudget {
 
     internal DocBookTextProjectionBudget(long maximumCharacters, DocBookDiagnosticCollector diagnostics,
         XNamespace docBookNamespace, CancellationToken cancellationToken) {
-        if (maximumCharacters < 1) throw new ArgumentOutOfRangeException(nameof(maximumCharacters));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumCharacters, 1);
         _remaining = maximumCharacters;
         _diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
         _docBookNamespace = docBookNamespace;

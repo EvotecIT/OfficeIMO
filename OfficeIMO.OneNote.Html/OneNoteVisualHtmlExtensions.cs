@@ -4,25 +4,25 @@ namespace OfficeIMO.OneNote.Html;
 public static class OneNoteVisualHtmlExtensions {
     /// <summary>Converts a section to a standalone responsive HTML5 document containing one SVG canvas per page.</summary>
     public static string ToVisualHtmlDocument(this OneNoteSection section, OneNoteVisualHtmlOptions? options = null) {
-        if (section == null) throw new ArgumentNullException(nameof(section));
+        ArgumentNullException.ThrowIfNull(section);
         return OneNoteVisualHtmlRenderer.RenderDocument(section.Name, OneNotePageTraversal.Flatten(section), options);
     }
 
     /// <summary>Converts a notebook to a standalone responsive HTML5 document containing one SVG canvas per page.</summary>
     public static string ToVisualHtmlDocument(this OneNoteNotebook notebook, OneNoteVisualHtmlOptions? options = null) {
-        if (notebook == null) throw new ArgumentNullException(nameof(notebook));
+        ArgumentNullException.ThrowIfNull(notebook);
         return OneNoteVisualHtmlRenderer.RenderDocument(notebook.Name, OneNotePageTraversal.Flatten(notebook), options);
     }
 
     /// <summary>Converts a section to an embeddable responsive SVG-page fragment.</summary>
     public static string ToVisualHtmlFragment(this OneNoteSection section, OneNoteVisualHtmlOptions? options = null) {
-        if (section == null) throw new ArgumentNullException(nameof(section));
+        ArgumentNullException.ThrowIfNull(section);
         return OneNoteVisualHtmlRenderer.RenderFragment(OneNotePageTraversal.Flatten(section), options);
     }
 
     /// <summary>Converts a notebook to an embeddable responsive SVG-page fragment.</summary>
     public static string ToVisualHtmlFragment(this OneNoteNotebook notebook, OneNoteVisualHtmlOptions? options = null) {
-        if (notebook == null) throw new ArgumentNullException(nameof(notebook));
+        ArgumentNullException.ThrowIfNull(notebook);
         return OneNoteVisualHtmlRenderer.RenderFragment(OneNotePageTraversal.Flatten(notebook), options);
     }
 
@@ -83,12 +83,12 @@ public static class OneNoteVisualHtmlExtensions {
     }
 
     private static void Write(Stream stream, byte[] bytes) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         stream.Write(bytes, 0, bytes.Length);
     }
 
     private static Task WriteAsync(Stream stream, byte[] bytes, CancellationToken cancellationToken) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         return stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken);
     }
 }

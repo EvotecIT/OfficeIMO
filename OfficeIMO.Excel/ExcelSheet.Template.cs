@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
         /// Replaces {{Marker}} placeholders in text cells on this worksheet using the supplied values.
         /// </summary>
         public int ApplyTemplate(IDictionary<string, object?> values, IFormatProvider? provider = null, bool throwOnMissing = false) {
-            if (values == null) throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(values);
             return ApplyTemplateCore(ExcelTemplateBindingHelper.Create(values), ExcelTemplateOptions.Create(provider, throwOnMissing));
         }
 
@@ -19,14 +19,14 @@ namespace OfficeIMO.Excel {
         /// Replaces {{Marker}} placeholders in text cells on this worksheet using the supplied values and options.
         /// </summary>
         public int ApplyTemplate(IDictionary<string, object?> values, ExcelTemplateOptions options) {
-            if (values == null) throw new ArgumentNullException(nameof(values));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(values);
+            ArgumentNullException.ThrowIfNull(options);
             return ApplyTemplateCore(ExcelTemplateBindingHelper.Create(values), options);
         }
 
         internal int ApplyTemplateCore(IReadOnlyDictionary<string, object?> bindings, ExcelTemplateOptions options) {
-            if (bindings == null) throw new ArgumentNullException(nameof(bindings));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(bindings);
+            ArgumentNullException.ThrowIfNull(options);
 
             int replacements = 0;
             WriteLock(() => {
@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel {
         /// <param name="rows">Row value dictionaries. Each dictionary is bound to one copied row.</param>
         /// <param name="options">Optional template binding options.</param>
         public int ApplyTemplateRows(int templateRow, IEnumerable<IDictionary<string, object?>> rows, ExcelTemplateOptions? options = null) {
-            if (rows == null) throw new ArgumentNullException(nameof(rows));
+            ArgumentNullException.ThrowIfNull(rows);
             var bindings = rows.Select(ExcelTemplateBindingHelper.Create).Cast<IReadOnlyDictionary<string, object?>>().ToList();
             return ApplyTemplateRowsCore(templateRow, bindings, options ?? new ExcelTemplateOptions());
         }
@@ -59,7 +59,7 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Optional template binding options.</param>
         [RequiresUnreferencedCode("Object-model template binding walks runtime properties, including nested values. Use the IDictionary overload in NativeAOT applications.")]
         public int ApplyTemplateRows<T>(int templateRow, IEnumerable<T> rows, ExcelTemplateOptions? options = null) {
-            if (rows == null) throw new ArgumentNullException(nameof(rows));
+            ArgumentNullException.ThrowIfNull(rows);
             var bindings = rows
                 .Select(row => row == null
                     ? new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)

@@ -18,7 +18,7 @@ public sealed class EmailBodyResource {
         EmailAttachment attachment,
         long maximumBytes,
         EmailBodyResourceBudget budget) {
-        if (attachment == null) throw new ArgumentNullException(nameof(attachment));
+        ArgumentNullException.ThrowIfNull(attachment);
         SourceAttachment = attachment;
         _content = attachment.Content;
         _contentSource = attachment.ContentSource;
@@ -85,7 +85,7 @@ public sealed class EmailBodyResource {
 
     /// <summary>Copies this resource to a caller-owned destination without materializing another byte array.</summary>
     public void CopyTo(Stream destination, CancellationToken cancellationToken = default) {
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(destination);
         if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
         using Stream source = OpenReadStream(cancellationToken);
         var buffer = new byte[64 * 1024];
@@ -99,7 +99,7 @@ public sealed class EmailBodyResource {
 
     /// <summary>Asynchronously copies this resource to a caller-owned destination.</summary>
     public async Task CopyToAsync(Stream destination, CancellationToken cancellationToken = default) {
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(destination);
         if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
         using Stream source = await OpenReadStreamAsync(cancellationToken).ConfigureAwait(false);
         var buffer = new byte[64 * 1024];
@@ -605,9 +605,10 @@ internal sealed class EmailBodyResourceReadStream : Stream {
     }
 
     private static void ValidateReadArguments(byte[] buffer, int offset, int count) {
-        if (buffer == null) throw new ArgumentNullException(nameof(buffer));
-        if (offset < 0 || offset > buffer.Length) throw new ArgumentOutOfRangeException(nameof(offset));
-        if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+        ArgumentNullException.ThrowIfNull(buffer);
+        ArgumentOutOfRangeException.ThrowIfNegative(offset);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(offset, buffer.Length);
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
         if (buffer.Length - offset < count) throw new ArgumentException("Offset and count exceed the buffer length.");
     }
 }

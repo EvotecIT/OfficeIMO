@@ -13,7 +13,7 @@ public sealed partial class HtmlToRtfOptions {
     }
 
     internal void AddDiagnostic(HtmlRtfConversionDiagnostic diagnostic) {
-        if (diagnostic == null) throw new ArgumentNullException(nameof(diagnostic));
+        ArgumentNullException.ThrowIfNull(diagnostic);
         Diagnostics.Add(diagnostic);
         HtmlRtfConversionReportMapper.Add(ConversionReport, diagnostic);
         HtmlRtfConversionReportMapper.Add(HtmlDiagnostics, diagnostic);

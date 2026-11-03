@@ -15,8 +15,8 @@ public static class CmsEnvelopedDataService {
         IEnumerable<X509Certificate2> recipients,
         CmsEnvelopeOptions? options = null) {
 #if NETSTANDARD2_0 || NET472
-        if (content == null) throw new ArgumentNullException(nameof(content));
-        if (recipients == null) throw new ArgumentNullException(nameof(recipients));
+        ArgumentNullException.ThrowIfNull(content);
+        ArgumentNullException.ThrowIfNull(recipients);
 #else
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(recipients);
@@ -43,8 +43,8 @@ public static class CmsEnvelopedDataService {
         X509Certificate2 recipientCertificate,
         CmsEnvelopeOptions? options = null) {
 #if NETSTANDARD2_0 || NET472
-        if (encodedCms == null) throw new ArgumentNullException(nameof(encodedCms));
-        if (recipientCertificate == null) throw new ArgumentNullException(nameof(recipientCertificate));
+        ArgumentNullException.ThrowIfNull(encodedCms);
+        ArgumentNullException.ThrowIfNull(recipientCertificate);
 #else
         ArgumentNullException.ThrowIfNull(encodedCms);
         ArgumentNullException.ThrowIfNull(recipientCertificate);

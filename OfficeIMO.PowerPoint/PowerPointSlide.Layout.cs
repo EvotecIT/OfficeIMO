@@ -40,15 +40,13 @@ namespace OfficeIMO.PowerPoint {
             PresentationPart presentationPart = _slidePart.GetParentParts().OfType<PresentationPart>().First();
 
             SlideMasterPart[] masters = presentationPart.SlideMasterParts.ToArray();
-            if (masterIndex < 0 || masterIndex >= masters.Length) {
-                throw new ArgumentOutOfRangeException(nameof(masterIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(masterIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(masterIndex, masters.Length);
 
             SlideMasterPart masterPart = masters[masterIndex];
             SlideLayoutPart[] layouts = masterPart.SlideLayoutParts.ToArray();
-            if (layoutIndex < 0 || layoutIndex >= layouts.Length) {
-                throw new ArgumentOutOfRangeException(nameof(layoutIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(layoutIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(layoutIndex, layouts.Length);
 
             SlideLayoutPart layoutPart = layouts[layoutIndex];
             SlideLayoutPart? current = _slidePart.SlideLayoutPart;
@@ -79,9 +77,8 @@ namespace OfficeIMO.PowerPoint {
         private int GetLayoutIndex(SlideLayoutValues layoutType, int masterIndex) {
             PresentationPart presentationPart = _slidePart.GetParentParts().OfType<PresentationPart>().First();
             SlideMasterPart[] masters = presentationPart.SlideMasterParts.ToArray();
-            if (masterIndex < 0 || masterIndex >= masters.Length) {
-                throw new ArgumentOutOfRangeException(nameof(masterIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(masterIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(masterIndex, masters.Length);
 
             SlideLayoutPart[] layouts = masters[masterIndex].SlideLayoutParts.ToArray();
             for (int i = 0; i < layouts.Length; i++) {
@@ -95,15 +92,12 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private int GetLayoutIndex(string layoutName, int masterIndex, bool ignoreCase) {
-            if (layoutName == null) {
-                throw new ArgumentNullException(nameof(layoutName));
-            }
+            ArgumentNullException.ThrowIfNull(layoutName);
 
             PresentationPart presentationPart = _slidePart.GetParentParts().OfType<PresentationPart>().First();
             SlideMasterPart[] masters = presentationPart.SlideMasterParts.ToArray();
-            if (masterIndex < 0 || masterIndex >= masters.Length) {
-                throw new ArgumentOutOfRangeException(nameof(masterIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(masterIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(masterIndex, masters.Length);
 
             SlideLayoutPart[] layouts = masters[masterIndex].SlideLayoutParts.ToArray();
             StringComparison comparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;

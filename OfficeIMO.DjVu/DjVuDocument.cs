@@ -41,7 +41,7 @@ public sealed class DjVuDocument {
 
     /// <summary>Loads and copies a DjVu file's bytes, applying aggregate document limits.</summary>
     public static DjVuDocument Load(byte[] bytes, DjVuReadOptions? options = null, CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         var snapshot = (options ?? new DjVuReadOptions()).Snapshot();
         cancellationToken.ThrowIfCancellationRequested();
         CheckSource(bytes.LongLength, snapshot);
@@ -50,7 +50,7 @@ public sealed class DjVuDocument {
 
     /// <summary>Loads from the current position of a readable stream, including non-seekable streams. Leaves the stream open.</summary>
     public static DjVuDocument Load(Stream stream, DjVuReadOptions? options = null, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("DjVu input stream must be readable.", nameof(stream));
         var snapshot = (options ?? new DjVuReadOptions()).Snapshot();
         byte[] source;
@@ -64,7 +64,7 @@ public sealed class DjVuDocument {
 
     /// <summary>Loads a file and closes its handle before returning. Component IDs never trigger implicit file access.</summary>
     public static DjVuDocument Load(string path, DjVuReadOptions? options = null, CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         using var stream = File.OpenRead(path);
         return Load(stream, options, cancellationToken);
     }

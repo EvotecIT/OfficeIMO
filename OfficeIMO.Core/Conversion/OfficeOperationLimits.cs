@@ -14,9 +14,9 @@ public sealed class OfficeOperationLimits {
     public long MaximumXmlCharactersInPart { get; set; } = 10L * 1024L * 1024L;
 
     internal OfficeOperationLimits CloneAndValidate() {
-        if (MaximumInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumInputBytes));
-        if (MaximumOutputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumOutputBytes));
-        if (MaximumXmlCharactersInPart <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumXmlCharactersInPart));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumInputBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumOutputBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumXmlCharactersInPart);
         return new OfficeOperationLimits {
             MaximumInputBytes = MaximumInputBytes,
             MaximumOutputBytes = MaximumOutputBytes,

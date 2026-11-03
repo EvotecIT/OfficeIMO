@@ -27,7 +27,7 @@ internal static class OfficeProvenancePackageMutation {
         OfficeProvenanceOptions? options,
         Action<byte[], string, OfficeProvenanceOptions> validatePackage) {
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
-        if (validatePackage == null) throw new ArgumentNullException(nameof(validatePackage));
+        ArgumentNullException.ThrowIfNull(validatePackage);
         options ??= new OfficeProvenanceOptions();
         OfficeProvenanceBinary.ValidateLimits(options);
         string fullPath = Path.GetFullPath(filePath);
@@ -39,7 +39,7 @@ internal static class OfficeProvenancePackageMutation {
     /// <summary>Validates an in-memory package before inspecting its provenance.</summary>
     internal static OfficeProvenanceReport Inspect(byte[] data, string fileName, OfficeProvenanceOptions? options,
         Action<byte[], string, OfficeProvenanceOptions> validatePackage) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         options ??= new OfficeProvenanceOptions();
         OfficeProvenanceBinary.ValidateLimits(options);
         if (data.LongLength > options.MaxAssetBytes) throw new InvalidDataException("The package exceeds the inspection byte limit.");
@@ -92,8 +92,8 @@ internal static class OfficeProvenancePackageMutation {
         bool validateOpcMetadata = true,
         Func<string, bool>? shouldReplacePackageMetadata = null,
         Func<string, byte[], bool, byte[]>? replacePackageMetadata = null) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
-        if (stripSignatures == null) throw new ArgumentNullException(nameof(stripSignatures));
+        ArgumentNullException.ThrowIfNull(data);
+        ArgumentNullException.ThrowIfNull(stripSignatures);
         options ??= new OfficeProvenanceRemovalOptions();
         OfficeProvenanceBinary.ValidateRemovalOptions(options);
         options.Limits.CancellationToken.ThrowIfCancellationRequested();

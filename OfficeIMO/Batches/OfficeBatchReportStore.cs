@@ -32,7 +32,7 @@ internal static class OfficeBatchReportStore {
     // The lease probe is the single filesystem scheduling boundary needed to exercise
     // final publication between the first snapshot and the activity observation.
     internal static OfficeBatchReport ReadFile(string path, Func<string, bool> leaseIsActive) {
-        if (leaseIsActive == null) throw new ArgumentNullException(nameof(leaseIsActive));
+        ArgumentNullException.ThrowIfNull(leaseIsActive);
         var report = ReadSnapshot(path, out _);
         if (report.State != OfficeBatchRunState.Running || leaseIsActive(path)) return report;
         // Final publication precedes lease release. Re-read after observing a free

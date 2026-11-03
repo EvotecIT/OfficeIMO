@@ -10,7 +10,7 @@ internal static partial class DocumentReaderEngine {
         IEnumerable<string> paths,
         ReaderFolderOptions? folderOptions,
         CancellationToken cancellationToken) {
-        if (paths == null) throw new ArgumentNullException(nameof(paths));
+        ArgumentNullException.ThrowIfNull(paths);
 
         ReaderFolderOptions effectiveFolder = NormalizeFolderOptions(folderOptions);
         HashSet<string> allowedExtensions = NormalizeExtensions(effectiveFolder.Extensions);

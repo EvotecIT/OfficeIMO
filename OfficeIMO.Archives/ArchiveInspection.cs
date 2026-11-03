@@ -78,7 +78,8 @@ public sealed partial class ArchiveInspection : IDisposable {
     public Stream OpenRead(int ordinal, CancellationToken cancellationToken = default) {
         lock (_gate) {
             ThrowIfDisposed(); cancellationToken.ThrowIfCancellationRequested();
-            if (ordinal < 0 || ordinal >= Entries.Count) throw new ArgumentOutOfRangeException(nameof(ordinal));
+            ArgumentOutOfRangeException.ThrowIfNegative(ordinal);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(ordinal, Entries.Count);
             ArchiveInspectionEntry entry = Entries[ordinal];
             if (entry.Diagnostic != null) throw new NotSupportedException(entry.Diagnostic.Code + ": " + entry.Diagnostic.Message);
             if (Format == ArchiveFormat.Zip) return OpenZipMember(ordinal, cancellationToken);
@@ -108,7 +109,8 @@ public sealed partial class ArchiveInspection : IDisposable {
     public Stream OpenStorageStream(int ordinal, CancellationToken cancellationToken = default) {
         lock (_gate) {
             ThrowIfDisposed(); cancellationToken.ThrowIfCancellationRequested();
-            if (ordinal < 0 || ordinal >= StorageStreams.Count) throw new ArgumentOutOfRangeException(nameof(ordinal));
+            ArgumentOutOfRangeException.ThrowIfNegative(ordinal);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(ordinal, StorageStreams.Count);
             ArchiveStorageStream entry = StorageStreams[ordinal];
             _limits.CheckEntry(entry.Length);
             ArchiveLimits.Check(entry.Length, Math.Min(_limits.Entry, int.MaxValue), "MaxEntryBytes");

@@ -7,7 +7,7 @@ namespace OfficeIMO.ContentSafety;
 internal static class OfficeContentSafetyProvenanceOptions {
     internal static OfficeProvenanceRemovalOptions CreateSignatureRemovalOptions(
         OfficeContentCleanupOptions cleanupOptions) {
-        if (cleanupOptions == null) throw new ArgumentNullException(nameof(cleanupOptions));
+        ArgumentNullException.ThrowIfNull(cleanupOptions);
         var provenanceOptions = new OfficeProvenanceRemovalOptions {
             SignatureMutationPolicy = cleanupOptions.SignatureMutationPolicy,
             MaxOutputBytes = cleanupOptions.Inspection.MaxInputBytes

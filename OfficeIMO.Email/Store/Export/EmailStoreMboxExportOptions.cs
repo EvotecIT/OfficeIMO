@@ -22,7 +22,7 @@ public sealed class EmailStoreMboxExportOptions {
         bool continueOnError = true,
         int maxItems = 100_000,
         EmailMailboxWriterOptions? writerOptions = null) {
-        if (maxItems <= 0) throw new ArgumentOutOfRangeException(nameof(maxItems));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxItems);
         FolderId = string.IsNullOrWhiteSpace(folderId) ? null : folderId;
         IncludeDescendants = includeDescendants;
         IncludeAssociatedItems = includeAssociatedItems;

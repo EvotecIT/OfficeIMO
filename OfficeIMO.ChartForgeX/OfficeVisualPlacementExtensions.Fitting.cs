@@ -16,7 +16,7 @@ public static partial class OfficeVisualPlacementExtensions {
     /// <remarks>The box controls placement size. Options control conversion fidelity and proportional or stretched fitting.</remarks>
     public static PowerPointPicture AddVisualArtifact(this PowerPointSlide slide, VisualArtifact artifact,
         PowerPointLayoutBox box, out OfficeVisualConversionResult conversion, OfficeVisualConversionOptions? options = null) {
-        if (slide == null) throw new ArgumentNullException(nameof(slide));
+        ArgumentNullException.ThrowIfNull(slide);
         conversion = artifact.ToOfficeVisual(options).WithSize(box.Width.ToPoints(), box.Height.ToPoints(), options?.Fit ?? OfficeImageFit.Contain);
         return PlaceInSlideBox(slide, conversion, box);
     }
@@ -24,8 +24,8 @@ public static partial class OfficeVisualPlacementExtensions {
     /// <summary>Places a reusable conversion inside a slide layout box without rendering it again.</summary>
     public static PowerPointPicture AddVisualArtifact(this PowerPointSlide slide, OfficeVisualConversionResult conversion,
         PowerPointLayoutBox box, OfficeImageFit fit = OfficeImageFit.Contain) {
-        if (slide == null) throw new ArgumentNullException(nameof(slide));
-        if (conversion == null) throw new ArgumentNullException(nameof(conversion));
+        ArgumentNullException.ThrowIfNull(slide);
+        ArgumentNullException.ThrowIfNull(conversion);
         var fitted = conversion.WithSize(box.Width.ToPoints(), box.Height.ToPoints(), fit);
         return PlaceInSlideBox(slide, fitted, box);
     }
@@ -38,7 +38,7 @@ public static partial class OfficeVisualPlacementExtensions {
     /// <remarks>Range dimensions control placement size. Options control conversion fidelity and proportional or stretched fitting.</remarks>
     public static ExcelImage AddVisualArtifact(this ExcelSheet sheet, string range, VisualArtifact artifact,
         out OfficeVisualConversionResult conversion, OfficeVisualConversionOptions? options = null) {
-        if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+        ArgumentNullException.ThrowIfNull(sheet);
         var bounds = sheet.GetRangeBounds(range);
         var size = sheet.GetRangeSize(range);
         conversion = artifact.ToOfficeVisual(options).WithSize(size.Width.ToPoints(),
@@ -49,8 +49,8 @@ public static partial class OfficeVisualPlacementExtensions {
     /// <summary>Places a reusable conversion inside a worksheet range without rendering it again.</summary>
     public static ExcelImage AddVisualArtifact(this ExcelSheet sheet, string range, OfficeVisualConversionResult conversion,
         OfficeImageFit fit = OfficeImageFit.Contain) {
-        if (sheet == null) throw new ArgumentNullException(nameof(sheet));
-        if (conversion == null) throw new ArgumentNullException(nameof(conversion));
+        ArgumentNullException.ThrowIfNull(sheet);
+        ArgumentNullException.ThrowIfNull(conversion);
         var bounds = sheet.GetRangeBounds(range);
         var size = sheet.GetRangeSize(range);
         var fitted = conversion.WithSize(size.Width.ToPoints(), size.Height.ToPoints(), fit);

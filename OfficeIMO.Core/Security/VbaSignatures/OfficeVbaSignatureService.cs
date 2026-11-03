@@ -27,7 +27,7 @@ internal static partial class OfficeVbaSignatureService {
         string filePath,
         IOfficeSecurityProvider securityProvider,
         OfficeVbaSignatureInspectionOptions? options = null) {
-        if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
+        ArgumentNullException.ThrowIfNull(securityProvider);
         return InspectCore(filePath, securityProvider, options ?? new OfficeVbaSignatureInspectionOptions());
     }
 
@@ -36,7 +36,7 @@ internal static partial class OfficeVbaSignatureService {
         string filePath,
         IOfficeSecurityProvider securityProvider,
         OfficeVbaSignatureInspectionOptions? options = null) {
-        if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
+        ArgumentNullException.ThrowIfNull(securityProvider);
         options ??= new OfficeVbaSignatureInspectionOptions();
         OfficeVbaSignatureInfo info = Inspect(filePath, securityProvider, options);
         var findings = new List<OfficeVbaSignatureFinding>(info.Findings);
@@ -412,7 +412,7 @@ internal static partial class OfficeVbaSignatureService {
     }
 
     private static void ValidateOptions(OfficeVbaSignatureInspectionOptions options) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         options.Package.Validate();
         if (options.MaxMacroProjectBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxMacroProjectBytes));
         if (options.MaxSignatureBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxSignatureBytes));

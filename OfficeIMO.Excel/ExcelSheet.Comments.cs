@@ -293,7 +293,7 @@ namespace OfficeIMO.Excel {
         /// <param name="initials">Optional replacement author initials.</param>
         /// <returns>Number of comments updated.</returns>
         public int UpdateComments(ExcelCommentFilter filter, string text, string? author = null, string? initials = null) {
-            if (filter == null) throw new ArgumentNullException(nameof(filter));
+            ArgumentNullException.ThrowIfNull(filter);
             if (string.IsNullOrEmpty(text)) throw new ArgumentException("Comment text is required.", nameof(text));
 
             return UpdateCommentsInternal(filter, BuildCommentText(text), author, initials);
@@ -308,7 +308,7 @@ namespace OfficeIMO.Excel {
         /// <param name="initials">Optional replacement author initials.</param>
         /// <returns>Number of comments updated.</returns>
         public int UpdateCommentsRichText(ExcelCommentFilter filter, IEnumerable<ExcelRichTextRun> runs, string? author = null, string? initials = null) {
-            if (filter == null) throw new ArgumentNullException(nameof(filter));
+            ArgumentNullException.ThrowIfNull(filter);
 
             return UpdateCommentsInternal(filter, BuildCommentText(runs), author, initials);
         }
@@ -357,7 +357,7 @@ namespace OfficeIMO.Excel {
         /// <param name="filter">Author, text, and/or A1 range filter used to choose comments.</param>
         /// <returns>Number of comments removed.</returns>
         public int ClearComments(ExcelCommentFilter filter) {
-            if (filter == null) throw new ArgumentNullException(nameof(filter));
+            ArgumentNullException.ThrowIfNull(filter);
 
             int removed = 0;
             WriteLock(() => {
@@ -456,7 +456,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static IReadOnlyList<ExcelRichTextRun> NormalizeCommentRuns(IEnumerable<ExcelRichTextRun> runs) {
-            if (runs == null) throw new ArgumentNullException(nameof(runs));
+            ArgumentNullException.ThrowIfNull(runs);
             var normalized = new List<ExcelRichTextRun>();
             foreach (var run in runs) {
                 if (run == null) continue;

@@ -554,8 +554,8 @@ internal static partial class HtmlPdfRenderedConverter {
         internal OutlinedTextBudget(
             int maximumCharactersPerRun,
             int maximumPathCommands) {
-            if (maximumCharactersPerRun <= 0) throw new ArgumentOutOfRangeException(nameof(maximumCharactersPerRun));
-            if (maximumPathCommands <= 0) throw new ArgumentOutOfRangeException(nameof(maximumPathCommands));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumCharactersPerRun);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumPathCommands);
             MaximumCharactersPerRun = maximumCharactersPerRun;
             _remainingPathCommands = maximumPathCommands;
             CffOperationBudget = new OfficeCffOperationBudget();

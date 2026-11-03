@@ -102,10 +102,10 @@ public sealed class PdfReviewComparisonOptions {
         if (PageAlignment.RenderScale != Visual.Scale || !PageAlignment.Background.Equals(Visual.Background)) {
             throw new ArgumentException("Page alignment and visual comparison must use the same render scale and background.");
         }
-        if (MaxChangedPagePairs <= 0) throw new ArgumentOutOfRangeException(nameof(MaxChangedPagePairs));
-        if (MaxAlignedPagePairs <= 0) throw new ArgumentOutOfRangeException(nameof(MaxAlignedPagePairs));
-        if (MaxTextBlocksPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTextBlocksPerPage));
-        if (MaxImagePlacementsPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxImagePlacementsPerPage));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxChangedPagePairs);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxAlignedPagePairs);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxTextBlocksPerPage);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxImagePlacementsPerPage);
     }
 }
 

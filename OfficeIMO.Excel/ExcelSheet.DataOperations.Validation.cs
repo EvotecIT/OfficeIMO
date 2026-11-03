@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void ValidationList(string a1Range, IEnumerable<string> items, bool allowBlank = true) {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
-            if (items == null) throw new ArgumentNullException(nameof(items));
+            ArgumentNullException.ThrowIfNull(items);
 
             string formula = BuildInlineValidationListFormula(items);
 

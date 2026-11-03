@@ -14,9 +14,7 @@ namespace OfficeIMO.Excel {
         /// Imports selected or all worksheets from another workbook into this workbook.
         /// </summary>
         public ExcelWorkbookMergeResult MergeWorkbookFrom(ExcelDocument sourceDocument, ExcelWorkbookMergeOptions? options = null) {
-            if (sourceDocument == null) {
-                throw new ArgumentNullException(nameof(sourceDocument));
-            }
+            ArgumentNullException.ThrowIfNull(sourceDocument);
 
             options ??= new ExcelWorkbookMergeOptions();
             if (options.MaxDefinedNames <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDefinedNames));

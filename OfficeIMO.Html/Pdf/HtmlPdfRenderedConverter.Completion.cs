@@ -8,7 +8,7 @@ internal static partial class HtmlPdfRenderedConverter {
     // Keep serialization and publication in the same deadline as layout and resource resolution.
     internal static T Complete<T>(HtmlConversionDocument document, HtmlToPdfOptions options,
         CancellationToken cancellationToken, Func<HtmlPdfRenderResult, CancellationToken, T> complete) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
             options, HtmlRenderEncoder.Pdf, HtmlRenderPageSet.All(), forcePrintPaged: true);
@@ -20,7 +20,7 @@ internal static partial class HtmlPdfRenderedConverter {
 
     internal static async Task<T> CompleteAsync<T>(HtmlConversionDocument document, HtmlToPdfOptions options,
         CancellationToken cancellationToken, Func<HtmlPdfRenderResult, CancellationToken, Task<T>> complete) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
             options, HtmlRenderEncoder.Pdf, HtmlRenderPageSet.All(), forcePrintPaged: true);

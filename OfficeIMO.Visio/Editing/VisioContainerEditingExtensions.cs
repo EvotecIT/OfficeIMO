@@ -75,9 +75,7 @@ namespace OfficeIMO.Visio {
         /// <param name="configure">Option callback.</param>
         /// <param name="refit">Whether the container should be refit around current members after metadata is applied.</param>
         public static VisioShape ConfigureContainer(this VisioPage page, VisioShape container, Action<VisioContainerOptions> configure, bool refit = false) {
-            if (configure == null) {
-                throw new ArgumentNullException(nameof(configure));
-            }
+            ArgumentNullException.ThrowIfNull(configure);
 
             VisioContainerOptions options = page.GetContainerOptions(container);
             configure(options);
@@ -122,7 +120,7 @@ namespace OfficeIMO.Visio {
         public static VisioShape AddNestedContainer(this VisioPage page,
             VisioShape parent, VisioShape child, bool resizeToFit = true,
             VisioContainerOptions? resizeOptions = null) {
-            if (child == null) throw new ArgumentNullException(nameof(child));
+            ArgumentNullException.ThrowIfNull(child);
             if (!child.IsContainer) throw new ArgumentException("The nested member must be a Visio-native container.", nameof(child));
             return page.AddToContainer(parent, child, resizeToFit, resizeOptions);
         }
@@ -131,9 +129,7 @@ namespace OfficeIMO.Visio {
         /// Adds one member shape to a Visio-native container and optionally resizes the container around all current members.
         /// </summary>
         public static VisioShape AddToContainer(this VisioPage page, VisioShape container, VisioShape member, bool resizeToFit = true, VisioContainerOptions? resizeOptions = null) {
-            if (member == null) {
-                throw new ArgumentNullException(nameof(member));
-            }
+            ArgumentNullException.ThrowIfNull(member);
 
             return page.AddToContainer(container, new[] { member }, resizeToFit, resizeOptions);
         }
@@ -163,9 +159,7 @@ namespace OfficeIMO.Visio {
         /// Removes one member shape from a Visio-native container and optionally resizes the container around remaining members.
         /// </summary>
         public static VisioShape RemoveFromContainer(this VisioPage page, VisioShape container, VisioShape member, bool resizeToFit = true, VisioContainerOptions? resizeOptions = null) {
-            if (member == null) {
-                throw new ArgumentNullException(nameof(member));
-            }
+            ArgumentNullException.ThrowIfNull(member);
 
             return page.RemoveFromContainer(container, new[] { member }, resizeToFit, resizeOptions);
         }
@@ -247,13 +241,9 @@ namespace OfficeIMO.Visio {
         }
 
         private static void ValidatePageAndContainer(VisioPage page, VisioShape container) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
-            if (container == null) {
-                throw new ArgumentNullException(nameof(container));
-            }
+            ArgumentNullException.ThrowIfNull(container);
 
             if (!container.IsContainer) {
                 throw new ArgumentException("The shape is not marked as a Visio-native container.", nameof(container));
@@ -265,9 +255,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static List<VisioShape> ValidateMembers(VisioPage page, VisioShape container, IEnumerable<VisioShape> members) {
-            if (members == null) {
-                throw new ArgumentNullException(nameof(members));
-            }
+            ArgumentNullException.ThrowIfNull(members);
 
             List<VisioShape> memberList = members.Where(member => member != null).Distinct().ToList();
             if (memberList.Count == 0) {
@@ -340,9 +328,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static VisioPage RequireOwnerPage(VisioShapeSelection selection) {
-            if (selection == null) {
-                throw new ArgumentNullException(nameof(selection));
-            }
+            ArgumentNullException.ThrowIfNull(selection);
 
             return selection.OwnerPage ?? throw new InvalidOperationException("The selection must be created from a VisioPage query before it can edit container membership.");
         }

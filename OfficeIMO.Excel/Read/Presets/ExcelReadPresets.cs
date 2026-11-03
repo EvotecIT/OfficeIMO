@@ -37,7 +37,7 @@ namespace OfficeIMO.Excel {
         /// Applies the same converters as returned by <see cref="Simple"/> to an existing options instance.
         /// </summary>
         public static void ApplyBasicConverters(ExcelReaderOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
 
             options.CellValueConverter = ctx => {
                 var s = ctx.RawText?.Trim();

@@ -28,7 +28,7 @@ internal sealed partial class OfficeAv1PartitionContext {
     /// <summary>Reads one square partition node. Leaf mode/coefficient syntax is decoded separately before recording it.</summary>
     internal OfficeAv1PartitionLayout Read(OfficeAv1SymbolReader symbols, int row, int col, int pixels) {
         _cancellation.ThrowIfCancellationRequested();
-        if (symbols == null) throw new ArgumentNullException(nameof(symbols));
+        ArgumentNullException.ThrowIfNull(symbols);
         ValidateBlock(row, col, pixels, pixels);
         OfficeAv1Partition kind;
         int units = pixels / 4, half = units / 2;

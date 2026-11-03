@@ -6,7 +6,7 @@ namespace OfficeIMO.Publisher.Pdf;
 public static class PublisherPdfConversionExtensions {
     /// <summary>Converts document pages in publication order, carrying source recovery losses into the PDF result.</summary>
     public static PdfDocumentConversionResult ToPdfDocumentResult(this PublisherDocument document, PdfCreateOptions? options = null, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         var report = new PdfConversionReport();
         PdfCreateOptions operation = options?.Clone() ?? new PdfCreateOptions();

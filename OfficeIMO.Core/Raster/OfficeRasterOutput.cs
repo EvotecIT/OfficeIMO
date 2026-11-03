@@ -5,7 +5,7 @@ namespace OfficeIMO.Drawing;
 
 internal static class OfficeRasterOutput {
     internal static void EnsureWritable(Stream destination) {
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(destination);
         if (!destination.CanWrite) throw new ArgumentException("The destination stream must be writable.", nameof(destination));
     }
 
@@ -98,7 +98,7 @@ internal static class OfficeRasterOutput {
     }
 
     private static long RequiredLength(MemoryStream stream, long encodedBytes) {
-        if (encodedBytes < 0L) throw new ArgumentOutOfRangeException(nameof(encodedBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(encodedBytes, 0L);
         if (encodedBytes > int.MaxValue - stream.Position) {
             throw new ArgumentException("Image encoding exceeds MemoryStream capacity limits.", nameof(stream));
         }

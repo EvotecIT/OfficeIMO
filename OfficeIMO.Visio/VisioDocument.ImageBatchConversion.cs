@@ -55,7 +55,7 @@ public static partial class VisioImageExportExtensions {
 
     private static OfficeImageExportBatchOperation<VisioImageExportOptions> CreateVisioDocumentImageBatchOperation(
         VisioDocument document, VisioImageExportOptions options) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return new OfficeImageExportBatchOperation<VisioImageExportOptions>(options, options.Format, options.FileConflictPolicy,
             (encoding, effective) => document.ExportImages(encoding, effective),
             exportEach: (encoding, effective, consumer, token) => document.ExportImages(encoding, consumer, effective, token));

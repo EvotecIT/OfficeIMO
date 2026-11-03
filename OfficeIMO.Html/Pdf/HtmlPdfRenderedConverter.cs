@@ -118,8 +118,8 @@ internal static partial class HtmlPdfRenderedConverter {
 
     private static PreparedPdfRequest PrepareRequest(HtmlRenderRequest request, HtmlToPdfOptions options,
         bool allowNonPdfEncoder = false, bool preserveHtmlResourcePolicy = false) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(options);
         if (request.Encoder != HtmlRenderEncoder.Pdf && !allowNonPdfEncoder) {
             throw new ArgumentException("HTML-to-PDF conversion requires the Pdf render encoder.", nameof(request));
         }

@@ -14,7 +14,7 @@ public static partial class OfficeRasterResampler {
 
     internal static OfficeRasterImage TransformMapped(OfficeRasterImage source, Func<OfficePoint, OfficePoint> destinationToSource,
         int width, int height, OfficeColor? background, CancellationToken cancellationToken) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         OfficeRasterGuards.EnsureOutputPixels(width, height, "Transformed raster exceeds the managed image limit.");
         EnsureSimpleWorkingSet(source, width, height, retainedManagedBytes: 0L);
         OfficeColor fill = background ?? OfficeColor.White;

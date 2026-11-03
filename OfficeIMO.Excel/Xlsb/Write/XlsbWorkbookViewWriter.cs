@@ -10,9 +10,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private const int BrtBookView = 158;
 
         internal static void Write(Stream output, BookViews? views, int sheetCount) {
-            if (output == null) throw new ArgumentNullException(nameof(output));
+            ArgumentNullException.ThrowIfNull(output);
             if (views == null) return;
-            if (sheetCount <= 0) throw new ArgumentOutOfRangeException(nameof(sheetCount));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sheetCount);
             EnsureOnlyAttributes(views);
             WorkbookView[] workbookViews = views.Elements<WorkbookView>().ToArray();
             if (workbookViews.Length != views.ChildElements.Count || workbookViews.Length == 0) {

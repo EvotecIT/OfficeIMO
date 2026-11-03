@@ -49,7 +49,7 @@ public sealed partial class OdsSheet {
     }
 
     internal IReadOnlyList<OdsChart> GetCharts(int maximumFrames, out bool truncated) {
-        if (maximumFrames < 1) throw new ArgumentOutOfRangeException(nameof(maximumFrames));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumFrames, 1);
         var charts = new List<OdsChart>();
         var parsedParts = new Dictionary<string, OdsChart?>(StringComparer.Ordinal);
         int frames = 0;
@@ -183,8 +183,8 @@ public sealed partial class OdsSheet {
 
     /// <summary>Gets an editable zero-based cell, splitting only the containing row and cell runs.</summary>
     public OdsCell Cell(long row, long column) {
-        if (row < 0) throw new ArgumentOutOfRangeException(nameof(row));
-        if (column < 0) throw new ArgumentOutOfRangeException(nameof(column));
+        ArgumentOutOfRangeException.ThrowIfNegative(row);
+        ArgumentOutOfRangeException.ThrowIfNegative(column);
         XElement rowElement = GetRowForEdit(row);
         XElement cellElement = GetCellForEdit(rowElement, column);
         return new OdsCell(_document, cellElement,
@@ -193,13 +193,13 @@ public sealed partial class OdsSheet {
 
     /// <summary>Gets an editable zero-based row, splitting its repeat run without expanding it.</summary>
     public OdsRow Row(long row) {
-        if (row < 0) throw new ArgumentOutOfRangeException(nameof(row));
+        ArgumentOutOfRangeException.ThrowIfNegative(row);
         return new OdsRow(_document, GetRowForEdit(row));
     }
 
     /// <summary>Gets an editable zero-based column definition, creating a sparse definition when needed.</summary>
     public OdsColumn Column(long column) {
-        if (column < 0) throw new ArgumentOutOfRangeException(nameof(column));
+        ArgumentOutOfRangeException.ThrowIfNegative(column);
         long start = 0;
         foreach (XElement element in ColumnElements().ToList()) {
             long count = OdsRepeatModel.Read(element, OdfNamespaces.Table + "number-columns-repeated");
@@ -225,16 +225,16 @@ public sealed partial class OdsSheet {
 
     /// <summary>Reads a value without splitting or expanding repeat runs.</summary>
     public OdsCellValue GetValue(long row, long column) {
-        if (row < 0) throw new ArgumentOutOfRangeException(nameof(row));
-        if (column < 0) throw new ArgumentOutOfRangeException(nameof(column));
+        ArgumentOutOfRangeException.ThrowIfNegative(row);
+        ArgumentOutOfRangeException.ThrowIfNegative(column);
         XElement? cell = FindPrototypeCell(row, column);
         return cell == null ? OdsCellValue.Empty : OdsCell.ReadValue(cell);
     }
 
     /// <summary>Reads a formula without splitting or expanding repeat runs.</summary>
     public string? GetFormula(long row, long column) {
-        if (row < 0) throw new ArgumentOutOfRangeException(nameof(row));
-        if (column < 0) throw new ArgumentOutOfRangeException(nameof(column));
+        ArgumentOutOfRangeException.ThrowIfNegative(row);
+        ArgumentOutOfRangeException.ThrowIfNegative(column);
         XElement? cell = FindPrototypeCell(row, column);
         return (string?)cell?.Attribute(OdfNamespaces.Table + "formula");
     }
@@ -246,11 +246,11 @@ public sealed partial class OdsSheet {
 
     /// <summary>Merges a rectangular cell range under an explicit materialization bound.</summary>
     public OdsCell Merge(long row, long column, long rowSpan, long columnSpan, long maximumMaterializedCells) {
-        if (row < 0) throw new ArgumentOutOfRangeException(nameof(row));
-        if (column < 0) throw new ArgumentOutOfRangeException(nameof(column));
-        if (rowSpan < 1) throw new ArgumentOutOfRangeException(nameof(rowSpan));
-        if (columnSpan < 1) throw new ArgumentOutOfRangeException(nameof(columnSpan));
-        if (maximumMaterializedCells < 1) throw new ArgumentOutOfRangeException(nameof(maximumMaterializedCells));
+        ArgumentOutOfRangeException.ThrowIfNegative(row);
+        ArgumentOutOfRangeException.ThrowIfNegative(column);
+        ArgumentOutOfRangeException.ThrowIfLessThan(rowSpan, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(columnSpan, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumMaterializedCells, 1);
         long mergeCells;
         try {
             mergeCells = checked(rowSpan * columnSpan);

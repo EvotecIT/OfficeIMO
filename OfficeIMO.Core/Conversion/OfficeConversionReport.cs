@@ -17,7 +17,7 @@ public sealed class OfficeConversionReport : IOfficeConversionReport {
         TimeSpan elapsed = default, IEnumerable<OfficeDiagnostic>? diagnostics = null) {
         if (string.IsNullOrWhiteSpace(source)) throw new ArgumentException("A source is required.", nameof(source));
         if (string.IsNullOrWhiteSpace(target)) throw new ArgumentException("A target is required.", nameof(target));
-        if (itemsWritten < 0) throw new ArgumentOutOfRangeException(nameof(itemsWritten));
+        ArgumentOutOfRangeException.ThrowIfNegative(itemsWritten);
         if (elapsed < TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(elapsed));
         var snapshot = diagnostics == null ? new List<OfficeDiagnostic>() : new List<OfficeDiagnostic>(diagnostics);
         if (snapshot.Any(d => d == null)) throw new ArgumentException("Diagnostics cannot contain null entries.", nameof(diagnostics));

@@ -20,9 +20,7 @@ public sealed class ReaderIWorkOptions {
         if (MaximumTableColumns < 1 || MaximumTableColumns > 16_384) {
             throw new ArgumentOutOfRangeException(nameof(MaximumTableColumns));
         }
-        if (MaximumProjectedTableCells < 1) {
-            throw new ArgumentOutOfRangeException(nameof(MaximumProjectedTableCells));
-        }
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumProjectedTableCells, 1);
         return new ReaderIWorkOptions {
             ReadOptions = ReadOptions?.Clone(),
             MaximumTableColumns = MaximumTableColumns,

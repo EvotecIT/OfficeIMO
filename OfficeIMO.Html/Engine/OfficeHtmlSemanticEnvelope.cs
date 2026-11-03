@@ -30,7 +30,7 @@ public static class OfficeHtmlSemanticEnvelope {
 
     /// <summary>Appends canonical source, profile, and schema attributes to an open start tag.</summary>
     public static void AppendRootAttributes(StringBuilder builder, string source, string profile) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         if (string.IsNullOrWhiteSpace(source)) throw new ArgumentException("Semantic source cannot be empty.", nameof(source));
         if (string.IsNullOrWhiteSpace(profile)) throw new ArgumentException("Semantic profile cannot be empty.", nameof(profile));
         builder.Append(" data-officeimo-source=\"")
@@ -58,7 +58,7 @@ public static class OfficeHtmlSemanticEnvelope {
         Inspect(NativeDomBridge.GetNativeDocument(document), expectedSource);
 
     internal static OfficeHtmlSemanticEnvelopeInfo Inspect(IHtmlDocument document, string expectedSource) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         if (string.IsNullOrWhiteSpace(expectedSource)) throw new ArgumentException("Expected source cannot be empty.", nameof(expectedSource));
 
         string normalizedSource = expectedSource.Trim().ToLowerInvariant();
@@ -102,8 +102,8 @@ public static class OfficeHtmlSemanticEnvelope {
         IHtmlDocument document,
         OfficeHtmlSemanticEnvelopeInfo envelope,
         string selector) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (envelope == null) throw new ArgumentNullException(nameof(envelope));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(envelope);
         if (string.IsNullOrWhiteSpace(selector)) throw new ArgumentException("A container selector is required.", nameof(selector));
 
         IElement? root = envelope.RootElement ?? document.DocumentElement;

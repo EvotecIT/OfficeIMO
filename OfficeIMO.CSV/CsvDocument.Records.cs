@@ -30,10 +30,7 @@ public sealed partial class CsvDocument
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
     internal static IEnumerable<string[]> ReadRecords(TextReader reader, CsvLoadOptions? options = null)
     {
-        if (reader == null)
-        {
-            throw new ArgumentNullException(nameof(reader));
-        }
+        ArgumentNullException.ThrowIfNull(reader);
 
         options = CreateRawRecordOptions(options);
         if (options.DetectDelimiter)
@@ -59,10 +56,7 @@ public sealed partial class CsvDocument
             throw new ArgumentException("File path cannot be empty.", nameof(path));
         }
 
-        if (recordAction == null)
-        {
-            throw new ArgumentNullException(nameof(recordAction));
-        }
+        ArgumentNullException.ThrowIfNull(recordAction);
 
         options = CreateRawRecordOptions(options);
         var readerFactory = () => CsvFile.OpenTextReader(path, options, FileBufferSize);
@@ -79,15 +73,9 @@ public sealed partial class CsvDocument
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
     internal static void ReadRecordsReusable(TextReader reader, Action<IReadOnlyList<string>> recordAction, CsvLoadOptions? options = null)
     {
-        if (reader == null)
-        {
-            throw new ArgumentNullException(nameof(reader));
-        }
+        ArgumentNullException.ThrowIfNull(reader);
 
-        if (recordAction == null)
-        {
-            throw new ArgumentNullException(nameof(recordAction));
-        }
+        ArgumentNullException.ThrowIfNull(recordAction);
 
         options = CreateRawRecordOptions(options);
         if (options.DetectDelimiter)

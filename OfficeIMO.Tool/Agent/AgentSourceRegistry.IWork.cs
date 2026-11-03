@@ -37,7 +37,7 @@ internal sealed partial class AgentSourceRegistry {
         DateTime capturedLastWriteUtc, CancellationToken token, long maximumPackageBytes, long? capturedLengthBytes) {
         if (!IsIWorkPackagePath(path) || contentHash.Length != 64 || !contentHash.All(Uri.IsHexDigit))
             throw new ArgumentException("A captured iWork source SHA-256 is required.");
-        if (maximumPackageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumPackageBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumPackageBytes);
         // Path was authorized before capture. Do not resolve it again here: a failed
         // workflow may have observed a replaced, moved or revoked source root.
         string hash = CreateHash(path, directoryPackage, capturedLengthBytes, capturedLastWriteUtc, token, null, contentHash.ToLowerInvariant());

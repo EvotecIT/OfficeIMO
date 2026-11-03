@@ -31,9 +31,7 @@ internal static class OfficeHtmlResourceResolver {
         if (string.IsNullOrWhiteSpace(inputPath)) {
             throw new ArgumentException("Input path cannot be empty.", nameof(inputPath));
         }
-        if (maximumResourceBytes < 0L) {
-            throw new ArgumentOutOfRangeException(nameof(maximumResourceBytes));
-        }
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumResourceBytes, 0L);
 
         string sourceDirectory = Path.GetDirectoryName(Path.GetFullPath(inputPath))
             ?? throw new ArgumentException("HTML input path must have a parent directory.", nameof(inputPath));

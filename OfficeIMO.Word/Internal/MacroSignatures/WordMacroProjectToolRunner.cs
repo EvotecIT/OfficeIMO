@@ -76,11 +76,11 @@ namespace OfficeIMO.Word {
 
         public WordMacroProjectToolResult Run(WordMacroProjectToolInvocation invocation, TimeSpan timeout,
             int maxOutputCharacters) {
-            if (invocation == null) throw new ArgumentNullException(nameof(invocation));
+            ArgumentNullException.ThrowIfNull(invocation);
             if (timeout <= TimeSpan.Zero || timeout.TotalMilliseconds > int.MaxValue) {
                 throw new ArgumentOutOfRangeException(nameof(timeout));
             }
-            if (maxOutputCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(maxOutputCharacters));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxOutputCharacters);
 
             var startInfo = new ProcessStartInfo {
                 FileName = invocation.ExecutablePath,

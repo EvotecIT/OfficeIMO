@@ -22,9 +22,7 @@ public static class OfficeImageFileWriter {
     /// <param name="cancellationToken">Cancels staging and prevents publication when observed before commit.</param>
     /// <exception cref="ArgumentNullException">The supplied byte array is null.</exception>
     public static void WriteAllBytes(string path, byte[] encodedImage, CancellationToken cancellationToken = default) {
-        if (encodedImage == null) {
-            throw new ArgumentNullException(nameof(encodedImage));
-        }
+        ArgumentNullException.ThrowIfNull(encodedImage);
         OfficeFileCommit.WriteAtomically(path, stream => {
             const int chunkSize = 64 * 1024;
             for (int offset = 0; offset < encodedImage.Length;) {
@@ -42,9 +40,7 @@ public static class OfficeImageFileWriter {
     /// <param name="cancellationToken">Cancels staging and prevents publication when observed before commit.</param>
     /// <exception cref="ArgumentNullException">The supplied byte array is null.</exception>
     public static Task WriteAllBytesAsync(string path, byte[] encodedImage, CancellationToken cancellationToken = default) {
-        if (encodedImage == null) {
-            throw new ArgumentNullException(nameof(encodedImage));
-        }
+        ArgumentNullException.ThrowIfNull(encodedImage);
         return OfficeFileCommit.WriteAtomicallyAsync(path, async (stream, token) => {
             const int chunkSize = 64 * 1024;
             for (int offset = 0; offset < encodedImage.Length;) {

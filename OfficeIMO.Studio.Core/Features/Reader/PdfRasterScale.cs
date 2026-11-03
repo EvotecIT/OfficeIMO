@@ -28,7 +28,7 @@ internal static class PdfRasterScale {
         if (!double.IsFinite(displayUnitsPerDrawingUnit) || displayUnitsPerDrawingUnit <= 0D) {
             throw new ArgumentOutOfRangeException(nameof(displayUnitsPerDrawingUnit));
         }
-        if (maximumPixels <= 0) throw new ArgumentOutOfRangeException(nameof(maximumPixels));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumPixels);
 
         int desired = ToPercent(displayUnitsPerDrawingUnit * NormalizeRenderScaling(renderScaling));
         return Math.Min(desired, GetBudgetPercent(unitWidth, unitHeight, maximumPixels)) / 100D;

@@ -50,7 +50,7 @@ public static partial class OfficeRasterImageEncoder {
         OfficeRasterEncodingOptions? options,
         OfficeImageExportEncodingBudget budget,
         CancellationToken cancellationToken) {
-        if (budget == null) throw new ArgumentNullException(nameof(budget));
+        ArgumentNullException.ThrowIfNull(budget);
         using var guarded = new OfficeImageExportEncodingStream(destination, budget, cancellationToken);
         EncodeToCore(image, format, guarded, options, cancellationToken, checkpointObserver: null);
         cancellationToken.ThrowIfCancellationRequested();
@@ -64,7 +64,7 @@ public static partial class OfficeRasterImageEncoder {
         long maximumEncodedBytes,
         CancellationToken cancellationToken,
         Action<OfficeRasterEncodingCheckpoint> checkpointObserver) {
-        if (checkpointObserver == null) throw new ArgumentNullException(nameof(checkpointObserver));
+        ArgumentNullException.ThrowIfNull(checkpointObserver);
         var budget = new OfficeImageExportEncodingBudget(maximumEncodedBytes);
         using var guarded = new OfficeImageExportEncodingStream(destination, budget, cancellationToken);
         EncodeToCore(image, format, guarded, options, cancellationToken, checkpointObserver);
@@ -78,7 +78,7 @@ public static partial class OfficeRasterImageEncoder {
         OfficeRasterEncodingOptions? options,
         CancellationToken cancellationToken,
         Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
-        if (image == null) throw new ArgumentNullException(nameof(image));
+        ArgumentNullException.ThrowIfNull(image);
         OfficeRasterOutput.EnsureWritable(destination);
         cancellationToken.ThrowIfCancellationRequested();
         OfficeRasterEncodingOptions effective =
@@ -147,7 +147,7 @@ public static partial class OfficeRasterImageEncoder {
         OfficeImageExportFormat format,
         IBufferWriter<byte> destination,
         OfficeRasterEncodingOptions? options = null) {
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(destination);
         using var stream = new OfficeBufferWriterStream(destination);
         EncodeTo(image, format, stream, options);
     }

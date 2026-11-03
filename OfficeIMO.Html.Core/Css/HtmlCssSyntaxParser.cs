@@ -25,7 +25,7 @@ public static class HtmlCssSyntaxParser {
     }
 
     private static ParseResult Parse(string source, HtmlCssSyntaxOptions? options, CancellationToken cancellationToken, bool topLevel) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         HtmlCssSyntaxOptions effective = (options ?? new HtmlCssSyntaxOptions()).Clone();
         effective.Validate();
         cancellationToken.ThrowIfCancellationRequested();

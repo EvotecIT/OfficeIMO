@@ -5,7 +5,7 @@ public static class EmailShareCopy {
     /// <summary>Copies only explicitly selected metadata and attachments, with a plain-text body and omission evidence.</summary>
     public static EmailShareCopyResult Create(EmailDocument source, EmailShareCopyOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         var effective = options ?? new EmailShareCopyOptions();
         Validate(effective);
         cancellationToken.ThrowIfCancellationRequested();

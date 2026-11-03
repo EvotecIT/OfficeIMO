@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel {
         /// Gets a reader by sheet index (1-based, Excel display order).
         /// </summary>
         public ExcelSheetReader GetSheet(int index) {
-            if (index < 1) throw new ArgumentOutOfRangeException(nameof(index));
+            ArgumentOutOfRangeException.ThrowIfLessThan(index, 1);
             if (TryGetSheetByIndexXmlFast(index, out string fastSheetName, out WorksheetPart fastWorksheetPart)) {
                 return new ExcelSheetReader(fastSheetName, fastWorksheetPart, _sst, _styles, _opt, _dateSystem, _canStreamWorksheetParts, _partBufferReader);
             }

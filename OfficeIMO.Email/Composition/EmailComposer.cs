@@ -16,9 +16,9 @@ public static class EmailComposer {
 
     private static EmailCompositionResult Compose(EmailDocument original, EmailAddress from, string text,
         bool replyAll, bool forward, EmailCompositionOptions? options) {
-        if (original == null) throw new ArgumentNullException(nameof(original));
-        if (from == null) throw new ArgumentNullException(nameof(from));
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(original);
+        ArgumentNullException.ThrowIfNull(from);
+        ArgumentNullException.ThrowIfNull(text);
         var effective = options ?? new EmailCompositionOptions();
         if (effective.MaxQuoteChars < 0) throw new ArgumentOutOfRangeException(nameof(options), "MaxQuoteChars must be non-negative.");
         if (effective.MaxReferences < 1 || effective.MaxReferences > 1000) throw new ArgumentOutOfRangeException(nameof(options), "MaxReferences must be from 1 to 1000.");

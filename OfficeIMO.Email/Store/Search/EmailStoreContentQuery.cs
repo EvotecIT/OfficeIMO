@@ -35,7 +35,7 @@ public sealed class EmailStoreContentQuery {
         int progressInterval = 100,
         bool continueOnItemError = true,
         EmailStoreContentSearchCheckpoint? resumeFrom = null) {
-        if (terms == null) throw new ArgumentNullException(nameof(terms));
+        ArgumentNullException.ThrowIfNull(terms);
         const EmailStoreContentSearchFields known = EmailStoreContentSearchFields.All;
         if (fields == EmailStoreContentSearchFields.None || (fields & ~known) != 0) {
             throw new ArgumentOutOfRangeException(nameof(fields));
@@ -43,16 +43,12 @@ public sealed class EmailStoreContentQuery {
         if (!Enum.IsDefined(typeof(EmailStoreContentMatchMode), matchMode)) {
             throw new ArgumentOutOfRangeException(nameof(matchMode));
         }
-        if (maxItemsScanned <= 0) throw new ArgumentOutOfRangeException(nameof(maxItemsScanned));
-        if (maxResults <= 0) throw new ArgumentOutOfRangeException(nameof(maxResults));
-        if (maxDecodedPropertyBytesPerItem <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(maxDecodedPropertyBytesPerItem));
-        }
-        if (maxSearchableCharactersPerItem <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(maxSearchableCharactersPerItem));
-        }
-        if (snippetCharacters < 32) throw new ArgumentOutOfRangeException(nameof(snippetCharacters));
-        if (progressInterval <= 0) throw new ArgumentOutOfRangeException(nameof(progressInterval));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxItemsScanned);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxResults);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedPropertyBytesPerItem);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxSearchableCharactersPerItem);
+        ArgumentOutOfRangeException.ThrowIfLessThan(snippetCharacters, 32);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(progressInterval);
         if (bodyTextProjector != null && (string.IsNullOrWhiteSpace(bodyTextProjector.Identity) || bodyTextProjector.Identity.Length > 256))
             throw new ArgumentException("Body projection requires a stable policy identity of at most 256 characters.", nameof(bodyTextProjector));
 

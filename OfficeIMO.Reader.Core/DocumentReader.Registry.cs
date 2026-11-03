@@ -46,7 +46,7 @@ internal static partial class DocumentReaderEngine {
         GetActiveHandlerRegistry().TryResolveByKind(kind, pathInput, out handler);
 
     internal static long? ResolveInitialMaxInputBytes(string? sourceName, ReaderOptions options) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         if (options.DetectionMode == ReaderDetectionMode.PreferContent)
             return CombineMaxInputBytes(ResolvePreferContentInputLimit(sourceName, options, requireStreamInput: false), options.InputByteBudget);
         if (!TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler) ||
@@ -194,7 +194,7 @@ internal static partial class DocumentReaderEngine {
     private static void EnforceFileSize(string path, long? maxBytes) => ReaderInputLimits.EnforceFileSize(path, maxBytes);
 
     private static MemoryStream CopyToMemory(Stream stream, CancellationToken cancellationToken, long? maxInputBytes = null) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         var result = new MemoryStream();
         var buffer = new byte[64 * 1024];
         long total = 0;

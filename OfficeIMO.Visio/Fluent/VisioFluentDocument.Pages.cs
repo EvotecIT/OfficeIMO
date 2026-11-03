@@ -53,9 +53,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// <param name="page">Existing page instance.</param>
         /// <param name="configure">Configuration to apply to the page.</param>
         public VisioFluentDocument Page(VisioPage page, Action<VisioFluentPage> configure) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             if (!_document.Pages.Any(candidate => ReferenceEquals(candidate, page))) {
                 throw new InvalidOperationException("The page does not belong to this document.");
@@ -109,9 +107,7 @@ namespace OfficeIMO.Visio.Fluent {
         }
 
         private void ConfigurePage(VisioPage page, Action<VisioFluentPage> configure) {
-            if (configure == null) {
-                throw new ArgumentNullException(nameof(configure));
-            }
+            ArgumentNullException.ThrowIfNull(configure);
 
             VisioFluentPage builder = new(this, page);
             configure(builder);

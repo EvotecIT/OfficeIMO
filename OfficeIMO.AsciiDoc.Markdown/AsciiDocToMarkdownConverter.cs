@@ -6,7 +6,7 @@ internal static class AsciiDocToMarkdownConverter {
     internal static AsciiDocToMarkdownResult Convert(
         AsciiDocDocument document,
         AsciiDocToMarkdownOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         options ??= new AsciiDocToMarkdownOptions();
         if (options.MaximumBlockNestingDepth < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumBlockNestingDepth must be positive.");
         options = options.WithReferences(options.References ?? AsciiDocReferenceCatalog.Create(document, options.MaximumBlockNestingDepth));
@@ -33,8 +33,8 @@ internal static class AsciiDocToMarkdownConverter {
         AsciiDocBlock block,
         AsciiDocDocumentAttributes attributes,
         AsciiDocToMarkdownOptions? options = null) {
-        if (block == null) throw new ArgumentNullException(nameof(block));
-        if (attributes == null) throw new ArgumentNullException(nameof(attributes));
+        ArgumentNullException.ThrowIfNull(block);
+        ArgumentNullException.ThrowIfNull(attributes);
         options ??= new AsciiDocToMarkdownOptions();
         if (options.MaximumBlockNestingDepth < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumBlockNestingDepth must be positive.");
         options = options.WithReferences(options.References ?? AsciiDocReferenceCatalog.CreateForBlock(block, attributes, options.MaximumBlockNestingDepth));

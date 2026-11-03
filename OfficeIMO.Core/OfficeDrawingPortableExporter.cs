@@ -14,8 +14,8 @@ public static partial class OfficeDrawingPortableExporter {
     /// <param name="diagnostics">A stable failure code and source location, or an empty collection on success.</param>
     public static bool TryExportJson(OfficeDrawing drawing, OfficeDrawingPortableOptions options,
         out string? json, out IReadOnlyList<OfficeConversionFidelityDiagnostic> diagnostics) {
-        if (drawing == null) throw new ArgumentNullException(nameof(drawing));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(drawing);
+        ArgumentNullException.ThrowIfNull(options);
         options.Validate();
         json = null;
         try {

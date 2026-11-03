@@ -12,9 +12,7 @@ internal static class NpoiPictureWorkbookFactory {
     }
 
     internal static byte[] WriteHssfPictureWorkbook(int pictureCount) {
-        if (pictureCount <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(pictureCount));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pictureCount);
 
         using var stream = new MemoryStream();
         using var workbook = new HSSFWorkbook();

@@ -25,7 +25,7 @@ public static class OutlookRecurrenceBinary {
     public static byte[] EncodeTask(OutlookRecurrence recurrence) => Encode(recurrence, appointment: false, 1252);
 
     private static OutlookRecurrence Decode(byte[] bytes, bool appointment, int codePage) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         var recurrence = new OutlookRecurrence();
         try {
             var cursor = new Cursor(bytes);
@@ -166,7 +166,7 @@ public static class OutlookRecurrenceBinary {
     }
 
     private static byte[] Encode(OutlookRecurrence recurrence, bool appointment, int codePage) {
-        if (recurrence == null) throw new ArgumentNullException(nameof(recurrence));
+        ArgumentNullException.ThrowIfNull(recurrence);
         if (recurrence.CanPreserveRawState) return (byte[])recurrence.RawState!.Clone();
         ValidateForWrite(recurrence, appointment);
         Encoding ansi = GetEncoding(codePage);

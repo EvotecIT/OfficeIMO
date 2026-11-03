@@ -86,7 +86,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         /// Loads a legacy DOC model from a file path.
         /// </summary>
         public static LegacyDocDocument Load(string path, LegacyDocImportOptions? options = null) {
-            if (path == null) throw new ArgumentNullException(nameof(path));
+            ArgumentNullException.ThrowIfNull(path);
             options ??= new LegacyDocImportOptions();
             options.Validate();
             using FileStream stream = File.OpenRead(path);
@@ -97,7 +97,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         /// Loads a legacy DOC model from a stream.
         /// </summary>
         public static LegacyDocDocument Load(Stream stream, LegacyDocImportOptions? options = null) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             options ??= new LegacyDocImportOptions();
             options.Validate();
             return Load(OfficeStreamReader.ReadAllBytes(stream, options.MaxInputBytes), options);
@@ -107,7 +107,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         /// Loads a legacy DOC model from compound document bytes.
         /// </summary>
         private static LegacyDocDocument LoadCore(byte[] bytes, LegacyDocImportOptions? options) {
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            ArgumentNullException.ThrowIfNull(bytes);
             options ??= new LegacyDocImportOptions();
             options.Validate();
             if (bytes.Length > options.MaxInputBytes) {

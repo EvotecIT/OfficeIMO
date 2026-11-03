@@ -25,7 +25,7 @@ public sealed class ProjectFluentTasks {
     }
     /// <summary>Adds a nested summary.</summary>
     public ProjectFluentTasks Summary(string alias, string name, Action<ProjectFluentTasks> configure) {
-        if (configure == null) throw new ArgumentNullException(nameof(configure));
+        ArgumentNullException.ThrowIfNull(configure);
         var task = _builder.AddTask(_tasks, alias, name, true, null);
         configure(new ProjectFluentTasks(_builder, task.Children)); return this;
     }

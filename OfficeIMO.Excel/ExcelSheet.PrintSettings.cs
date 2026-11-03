@@ -404,9 +404,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static List<string> SplitDefinedNameParts(string text, int maximumParts, out bool exceeded) {
-            if (maximumParts <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(maximumParts));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumParts);
 
             var parts = new List<string>(Math.Min(maximumParts, 16));
             int start = 0;

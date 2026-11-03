@@ -169,9 +169,7 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(path)) {
                 throw new ArgumentException("File path cannot be empty.", nameof(path));
             }
-            if (options == null) {
-                throw new ArgumentNullException(nameof(options));
-            }
+            ArgumentNullException.ThrowIfNull(options);
 
             SharedReadOnlyFileSnapshot? snapshot = null;
             OpenXmlPackagePartBufferReader? parts = null;
@@ -203,12 +201,8 @@ namespace OfficeIMO.Excel {
         }
 
         internal static XlsxTabularWorkbook Open(byte[] bytes, ExcelReaderOptions options) {
-            if (bytes == null) {
-                throw new ArgumentNullException(nameof(bytes));
-            }
-            if (options == null) {
-                throw new ArgumentNullException(nameof(options));
-            }
+            ArgumentNullException.ThrowIfNull(bytes);
+            ArgumentNullException.ThrowIfNull(options);
             if (bytes.LongLength > options.MaxInputBytes) {
                 throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxInputBytes), options.MaxInputBytes,
                     $"Workbook input contains {bytes.LongLength} bytes, exceeding the configured limit of {options.MaxInputBytes} bytes.");

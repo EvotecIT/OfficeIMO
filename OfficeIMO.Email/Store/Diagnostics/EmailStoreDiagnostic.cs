@@ -16,7 +16,7 @@ public sealed class EmailStoreDiagnostic {
     public static EmailStoreDiagnostic FromLimit(EmailStoreLimitExceededException exception, string operation,
         string? location = null, EmailDiagnosticDisposition disposition = EmailDiagnosticDisposition.Stopped,
         string code = "EMAIL_STORE_LIMIT_EXCEEDED") {
-        if (exception == null) throw new ArgumentNullException(nameof(exception));
+        ArgumentNullException.ThrowIfNull(exception);
         return new EmailStoreDiagnostic(code, exception.Message,
             EmailStoreDiagnosticSeverity.Warning, location, operation, null, exception.LimitName,
             exception.Actual, exception.Maximum, disposition, EmailDataLossRisk.Possible,

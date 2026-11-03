@@ -16,7 +16,7 @@ public sealed partial class EpubDocument {
         OfficeContentSafetyOptions? options = null,
         EpubReadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
-        if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
+        ArgumentNullException.ThrowIfNull(packageBytes);
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         using EpubContentSafetyPackage package = LoadContentSafetyPackage(packageBytes, effective, readOptions, cancellationToken);
         return HtmlContentSafety.InspectPackagePartsAsync(
@@ -45,8 +45,8 @@ public sealed partial class EpubDocument {
         OfficeContentCleanupOptions? options = null,
         EpubReadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
-        if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
-        if (selection == null) throw new ArgumentNullException(nameof(selection));
+        ArgumentNullException.ThrowIfNull(packageBytes);
+        ArgumentNullException.ThrowIfNull(selection);
         options ??= new OfficeContentCleanupOptions();
         options.Validate();
         using EpubContentSafetyPackage package = LoadContentSafetyPackage(packageBytes, options.Inspection, readOptions, cancellationToken);

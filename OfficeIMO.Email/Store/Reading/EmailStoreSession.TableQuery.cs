@@ -6,7 +6,7 @@ public sealed partial class EmailStoreSession {
     /// </summary>
     public EmailStoreTablePage SearchPage(EmailStoreTableQuery query,
         CancellationToken cancellationToken = default) {
-        if (query == null) throw new ArgumentNullException(nameof(query));
+        ArgumentNullException.ThrowIfNull(query);
         ThrowIfDisposed();
         if (query.FolderId.HasValue) FolderCatalog.Get(query.FolderId.Value);
         string sourceFingerprint = GetDurableSourceFingerprint(cancellationToken);

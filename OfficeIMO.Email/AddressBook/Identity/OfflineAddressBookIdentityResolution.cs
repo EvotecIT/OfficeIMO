@@ -37,7 +37,7 @@ public sealed class OfflineAddressBookIdentityResolutionOptions {
         bool allowAccountNameMatch = true,
         bool allowDisplayNameMatch = false,
         int maxCandidates = 32) {
-        if (maxCandidates <= 0) throw new ArgumentOutOfRangeException(nameof(maxCandidates));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxCandidates);
         AllowAccountNameMatch = allowAccountNameMatch;
         AllowDisplayNameMatch = allowDisplayNameMatch;
         MaxCandidates = maxCandidates;

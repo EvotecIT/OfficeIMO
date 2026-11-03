@@ -16,7 +16,7 @@ public static partial class HtmlOneNoteConverterExtensions {
 
     /// <summary>Imports HTML as a OneNote section with structured diagnostics and counters.</summary>
     public static HtmlToOneNoteSectionResult ToOneNoteSectionResult(this HtmlConversionDocument document, HtmlToOneNoteOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         HtmlToOneNoteOptions resolved = options?.Clone() ?? new HtmlToOneNoteOptions();
         resolved.Limits.Validate();
         var section = new OneNoteSection { Name = CleanName(resolved.SectionName, "Imported") };
@@ -81,7 +81,7 @@ public static partial class HtmlOneNoteConverterExtensions {
 
     /// <summary>Imports HTML as a single-section OneNote notebook with structured evidence.</summary>
     public static HtmlToOneNoteNotebookResult ToOneNoteNotebookResult(this HtmlConversionDocument document, HtmlToOneNoteOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         HtmlToOneNoteOptions resolved = options?.Clone() ?? new HtmlToOneNoteOptions();
         HtmlToOneNoteSectionResult sectionResult = document.ToOneNoteSectionResult(resolved);
         var notebook = new OneNoteNotebook { Name = CleanName(resolved.NotebookName, "Imported") };

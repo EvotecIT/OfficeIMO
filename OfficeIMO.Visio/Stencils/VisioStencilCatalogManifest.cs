@@ -30,7 +30,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// Saves a stencil catalog manifest to a file.
         /// </summary>
         public static void Save(VisioStencilCatalog catalog, string path) {
-            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
+            ArgumentNullException.ThrowIfNull(catalog);
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Manifest path cannot be null or whitespace.", nameof(path));
             OfficeFileCommit.WriteAllBytes(path, ToBytes(catalog));
         }
@@ -39,7 +39,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// Saves a stencil catalog manifest to a stream.
         /// </summary>
         public static void Save(VisioStencilCatalog catalog, Stream stream) {
-            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
+            ArgumentNullException.ThrowIfNull(catalog);
             OfficeStreamWriter.WriteAllBytes(stream, ToBytes(catalog));
         }
 
@@ -48,7 +48,7 @@ namespace OfficeIMO.Visio.Stencils {
             VisioStencilCatalog catalog,
             string path,
             CancellationToken cancellationToken = default) {
-            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
+            ArgumentNullException.ThrowIfNull(catalog);
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Manifest path cannot be null or whitespace.", nameof(path));
             cancellationToken.ThrowIfCancellationRequested();
             return OfficeFileCommit.WriteAllBytesAsync(path, ToBytes(catalog), cancellationToken: cancellationToken);
@@ -59,14 +59,14 @@ namespace OfficeIMO.Visio.Stencils {
             VisioStencilCatalog catalog,
             Stream stream,
             CancellationToken cancellationToken = default) {
-            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
+            ArgumentNullException.ThrowIfNull(catalog);
             cancellationToken.ThrowIfCancellationRequested();
             return OfficeStreamWriter.WriteAllBytesAsync(stream, ToBytes(catalog), cancellationToken);
         }
 
         /// <summary>Serializes a stencil catalog manifest to bytes.</summary>
         public static byte[] ToBytes(VisioStencilCatalog catalog) {
-            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
+            ArgumentNullException.ThrowIfNull(catalog);
             using var stream = new MemoryStream();
             ToXml(catalog).Save(stream, SaveOptions.DisableFormatting);
             return stream.ToArray();
@@ -99,7 +99,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// Loads a stencil catalog manifest from a stream with explicit source-package trust options.
         /// </summary>
         public static VisioStencilCatalog Load(Stream stream, VisioStencilCatalogManifestLoadOptions? options) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
             byte[] bytes = OfficeStreamReader.ReadAllBytes(stream);
@@ -132,7 +132,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// Converts a stencil catalog to an XML manifest document.
         /// </summary>
         public static XDocument ToXml(VisioStencilCatalog catalog) {
-            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
+            ArgumentNullException.ThrowIfNull(catalog);
 
             XElement root = new(Ns + "StencilCatalog",
                 new XAttribute("Version", FormatVersion),
@@ -171,7 +171,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// Converts an XML manifest document to a stencil catalog with explicit source-package trust options.
         /// </summary>
         public static VisioStencilCatalog FromXml(XDocument document, VisioStencilCatalogManifestLoadOptions? options) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             XElement root = document.Root ?? throw new InvalidDataException("Stencil manifest does not contain a root element.");
             if (root.Name != Ns + "StencilCatalog") {
                 throw new InvalidDataException("Stencil manifest root element is not recognized.");

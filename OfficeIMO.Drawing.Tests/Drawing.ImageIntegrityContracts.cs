@@ -1436,7 +1436,7 @@ public partial class DrawingTests {
     }
 
     private static byte[] CreateRepeatedFrameApng(byte[] png, int frameCount) {
-        if (frameCount < 1) throw new ArgumentOutOfRangeException(nameof(frameCount));
+        ArgumentOutOfRangeException.ThrowIfLessThan(frameCount, 1);
         int ihdrOffset = FindPngChunk(png, "IHDR");
         int width = ReadBigEndianInt32(png, ihdrOffset + 8);
         int height = ReadBigEndianInt32(png, ihdrOffset + 12);

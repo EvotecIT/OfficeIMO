@@ -15,9 +15,7 @@ namespace OfficeIMO.PowerPoint {
             long nativeTop = (top ?? OfficeLength.Emus(0L)).ToEmus();
             long nativeWidth = (width ?? OfficeLength.Emus(914400L)).ToEmus();
             long nativeHeight = (height ?? OfficeLength.Emus(914400L)).ToEmus();
-            if (imagePath == null) {
-                throw new ArgumentNullException(nameof(imagePath));
-            }
+            ArgumentNullException.ThrowIfNull(imagePath);
 
             if (!File.Exists(imagePath)) {
                 throw new FileNotFoundException("Image file not found.", imagePath);
@@ -88,9 +86,7 @@ namespace OfficeIMO.PowerPoint {
             long nativeTop = (top ?? OfficeLength.Emus(0L)).ToEmus();
             long nativeWidth = (width ?? OfficeLength.Emus(914400L)).ToEmus();
             long nativeHeight = (height ?? OfficeLength.Emus(914400L)).ToEmus();
-            if (image == null) {
-                throw new ArgumentNullException(nameof(image));
-            }
+            ArgumentNullException.ThrowIfNull(image);
             if (!image.CanRead) {
                 throw new ArgumentException("Image stream must be readable.", nameof(image));
             }

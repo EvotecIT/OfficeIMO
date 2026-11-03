@@ -106,12 +106,12 @@ public sealed class OdpSlide {
     }
     /// <summary>Adds a bounded basic animation effect for a shape attribute.</summary>
     public OdpAnimation AddAnimation(OdpShape target, string attributeName, string from, string to, TimeSpan duration) {
-        if (target == null) throw new ArgumentNullException(nameof(target));
+        ArgumentNullException.ThrowIfNull(target);
         if (!ReferenceEquals(target.Presentation, _presentation)) throw new ArgumentException("Animation target must belong to this presentation.", nameof(target));
         if (!Element.DescendantsAndSelf().Contains(target.Element)) throw new ArgumentException("Animation target must belong to this slide.", nameof(target));
         if (string.IsNullOrWhiteSpace(attributeName)) throw new ArgumentException("Animated attribute cannot be empty.", nameof(attributeName));
-        if (from == null) throw new ArgumentNullException(nameof(from));
-        if (to == null) throw new ArgumentNullException(nameof(to));
+        ArgumentNullException.ThrowIfNull(from);
+        ArgumentNullException.ThrowIfNull(to);
         if (duration <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(duration));
         string targetId = target.EnsureXmlId();
         XElement sequence = EnsureAnimationSequence();

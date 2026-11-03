@@ -10,7 +10,7 @@ public sealed partial class RtfDocument {
 
     /// <summary>Appends an independent copy with imported resources and optional source section preservation.</summary>
     public RtfDocumentMergeResult AppendDocument(RtfDocument source, RtfDocumentMergeOptions? options) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         RtfDocument imported = source.Clone();
         bool hasDestinationContent = HasMergeSectionContent(this) || Notes.Count > 0;
         bool hasImportedContent = imported.Blocks.Count > 0 || imported.Notes.Count > 0 ||

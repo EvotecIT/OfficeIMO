@@ -13,7 +13,7 @@ namespace OfficeIMO.Word.Rtf;
 public static partial class WordRtfConverterExtensions {
     /// <summary>Converts Word to RTF and reports any structure that was flattened or omitted.</summary>
     public static RtfConversionResult<RtfDocument> ToRtfDocumentResult(this WordDocument document) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         RtfDocument converted = document.ToRtfDocument();
         var report = new RtfConversionReport();
         AddWordToRtfDiagnostics(document, report);
@@ -22,7 +22,7 @@ public static partial class WordRtfConverterExtensions {
 
     /// <summary>Converts RTF to Word and reports any structure that was flattened or omitted.</summary>
     public static RtfConversionResult<WordDocument> ToWordDocumentResult(this RtfDocument document) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         var report = new RtfConversionReport();
         WordDocument converted = ToWordDocumentCore(document, report);
         AddRtfToWordDiagnostics(document, report);
@@ -33,7 +33,7 @@ public static partial class WordRtfConverterExtensions {
     public static RtfConversionResult<WordDocument> ToWordDocumentResult(
         this RtfReadResult readResult,
         string? sourcePath = null) {
-        if (readResult == null) throw new ArgumentNullException(nameof(readResult));
+        ArgumentNullException.ThrowIfNull(readResult);
         RtfConversionResult<WordDocument> converted = readResult.Document.ToWordDocumentResult();
         var report = new RtfConversionReport();
         report.AddReadDiagnostics(readResult.Diagnostics, sourcePath);

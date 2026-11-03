@@ -13,8 +13,8 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
     public static async Task<OfficeDocumentOcrExecutionResult> ApplyOcrTreeAsync(
         this OfficeDocumentReadResult document, IOcrEngine engine,
         OfficeDocumentOcrExecutionOptions? options = null, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (engine == null) throw new ArgumentNullException(nameof(engine));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(engine);
         ExecutionOptionsSnapshot effective = ExecutionOptionsSnapshot.Create(options);
         OcrEngineExecution execution = OcrEngineRunner.CreateExecution(engine);
         var budget = new ExecutionBudget(effective);

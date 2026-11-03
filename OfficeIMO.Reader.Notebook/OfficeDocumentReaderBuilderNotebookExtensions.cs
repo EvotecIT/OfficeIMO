@@ -13,7 +13,7 @@ public static class OfficeDocumentReaderBuilderNotebookExtensions {
         this OfficeDocumentReaderBuilder builder,
         ReaderNotebookOptions? notebookOptions = null,
         bool replaceExisting = false) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderNotebookOptions registered = (notebookOptions ?? new ReaderNotebookOptions()).CloneValidated();
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,

@@ -24,8 +24,7 @@
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>
-    <EnableTrimmingPolyfills>true</EnableTrimmingPolyfills>
-  </PropertyGroup>
+    <EnableTrimmingPolyfills>true</EnableTrimmingPolyfills>  </PropertyGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="PSWriteOffice" />

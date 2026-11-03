@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel {
                 && string.IsNullOrWhiteSpace(Function)) {
                 throw new InvalidOperationException("Formula search requires Text, Reference, or Function.");
             }
-            if (MaximumResults < 1) throw new ArgumentOutOfRangeException(nameof(MaximumResults));
+            ArgumentOutOfRangeException.ThrowIfLessThan(MaximumResults, 1);
             if (!string.IsNullOrWhiteSpace(Function)
                 && Function!.Any(character => !(char.IsLetterOrDigit(character) || character == '_' || character == '.'))) {
                 throw new ArgumentException("Formula function names may contain only letters, digits, underscores, and periods.", nameof(Function));
@@ -49,7 +49,7 @@ namespace OfficeIMO.Excel {
             IEnumerable<ExcelFormulaCellInfo> formulas,
             ExcelFormulaSearchOptions options,
             IReadOnlyList<string> workbookSheetNames) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             options.Validate();
             ExcelReference? target = null;
             if (!string.IsNullOrWhiteSpace(options.Reference)) {

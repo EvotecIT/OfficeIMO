@@ -10,7 +10,7 @@ internal sealed class OfficeImageExportSavedFile {
     private readonly ReadOnlyCollection<OfficeImageExportDiagnostic> _diagnostics;
 
     internal OfficeImageExportSavedFile(OfficeImageExportResult result, string path) {
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(result);
         Path = System.IO.Path.GetFullPath(path);
         Format = result.Format;
         Width = result.Width;

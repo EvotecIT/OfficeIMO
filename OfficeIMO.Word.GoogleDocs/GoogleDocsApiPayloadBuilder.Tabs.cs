@@ -1,7 +1,7 @@
 namespace OfficeIMO.Word.GoogleDocs {
     internal static partial class GoogleDocsApiPayloadBuilder {
         internal static void ApplyTabId(GoogleDocsApiBatchUpdatePayload payload, string? tabId) {
-            if (payload == null) throw new ArgumentNullException(nameof(payload));
+            ArgumentNullException.ThrowIfNull(payload);
             if (string.IsNullOrWhiteSpace(tabId)) return;
             string selectedTabId = tabId!;
             foreach (GoogleDocsApiRequestPayload request in payload.Requests) {
@@ -30,8 +30,8 @@ namespace OfficeIMO.Word.GoogleDocs {
         internal static GoogleDocsApiBatchUpdatePayload BuildResetDocumentPayload(
             GoogleDocsApiDocumentResponse documentState,
             GoogleDocsTabOptions options) {
-            if (documentState == null) throw new ArgumentNullException(nameof(documentState));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(documentState);
+            ArgumentNullException.ThrowIfNull(options);
             if (documentState.Tabs.Count == 0) return BuildResetDocumentPayload(documentState);
 
             var payload = new GoogleDocsApiBatchUpdatePayload();

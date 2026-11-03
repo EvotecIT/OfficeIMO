@@ -18,7 +18,7 @@ namespace OfficeIMO.Word.Html {
             OpenXmlCompositeElement container,
             long maxElements,
             CancellationToken cancellationToken) {
-            if (maxElements <= 0) throw new ArgumentOutOfRangeException(nameof(maxElements));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxElements);
             var pending = new Stack<OpenXmlElement>();
             PushChildrenInDocumentOrder(container, pending);
             long visited = 0;

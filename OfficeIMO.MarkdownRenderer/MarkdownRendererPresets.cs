@@ -117,9 +117,7 @@ public static class MarkdownRendererPresets {
     /// Applies portable HTML output fallbacks so OfficeIMO-only block chrome degrades to simpler generic HTML.
     /// </summary>
     public static void ApplyPortableHtmlOutputProfile(MarkdownRendererOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         MarkdownBlockRenderBuiltInExtensions.AddPortableHtmlFallbacks(options.HtmlOptions);
     }
@@ -129,9 +127,7 @@ public static class MarkdownRendererPresets {
     /// This only affects host presentation/chrome and copy-button UX; it does not change the security profile.
     /// </summary>
     public static void ApplyChatPresentation(MarkdownRendererOptions options, bool enableCopyButtons = true) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         options.HtmlOptions.Style = MarkdownHtmlStyle.ChatAuto;
         options.HtmlOptions.CssScopeSelector = "#omdRoot article.markdown-body";

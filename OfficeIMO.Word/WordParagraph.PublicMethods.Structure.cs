@@ -183,9 +183,7 @@ namespace OfficeIMO.Word {
         }
 
         internal static void EnsureParagraphCanBeInserted(WordDocument document, OpenXmlElement anchorElement, WordParagraph candidate, string operationDescription, WordParagraph? anchorParagraph = null) {
-            if (candidate is null) {
-                throw new ArgumentNullException(nameof(candidate));
-            }
+            ArgumentNullException.ThrowIfNull(candidate);
 
             if (candidate._document != null && !ReferenceEquals(candidate._document, document)) {
                 throw new InvalidOperationException($"Cannot {operationDescription} because the supplied paragraph belongs to a different document. Clone the paragraph or create it within the target document instead.");

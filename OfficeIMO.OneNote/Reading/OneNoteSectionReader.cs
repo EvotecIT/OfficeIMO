@@ -4,7 +4,7 @@ namespace OfficeIMO.OneNote;
 public static class OneNoteSectionReader {
     /// <summary>Reads a section from a file path.</summary>
     public static OneNoteSection Read(string path, OneNoteReaderOptions? options = null) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         OneNoteRevisionStore store = OneNoteRevisionStoreReader.Read(path, options);
         OneNoteSection section = OneNoteSemanticMapper.MapSection(store, options ?? new OneNoteReaderOptions());
         section.SourcePath = Path.GetFullPath(path);

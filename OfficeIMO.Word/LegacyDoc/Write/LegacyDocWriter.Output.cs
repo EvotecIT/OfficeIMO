@@ -8,7 +8,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         internal static byte[] WriteDocument(WordDocument document, out OfficeConversionReport report,
             WordSaveOptions? options = null, bool isTemplate = false) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             var timer = System.Diagnostics.Stopwatch.StartNew();
             using var palette = new LegacyDocPaletteProjection();
             byte[] bytes = WriteDocumentCore(document, options, isTemplate);
@@ -21,7 +21,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             WordDocument document,
             WordSaveOptions? options = null,
             bool isTemplate = false) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
 
             ThrowIfUnsupportedLegacyDocImportState(document, options);
             var fieldStyles = document._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles;

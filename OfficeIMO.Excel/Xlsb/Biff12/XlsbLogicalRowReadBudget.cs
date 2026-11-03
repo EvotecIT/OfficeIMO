@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
         private int _remaining;
 
         internal XlsbLogicalRowReadBudget(int maximum) {
-            if (maximum <= 0) throw new ArgumentOutOfRangeException(nameof(maximum));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximum);
             _maximum = maximum;
             _remaining = maximum;
         }

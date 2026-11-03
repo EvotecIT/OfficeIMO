@@ -48,7 +48,7 @@ public sealed class AsciiDocInlineSequence {
 
     /// <summary>Parses standalone AsciiDoc inline source without interpreting it as block syntax.</summary>
     public static AsciiDocInlineSequence Parse(string source, AsciiDocParseOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         options ??= new AsciiDocParseOptions();
         AsciiDocParser.ValidateOptions(source, options);
         cancellationToken.ThrowIfCancellationRequested();

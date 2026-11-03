@@ -63,9 +63,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointChart SetSeriesTrendline(int seriesIndex, OfficeChartTrendlineType type,
             int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null,
             bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, OfficeLength? lineWidth = null) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             ValidateTrendline(type, order, period, forward, backward, lineColor, lineWidth);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
@@ -87,9 +85,7 @@ namespace OfficeIMO.PowerPoint {
             int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null,
             bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, OfficeLength? lineWidth = null,
             bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
             ValidateTrendline(type, order, period, forward, backward, lineColor, lineWidth);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
@@ -108,9 +104,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Removes trendlines from a chart series by index.
         /// </summary>
         public PowerPointChart ClearSeriesTrendline(int seriesIndex) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 series.RemoveAllChildren<C.Trendline>();
@@ -128,9 +122,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Removes trendlines from a chart series by name.
         /// </summary>
         public PowerPointChart ClearSeriesTrendline(string seriesName, bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 series.RemoveAllChildren<C.Trendline>();
@@ -407,9 +399,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets the fill color for a chart series by index.
         /// </summary>
         public PowerPointChart SetSeriesFillColor(int seriesIndex, string color) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             if (string.IsNullOrWhiteSpace(color)) {
                 throw new ArgumentException("Series color cannot be null or empty.", nameof(color));
             }
@@ -433,9 +423,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets the fill color for a chart series by name.
         /// </summary>
         public PowerPointChart SetSeriesFillColor(string seriesName, string color, bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
             if (string.IsNullOrWhiteSpace(color)) {
                 throw new ArgumentException("Series color cannot be null or empty.", nameof(color));
             }
@@ -459,9 +447,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets the line color for a chart series by index.
         /// </summary>
         public PowerPointChart SetSeriesLineColor(int seriesIndex, string color, OfficeLength? width = null) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             if (string.IsNullOrWhiteSpace(color)) {
                 throw new ArgumentException("Series color cannot be null or empty.", nameof(color));
             }
@@ -484,9 +470,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets the line color for a chart series by name.
         /// </summary>
         public PowerPointChart SetSeriesLineColor(string seriesName, string color, OfficeLength? width = null, bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
             if (string.IsNullOrWhiteSpace(color)) {
                 throw new ArgumentException("Series color cannot be null or empty.", nameof(color));
             }
@@ -509,9 +493,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets the marker style for a chart series by index.
         /// </summary>
         public PowerPointChart SetSeriesMarker(int seriesIndex, OfficeChartMarkerShape style, OfficeLength? size = null, string? fillColor = null, string? lineColor = null, OfficeLength? lineWidth = null) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             if (size.HasValue && (size.Value < OfficeLength.Points(1) || size.Value > OfficeLength.Points(72))) {
                 throw new ArgumentOutOfRangeException(nameof(size), "Marker size must be between 1 and 72.");
             }
@@ -538,9 +520,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets the marker style for a chart series by name.
         /// </summary>
         public PowerPointChart SetSeriesMarker(string seriesName, OfficeChartMarkerShape style, OfficeLength? size = null, string? fillColor = null, string? lineColor = null, OfficeLength? lineWidth = null, bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
             if (size.HasValue && (size.Value < OfficeLength.Points(1) || size.Value > OfficeLength.Points(72))) {
                 throw new ArgumentOutOfRangeException(nameof(size), "Marker size must be between 1 and 72.");
             }

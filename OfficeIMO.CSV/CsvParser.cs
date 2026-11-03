@@ -47,10 +47,7 @@ internal static partial class CsvParser
 
     public static void ReadRecords(TextReader reader, CsvLoadOptions options, Action<string[]> recordAction)
     {
-        if (recordAction == null)
-        {
-            throw new ArgumentNullException(nameof(recordAction));
-        }
+        ArgumentNullException.ThrowIfNull(recordAction);
 
         if (UsesTextDelimiter(options))
         {
@@ -73,10 +70,7 @@ internal static partial class CsvParser
 
     internal static void ReadRecordsWithMetadata(TextReader reader, CsvLoadOptions options, Action<CsvParsedRecord> recordAction)
     {
-        if (recordAction == null)
-        {
-            throw new ArgumentNullException(nameof(recordAction));
-        }
+        ArgumentNullException.ThrowIfNull(recordAction);
 
         var records = UsesTextDelimiter(options)
             ? ParseLineOrQuotedTextDelimiterWithMetadata(reader, options)
@@ -90,10 +84,7 @@ internal static partial class CsvParser
 
     public static void ReadRecordsReusable(TextReader reader, CsvLoadOptions options, Action<IReadOnlyList<string>> recordAction)
     {
-        if (recordAction == null)
-        {
-            throw new ArgumentNullException(nameof(recordAction));
-        }
+        ArgumentNullException.ThrowIfNull(recordAction);
 
         if (UsesTextDelimiter(options))
         {
@@ -106,10 +97,7 @@ internal static partial class CsvParser
 
     internal static void ReadRecordsReusableWithMetadata(TextReader reader, CsvLoadOptions options, Action<CsvParsedRecord> recordAction)
     {
-        if (recordAction == null)
-        {
-            throw new ArgumentNullException(nameof(recordAction));
-        }
+        ArgumentNullException.ThrowIfNull(recordAction);
 
         if (UsesTextDelimiter(options))
         {
@@ -123,10 +111,7 @@ internal static partial class CsvParser
 #if NET8_0_OR_GREATER
     internal static void ReadFieldSpans(TextReader reader, CsvLoadOptions options, int recordsToSkip, CsvFieldSpanAction fieldAction)
     {
-        if (fieldAction == null)
-        {
-            throw new ArgumentNullException(nameof(fieldAction));
-        }
+        ArgumentNullException.ThrowIfNull(fieldAction);
 
         var visitor = new CsvFieldSpanActionVisitor(fieldAction);
         ReadFieldSpans(reader, options, recordsToSkip, ref visitor);

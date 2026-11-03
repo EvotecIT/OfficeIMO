@@ -123,13 +123,9 @@ namespace OfficeIMO.Visio {
         /// <param name="catalog">Target catalog, usually <see cref="VisioStencils.Flowchart"/> or a package-backed flowchart catalog.</param>
         /// <param name="resizeToStencil">Whether upgraded shapes should use the replacement stencil default size.</param>
         public static VisioStencilMigrationMapBuilder MapBasicFlowchart(this VisioStencilMigrationMapBuilder builder, VisioStencilCatalog catalog, bool resizeToStencil = true) {
-            if (builder == null) {
-                throw new ArgumentNullException(nameof(builder));
-            }
+            ArgumentNullException.ThrowIfNull(builder);
 
-            if (catalog == null) {
-                throw new ArgumentNullException(nameof(catalog));
-            }
+            ArgumentNullException.ThrowIfNull(catalog);
 
             int mapped = 0;
             MapIfFound(builder, "Process", catalog, new[] { "process", "task", "step" }, resizeToStencil, ref mapped);
@@ -159,13 +155,9 @@ namespace OfficeIMO.Visio {
         /// <param name="catalog">Target catalog, usually <see cref="VisioStencils.Network"/>, <see cref="VisioStencils.Infrastructure"/>, or a package-backed infrastructure catalog.</param>
         /// <param name="resizeToStencil">Whether upgraded shapes should use the replacement stencil default size.</param>
         public static VisioStencilMigrationMapBuilder MapNetworkInfrastructure(this VisioStencilMigrationMapBuilder builder, VisioStencilCatalog catalog, bool resizeToStencil = true) {
-            if (builder == null) {
-                throw new ArgumentNullException(nameof(builder));
-            }
+            ArgumentNullException.ThrowIfNull(builder);
 
-            if (catalog == null) {
-                throw new ArgumentNullException(nameof(catalog));
-            }
+            ArgumentNullException.ThrowIfNull(catalog);
 
             int mapped = 0;
             MapIfFound(builder, UnstenciledIdentity("firewall", "waf", "acl"), catalog, new[] { "firewall", "network-security", "edge" }, resizeToStencil, ref mapped);
@@ -197,13 +189,9 @@ namespace OfficeIMO.Visio {
         /// <param name="catalog">Target catalog, usually <see cref="VisioStencils.Architecture"/>, <see cref="VisioStencils.Cloud"/>, or a package-backed architecture catalog.</param>
         /// <param name="resizeToStencil">Whether upgraded shapes should use the replacement stencil default size.</param>
         public static VisioStencilMigrationMapBuilder MapArchitectureInfrastructure(this VisioStencilMigrationMapBuilder builder, VisioStencilCatalog catalog, bool resizeToStencil = true) {
-            if (builder == null) {
-                throw new ArgumentNullException(nameof(builder));
-            }
+            ArgumentNullException.ThrowIfNull(builder);
 
-            if (catalog == null) {
-                throw new ArgumentNullException(nameof(catalog));
-            }
+            ArgumentNullException.ThrowIfNull(catalog);
 
             int mapped = 0;
             MapIfFound(builder, UnstenciledIdentity("gateway", "ingress", "endpoint", "api gateway", "api-gateway"), catalog, new[] { "gateway", "ingress", "endpoint" }, resizeToStencil, ref mapped);
@@ -233,13 +221,9 @@ namespace OfficeIMO.Visio {
         /// <param name="catalog">Target catalog, usually <see cref="VisioStencils.OrgChart"/> or a package-backed organization chart catalog.</param>
         /// <param name="resizeToStencil">Whether upgraded shapes should use the replacement stencil default size.</param>
         public static VisioStencilMigrationMapBuilder MapOrgChart(this VisioStencilMigrationMapBuilder builder, VisioStencilCatalog catalog, bool resizeToStencil = true) {
-            if (builder == null) {
-                throw new ArgumentNullException(nameof(builder));
-            }
+            ArgumentNullException.ThrowIfNull(builder);
 
-            if (catalog == null) {
-                throw new ArgumentNullException(nameof(catalog));
-            }
+            ArgumentNullException.ThrowIfNull(catalog);
 
             int mapped = 0;
             MapIfFound(builder, UnstenciledIdentity("executive assistant", "assistant"), catalog, new[] { "assistant", "ea", "staff" }, resizeToStencil, ref mapped);
@@ -265,13 +249,9 @@ namespace OfficeIMO.Visio {
         /// <param name="catalog">Target catalog, usually <see cref="VisioStencils.Timeline"/> or a package-backed timeline catalog.</param>
         /// <param name="resizeToStencil">Whether upgraded shapes should use the replacement stencil default size.</param>
         public static VisioStencilMigrationMapBuilder MapTimeline(this VisioStencilMigrationMapBuilder builder, VisioStencilCatalog catalog, bool resizeToStencil = true) {
-            if (builder == null) {
-                throw new ArgumentNullException(nameof(builder));
-            }
+            ArgumentNullException.ThrowIfNull(builder);
 
-            if (catalog == null) {
-                throw new ArgumentNullException(nameof(catalog));
-            }
+            ArgumentNullException.ThrowIfNull(catalog);
 
             int mapped = 0;
             MapIfFound(builder, UnstenciledIdentity("timeline axis", "roadmap axis", "schedule axis"), catalog, new[] { "axis", "timeline", "roadmap", "schedule" }, resizeToStencil, ref mapped);
@@ -297,13 +277,9 @@ namespace OfficeIMO.Visio {
         /// <param name="catalog">Target catalog, usually <see cref="VisioStencils.Sequence"/> or a package-backed sequence diagram catalog.</param>
         /// <param name="resizeToStencil">Whether upgraded shapes should use the replacement stencil default size.</param>
         public static VisioStencilMigrationMapBuilder MapSequence(this VisioStencilMigrationMapBuilder builder, VisioStencilCatalog catalog, bool resizeToStencil = true) {
-            if (builder == null) {
-                throw new ArgumentNullException(nameof(builder));
-            }
+            ArgumentNullException.ThrowIfNull(builder);
 
-            if (catalog == null) {
-                throw new ArgumentNullException(nameof(catalog));
-            }
+            ArgumentNullException.ThrowIfNull(catalog);
 
             int mapped = 0;
             MapIfFound(builder, UnstenciledIdentity("actor", "user", "person", "client"), catalog, new[] { "actor", "user", "person", "client" }, resizeToStencil, ref mapped);
@@ -331,13 +307,9 @@ namespace OfficeIMO.Visio {
         /// <param name="catalog">Target catalog, usually <see cref="VisioStencils.Swimlane"/> or a package-backed process-map catalog.</param>
         /// <param name="resizeToStencil">Whether upgraded shapes should use the replacement stencil default size.</param>
         public static VisioStencilMigrationMapBuilder MapSwimlaneProcessMap(this VisioStencilMigrationMapBuilder builder, VisioStencilCatalog catalog, bool resizeToStencil = true) {
-            if (builder == null) {
-                throw new ArgumentNullException(nameof(builder));
-            }
+            ArgumentNullException.ThrowIfNull(builder);
 
-            if (catalog == null) {
-                throw new ArgumentNullException(nameof(catalog));
-            }
+            ArgumentNullException.ThrowIfNull(catalog);
 
             int mapped = 0;
             MapIfFound(builder, UnstenciledIdentity("lane", "swimlane", "responsibility lane", "participant lane"), catalog, new[] { "lane", "swimlane", "role", "participant" }, resizeToStencil, ref mapped);
@@ -362,13 +334,9 @@ namespace OfficeIMO.Visio {
         /// <param name="catalog">Target catalog, usually <see cref="VisioStencils.Cloud"/> or a package-backed cloud catalog.</param>
         /// <param name="resizeToStencil">Whether upgraded shapes should use the replacement stencil default size.</param>
         public static VisioStencilMigrationMapBuilder MapCloudInfrastructure(this VisioStencilMigrationMapBuilder builder, VisioStencilCatalog catalog, bool resizeToStencil = true) {
-            if (builder == null) {
-                throw new ArgumentNullException(nameof(builder));
-            }
+            ArgumentNullException.ThrowIfNull(builder);
 
-            if (catalog == null) {
-                throw new ArgumentNullException(nameof(catalog));
-            }
+            ArgumentNullException.ThrowIfNull(catalog);
 
             int mapped = 0;
             MapIfFound(builder, UnstenciledIdentity("subscription", "tenant", "account boundary"), catalog, new[] { "subscription", "tenant", "account", "boundary" }, resizeToStencil, ref mapped);
@@ -395,13 +363,9 @@ namespace OfficeIMO.Visio {
         /// <param name="catalog">Target catalog, usually <see cref="VisioStencils.SecurityIdentity"/> or a package-backed security catalog.</param>
         /// <param name="resizeToStencil">Whether upgraded shapes should use the replacement stencil default size.</param>
         public static VisioStencilMigrationMapBuilder MapSecurityIdentity(this VisioStencilMigrationMapBuilder builder, VisioStencilCatalog catalog, bool resizeToStencil = true) {
-            if (builder == null) {
-                throw new ArgumentNullException(nameof(builder));
-            }
+            ArgumentNullException.ThrowIfNull(builder);
 
-            if (catalog == null) {
-                throw new ArgumentNullException(nameof(catalog));
-            }
+            ArgumentNullException.ThrowIfNull(catalog);
 
             int mapped = 0;
             MapIfFound(builder, UnstenciledIdentity("identity provider", "idp", "entra", "azure ad", "saml", "oidc"), catalog, new[] { "identity-provider", "idp", "entra", "saml", "oidc" }, resizeToStencil, ref mapped);
@@ -429,13 +393,9 @@ namespace OfficeIMO.Visio {
         /// <param name="catalog">Target catalog, usually <see cref="VisioStencils.ContainersKubernetes"/> or a package-backed container platform catalog.</param>
         /// <param name="resizeToStencil">Whether upgraded shapes should use the replacement stencil default size.</param>
         public static VisioStencilMigrationMapBuilder MapContainersKubernetes(this VisioStencilMigrationMapBuilder builder, VisioStencilCatalog catalog, bool resizeToStencil = true) {
-            if (builder == null) {
-                throw new ArgumentNullException(nameof(builder));
-            }
+            ArgumentNullException.ThrowIfNull(builder);
 
-            if (catalog == null) {
-                throw new ArgumentNullException(nameof(catalog));
-            }
+            ArgumentNullException.ThrowIfNull(catalog);
 
             int mapped = 0;
             MapIfFound(builder, UnstenciledIdentity("worker node", "cluster node", "node host"), catalog, new[] { "node", "worker", "host" }, resizeToStencil, ref mapped);
@@ -463,13 +423,9 @@ namespace OfficeIMO.Visio {
         /// <param name="catalog">Target catalog, usually <see cref="VisioStencils.DataPlatform"/> or a package-backed data platform catalog.</param>
         /// <param name="resizeToStencil">Whether upgraded shapes should use the replacement stencil default size.</param>
         public static VisioStencilMigrationMapBuilder MapDataPlatform(this VisioStencilMigrationMapBuilder builder, VisioStencilCatalog catalog, bool resizeToStencil = true) {
-            if (builder == null) {
-                throw new ArgumentNullException(nameof(builder));
-            }
+            ArgumentNullException.ThrowIfNull(builder);
 
-            if (catalog == null) {
-                throw new ArgumentNullException(nameof(catalog));
-            }
+            ArgumentNullException.ThrowIfNull(catalog);
 
             int mapped = 0;
             MapIfFound(builder, UnstenciledIdentity("data lake", "analytics lake", "lake storage"), catalog, new[] { "lake", "analytics", "storage" }, resizeToStencil, ref mapped);
@@ -496,13 +452,9 @@ namespace OfficeIMO.Visio {
         /// <param name="catalog">Target catalog, usually <see cref="VisioStencils.CollaborationBusiness"/> or a package-backed business-process catalog.</param>
         /// <param name="resizeToStencil">Whether upgraded shapes should use the replacement stencil default size.</param>
         public static VisioStencilMigrationMapBuilder MapCollaborationBusiness(this VisioStencilMigrationMapBuilder builder, VisioStencilCatalog catalog, bool resizeToStencil = true) {
-            if (builder == null) {
-                throw new ArgumentNullException(nameof(builder));
-            }
+            ArgumentNullException.ThrowIfNull(builder);
 
-            if (catalog == null) {
-                throw new ArgumentNullException(nameof(catalog));
-            }
+            ArgumentNullException.ThrowIfNull(catalog);
 
             int mapped = 0;
             MapIfFound(builder, UnstenciledIdentity("responsibility lane", "business lane", "swimlane", "owner lane"), catalog, new[] { "lane", "owner", "role", "swimlane" }, resizeToStencil, ref mapped);

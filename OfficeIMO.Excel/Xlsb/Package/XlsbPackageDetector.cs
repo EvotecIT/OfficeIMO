@@ -26,9 +26,9 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             long maxRootRelationshipsBytes,
             long maxContentTypesBytes,
             out string? workbookPartName) {
-            if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
-            if (maxRootRelationshipsBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxRootRelationshipsBytes));
-            if (maxContentTypesBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxContentTypesBytes));
+            ArgumentNullException.ThrowIfNull(packageBytes);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxRootRelationshipsBytes);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxContentTypesBytes);
 
             try {
                 using var packageStream = new MemoryStream(packageBytes, writable: false);
@@ -60,7 +60,7 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             long maxRootRelationshipsBytes,
             long maxContentTypesBytes,
             out string? workbookPartName) {
-            if (archive == null) throw new ArgumentNullException(nameof(archive));
+            ArgumentNullException.ThrowIfNull(archive);
 
             workbookPartName = null;
             try {
@@ -170,8 +170,8 @@ namespace OfficeIMO.Excel.Xlsb.Package {
         }
 
         internal static XDocument LoadBoundedXml(Stream stream, long maximumBytes) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+            ArgumentNullException.ThrowIfNull(stream);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
 
             using var bounded = new BootstrapMetadataReadStream(stream, maximumBytes);
             using XmlReader reader = XmlReader.Create(bounded, new XmlReaderSettings {

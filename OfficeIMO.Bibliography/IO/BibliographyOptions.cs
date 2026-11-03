@@ -18,13 +18,13 @@ public sealed class BibliographyReadOptions {
     public int MaximumNestingDepth { get; set; } = 128;
 
     internal void Validate() {
-        if (MaximumInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumInputBytes));
-        if (MaximumInputCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumInputCharacters));
-        if (MaximumItemCount <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumItemCount));
-        if (MaximumValueCount <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumValueCount));
-        if (MaximumValueLength <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumValueLength));
-        if (MaximumDiagnosticCount <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumDiagnosticCount));
-        if (MaximumNestingDepth <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumNestingDepth));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumInputBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumInputCharacters);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumItemCount);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumValueCount);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumValueLength);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumDiagnosticCount);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumNestingDepth);
     }
 }
 
@@ -53,7 +53,7 @@ public sealed class BibliographyWriteOptions {
         if (!Enum.IsDefined(typeof(BibliographyWriterMode), Mode)) throw new ArgumentOutOfRangeException(nameof(Mode), Mode, "Unknown bibliography writer mode.");
         if (Format.HasValue && !Enum.IsDefined(typeof(BibliographyFormat), Format.Value)) throw new ArgumentOutOfRangeException(nameof(Format), Format, "Unknown bibliography format.");
         if (LineEnding != "\n" && LineEnding != "\r" && LineEnding != "\r\n") throw new ArgumentException("LineEnding must be LF, CR, or CRLF.", nameof(LineEnding));
-        if (Encoding == null) throw new ArgumentNullException(nameof(Encoding));
+        ArgumentNullException.ThrowIfNull(Encoding);
     }
 }
 

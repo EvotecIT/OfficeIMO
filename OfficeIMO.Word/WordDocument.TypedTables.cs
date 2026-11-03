@@ -29,7 +29,7 @@ public partial class WordDocument {
 
     /// <summary>Adds an editable table from an existing rectangular matrix.</summary>
     public WordTable AddTable(object?[,] values, OfficeTableOptions? options = null) {
-        if (values == null) throw new ArgumentNullException(nameof(values));
+        ArgumentNullException.ThrowIfNull(values);
         ObjectDataHelpers.ValidateTableAlignments(options);
         int rows = values.GetLength(0), columns = values.GetLength(1);
         if (rows == 0 || columns == 0) throw new ArgumentException("A table matrix requires at least one row and column.", nameof(values));
@@ -50,7 +50,7 @@ public partial class WordDocument {
 
     /// <summary>Adds existing rows of text. The first row is the header when headers are enabled.</summary>
     public WordTable AddTable(IEnumerable<IReadOnlyList<string>> rows, OfficeTableOptions? options = null) {
-        if (rows == null) throw new ArgumentNullException(nameof(rows));
+        ArgumentNullException.ThrowIfNull(rows);
         var data = rows.Select(row => row?.ToArray() ?? throw new ArgumentException("Table rows must not be null.", nameof(rows))).ToArray();
         if (data.Length == 0 || data[0].Length == 0 || data.Any(row => row.Length != data[0].Length))
             throw new ArgumentException("Text rows must form a non-empty rectangular table.", nameof(rows));

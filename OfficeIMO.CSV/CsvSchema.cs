@@ -218,10 +218,7 @@ public sealed class CsvColumnBuilder
     /// </summary>
     public CsvColumnBuilder ConvertUsing(Func<object?, object?> converter)
     {
-        if (converter is null)
-        {
-            throw new ArgumentNullException(nameof(converter));
-        }
+        ArgumentNullException.ThrowIfNull(converter);
 
         _column.Converter = (value, _) => converter(value);
         return this;
@@ -250,10 +247,7 @@ public sealed class CsvColumnBuilder
     /// </summary>
     public CsvColumnBuilder Validate(Func<object?, bool> predicate, string message)
     {
-        if (predicate is null)
-        {
-            throw new ArgumentNullException(nameof(predicate));
-        }
+        ArgumentNullException.ThrowIfNull(predicate);
 
         _column._validators.Add(new CsvColumnRule(predicate, message));
         return this;

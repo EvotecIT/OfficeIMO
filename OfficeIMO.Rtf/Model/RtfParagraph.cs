@@ -183,7 +183,7 @@ public sealed partial class RtfParagraph : IRtfBlock {
 
     /// <summary>Adds a Word <c>EQ</c> equation field with cached visible fallback text.</summary>
     public RtfField AddEquationField(string equationInstruction, string resultText) {
-        if (equationInstruction == null) throw new ArgumentNullException(nameof(equationInstruction));
+        ArgumentNullException.ThrowIfNull(equationInstruction);
         string trimmed = equationInstruction.Trim();
         bool hasEqPrefix = trimmed.StartsWith("EQ", StringComparison.OrdinalIgnoreCase)
             && (trimmed.Length == 2 || char.IsWhiteSpace(trimmed[2]));
@@ -231,7 +231,7 @@ public sealed partial class RtfParagraph : IRtfBlock {
 
     /// <summary>Adds an automatic note reference marker and attaches the supplied note to it.</summary>
     public RtfGeneratedText AddNoteReference(RtfNote note, string? fallbackText = null) {
-        if (note == null) throw new ArgumentNullException(nameof(note));
+        ArgumentNullException.ThrowIfNull(note);
         RtfGeneratedText generatedText = AddGeneratedText(RtfGeneratedTextKind.NoteReference, fallbackText);
         generatedText.Note = note;
         return generatedText;
@@ -411,7 +411,7 @@ public sealed partial class RtfParagraph : IRtfBlock {
 
     /// <summary>Configures Word 6/95 legacy paragraph numbering metadata.</summary>
     public RtfParagraph SetLegacyNumbering(Action<RtfLegacyNumbering> configure) {
-        if (configure == null) throw new ArgumentNullException(nameof(configure));
+        ArgumentNullException.ThrowIfNull(configure);
         LegacyNumbering.Enabled = true;
         configure(LegacyNumbering);
         return this;
@@ -427,7 +427,7 @@ public sealed partial class RtfParagraph : IRtfBlock {
 
     /// <summary>Configures rich fallback list marker content emitted in a <c>\listtext</c> destination.</summary>
     public RtfParagraph SetListText(Action<RtfParagraph> configure) {
-        if (configure == null) throw new ArgumentNullException(nameof(configure));
+        ArgumentNullException.ThrowIfNull(configure);
         var listText = new RtfParagraph();
         configure(listText);
         ListText = listText;
@@ -539,7 +539,7 @@ public sealed partial class RtfParagraph : IRtfBlock {
 
     /// <summary>Configures absolute positioning frame metadata for this paragraph.</summary>
     public RtfParagraph SetFrame(Action<RtfParagraphFrame> configure) {
-        if (configure == null) throw new ArgumentNullException(nameof(configure));
+        ArgumentNullException.ThrowIfNull(configure);
         configure(Frame);
         return this;
     }

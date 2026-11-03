@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel {
         /// <exception cref="ArgumentNullException">The cell selection is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">A coordinate is outside the worksheet. The selection is validated before editing.</exception>
         public void CellWrapTextFor(IEnumerable<(int Row, int Column)> cells, bool wrapText = true) {
-            if (cells == null) throw new ArgumentNullException(nameof(cells));
+            ArgumentNullException.ThrowIfNull(cells);
             var selected = cells.Distinct().ToArray();
             foreach (var cell in selected) {
                 if (cell.Row < 1 || cell.Row > ExcelA1.MaxRows || cell.Column < 1 || cell.Column > ExcelA1.MaxColumns) {

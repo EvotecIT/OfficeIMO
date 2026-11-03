@@ -18,13 +18,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             bool usesStyleXfPropMapping = false,
             ushort? borderStyle = null,
             string? borderStyleName = null) {
-            if (index < 0) {
-                throw new ArgumentOutOfRangeException(nameof(index));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
 
-            if (dataByteCount < 0) {
-                throw new ArgumentOutOfRangeException(nameof(dataByteCount));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(dataByteCount);
 
             Index = index;
             PropertyType = propertyType;

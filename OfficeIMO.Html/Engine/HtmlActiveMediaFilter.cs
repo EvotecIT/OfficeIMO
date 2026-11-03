@@ -63,7 +63,7 @@ public static class HtmlActiveMediaFilter {
         Filter(document, mediaContext, diagnostics, CancellationToken.None);
 
     internal static bool Filter(IHtmlDocument document, HtmlCssMediaContext mediaContext, HtmlDiagnosticReport? diagnostics, CancellationToken cancellationToken) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         try {
             bool changed = FilterDocument(document, mediaContext, diagnostics, cancellationToken);
@@ -77,7 +77,7 @@ public static class HtmlActiveMediaFilter {
 
     /// <summary>Returns an independent filtered snapshot, leaving the supplied document unchanged.</summary>
     public static Dom.HtmlDocument Filter(Dom.HtmlDocument document, HtmlCssMediaContext mediaContext, HtmlDiagnosticReport? diagnostics = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         IHtmlDocument native = HtmlDocumentParser.CloneDocument(NativeDomBridge.GetNativeDocument(document));
         Filter(native, mediaContext, diagnostics);
         return NativeDomBridge.Import(native).Freeze();
@@ -88,7 +88,7 @@ public static class HtmlActiveMediaFilter {
     /// art-direction sources for structural adapters such as Markdown.
     /// </summary>
     internal static bool FilterUnsupportedPictureSources(IHtmlDocument document, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         bool changed = false;
         foreach (IElement sourceElement in document.QuerySelectorAll("picture > source")) {

@@ -84,9 +84,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<PowerPointParagraph> AddParagraphs(IEnumerable<string> paragraphs,
             Action<PowerPointParagraph>? configure = null) {
-            if (paragraphs == null) {
-                throw new ArgumentNullException(nameof(paragraphs));
-            }
+            ArgumentNullException.ThrowIfNull(paragraphs);
 
             var results = new List<PowerPointParagraph>();
             foreach (string paragraphText in paragraphs) {
@@ -103,9 +101,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<PowerPointParagraph> SetParagraphs(IEnumerable<string> paragraphs,
             Action<PowerPointParagraph>? configure = null) {
-            if (paragraphs == null) {
-                throw new ArgumentNullException(nameof(paragraphs));
-            }
+            ArgumentNullException.ThrowIfNull(paragraphs);
 
             return ReplaceParagraphs(paragraphs, (paragraphText, templateParagraph) => {
                 PowerPointParagraph paragraph = AppendParagraph(EnsureTextBody(), paragraphText ?? string.Empty, templateParagraph);

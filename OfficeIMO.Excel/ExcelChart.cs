@@ -24,7 +24,7 @@ namespace OfficeIMO.Excel {
         private ExcelChartDataRange? _dataRange;
 
         internal ExcelChart(Xdr.GraphicFrame frame, DrawingsPart drawingsPart, ExcelSheet sheet, ExcelChartDataRange? dataRange = null) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             _document = sheet.Document;
             _lastKnownSheetName = sheet.Name;
             _dataRange = dataRange;
@@ -243,9 +243,7 @@ namespace OfficeIMO.Excel {
         /// Updates the chart data (series and categories).
         /// </summary>
         public ExcelChart UpdateData(ExcelChartData data, ExcelChartDataRange? dataRange = null, bool writeToSheet = true) {
-            if (data == null) {
-                throw new ArgumentNullException(nameof(data));
-            }
+            ArgumentNullException.ThrowIfNull(data);
 
             var chartPart = GetChartPart();
             ExcelChartDataRange? resolved = dataRange ?? _dataRange ?? ExcelChartUtils.TryExtractDataRange(chartPart);
@@ -283,9 +281,7 @@ namespace OfficeIMO.Excel {
         /// Sets the chart title text.
         /// </summary>
         public ExcelChart SetTitle(string title) {
-            if (title == null) {
-                throw new ArgumentNullException(nameof(title));
-            }
+            ArgumentNullException.ThrowIfNull(title);
 
             C.Chart chart = GetChart();
             chart.AutoTitleDeleted = new C.AutoTitleDeleted { Val = false };
@@ -414,9 +410,7 @@ namespace OfficeIMO.Excel {
         /// Applies a chart style/color preset.
         /// </summary>
         public ExcelChart ApplyStylePreset(ExcelChartStylePreset preset) {
-            if (preset == null) {
-                throw new ArgumentNullException(nameof(preset));
-            }
+            ArgumentNullException.ThrowIfNull(preset);
             _document.EnsureWorkbookThemeAndStyles();
             ExcelChartUtils.ApplyChartStyle(GetChartPart(), preset);
             Save();

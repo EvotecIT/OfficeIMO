@@ -39,7 +39,7 @@ public sealed partial class OfficeDocumentReader {
         string? sourceName = null,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         return DocumentReaderEngine.ExtractAssets(
             ReadDocument(bytes, sourceName, options, cancellationToken),
             cancellationToken: cancellationToken);

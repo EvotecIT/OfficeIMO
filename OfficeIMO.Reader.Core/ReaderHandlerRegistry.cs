@@ -260,7 +260,7 @@ internal sealed class ReaderHandlerDescriptor {
     public bool SupportsStreamInput => ReadStream != null || ReadDocumentStream != null || ReadDocumentStreamAsync != null;
 
     public static ReaderHandlerDescriptor Create(ReaderHandlerRegistration registration) {
-        if (registration == null) throw new ArgumentNullException(nameof(registration));
+        ArgumentNullException.ThrowIfNull(registration);
 
         string id = (registration.Id ?? string.Empty).Trim();
         if (id.Length == 0) throw new ArgumentException("Handler Id cannot be empty.", nameof(registration));

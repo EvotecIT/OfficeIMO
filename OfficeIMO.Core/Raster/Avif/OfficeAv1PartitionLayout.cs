@@ -34,7 +34,8 @@ internal readonly struct OfficeAv1PartitionLayout {
         : Kind == OfficeAv1Partition.Split || Kind == OfficeAv1Partition.Horizontal4 || Kind == OfficeAv1Partition.Vertical4 ? 4 : 3;
 
     internal OfficeAv1BlockRegion Child(int index) {
-        if (index < 0 || index >= Count) throw new ArgumentOutOfRangeException(nameof(index));
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, Count);
         int half = _pixels / 2, halfMi = half / 4, quarter = _pixels / 4, quarterMi = quarter / 4;
         switch (Kind) {
             case OfficeAv1Partition.None: return Block(0, 0, _pixels, _pixels);

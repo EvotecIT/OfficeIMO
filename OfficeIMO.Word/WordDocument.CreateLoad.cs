@@ -440,9 +440,7 @@ namespace OfficeIMO.Word {
         public static WordDocument Load(string filePath, WordLoadOptions? options = null) {
             if (options?.Password is string password)
                 return AssociateEncryptedDocument(LoadEncrypted(filePath, password, options), filePath, password, options: options);
-            if (filePath is null) {
-                throw new ArgumentNullException(nameof(filePath));
-            }
+            ArgumentNullException.ThrowIfNull(filePath);
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
@@ -511,8 +509,8 @@ namespace OfficeIMO.Word {
         /// <param name="options">Access and load options for the decrypted package.</param>
         /// <returns>Loaded <see cref="WordDocument"/> instance.</returns>
         internal static WordDocument LoadEncrypted(string filePath, string password, WordLoadOptions? options = null) {
-            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(filePath);
+            ArgumentNullException.ThrowIfNull(password);
             WordLoadOptions resolved = options ?? new WordLoadOptions();
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "document");
             resolved = resolved.Snapshot();
@@ -539,8 +537,8 @@ namespace OfficeIMO.Word {
         /// <param name="options">Access and load options for the decrypted package.</param>
         /// <returns>Loaded <see cref="WordDocument"/> instance.</returns>
         internal static WordDocument LoadEncrypted(Stream stream, string password, WordLoadOptions? options = null) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(stream);
+            ArgumentNullException.ThrowIfNull(password);
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
             WordLoadOptions resolved = options ?? new WordLoadOptions();
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "document");
@@ -572,9 +570,7 @@ namespace OfficeIMO.Word {
                     return loaded;
                 }, cancellationToken).ConfigureAwait(false);
             }
-            if (filePath is null) {
-                throw new ArgumentNullException(nameof(filePath));
-            }
+            ArgumentNullException.ThrowIfNull(filePath);
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
@@ -641,7 +637,7 @@ namespace OfficeIMO.Word {
             Stream stream,
             WordLoadOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
             WordLoadOptions resolved = options ?? new WordLoadOptions();
@@ -676,9 +672,7 @@ namespace OfficeIMO.Word {
 
         private static WordDocument LoadFromStream(Stream stream, WordLoadOptions? options,
             bool captureSourcePackageSecurity) {
-            if (stream == null) {
-                throw new ArgumentNullException(nameof(stream));
-            }
+            ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanRead) {
                 throw new ArgumentException("Stream must be readable.", nameof(stream));
             }

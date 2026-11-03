@@ -7,8 +7,8 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
     /// <summary>Projects XLSB worksheet hyperlinks and validates their preservation contract.</summary>
     internal static class XlsbWorksheetHyperlinkProjector {
         internal static void Apply(ExcelSheet sheet, XlsbSheet sourceSheet) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
-            if (sourceSheet == null) throw new ArgumentNullException(nameof(sourceSheet));
+            ArgumentNullException.ThrowIfNull(sheet);
+            ArgumentNullException.ThrowIfNull(sourceSheet);
             if (sourceSheet.Hyperlinks.Count == 0) return;
 
             Worksheet worksheet = sheet.WorksheetPart.Worksheet

@@ -19,7 +19,7 @@ internal static class PstWriterSubnodeTree {
     private const int IndexEntrySize = 16;
 
     internal static ulong Write(PstWriterFile file, IEnumerable<PstWriterSubnode> subnodes) {
-        if (file == null) throw new ArgumentNullException(nameof(file));
+        ArgumentNullException.ThrowIfNull(file);
         PstWriterSubnode[] ordered = subnodes
             .GroupBy(item => item.Nid)
             .Select(group => group.Last())
@@ -30,7 +30,7 @@ internal static class PstWriterSubnodeTree {
 
     internal static ulong WriteSorted(PstWriterFile file,
         IEnumerable<PstWriterSubnode> sortedSubnodes, int count) {
-        if (file == null) throw new ArgumentNullException(nameof(file));
+        ArgumentNullException.ThrowIfNull(file);
         if (count == 0) return 0;
 
         int leafCapacity = (MaximumBlockPayload - HeaderSize) / LeafEntrySize;

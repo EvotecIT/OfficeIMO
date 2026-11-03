@@ -8,9 +8,7 @@ internal static class PdfRtfConverter {
     private const int DecimalListId = 2;
 
     public static RtfDocument Convert(PdfCore.PdfDocumentReadResult source, PdfToRtfOptions? options) {
-        if (source == null) {
-            throw new ArgumentNullException(nameof(source));
-        }
+        ArgumentNullException.ThrowIfNull(source);
 
         PdfToRtfOptions readOptions = options ?? new PdfToRtfOptions();
         readOptions.CancellationToken.ThrowIfCancellationRequested();

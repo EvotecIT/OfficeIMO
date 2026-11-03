@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel {
                                   CancellationToken cancellationToken = default) {
             if (width.HasValue && width.Value <= OfficeLength.Zero) throw new System.ArgumentOutOfRangeException(nameof(width));
             if (height.HasValue && height.Value <= OfficeLength.Zero) throw new System.ArgumentOutOfRangeException(nameof(height));
-            if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
+            ArgumentNullException.ThrowIfNull(remoteImageOptions);
             SetHeaderFooter(leftText, centerText, rightText);
             await SetHeaderImageFromUrlAsync(position, url, remoteImageOptions, width, height,
                 cancellationToken).ConfigureAwait(false);

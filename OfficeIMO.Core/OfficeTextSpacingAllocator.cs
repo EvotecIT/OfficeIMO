@@ -6,7 +6,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>A caller-unit spacing resource. Lower numeric priorities are consumed first.</summary>
 internal readonly struct OfficeTextSpacingResource {
     internal OfficeTextSpacingResource(int opportunityIndex, int priority, double compressionCapacity, double expansionCapacity) {
-        if (opportunityIndex < 0) throw new ArgumentOutOfRangeException(nameof(opportunityIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(opportunityIndex);
         ValidateCapacity(compressionCapacity, nameof(compressionCapacity));
         ValidateCapacity(expansionCapacity, nameof(expansionCapacity));
         OpportunityIndex = opportunityIndex;
@@ -52,8 +52,8 @@ internal static class OfficeTextSpacingAllocator {
     /// Floating-point remainder is carried forward; no integer quantum or fit tolerance is imposed.
     /// </summary>
     internal static OfficeTextSpacingAllocation Allocate(int opportunityCount, IReadOnlyList<OfficeTextSpacingResource> resources, double adjustment) {
-        if (opportunityCount < 0) throw new ArgumentOutOfRangeException(nameof(opportunityCount));
-        if (resources == null) throw new ArgumentNullException(nameof(resources));
+        ArgumentOutOfRangeException.ThrowIfNegative(opportunityCount);
+        ArgumentNullException.ThrowIfNull(resources);
         if (double.IsNaN(adjustment) || double.IsInfinity(adjustment)) throw new ArgumentOutOfRangeException(nameof(adjustment));
 
         var priorities = new SortedDictionary<int, ResourcePriority>();

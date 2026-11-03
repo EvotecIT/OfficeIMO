@@ -57,9 +57,9 @@ public static class PdfOcrRedactionExtensions {
         PdfRedactionSearchOptions search,
         PdfOcrMergeOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (engine == null) throw new ArgumentNullException(nameof(engine));
-        if (search == null) throw new ArgumentNullException(nameof(search));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(engine);
+        ArgumentNullException.ThrowIfNull(search);
         if (search.RegexTimeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(search), "Regex timeout must be positive.");
         if (search.MaximumCandidates <= 0) throw new ArgumentOutOfRangeException(nameof(search), "Maximum candidates must be positive.");
         if (search.LiteralText.Count == 0 && search.RegularExpressions.Count == 0) {

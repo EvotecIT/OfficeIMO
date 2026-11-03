@@ -12,7 +12,7 @@ public static class ChmEpubConverterExtensions {
     /// <summary>Asynchronously imports a linked topic book. Resource resolution never contacts the network or opens external files.</summary>
     public static async Task<EpubManuscriptResult> ToEpubPublicationResultAsync(this ChmDocument document, ChmConversionOptions? options = null,
         EpubManuscriptOptions? epubOptions = null, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         ChmConversionOptions configured = options?.Clone() ?? new ChmConversionOptions(); configured.EmbedImages = false;
         ChmConversionResult<HtmlConversionDocument> projected = document.ToHtmlDocumentResult(configured, cancellationToken);
         EpubManuscriptOptions conversion = epubOptions?.Clone() ?? new EpubManuscriptOptions();

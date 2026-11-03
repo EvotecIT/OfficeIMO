@@ -51,9 +51,8 @@ namespace OfficeIMO.Excel {
         }
 
         internal static int GetCapacity(int minimumLength) {
-            if (minimumLength < 0 || minimumLength > MaximumBufferSize) {
-                throw new ArgumentOutOfRangeException(nameof(minimumLength));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(minimumLength);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(minimumLength, MaximumBufferSize);
 
             int boundedLength = Math.Max(1, minimumLength);
             long capacity = ((long)boundedLength + CapacityQuantum - 1L) / CapacityQuantum * CapacityQuantum;

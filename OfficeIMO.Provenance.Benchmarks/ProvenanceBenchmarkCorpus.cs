@@ -92,7 +92,7 @@ internal static class ProvenanceBenchmarkCorpus {
     }
 
     private static byte[] CreateManifestStore(int length) {
-        if (length < 284) throw new ArgumentOutOfRangeException(nameof(length));
+        ArgumentOutOfRangeException.ThrowIfLessThan(length, 284);
         int signaturePayloadLength = length - 283;
         byte[] storeDescription = CreateBox("jumd", Join(
             C2paUuid("c2pa"), [0x03], Encoding.ASCII.GetBytes("c2pa\0")));

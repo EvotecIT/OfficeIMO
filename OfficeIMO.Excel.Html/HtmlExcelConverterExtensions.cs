@@ -22,7 +22,7 @@ public static partial class HtmlExcelConverterExtensions {
     /// Imports a prepared shared HTML conversion document and returns the workbook plus structured evidence.
     /// </summary>
     public static HtmlToExcelResult ToExcelDocumentResult(this HtmlConversionDocument document, HtmlToExcelOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         const HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen;
         IHtmlDocument adapterDocument = document.CreateNativeDocumentForConversion(mediaContext);
         HtmlToExcelOptions resolved = options?.Clone() ?? new HtmlToExcelOptions();

@@ -20,12 +20,8 @@ namespace OfficeIMO.Word {
         /// <param name="regex">Regular expression used for searching.</param>
         /// <returns>A <see cref="WordSearchResult"/> containing all matches.</returns>
         public static WordSearchResult Find(this WordDocument document, Regex regex) {
-            if (document == null) {
-                throw new ArgumentNullException(nameof(document));
-            }
-            if (regex == null) {
-                throw new ArgumentNullException(nameof(regex));
-            }
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(regex);
 
             var result = new WordSearchResult();
 

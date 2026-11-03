@@ -10,7 +10,7 @@ namespace OfficeIMO.Latex.Pdf;
 internal static class LatexPdfConversionEngine {
     internal static PdfCore.PdfDocumentConversionResult Convert(LatexDocument document, LatexToPdfOptions? options, System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         document = document.GetCurrentView(cancellationToken);
 
         LatexToPdfOptions operation = (options ?? new LatexToPdfOptions()).CloneForConversion();

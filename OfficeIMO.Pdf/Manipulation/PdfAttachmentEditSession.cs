@@ -107,7 +107,8 @@ public sealed class PdfAttachmentEditSession {
     }
 
     internal PdfAttachmentEditSession RemoveAt(int index) {
-        if (index < 0 || index >= _attachments.Count) throw new ArgumentOutOfRangeException(nameof(index));
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, _attachments.Count);
         string fileName = _attachments[index].FileName;
         _totalAttachmentBytes -= _attachments[index].ByteLength;
         _attachments.RemoveAt(index);

@@ -158,7 +158,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Sets block-diagram grid dimensions without introducing a second visual theme.</summary>
         public VisioBlockDiagramBuilder LayoutOptions(VisioBlockDiagramLayoutOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             ValidatePositive(options.BlockWidth, nameof(options));
             ValidatePositive(options.BlockHeight, nameof(options));
             ValidateNonNegative(options.ColumnGap, nameof(options));

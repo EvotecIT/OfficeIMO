@@ -58,7 +58,7 @@ public sealed class EmailStoreItemPatch {
 
     /// <summary>Replaces item category names using Outlook's case-insensitive normalization.</summary>
     public EmailStoreItemPatch SetCategories(IEnumerable<string> categories) {
-        if (categories == null) throw new ArgumentNullException(nameof(categories));
+        ArgumentNullException.ThrowIfNull(categories);
         _categories = categories.ToArray();
         var validation = new OutlookCategoryCollection();
         validation.ReplaceWith(_categories);
@@ -98,7 +98,7 @@ public sealed class EmailStoreItemPatch {
 
     /// <summary>Replaces common message, appointment, or task reminder fields.</summary>
     public EmailStoreItemPatch SetReminder(OutlookReminder reminder) {
-        if (reminder == null) throw new ArgumentNullException(nameof(reminder));
+        ArgumentNullException.ThrowIfNull(reminder);
         _reminder = Clone(reminder);
         ChangeCount++;
         return this;
@@ -112,7 +112,7 @@ public sealed class EmailStoreItemPatch {
 
     /// <summary>Appends attachment operations to this patch.</summary>
     public EmailStoreItemPatch PatchAttachments(EmailAttachmentPatch patch) {
-        if (patch == null) throw new ArgumentNullException(nameof(patch));
+        ArgumentNullException.ThrowIfNull(patch);
         foreach (EmailAttachmentPatchChange change in patch.Changes) {
             switch (change.Operation) {
                 case EmailAttachmentPatchOperation.Add: Attachments.Add(change.Attachment!); break;
@@ -149,7 +149,7 @@ public sealed class EmailStoreItemPatch {
     }
 
     internal void Validate(EmailDocument document) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         if (!Attachments.IsEmpty) Attachments.Validate(document.Attachments);
     }
 

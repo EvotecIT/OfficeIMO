@@ -17,7 +17,7 @@ public static partial class PowerPointHtmlConverterExtensions {
 
     /// <summary>Converts a presentation to HTML with operation-scoped visual diagnostics.</summary>
     public static PowerPointToHtmlResult ToHtmlResult(this PptCore.PowerPointDocument presentation, PowerPointHtmlSaveOptions? options = null) {
-        if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+        ArgumentNullException.ThrowIfNull(presentation);
         PowerPointHtmlSaveOptions operation = (options ?? new PowerPointHtmlSaveOptions()).Clone();
         operation.Validate();
         var imageDiagnostics = new List<OfficeImageExportDiagnostic>();

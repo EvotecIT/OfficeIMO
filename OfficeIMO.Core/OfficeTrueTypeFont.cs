@@ -307,7 +307,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         byte[] data,
         OfficeFontVariationModel variationModel,
         out string? error) {
-        if (variationModel == null) throw new ArgumentNullException(nameof(variationModel));
+        ArgumentNullException.ThrowIfNull(variationModel);
         error = null;
         try {
             return TryLoad(data, 0, null, variationModel);
@@ -464,7 +464,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         double fontSize,
         int maximumPointCount,
         CancellationToken cancellationToken) {
-        if (maximumPointCount <= 0) throw new ArgumentOutOfRangeException(nameof(maximumPointCount));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumPointCount);
         var contours = new List<List<OfficePoint>>();
         if (string.IsNullOrEmpty(text)) {
             return contours;

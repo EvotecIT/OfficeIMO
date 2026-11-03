@@ -200,7 +200,7 @@ internal static class OfficeImageOrientationNormalizer {
     }
 
     internal static bool TryNeutralizeExifOrientation(byte[] exif, out byte[] neutralized) {
-        if (exif == null) throw new ArgumentNullException(nameof(exif));
+        ArgumentNullException.ThrowIfNull(exif);
         neutralized = (byte[])exif.Clone();
         int offset = neutralized.Length >= 6 && neutralized[0] == (byte)'E' && neutralized[1] == (byte)'x' &&
                      neutralized[2] == (byte)'i' && neutralized[3] == (byte)'f' && neutralized[4] == 0 && neutralized[5] == 0

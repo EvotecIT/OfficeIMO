@@ -84,9 +84,7 @@ namespace OfficeIMO.Visio {
         /// <param name="page">Page to query.</param>
         /// <param name="predicate">Protection predicate.</param>
         public static IReadOnlyList<VisioConnector> ConnectorsWithProtection(this VisioPage page, Func<VisioProtection, bool> predicate) {
-            if (predicate == null) {
-                throw new ArgumentNullException(nameof(predicate));
-            }
+            ArgumentNullException.ThrowIfNull(predicate);
 
             return FilterConnectors(page, connector => predicate(connector.Protection));
         }
@@ -97,9 +95,7 @@ namespace OfficeIMO.Visio {
         /// <param name="page">Page to query.</param>
         /// <param name="shape">Shape whose neighbors should be returned.</param>
         public static IReadOnlyList<VisioShape> ConnectedShapes(this VisioPage page, VisioShape shape) {
-            if (shape == null) {
-                throw new ArgumentNullException(nameof(shape));
-            }
+            ArgumentNullException.ThrowIfNull(shape);
 
             List<VisioShape> connectedShapes = new();
             foreach (VisioConnector connector in page.ConnectedConnectors(shape)) {
@@ -118,9 +114,7 @@ namespace OfficeIMO.Visio {
         /// <param name="page">Page to query.</param>
         /// <param name="predicate">Predicate used to include connectors.</param>
         public static VisioConnectorSelection SelectConnectors(this VisioPage page, Func<VisioConnector, bool> predicate) {
-            if (predicate == null) {
-                throw new ArgumentNullException(nameof(predicate));
-            }
+            ArgumentNullException.ThrowIfNull(predicate);
 
             return new VisioConnectorSelection(FilterConnectors(page, predicate));
         }

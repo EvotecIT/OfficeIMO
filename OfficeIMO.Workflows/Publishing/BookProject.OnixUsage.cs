@@ -6,20 +6,20 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class BookProject {
     private static IReadOnlyList<XElement> BuildOnixUsageConstraints(IReadOnlyList<BookOnixUsageConstraint> constraints, CancellationToken token) {
-        if (constraints == null) throw new ArgumentNullException(nameof(constraints));
+        ArgumentNullException.ThrowIfNull(constraints);
         if (constraints.Count > 32) throw new ArgumentException("At most 32 usage constraints are supported.", nameof(constraints));
         XNamespace ns = OnixNamespace;
         var result = new List<XElement>();
         foreach (var constraint in constraints) {
             token.ThrowIfCancellationRequested();
-            if (constraint == null) throw new ArgumentNullException(nameof(constraint));
+            ArgumentNullException.ThrowIfNull(constraint);
             if (!OfficeRuntimeCompatibility.IsDefined(constraint.Type) || !OfficeRuntimeCompatibility.IsDefined(constraint.Status)) throw new ArgumentOutOfRangeException(nameof(constraints));
             if (constraint.Limits == null) throw new ArgumentNullException("constraint.Limits");
             if (constraint.Limits.Count > 32) throw new ArgumentException("At most 32 limits per constraint are supported.", nameof(constraints));
             var limits = new Dictionary<BookOnixUsageUnit, BookOnixUsageLimit>();
             foreach (var limit in constraint.Limits) {
                 token.ThrowIfCancellationRequested();
-                if (limit == null) throw new ArgumentNullException(nameof(limit));
+                ArgumentNullException.ThrowIfNull(limit);
                 if (!limits.TryAdd(limit.Unit, limit)) throw new ArgumentException("Usage limit units must be distinct within a constraint.", nameof(constraints));
             }
             bool quantitative = limits.Keys.Any(unit => unit is not (BookOnixUsageUnit.ValidFrom or BookOnixUsageUnit.ValidUntil));

@@ -13,7 +13,7 @@ public static partial class HtmlComputedStyleEngine {
     public static IReadOnlyDictionary<Dom.HtmlElement, HtmlComputedStyle> Compute(
         string html,
         HtmlComputedStyleOptions options) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         return Compute(HtmlConversionDocument.Parse(html), options);
     }
 
@@ -21,7 +21,7 @@ public static partial class HtmlComputedStyleEngine {
     public static IReadOnlyDictionary<Dom.HtmlElement, HtmlComputedStyle> Compute(
         HtmlConversionDocument document,
         HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return Compute(document.Document, mediaContext, document.Limits);
     }
 
@@ -29,8 +29,8 @@ public static partial class HtmlComputedStyleEngine {
     public static IReadOnlyDictionary<Dom.HtmlElement, HtmlComputedStyle> Compute(
         HtmlConversionDocument document,
         HtmlComputedStyleOptions options) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(options);
         return Compute(document.Document, options, document.Limits);
     }
 
@@ -46,7 +46,7 @@ public static partial class HtmlComputedStyleEngine {
     public static IReadOnlyDictionary<Dom.HtmlElement, HtmlComputedStyle> Compute(
         Dom.HtmlDocument document,
         HtmlComputedStyleOptions options) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         return Compute(document, options, HtmlConversionLimits.CreateUntrustedProfile());
     }
 

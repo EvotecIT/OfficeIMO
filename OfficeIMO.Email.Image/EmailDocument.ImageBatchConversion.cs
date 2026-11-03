@@ -34,7 +34,7 @@ public static partial class EmailImageExportExtensions {
 
     private static OfficeImageExportBatchOperation<EmailImageExportOptions> CreateEmailDocumentImageBatchOperation(
         EmailDocument document, EmailImageExportOptions options) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return new OfficeImageExportBatchOperation<EmailImageExportOptions>(options, options.Format, options.FileConflictPolicy,
             (encoding, effective) => document.ExportImages(encoding, effective),
             exportEach: (encoding, effective, consumer, token) => document.ExportImages(encoding, consumer, effective, token),

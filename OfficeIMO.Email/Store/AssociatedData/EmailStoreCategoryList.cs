@@ -104,7 +104,7 @@ public sealed class EmailStoreCategoryList {
 
     /// <summary>Parses a category-list associated message using a strict XML byte bound.</summary>
     public static EmailStoreCategoryList Parse(EmailDocument document, int maxXmlBytes = 4 * 1024 * 1024) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         byte[] bytes = document.Mapi.GetValueOrDefault(MapiKnownProperties.PidTag.RoamingXmlStream) ??
             throw new InvalidDataException("The category-list message has no PidTagRoamingXmlStream value.");
         XDocument xml = EmailStoreConfigurationXml.Parse(bytes, maxXmlBytes, "The category list");
@@ -124,7 +124,7 @@ public sealed class EmailStoreCategoryList {
     public string DefaultCategoryName {
         get => (string?)Root.Attribute("default") ?? string.Empty;
         set {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
             if (value.Length != 0 && !Categories.Any(category =>
                 string.Equals(category.Name, value, StringComparison.OrdinalIgnoreCase))) {
                 throw new ArgumentException("The default category must exist in this category list.", nameof(value));
@@ -226,7 +226,7 @@ public sealed class EmailStoreCategoryList {
     }
 
     private static void ValidateName(string name) {
-        if (name == null) throw new ArgumentNullException(nameof(name));
+        ArgumentNullException.ThrowIfNull(name);
         if (string.IsNullOrWhiteSpace(name) || name.Length > 255 || name.IndexOf(',') >= 0) {
             throw new ArgumentException("A category name must contain 1-255 non-whitespace characters and cannot contain a comma.", nameof(name));
         }

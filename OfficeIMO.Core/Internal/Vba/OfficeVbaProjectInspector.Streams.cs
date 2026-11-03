@@ -12,8 +12,8 @@ namespace OfficeIMO.Core.Internal {
         /// <paramref name="maximumExpandedBytes"/> limits decompressed data; it does not limit the supplied encoded input.</remarks>
         internal static OfficeVbaInspection Inspect(IReadOnlyDictionary<string, byte[]> streams, int maximumExpandedBytes,
             CancellationToken cancellationToken = default) {
-            if (streams == null) throw new ArgumentNullException(nameof(streams));
-            if (maximumExpandedBytes < 1) throw new ArgumentOutOfRangeException(nameof(maximumExpandedBytes));
+            ArgumentNullException.ThrowIfNull(streams);
+            ArgumentOutOfRangeException.ThrowIfLessThan(maximumExpandedBytes, 1);
             cancellationToken.ThrowIfCancellationRequested();
             Dictionary<string, byte[]> streamIndex = new Dictionary<string, byte[]>(streams.Count, StringComparer.OrdinalIgnoreCase);
             foreach (KeyValuePair<string, byte[]> stream in streams) {

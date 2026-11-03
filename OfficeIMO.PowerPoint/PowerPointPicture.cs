@@ -59,9 +59,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="newImage">Stream containing the new image data.</param>
         /// <param name="type">Image format of the new image.</param>
         public void UpdateImage(Stream newImage, OfficeIMO.Drawing.OfficeImageFormat type) {
-            if (newImage == null) {
-                throw new ArgumentNullException(nameof(newImage));
-            }
+            ArgumentNullException.ThrowIfNull(newImage);
 
             PartTypeInfo partTypeInfo = type.ToPartTypeInfo();
             SlidePart slidePart = SlidePart;
@@ -106,9 +104,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="imagePath">Path to the new image file.</param>
         public void UpdateImage(string imagePath) {
-            if (imagePath == null) {
-                throw new ArgumentNullException(nameof(imagePath));
-            }
+            ArgumentNullException.ThrowIfNull(imagePath);
             if (!File.Exists(imagePath)) {
                 throw new FileNotFoundException("Image file not found.", imagePath);
             }

@@ -21,7 +21,7 @@ public static class AdfConverter {
     public static AdfConversionResult<string> ToMarkdown(
         AdfDocument document,
         AdfConversionOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         options ??= new AdfConversionOptions();
         AdfGraphSafety.EnsureSafe(document, options);
         var diagnostics = new List<AdfConversionDiagnostic>();
@@ -55,8 +55,8 @@ public static class AdfConverter {
 
     /// <summary>Converts Markdown text with resource limits, cancellation, task identities and destination validation.</summary>
     public static AdfConversionResult<AdfDocument> FromMarkdown(string markdown, AdfConversionOptions options) {
-        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(markdown);
+        ArgumentNullException.ThrowIfNull(options);
         AdfGraphGuard.Input(markdown, options);
         return FromMarkdown(MarkdownDocument.Parse(markdown, new MarkdownLoadOptions { MaxInputCharacters = Math.Max(1, markdown.Length), MaxNestingDepth = options.MaxDepth }), options);
     }
@@ -68,8 +68,8 @@ public static class AdfConverter {
 
     /// <summary>Converts a Markdown document with caller-configured task identity generation.</summary>
     public static AdfConversionResult<AdfDocument> FromMarkdown(MarkdownDocument markdown, AdfConversionOptions options) {
-        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(markdown);
+        ArgumentNullException.ThrowIfNull(options);
         AdfGraphGuard.CheckMarkdown(markdown, options);
         var diagnostics = new List<AdfConversionDiagnostic>();
         AdfDocument value = MarkdownToAdfConverter.Convert(markdown, diagnostics, options);
@@ -94,8 +94,8 @@ public static class AdfConverter {
     /// <summary>Converts HTML to ADF with caller-configured task identities and destination validation.</summary>
     /// <remarks>The report includes the intermediate Markdown projection and any destination validation issues.</remarks>
     public static AdfConversionResult<AdfDocument> FromHtml(string html, MarkdownHtmlImportOptions? options, AdfConversionOptions adfOptions) {
-        if (html == null) throw new ArgumentNullException(nameof(html));
-        if (adfOptions == null) throw new ArgumentNullException(nameof(adfOptions));
+        ArgumentNullException.ThrowIfNull(html);
+        ArgumentNullException.ThrowIfNull(adfOptions);
         AdfGraphGuard.Input(html, adfOptions);
         MarkdownDocument markdown = HtmlConversionDocument.Parse(html).ToMarkdown(options);
         AdfConversionResult<AdfDocument> result = FromMarkdown(markdown, adfOptions);

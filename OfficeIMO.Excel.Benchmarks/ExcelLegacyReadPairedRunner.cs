@@ -11,9 +11,7 @@ internal static class ExcelLegacyReadPairedRunner {
         int iterations = arguments.Length > 1 && int.TryParse(arguments[1], out int parsedIterations)
             ? parsedIterations
             : 40;
-        if (iterations <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(iterations));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(iterations);
 
         string affinity = arguments.Length > 2
             ? BenchmarkProcessorAffinity.Apply(arguments[2])

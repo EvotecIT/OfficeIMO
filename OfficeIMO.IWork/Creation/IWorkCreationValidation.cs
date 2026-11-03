@@ -15,14 +15,14 @@ internal static class IWorkCreationValidation {
     }
 
     internal static void ValidateFontName(string fontName) {
-        if (fontName == null) throw new ArgumentNullException(nameof(fontName));
+        ArgumentNullException.ThrowIfNull(fontName);
         if (string.IsNullOrWhiteSpace(fontName) || fontName.Length > 128 || fontName.Any(char.IsControl))
             throw new ArgumentException("A font name of at most 128 characters without control characters is required.", nameof(fontName));
         StrictUtf8.GetByteCount(fontName);
     }
 
     internal static string NormalizeText(string text, bool allowTabs = false) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(text);
         string normalized = text.Replace("\r\n", "\n").Replace('\r', '\n');
         if (normalized.Any(character => char.IsControl(character) && character != '\n' && !(allowTabs && character == '\t')))
             throw new ArgumentException(allowTabs ? "Text supports line breaks and tabs but no other control characters."
@@ -42,7 +42,7 @@ internal static class IWorkCreationValidation {
     }
 
     internal static IWorkColor ParseColor(string value) {
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
         if (value.Length != 6 || !uint.TryParse(value, NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out uint rgb))
             throw new ArgumentException("An opaque six-digit sRGB color is required, for example E6F2FF.", nameof(value));
         return new IWorkColor((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, 255);

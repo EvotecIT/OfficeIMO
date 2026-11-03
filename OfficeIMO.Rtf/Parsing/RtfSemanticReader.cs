@@ -5,7 +5,7 @@ namespace OfficeIMO.Rtf;
 
 internal static partial class RtfSemanticReader {
     public static RtfReadResult Read(RtfSyntaxTree tree, RtfReadOptions options, CancellationToken cancellationToken = default) {
-        if (tree == null) throw new ArgumentNullException(nameof(tree));
+        ArgumentNullException.ThrowIfNull(tree);
         options ??= new RtfReadOptions();
         if (options.DeferBinaryPayloads && tree.Root.Children.OfType<RtfControlWord>().Any(control => control.Name == "fromhtml")
             && HasBinaryDestinations(tree.Root, cancellationToken))

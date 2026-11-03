@@ -74,7 +74,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             .ToList();
 
         internal void AddRequest(GoogleDocsRequest request) {
-            if (request == null) throw new ArgumentNullException(nameof(request));
+            ArgumentNullException.ThrowIfNull(request);
             _requests.Add(request);
         }
     }
@@ -148,12 +148,12 @@ namespace OfficeIMO.Word.GoogleDocs {
         public IReadOnlyList<GoogleDocsTabStop> TabStops => _tabStops;
 
         internal void AddRun(GoogleDocsParagraphRun run) {
-            if (run == null) throw new ArgumentNullException(nameof(run));
+            ArgumentNullException.ThrowIfNull(run);
             _runs.Add(run);
         }
 
         internal void AddTabStop(GoogleDocsTabStop tabStop) {
-            if (tabStop == null) throw new ArgumentNullException(nameof(tabStop));
+            ArgumentNullException.ThrowIfNull(tabStop);
             _tabStops.Add(tabStop);
         }
     }
@@ -240,7 +240,7 @@ namespace OfficeIMO.Word.GoogleDocs {
         public IReadOnlyList<GoogleDocsParagraph> Paragraphs => _paragraphs;
 
         internal void AddParagraph(GoogleDocsParagraph paragraph) {
-            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
+            ArgumentNullException.ThrowIfNull(paragraph);
             _paragraphs.Add(paragraph);
         }
     }
@@ -274,7 +274,7 @@ namespace OfficeIMO.Word.GoogleDocs {
         public IReadOnlyList<double> ColumnWidthPoints => _columnWidthPoints;
 
         internal void AddRow(GoogleDocsTableRow row) {
-            if (row == null) throw new ArgumentNullException(nameof(row));
+            ArgumentNullException.ThrowIfNull(row);
             _rows.Add(row);
         }
 
@@ -295,7 +295,7 @@ namespace OfficeIMO.Word.GoogleDocs {
         public IReadOnlyList<GoogleDocsTableCell> Cells => _cells;
 
         internal void AddCell(GoogleDocsTableCell cell) {
-            if (cell == null) throw new ArgumentNullException(nameof(cell));
+            ArgumentNullException.ThrowIfNull(cell);
             _cells.Add(cell);
         }
     }
@@ -330,7 +330,7 @@ namespace OfficeIMO.Word.GoogleDocs {
         public IReadOnlyList<GoogleDocsParagraph> Paragraphs => _paragraphs;
 
         internal void AddParagraph(GoogleDocsParagraph paragraph) {
-            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
+            ArgumentNullException.ThrowIfNull(paragraph);
             _paragraphs.Add(paragraph);
         }
     }

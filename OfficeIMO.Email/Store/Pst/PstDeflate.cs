@@ -3,7 +3,7 @@ namespace OfficeIMO.Email.Store;
 internal static class PstDeflate {
     internal static byte[] Decode(byte[] compressed, int expectedLength) {
         if (expectedLength <= 0) throw new InvalidDataException("A compressed OST block has no decoded length.");
-        if (compressed == null) throw new ArgumentNullException(nameof(compressed));
+        ArgumentNullException.ThrowIfNull(compressed);
         bool zlibWrapped = HasZlibWrapper(compressed);
         int payloadOffset = zlibWrapped ? 2 : 0;
         int payloadLength = zlibWrapped ? compressed.Length - 6 : compressed.Length;

@@ -15,7 +15,7 @@ internal static partial class HtmlGeneratedContentResolver {
         int maximumDepth,
         HtmlCounterStyleRegistry counterStyles,
         HtmlDisclosureState disclosures) {
-        if (maximumDepth <= 0) throw new ArgumentOutOfRangeException(nameof(maximumDepth));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumDepth);
         var content = new Dictionary<IElement, HtmlGeneratedPseudoContentPair>();
         if (!styles.HasPseudoElements) return new HtmlGeneratedContentSet(content);
         var counters = new CounterState();

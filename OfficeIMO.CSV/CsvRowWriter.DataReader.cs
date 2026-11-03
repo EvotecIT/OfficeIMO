@@ -29,10 +29,7 @@ public sealed partial class CsvRowWriter
     public void WriteDataReader(IDataReader reader, CancellationToken cancellationToken)
     {
         ThrowIfDisposed();
-        if (reader == null)
-        {
-            throw new ArgumentNullException(nameof(reader));
-        }
+        ArgumentNullException.ThrowIfNull(reader);
 
         cancellationToken.ThrowIfCancellationRequested();
         var fieldCount = reader.FieldCount;

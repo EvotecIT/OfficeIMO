@@ -55,7 +55,7 @@ public abstract class HtmlConversionResult<T> : IOfficeConversionResult<T, HtmlC
 
     /// <summary>Adds diagnostics while the result is being constructed.</summary>
     protected void AddDiagnostics(IEnumerable<HtmlDiagnostic> diagnostics) {
-        if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
+        ArgumentNullException.ThrowIfNull(diagnostics);
         foreach (HtmlDiagnostic diagnostic in diagnostics) AddDiagnostic(diagnostic);
     }
 }

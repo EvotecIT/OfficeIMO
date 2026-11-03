@@ -5,7 +5,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>Validated AV1 4x4-unit tile boundaries and coded block dimensions, including partial frame edges.</summary>
 internal readonly struct OfficeAv1TileGeometry {
     internal OfficeAv1TileGeometry(OfficeAv1StillFrame frame, OfficeAv1Tile tile, int superblockPixels) {
-        if (frame == null) throw new ArgumentNullException(nameof(frame));
+        ArgumentNullException.ThrowIfNull(frame);
         if (superblockPixels != 64 && superblockPixels != 128) throw new FormatException("Invalid AV1 superblock size.");
         int units = superblockPixels / 4;
         if (frame.MiRows < 2 || frame.MiCols < 2 || frame.MiRows > 16384 || frame.MiCols > 16384 ||

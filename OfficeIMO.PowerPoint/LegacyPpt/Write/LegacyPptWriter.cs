@@ -45,7 +45,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static byte[] WriteDocument(PowerPointDocument presentation,
             PowerPointSaveOptions? options = null) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+            ArgumentNullException.ThrowIfNull(presentation);
             LegacyPptWritePreflightReport preflight = LegacyPptWritePreflight.Analyze(presentation);
             LegacyPptWritePreflight.ThrowIfBlocked(preflight, options);
             if (!TryReadAllClassicComments(presentation,
@@ -238,7 +238,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static byte[] BuildIncrementalSlideRecord(PowerPointSlide slide, uint drawingId,
             uint masterIdRef) {
-            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            ArgumentNullException.ThrowIfNull(slide);
             IReadOnlyList<PowerPointShape> sourceShapes = ReadSlideShapesForWrite(slide,
                 out string? layoutReason);
             IReadOnlyList<PowerPointShape> shapes = sourceShapes.Where(IsSupportedShape).ToArray();
@@ -269,7 +269,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterFontCatalog fonts,
             LegacyPptWriterPictureBulletCatalog pictureBullets,
             bool layoutIsIndependentMaster = false) {
-            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            ArgumentNullException.ThrowIfNull(slide);
             IReadOnlyList<PowerPointShape> sourceShapes = ReadSlideShapesForWrite(slide,
                 out string? layoutReason);
             IReadOnlyList<PowerPointShape> shapes = sourceShapes.Where(IsSupportedShape).ToArray();
@@ -617,7 +617,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static byte[] BuildShapePlaceholderTypes(
             IReadOnlyList<PowerPointShape> shapes,
             LegacyPptWriterShapeContext shapeContext) {
-            if (shapes == null) throw new ArgumentNullException(nameof(shapes));
+            ArgumentNullException.ThrowIfNull(shapes);
             var result = new byte[8];
             foreach (PowerPointShape shape in shapes) {
                 if (!TryReadPlaceholderForWrite(shape, shapeContext,

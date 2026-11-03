@@ -12,7 +12,7 @@ public sealed partial class MhtmlDocument {
         OfficeContentSafetyOptions? options = null,
         EmailReaderOptions? mimeOptions = null,
         CancellationToken cancellationToken = default) {
-        if (archiveBytes == null) throw new ArgumentNullException(nameof(archiveBytes));
+        ArgumentNullException.ThrowIfNull(archiveBytes);
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         OfficeContentSafetyInputGuard.ValidateBytes(archiveBytes, effective);
         MhtmlDocument document = LoadForContentSafety(archiveBytes, effective, mimeOptions, cancellationToken);
@@ -37,8 +37,8 @@ public sealed partial class MhtmlDocument {
         OfficeContentCleanupOptions? options = null,
         EmailReaderOptions? mimeOptions = null,
         CancellationToken cancellationToken = default) {
-        if (archiveBytes == null) throw new ArgumentNullException(nameof(archiveBytes));
-        if (selection == null) throw new ArgumentNullException(nameof(selection));
+        ArgumentNullException.ThrowIfNull(archiveBytes);
+        ArgumentNullException.ThrowIfNull(selection);
         options ??= new OfficeContentCleanupOptions();
         options.Validate();
         OfficeContentSafetyInputGuard.ValidateBytes(archiveBytes, options.Inspection);

@@ -138,8 +138,8 @@ public static partial class HtmlRoundTripScorer {
         HtmlConversionDocument sourceDocument,
         HtmlConversionDocument targetDocument,
         HtmlArtifactReloadEvidence? artifactReloadEvidence) {
-        if (sourceDocument == null) throw new ArgumentNullException(nameof(sourceDocument));
-        if (targetDocument == null) throw new ArgumentNullException(nameof(targetDocument));
+        ArgumentNullException.ThrowIfNull(sourceDocument);
+        ArgumentNullException.ThrowIfNull(targetDocument);
 
         AngleSharp.Html.Dom.IHtmlDocument sourceScoringDocument = PrepareDocumentForScoring(sourceDocument);
         AngleSharp.Html.Dom.IHtmlDocument targetScoringDocument = PrepareDocumentForScoring(targetDocument);
@@ -164,25 +164,17 @@ public static partial class HtmlRoundTripScorer {
     /// Compares logical documents and returns a structural score.
     /// </summary>
     public static HtmlRoundTripScore Compare(HtmlLogicalDocument source, HtmlLogicalDocument target) {
-        if (source == null) {
-            throw new ArgumentNullException(nameof(source));
-        }
+        ArgumentNullException.ThrowIfNull(source);
 
-        if (target == null) {
-            throw new ArgumentNullException(nameof(target));
-        }
+        ArgumentNullException.ThrowIfNull(target);
 
         return Compare(source, target, TextSimilarityFromText(ExtractLogicalText(source), ExtractLogicalText(target)));
     }
 
     private static HtmlRoundTripScore Compare(HtmlLogicalDocument source, HtmlLogicalDocument target, double textSimilarity, double? formOwnerSimilarity = null) {
-        if (source == null) {
-            throw new ArgumentNullException(nameof(source));
-        }
+        ArgumentNullException.ThrowIfNull(source);
 
-        if (target == null) {
-            throw new ArgumentNullException(nameof(target));
-        }
+        ArgumentNullException.ThrowIfNull(target);
 
         var metrics = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
         AddMetric(metrics, "nodes", Ratio(SumCounts(target), SumCounts(source)));
@@ -1031,9 +1023,7 @@ public static partial class HtmlRoundTripScorer {
     }
 
     private static string ExtractLogicalText(HtmlLogicalDocument document) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
         var parts = new List<string>();
         AppendLogicalText(document.Root, parts);

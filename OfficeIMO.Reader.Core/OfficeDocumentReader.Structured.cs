@@ -43,7 +43,7 @@ public sealed partial class OfficeDocumentReader {
         ReaderOptions? readerOptions = null,
         OfficeDocumentStructuredExtractionOptions? structuredOptions = null,
         CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         using var stream = new MemoryStream(bytes, writable: false);
         return ReadStructured(stream, sourceName, readerOptions, structuredOptions, cancellationToken);
     }
@@ -80,7 +80,7 @@ public sealed partial class OfficeDocumentReader {
         ReaderOptions? readerOptions = null,
         OfficeDocumentStructuredExtractionOptions? structuredOptions = null,
         CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         using var stream = new MemoryStream(bytes, writable: false);
         return await ReadStructuredAsync(
             stream,

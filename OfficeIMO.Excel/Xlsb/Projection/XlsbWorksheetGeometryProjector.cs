@@ -6,8 +6,8 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
     /// <summary>Projects and validates preservation-owned XLSB worksheet geometry.</summary>
     internal static class XlsbWorksheetGeometryProjector {
         internal static void Apply(ExcelSheet targetSheet, XlsbSheet sourceSheet) {
-            if (targetSheet == null) throw new ArgumentNullException(nameof(targetSheet));
-            if (sourceSheet == null) throw new ArgumentNullException(nameof(sourceSheet));
+            ArgumentNullException.ThrowIfNull(targetSheet);
+            ArgumentNullException.ThrowIfNull(sourceSheet);
 
             Worksheet worksheet = targetSheet.WorksheetPart.Worksheet
                 ?? throw new InvalidDataException($"Worksheet '{targetSheet.Name}' has no worksheet root.");

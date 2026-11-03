@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
             ParallelRowMappingOptions? parallelOptions = null,
             ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) where T : new() {
-            if (configure is null) throw new ArgumentNullException(nameof(configure));
+            ArgumentNullException.ThrowIfNull(configure);
             return RowsAsParallelUsedRangeIterator(configure, parallelOptions, options, cancellationToken);
         }
 
@@ -32,7 +32,7 @@ namespace OfficeIMO.Excel {
             ParallelRowMappingOptions? parallelOptions = null,
             ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (factory is null) throw new ArgumentNullException(nameof(factory));
+            ArgumentNullException.ThrowIfNull(factory);
             return RowsAsParallelUsedRangeIterator(factory, parallelOptions, options, cancellationToken);
         }
 
@@ -58,7 +58,7 @@ namespace OfficeIMO.Excel {
             ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) where T : new() {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
-            if (configure is null) throw new ArgumentNullException(nameof(configure));
+            ArgumentNullException.ThrowIfNull(configure);
             return RowsAsParallelRangeIterator(a1Range, configure, parallelOptions, options, cancellationToken);
         }
 
@@ -70,7 +70,7 @@ namespace OfficeIMO.Excel {
             ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
-            if (factory is null) throw new ArgumentNullException(nameof(factory));
+            ArgumentNullException.ThrowIfNull(factory);
             return RowsAsParallelRangeIterator(a1Range, factory, parallelOptions, options, cancellationToken);
         }
 

@@ -104,7 +104,7 @@ namespace OfficeIMO.Excel {
             OpenXmlPartRootElement root,
             long remainingCharacters,
             long maximumCharacters) {
-            if (root == null) throw new ArgumentNullException(nameof(root));
+            ArgumentNullException.ThrowIfNull(root);
             if (remainingCharacters < 1) {
                 throw new InvalidOperationException(
                     $"Transactional snapshot exceeds MaximumSnapshotCharacters ({maximumCharacters}).");
@@ -140,7 +140,7 @@ namespace OfficeIMO.Excel {
             }
 
             public override void Write(char[] buffer, int index, int count) {
-                if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+                ArgumentNullException.ThrowIfNull(buffer);
                 if (index < 0 || count < 0 || index > buffer.Length - count) {
                     throw new ArgumentOutOfRangeException(nameof(index));
                 }

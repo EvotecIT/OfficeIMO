@@ -9,7 +9,7 @@ public partial class ExcelSheet {
     public ExcelTable AddTable<T>(IEnumerable<T> rows,
         (string Header, Func<T, object?> Selector)[] columns,
         OfficeTableOptions? options = null, int row = 1, int column = 1) {
-        if (rows == null) throw new ArgumentNullException(nameof(rows));
+        ArgumentNullException.ThrowIfNull(rows);
         if (columns == null || columns.Length == 0) throw new ArgumentException("At least one column selector is required.", nameof(columns));
         ValidateTypedTableOrigin(row, column);
         ObjectDataHelpers.ValidateTableAlignments(options);

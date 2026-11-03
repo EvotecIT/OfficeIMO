@@ -66,7 +66,7 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Dashboard chart options.</param>
         /// <returns>The created chart.</returns>
         public ExcelChart AddDashboardChart(ExcelDashboardChartOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             if (!Enum.IsDefined(typeof(ExcelDashboardChartPreset), options.Preset)) throw new ArgumentOutOfRangeException(nameof(options.Preset));
             if (options.Row <= 0 || options.Row > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(options.Row), "Chart row must be between 1 and the Excel row limit.");
             if (options.Column <= 0 || options.Column > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(options.Column), "Chart column must be between 1 and the Excel column limit.");

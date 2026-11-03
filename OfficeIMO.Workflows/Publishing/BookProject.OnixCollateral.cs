@@ -11,9 +11,9 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class BookProject {
     private static XElement? BuildOnixCollateral(IReadOnlyList<BookOnixCollateralText> items, IReadOnlyList<BookOnixSupportingResource> resources, IReadOnlyList<XElement> contributors, CancellationToken cancellationToken) {
-        if (items == null) throw new ArgumentNullException(nameof(items));
+        ArgumentNullException.ThrowIfNull(items);
         if (items.Count > 64) throw new ArgumentException("At most 64 collateral text items are supported.", nameof(items));
-        if (resources == null) throw new ArgumentNullException(nameof(resources));
+        ArgumentNullException.ThrowIfNull(resources);
         if (resources.Count > 64) throw new ArgumentException("At most 64 supporting resources are supported.", nameof(resources));
         if (items.Count == 0 && resources.Count == 0) return null;
         XNamespace ns = OnixNamespace;
@@ -21,7 +21,7 @@ public sealed partial class BookProject {
         int textBudget = 524288;
         foreach (var item in items) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (item == null) throw new ArgumentNullException(nameof(item));
+            ArgumentNullException.ThrowIfNull(item);
             if (!OfficeRuntimeCompatibility.IsDefined(item.Type)) throw new ArgumentOutOfRangeException(nameof(item.Type));
             var content = new XElement(ns + "TextContent", new XElement(ns + "SequenceNumber", result.Elements().Count() + 1),
                 new XElement(ns + "TextType", ((int)item.Type).ToString("00", CultureInfo.InvariantCulture)));
@@ -69,14 +69,14 @@ public sealed partial class BookProject {
 
     private static IReadOnlyList<XElement> BuildOnixCollateralValues(IReadOnlyList<BookOnixCollateralTextValue> values,
         string elementName, int maximumLength, bool shortText, ref int textBudget, CancellationToken cancellationToken) {
-        if (values == null) throw new ArgumentNullException(nameof(values));
+        ArgumentNullException.ThrowIfNull(values);
         if (values.Count > 16) throw new ArgumentException("At most 16 language variants are supported.", nameof(values));
         XNamespace ns = OnixNamespace;
         var result = new List<XElement>();
         var languages = new HashSet<string>(StringComparer.Ordinal);
         foreach (var value in values) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
             if ((value.Text == null || string.IsNullOrWhiteSpace(value.Text))) throw new ArgumentException("A non-empty value is required.", "value.Text");
             if (value.Text.Length > maximumLength || value.Text.Length > textBudget)
                 throw new ArgumentException("Collateral text exceeds the per-field or aggregate text limit.", nameof(values));

@@ -12,9 +12,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ushort recordType,
             int payloadLength,
             uint declaredValidationCount) {
-            if (payloadLength < 0) {
-                throw new ArgumentOutOfRangeException(nameof(payloadLength));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(payloadLength);
 
             SheetName = sheetName ?? throw new ArgumentNullException(nameof(sheetName));
             RecordOffset = recordOffset;

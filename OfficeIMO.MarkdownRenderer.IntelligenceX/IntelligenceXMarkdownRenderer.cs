@@ -58,9 +58,7 @@ public static class IntelligenceXMarkdownRenderer {
     /// Applies the IntelligenceX visual alias plugin.
     /// </summary>
     public static void ApplyVisuals(MarkdownRendererOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         options.ApplyPlugin(VisualsPlugin);
     }
@@ -69,9 +67,7 @@ public static class IntelligenceXMarkdownRenderer {
     /// Applies the IntelligenceX transcript reader/AST contract together with IX visual aliases and schema support.
     /// </summary>
     public static void ApplyTranscriptContract(MarkdownRendererOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         options.ApplyPlugin(TranscriptPlugin);
     }
@@ -80,9 +76,7 @@ public static class IntelligenceXMarkdownRenderer {
     /// Applies the IntelligenceX visual aliases and transcript legacy migration helpers.
     /// </summary>
     public static void ApplyTranscriptCompatibility(MarkdownRendererOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         options.ApplyFeaturePack(TranscriptCompatibilityPack);
     }
@@ -91,9 +85,7 @@ public static class IntelligenceXMarkdownRenderer {
     /// Returns <see langword="true"/> when the IntelligenceX transcript plugin is already applied.
     /// </summary>
     public static bool HasTranscriptContract(MarkdownRendererOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         return options.HasPlugin(TranscriptPlugin);
     }
@@ -102,9 +94,7 @@ public static class IntelligenceXMarkdownRenderer {
     /// Returns <see langword="true"/> when the IntelligenceX transcript compatibility pack is already applied.
     /// </summary>
     public static bool HasTranscriptCompatibility(MarkdownRendererOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         return options.HasFeaturePack(TranscriptCompatibilityPack);
     }
@@ -113,9 +103,7 @@ public static class IntelligenceXMarkdownRenderer {
     /// Applies the IntelligenceX visual fence option schema.
     /// </summary>
     public static void ApplyVisualFenceSchema(MarkdownRendererOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         options.ApplyFenceOptionSchema(VisualFenceSchema);
     }
@@ -124,9 +112,7 @@ public static class IntelligenceXMarkdownRenderer {
     /// Returns <see langword="true"/> when the IntelligenceX visual fence option schema is already registered.
     /// </summary>
     public static bool HasVisualFenceSchema(MarkdownRendererOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         return options.HasFenceOptionSchema(VisualFenceSchema);
     }

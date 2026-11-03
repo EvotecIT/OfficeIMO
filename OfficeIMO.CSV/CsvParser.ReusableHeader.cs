@@ -10,15 +10,9 @@ internal static partial class CsvParser
         Func<CsvParsedRecord, bool> metadataRecordAction,
         Action<IReadOnlyList<string>> recordAction)
     {
-        if (metadataRecordAction == null)
-        {
-            throw new ArgumentNullException(nameof(metadataRecordAction));
-        }
+        ArgumentNullException.ThrowIfNull(metadataRecordAction);
 
-        if (recordAction == null)
-        {
-            throw new ArgumentNullException(nameof(recordAction));
-        }
+        ArgumentNullException.ThrowIfNull(recordAction);
 
         if (UsesTextDelimiter(options))
         {

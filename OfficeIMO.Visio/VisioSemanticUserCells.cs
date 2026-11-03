@@ -49,9 +49,7 @@ namespace OfficeIMO.Visio {
         public const string StencilPreviewImageByteLength = "OfficeIMO.StencilPreviewImageByteLength";
 
         public static void MarkGeneratedAdornment(VisioShape shape) {
-            if (shape == null) {
-                throw new ArgumentNullException(nameof(shape));
-            }
+            ArgumentNullException.ThrowIfNull(shape);
 
             shape.SetUserCell(Kind, DiagramAdornmentKind, "STR", prompt: "OfficeIMO semantic kind");
             shape.SetUserCell(DiagramAdornmentRole, GeneratedAdornmentRole, "STR", prompt: "OfficeIMO diagram adornment role");

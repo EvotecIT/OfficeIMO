@@ -12,7 +12,7 @@ namespace OfficeIMO.Word {
         /// <param name="categories">The literal category labels to persist.</param>
         /// <returns><see langword="true"/> when at least one imported or code-created series was updated.</returns>
         public bool TrySetCategories(IEnumerable<string> categories) {
-            if (categories == null) throw new ArgumentNullException(nameof(categories));
+            ArgumentNullException.ThrowIfNull(categories);
             string[] values = categories.Select(value => value ?? string.Empty).ToArray();
             C.Chart? chart = ResolveChart();
             if (chart == null) return false;
@@ -38,7 +38,7 @@ namespace OfficeIMO.Word {
         /// <param name="values">The literal numeric values to persist.</param>
         /// <returns><see langword="true"/> when the indexed series and its numeric value container were found.</returns>
         public bool TrySetSeriesValues(uint seriesIndex, IEnumerable<double> values) {
-            if (values == null) throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(values);
             double[] materialized = values.ToArray();
             if (materialized.Any(value => double.IsNaN(value) || double.IsInfinity(value))) {
                 throw new ArgumentOutOfRangeException(nameof(values), "Chart series values must be finite numbers.");
@@ -62,7 +62,7 @@ namespace OfficeIMO.Word {
         /// <param name="name">The new series name.</param>
         /// <returns><see langword="true"/> when the indexed series has a mutable series-text element.</returns>
         public bool TrySetSeriesName(uint seriesIndex, string name) {
-            if (name == null) throw new ArgumentNullException(nameof(name));
+            ArgumentNullException.ThrowIfNull(name);
             OpenXmlCompositeElement? series = FindSeries(seriesIndex);
             C.SeriesText? seriesText = series?.GetFirstChild<C.SeriesText>();
             if (seriesText == null) return false;

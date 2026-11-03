@@ -84,7 +84,7 @@ internal sealed partial class MailboxDirectoryStoreSessionBackend : IEmailStoreS
 
     public EmailStoreItem ReadItem(EmailStoreItemReference reference, EmailStoreItemReadOptions options,
         CancellationToken cancellationToken) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         cancellationToken.ThrowIfCancellationRequested();
         if (TryGetAggregate(reference, out AggregateItem aggregate)) {
             EmailStoreItem item = aggregate.Backend.ReadItem(aggregate.Reference, options, cancellationToken);
@@ -272,7 +272,7 @@ internal sealed partial class MailboxDirectoryStoreSessionBackend : IEmailStoreS
     }
 
     internal static string? ParseMaildirFlags(string name, string? parentDirectoryName) {
-        if (name == null) throw new ArgumentNullException(nameof(name));
+        ArgumentNullException.ThrowIfNull(name);
         if (!string.Equals(parentDirectoryName, "cur", StringComparison.OrdinalIgnoreCase)) return null;
         int marker = name.LastIndexOf(":2,", StringComparison.Ordinal);
         if (marker <= 0) return null;
@@ -285,7 +285,7 @@ internal sealed partial class MailboxDirectoryStoreSessionBackend : IEmailStoreS
     }
 
     internal static void ApplyMaildirFlags(EmailDocument document, string? flags) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         if (flags == null) return;
         document.MessageMetadata.IsDraft = flags.IndexOf('D') >= 0;
         document.MessageMetadata.IsRead = flags.IndexOf('S') >= 0;

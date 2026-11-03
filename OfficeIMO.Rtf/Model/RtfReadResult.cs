@@ -75,7 +75,7 @@ public sealed partial class RtfReadResult : IOfficeResult<RtfDocument> {
     /// Saves the original RTF stream to a file without semantic normalization.
     /// </summary>
     public void SaveLossless(string path) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         OfficeIMO.Core.Internal.OfficeFileCommit.WriteAllBytes(path, ToBytesLossless());
     }
 
@@ -83,7 +83,7 @@ public sealed partial class RtfReadResult : IOfficeResult<RtfDocument> {
     /// Saves the original RTF stream to a stream without semantic normalization.
     /// </summary>
     public void SaveLossless(Stream stream) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         OfficeIMO.Core.Internal.OfficeStreamWriter.WriteAllBytes(stream, ToBytesLossless());
     }
 

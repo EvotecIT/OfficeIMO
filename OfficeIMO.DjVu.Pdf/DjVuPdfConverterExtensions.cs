@@ -38,7 +38,7 @@ public static class DjVuPdfConverterExtensions {
         return await (await document.ToPdfDocumentResultAsync(options, cancellationToken).ConfigureAwait(false)).SaveAsync(output, cancellationToken).ConfigureAwait(false);
     }
     private static void ValidateOutput(Stream output) {
-        if (output == null) throw new ArgumentNullException(nameof(output));
+        ArgumentNullException.ThrowIfNull(output);
         if (!output.CanWrite) throw new ArgumentException("PDF output stream must be writable.", nameof(output));
     }
 }

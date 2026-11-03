@@ -160,7 +160,7 @@ public sealed class HtmlComputedStyle {
     }
 
     internal bool HasCascadeStateMatching(Func<string, bool> predicate) {
-        if (predicate == null) throw new ArgumentNullException(nameof(predicate));
+        ArgumentNullException.ThrowIfNull(predicate);
         return _properties.Keys.Any(predicate)
             || _inheritedProperties.Any(predicate)
             || _resetProperties.Any(predicate)

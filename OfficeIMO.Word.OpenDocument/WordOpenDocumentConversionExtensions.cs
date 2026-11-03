@@ -15,7 +15,7 @@ public static partial class WordOpenDocumentConversionExtensions {
     /// <summary>Converts a Word document to an in-memory ODT document and reports every lossy mapping.</summary>
     public static OdfConversionResult<OdtDocument> ToOpenDocumentResult(this WordDocument source,
         WordOpenDocumentConversionOptions? options = null) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         WordOpenDocumentConversionOptions effective = options ?? new WordOpenDocumentConversionOptions();
         WordDocumentInfo snapshot = source.Inspect();
         OdtDocument target = OdtDocument.Create();
@@ -172,7 +172,7 @@ public static partial class WordOpenDocumentConversionExtensions {
     /// <summary>Converts an ODT document to an in-memory Word document and reports every lossy mapping.</summary>
     public static OdfConversionResult<WordDocument> ToWordDocumentResult(this OdtDocument source,
         WordOpenDocumentConversionOptions? options = null) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         WordOpenDocumentConversionOptions effective = options ?? new WordOpenDocumentConversionOptions();
         if (effective.MaxConvertedImageBytes < 0)
             throw new ArgumentOutOfRangeException(nameof(options), "MaxConvertedImageBytes cannot be negative.");

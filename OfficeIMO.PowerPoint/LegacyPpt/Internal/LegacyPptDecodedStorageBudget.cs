@@ -28,9 +28,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         internal void Consume(int byteCount) {
-            if (byteCount < 0) {
-                throw new ArgumentOutOfRangeException(nameof(byteCount));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(byteCount);
             if (_decodedBytes > _maximumDecodedBytes - byteCount) {
                 _wasExceeded = true;
                 throw CreateLimitException();

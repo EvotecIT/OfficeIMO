@@ -18,9 +18,7 @@ public sealed class HtmlConversionException : InvalidOperationException {
     public IReadOnlyList<HtmlDiagnostic> Diagnostics { get; }
 
     private static IReadOnlyList<HtmlDiagnostic> ToDiagnosticList(IEnumerable<HtmlDiagnostic> diagnostics) {
-        if (diagnostics == null) {
-            throw new ArgumentNullException(nameof(diagnostics));
-        }
+        ArgumentNullException.ThrowIfNull(diagnostics);
 
         return diagnostics.ToList().AsReadOnly();
     }

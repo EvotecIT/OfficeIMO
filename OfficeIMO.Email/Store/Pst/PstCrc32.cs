@@ -7,7 +7,7 @@ internal static class PstCrc32 {
     internal static uint Compute(byte[] bytes, int count) => Compute(bytes, 0, count);
 
     internal static uint Compute(byte[] bytes, int offset, int count) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         if (offset < 0 || count < 0 || offset > bytes.Length - count) {
             throw new ArgumentOutOfRangeException(nameof(count));
         }

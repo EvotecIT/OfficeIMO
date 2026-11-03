@@ -177,8 +177,8 @@ internal static class ReaderCommandUtilities
         IEnumerable<string>? extensions,
         out bool limitReached)
     {
-        if (paths == null) throw new ArgumentNullException(nameof(paths));
-        if (maxDocuments < 1) throw new ArgumentOutOfRangeException(nameof(maxDocuments));
+        ArgumentNullException.ThrowIfNull(paths);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxDocuments, 1);
 
         var comparer = Path.DirectorySeparatorChar == '\\'
             ? StringComparer.OrdinalIgnoreCase

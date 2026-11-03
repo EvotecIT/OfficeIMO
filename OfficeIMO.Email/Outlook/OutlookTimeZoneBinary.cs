@@ -7,7 +7,7 @@ public static class OutlookTimeZoneBinary {
 
     /// <summary>Decodes a TZDEFINITION while retaining unsupported or malformed input losslessly.</summary>
     public static OutlookTimeZoneDefinition DecodeDefinition(byte[] bytes) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         var definition = new OutlookTimeZoneDefinition();
         try {
             var cursor = new Cursor(bytes);
@@ -45,7 +45,7 @@ public static class OutlookTimeZoneBinary {
 
     /// <summary>Encodes a TZDEFINITION, preserving untouched decoded source bytes exactly.</summary>
     public static byte[] EncodeDefinition(OutlookTimeZoneDefinition definition) {
-        if (definition == null) throw new ArgumentNullException(nameof(definition));
+        ArgumentNullException.ThrowIfNull(definition);
         if (definition.CanPreserveRawState) return (byte[])definition.RawState!.Clone();
         ValidateDefinition(definition);
         using (var stream = new MemoryStream())
@@ -66,7 +66,7 @@ public static class OutlookTimeZoneBinary {
 
     /// <summary>Decodes PidLidTimeZoneStruct while retaining malformed input losslessly.</summary>
     public static OutlookTimeZoneStructure DecodeStructure(byte[] bytes) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         var structure = new OutlookTimeZoneStructure();
         try {
             if (bytes.Length != 48)
@@ -89,7 +89,7 @@ public static class OutlookTimeZoneBinary {
 
     /// <summary>Encodes PidLidTimeZoneStruct, preserving untouched decoded source bytes exactly.</summary>
     public static byte[] EncodeStructure(OutlookTimeZoneStructure structure) {
-        if (structure == null) throw new ArgumentNullException(nameof(structure));
+        ArgumentNullException.ThrowIfNull(structure);
         if (structure.CanPreserveRawState) return (byte[])structure.RawState!.Clone();
         ValidateRule(structure.Rule);
         using (var stream = new MemoryStream(48))
@@ -177,7 +177,7 @@ public static class OutlookTimeZoneBinary {
     }
 
     private static void ValidateRule(OutlookTimeZoneRule rule) {
-        if (rule == null) throw new ArgumentNullException(nameof(rule));
+        ArgumentNullException.ThrowIfNull(rule);
         ValidateTransition(rule.StandardTransition);
         ValidateTransition(rule.DaylightTransition);
         if (rule.StandardTransition.IsDisabled != rule.DaylightTransition.IsDisabled)
@@ -185,7 +185,7 @@ public static class OutlookTimeZoneBinary {
     }
 
     private static void ValidateTransition(OutlookTimeZoneTransition transition) {
-        if (transition == null) throw new ArgumentNullException(nameof(transition));
+        ArgumentNullException.ThrowIfNull(transition);
         if (transition.IsDisabled) {
             if (transition.Year != 0 || transition.DayOfWeek != 0 || transition.Day != 0 || transition.Hour != 0 ||
                 transition.Minute != 0 || transition.Second != 0 || transition.Milliseconds != 0)

@@ -108,7 +108,7 @@ public static class ReaderTableExportMaterializer {
         string directoryPath,
         ReaderTableExportMaterializationOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (exports == null) throw new ArgumentNullException(nameof(exports));
+        ArgumentNullException.ThrowIfNull(exports);
         if (string.IsNullOrWhiteSpace(directoryPath)) throw new ArgumentException("Directory path cannot be empty.", nameof(directoryPath));
 
         ReaderTableExportMaterializationOptions effectiveOptions = options ?? new ReaderTableExportMaterializationOptions();
@@ -169,8 +169,8 @@ public static class ReaderTableExportMaterializer {
         Action<ReaderTableExportBundle, ReaderTableExportFormat, Stream> writeExport,
         ReaderTableExportMaterializationOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (exports == null) throw new ArgumentNullException(nameof(exports));
-        if (writeExport == null) throw new ArgumentNullException(nameof(writeExport));
+        ArgumentNullException.ThrowIfNull(exports);
+        ArgumentNullException.ThrowIfNull(writeExport);
 
         ReaderTableExportMaterializationOptions effectiveOptions = options ?? new ReaderTableExportMaterializationOptions();
         var results = new List<ReaderTableMaterializedExport>();

@@ -10,8 +10,8 @@ public sealed class PowerPointToHtmlResult : HtmlConversionResult<string> {
         IEnumerable<OfficeImageExportDiagnostic> imageDiagnostics,
         IEnumerable<HtmlDiagnostic> conversionDiagnostics)
         : base(value) {
-        if (imageDiagnostics == null) throw new ArgumentNullException(nameof(imageDiagnostics));
-        if (conversionDiagnostics == null) throw new ArgumentNullException(nameof(conversionDiagnostics));
+        ArgumentNullException.ThrowIfNull(imageDiagnostics);
+        ArgumentNullException.ThrowIfNull(conversionDiagnostics);
         ImageDiagnostics = Array.AsReadOnly(imageDiagnostics.ToArray());
         AddDiagnostics(ImageDiagnostics.Select(ToHtmlDiagnostic));
         AddDiagnostics(conversionDiagnostics);

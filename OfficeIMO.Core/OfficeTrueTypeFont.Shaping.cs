@@ -146,8 +146,8 @@ public sealed partial class OfficeTrueTypeFont {
         OfficeTextShapingResult result,
         OfficeTrueTypeVariations.WorkBudget? variationWorkBudget = null,
         CancellationToken cancellationToken = default) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentNullException.ThrowIfNull(result);
         if (text.Length > 0 && result.Glyphs.Count == 0) {
             throw new ArgumentException(
                 "Drawing text shaping provider returned no glyphs for non-empty text.",
@@ -254,7 +254,7 @@ public sealed partial class OfficeTrueTypeFont {
             int maximumPointCount = int.MaxValue,
             CancellationToken cancellationToken = default,
             OfficeTrueTypeVariations.WorkBudget? variationWorkBudget = null) {
-            if (maximumPointCount <= 0) throw new ArgumentOutOfRangeException(nameof(maximumPointCount));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumPointCount);
             var contours = new List<List<OfficePoint>>();
             double scale = _font.ScaleFor(fontSize);
             if (Direction == OfficeTextDirection.TopToBottom) {

@@ -67,17 +67,13 @@ public sealed class HtmlCapabilityGalleryManifest {
     public IReadOnlyList<OfficeHtmlConversionProfile> OfficeProfiles => _officeProfiles;
 
     private static IReadOnlyList<HtmlCapabilityGalleryExpectation> ToReadOnlyList(IEnumerable<HtmlCapabilityGalleryExpectation> expectations) {
-        if (expectations == null) {
-            throw new ArgumentNullException(nameof(expectations));
-        }
+        ArgumentNullException.ThrowIfNull(expectations);
 
         return expectations.Where(expectation => expectation != null).ToList().AsReadOnly();
     }
 
     private static IReadOnlyList<OfficeHtmlConversionProfile> ToOfficeProfileList(IEnumerable<OfficeHtmlConversionProfile> officeProfiles) {
-        if (officeProfiles == null) {
-            throw new ArgumentNullException(nameof(officeProfiles));
-        }
+        ArgumentNullException.ThrowIfNull(officeProfiles);
 
         return officeProfiles.Distinct().ToList().AsReadOnly();
     }

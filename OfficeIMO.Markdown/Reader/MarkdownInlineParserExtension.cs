@@ -10,9 +10,7 @@ public readonly struct MarkdownInlineParseResult {
     /// <param name="inline">Inline node produced by the extension.</param>
     /// <param name="consumedLength">Number of source characters consumed by the extension.</param>
     public MarkdownInlineParseResult(IMarkdownInline inline, int consumedLength) {
-        if (inline == null) {
-            throw new ArgumentNullException(nameof(inline));
-        }
+        ArgumentNullException.ThrowIfNull(inline);
 
         if (consumedLength <= 0) {
             throw new ArgumentOutOfRangeException(nameof(consumedLength), consumedLength, "Consumed length must be greater than zero.");

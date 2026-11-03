@@ -94,9 +94,7 @@ namespace OfficeIMO.PowerPoint {
         /// Applies the style to a paragraph.
         /// </summary>
         public void Apply(PowerPointParagraph paragraph) {
-            if (paragraph == null) {
-                throw new ArgumentNullException(nameof(paragraph));
-            }
+            ArgumentNullException.ThrowIfNull(paragraph);
 
             if (Alignment != null) {
                 paragraph.Alignment = Alignment;

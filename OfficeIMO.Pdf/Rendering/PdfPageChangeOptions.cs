@@ -17,8 +17,8 @@ public sealed class PdfPageChangeOptions {
 
     internal void Validate() {
         if (RenderScale <= 0D || double.IsNaN(RenderScale) || double.IsInfinity(RenderScale)) throw new ArgumentOutOfRangeException(nameof(RenderScale));
-        if (MaxPagesPerDocument <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPagesPerDocument));
-        if (MaxPixelsPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPixelsPerPage));
-        if (MaxTotalPixels <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTotalPixels));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxPagesPerDocument);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxPixelsPerPage);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxTotalPixels);
     }
 }

@@ -73,9 +73,9 @@ public sealed class PdfProductionPreflightOptions {
         if (MinimumImagePpi.HasValue && (double.IsNaN(MinimumImagePpi.Value) || double.IsInfinity(MinimumImagePpi.Value) || MinimumImagePpi.Value <= 0D)) {
             throw new ArgumentOutOfRangeException(nameof(MinimumImagePpi));
         }
-        if (MaxPages <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPages));
-        if (MaxFindings <= 0) throw new ArgumentOutOfRangeException(nameof(MaxFindings));
-        if (MaxFixupProposals < 0) throw new ArgumentOutOfRangeException(nameof(MaxFixupProposals));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxPages);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxFindings);
+        ArgumentOutOfRangeException.ThrowIfNegative(MaxFixupProposals);
     }
 
     internal PdfProductionPreflightOptions Copy() => new PdfProductionPreflightOptions {

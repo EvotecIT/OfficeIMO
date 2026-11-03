@@ -56,7 +56,7 @@ public sealed class OpmlOutline {
 
     /// <summary>Sets or removes any standard or extension attribute.</summary>
     public void SetAttribute(XName name, string? value) {
-        if (name == null) throw new ArgumentNullException(nameof(name));
+        ArgumentNullException.ThrowIfNull(name);
         Element.SetAttributeValue(name, value);
         _document.MarkModified();
     }

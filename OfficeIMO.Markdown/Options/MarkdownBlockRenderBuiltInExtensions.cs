@@ -42,9 +42,7 @@ internal static class MarkdownBlockRenderBuiltInExtensions {
 
     /// <summary>Adds a portable markdown fallback for OfficeIMO callout blocks.</summary>
     public static void AddPortableCalloutMarkdownFallback(MarkdownSaveOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         AddIfMissing(options.BlockRenderExtensions, PortableCalloutMarkdownName, typeof(CalloutBlock), static (block, _) => {
             if (block is not CalloutBlock callout) {
@@ -57,9 +55,7 @@ internal static class MarkdownBlockRenderBuiltInExtensions {
 
     /// <summary>Adds a CommonMark-compatible markdown fallback for tables by emitting raw HTML tables.</summary>
     public static void AddCommonMarkTableMarkdownFallback(MarkdownSaveOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         AddIfMissing(options.BlockRenderExtensions, CommonMarkTableMarkdownName, typeof(TableBlock), static (block, _) => {
             if (block is not TableBlock table) {
@@ -72,9 +68,7 @@ internal static class MarkdownBlockRenderBuiltInExtensions {
 
     /// <summary>Adds a CommonMark-compatible markdown fallback for task lists by emitting raw HTML lists.</summary>
     public static void AddCommonMarkTaskListMarkdownFallback(MarkdownSaveOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         AddIfMissing(options.BlockRenderExtensions, CommonMarkTaskListMarkdownName, typeof(UnorderedListBlock), static (block, _) => {
             if (block is not UnorderedListBlock list || !ContainsTaskListItem(list.Items)) {
@@ -95,18 +89,14 @@ internal static class MarkdownBlockRenderBuiltInExtensions {
 
     /// <summary>Adds a CommonMark-compatible markdown fallback for definition lists by emitting raw HTML.</summary>
     public static void AddCommonMarkDefinitionListMarkdownFallback(MarkdownSaveOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         AddDefinitionListHtmlMarkdownFallback(options, CommonMarkDefinitionListMarkdownName);
     }
 
     /// <summary>Adds a CommonMark-compatible markdown fallback for footnote definitions by emitting raw HTML.</summary>
     public static void AddCommonMarkFootnoteDefinitionMarkdownFallback(MarkdownSaveOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         AddIfMissing(options.BlockRenderExtensions, CommonMarkFootnoteDefinitionMarkdownName, typeof(FootnoteDefinitionBlock), static (block, _) => {
             if (block is not FootnoteDefinitionBlock footnote) {
@@ -119,9 +109,7 @@ internal static class MarkdownBlockRenderBuiltInExtensions {
 
     /// <summary>Adds a CommonMark-compatible markdown fallback for details blocks by emitting raw HTML.</summary>
     public static void AddCommonMarkDetailsMarkdownFallback(MarkdownSaveOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         AddIfMissing(options.BlockRenderExtensions, CommonMarkDetailsMarkdownName, typeof(DetailsBlock), static (block, _) => {
             if (block is not DetailsBlock details) {
@@ -134,72 +122,56 @@ internal static class MarkdownBlockRenderBuiltInExtensions {
 
     /// <summary>Adds a CommonMark-compatible markdown fallback for custom containers by emitting raw HTML.</summary>
     public static void AddCommonMarkCustomContainerMarkdownFallback(MarkdownSaveOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         AddCustomContainerHtmlMarkdownFallback(options, CommonMarkCustomContainerMarkdownName);
     }
 
     /// <summary>Adds CommonMark-compatible paragraph text escaping for line-start block markers.</summary>
     public static void AddCommonMarkParagraphLineStartMarkdownFallback(MarkdownSaveOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         AddParagraphLineStartMarkdownFallback(options, CommonMarkParagraphLineStartMarkdownName);
     }
 
     /// <summary>Adds a CommonMark-compatible markdown fallback for attributed blocks by emitting raw HTML.</summary>
     public static void AddCommonMarkAttributedBlockMarkdownFallback(MarkdownSaveOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         AddAttributedBlockHtmlMarkdownFallback(options, CommonMarkAttributedBlockMarkdownName);
     }
 
     /// <summary>Adds a GitHub-compatible markdown fallback for definition lists by emitting raw HTML.</summary>
     public static void AddGitHubDefinitionListMarkdownFallback(MarkdownSaveOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         AddDefinitionListHtmlMarkdownFallback(options, GitHubDefinitionListMarkdownName);
     }
 
     /// <summary>Adds a GitHub-compatible markdown fallback for custom containers by emitting raw HTML.</summary>
     public static void AddGitHubCustomContainerMarkdownFallback(MarkdownSaveOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         AddCustomContainerHtmlMarkdownFallback(options, GitHubCustomContainerMarkdownName);
     }
 
     /// <summary>Adds GitHub-compatible paragraph text escaping for line-start block markers.</summary>
     public static void AddGitHubParagraphLineStartMarkdownFallback(MarkdownSaveOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         AddParagraphLineStartMarkdownFallback(options, GitHubParagraphLineStartMarkdownName);
     }
 
     /// <summary>Adds a GitHub-compatible markdown fallback for attributed blocks by emitting raw HTML.</summary>
     public static void AddGitHubAttributedBlockMarkdownFallback(MarkdownSaveOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         AddAttributedBlockHtmlMarkdownFallback(options, GitHubAttributedBlockMarkdownName);
     }
 
     /// <summary>Adds a portable HTML fallback for OfficeIMO callout blocks.</summary>
     public static void AddPortableCalloutHtmlFallback(MarkdownHtmlExportOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         AddIfMissing(options.BlockRenderExtensions, PortableCalloutHtmlName, typeof(CalloutBlock), static (block, options) => {
             if (block is not CalloutBlock callout) {
@@ -212,9 +184,7 @@ internal static class MarkdownBlockRenderBuiltInExtensions {
 
     /// <summary>Adds Markdig/GitHub-style HTML rendering for OfficeIMO callout blocks.</summary>
     public static void AddMarkdigAlertHtmlFallback(MarkdownHtmlExportOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         AddIfMissing(options.BlockRenderExtensions, MarkdigAlertHtmlName, typeof(CalloutBlock), static (block, options) => {
             if (block is not CalloutBlock callout) {
@@ -230,9 +200,7 @@ internal static class MarkdownBlockRenderBuiltInExtensions {
     /// and a simplified footnote section without OfficeIMO-specific chrome.
     /// </summary>
     public static void AddPortableHtmlFallbacks(MarkdownHtmlExportOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         AddPortableCalloutHtmlFallback(options);
         AddPortableTocHtmlFallback(options);
@@ -241,9 +209,7 @@ internal static class MarkdownBlockRenderBuiltInExtensions {
 
     /// <summary>Adds a portable HTML fallback for TOC placeholders.</summary>
     public static void AddPortableTocHtmlFallback(MarkdownHtmlExportOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         var prior = options.TocHtmlRenderer;
         options.TocHtmlRenderer = (tocOptions, entries, htmlOptions) =>
@@ -252,9 +218,7 @@ internal static class MarkdownBlockRenderBuiltInExtensions {
 
     /// <summary>Adds a portable HTML fallback for the aggregated footnote section.</summary>
     public static void AddPortableFootnoteSectionHtmlFallback(MarkdownHtmlExportOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         var prior = options.FootnoteSectionHtmlRenderer;
         options.FootnoteSectionHtmlRenderer = (footnotes, htmlOptions) =>
@@ -266,9 +230,7 @@ internal static class MarkdownBlockRenderBuiltInExtensions {
         string name,
         Type blockType,
         Func<IMarkdownBlock, object?, string?> renderer) where T : class {
-        if (extensions == null) {
-            throw new ArgumentNullException(nameof(extensions));
-        }
+        ArgumentNullException.ThrowIfNull(extensions);
 
         if (typeof(T) == typeof(MarkdownBlockMarkdownRenderExtension)) {
             if (extensions.Cast<MarkdownBlockMarkdownRenderExtension>().Any(extension =>

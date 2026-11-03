@@ -34,7 +34,7 @@ public static partial class EpubImageExportExtensions {
 
     private static OfficeImageExportBatchOperation<EpubImageExportOptions> CreateEpubDocumentImageBatchOperation(
         EpubDocument document, EpubImageExportOptions options) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return new OfficeImageExportBatchOperation<EpubImageExportOptions>(options, options.Format, options.FileConflictPolicy,
             (encoding, effective) => document.ExportImages(encoding, effective),
             exportEach: (encoding, effective, consumer, token) => document.ExportImages(encoding, consumer, effective, token),

@@ -6,9 +6,7 @@ using System.IO;
 namespace OfficeIMO.Visio {
     internal static class VisioStencilMigrationPlanTextSerializer {
         internal static VisioStencilMigrationPlan FromText(string text) {
-            if (text == null) {
-                throw new ArgumentNullException(nameof(text));
-            }
+            ArgumentNullException.ThrowIfNull(text);
 
             Dictionary<string, string> values = ParseLines(text);
             int count = ReadRequiredInt(values, "migration.count");

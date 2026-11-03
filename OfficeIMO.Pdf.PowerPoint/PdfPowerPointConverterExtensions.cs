@@ -21,7 +21,7 @@ public static partial class PdfPowerPointConverterExtensions {
         PdfCore.PdfDocument document,
         PowerPointPdfImportOptions? options,
         CancellationToken cancellationToken) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         PowerPointPdfImportOptions operation = options ?? new PowerPointPdfImportOptions();
         cancellationToken = cancellationToken.CanBeCanceled
             ? cancellationToken
@@ -110,7 +110,7 @@ public static partial class PdfPowerPointConverterExtensions {
         PowerPointPdfImportOptions operation,
         bool applyPageSelection,
         CancellationToken cancellationToken) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         PdfCore.PdfDocumentReadResult selected = applyPageSelection
             ? document.ProjectPages(

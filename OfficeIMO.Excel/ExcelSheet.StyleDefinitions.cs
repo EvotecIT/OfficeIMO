@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelNamedStyleInfo DefineNamedStyle(string name, ExcelStyleDefinition definition, bool hidden = false) {
             string normalizedName = ExcelSheet.ValidateNamedStyleName(name);
-            if (definition == null) throw new ArgumentNullException(nameof(definition));
+            ArgumentNullException.ThrowIfNull(definition);
             ExcelStyleDefinition snapshot = definition.Snapshot();
             ExcelNamedStyleInfo? result = null;
             Locking.ExecuteWrite(EnsureLock(), () => {

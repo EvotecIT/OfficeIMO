@@ -264,7 +264,7 @@ internal sealed partial class PstStoreReader {
 
     internal EmailStoreItem ReadReferencedItem(EmailStoreItemReference reference,
         EmailStoreItemReadOptions options, CancellationToken cancellationToken) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         _cancellationToken = cancellationToken;
         PstNodeReference node = ResolveReferencedNode(reference);
         return ReadItem(node, reference.FolderId, _format,

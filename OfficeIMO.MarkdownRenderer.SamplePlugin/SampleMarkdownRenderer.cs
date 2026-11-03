@@ -88,9 +88,7 @@ public static class SampleMarkdownRenderer {
     /// Applies the sample status-panel renderer plugin.
     /// </summary>
     public static void ApplyStatusPanels(MarkdownRendererOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         options.ApplyPlugin(StatusPanelPlugin);
     }
@@ -99,9 +97,7 @@ public static class SampleMarkdownRenderer {
     /// Returns <see langword="true"/> when the sample status-panel plugin is already applied.
     /// </summary>
     public static bool HasStatusPanels(MarkdownRendererOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         return options.HasPlugin(StatusPanelPlugin);
     }
@@ -110,9 +106,7 @@ public static class SampleMarkdownRenderer {
     /// Applies the sample status-panel feature pack.
     /// </summary>
     public static void ApplyStatusPanelFeaturePack(MarkdownRendererOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         options.ApplyFeaturePack(StatusPanelFeaturePack);
     }
@@ -121,9 +115,7 @@ public static class SampleMarkdownRenderer {
     /// Returns <see langword="true"/> when the sample status-panel feature pack is already applied.
     /// </summary>
     public static bool HasStatusPanelFeaturePack(MarkdownRendererOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         return options.HasFeaturePack(StatusPanelFeaturePack);
     }
@@ -132,9 +124,7 @@ public static class SampleMarkdownRenderer {
     /// Registers the sample plugin's shared visual-host HTML round-trip hints on HTML-to-markdown options.
     /// </summary>
     public static void ApplyHtmlRoundTripHints(MarkdownHtmlImportOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         options.ApplyFeaturePack(StatusPanelFeaturePack);
     }
@@ -228,9 +218,7 @@ public static class SampleMarkdownRenderer {
     }
 
     private static IReadOnlyList<IMarkdownBlock>? TryConvertVendorStatusPanelElement(MarkdownHtmlBlockConversionContext context) {
-        if (context == null) {
-            throw new ArgumentNullException(nameof(context));
-        }
+        ArgumentNullException.ThrowIfNull(context);
 
         var element = context.Element;
         if (!element.LocalName.Equals("SECTION", StringComparison.OrdinalIgnoreCase)
@@ -284,9 +272,7 @@ public static class SampleMarkdownRenderer {
     }
 
     private static IReadOnlyList<IMarkdownInline>? TryConvertStatusBadgeInlineElement(MarkdownHtmlInlineConversionContext context) {
-        if (context == null) {
-            throw new ArgumentNullException(nameof(context));
-        }
+        ArgumentNullException.ThrowIfNull(context);
 
         var element = context.Element;
         if (!element.LocalName.Equals("SPAN", StringComparison.OrdinalIgnoreCase)
@@ -315,13 +301,9 @@ public static class SampleMarkdownRenderer {
         private static readonly Regex StatusTokenRegex = new(@"\{\{status:(?<label>[^}\r\n]+)\}\}", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
-            if (document == null) {
-                throw new ArgumentNullException(nameof(document));
-            }
+            ArgumentNullException.ThrowIfNull(document);
 
-            if (context == null) {
-                throw new ArgumentNullException(nameof(context));
-            }
+            ArgumentNullException.ThrowIfNull(context);
 
             var rewritten = MarkdownDocument.Create();
             for (int i = 0; i < document.Blocks.Count; i++) {
@@ -433,13 +415,9 @@ public static class SampleMarkdownRenderer {
 
     private sealed class StatusPanelCodeBlockTransform : IMarkdownDocumentTransform {
         public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
-            if (document == null) {
-                throw new ArgumentNullException(nameof(document));
-            }
+            ArgumentNullException.ThrowIfNull(document);
 
-            if (context == null) {
-                throw new ArgumentNullException(nameof(context));
-            }
+            ArgumentNullException.ThrowIfNull(context);
 
             var rewritten = MarkdownDocument.Create();
             for (int i = 0; i < document.Blocks.Count; i++) {

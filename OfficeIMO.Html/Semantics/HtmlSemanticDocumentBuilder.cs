@@ -11,8 +11,8 @@ internal static class HtmlSemanticDocumentBuilder {
         IHtmlDocument document,
         HtmlCssMediaContext mediaContext,
         HtmlConversionLimits limits) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (limits == null) throw new ArgumentNullException(nameof(limits));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(limits);
 
         IReadOnlyDictionary<IElement, HtmlComputedStyle> styles =
             HtmlComputedStyleEngine.Compute(document, mediaContext, limits);

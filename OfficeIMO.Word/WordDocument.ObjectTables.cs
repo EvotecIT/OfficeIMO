@@ -14,9 +14,7 @@ namespace OfficeIMO.Word {
         /// <returns>The created <see cref="WordTable"/>.</returns>
         [RequiresUnreferencedCode("Uses reflection over arbitrary object graphs. For AOT-safe usage, map values explicitly or pre-flatten items.")]
         public WordTable AddTable(IEnumerable<object?> items, WordTableStyle style, bool includeHeader = true, WordTableLayoutMode? layout = null) {
-            if (items == null) {
-                throw new ArgumentNullException(nameof(items));
-            }
+            ArgumentNullException.ThrowIfNull(items);
 
             var list = items.ToList();
             if (list.Count == 0) {

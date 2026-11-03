@@ -75,7 +75,7 @@ internal sealed class OfficeContentSafetyBuilder {
         IReadOnlyList<string> instructionSignals,
         OfficeContentCleanupCapability cleanupCapability = OfficeContentCleanupCapability.ReportOnly,
         bool inspectTextIntegrityEvidence = true) {
-        if (instructionSignals == null) throw new ArgumentNullException(nameof(instructionSignals));
+        ArgumentNullException.ThrowIfNull(instructionSignals);
         return AddCore(
             kind,
             risk,
@@ -216,8 +216,8 @@ internal sealed class OfficeContentSafetyBuilder {
     public static IReadOnlyList<OfficeContentSafetyFinding> ResolveSelection(
         OfficeContentSafetyReport report,
         OfficeContentCleanupSelection selection) {
-        if (report == null) throw new ArgumentNullException(nameof(report));
-        if (selection == null) throw new ArgumentNullException(nameof(selection));
+        ArgumentNullException.ThrowIfNull(report);
+        ArgumentNullException.ThrowIfNull(selection);
         var byId = report.Findings.ToDictionary(item => item.Id, StringComparer.Ordinal);
         var resolved = new List<OfficeContentSafetyFinding>();
         foreach (string id in selection.FindingIds) {

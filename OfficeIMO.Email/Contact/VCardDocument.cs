@@ -36,8 +36,8 @@ public sealed partial class VCardDocument {
 
     /// <summary>Adds an RFC 6350 group card with ordered MEMBER URI properties.</summary>
     public ContentLineComponent AddGroup(string formattedName, IEnumerable<string> memberUris) {
-        if (formattedName == null) throw new ArgumentNullException(nameof(formattedName));
-        if (memberUris == null) throw new ArgumentNullException(nameof(memberUris));
+        ArgumentNullException.ThrowIfNull(formattedName);
+        ArgumentNullException.ThrowIfNull(memberUris);
         ContentLineComponent card;
         if (_cards.Count == 1 && _cards[0].Properties.Count == 1 &&
             string.Equals(_cards[0].Properties[0].Name, "VERSION", StringComparison.OrdinalIgnoreCase)) {
@@ -56,7 +56,7 @@ public sealed partial class VCardDocument {
 
     /// <summary>Gets a card's declared syntax version.</summary>
     public static VCardVersion GetVersion(ContentLineComponent card) {
-        if (card == null) throw new ArgumentNullException(nameof(card));
+        ArgumentNullException.ThrowIfNull(card);
         ContentLineProperty? property = card.GetFirstProperty("VERSION");
         if (property == null) throw new InvalidDataException("A VCARD component does not declare VERSION.");
         return ParseVersion(property.Value);
@@ -64,7 +64,7 @@ public sealed partial class VCardDocument {
 
     /// <summary>Replaces a card's declared syntax version.</summary>
     public static void SetVersion(ContentLineComponent card, VCardVersion version) {
-        if (card == null) throw new ArgumentNullException(nameof(card));
+        ArgumentNullException.ThrowIfNull(card);
         for (int index = card.Properties.Count - 1; index >= 0; index--) {
             if (string.Equals(card.Properties[index].Name, "VERSION", StringComparison.OrdinalIgnoreCase))
                 card.Properties.RemoveAt(index);

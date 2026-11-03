@@ -14,7 +14,7 @@ namespace OfficeIMO.Word.Rtf;
 public static partial class WordRtfConverterExtensions {
     /// <summary>Converts a Word document to the semantic RTF model.</summary>
     public static RtfDocument ToRtfDocument(this WordDocument document) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
 
         RtfDocument rtf = RtfDocument.Create();
         CopyDocumentInfo(document, rtf);
@@ -36,7 +36,7 @@ public static partial class WordRtfConverterExtensions {
 
     /// <summary>Creates a Word document from a semantic RTF document.</summary>
     public static WordDocument ToWordDocument(this RtfDocument rtfDocument) {
-        if (rtfDocument == null) throw new ArgumentNullException(nameof(rtfDocument));
+        ArgumentNullException.ThrowIfNull(rtfDocument);
 
         return ToWordDocumentCore(rtfDocument, null);
     }

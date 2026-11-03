@@ -15,9 +15,7 @@ namespace OfficeIMO.Word.Pdf {
         /// </summary>
         internal static PdfCore.PdfDocumentConversionResult ConvertToPdfWithEvidence(this WordDocument document, WordPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-            if (document == null) {
-                throw new ArgumentNullException(nameof(document));
-            }
+            ArgumentNullException.ThrowIfNull(document);
 
             WordPdfExportOptions operation = (options ?? new WordPdfExportOptions()).CloneForConversion();
             operation.CancellationToken = cancellationToken;

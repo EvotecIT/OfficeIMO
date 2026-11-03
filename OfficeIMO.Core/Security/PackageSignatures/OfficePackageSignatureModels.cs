@@ -45,16 +45,16 @@ public sealed class OfficePackageSignatureInspectionOptions {
     public bool VerifyDigests { get; set; } = true;
 
     internal void Validate() {
-        if (MaxPackageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPackageBytes));
-        if (MaxPackageParts <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPackageParts));
-        if (MaxPartBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPartBytes));
-        if (MaxTotalDigestBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTotalDigestBytes));
-        if (MaxSignatureParts <= 0) throw new ArgumentOutOfRangeException(nameof(MaxSignatureParts));
-        if (MaxSignatureBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxSignatureBytes));
-        if (MaxSignedReferences <= 0) throw new ArgumentOutOfRangeException(nameof(MaxSignedReferences));
-        if (MaxCertificates <= 0) throw new ArgumentOutOfRangeException(nameof(MaxCertificates));
-        if (MaxCertificateBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxCertificateBytes));
-        if (MaxTotalCertificateBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTotalCertificateBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxPackageBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxPackageParts);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxPartBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxTotalDigestBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxSignatureParts);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxSignatureBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxSignedReferences);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxCertificates);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxCertificateBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxTotalCertificateBytes);
     }
 }
 

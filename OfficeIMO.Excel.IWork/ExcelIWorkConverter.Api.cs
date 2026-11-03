@@ -16,7 +16,7 @@ public static partial class ExcelIWorkConverter {
     /// <summary>Opens and converts a Numbers file, returning the workbook with source evidence.</summary>
     public static NumbersToExcelResult ConvertNumbersToExcelResult(string path,
         IWorkReadOptions? readOptions = null, IWorkConversionOptions? conversionOptions = null) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         return ProjectNumbers(
             IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers, readOptions), conversionOptions);
     }
@@ -24,7 +24,7 @@ public static partial class ExcelIWorkConverter {
     /// <summary>Opens and converts a Numbers stream, returning the workbook with source evidence.</summary>
     public static NumbersToExcelResult ConvertNumbersToExcelResult(Stream stream,
         IWorkReadOptions? readOptions = null, IWorkConversionOptions? conversionOptions = null) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         return ProjectNumbers(
             IWorkSourceDocument.Open(stream, IWorkDocumentKind.Numbers, readOptions), conversionOptions);
     }
@@ -37,7 +37,7 @@ public static partial class ExcelIWorkConverter {
     /// <summary>Converts an opened Numbers source and returns the workbook with its projection and loss report.</summary>
     public static NumbersToExcelResult ToExcelDocumentResult(this IWorkSourceDocument source,
         IWorkConversionOptions? options = null) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         return ProjectNumbers(source, options);
     }
 }

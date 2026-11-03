@@ -9,9 +9,7 @@ namespace OfficeIMO.Word {
         /// <param name="result">Comparison result to serialize.</param>
         /// <returns>JSON report text with stable property order.</returns>
         public static string ToJson(WordComparisonResult result) {
-            if (result == null) {
-                throw new ArgumentNullException(nameof(result));
-            }
+            ArgumentNullException.ThrowIfNull(result);
 
             var builder = new StringBuilder();
             builder.AppendLine("{");
@@ -34,9 +32,7 @@ namespace OfficeIMO.Word {
         /// <param name="result">Comparison result to render.</param>
         /// <returns>Markdown report text.</returns>
         public static string ToMarkdown(WordComparisonResult result) {
-            if (result == null) {
-                throw new ArgumentNullException(nameof(result));
-            }
+            ArgumentNullException.ThrowIfNull(result);
 
             var builder = new StringBuilder();
             builder.AppendLine("# Word Comparison Report");
@@ -76,9 +72,7 @@ namespace OfficeIMO.Word {
         /// <param name="result">Comparison result to summarize.</param>
         /// <returns>Single-line summary text.</returns>
         public static string ToTextSummary(WordComparisonResult result) {
-            if (result == null) {
-                throw new ArgumentNullException(nameof(result));
-            }
+            ArgumentNullException.ThrowIfNull(result);
 
             if (result.Findings.Count == 0) {
                 return result.HasLimitations

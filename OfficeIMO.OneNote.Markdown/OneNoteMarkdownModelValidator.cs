@@ -5,33 +5,33 @@ namespace OfficeIMO.OneNote.Markdown;
 /// <summary>Validates caller-owned model graphs before recursive text or Markdown projection.</summary>
 internal static class OneNoteMarkdownModelValidator {
     internal static void ValidateElement(OneNoteElement element, OneNoteMarkdownOptions options) {
-        if (element == null) throw new ArgumentNullException(nameof(element));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(element);
+        ArgumentNullException.ThrowIfNull(options);
         new ValidationState(options).ValidateElement(element, 1);
     }
 
     internal static void ValidateCell(OneNoteTableCell cell, OneNoteMarkdownOptions options) {
-        if (cell == null) throw new ArgumentNullException(nameof(cell));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(cell);
+        ArgumentNullException.ThrowIfNull(options);
         var state = new ValidationState(options);
         foreach (OneNoteElement element in cell.Content) state.ValidateElement(element, 1);
     }
 
     internal static void ValidatePageContent(OneNotePage page, OneNoteMarkdownOptions options) {
-        if (page == null) throw new ArgumentNullException(nameof(page));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(page);
+        ArgumentNullException.ThrowIfNull(options);
         new ValidationState(options).ValidatePageContent(page);
     }
 
     internal static void ValidateSection(OneNoteSection section, OneNoteMarkdownOptions options) {
-        if (section == null) throw new ArgumentNullException(nameof(section));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(section);
+        ArgumentNullException.ThrowIfNull(options);
         new ValidationState(options).ValidateSection(section);
     }
 
     internal static void ValidateNotebook(OneNoteNotebook notebook, OneNoteMarkdownOptions options) {
-        if (notebook == null) throw new ArgumentNullException(nameof(notebook));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(notebook);
+        ArgumentNullException.ThrowIfNull(options);
         var state = new ValidationState(options);
         foreach (OneNoteSection section in notebook.Sections) state.ValidateSection(section);
         foreach (OneNoteSectionGroup group in notebook.SectionGroups) state.ValidateGroup(group, 1);
@@ -73,7 +73,7 @@ internal static class OneNoteMarkdownModelValidator {
         }
 
         internal void ValidatePageContent(OneNotePage page) {
-            if (page == null) throw new ArgumentNullException(nameof(page));
+            ArgumentNullException.ThrowIfNull(page);
             ValidatePageElements(page);
         }
 

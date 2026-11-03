@@ -24,7 +24,7 @@ internal static class FssHttpStreamObjectWriter {
     }
 
     internal static long GetEncodedLength(FssHttpWriteObject value) {
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
         if (value.Type < 0 || value.Type > 0x3FFF) throw new ArgumentOutOfRangeException(nameof(value));
         checked {
             long length = 4L + GetCompactUInt64Length((ulong)value.Data.LongLength) + value.Data.LongLength;
@@ -108,7 +108,8 @@ internal static class FssHttpStreamObjectWriter {
     }
 
     private static void WriteStartHeader(Stream stream, int type, bool compound, ulong length) {
-        if (type < 0 || type > 0x3FFF) throw new ArgumentOutOfRangeException(nameof(type));
+        ArgumentOutOfRangeException.ThrowIfNegative(type);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(type, 0x3FFF);
         uint encodedLength = length < 0x7FFF ? (uint)length : 0x7FFFU;
         uint raw = 0x02U | (compound ? 0x04U : 0U) | ((uint)type << 3) | (encodedLength << 17);
         WriteUInt32(stream, raw);

@@ -9,7 +9,7 @@ public sealed partial class EpubPublication {
     /// Identifiers and publication references are validated against the complete proposed batch.
     /// </summary>
     public void ApplyContentEdits(IEnumerable<EpubContentEdit> edits, CancellationToken cancellationToken = default) {
-        if (edits == null) throw new ArgumentNullException(nameof(edits));
+        ArgumentNullException.ThrowIfNull(edits);
         cancellationToken.ThrowIfCancellationRequested();
         var documents = new Dictionary<string, XDocument>(StringComparer.Ordinal);
         var targets = new List<(XElement Target, XElement? Replacement)>();

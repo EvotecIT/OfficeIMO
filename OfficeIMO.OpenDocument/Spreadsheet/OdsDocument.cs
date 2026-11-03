@@ -72,7 +72,8 @@ public sealed partial class OdsDocument : OdfDocument {
     public void MoveSheet(string name, int newIndex) {
         OdsSheet sheet = GetSheet(name) ?? throw new ArgumentException($"Worksheet '{name}' does not exist.", nameof(name));
         List<XElement> elements = SpreadsheetBody.Elements(OdfNamespaces.Table + "table").ToList();
-        if (newIndex < 0 || newIndex >= elements.Count) throw new ArgumentOutOfRangeException(nameof(newIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(newIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(newIndex, elements.Count);
         XElement moving = sheet.Element;
         moving.Remove();
         elements.Remove(moving);
@@ -148,7 +149,7 @@ public sealed partial class OdsDocument : OdfDocument {
 
     /// <summary>Adds a validation rule from typed interoperable condition syntax.</summary>
     public OdsValidation AddValidation(string name, OdsValidationConditionSyntax condition, bool allowEmptyCell = true) {
-        if (condition == null) throw new ArgumentNullException(nameof(condition));
+        ArgumentNullException.ThrowIfNull(condition);
         return AddValidation(name, condition.ToString(), allowEmptyCell);
     }
 

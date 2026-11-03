@@ -75,9 +75,9 @@ public sealed class EmailBodyProjectionOptions {
         if (!Enum.IsDefined(typeof(EmailRemoteResourcePolicy), RemoteResourcePolicy)) {
             throw new ArgumentOutOfRangeException(nameof(RemoteResourcePolicy));
         }
-        if (MaxResourceBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxResourceBytes));
-        if (MaxResourceCount <= 0) throw new ArgumentOutOfRangeException(nameof(MaxResourceCount));
-        if (MaxTotalResourceBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTotalResourceBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxResourceBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxResourceCount);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxTotalResourceBytes);
         if (MaxBodySourceCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxBodySourceCharacters));
         return new EmailBodyProjectionOptions {
             InspectContentSafety = InspectContentSafety,
@@ -142,7 +142,7 @@ public static class EmailBodyProjection {
     /// <summary>Projects HTML, RTF, or text and indexes embedded resources under one policy.</summary>
     public static EmailBodyProjectionResult Create(EmailDocument source,
         EmailBodyProjectionOptions? options = null) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         EmailBodyProjectionOptions effective = (options ?? new EmailBodyProjectionOptions()).CloneAndValidate();
         var diagnostics = new List<EmailDiagnostic>();
         EmailBodySourceKind sourceKind;

@@ -12,9 +12,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(rowIndex), "Row index must be between 1 and the Excel row limit.");
             }
 
-            if (options == null) {
-                throw new ArgumentNullException(nameof(options));
-            }
+            ArgumentNullException.ThrowIfNull(options);
 
             if (options.ClearHeight) {
                 SetRowHeight(rowIndex, default);
@@ -44,9 +42,7 @@ namespace OfficeIMO.Excel {
         /// <param name="rowIndexes">The 1-based row indexes to update.</param>
         /// <param name="options">The layout options to apply.</param>
         public void SetRowsLayout(IEnumerable<int> rowIndexes, ExcelRowLayoutOptions options) {
-            if (rowIndexes == null) {
-                throw new ArgumentNullException(nameof(rowIndexes));
-            }
+            ArgumentNullException.ThrowIfNull(rowIndexes);
 
             foreach (int rowIndex in rowIndexes) {
                 SetRowLayout(rowIndex, options);

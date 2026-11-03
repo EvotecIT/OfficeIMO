@@ -40,9 +40,8 @@ public sealed class PdfLogicalImage : IPdfLogicalElement {
     public bool HasPlacements => Placements.Count > 0;
 
     internal PdfLogicalImage ForPlacement(int placementIndex) {
-        if (placementIndex < 0 || placementIndex >= Placements.Count) {
-            throw new ArgumentOutOfRangeException(nameof(placementIndex));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegative(placementIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(placementIndex, Placements.Count);
         PdfImagePlacement placement = Placements[placementIndex];
         PdfUnderstandingImageRegion? region = Regions.FirstOrDefault(candidate =>
             ReferenceEquals(candidate.Placement, placement));

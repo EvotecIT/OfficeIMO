@@ -777,7 +777,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 }
                 set {
                     ThrowIfDisposed();
-                    if (value < 0 || value > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(value));
+                    ArgumentOutOfRangeException.ThrowIfNegative(value);
+                    ArgumentOutOfRangeException.ThrowIfGreaterThan(value, int.MaxValue);
                     _position = checked((int)value);
                 }
             }
@@ -832,7 +833,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             public override void SetLength(long value) {
                 ThrowIfDisposed();
-                if (value < 0 || value > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(value));
+                ArgumentOutOfRangeException.ThrowIfNegative(value);
+                ArgumentOutOfRangeException.ThrowIfGreaterThan(value, int.MaxValue);
                 int newLength = checked((int)value);
                 EnsureCapacity(newLength);
                 if (newLength > _length) {
@@ -844,7 +846,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             public override void Write(byte[] buffer, int offset, int count) {
-                if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+                ArgumentNullException.ThrowIfNull(buffer);
                 if (offset < 0 || count < 0 || buffer.Length - offset < count) {
                     throw new ArgumentOutOfRangeException(offset < 0 ? nameof(offset) : nameof(count));
                 }

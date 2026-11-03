@@ -11,15 +11,9 @@ public static partial class WordDocumentService
     /// </summary>
     public static void InvokeDsl(WordDocument document, ScriptBlock content)
     {
-        if (document == null)
-        {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
-        if (content == null)
-        {
-            throw new ArgumentNullException(nameof(content));
-        }
+        ArgumentNullException.ThrowIfNull(content);
 
         using (WordDslContext.Enter(document))
         {

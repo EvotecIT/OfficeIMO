@@ -13,7 +13,7 @@ public static class ChmPdfConverterExtensions {
     /// <summary>Asynchronously renders selected topics with archive-only resource resolution.</summary>
     public static async Task<PdfDocumentConversionResult> ToPdfDocumentResultAsync(this ChmDocument document, ChmConversionOptions? options = null,
         HtmlToPdfOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         ChmConversionOptions configured = options?.Clone() ?? new ChmConversionOptions();
         IReadOnlyList<ChmTopic> topics = document.SelectTopics(configured);
         var diagnostics = document.SourceDiagnostics();

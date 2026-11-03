@@ -60,7 +60,7 @@ namespace OfficeIMO.Word {
         }
 
         internal WordImage(WordDocument document, WordParagraph paragraph, Uri externalUri, double width, double height, WordImageTextWrapping wrapImage, string description, OfficePresetShapeType? shape, WordImageCompressionQuality? compressionQuality, bool allowFileUri) {
-            if (externalUri == null) throw new ArgumentNullException(nameof(externalUri));
+            ArgumentNullException.ThrowIfNull(externalUri);
             FilePath = externalUri.ToString();
             shape ??= OfficePresetShapeType.Rectangle;
             compressionQuality ??= WordImageCompressionQuality.Print;

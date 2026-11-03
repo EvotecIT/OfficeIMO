@@ -20,7 +20,7 @@ public static class OfficeMarkupPowerPointConverterExtensions {
     public static OfficeMarkupPowerPointConversionResult ToPowerPointDocumentResult(
         this OfficeMarkupDocument document,
         MarkupToPowerPointOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         MarkupToPowerPointOptions resolved = options ?? new MarkupToPowerPointOptions();
         IReadOnlyList<OfficeMarkupDiagnostic> diagnostics = CollectDiagnostics(document, resolved);
         return new OfficeMarkupPowerPointExporter().Build(document, resolved, diagnostics);

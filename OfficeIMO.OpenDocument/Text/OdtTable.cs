@@ -35,7 +35,7 @@ public sealed class OdtTable {
     /// <summary>Gets a zero-based cell.</summary>
     public OdtTableCell Cell(int row, int column) {
         if (row < 0) throw new ArgumentOutOfRangeException(nameof(row));
-        if (column < 0) throw new ArgumentOutOfRangeException(nameof(column));
+        ArgumentOutOfRangeException.ThrowIfNegative(column);
         OdtTableRow tableRow = Rows.ElementAtOrDefault(row) ?? throw new ArgumentOutOfRangeException(nameof(row));
         return tableRow.Cells.ElementAtOrDefault(column) ?? throw new ArgumentOutOfRangeException(nameof(column));
     }
@@ -53,8 +53,8 @@ public sealed class OdtTable {
 
     /// <summary>Merges a rectangular range and emits covered cells for non-anchor positions.</summary>
     public OdtTableCell Merge(int row, int column, int rowSpan, int columnSpan) {
-        if (rowSpan < 1) throw new ArgumentOutOfRangeException(nameof(rowSpan));
-        if (columnSpan < 1) throw new ArgumentOutOfRangeException(nameof(columnSpan));
+        ArgumentOutOfRangeException.ThrowIfLessThan(rowSpan, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(columnSpan, 1);
         // Resolve and validate every logical cell before changing the anchor.
         // Materializing a repeated row or cell that already contains a note
         // would clone its identity, so the merge must fail without mutation.

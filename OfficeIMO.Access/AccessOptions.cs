@@ -68,12 +68,12 @@ namespace OfficeIMO.Access {
         public int MaxChainLength { get; set; } = 16_384;
         internal void Validate() {
             if (MaxInputBytes < 1 || MaxInputBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(MaxInputBytes));
-            if (MaxPages < 1) throw new ArgumentOutOfRangeException(nameof(MaxPages));
-            if (MaxCatalogObjects < 1) throw new ArgumentOutOfRangeException(nameof(MaxCatalogObjects));
-            if (MaxMetadataBytes < 63) throw new ArgumentOutOfRangeException(nameof(MaxMetadataBytes));
-            if (MaxValueBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaxValueBytes));
-            if (MaxRows < 1) throw new ArgumentOutOfRangeException(nameof(MaxRows));
-            if (MaxChainLength < 1) throw new ArgumentOutOfRangeException(nameof(MaxChainLength));
+            ArgumentOutOfRangeException.ThrowIfLessThan(MaxPages, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(MaxCatalogObjects, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(MaxMetadataBytes, 63);
+            ArgumentOutOfRangeException.ThrowIfLessThan(MaxValueBytes, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(MaxRows, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(MaxChainLength, 1);
             if (TableNames != null) foreach (string name in TableNames) AccessNamedObject.ValidateName(name);
             if (!Enum.IsDefined(typeof(DocumentAccessMode), AccessMode)) throw new ArgumentOutOfRangeException(nameof(AccessMode));
             if (!Enum.IsDefined(typeof(DocumentPersistenceMode), PersistenceMode)) throw new ArgumentOutOfRangeException(nameof(PersistenceMode));

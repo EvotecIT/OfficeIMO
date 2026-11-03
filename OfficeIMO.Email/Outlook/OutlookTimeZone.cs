@@ -25,13 +25,13 @@ public sealed class OutlookTimeZoneTransition : IEquatable<OutlookTimeZoneTransi
     /// <summary>Creates a transition from its exact SYSTEMTIME fields.</summary>
     public OutlookTimeZoneTransition(ushort year, ushort month, ushort dayOfWeek, ushort day, ushort hour,
         ushort minute, ushort second = 0, ushort milliseconds = 0) {
-        if (month > 12) throw new ArgumentOutOfRangeException(nameof(month));
-        if (dayOfWeek > 6) throw new ArgumentOutOfRangeException(nameof(dayOfWeek));
-        if (day > 31) throw new ArgumentOutOfRangeException(nameof(day));
-        if (hour > 23) throw new ArgumentOutOfRangeException(nameof(hour));
-        if (minute > 59) throw new ArgumentOutOfRangeException(nameof(minute));
-        if (second > 59) throw new ArgumentOutOfRangeException(nameof(second));
-        if (milliseconds > 999) throw new ArgumentOutOfRangeException(nameof(milliseconds));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(month, 12);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(dayOfWeek, 6);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(day, 31);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(hour, 23);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(minute, 59);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(second, 59);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(milliseconds, 999);
         Year = year;
         Month = month;
         DayOfWeek = dayOfWeek;

@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel {
         /// Replaces {{Marker}} placeholders across all worksheets using the supplied values.
         /// </summary>
         public int ApplyTemplate(IDictionary<string, object?> values, IFormatProvider? provider = null, bool throwOnMissing = false) {
-            if (values == null) throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(values);
             return ApplyTemplateCore(ExcelTemplateBindingHelper.Create(values), ExcelTemplateOptions.Create(provider, throwOnMissing));
         }
 
@@ -21,8 +21,8 @@ namespace OfficeIMO.Excel {
         /// Replaces {{Marker}} placeholders across all worksheets using the supplied values and options.
         /// </summary>
         public int ApplyTemplate(IDictionary<string, object?> values, ExcelTemplateOptions options) {
-            if (values == null) throw new ArgumentNullException(nameof(values));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(values);
+            ArgumentNullException.ThrowIfNull(options);
             return ApplyTemplateCore(ExcelTemplateBindingHelper.Create(values), options);
         }
 
@@ -48,7 +48,7 @@ namespace OfficeIMO.Excel {
             IEnumerable<IDictionary<string, object?>> sheets,
             Func<IDictionary<string, object?>, int, string>? sheetNameSelector = null,
             ExcelTemplateOptions? options = null) {
-            if (sheets == null) throw new ArgumentNullException(nameof(sheets));
+            ArgumentNullException.ThrowIfNull(sheets);
             var items = sheets
                 .Select((sheet, index) => new ExcelTemplateSheetBinding(
                     ExcelTemplateBindingHelper.Create(sheet),
@@ -72,7 +72,7 @@ namespace OfficeIMO.Excel {
             IEnumerable<T> models,
             Func<T, int, string>? sheetNameSelector = null,
             ExcelTemplateOptions? options = null) {
-            if (models == null) throw new ArgumentNullException(nameof(models));
+            ArgumentNullException.ThrowIfNull(models);
             var items = models
                 .Select((model, index) => new ExcelTemplateSheetBinding(
                     model == null
@@ -127,7 +127,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         [RequiresUnreferencedCode("Object-model template binding walks runtime properties, including nested values. Use the IDictionary overload in NativeAOT applications.")]
         public int ApplyTemplate(object model, IFormatProvider? provider = null, bool throwOnMissing = false) {
-            if (model == null) throw new ArgumentNullException(nameof(model));
+            ArgumentNullException.ThrowIfNull(model);
             return ApplyTemplateCore(ExcelTemplateBindingHelper.Create(model), ExcelTemplateOptions.Create(provider, throwOnMissing));
         }
 
@@ -137,8 +137,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         [RequiresUnreferencedCode("Object-model template binding walks runtime properties, including nested values. Use the IDictionary overload in NativeAOT applications.")]
         public int ApplyTemplate(object model, ExcelTemplateOptions options) {
-            if (model == null) throw new ArgumentNullException(nameof(model));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(model);
+            ArgumentNullException.ThrowIfNull(options);
             return ApplyTemplateCore(ExcelTemplateBindingHelper.Create(model), options);
         }
 
@@ -158,7 +158,7 @@ namespace OfficeIMO.Excel {
         /// Inspects {{Marker}} placeholders across all worksheets and reports which markers are missing from the supplied values.
         /// </summary>
         public ExcelTemplateInspection InspectTemplate(IDictionary<string, object?> values) {
-            if (values == null) throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(values);
 
             var bindings = ExcelTemplateBindingHelper.Create(values);
             var markers = new List<ExcelTemplateMarkerInfo>();
@@ -174,7 +174,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         [RequiresUnreferencedCode("Object-model template inspection walks runtime properties, including nested values. Use the IDictionary overload in NativeAOT applications.")]
         public ExcelTemplateInspection InspectTemplate(object model) {
-            if (model == null) throw new ArgumentNullException(nameof(model));
+            ArgumentNullException.ThrowIfNull(model);
             return InspectTemplate(ExcelTemplateBindingHelper.Create(model));
         }
 

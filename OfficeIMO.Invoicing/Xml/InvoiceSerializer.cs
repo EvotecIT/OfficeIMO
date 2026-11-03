@@ -16,8 +16,8 @@ public static partial class InvoiceSerializer {
 
     /// <summary>Validates the model and writes UTF-8 XML without a BOM. Identical models and options produce identical bytes.</summary>
     public static byte[] Write(Invoice invoice, InvoiceXmlOptions options) {
-        if (invoice == null) throw new ArgumentNullException(nameof(invoice));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(invoice);
+        ArgumentNullException.ThrowIfNull(options);
         InvoiceModelValidationResult validation = InvoiceModelValidator.ValidateForTarget(invoice, options);
         validation.ThrowIfInvalid();
         List<InvoiceDiagnostic> mapping = GetWriteDiagnostics(invoice, options, validation.Calculation!);
@@ -37,8 +37,8 @@ public static partial class InvoiceSerializer {
 
     /// <summary>Validates the model and reports unsupported target mappings without writing or silently discarding information.</summary>
     public static IReadOnlyList<InvoiceDiagnostic> InspectTarget(Invoice invoice, InvoiceXmlOptions options) {
-        if (invoice == null) throw new ArgumentNullException(nameof(invoice));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(invoice);
+        ArgumentNullException.ThrowIfNull(options);
         InvoiceModelValidationResult validation = InvoiceModelValidator.ValidateForTarget(invoice, options);
         if (!validation.IsValid) return validation.Diagnostics;
         return GetWriteDiagnostics(invoice, options, validation.Calculation!).AsReadOnly();

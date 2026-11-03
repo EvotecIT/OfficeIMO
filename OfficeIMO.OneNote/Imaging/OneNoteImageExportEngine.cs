@@ -8,7 +8,7 @@ internal static class OneNoteImageExportEngine {
         OneNoteSection section,
         OfficeImageExportFormat format,
         OneNotePageBatchRenderingOptions options) {
-        if (section == null) throw new ArgumentNullException(nameof(section));
+        ArgumentNullException.ThrowIfNull(section);
         var results = new List<OfficeImageExportResult>();
         ExportSection(section, format, options, results.Add);
         return results.AsReadOnly();
@@ -20,8 +20,8 @@ internal static class OneNoteImageExportEngine {
         OneNotePageBatchRenderingOptions options,
         OfficeImageExportConsumer consumer,
         CancellationToken cancellationToken = default) {
-        if (section == null) throw new ArgumentNullException(nameof(section));
-        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        ArgumentNullException.ThrowIfNull(section);
+        ArgumentNullException.ThrowIfNull(consumer);
         OneNotePageReference[] pages = Select(OneNotePageTraversal.Flatten(section), options).ToArray();
         var encodingBudget = new OfficeImageExportEncodingBudget(options.MaximumTotalEncodedBytes);
         OfficeImageExportBatchProcessor.ForEachOrdered(
@@ -44,7 +44,7 @@ internal static class OneNoteImageExportEngine {
         OneNoteNotebook notebook,
         OfficeImageExportFormat format,
         OneNotePageBatchRenderingOptions options) {
-        if (notebook == null) throw new ArgumentNullException(nameof(notebook));
+        ArgumentNullException.ThrowIfNull(notebook);
         var results = new List<OfficeImageExportResult>();
         ExportNotebook(notebook, format, options, results.Add);
         return results.AsReadOnly();
@@ -56,8 +56,8 @@ internal static class OneNoteImageExportEngine {
         OneNotePageBatchRenderingOptions options,
         OfficeImageExportConsumer consumer,
         CancellationToken cancellationToken = default) {
-        if (notebook == null) throw new ArgumentNullException(nameof(notebook));
-        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        ArgumentNullException.ThrowIfNull(notebook);
+        ArgumentNullException.ThrowIfNull(consumer);
         OneNotePageReference[] pages = Select(OneNotePageTraversal.Flatten(notebook), options).ToArray();
         var encodingBudget = new OfficeImageExportEncodingBudget(options.MaximumTotalEncodedBytes);
         OfficeImageExportBatchProcessor.ForEachOrdered(

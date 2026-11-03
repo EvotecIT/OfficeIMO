@@ -98,9 +98,7 @@ namespace OfficeIMO.Visio {
         }
 
         internal static bool HasPreviewMetadata(VisioShape shape) {
-            if (shape == null) {
-                throw new ArgumentNullException(nameof(shape));
-            }
+            ArgumentNullException.ThrowIfNull(shape);
 
             string? relationshipId = shape.GetUserCellValue(VisioSemanticUserCells.StencilPreviewImageRelationshipId) ??
                                      shape.Master?.StencilPreviewImageRelationshipId;

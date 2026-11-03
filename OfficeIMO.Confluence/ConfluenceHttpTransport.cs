@@ -81,7 +81,7 @@ internal sealed class ConfluenceHttpTransport : IDisposable {
     }
 
     internal async Task<ConfluenceJsonResponse<T>> SendJsonWithHeadersAsync<T>(HttpMethod method, string relativeUri, JsonElement? payload, ConfluenceRequestSafety safety, JsonTypeInfo<T> responseTypeInfo, CancellationToken cancellationToken) {
-        if (responseTypeInfo == null) throw new ArgumentNullException(nameof(responseTypeInfo));
+        ArgumentNullException.ThrowIfNull(responseTypeInfo);
         ConfluenceHttpResponse response = await SendAsync(
             method,
             relativeUri,
@@ -103,7 +103,7 @@ internal sealed class ConfluenceHttpTransport : IDisposable {
         SendAsync(method, relativeUri, null, null, safety, cancellationToken);
 
     internal Task SendToStreamAsync(HttpMethod method, string relativeUri, Stream destination, CancellationToken cancellationToken) {
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(destination);
         if (!destination.CanWrite) throw new ArgumentException("Attachment destination stream must be writable.", nameof(destination));
         return SendToStreamCoreAsync(method, relativeUri, destination, cancellationToken);
     }

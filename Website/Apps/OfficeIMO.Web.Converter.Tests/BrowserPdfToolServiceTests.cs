@@ -238,7 +238,7 @@ public sealed class BrowserPdfToolServiceTests {
             .ToBytes();
 
     private static byte[] CreatePdfWithPages(int pageCount) {
-        if (pageCount <= 0) throw new ArgumentOutOfRangeException(nameof(pageCount));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageCount);
         return PdfDocument.Create(pdf => pdf.Content(content => {
             for (int page = 1; page <= pageCount; page++) {
                 content.Paragraph(paragraph => paragraph.Text($"Page {page}"));

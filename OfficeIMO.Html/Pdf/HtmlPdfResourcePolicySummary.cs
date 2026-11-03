@@ -56,7 +56,7 @@ public sealed class HtmlPdfResourcePolicySummary {
 
     /// <summary>Builds a detached resource-policy summary for the supplied options.</summary>
     public static HtmlPdfResourcePolicySummary From(HtmlToPdfOptions options) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         HtmlUrlPolicy urlPolicy = options.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
         return new HtmlPdfResourcePolicySummary {
             HasResourceResolver = options.ResourceResolver != null,

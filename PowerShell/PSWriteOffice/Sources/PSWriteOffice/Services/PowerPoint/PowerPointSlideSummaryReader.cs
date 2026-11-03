@@ -63,10 +63,7 @@ internal static class PowerPointSlideSummaryReader
 {
     public static PowerPointSlideSummaryInfo Read(PowerPointSlide slide, int slideIndex, string? path = null)
     {
-        if (slide == null)
-        {
-            throw new ArgumentNullException(nameof(slide));
-        }
+        ArgumentNullException.ThrowIfNull(slide);
 
         var notes = PowerPointNotesReader.Read(slide, slideIndex);
         var layout = slide.GetLayoutInfo();

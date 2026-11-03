@@ -14,7 +14,7 @@ internal sealed class OfficeBatchReportCollector : IProgress<OfficeBatchItemRepo
 
     /// <summary>Retains a bounded observation; oversized items are omitted without interrupting conversion.</summary>
     public void Report(OfficeBatchItemReport item) {
-        if (item == null) throw new ArgumentNullException(nameof(item));
+        ArgumentNullException.ThrowIfNull(item);
         lock (_gate) {
             _reported++;
             if (item.Skipped) {
@@ -37,7 +37,7 @@ internal sealed class OfficeBatchReportCollector : IProgress<OfficeBatchItemRepo
 
     /// <summary>Creates an independent report snapshot while preserving aggregate counts even when observations were omitted.</summary>
     public OfficeBatchReport Complete(OfficeBatchSummary summary, bool allowEmpty = false) {
-        if (summary == null) throw new ArgumentNullException(nameof(summary));
+        ArgumentNullException.ThrowIfNull(summary);
         lock (_gate) return new OfficeBatchReport {
             Summary = summary, Items = Array.AsReadOnly(_items.ToArray()), ItemsTruncated = _reported > _items.Count,
             Succeeded = !summary.Cancelled && summary.FailureSummary == null && summary.Failed == 0 && (allowEmpty || summary.Selected > 0)

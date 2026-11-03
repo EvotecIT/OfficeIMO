@@ -15,7 +15,7 @@ namespace OfficeIMO.Word.Html {
     /// </summary>
     internal partial class WordToHtmlConverter {
         public string Convert(WordDocument document, WordHtmlExportOptions options) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             options ??= new WordHtmlExportOptions();
             lock (document) {
                 ExportInspection exportInspection = InspectExport(document, options);

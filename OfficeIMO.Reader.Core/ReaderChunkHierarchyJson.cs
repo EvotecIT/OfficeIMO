@@ -8,7 +8,7 @@ namespace OfficeIMO.Reader;
 public static class ReaderChunkHierarchyJson {
     /// <summary>Serializes a current hierarchy result.</summary>
     public static string Serialize(ReaderChunkHierarchyResult result, bool indented = false) {
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(result);
         if (!string.Equals(result.SchemaId, ReaderChunkHierarchySchema.Id, StringComparison.Ordinal) ||
             result.SchemaVersion != ReaderChunkHierarchySchema.Version) {
             throw new InvalidOperationException(

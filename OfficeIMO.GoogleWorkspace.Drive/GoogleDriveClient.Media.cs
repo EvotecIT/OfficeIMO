@@ -49,7 +49,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             GoogleDriveUploadOptions options,
             TranslationReport? report = null,
             CancellationToken cancellationToken = default) {
-            if (content == null) throw new ArgumentNullException(nameof(content));
+            ArgumentNullException.ThrowIfNull(content);
             ValidateUploadOptions(options);
             if (content.LongLength > MultipartUploadLimitBytes) {
                 throw new ArgumentOutOfRangeException(nameof(content), "Multipart uploads are limited to 5 MB. Use UploadResumableAsync for larger content.");
@@ -81,7 +81,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             GoogleDriveUploadOptions options,
             TranslationReport? report = null,
             CancellationToken cancellationToken = default) {
-            if (content == null) throw new ArgumentNullException(nameof(content));
+            ArgumentNullException.ThrowIfNull(content);
             ValidateUploadOptions(options);
             report ??= new TranslationReport();
             string contentType = options.ContentType;
@@ -359,7 +359,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
         }
 
         private static void ValidateUploadOptions(GoogleDriveUploadOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             if (string.IsNullOrWhiteSpace(options.Name)) throw new ArgumentException("Upload name is required.", nameof(options));
             if (string.IsNullOrWhiteSpace(options.ContentType)) throw new ArgumentException("Upload content type is required.", nameof(options));
         }

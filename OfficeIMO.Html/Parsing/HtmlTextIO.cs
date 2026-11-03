@@ -60,12 +60,12 @@ internal static class HtmlTextIO {
     }
 
     private static void ValidateReadable(Stream stream) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("The HTML input stream must be readable.", nameof(stream));
     }
 
     private static void ValidateWritable(Stream stream) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanWrite) throw new ArgumentException("The HTML output stream must be writable.", nameof(stream));
     }
 }

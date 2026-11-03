@@ -16,7 +16,7 @@ public static partial class WordIWorkConverter {
     /// <summary>Opens and converts a Pages file, returning the Word document with source evidence.</summary>
     public static PagesToWordResult ConvertPagesToWordResult(string path,
         IWorkReadOptions? readOptions = null, IWorkConversionOptions? conversionOptions = null) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         return ProjectPages(
             IWorkSourceDocument.Open(path, IWorkDocumentKind.Pages, readOptions), conversionOptions);
     }
@@ -24,7 +24,7 @@ public static partial class WordIWorkConverter {
     /// <summary>Opens and converts a Pages stream, returning the Word document with source evidence.</summary>
     public static PagesToWordResult ConvertPagesToWordResult(Stream stream,
         IWorkReadOptions? readOptions = null, IWorkConversionOptions? conversionOptions = null) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         return ProjectPages(
             IWorkSourceDocument.Open(stream, IWorkDocumentKind.Pages, readOptions), conversionOptions);
     }
@@ -37,7 +37,7 @@ public static partial class WordIWorkConverter {
     /// <summary>Converts an opened Pages source and returns the Word document with its projection and loss report.</summary>
     public static PagesToWordResult ToWordDocumentResult(this IWorkSourceDocument source,
         IWorkConversionOptions? options = null) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         return ProjectPages(source, options);
     }
 }

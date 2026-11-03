@@ -38,7 +38,7 @@ public sealed partial class ProjectCalendar : ProjectNamedEntity {
     /// <summary>Replaces the working intervals for a day without changing other calendar days.</summary>
     public ProjectWeekDay SetWorkingDay(DayOfWeek day, params ProjectWorkingTime[] times) {
         if (!Enum.IsDefined(typeof(DayOfWeek), day)) throw new ArgumentOutOfRangeException(nameof(day));
-        if (times == null) throw new ArgumentNullException(nameof(times));
+        ArgumentNullException.ThrowIfNull(times);
         EnsureAttached();
         var item = WeekDays.FirstOrDefault(d => d.Day == day) ?? WeekDays.Add();
         item.Day = day;

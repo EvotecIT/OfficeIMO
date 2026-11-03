@@ -76,8 +76,10 @@ public sealed partial class OdpPresentation : OdfDocument {
     /// <summary>Moves a slide to a zero-based position.</summary>
     public void MoveSlide(int sourceIndex, int destinationIndex) {
         List<XElement> slides = PresentationBody.Elements(OdfNamespaces.Draw + "page").ToList();
-        if (sourceIndex < 0 || sourceIndex >= slides.Count) throw new ArgumentOutOfRangeException(nameof(sourceIndex));
-        if (destinationIndex < 0 || destinationIndex >= slides.Count) throw new ArgumentOutOfRangeException(nameof(destinationIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(sourceIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(sourceIndex, slides.Count);
+        ArgumentOutOfRangeException.ThrowIfNegative(destinationIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(destinationIndex, slides.Count);
         XElement moving = slides[sourceIndex]; moving.Remove(); slides.RemoveAt(sourceIndex);
         if (destinationIndex >= slides.Count) PresentationBody.Add(moving); else slides[destinationIndex].AddBeforeSelf(moving);
         MarkPartDirty("content.xml");

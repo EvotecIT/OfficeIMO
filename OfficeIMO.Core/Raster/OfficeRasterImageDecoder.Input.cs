@@ -18,9 +18,7 @@ public static partial class OfficeRasterImageDecoder {
 
     // Carries known caller-owned backing storage into parsers using the owned result.
     internal static byte[] ReadEncodedBytes(Stream stream, out long additionallyRetainedBytes, OfficeRasterDecodeOptions? options = null) {
-        if (stream == null) {
-            throw new ArgumentNullException(nameof(stream));
-        }
+        ArgumentNullException.ThrowIfNull(stream);
         additionallyRetainedBytes = 0L;
         var effective = options ?? new OfficeRasterDecodeOptions();
         effective.Validate();

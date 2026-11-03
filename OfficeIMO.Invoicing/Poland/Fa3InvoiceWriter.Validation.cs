@@ -5,8 +5,8 @@ namespace OfficeIMO.Invoicing;
 
 public static partial class Fa3InvoiceWriter {
     private static Prepared Prepare(Invoice invoice, Fa3InvoiceWriteOptions options) {
-        if (invoice == null) throw new ArgumentNullException(nameof(invoice));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(invoice);
+        ArgumentNullException.ThrowIfNull(options);
         var result = new Prepared(); var diagnostics = new InvoiceDiagnosticBuffer();
         void Error(string path, string message) => diagnostics.Add("FA3-AUTHORING", message, path);
         try { new InvoiceModelLimits().Check(invoice); }

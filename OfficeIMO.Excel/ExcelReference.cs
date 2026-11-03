@@ -169,7 +169,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Returns whether two references on the same qualifier intersect.</summary>
         public bool Intersects(ExcelReference other) {
-            if (other == null) throw new ArgumentNullException(nameof(other));
+            ArgumentNullException.ThrowIfNull(other);
             if (!SameQualifier(other)) return false;
             GetBounds(out int ar1, out int ac1, out int ar2, out int ac2);
             other.GetBounds(out int br1, out int bc1, out int br2, out int bc2);
@@ -178,7 +178,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Returns the rectangular intersection, or null when the references do not overlap.</summary>
         public ExcelReference? Intersect(ExcelReference other) {
-            if (other == null) throw new ArgumentNullException(nameof(other));
+            ArgumentNullException.ThrowIfNull(other);
             if (!SameQualifier(other)) return null;
             GetBounds(out int ar1, out int ac1, out int ar2, out int ac2);
             other.GetBounds(out int br1, out int bc1, out int br2, out int bc2);
@@ -191,7 +191,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Returns the smallest rectangle containing both references.</summary>
         public ExcelReference BoundingUnion(ExcelReference other) {
-            if (other == null) throw new ArgumentNullException(nameof(other));
+            ArgumentNullException.ThrowIfNull(other);
             if (!SameQualifier(other)) {
                 throw new InvalidOperationException("Range union requires matching workbook and worksheet qualifiers.");
             }

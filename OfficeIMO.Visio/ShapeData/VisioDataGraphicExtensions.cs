@@ -16,17 +16,11 @@ namespace OfficeIMO.Visio {
         /// <param name="target">Shape whose Shape Data values should be visualized.</param>
         /// <param name="dataGraphic">Data graphic definition.</param>
         public static IReadOnlyList<VisioShape> AddDataGraphics(this VisioPage page, VisioShape target, VisioDataGraphic dataGraphic) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
-            if (target == null) {
-                throw new ArgumentNullException(nameof(target));
-            }
+            ArgumentNullException.ThrowIfNull(target);
 
-            if (dataGraphic == null) {
-                throw new ArgumentNullException(nameof(dataGraphic));
-            }
+            ArgumentNullException.ThrowIfNull(dataGraphic);
 
             if (!page.AllShapes().Contains(target)) {
                 throw new InvalidOperationException("The data graphic target shape must belong to the page.");
@@ -65,9 +59,7 @@ namespace OfficeIMO.Visio {
         /// <param name="selection">Target shape selection.</param>
         /// <param name="dataGraphic">Data graphic definition.</param>
         public static IReadOnlyList<VisioShape> AddDataGraphics(this VisioShapeSelection selection, VisioDataGraphic dataGraphic) {
-            if (selection == null) {
-                throw new ArgumentNullException(nameof(selection));
-            }
+            ArgumentNullException.ThrowIfNull(selection);
 
             if (selection.OwnerPage == null) {
                 throw new InvalidOperationException("The shape selection must be created from a VisioPage query to add data graphics.");

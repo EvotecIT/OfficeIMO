@@ -45,7 +45,7 @@ internal static class OfficeConversionFidelityDiagnostics {
     /// <summary>Flattens stage diagnostics without collapsing their loss categories.</summary>
     public static IReadOnlyList<OfficeConversionFidelityDiagnostic> Flatten(
         IEnumerable<IOfficeConversionReport> reports) {
-        if (reports == null) throw new ArgumentNullException(nameof(reports));
+        ArgumentNullException.ThrowIfNull(reports);
         var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
         foreach (IOfficeConversionReport report in reports) {
             if (report == null) throw new ArgumentException("Conversion reports cannot contain null entries.", nameof(reports));
@@ -69,7 +69,7 @@ internal static class OfficeConversionFidelityDiagnostics {
     public static OfficeConversionFidelityDiagnostic From(
         OfficeConversionDiagnostic diagnostic,
         string source) {
-        if (diagnostic == null) throw new ArgumentNullException(nameof(diagnostic));
+        ArgumentNullException.ThrowIfNull(diagnostic);
         return new OfficeConversionFidelityDiagnostic(
             diagnostic.Code,
             diagnostic.Message,
@@ -82,7 +82,7 @@ internal static class OfficeConversionFidelityDiagnostics {
     public static OfficeConversionFidelityDiagnostic From(
         OfficeCompatibilityFinding finding,
         string source) {
-        if (finding == null) throw new ArgumentNullException(nameof(finding));
+        ArgumentNullException.ThrowIfNull(finding);
         return new OfficeConversionFidelityDiagnostic(
             finding.Code,
             string.IsNullOrEmpty(finding.Message) ? finding.Category : finding.Message,

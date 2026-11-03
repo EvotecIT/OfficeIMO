@@ -44,7 +44,7 @@ public static class ReaderInputLimits {
     /// Enforces <paramref name="maxBytes"/> against file length when available.
     /// </summary>
     public static void EnforceFileSize(string path, long? maxBytes) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (!maxBytes.HasValue) return;
 
         try {
@@ -64,7 +64,7 @@ public static class ReaderInputLimits {
     /// Enforces <paramref name="maxBytes"/> against stream length when seekable.
     /// </summary>
     public static void EnforceSeekableStreamSize(Stream stream, long? maxBytes) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!maxBytes.HasValue) return;
         if (!stream.CanSeek) return;
 
@@ -129,7 +129,7 @@ public static class ReaderInputLimits {
 
     internal static Stream EnsureSeekableReadStream(Stream stream, long? maxInputBytes, ReaderInputLimitProbe? inputLimitProbe,
         CancellationToken cancellationToken, out bool ownsStream) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
         if (IsSnapshotStream(stream)) {
@@ -227,7 +227,7 @@ public static class ReaderInputLimits {
         long? maxInputBytes,
         ReaderInputLimitProbe? inputLimitProbe,
         CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
         cancellationToken.ThrowIfCancellationRequested();

@@ -5,7 +5,7 @@ namespace OfficeIMO.Project;
 public sealed partial class ProjectDocument {
     /// <summary>Imports explicitly mapped tables into a new document, preserving UIDs. Duplicate identities, missing required values, cycles, malformed values and dangling references reject the entire import.</summary>
     public static ProjectDataImportResult ImportTables(IEnumerable<ProjectMappedTable> tables, ProjectDataImportOptions? options = null, CancellationToken cancellationToken = default) {
-        if (tables == null) throw new ArgumentNullException(nameof(tables));
+        ArgumentNullException.ThrowIfNull(tables);
         options ??= new ProjectDataImportOptions();
         var settings = new ProjectDataImportOptions { Name = options.Name, Start = options.Start, CalendarUid = options.CalendarUid,
             AllowUnmappedColumns = options.AllowUnmappedColumns, MaxRows = options.MaxRows, MaxDepth = options.MaxDepth };

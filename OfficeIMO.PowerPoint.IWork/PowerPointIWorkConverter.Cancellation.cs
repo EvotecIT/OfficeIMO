@@ -15,7 +15,7 @@ public static partial class PowerPointIWorkConverter {
     public static KeynoteToPowerPointResult ConvertKeynoteToPowerPointResult(string path,
         IWorkReadOptions? readOptions, IWorkConversionOptions? conversionOptions,
         CancellationToken cancellationToken) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         cancellationToken.ThrowIfCancellationRequested();
         return ProjectKeynote(IWorkSourceDocument.Open(path, IWorkDocumentKind.Keynote,
             readOptions, cancellationToken), conversionOptions);
@@ -32,7 +32,7 @@ public static partial class PowerPointIWorkConverter {
     public static KeynoteToPowerPointResult ConvertKeynoteToPowerPointResult(Stream stream,
         IWorkReadOptions? readOptions, IWorkConversionOptions? conversionOptions,
         CancellationToken cancellationToken) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         cancellationToken.ThrowIfCancellationRequested();
         return ProjectKeynote(IWorkSourceDocument.Open(stream, IWorkDocumentKind.Keynote,
             readOptions, cancellationToken), conversionOptions);

@@ -56,7 +56,7 @@ public class HtmlNode {
         }
         set {
             Document.EnsureMutable();
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
             if (Kind == HtmlNodeKind.DocumentType || Kind == HtmlNodeKind.Document) throw new InvalidOperationException("Set text on a text, comment, element or fragment node.");
             if (Kind == HtmlNodeKind.Text || Kind == HtmlNodeKind.Comment) _data = value;
             else {
@@ -74,7 +74,7 @@ public class HtmlNode {
 
     /// <summary>Appends or moves a node in the same mutable document. Cycles and cross-document moves are rejected.</summary>
     public HtmlNode AppendChild(HtmlNode child) {
-        if (child == null) throw new ArgumentNullException(nameof(child));
+        ArgumentNullException.ThrowIfNull(child);
         Document.EnsureMutable();
         if (Kind != HtmlNodeKind.Document && Kind != HtmlNodeKind.Element && Kind != HtmlNodeKind.DocumentFragment) throw new InvalidOperationException("This node cannot contain children.");
         if (!ReferenceEquals(Document, child.Document)) throw new ArgumentException("The child belongs to another document.", nameof(child));
@@ -125,7 +125,7 @@ public class HtmlNode {
     public HtmlElement? QuerySelector(string selector) => QuerySelectorAll(selector).FirstOrDefault();
     /// <summary>Finds matching descendants using this document's selector provider.</summary>
     public IReadOnlyList<HtmlElement> QuerySelectorAll(string selector) {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         return Document.Services.QuerySelectorAll(this, selector);
     }
 

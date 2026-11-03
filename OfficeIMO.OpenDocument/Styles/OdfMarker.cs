@@ -12,7 +12,7 @@ public sealed class OdfMarker {
         get => new OdfMarkerGeometry((string?)_element.Attribute(OdfNamespaces.Svg + "viewBox") ?? throw new InvalidDataException("Marker '" + Name + "' has no view box."),
             (string?)_element.Attribute(OdfNamespaces.Svg + "d") ?? throw new InvalidDataException("Marker '" + Name + "' has no path."));
         set {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
             WriteGeometry(_element, value); _document.MarkPartDirty("styles.xml");
         }
     }

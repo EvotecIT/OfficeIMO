@@ -61,26 +61,26 @@ public sealed class DjVuReadOptions {
 
     internal void Validate() {
         if (MaxSourceBytes <= 0 || MaxSourceBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(MaxSourceBytes));
-        if (MaxComponents <= 0) throw new ArgumentOutOfRangeException(nameof(MaxComponents));
-        if (MaxPages <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPages));
-        if (MaxChunks <= 0) throw new ArgumentOutOfRangeException(nameof(MaxChunks));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxComponents);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxPages);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxChunks);
         if (MaxDepth <= 0 || MaxDepth > 256) throw new ArgumentOutOfRangeException(nameof(MaxDepth));
         if (MaxExpandedBytes <= 0 || MaxExpandedBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(MaxExpandedBytes));
         if (MaxBzzBlockBytes <= 0 || MaxBzzBlockBytes > 4 * 1024 * 1024) throw new ArgumentOutOfRangeException(nameof(MaxBzzBlockBytes));
-        if (MaxTextCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTextCharacters));
-        if (MaxTextZones <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTextZones));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxTextCharacters);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxTextZones);
         if (MaxTextZoneDepth <= 0 || MaxTextZoneDepth > 256) throw new ArgumentOutOfRangeException(nameof(MaxTextZoneDepth));
-        if (MaxBookmarks <= 0) throw new ArgumentOutOfRangeException(nameof(MaxBookmarks));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxBookmarks);
         if (MaxBookmarkDepth <= 0 || MaxBookmarkDepth > 256) throw new ArgumentOutOfRangeException(nameof(MaxBookmarkDepth));
-        if (MaxBookmarkCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxBookmarkCharacters));
-        if (MaxPagePixels <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPagePixels));
-        if (MaxCodecBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxCodecBytes));
-        if (MaxSymbols <= 0) throw new ArgumentOutOfRangeException(nameof(MaxSymbols));
-        if (MaxSymbolPlacements <= 0) throw new ArgumentOutOfRangeException(nameof(MaxSymbolPlacements));
-        if (MaxJb2DecodedSamples <= 0) throw new ArgumentOutOfRangeException(nameof(MaxJb2DecodedSamples));
-        if (MaxJb2CommentBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxJb2CommentBytes));
-        if (MaxIw44Slices <= 0) throw new ArgumentOutOfRangeException(nameof(MaxIw44Slices));
-        if (MaxIw44CoefficientSamples <= 0) throw new ArgumentOutOfRangeException(nameof(MaxIw44CoefficientSamples));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxBookmarkCharacters);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxPagePixels);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxCodecBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxSymbols);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxSymbolPlacements);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxJb2DecodedSamples);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxJb2CommentBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxIw44Slices);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxIw44CoefficientSamples);
     }
 }
 

@@ -152,9 +152,7 @@ internal static class MarkdownFence {
     /// <param name="transformer">Transform to apply outside fenced code blocks.</param>
     /// <returns>Transformed markdown with fenced content preserved verbatim.</returns>
     public static string ApplyTransformOutsideFencedCodeBlocks(string? input, Func<string, string> transformer) {
-        if (transformer == null) {
-            throw new ArgumentNullException(nameof(transformer));
-        }
+        ArgumentNullException.ThrowIfNull(transformer);
 
         if (string.IsNullOrEmpty(input)) {
             return input ?? string.Empty;

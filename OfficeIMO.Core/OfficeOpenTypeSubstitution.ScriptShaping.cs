@@ -28,9 +28,9 @@ internal sealed partial class OfficeOpenTypeSubstitution {
 
     private bool TryApplyScriptDefaults(List<GlyphToken> glyphs, OfficeTextFeatureSettings settings,
         string script, string? language, CancellationToken cancellationToken, string sourceText, ScriptShapingContext? context) {
-        if (glyphs == null) throw new ArgumentNullException(nameof(glyphs));
-        if (settings == null) throw new ArgumentNullException(nameof(settings));
-        if (sourceText == null) throw new ArgumentNullException(nameof(sourceText));
+        ArgumentNullException.ThrowIfNull(glyphs);
+        ArgumentNullException.ThrowIfNull(settings);
+        ArgumentNullException.ThrowIfNull(sourceText);
         cancellationToken.ThrowIfCancellationRequested();
         try {
             context ??= CreateScriptShapingContext(sourceText, settings, language, cancellationToken);

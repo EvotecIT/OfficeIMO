@@ -18,7 +18,7 @@ public sealed class OfficeRasterColorMatrix {
 
     /// <summary>Creates a matrix by copying exactly twenty finite row-major coefficients.</summary>
     public OfficeRasterColorMatrix(params double[] coefficients) {
-        if (coefficients == null) throw new ArgumentNullException(nameof(coefficients));
+        ArgumentNullException.ThrowIfNull(coefficients);
         if (coefficients.Length != 20) throw new ArgumentException("A color matrix requires twenty coefficients.", nameof(coefficients));
         foreach (double coefficient in coefficients) {
             if (double.IsNaN(coefficient) || double.IsInfinity(coefficient) || Math.Abs(coefficient) > 1_000_000D) {
@@ -52,7 +52,7 @@ public static partial class OfficeRasterFilters {
     private const long MaximumOperations = 1_000_000_000L;
 
     private static void ValidateSource(OfficeRasterImage source, long additionalBytes = 0L, long operationsPerPixel = 1L) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         long pixels = OfficeRasterGuards.EnsureOutputPixels(source.Width, source.Height, "Raster filtering dimensions exceed the managed image limit.");
         ValidateFilterLimits(pixels, checked(additionalBytes + FixedFilteringWorkingBytes), operationsPerPixel);
     }

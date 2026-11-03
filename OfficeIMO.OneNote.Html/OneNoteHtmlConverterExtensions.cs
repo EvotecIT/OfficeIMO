@@ -25,7 +25,7 @@ public static class OneNoteHtmlConverterExtensions {
         this OneNoteSection section,
         OneNoteMarkdownOptions? projectionOptions = null,
         MarkdownHtmlExportOptions? htmlOptions = null) {
-        if (section == null) throw new ArgumentNullException(nameof(section));
+        ArgumentNullException.ThrowIfNull(section);
         PreparedHtml projection = Prepare(section, projectionOptions);
         return new HtmlTextConversionResult(
             projection.Document.ToHtml(WholeDocument(htmlOptions)),
@@ -44,7 +44,7 @@ public static class OneNoteHtmlConverterExtensions {
         this OneNoteNotebook notebook,
         OneNoteMarkdownOptions? projectionOptions = null,
         MarkdownHtmlExportOptions? htmlOptions = null) {
-        if (notebook == null) throw new ArgumentNullException(nameof(notebook));
+        ArgumentNullException.ThrowIfNull(notebook);
         PreparedHtml projection = Prepare(notebook, projectionOptions);
         return new HtmlTextConversionResult(
             projection.Document.ToHtml(WholeDocument(htmlOptions)),
@@ -150,14 +150,14 @@ public static class OneNoteHtmlConverterExtensions {
     private static byte[] Utf8(string value) => new UTF8Encoding(false).GetBytes(value);
 
     private static PreparedHtml Prepare(OneNoteSection section, OneNoteMarkdownOptions? options) {
-        if (section == null) throw new ArgumentNullException(nameof(section));
+        ArgumentNullException.ThrowIfNull(section);
         OneNoteMarkdownOptions operation = CreateCachedOptions(options);
         OneNoteMarkdownConversionResult projection = section.ToMarkdownDocumentResult(operation);
         return new PreparedHtml(OneNoteSemanticHtmlRenderer.CreateDocument(section, operation), projection, operation);
     }
 
     private static PreparedHtml Prepare(OneNoteNotebook notebook, OneNoteMarkdownOptions? options) {
-        if (notebook == null) throw new ArgumentNullException(nameof(notebook));
+        ArgumentNullException.ThrowIfNull(notebook);
         OneNoteMarkdownOptions operation = CreateCachedOptions(options);
         OneNoteMarkdownConversionResult projection = notebook.ToMarkdownDocumentResult(operation);
         return new PreparedHtml(OneNoteSemanticHtmlRenderer.CreateDocument(notebook, operation), projection, operation);
@@ -210,12 +210,12 @@ public static class OneNoteHtmlConverterExtensions {
     }
 
     private static void Write(Stream stream, byte[] bytes) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         stream.Write(bytes, 0, bytes.Length);
     }
 
     private static Task WriteAsync(Stream stream, byte[] bytes, CancellationToken cancellationToken) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         return stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken);
     }
 

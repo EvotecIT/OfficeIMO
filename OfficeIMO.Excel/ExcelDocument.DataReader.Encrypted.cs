@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
         internal static ExcelWorkbookDataReader OpenEncryptedDataReader(
             string path, string password, ExcelReaderOptions? options = null) {
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(password);
             ExcelReaderOptions effectiveOptions = (options ?? new ExcelReaderOptions()).Clone();
             effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
             using var source = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -39,9 +39,9 @@ namespace OfficeIMO.Excel {
         /// </remarks>
         internal static ExcelWorkbookDataReader OpenEncryptedDataReader(
             Stream stream, string password, ExcelReaderOptions? options = null) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(password);
             ExcelReaderOptions effectiveOptions = (options ?? new ExcelReaderOptions()).Clone();
             long originalPosition = stream.CanSeek ? stream.Position : 0L;
             byte[] encryptedBytes;
@@ -67,8 +67,8 @@ namespace OfficeIMO.Excel {
         /// </remarks>
         internal static ExcelWorkbookDataReader OpenEncryptedDataReader(
             byte[] encryptedBytes, string password, ExcelReaderOptions? options = null) {
-            if (encryptedBytes == null) throw new ArgumentNullException(nameof(encryptedBytes));
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(encryptedBytes);
+            ArgumentNullException.ThrowIfNull(password);
             return OpenEncryptedDataReaderCore(
                 encryptedBytes, password, (options ?? new ExcelReaderOptions()).Clone());
         }

@@ -12,8 +12,8 @@ public sealed partial class OfficeWorkflowRunner {
     /// provider inputs are reopened before publication. Provider outputs require an explicit direct-write contract.</remarks>
     public async Task<PdfSearchableWorkflowResult> MakePdfSearchableAsync(PdfSearchableWorkflowRequest request,
         IOcrEngine engine, CancellationToken cancellationToken = default) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
-        if (engine == null) throw new ArgumentNullException(nameof(engine));
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(engine);
         var diagnostics = new List<OfficeWorkflowDiagnostic>();
         var inputs = new WorkflowInputSnapshots();
         string? stagingPath = null;

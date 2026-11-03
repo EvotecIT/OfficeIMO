@@ -25,9 +25,9 @@ public sealed partial class IWorkNativeEditSession {
     private void UpdateNumbersCell(IWorkObjectIdentity identity, int row, int column, IWorkCellKind kind,
         object value, CancellationToken token) {
         token.ThrowIfCancellationRequested();
-        if (identity == null) throw new ArgumentNullException(nameof(identity));
-        if (row < 1) throw new ArgumentOutOfRangeException(nameof(row));
-        if (column < 1) throw new ArgumentOutOfRangeException(nameof(column));
+        ArgumentNullException.ThrowIfNull(identity);
+        ArgumentOutOfRangeException.ThrowIfLessThan(row, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(column, 1);
         if (_source.Kind != IWorkDocumentKind.Numbers) throw new InvalidOperationException("Cell editing requires a Numbers source.");
         if (_source.ContainerEntries.Any(entry => entry.Path == "Index.zip"))
             throw new NotSupportedException("Edits to nested Index.zip sources are not supported.");
@@ -40,8 +40,8 @@ public sealed partial class IWorkNativeEditSession {
         var matches = tables.Where(table => SameIdentity(table.SourceIdentity, identity)).Take(2).ToArray();
         if (matches.Length != 1) throw new ArgumentException("The identity must resolve to exactly one table in this source.", nameof(identity));
         var table = matches[0];
-        if (row > table.RowCount) throw new ArgumentOutOfRangeException(nameof(row));
-        if (column > table.ColumnCount) throw new ArgumentOutOfRangeException(nameof(column));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(row, table.RowCount);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(column, table.ColumnCount);
         var cell = table.GetCell(row, column);
         if (cell == null || cell.Kind != kind || cell.ValueKind != kind)
             throw new NotSupportedException("Only existing scalar cells of the requested native kind can be replaced.");

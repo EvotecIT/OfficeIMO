@@ -11,8 +11,8 @@ public static partial class BookManuscriptImporter {
     /// <summary>Imports a Word document using its semantic HTML projection and retains the projection's fidelity report.</summary>
     public static async Task<EpubManuscriptResult> ImportWordAsync(WordDocument document, EpubManuscriptOptions options,
         HtmlConversionDocumentOptions? htmlOptions = null, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(options);
         options = options.Clone();
         options.Creator ??= document.BuiltinDocumentProperties.Creator;
         cancellationToken.ThrowIfCancellationRequested();
@@ -33,8 +33,8 @@ public static partial class BookManuscriptImporter {
     /// <summary>Imports typed Markdown as static semantic HTML, with no script or network execution.</summary>
     public static Task<EpubManuscriptResult> ImportMarkdownAsync(MarkdownDocument document, EpubManuscriptOptions options,
         HtmlConversionDocumentOptions? htmlOptions = null, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(options);
         options = options.Clone();
         options.Title ??= document.FindFrontMatterEntry("title")?.Value as string;
         options.Language ??= document.FindFrontMatterEntry("language")?.Value as string ?? document.FindFrontMatterEntry("lang")?.Value as string;

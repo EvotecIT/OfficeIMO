@@ -37,9 +37,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds multiple paragraphs to the table cell.
         /// </summary>
         public IReadOnlyList<PowerPointParagraph> AddParagraphs(IEnumerable<string> paragraphs, Action<PowerPointParagraph>? configure = null) {
-            if (paragraphs == null) {
-                throw new ArgumentNullException(nameof(paragraphs));
-            }
+            ArgumentNullException.ThrowIfNull(paragraphs);
 
             var results = new List<PowerPointParagraph>();
             foreach (string paragraphText in paragraphs) {
@@ -55,9 +53,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Replaces all table-cell paragraphs with the provided content.
         /// </summary>
         public IReadOnlyList<PowerPointParagraph> SetParagraphs(IEnumerable<string> paragraphs, Action<PowerPointParagraph>? configure = null) {
-            if (paragraphs == null) {
-                throw new ArgumentNullException(nameof(paragraphs));
-            }
+            ArgumentNullException.ThrowIfNull(paragraphs);
 
             A.TextBody textBody = EnsureTextBody();
             string[] discardedSoundIds = PowerPointEmbeddedSound

@@ -215,7 +215,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Adds a graph node backed by an OfficeIMO, installed Visio, or external package stencil.</summary>
         public VisioGraphDiagramBuilder StencilNode(string id, string text, VisioStencilShape stencil) {
-            if (stencil == null) throw new ArgumentNullException(nameof(stencil));
+            ArgumentNullException.ThrowIfNull(stencil);
             string normalizedId = RequireId(id, nameof(id), "Node id");
             if (IsIdInUse(normalizedId)) {
                 throw new ArgumentException($"A graph diagram item with id '{normalizedId}' already exists.", nameof(id));
@@ -229,7 +229,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Adds a graph node backed by the first matching stencil in a catalog.</summary>
         public VisioGraphDiagramBuilder StencilNode(string id, string text, VisioStencilCatalog catalog, params string[] stencilQueries) {
-            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
+            ArgumentNullException.ThrowIfNull(catalog);
             VisioStencilShape stencil = catalog.FindBest(stencilQueries);
             string normalizedId = RequireId(id, nameof(id), "Node id");
             if (IsIdInUse(normalizedId)) {
@@ -244,7 +244,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Imports graph nodes from simple data records.</summary>
         public VisioGraphDiagramBuilder Nodes(IEnumerable<VisioGraphNodeRecord> nodes) {
-            if (nodes == null) throw new ArgumentNullException(nameof(nodes));
+            ArgumentNullException.ThrowIfNull(nodes);
             foreach (VisioGraphNodeRecord node in nodes) {
                 AddNodeRecord(node);
             }
@@ -254,7 +254,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Imports graph edges from simple data records.</summary>
         public VisioGraphDiagramBuilder Edges(IEnumerable<VisioGraphEdgeRecord> edges) {
-            if (edges == null) throw new ArgumentNullException(nameof(edges));
+            ArgumentNullException.ThrowIfNull(edges);
             List<VisioGraphEdgeRecord> edgeRecords = edges.ToList();
             HashSet<string> reservedExplicitIds = ReserveExplicitEdgeRecordIds(edgeRecords);
             foreach (VisioGraphEdgeRecord edge in edgeRecords) {
@@ -271,7 +271,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Imports graph clusters from simple data records.</summary>
         public VisioGraphDiagramBuilder Clusters(IEnumerable<VisioGraphClusterRecord> clusters) {
-            if (clusters == null) throw new ArgumentNullException(nameof(clusters));
+            ArgumentNullException.ThrowIfNull(clusters);
             foreach (VisioGraphClusterRecord cluster in clusters) {
                 AddClusterRecord(cluster);
             }
@@ -300,7 +300,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Overrides the visual style for a graph node.</summary>
         public VisioGraphDiagramBuilder NodeStyle(string nodeId, VisioShapeStyle style) {
-            if (style == null) throw new ArgumentNullException(nameof(style));
+            ArgumentNullException.ThrowIfNull(style);
             string normalizedNodeId = RequireId(nodeId, nameof(nodeId), "Node id");
             NodeItem node = GetKnownNode(normalizedNodeId, nameof(nodeId));
             node.StyleOverride = style.Clone();
@@ -309,7 +309,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Overrides the visual style for a graph node by editing a theme-derived style copy.</summary>
         public VisioGraphDiagramBuilder NodeStyle(string nodeId, Action<VisioShapeStyle> configure) {
-            if (configure == null) throw new ArgumentNullException(nameof(configure));
+            ArgumentNullException.ThrowIfNull(configure);
             string normalizedNodeId = RequireId(nodeId, nameof(nodeId), "Node id");
             NodeItem node = GetKnownNode(normalizedNodeId, nameof(nodeId));
             VisioShapeStyle style = (node.StyleOverride ?? GetNodeStyle(node.Kind)).Clone();
@@ -332,9 +332,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Adds a hyperlink that will be written to a graph node.</summary>
         public VisioGraphDiagramBuilder NodeHyperlink(string nodeId, Uri address, string? description = null, string? subAddress = null) {
-            if (address == null) {
-                throw new ArgumentNullException(nameof(address));
-            }
+            ArgumentNullException.ThrowIfNull(address);
 
             return NodeHyperlink(nodeId, address.ToString(), description, subAddress);
         }
@@ -450,9 +448,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Adds a hyperlink that will be written to a named graph edge connector.</summary>
         public VisioGraphDiagramBuilder EdgeHyperlink(string edgeId, Uri address, string? description = null, string? subAddress = null) {
-            if (address == null) {
-                throw new ArgumentNullException(nameof(address));
-            }
+            ArgumentNullException.ThrowIfNull(address);
 
             return EdgeHyperlink(edgeId, address.ToString(), description, subAddress);
         }
@@ -473,7 +469,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Overrides the visual style for a named graph edge connector.</summary>
         public VisioGraphDiagramBuilder EdgeStyle(string edgeId, VisioConnectorStyle style) {
-            if (style == null) throw new ArgumentNullException(nameof(style));
+            ArgumentNullException.ThrowIfNull(style);
             string normalizedEdgeId = RequireId(edgeId, nameof(edgeId), "Edge id");
             EdgeItem edge = GetKnownEdge(normalizedEdgeId, nameof(edgeId));
             edge.StyleOverride = style.Clone();
@@ -482,7 +478,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Overrides the visual style for a named graph edge connector by editing a theme-derived style copy.</summary>
         public VisioGraphDiagramBuilder EdgeStyle(string edgeId, Action<VisioConnectorStyle> configure) {
-            if (configure == null) throw new ArgumentNullException(nameof(configure));
+            ArgumentNullException.ThrowIfNull(configure);
             string normalizedEdgeId = RequireId(edgeId, nameof(edgeId), "Edge id");
             EdgeItem edge = GetKnownEdge(normalizedEdgeId, nameof(edgeId));
             VisioConnectorStyle style = (edge.StyleOverride ?? GetConnectorStyle(edge.Kind, edge.Directed)).Clone();
@@ -519,15 +515,13 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Adds a hyperlink that will be written to a graph zone or cluster background.</summary>
         public VisioGraphDiagramBuilder ZoneHyperlink(string zoneId, Uri address, string? description = null, string? subAddress = null) {
-            if (address == null) {
-                throw new ArgumentNullException(nameof(address));
-            }
+            ArgumentNullException.ThrowIfNull(address);
 
             return ZoneHyperlink(zoneId, address.ToString(), description, subAddress);
         }
 
         private void AddNodeRecord(VisioGraphNodeRecord record) {
-            if (record == null) throw new ArgumentNullException(nameof(record));
+            ArgumentNullException.ThrowIfNull(record);
             string nodeId = RequireId(record.Id, nameof(record.Id), "Node id");
             if (record.Stencil != null) {
                 StencilNode(nodeId, record.Text, record.Stencil);
@@ -556,7 +550,7 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private void AddEdgeRecord(VisioGraphEdgeRecord record, ISet<string>? reservedExplicitIds = null) {
-            if (record == null) throw new ArgumentNullException(nameof(record));
+            ArgumentNullException.ThrowIfNull(record);
             string edgeId = string.IsNullOrWhiteSpace(record.Id)
                 ? CreateStableEdgeId(record.FromId, record.ToId, record.Kind, reservedExplicitIds)
                 : RequireId(record.Id!, nameof(record.Id), "Edge id");
@@ -580,7 +574,7 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private void AddClusterRecord(VisioGraphClusterRecord record) {
-            if (record == null) throw new ArgumentNullException(nameof(record));
+            ArgumentNullException.ThrowIfNull(record);
             string clusterId = RequireId(record.Id, nameof(record.Id), "Cluster id");
             IReadOnlyList<string> nodeIds = NormalizeZoneNodeIds(record.NodeIds, nameof(record.NodeIds), "Cluster node id");
             Cluster(clusterId, record.Text, nodeIds.ToArray());

@@ -111,9 +111,7 @@ namespace OfficeIMO.Word {
         /// <param name="wrapImage">The desired wrapping option.</param>
         public static void SetWrapTextImage(DocumentFormat.OpenXml.Wordprocessing.Drawing drawing, Anchor anchor, Inline inline, WordImageTextWrapping? wrapImage) {
             var currentWrap = GetWrapTextImage(anchor, inline);
-            if (wrapImage == null) {
-                throw new ArgumentNullException(nameof(wrapImage));
-            }
+            ArgumentNullException.ThrowIfNull(wrapImage);
             if (currentWrap == wrapImage) {
                 // nothing to do
                 return;

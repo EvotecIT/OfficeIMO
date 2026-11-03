@@ -63,7 +63,7 @@ public sealed partial class EmailDocument {
 
     /// <summary>Saves the document in the explicitly selected artifact format.</summary>
     public EmailWriteResult Save(string filePath, EmailFileFormat format, EmailWriterOptions? options = null) {
-        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        ArgumentNullException.ThrowIfNull(filePath);
         return SaveToPath(filePath, format, OfficeFileCommit.ConflictPolicy.Replace, options,
             requireAtomicCommit: false);
     }
@@ -73,7 +73,7 @@ public sealed partial class EmailDocument {
     /// </summary>
     public EmailWriteResult SaveWithConflictPolicy(string filePath, EmailFileFormat format,
         EmailFileConflictPolicy conflictPolicy, EmailWriterOptions? options = null) {
-        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        ArgumentNullException.ThrowIfNull(filePath);
         OfficeFileCommit.ConflictPolicy commitPolicy = GetCommitConflictPolicy(conflictPolicy);
         return SaveToPath(filePath, format, commitPolicy, options, requireAtomicCommit: true);
     }
@@ -105,7 +105,7 @@ public sealed partial class EmailDocument {
     /// <summary>Saves the document to a stream without closing it.</summary>
     public EmailWriteResult Save(Stream stream, EmailFileFormat format = EmailFileFormat.Eml,
         EmailWriterOptions? options = null) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
         EmailDocumentWriter writer = new EmailDocumentWriter(options ?? EmailWriterOptions.Default);
         using FileStream staging = OfficeTemporaryFile.Create(
@@ -134,7 +134,7 @@ public sealed partial class EmailDocument {
     /// <summary>Asynchronously saves the document in the explicitly selected artifact format.</summary>
     public async Task<EmailWriteResult> SaveAsync(string filePath, EmailFileFormat format,
         EmailWriterOptions? options = null, CancellationToken cancellationToken = default) {
-        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        ArgumentNullException.ThrowIfNull(filePath);
         return await SaveToPathAsync(filePath, format, OfficeFileCommit.ConflictPolicy.Replace, options,
             requireAtomicCommit: false, cancellationToken).ConfigureAwait(false);
     }
@@ -146,7 +146,7 @@ public sealed partial class EmailDocument {
     public async Task<EmailWriteResult> SaveWithConflictPolicyAsync(string filePath, EmailFileFormat format,
         EmailFileConflictPolicy conflictPolicy, EmailWriterOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        ArgumentNullException.ThrowIfNull(filePath);
         OfficeFileCommit.ConflictPolicy commitPolicy = GetCommitConflictPolicy(conflictPolicy);
         return await SaveToPathAsync(filePath, format, commitPolicy, options,
             requireAtomicCommit: true, cancellationToken).ConfigureAwait(false);
@@ -182,7 +182,7 @@ public sealed partial class EmailDocument {
     /// <summary>Asynchronously saves the document to a stream without closing it.</summary>
     public async Task<EmailWriteResult> SaveAsync(Stream stream, EmailFileFormat format = EmailFileFormat.Eml,
         EmailWriterOptions? options = null, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
         cancellationToken.ThrowIfCancellationRequested();
         EmailDocumentWriter writer = new EmailDocumentWriter(options ?? EmailWriterOptions.Default);
@@ -274,7 +274,7 @@ public sealed partial class EmailDocument {
     }
 
     private static EmailFileFormat InferOutputFormat(string filePath) {
-        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        ArgumentNullException.ThrowIfNull(filePath);
         string fileName = Path.GetFileName(filePath);
         string extension = Path.GetExtension(fileName);
         if (extension.Equals(".eml", StringComparison.OrdinalIgnoreCase) ||

@@ -164,12 +164,8 @@ namespace OfficeIMO.Excel {
         }
 
         private Cell GetCell(int row, int column) {
-            if (row <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(row));
-            }
-            if (column <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(column));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(row);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(column);
 
             SheetData sheetData = GetOrCreateSheetData();
 
@@ -328,12 +324,8 @@ namespace OfficeIMO.Excel {
         }
 
         private Cell? TryGetCell(int row, int column) {
-            if (row <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(row));
-            }
-            if (column <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(column));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(row);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(column);
 
             SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
             if (sheetData == null) {

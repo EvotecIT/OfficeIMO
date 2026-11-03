@@ -16,12 +16,12 @@ public sealed class EmailStorePstWriterOptions {
         bool retainCheckpointOnDispose = true,
         int maxDiagnostics = 10_000,
         IProgress<EmailStorePstWriteProgress>? progress = null) {
-        if (maxFolderCount <= 0) throw new ArgumentOutOfRangeException(nameof(maxFolderCount));
-        if (maxItemCount <= 0) throw new ArgumentOutOfRangeException(nameof(maxItemCount));
-        if (maxNestedMessageDepth < 0) throw new ArgumentOutOfRangeException(nameof(maxNestedMessageDepth));
-        if (checkpointIntervalItems <= 0) throw new ArgumentOutOfRangeException(nameof(checkpointIntervalItems));
-        if (maxIndexRecordsInMemory <= 0) throw new ArgumentOutOfRangeException(nameof(maxIndexRecordsInMemory));
-        if (maxDiagnostics <= 0) throw new ArgumentOutOfRangeException(nameof(maxDiagnostics));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxFolderCount);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxItemCount);
+        ArgumentOutOfRangeException.ThrowIfNegative(maxNestedMessageDepth);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(checkpointIntervalItems);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxIndexRecordsInMemory);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDiagnostics);
         DisplayName = string.IsNullOrWhiteSpace(displayName) ? "OfficeIMO Personal Folders" : displayName!;
         OverwriteExisting = overwriteExisting;
         FailOnDataLoss = failOnDataLoss;

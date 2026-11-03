@@ -15,7 +15,8 @@ public sealed class AsciiDocProcessingSourceMap {
     /// <summary>Finds the origin range at a processed offset, including the end-of-source boundary.</summary>
     /// <returns>Null for an empty processed document.</returns>
     public AsciiDocSourceMapping? Find(int processedOffset) {
-        if (processedOffset < 0 || processedOffset > Length) throw new ArgumentOutOfRangeException(nameof(processedOffset));
+        ArgumentOutOfRangeException.ThrowIfNegative(processedOffset);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(processedOffset, Length);
         if (_entries.Count == 0) return null;
         if (processedOffset == Length) return _entries[_entries.Count - 1];
         int low = 0, high = _entries.Count - 1;

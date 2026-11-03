@@ -80,8 +80,8 @@ public static partial class OfficeDocumentReadResultExtensions {
     public static IReadOnlyList<OfficeDocumentPageLocation> Locate(
         this OfficeDocumentReadResult document,
         OfficeDocumentBlock block) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (block == null) throw new ArgumentNullException(nameof(block));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(block);
         return Locate(document, block.Id, block);
     }
 
@@ -91,7 +91,7 @@ public static partial class OfficeDocumentReadResultExtensions {
     public static IReadOnlyList<OfficeDocumentPageLocation> Locate(
         this OfficeDocumentReadResult document,
         string blockId) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         if (string.IsNullOrWhiteSpace(blockId)) throw new ArgumentException("Block identifier cannot be empty.", nameof(blockId));
         return Locate(document, blockId, fallbackBlock: null);
     }
@@ -100,7 +100,7 @@ public static partial class OfficeDocumentReadResultExtensions {
     /// Returns the best available total physical page count for this read result.
     /// </summary>
     public static int GetTotalPageCount(this OfficeDocumentReadResult document) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         int diagnosticPageCount = 0;
         foreach (ReaderChunk chunk in document.Chunks ?? Array.Empty<ReaderChunk>()) {
             if (chunk.Diagnostics != null) {
@@ -135,7 +135,7 @@ public static partial class OfficeDocumentReadResultExtensions {
     /// Returns the page provenance advertised by the producing adapter.
     /// </summary>
     public static OfficeDocumentPageProvenance GetPageProvenance(this OfficeDocumentReadResult document) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         IReadOnlyList<string> capabilities = document.CapabilitiesUsed ?? Array.Empty<string>();
         if (capabilities.Contains("officeimo.reader.pdf.pages.native", StringComparer.Ordinal)) {
             return OfficeDocumentPageProvenance.Native;

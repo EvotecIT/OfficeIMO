@@ -23,10 +23,7 @@ internal sealed class PowerPointDslContext : IDisposable
 
     public static PowerPointDslContext Enter(PowerPointDocument presentation)
     {
-        if (presentation == null)
-        {
-            throw new ArgumentNullException(nameof(presentation));
-        }
+        ArgumentNullException.ThrowIfNull(presentation);
 
         if (CurrentScope.Value != null)
         {
@@ -65,10 +62,7 @@ internal sealed class PowerPointDslContext : IDisposable
 
     public IDisposable Push(PowerPointSlide slide)
     {
-        if (slide == null)
-        {
-            throw new ArgumentNullException(nameof(slide));
-        }
+        ArgumentNullException.ThrowIfNull(slide);
 
         _slides.Push(slide);
         return new PopToken(this, slide);

@@ -16,7 +16,7 @@ public static class OfficeDocumentReaderBuilderHtmlExtensions {
         this OfficeDocumentReaderBuilder builder,
         ReaderHtmlOptions? htmlOptions = null,
         bool replaceExisting = false) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderHandlerRegistration registration = CreateRegistration(htmlOptions);
         return builder.AddHandler(registration, replaceExisting);
     }

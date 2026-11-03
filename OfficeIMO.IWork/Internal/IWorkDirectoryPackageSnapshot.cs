@@ -18,7 +18,7 @@ internal sealed class IWorkDirectoryPackageSnapshot {
         _path = System.IO.Path.GetFullPath(path).TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
         _options = options.Clone();
         _maximumTransportBytes = maximumTransportBytes;
-        if (maximumTransportBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumTransportBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumTransportBytes);
         using var handle = OfficePathIdentity.OpenDirectoryForIdentity(_path, out _);
         _identity = OfficePathIdentity.GetPhysicalIdentityKey(_path, handle);
         OfficePathIdentity.EnsurePathMatchesOpenedDirectory(_path, handle);

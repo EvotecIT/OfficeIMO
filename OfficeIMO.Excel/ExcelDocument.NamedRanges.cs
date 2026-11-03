@@ -67,7 +67,7 @@ namespace OfficeIMO.Excel {
         /// Separate areas with commas; commas inside quoted worksheet names are preserved.
         /// </summary>
         public void SetPrintArea(ExcelSheet sheet, string range, bool save = true) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentException("Range cannot be null or whitespace.", nameof(range));
 
             string[] areas = ExcelSheet.SplitDefinedNameParts(range).Select(part => {
@@ -242,7 +242,7 @@ namespace OfficeIMO.Excel {
         /// <param name="lastCol">Last column to repeat (1-based), or null.</param>
         /// <param name="save">Whether to save the workbook after the change.</param>
         public void SetPrintTitles(ExcelSheet sheet, int? firstRow, int? lastRow, int? firstCol, int? lastCol, bool save = true) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
 
             var workbook = WorkbookRoot;
             var definedNames = workbook.DefinedNames ??= new DefinedNames();

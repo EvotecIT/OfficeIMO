@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel.Xlsb.NameRecords {
             IReadOnlyList<XlsbSheet> worksheets,
             out string? formulaText,
             out string? reason) {
-            if (definedName == null) throw new ArgumentNullException(nameof(definedName));
+            ArgumentNullException.ThrowIfNull(definedName);
             formulaText = null;
             reason = null;
             if (!definedName.IsSimpleName) {

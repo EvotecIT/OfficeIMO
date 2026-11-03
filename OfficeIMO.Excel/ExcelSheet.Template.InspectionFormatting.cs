@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         [RequiresUnreferencedCode("Object-model template binding walks runtime properties, including nested values. Use the IDictionary overload in NativeAOT applications.")]
         public int ApplyTemplate(object model, IFormatProvider? provider = null, bool throwOnMissing = false) {
-            if (model == null) throw new ArgumentNullException(nameof(model));
+            ArgumentNullException.ThrowIfNull(model);
             return ApplyTemplate(ExcelTemplateBindingHelper.Create(model), provider, throwOnMissing);
         }
 
@@ -23,8 +23,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         [RequiresUnreferencedCode("Object-model template binding walks runtime properties, including nested values. Use the IDictionary overload in NativeAOT applications.")]
         public int ApplyTemplate(object model, ExcelTemplateOptions options) {
-            if (model == null) throw new ArgumentNullException(nameof(model));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(model);
+            ArgumentNullException.ThrowIfNull(options);
             return ApplyTemplateCore(ExcelTemplateBindingHelper.Create(model), options);
         }
 
@@ -39,7 +39,7 @@ namespace OfficeIMO.Excel {
         /// Inspects {{Marker}} placeholders on this worksheet and reports which markers are missing from the supplied values.
         /// </summary>
         public ExcelTemplateInspection InspectTemplate(IDictionary<string, object?> values) {
-            if (values == null) throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(values);
             return new ExcelTemplateInspection(GetTemplateMarkers(ExcelTemplateBindingHelper.Create(values)), hasBindingInfo: true);
         }
 
@@ -48,7 +48,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         [RequiresUnreferencedCode("Object-model template inspection walks runtime properties, including nested values. Use the IDictionary overload in NativeAOT applications.")]
         public ExcelTemplateInspection InspectTemplate(object model) {
-            if (model == null) throw new ArgumentNullException(nameof(model));
+            ArgumentNullException.ThrowIfNull(model);
             return InspectTemplate(ExcelTemplateBindingHelper.Create(model));
         }
 

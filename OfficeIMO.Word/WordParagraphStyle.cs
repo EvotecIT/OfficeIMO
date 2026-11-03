@@ -105,7 +105,7 @@ namespace OfficeIMO.Word {
         /// </example>
         public static void RegisterCustomStyle(string styleId, WordParagraphStyleDefinition styleDefinition) {
             if (string.IsNullOrWhiteSpace(styleId)) throw new ArgumentException("StyleId cannot be empty", nameof(styleId));
-            if (styleDefinition == null) throw new ArgumentNullException(nameof(styleDefinition));
+            ArgumentNullException.ThrowIfNull(styleDefinition);
             if (!string.Equals(styleId, styleDefinition.StyleId, StringComparison.Ordinal)) {
                 throw new ArgumentException("The style ID must match the definition's StyleId.", nameof(styleId));
             }
@@ -171,7 +171,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public static void OverrideBuiltInStyle(WordParagraphStyles style, WordParagraphStyleDefinition styleDefinition) {
             if (style == WordParagraphStyles.Custom) throw new ArgumentException("Cannot override custom style placeholder", nameof(style));
-            if (styleDefinition == null) throw new ArgumentNullException(nameof(styleDefinition));
+            ArgumentNullException.ThrowIfNull(styleDefinition);
             OverrideBuiltInOpenXmlStyle(style, styleDefinition.ToOpenXml());
         }
 

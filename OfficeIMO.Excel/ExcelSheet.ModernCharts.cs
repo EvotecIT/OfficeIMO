@@ -54,7 +54,7 @@ namespace OfficeIMO.Excel {
             OfficeLength? height = null) {
             width ??= OfficeLength.Pixels(640);
             height ??= OfficeLength.Pixels(360);
-            if (data == null) throw new ArgumentNullException(nameof(data));
+            ArgumentNullException.ThrowIfNull(data);
             ValidateModernChartPlacement(row, column, width.Value, height.Value);
             string layout = GetModernChartLayout(chartType);
             ValidateModernChartData(data);

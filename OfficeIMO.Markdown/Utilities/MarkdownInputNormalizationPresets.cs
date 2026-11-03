@@ -43,9 +43,7 @@ internal static class MarkdownInputNormalizationPresets {
     /// <param name="options">Options instance to mutate.</param>
     /// <param name="preset">Preset to apply.</param>
     public static void ApplyTo(MarkdownInputNormalizationOptions options, MarkdownInputNormalizationPreset preset) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         Reset(options);
 

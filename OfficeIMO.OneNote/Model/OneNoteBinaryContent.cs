@@ -20,14 +20,14 @@ public sealed class OneNoteBinaryPayload {
 
     /// <summary>Creates an independently owned payload by copying a byte array.</summary>
     public static OneNoteBinaryPayload FromBytes(byte[] bytes) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         var copy = new byte[bytes.Length];
         Buffer.BlockCopy(bytes, 0, copy, 0, bytes.Length);
         return new OneNoteBinaryPayload(copy, null, copy.LongLength);
     }
 
     internal static OneNoteBinaryPayload FromOwnedBytes(byte[] bytes) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         return new OneNoteBinaryPayload(bytes, null, bytes.LongLength);
     }
 
@@ -35,7 +35,7 @@ public sealed class OneNoteBinaryPayload {
     /// Creates a lazy payload. The factory must return a new readable stream for every call.
     /// </summary>
     public static OneNoteBinaryPayload FromStreamFactory(Func<Stream> streamFactory, long? length = null) {
-        if (streamFactory == null) throw new ArgumentNullException(nameof(streamFactory));
+        ArgumentNullException.ThrowIfNull(streamFactory);
         if (length.HasValue && length.Value < 0) throw new ArgumentOutOfRangeException(nameof(length));
         return new OneNoteBinaryPayload(null, streamFactory, length);
     }
@@ -57,7 +57,7 @@ public sealed class OneNoteBinaryPayload {
 
     /// <summary>Materializes a defensive copy of the payload with a caller-provided size bound.</summary>
     public byte[] ToArray(long maxBytes) {
-        if (maxBytes < 1) throw new ArgumentOutOfRangeException(nameof(maxBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxBytes, 1);
         if (Length.HasValue && Length.Value > maxBytes) {
             throw new IOException("The OneNote payload exceeds the requested materialization limit.");
         }

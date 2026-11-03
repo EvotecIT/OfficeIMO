@@ -7,9 +7,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="options">Options to apply. Null properties leave the existing worksheet setting unchanged.</param>
         public void SetViewOptions(ExcelWorksheetViewOptions options) {
-            if (options == null) {
-                throw new ArgumentNullException(nameof(options));
-            }
+            ArgumentNullException.ThrowIfNull(options);
 
             ValidateZoom(options.ZoomScale, nameof(options.ZoomScale));
             ValidateZoom(options.ZoomScaleNormal, nameof(options.ZoomScaleNormal));

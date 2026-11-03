@@ -7,9 +7,7 @@ using System.Text;
 namespace OfficeIMO.Visio {
     internal static class VisioShowcaseHtmlRenderer {
         public static string Render(VisioShowcaseSummary summary) {
-            if (summary == null) {
-                throw new ArgumentNullException(nameof(summary));
-            }
+            ArgumentNullException.ThrowIfNull(summary);
 
             StringBuilder builder = new();
             builder.AppendLine("<!doctype html>");

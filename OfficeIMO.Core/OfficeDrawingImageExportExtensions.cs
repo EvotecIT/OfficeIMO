@@ -8,8 +8,8 @@ internal static class OfficeDrawingImageExportExtensions {
     public static OfficeDrawing ApplyImageExportOptions(
         this OfficeDrawing drawing,
         OfficeImageExportOptions options) {
-        if (drawing == null) throw new ArgumentNullException(nameof(drawing));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(drawing);
+        ArgumentNullException.ThrowIfNull(options);
         drawing.Fonts.AddRange(options.Fonts);
         drawing.TextShapingProvider = options.TextShapingProvider;
         drawing.TextShapingLanguage = options.TextShapingLanguage;

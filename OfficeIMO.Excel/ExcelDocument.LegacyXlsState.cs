@@ -129,7 +129,7 @@ namespace OfficeIMO.Excel {
         internal IReadOnlyDictionary<string, bool> LegacyXlsEncryptedSummaryEntries => _legacyXlsEncryptedSummaryEntries;
 
         internal void MarkLoadedFromLegacyXls(string? sourcePath, LegacyXlsWorkbook workbook, CancellationToken cancellationToken = default) {
-            if (workbook == null) throw new ArgumentNullException(nameof(workbook));
+            ArgumentNullException.ThrowIfNull(workbook);
 
             SourceFormat = ExcelFileFormat.Xls;
             _legacyXlsSourcePath = sourcePath;
@@ -153,7 +153,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal void MarkLoadedFromXlsb(string? sourcePath, XlsbWorkbook workbook) {
-            if (workbook == null) throw new ArgumentNullException(nameof(workbook));
+            ArgumentNullException.ThrowIfNull(workbook);
 
             SourceFormat = ExcelFileFormat.Xlsb;
             _legacyXlsPreservationSnapshot = null;
@@ -181,7 +181,7 @@ namespace OfficeIMO.Excel {
             string? sourcePath,
             bool readOnly = false,
             CancellationToken cancellationToken = default) {
-            if (workbook == null) throw new ArgumentNullException(nameof(workbook));
+            ArgumentNullException.ThrowIfNull(workbook);
             cancellationToken.ThrowIfCancellationRequested();
 
             if (workbook.Worksheets.Count == 0 && workbook.ChartSheets.Count == 0) {

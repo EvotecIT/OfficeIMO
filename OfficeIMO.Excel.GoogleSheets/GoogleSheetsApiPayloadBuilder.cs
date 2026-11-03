@@ -9,8 +9,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
         internal static GoogleSheetsApiCreateSpreadsheetPayload BuildCreateSpreadsheetPayload(
             GoogleSheetsBatch batch,
             IReadOnlyDictionary<string, int> sheetIds) {
-            if (batch == null) throw new ArgumentNullException(nameof(batch));
-            if (sheetIds == null) throw new ArgumentNullException(nameof(sheetIds));
+            ArgumentNullException.ThrowIfNull(batch);
+            ArgumentNullException.ThrowIfNull(sheetIds);
 
             var payload = new GoogleSheetsApiCreateSpreadsheetPayload {
                 Properties = new GoogleSheetsApiSpreadsheetPropertiesPayload {
@@ -61,8 +61,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
             IReadOnlyDictionary<string, int> sheetIds,
             string? spreadsheetId,
             bool includeCellValues = true) {
-            if (batch == null) throw new ArgumentNullException(nameof(batch));
-            if (sheetIds == null) throw new ArgumentNullException(nameof(sheetIds));
+            ArgumentNullException.ThrowIfNull(batch);
+            ArgumentNullException.ThrowIfNull(sheetIds);
             var payload = new GoogleSheetsApiBatchUpdatePayload();
 
             foreach (var request in batch.Requests) {
@@ -305,8 +305,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
             GoogleSheetsBatch batch,
             IReadOnlyDictionary<string, int> sheetIds,
             string? spreadsheetId) {
-            if (batch == null) throw new ArgumentNullException(nameof(batch));
-            if (sheetIds == null) throw new ArgumentNullException(nameof(sheetIds));
+            ArgumentNullException.ThrowIfNull(batch);
+            ArgumentNullException.ThrowIfNull(sheetIds);
             var payload = new GoogleSheetsApiBatchUpdateValuesPayload();
             foreach (GoogleSheetsUpdateCellsRequest update in batch.Requests.OfType<GoogleSheetsUpdateCellsRequest>()) {
                 if (!sheetIds.ContainsKey(update.SheetName)) continue;
@@ -334,7 +334,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         internal static IReadOnlyDictionary<string, int> BuildSheetIdMap(
             GoogleSheetsBatch batch,
             IEnumerable<int>? reservedSheetIds = null) {
-            if (batch == null) throw new ArgumentNullException(nameof(batch));
+            ArgumentNullException.ThrowIfNull(batch);
 
             var reserved = new HashSet<int>(reservedSheetIds ?? Array.Empty<int>());
             var nextId = reserved.Count == 0 ? 1 : reserved.Max() + 1;
@@ -357,9 +357,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
             GoogleSheetsBatch batch,
             IReadOnlyDictionary<int, string> existingSheets,
             IReadOnlyDictionary<string, int> desiredSheetIds) {
-            if (batch == null) throw new ArgumentNullException(nameof(batch));
-            if (existingSheets == null) throw new ArgumentNullException(nameof(existingSheets));
-            if (desiredSheetIds == null) throw new ArgumentNullException(nameof(desiredSheetIds));
+            ArgumentNullException.ThrowIfNull(batch);
+            ArgumentNullException.ThrowIfNull(existingSheets);
+            ArgumentNullException.ThrowIfNull(desiredSheetIds);
 
             var payload = new GoogleSheetsApiBatchUpdatePayload();
             var desiredSheets = batch.Requests

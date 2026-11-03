@@ -69,7 +69,7 @@ public static class OneNoteVisualPdfExtensions {
         OneNoteSection section,
         OneNoteVisualPdfOptions? options,
         CancellationToken cancellationToken) {
-        if (section == null) throw new ArgumentNullException(nameof(section));
+        ArgumentNullException.ThrowIfNull(section);
         cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<OneNotePageReference> pages = OneNotePageTraversal.Flatten(section);
         cancellationToken.ThrowIfCancellationRequested();
@@ -140,7 +140,7 @@ public static class OneNoteVisualPdfExtensions {
         OneNoteNotebook notebook,
         OneNoteVisualPdfOptions? options,
         CancellationToken cancellationToken) {
-        if (notebook == null) throw new ArgumentNullException(nameof(notebook));
+        ArgumentNullException.ThrowIfNull(notebook);
         cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<OneNotePageReference> pages = OneNotePageTraversal.Flatten(notebook);
         cancellationToken.ThrowIfCancellationRequested();

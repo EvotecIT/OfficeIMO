@@ -28,18 +28,14 @@ namespace OfficeIMO.PowerPoint {
         private const string RelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
         internal static void PopulateChartStyle(ChartStylePart stylePart) {
-            if (stylePart == null) {
-                throw new ArgumentNullException(nameof(stylePart));
-            }
+            ArgumentNullException.ThrowIfNull(stylePart);
 
             using var stream = new MemoryStream(ChartStyle251Bytes.Value);
             stylePart.FeedData(stream);
         }
 
         internal static void PopulateChartColorStyle(ChartColorStylePart colorStylePart) {
-            if (colorStylePart == null) {
-                throw new ArgumentNullException(nameof(colorStylePart));
-            }
+            ArgumentNullException.ThrowIfNull(colorStylePart);
 
             using var stream = new MemoryStream(ChartColorStyle10Bytes.Value);
             colorStylePart.FeedData(stream);
@@ -47,12 +43,8 @@ namespace OfficeIMO.PowerPoint {
 
         internal static void PopulateChart(ChartPart chartPart, string embeddedRelId, PowerPointChartData data,
             PowerPointChartKind chartKind = PowerPointChartKind.ClusteredColumn) {
-            if (chartPart == null) {
-                throw new ArgumentNullException(nameof(chartPart));
-            }
-            if (data == null) {
-                throw new ArgumentNullException(nameof(data));
-            }
+            ArgumentNullException.ThrowIfNull(chartPart);
+            ArgumentNullException.ThrowIfNull(data);
 
             C.ChartSpace chartSpace = new();
             chartSpace.AddNamespaceDeclaration("c", ChartNamespace);
@@ -94,12 +86,8 @@ namespace OfficeIMO.PowerPoint {
 
         internal static void PopulateChart(ChartPart chartPart, string embeddedRelId, PowerPointScatterChartData data,
             PowerPointChartKind chartKind = PowerPointChartKind.Scatter) {
-            if (chartPart == null) {
-                throw new ArgumentNullException(nameof(chartPart));
-            }
-            if (data == null) {
-                throw new ArgumentNullException(nameof(data));
-            }
+            ArgumentNullException.ThrowIfNull(chartPart);
+            ArgumentNullException.ThrowIfNull(data);
 
             C.ChartSpace chartSpace = new();
             chartSpace.AddNamespaceDeclaration("c", ChartNamespace);
@@ -182,12 +170,8 @@ namespace OfficeIMO.PowerPoint {
             }
         }
         internal static void UpdateChartData(ChartPart chartPart, PowerPointChartData data) {
-            if (chartPart == null) {
-                throw new ArgumentNullException(nameof(chartPart));
-            }
-            if (data == null) {
-                throw new ArgumentNullException(nameof(data));
-            }
+            ArgumentNullException.ThrowIfNull(chartPart);
+            ArgumentNullException.ThrowIfNull(data);
 
             C.ChartSpace? chartSpace = chartPart.ChartSpace;
             C.Chart? chart = chartSpace?.GetFirstChild<C.Chart>();
@@ -228,7 +212,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal static void UpdateChartData(ChartPart chartPart, PowerPointScatterChartData data) {
-            if (data == null) throw new ArgumentNullException(nameof(data));
+            ArgumentNullException.ThrowIfNull(data);
             var shared = new OfficeIMO.Drawing.OfficeChartData(
                 data.Series[0].XValues.Select(value => value.ToString(CultureInfo.InvariantCulture)),
                 data.Series.Select(series => new OfficeIMO.OfficeSeries(series.Name, series.YValues, series.XValues)));

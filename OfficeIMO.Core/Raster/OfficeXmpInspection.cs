@@ -62,7 +62,7 @@ public static class OfficeXmpInspector {
     private static readonly XNamespace Rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
     /// <summary>Inspects a standalone XMP packet without resolving external XML or RDF resources.</summary>
     public static OfficeXmpInspection Inspect(byte[] packet, OfficeImageMetadataInspectionOptions? options = null, CancellationToken cancellationToken = default) {
-        if (packet == null) throw new ArgumentNullException(nameof(packet));
+        ArgumentNullException.ThrowIfNull(packet);
         OfficeImageMetadataInspectionOptions policy = (options ?? new OfficeImageMetadataInspectionOptions()).Snapshot();
         var properties = new List<OfficeXmpProperty>(); var issues = new List<string>();
         Read(packet, "XMP", policy, properties, issues, cancellationToken);

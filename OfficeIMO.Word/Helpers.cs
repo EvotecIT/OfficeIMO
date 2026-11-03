@@ -84,13 +84,9 @@ namespace OfficeIMO.Word {
         }
 
         internal static TResult UseSeekableImageStream<TResult>(Stream imageStream, Func<Stream, TResult> action) {
-            if (imageStream == null) {
-                throw new ArgumentNullException(nameof(imageStream));
-            }
+            ArgumentNullException.ThrowIfNull(imageStream);
 
-            if (action == null) {
-                throw new ArgumentNullException(nameof(action));
-            }
+            ArgumentNullException.ThrowIfNull(action);
 
             if (imageStream.CanSeek) {
                 long originalPosition = imageStream.Position;

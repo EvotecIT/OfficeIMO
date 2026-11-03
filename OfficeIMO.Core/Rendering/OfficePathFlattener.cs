@@ -60,9 +60,7 @@ internal static class OfficePathFlattener {
     private static IReadOnlyList<OfficeFlattenedPathContour> FlattenCore(IReadOnlyList<OfficePathCommand> commands,
         double offsetX, double offsetY, double scale, int curveSegments, double pixelsPerUnit,
         bool retainSinglePointClosedContours, int maximumCurveSegments = int.MaxValue, int maximumPoints = MaximumFlattenedPoints) {
-        if (commands == null) {
-            throw new ArgumentNullException(nameof(commands));
-        }
+        ArgumentNullException.ThrowIfNull(commands);
 
         if (curveSegments < 0) {
             throw new ArgumentOutOfRangeException(nameof(curveSegments), "Curve segment count must be non-negative; zero selects adaptive flattening.");

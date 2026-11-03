@@ -17,7 +17,7 @@ public sealed class OfficeFontUnicodeRangeSet : IEquatable<OfficeFontUnicodeRang
 
     /// <summary>Creates a normalized range set.</summary>
     public OfficeFontUnicodeRangeSet(IEnumerable<OfficeFontUnicodeRange> ranges) {
-        if (ranges == null) throw new ArgumentNullException(nameof(ranges));
+        ArgumentNullException.ThrowIfNull(ranges);
         var ordered = new List<OfficeFontUnicodeRange>(ranges);
         if (ordered.Count == 0 || ordered.Count > MaximumRangeCount) {
             throw new ArgumentOutOfRangeException(nameof(ranges), $"A font range set must contain between 1 and {MaximumRangeCount} ranges.");

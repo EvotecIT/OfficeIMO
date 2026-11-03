@@ -32,7 +32,7 @@ public sealed partial class OfficeWorkflowRunner {
         PdfAssemblyRequest request,
         IProgress<OfficeWorkflowProgress>? progress = null,
         CancellationToken cancellationToken = default) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         var stopwatch = Stopwatch.StartNew();
         var diagnostics = new List<OfficeWorkflowDiagnostic>();
         string? stagingPath = null;

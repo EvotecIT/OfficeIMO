@@ -20,7 +20,7 @@ public static partial class OfficeVisualPlacementExtensions {
         out OfficeVisualConversionResult conversion,
         OfficeVisualConversionOptions? options = null,
         WordImageTextWrapping wrapping = WordImageTextWrapping.InLineWithText) {
-        if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
+        ArgumentNullException.ThrowIfNull(paragraph);
         conversion = artifact.ToOfficeVisual(options);
         if (options?.WidthPoints == null && options?.HeightPoints == null) {
             double width = paragraph.GetContentWidth().ToPoints();
@@ -34,8 +34,8 @@ public static partial class OfficeVisualPlacementExtensions {
         this WordParagraph paragraph,
         OfficeVisualConversionResult conversion,
         WordImageTextWrapping wrapping = WordImageTextWrapping.InLineWithText) {
-        if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
-        if (conversion == null) throw new ArgumentNullException(nameof(conversion));
+        ArgumentNullException.ThrowIfNull(paragraph);
+        ArgumentNullException.ThrowIfNull(conversion);
         using var stream = new MemoryStream(conversion.GetPlacementBytes(), writable: false);
         WordImage image = paragraph.AddImage(stream, ResolveFileName(conversion.Id, conversion.PlacementFileExtension), OfficeIMO.OfficeLength.Pixels(conversion.WidthPoints / PointsPerOfficePixel), OfficeIMO.OfficeLength.Pixels(conversion.HeightPoints / PointsPerOfficePixel), options: new OfficeIMO.Word.WordImageOptions { Wrapping = wrapping, Description = conversion.AlternativeText });
         if (!conversion.IsDecorative) image.Title = ResolveTitle(conversion);
@@ -64,8 +64,8 @@ public static partial class OfficeVisualPlacementExtensions {
         OfficeVisualConversionResult conversion,
         OfficeLength offsetX = default,
         OfficeLength offsetY = default) {
-        if (sheet == null) throw new ArgumentNullException(nameof(sheet));
-        if (conversion == null) throw new ArgumentNullException(nameof(conversion));
+        ArgumentNullException.ThrowIfNull(sheet);
+        ArgumentNullException.ThrowIfNull(conversion);
         ExcelImage image = sheet.AddImage(row, column, conversion.GetPlacementBytes(), new OfficeIMO.Excel.ExcelImageOptions {
             ContentType = conversion.PlacementMediaType,
             Width = OfficeLength.Points(conversion.WidthPoints),
@@ -98,8 +98,8 @@ public static partial class OfficeVisualPlacementExtensions {
         OfficeVisualConversionResult conversion,
         double leftPoints = 0D,
         double topPoints = 0D) {
-        if (slide == null) throw new ArgumentNullException(nameof(slide));
-        if (conversion == null) throw new ArgumentNullException(nameof(conversion));
+        ArgumentNullException.ThrowIfNull(slide);
+        ArgumentNullException.ThrowIfNull(conversion);
         ValidateFinite(leftPoints, nameof(leftPoints));
         ValidateFinite(topPoints, nameof(topPoints));
         using var stream = new MemoryStream(conversion.GetPlacementBytes(), writable: false);
@@ -145,8 +145,8 @@ public static partial class OfficeVisualPlacementExtensions {
         PdfDrawingStyle? style = null,
         string? linkUri = null,
         string? linkContents = null) {
-        if (content == null) throw new ArgumentNullException(nameof(content));
-        if (conversion == null) throw new ArgumentNullException(nameof(conversion));
+        ArgumentNullException.ThrowIfNull(content);
+        ArgumentNullException.ThrowIfNull(conversion);
         PdfDrawingStyle effectiveStyle = ResolvePdfDrawingStyle(style, conversion.AlternativeText, conversion.IsDecorative);
         content.Item(item => item.Drawing(
             OfficeVisualPdfDrawingResolver.Resolve(conversion),
@@ -185,8 +185,8 @@ public static partial class OfficeVisualPlacementExtensions {
         PdfDrawingStyle? style = null,
         string? linkUri = null,
         string? linkContents = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (conversion == null) throw new ArgumentNullException(nameof(conversion));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(conversion);
         PdfDrawingStyle effectiveStyle = ResolvePdfDrawingStyle(style, conversion.AlternativeText, conversion.IsDecorative);
         return document.Compose(compose => compose.Content(item => item.Drawing(
             OfficeVisualPdfDrawingResolver.Resolve(conversion),

@@ -31,9 +31,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal static List<PowerPointCardContent> NormalizeCards(IEnumerable<PowerPointCardContent> cards) {
-            if (cards == null) {
-                throw new ArgumentNullException(nameof(cards));
-            }
+            ArgumentNullException.ThrowIfNull(cards);
 
             List<PowerPointCardContent> list = cards.Where(card => card != null).ToList();
             if (list.Count == 0) {
@@ -44,9 +42,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal static List<PowerPointProcessStep> NormalizeSteps(IEnumerable<PowerPointProcessStep> steps) {
-            if (steps == null) {
-                throw new ArgumentNullException(nameof(steps));
-            }
+            ArgumentNullException.ThrowIfNull(steps);
 
             List<PowerPointProcessStep> list = steps.Where(step => step != null).ToList();
             if (list.Count == 0) {
@@ -268,9 +264,7 @@ namespace OfficeIMO.PowerPoint {
         }
     
         internal static List<PowerPointLogoItem> NormalizeLogoItems(IEnumerable<PowerPointLogoItem> logos) {
-            if (logos == null) {
-                throw new ArgumentNullException(nameof(logos));
-            }
+            ArgumentNullException.ThrowIfNull(logos);
 
             List<PowerPointLogoItem> list = logos.Where(logo => logo != null).ToList();
             if (list.Count == 0) {
@@ -284,9 +278,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal static List<PowerPointCoverageLocation> NormalizeLocations(IEnumerable<PowerPointCoverageLocation> locations) {
-            if (locations == null) {
-                throw new ArgumentNullException(nameof(locations));
-            }
+            ArgumentNullException.ThrowIfNull(locations);
 
             List<PowerPointCoverageLocation> list = locations.Where(location => location != null).ToList();
             if (list.Count == 0) {
@@ -310,9 +302,7 @@ namespace OfficeIMO.PowerPoint {
 
         internal static List<PowerPointCapabilitySection> NormalizeCapabilitySections(
             IEnumerable<PowerPointCapabilitySection> sections) {
-            if (sections == null) {
-                throw new ArgumentNullException(nameof(sections));
-            }
+            ArgumentNullException.ThrowIfNull(sections);
 
             List<PowerPointCapabilitySection> list = sections.Where(section => section != null).ToList();
             if (list.Count == 0) {

@@ -55,9 +55,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// Configures all native Visio comments on the page.
         /// </summary>
         public VisioFluentPage Comments(Action<IList<VisioComment>> configure) {
-            if (configure == null) {
-                throw new ArgumentNullException(nameof(configure));
-            }
+            ArgumentNullException.ThrowIfNull(configure);
 
             configure(Page.Comments);
             return this;
@@ -67,9 +65,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// Configures native Visio comments attached to a shape or connector identifier.
         /// </summary>
         public VisioFluentPage ShapeComments(string shapeId, Action<IReadOnlyList<VisioComment>> configure) {
-            if (configure == null) {
-                throw new ArgumentNullException(nameof(configure));
-            }
+            ArgumentNullException.ThrowIfNull(configure);
 
             configure(Page.CommentsForShape(shapeId));
             return this;

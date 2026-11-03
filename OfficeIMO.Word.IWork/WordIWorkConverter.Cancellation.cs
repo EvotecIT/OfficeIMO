@@ -15,7 +15,7 @@ public static partial class WordIWorkConverter {
     public static PagesToWordResult ConvertPagesToWordResult(string path,
         IWorkReadOptions? readOptions, IWorkConversionOptions? conversionOptions,
         CancellationToken cancellationToken) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         cancellationToken.ThrowIfCancellationRequested();
         return ProjectPages(IWorkSourceDocument.Open(path, IWorkDocumentKind.Pages,
             readOptions, cancellationToken), conversionOptions);
@@ -32,7 +32,7 @@ public static partial class WordIWorkConverter {
     public static PagesToWordResult ConvertPagesToWordResult(Stream stream,
         IWorkReadOptions? readOptions, IWorkConversionOptions? conversionOptions,
         CancellationToken cancellationToken) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         cancellationToken.ThrowIfCancellationRequested();
         return ProjectPages(IWorkSourceDocument.Open(stream, IWorkDocumentKind.Pages,
             readOptions, cancellationToken), conversionOptions);

@@ -44,7 +44,7 @@ public sealed partial class OfficeVbaProject {
     public void ImportSources(string directory, int maximumSourceBytes = 64 * 1024 * 1024) {
         EnsureEditable();
         if (string.IsNullOrWhiteSpace(directory)) throw new ArgumentException("A source directory is required.", nameof(directory));
-        if (maximumSourceBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumSourceBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumSourceBytes);
         string root = Path.GetFullPath(directory);
         RejectLinkedSource(root);
         RejectLinkedSource(Path.Combine(root, "vba-project.xml"));

@@ -15,7 +15,7 @@ public static partial class OfficeOcrConversionExtensions {
     /// <summary>Reconstructs Word content with its completed fidelity report.</summary>
     public static WordDocument ToWord(this PdfOcrMergeResult source, WordPdfImportOptions? options,
         out OfficeConversionReport report, CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         cancellationToken.ThrowIfCancellationRequested();
         source.RequireAcceptedOcrContent();
         var timer = Stopwatch.StartNew();

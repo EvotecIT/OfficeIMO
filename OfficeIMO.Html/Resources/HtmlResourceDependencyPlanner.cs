@@ -8,9 +8,7 @@ public static class HtmlResourceDependencyPlanner {
     /// Creates a dependency plan from a resource manifest.
     /// </summary>
     public static HtmlResourceDependencyPlan Create(HtmlResourceManifest manifest) {
-        if (manifest == null) {
-            throw new ArgumentNullException(nameof(manifest));
-        }
+        ArgumentNullException.ThrowIfNull(manifest);
 
         var allowed = manifest.Resources.Where(resource => resource.IsAllowed).ToList().AsReadOnly();
         var blocked = manifest.Resources.Where(resource => !resource.IsAllowed).ToList().AsReadOnly();

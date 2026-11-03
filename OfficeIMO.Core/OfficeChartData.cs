@@ -14,13 +14,9 @@ public sealed class OfficeChartData {
     /// <param name="categories">Category labels, or numeric X values encoded as invariant strings for scatter charts.</param>
     /// <param name="series">Series values to render.</param>
     public OfficeChartData(IEnumerable<string> categories, IEnumerable<OfficeSeries> series) {
-        if (categories == null) {
-            throw new ArgumentNullException(nameof(categories));
-        }
+        ArgumentNullException.ThrowIfNull(categories);
 
-        if (series == null) {
-            throw new ArgumentNullException(nameof(series));
-        }
+        ArgumentNullException.ThrowIfNull(series);
 
         Categories = new ReadOnlyCollection<string>(new List<string>(categories));
         Series = new ReadOnlyCollection<OfficeSeries>(new List<OfficeSeries>(series));

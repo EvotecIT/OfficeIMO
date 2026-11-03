@@ -71,7 +71,7 @@ public sealed partial class OdtDocument {
     /// <summary>Marks an existing top-level body paragraph or heading as deleted while retaining its XML in change metadata.</summary>
     public OdtTrackedChange DeleteParagraphTracked(OdtParagraph paragraph, string creator,
         DateTimeOffset? date = null) {
-        if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
+        ArgumentNullException.ThrowIfNull(paragraph);
         ValidateCreator(creator);
         XElement source = paragraph.Element;
         if (!ReferenceEquals(source.Parent, TextBody)) throw new ArgumentException("Paragraph must be a top-level block in this document body.", nameof(paragraph));

@@ -18,7 +18,7 @@ public static partial class OfficeInvoiceBufferWorkflow {
         InvoiceValidator? validator = null,
 #endif
         CancellationToken cancellationToken = default) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
         return Task.Run(() => ProcessAsync(request,
 #if NET8_0_OR_GREATER

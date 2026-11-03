@@ -34,7 +34,7 @@ public static class OutlookEntryIdCodec {
 
     /// <summary>Creates a Unicode MAPI One-Off EntryID.</summary>
     public static byte[] EncodeOneOff(EmailAddress address) {
-        if (address == null) throw new ArgumentNullException(nameof(address));
+        ArgumentNullException.ThrowIfNull(address);
         using (var stream = new MemoryStream()) {
             stream.Write(new byte[4], 0, 4);
             stream.Write(OneOffProviderUid, 0, OneOffProviderUid.Length);
@@ -51,7 +51,7 @@ public static class OutlookEntryIdCodec {
 
     /// <summary>Classifies a direct or wrapped distribution-list member EntryID.</summary>
     public static OutlookEntryIdKind Classify(byte[] entryId) {
-        if (entryId == null) throw new ArgumentNullException(nameof(entryId));
+        ArgumentNullException.ThrowIfNull(entryId);
         if (entryId.Length >= 24 && HasProvider(entryId, OneOffProviderUid)) return OutlookEntryIdKind.OneOff;
         if (entryId.Length < 22 || !HasProvider(entryId, WrappedProviderUid)) return OutlookEntryIdKind.Unknown;
         switch (entryId[20] & 0x0F) {

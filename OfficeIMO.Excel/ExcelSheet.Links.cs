@@ -52,7 +52,7 @@ namespace OfficeIMO.Excel {
         /// <param name="display">Optional display text selector. Defaults to the cell text.</param>
         /// <param name="styled">When true, applies hyperlink styling (blue + underline).</param>
         public void LinkCellsToInternalSheets(string a1, Func<string, string> destinationSheetForCellText, string targetA1 = "A1", Func<string, string>? display = null, bool styled = true) {
-            if (destinationSheetForCellText == null) throw new ArgumentNullException(nameof(destinationSheetForCellText));
+            ArgumentNullException.ThrowIfNull(destinationSheetForCellText);
             var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1);
             for (int r = r1; r <= r2; r++) {
                 for (int c = c1; c <= c2; c++) {
@@ -212,7 +212,7 @@ namespace OfficeIMO.Excel {
             Func<string, string>? titleForCellText = null,
             bool styled = true) {
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            if (urlForCellText is null) throw new ArgumentNullException(nameof(urlForCellText));
+            ArgumentNullException.ThrowIfNull(urlForCellText);
             if (!TryGetColumnIndexByHeader(header, out var col)) return;
             if (rowTo <= 0) {
                 var (r1, _, r2, _) = ExcelA1.ParseRange(GetUsedRangeA1());
@@ -368,7 +368,7 @@ namespace OfficeIMO.Excel {
             bool styled = true) {
             if (string.IsNullOrWhiteSpace(tableName)) throw new ArgumentNullException(nameof(tableName));
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            if (urlForCellText is null) throw new ArgumentNullException(nameof(urlForCellText));
+            ArgumentNullException.ThrowIfNull(urlForCellText);
             var tdp = _worksheetPart.TableDefinitionParts.FirstOrDefault(p => string.Equals(p.Table?.Name?.Value, tableName, StringComparison.OrdinalIgnoreCase));
             if (tdp?.Table == null) throw new InvalidOperationException($"Table '{tableName}' not found on sheet '{Name}'.");
             var table = tdp.Table;
@@ -488,7 +488,7 @@ namespace OfficeIMO.Excel {
             bool styled = true) {
             if (string.IsNullOrWhiteSpace(rangeA1)) throw new ArgumentNullException(nameof(rangeA1));
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            if (urlForCellText is null) throw new ArgumentNullException(nameof(urlForCellText));
+            ArgumentNullException.ThrowIfNull(urlForCellText);
             var (r1, c1, r2, c2) = ExcelA1.ParseRange(rangeA1);
             int headerCol = -1;
             for (int c = c1; c <= c2; c++) {

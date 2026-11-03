@@ -7,7 +7,7 @@ namespace OfficeIMO.Core.Internal;
 internal static partial class OfficeDeflateStreamValidator {
     /// <summary>Validates the remaining seekable stream with bounded buffering and restores its position.</summary>
     internal static bool TryValidateExact(Stream source, long maximumOutputBytes, CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         if (!source.CanRead || !source.CanSeek || maximumOutputBytes < 0) return false;
         long position = source.Position;
         try {

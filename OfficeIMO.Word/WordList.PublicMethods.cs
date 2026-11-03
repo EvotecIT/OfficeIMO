@@ -265,7 +265,7 @@ namespace OfficeIMO.Word {
         /// <param name="fontSize">Optional font size for the symbol in points.</param>
         /// <returns>The created <see cref="WordList"/>.</returns>
         public static WordList AddCustomBulletList(WordDocument document, char symbol, string fontName, string? colorHex, global::OfficeIMO.OfficeLength? fontSize = null) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
 
             var list = document.AddList(WordListStyle.Custom);
 
@@ -338,7 +338,7 @@ namespace OfficeIMO.Word {
         /// <param name="document">Parent document where the list will be added.</param>
         /// <returns>The created <see cref="WordList"/>.</returns>
         public static WordList AddCustomList(WordDocument document) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
 
             var list = document.AddList(WordListStyle.Custom);
             list.Numbering.RemoveAllLevels();
@@ -353,8 +353,8 @@ namespace OfficeIMO.Word {
         /// <param name="fileName">File name used to determine the image type.</param>
         /// <returns>The created <see cref="WordList"/>.</returns>
         public static WordList AddPictureBulletList(WordDocument document, Stream imageStream, string fileName) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (imageStream == null) throw new ArgumentNullException(nameof(imageStream));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(imageStream);
 
             var numberingPart = document._wordprocessingDocument?.MainDocumentPart?.NumberingDefinitionsPart;
             if (numberingPart == null) {

@@ -101,7 +101,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 replacementStreams, removedPaths);
 
         internal static LegacyPptPackage Read(byte[] bytes, LegacyPptImportOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             return Read(bytes, options,
                 new LegacyPptRecordTraversalBudget(options.MaxRecordCount),
                 new LegacyPptDecodedStorageBudget(
@@ -114,11 +114,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             LegacyPptRecordTraversalBudget recordBudget,
             LegacyPptDecodedStorageBudget decodedStorageBudget,
             CancellationToken cancellationToken = default, bool preserveResourceLimits = false) {
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-            if (options == null) throw new ArgumentNullException(nameof(options));
-            if (recordBudget == null) {
-                throw new ArgumentNullException(nameof(recordBudget));
-            }
+            ArgumentNullException.ThrowIfNull(bytes);
+            ArgumentNullException.ThrowIfNull(options);
+            ArgumentNullException.ThrowIfNull(recordBudget);
             if (decodedStorageBudget == null) {
                 throw new ArgumentNullException(
                     nameof(decodedStorageBudget));

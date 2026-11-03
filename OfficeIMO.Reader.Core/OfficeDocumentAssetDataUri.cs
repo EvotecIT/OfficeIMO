@@ -29,7 +29,7 @@ public static class OfficeDocumentAssetDataUri {
     /// <param name="dataUri">Data URI when one could be built.</param>
     /// <param name="maxInlineBytes">Maximum payload size to inline. Set to null for no size cap.</param>
     public static bool TryBuildDataUri(this OfficeDocumentAsset asset, out string? dataUri, long? maxInlineBytes = 64L * 1024L) {
-        if (asset == null) throw new ArgumentNullException(nameof(asset));
+        ArgumentNullException.ThrowIfNull(asset);
         if (maxInlineBytes.HasValue && maxInlineBytes.Value < 0) throw new ArgumentOutOfRangeException(nameof(maxInlineBytes), "Maximum inline bytes cannot be negative.");
 
         byte[]? payload = asset.PayloadBytes;
@@ -56,7 +56,7 @@ public static class OfficeDocumentAssetDataUri {
     public static IReadOnlyDictionary<string, string> BuildAssetDataUriMap(
         this OfficeDocumentReadResult result,
         OfficeDocumentAssetDataUriOptions? options = null) {
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(result);
 
         OfficeDocumentAssetDataUriOptions effectiveOptions = options ?? new OfficeDocumentAssetDataUriOptions();
         if (effectiveOptions.MaxInlineBytes.HasValue && effectiveOptions.MaxInlineBytes.Value < 0) {

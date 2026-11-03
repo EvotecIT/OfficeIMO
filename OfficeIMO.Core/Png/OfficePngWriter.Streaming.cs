@@ -16,7 +16,7 @@ public static partial class OfficePngWriter {
         OfficeRasterImage image,
         Stream destination,
         OfficePngCompression compression = OfficePngCompression.Optimal) {
-        if (image == null) throw new ArgumentNullException(nameof(image));
+        ArgumentNullException.ThrowIfNull(image);
         EncodeRgbaStreaming(
             image.Width,
             image.Height,
@@ -35,7 +35,7 @@ public static partial class OfficePngWriter {
         Stream destination,
         System.Threading.CancellationToken cancellationToken,
         OfficePngCompression compression = OfficePngCompression.Optimal) {
-        if (image == null) throw new ArgumentNullException(nameof(image));
+        ArgumentNullException.ThrowIfNull(image);
         EncodeRgbaStreaming(
             image.Width,
             image.Height,
@@ -72,8 +72,8 @@ public static partial class OfficePngWriter {
         OfficePngEncodeOptions options,
         System.Threading.CancellationToken cancellationToken,
         Action<OfficeRasterEncodingCheckpoint>? checkpointObserver) {
-        if (image == null) throw new ArgumentNullException(nameof(image));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(options);
         ValidateDpi(options.DpiX, nameof(options.DpiX));
         ValidateDpi(options.DpiY, nameof(options.DpiY));
         EncodeRgbaStreaming(
@@ -94,7 +94,7 @@ public static partial class OfficePngWriter {
         OfficeRasterImage image,
         IBufferWriter<byte> destination,
         OfficePngCompression compression = OfficePngCompression.Optimal) {
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(destination);
         using var stream = new OfficeBufferWriterStream(destination);
         EncodeTo(image, stream, compression);
     }
@@ -104,7 +104,7 @@ public static partial class OfficePngWriter {
         OfficeRasterImage image,
         IBufferWriter<byte> destination,
         OfficePngEncodeOptions options) {
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(destination);
         using var stream = new OfficeBufferWriterStream(destination);
         EncodeTo(image, stream, options);
     }
@@ -252,9 +252,9 @@ public static partial class OfficePngWriter {
 
         public override void Write(byte[] buffer, int offset, int count) {
             if (_completed) throw new InvalidOperationException("The PNG IDAT stream is complete.");
-            if (buffer == null) throw new ArgumentNullException(nameof(buffer));
-            if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset));
-            if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+            ArgumentNullException.ThrowIfNull(buffer);
+            ArgumentOutOfRangeException.ThrowIfNegative(offset);
+            ArgumentOutOfRangeException.ThrowIfNegative(count);
             if (offset > buffer.Length - count) throw new ArgumentException("The buffer range is invalid.", nameof(buffer));
 
             while (count > 0) {

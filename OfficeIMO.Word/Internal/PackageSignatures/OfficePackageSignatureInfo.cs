@@ -234,12 +234,12 @@ namespace OfficeIMO.Word {
             long maxTotalCertificateBytes = 64L * 1024 * 1024,
             bool verifyDigests = true,
             IOfficeSecurityProvider? securityProvider = null) {
-            if (package == null) throw new ArgumentNullException(nameof(package));
-            if (maxCertificates <= 0) throw new ArgumentOutOfRangeException(nameof(maxCertificates));
-            if (maxCertificateBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxCertificateBytes));
-            if (maxTotalCertificateBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxTotalCertificateBytes));
-            if (maxSignedReferences <= 0) throw new ArgumentOutOfRangeException(nameof(maxSignedReferences));
-            if (maxTotalDigestBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxTotalDigestBytes));
+            ArgumentNullException.ThrowIfNull(package);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxCertificates);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxCertificateBytes);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxTotalCertificateBytes);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxSignedReferences);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxTotalDigestBytes);
 
             var signatureParts = new List<OfficePackageSignaturePartInfo>();
             var unsupportedDetails = new List<string>();

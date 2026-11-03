@@ -35,7 +35,7 @@ internal static partial class DocumentReaderEngine {
     /// <param name="options">Extraction options.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     public static IReadOnlyList<OfficeDocumentAsset> ReadAssets(byte[] bytes, string? sourceName = null, ReaderOptions? options = null, CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         using var stream = new MemoryStream(bytes, writable: false);
         return ReadAssets(stream, sourceName, options, cancellationToken);
     }
@@ -47,7 +47,7 @@ internal static partial class DocumentReaderEngine {
     /// <param name="predicate">Optional predicate used to select assets.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     public static IReadOnlyList<OfficeDocumentAsset> ExtractAssets(OfficeDocumentReadResult result, Func<OfficeDocumentAsset, bool>? predicate = null, CancellationToken cancellationToken = default) {
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(result);
 
         IReadOnlyList<OfficeDocumentAsset> assets = result.Assets ?? Array.Empty<OfficeDocumentAsset>();
         if (assets.Count == 0) {

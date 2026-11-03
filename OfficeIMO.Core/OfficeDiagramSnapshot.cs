@@ -38,7 +38,7 @@ public sealed class OfficeDiagramStyle {
             throw new ArgumentException("A diagram font family is required.",
                 nameof(fontFamily));
         }
-        if (nodeColors == null) throw new ArgumentNullException(nameof(nodeColors));
+        ArgumentNullException.ThrowIfNull(nodeColors);
         var colors = new List<OfficeColor>(nodeColors);
         if (colors.Count == 0) {
             throw new ArgumentException("At least one diagram node color is required.",
@@ -73,7 +73,7 @@ public sealed class OfficeDiagramSnapshot {
     public OfficeDiagramSnapshot(string? name, OfficeDiagramKind kind,
         IEnumerable<string> nodes, OfficeLength width,
         OfficeLength height, OfficeDiagramStyle? style = null) {
-        if (nodes == null) throw new ArgumentNullException(nameof(nodes));
+        ArgumentNullException.ThrowIfNull(nodes);
         if (width <= OfficeLength.Zero) {
             throw new ArgumentOutOfRangeException(nameof(width));
         }

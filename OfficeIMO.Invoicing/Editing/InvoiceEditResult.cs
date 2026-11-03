@@ -17,7 +17,7 @@ public sealed class InvoiceEditResult {
 public static class InvoiceEditor {
     /// <summary>Updates invoice declarations and reports expected calculation failures. The caller supplies any tax-point exchange rate.</summary>
     public static InvoiceEditResult Recalculate(Invoice invoice, decimal? taxExchangeRate = null) {
-        if (invoice == null) throw new ArgumentNullException(nameof(invoice));
+        ArgumentNullException.ThrowIfNull(invoice);
         try {
             InvoiceCalculation calculation = InvoiceCalculator.UpdateDeclaredAmounts(invoice, taxExchangeRate);
             IReadOnlyList<InvoiceDiagnostic> diagnostics = invoice.TaxCurrency != null && !invoice.TaxAmountInAccountingCurrency.HasValue

@@ -5,7 +5,7 @@ public sealed class EmailDiagnostic {
     /// <summary>Creates a non-sensitive actionable diagnostic for a bounded parser stop.</summary>
     public static EmailDiagnostic FromLimit(EmailLimitExceededException exception, string operation,
         string? location = null) {
-        if (exception == null) throw new ArgumentNullException(nameof(exception));
+        ArgumentNullException.ThrowIfNull(exception);
         return new EmailDiagnostic("EMAIL_LIMIT_EXCEEDED", exception.Message, EmailDiagnosticSeverity.Error,
             location, operation, null, exception.LimitName, exception.ActualValue, exception.MaximumValue,
             EmailDiagnosticDisposition.Stopped, EmailDataLossRisk.None,

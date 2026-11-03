@@ -24,9 +24,9 @@ internal sealed class PageSceneCoordinator : IDisposable {
         int maximumElements = 250_000,
         long maximumBytes = 128L * 1024L * 1024L) {
         _loadPage = loadPage ?? throw new ArgumentNullException(nameof(loadPage));
-        if (maximumEntries <= 0) throw new ArgumentOutOfRangeException(nameof(maximumEntries));
-        if (maximumElements <= 0) throw new ArgumentOutOfRangeException(nameof(maximumElements));
-        if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumEntries);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumElements);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
         _maximumEntries = maximumEntries;
         _maximumElements = maximumElements;
         _maximumBytes = maximumBytes;
@@ -53,7 +53,7 @@ internal sealed class PageSceneCoordinator : IDisposable {
 
     internal async Task<PdfPageScene> GetPageAsync(int pageNumber, CancellationToken cancellationToken) {
         ThrowIfDisposed();
-        if (pageNumber <= 0) throw new ArgumentOutOfRangeException(nameof(pageNumber));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageNumber);
         if (TryGetCached(pageNumber, out PdfPageScene? cached)) return cached!;
 
         using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(

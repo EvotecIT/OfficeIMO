@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal static ExcelTemplateSyntax Parse(string text) {
-            if (text == null) throw new ArgumentNullException(nameof(text));
+            ArgumentNullException.ThrowIfNull(text);
             var markers = new List<ExcelTemplateMarkerSyntax>();
             int cursor = 0;
             while (cursor + 1 < text.Length) {
@@ -62,7 +62,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal string Rewrite(Func<ExcelTemplateMarkerSyntax, string> rewriter) {
-            if (rewriter == null) throw new ArgumentNullException(nameof(rewriter));
+            ArgumentNullException.ThrowIfNull(rewriter);
             if (Markers.Count == 0) return Text;
             var output = new StringBuilder(Text.Length);
             int cursor = 0;

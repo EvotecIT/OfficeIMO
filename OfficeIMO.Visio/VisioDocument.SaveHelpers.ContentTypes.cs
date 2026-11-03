@@ -22,9 +22,7 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentException("File path cannot be null or whitespace.", nameof(filePath));
             }
 
-            if (pagePartNames is null) {
-                throw new ArgumentNullException(nameof(pagePartNames));
-            }
+            ArgumentNullException.ThrowIfNull(pagePartNames);
 
             using FileStream zipStream = File.Open(filePath, FileMode.Open, FileAccess.ReadWrite);
             using ZipArchive archive = new(zipStream, ZipArchiveMode.Update);
@@ -38,15 +36,11 @@ namespace OfficeIMO.Visio {
             VisioPackageType packageType, bool includeVbaProject, string? vbaProjectContentType,
             Uri vbaProjectPartUri,
             IEnumerable<PreservedVbaPart> preservedVbaParts) {
-            if (stream == null) {
-                throw new ArgumentNullException(nameof(stream));
-            }
+            ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanRead || !stream.CanWrite || !stream.CanSeek) {
                 throw new ArgumentException("Stream must be readable, writable, and seekable.", nameof(stream));
             }
-            if (pagePartNames is null) {
-                throw new ArgumentNullException(nameof(pagePartNames));
-            }
+            ArgumentNullException.ThrowIfNull(pagePartNames);
 
             stream.Seek(0, SeekOrigin.Begin);
             using ZipArchive archive = new(stream, ZipArchiveMode.Update, leaveOpen: true);
@@ -145,9 +139,7 @@ namespace OfficeIMO.Visio {
                 new XAttribute("ContentType", OfficeImageInfo.GetMimeType(format)));
 
         private static string NormalizePartName(string partName) {
-            if (partName is null) {
-                throw new ArgumentNullException(nameof(partName));
-            }
+            ArgumentNullException.ThrowIfNull(partName);
 
             return "/" + partName.TrimStart('/');
         }

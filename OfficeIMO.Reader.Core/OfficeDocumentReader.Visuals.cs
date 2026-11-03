@@ -44,7 +44,7 @@ public sealed partial class OfficeDocumentReader {
         string? sourceName = null,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         return DocumentReaderEngine.ExtractVisuals(Read(bytes, sourceName, options, cancellationToken), cancellationToken);
     }
 
@@ -77,7 +77,7 @@ public sealed partial class OfficeDocumentReader {
         ReaderOptions? options = null,
         bool indentedJson = false,
         CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         return DocumentReaderEngine.ExportVisuals(
             ReadVisuals(bytes, sourceName, options, cancellationToken),
             indentedJson,

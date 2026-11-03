@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Subtotal generation options.</param>
         /// <returns>Information about the generated summary block.</returns>
         public ExcelSubtotalResult AddSubtotalSummary(ExcelSubtotalOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             ValidateSubtotalOptions(options);
 
             _excelDocument.MaterializeDeferredDataSetImport();

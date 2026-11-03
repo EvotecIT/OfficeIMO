@@ -47,10 +47,7 @@ public sealed partial class CsvDocument
     internal static void ReadRowFieldSpans<TVisitor>(TextReader reader, ref TVisitor rowVisitor, CsvLoadOptions? options = null)
         where TVisitor : struct, ICsvRowFieldSpanVisitor
     {
-        if (reader == null)
-        {
-            throw new ArgumentNullException(nameof(reader));
-        }
+        ArgumentNullException.ThrowIfNull(reader);
 
         options ??= new CsvLoadOptions();
         if (options.DetectDelimiter)
@@ -87,10 +84,7 @@ public sealed partial class CsvDocument
     internal static void ReadRowFieldSpansFromText<TVisitor>(string text, ref TVisitor rowVisitor, CsvLoadOptions? options = null)
         where TVisitor : struct, ICsvRowFieldSpanVisitor
     {
-        if (text == null)
-        {
-            throw new ArgumentNullException(nameof(text));
-        }
+        ArgumentNullException.ThrowIfNull(text);
 
         ReadRowFieldSpans(text.AsSpan(), ref rowVisitor, options);
     }
@@ -136,10 +130,7 @@ public sealed partial class CsvDocument
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
     internal static void ReadFieldSpans(string path, CsvFieldSpanAction fieldAction, CsvLoadOptions? options = null)
     {
-        if (fieldAction == null)
-        {
-            throw new ArgumentNullException(nameof(fieldAction));
-        }
+        ArgumentNullException.ThrowIfNull(fieldAction);
 
         var visitor = new CsvFieldSpanActionVisitor(fieldAction);
         ReadFieldSpans(path, ref visitor, options);
@@ -175,10 +166,7 @@ public sealed partial class CsvDocument
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
     internal static void ReadFieldSpans(TextReader reader, CsvFieldSpanAction fieldAction, CsvLoadOptions? options = null)
     {
-        if (fieldAction == null)
-        {
-            throw new ArgumentNullException(nameof(fieldAction));
-        }
+        ArgumentNullException.ThrowIfNull(fieldAction);
 
         var visitor = new CsvFieldSpanActionVisitor(fieldAction);
         ReadFieldSpans(reader, ref visitor, options);
@@ -194,10 +182,7 @@ public sealed partial class CsvDocument
     internal static void ReadFieldSpans<TVisitor>(TextReader reader, ref TVisitor fieldVisitor, CsvLoadOptions? options = null)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
-        if (reader == null)
-        {
-            throw new ArgumentNullException(nameof(reader));
-        }
+        ArgumentNullException.ThrowIfNull(reader);
 
         options = CreateRawRecordOptions(options);
         if (options.DetectDelimiter)
@@ -220,10 +205,7 @@ public sealed partial class CsvDocument
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
     internal static void ReadFieldSpansFromText(string text, CsvFieldSpanAction fieldAction, CsvLoadOptions? options = null)
     {
-        if (fieldAction == null)
-        {
-            throw new ArgumentNullException(nameof(fieldAction));
-        }
+        ArgumentNullException.ThrowIfNull(fieldAction);
 
         var visitor = new CsvFieldSpanActionVisitor(fieldAction);
         ReadFieldSpansFromText(text, ref visitor, options);
@@ -239,10 +221,7 @@ public sealed partial class CsvDocument
     internal static void ReadFieldSpansFromText<TVisitor>(string text, ref TVisitor fieldVisitor, CsvLoadOptions? options = null)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
-        if (text == null)
-        {
-            throw new ArgumentNullException(nameof(text));
-        }
+        ArgumentNullException.ThrowIfNull(text);
 
         options = CreateRawRecordOptions(options);
         if (options.DetectDelimiter)

@@ -18,7 +18,7 @@ namespace OfficeIMO.PowerPoint {
             long nativeTop = (top ?? OfficeLength.Emus(0L)).ToEmus();
             long nativeWidth = (width ?? OfficeLength.Emus(914400L)).ToEmus();
             long nativeHeight = (height ?? OfficeLength.Emus(914400L)).ToEmus();
-            if (text == null) throw new ArgumentNullException(nameof(text));
+            ArgumentNullException.ThrowIfNull(text);
 
             string shapeName = name ?? GenerateUniqueName(shapeType.ToString());
             Shape shape = new(

@@ -8,7 +8,7 @@ internal static class AsciiDocReaderAdapter {
         ReaderOptions? readerOptions = null,
         ReaderAsciiDocOptions? asciiDocOptions = null,
         CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (path.Length == 0) throw new ArgumentException("AsciiDoc path cannot be empty.", nameof(path));
         if (!File.Exists(path)) throw new FileNotFoundException("AsciiDoc file does not exist.", path);
 
@@ -27,7 +27,7 @@ internal static class AsciiDocReaderAdapter {
         ReaderOptions? readerOptions = null,
         ReaderAsciiDocOptions? asciiDocOptions = null,
         CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("AsciiDoc stream must be readable.", nameof(stream));
 
         ReaderOptions reader = readerOptions ?? new ReaderOptions();
@@ -50,8 +50,8 @@ internal static class AsciiDocReaderAdapter {
         ReaderOptions? readerOptions = null,
         ReaderAsciiDocOptions? asciiDocOptions = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(sourceName);
         var result = new AsciiDocParseResult(document, document.Diagnostics);
         return ReadAsciiDocResult(result, sourceName, readerOptions ?? new ReaderOptions(), asciiDocOptions, cancellationToken);
     }

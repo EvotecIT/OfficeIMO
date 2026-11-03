@@ -485,6 +485,11 @@ public sealed class PackageDependencyGuardrailTests {
         Assert.Equal(
             new[] {
                 "OfficeIMO.SharedSource/Charts/OfficeChartTypeName.cs",
+                "OfficeIMO.SharedSource/Compatibility/ArgumentExceptions/ArgumentExceptionPolyfill.cs",
+                "OfficeIMO.SharedSource/Compatibility/ArgumentExceptions/ArgumentNullExceptionPolyfill.cs",
+                "OfficeIMO.SharedSource/Compatibility/ArgumentExceptions/ArgumentOutOfRangeExceptionPolyfill.cs",
+                "OfficeIMO.SharedSource/Compatibility/ArgumentExceptions/EmbeddedAttributes.cs",
+                "OfficeIMO.SharedSource/Compatibility/ArgumentExceptions/ObjectDisposedExceptionPolyfill.cs",
                 "OfficeIMO.SharedSource/Compatibility/TrimmingAttributes.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundDocumentDetector.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundFile.cs",

@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             GoogleSheetsImportOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(spreadsheetId)) throw new ArgumentException("Spreadsheet ID is required.", nameof(spreadsheetId));
-            if (session == null) throw new ArgumentNullException(nameof(session));
+            ArgumentNullException.ThrowIfNull(session);
 
             GoogleSheetsImportOptions effectiveOptions = options ?? new GoogleSheetsImportOptions();
             ValidateOptions(effectiveOptions);

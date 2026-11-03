@@ -40,7 +40,7 @@ public sealed partial class OfficeDocumentReader {
         ReaderOptions? readerOptions = null,
         ReaderHierarchicalChunkingOptions? chunkingOptions = null,
         CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         using var stream = new MemoryStream(bytes, writable: false);
         return ReadHierarchical(stream, sourceName, readerOptions, chunkingOptions, cancellationToken);
     }
@@ -77,7 +77,7 @@ public sealed partial class OfficeDocumentReader {
         ReaderOptions? readerOptions = null,
         ReaderHierarchicalChunkingOptions? chunkingOptions = null,
         CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         using var stream = new MemoryStream(bytes, writable: false);
         return await ReadHierarchicalAsync(
             stream,

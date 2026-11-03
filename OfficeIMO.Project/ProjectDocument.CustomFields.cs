@@ -13,7 +13,7 @@ public sealed partial class ProjectDocument {
     /// <summary>Atomically applies a complete custom-field proposal to its unchanged originating document.</summary>
     public void ApplyCustomFields(ProjectCustomFieldCalculationResult result, CancellationToken cancellationToken = default) {
         EnsureMutable();
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(result);
         result.Report.ThrowIfErrors();
         if (result.Document != this || result.ModelRevision != Revision || _batchDepth != 0)
             throw new InvalidOperationException("The custom-field proposal belongs to another document or a stale/in-progress revision.");

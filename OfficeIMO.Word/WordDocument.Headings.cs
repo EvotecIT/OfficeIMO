@@ -6,7 +6,7 @@ public partial class WordDocument {
     /// <param name="level">Heading level from one through nine.</param>
     /// <returns>The created heading paragraph.</returns>
     public WordParagraph AddHeading(string text, int level = 1) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(text);
         WordParagraphStyles style = level switch {
             1 => WordParagraphStyles.Heading1,
             2 => WordParagraphStyles.Heading2,

@@ -18,7 +18,7 @@ public static class OfficeMarkupExcelConverterExtensions {
     public static OfficeMarkupConversionResult<ExcelDocument> ToExcelDocumentResult(
         this OfficeMarkupDocument document,
         MarkupToExcelOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         MarkupToExcelOptions resolved = options ?? new MarkupToExcelOptions();
         IReadOnlyList<OfficeMarkupDiagnostic> diagnostics = CollectDiagnostics(document, resolved);
         ExcelDocument value = new OfficeMarkupExcelExporter().Convert(document, resolved);

@@ -24,9 +24,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             out int firstDataRow,
             out int lastDataRow,
             out XlsbValidatedRowPlan? validatedRowPlan) {
-            if (dateStyles == null) {
-                throw new ArgumentNullException(nameof(dateStyles));
-            }
+            ArgumentNullException.ThrowIfNull(dateStyles);
             int styleCount = dateStyles.Length;
             firstColumn = int.MaxValue;
             lastColumn = -1;

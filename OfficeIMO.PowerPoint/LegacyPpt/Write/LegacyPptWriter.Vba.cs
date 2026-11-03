@@ -12,7 +12,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static bool TryReadVbaProject(
             PowerPointDocument presentation, out byte[]? projectBytes,
             out string? reason) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+            ArgumentNullException.ThrowIfNull(presentation);
             projectBytes = null;
             reason = null;
             VbaProjectPart? part = presentation.OpenXmlDocument
@@ -43,7 +43,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static byte[] BuildVbaProjectStorageRecord(
             byte[] projectBytes) {
-            if (projectBytes == null) throw new ArgumentNullException(nameof(projectBytes));
+            ArgumentNullException.ThrowIfNull(projectBytes);
             if (!LegacyPptVbaProjectCodec.IsValidProject(projectBytes,
                     out string? reason)) {
                 throw new InvalidDataException(reason
@@ -55,7 +55,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static byte[] RewriteDocumentVbaInfo(
             LegacyPptRecord document, uint? persistId) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             var children = new List<byte[]>(document.Children.Count + 1);
             bool foundDocInfo = false;
             foreach (LegacyPptRecord child in document.Children) {

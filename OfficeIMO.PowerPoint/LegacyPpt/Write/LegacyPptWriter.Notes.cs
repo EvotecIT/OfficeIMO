@@ -6,7 +6,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
         internal static bool ShouldWriteNotesPage(PowerPointSlide slide,
             out string text) {
-            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            ArgumentNullException.ThrowIfNull(slide);
             text = slide.Notes.TryGetText(out string noteText)
                 ? noteText
                 : string.Empty;

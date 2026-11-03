@@ -12,7 +12,7 @@ public static partial class EpubManuscript {
     /// <summary>Imports a prepared HTML manuscript with embedded resources. Use the asynchronous route for an application resolver.</summary>
     public static EpubManuscriptResult ImportHtml(HtmlConversionDocument manuscript, EpubManuscriptOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (manuscript == null) throw new ArgumentNullException(nameof(manuscript));
+        ArgumentNullException.ThrowIfNull(manuscript);
         options ??= new EpubManuscriptOptions();
         if (options.ResourceResolver != null) throw new ArgumentException("Use ImportHtmlAsync when supplying a resource resolver.", nameof(options));
         return ImportHtmlAsync(manuscript, options, cancellationToken).GetAwaiter().GetResult();
@@ -21,7 +21,7 @@ public static partial class EpubManuscript {
     /// <summary>Imports HTML and collects its resource dependencies through an explicitly supplied application resolver.</summary>
     public static async Task<EpubManuscriptResult> ImportHtmlAsync(HtmlConversionDocument manuscript, EpubManuscriptOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (manuscript == null) throw new ArgumentNullException(nameof(manuscript));
+        ArgumentNullException.ThrowIfNull(manuscript);
         options ??= new EpubManuscriptOptions();
         options = options.Clone();
         cancellationToken.ThrowIfCancellationRequested();

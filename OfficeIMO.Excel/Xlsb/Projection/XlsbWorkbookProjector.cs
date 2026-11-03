@@ -5,7 +5,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
     internal static class XlsbWorkbookProjector {
         internal static ExcelDocument ToExcelDocument(XlsbWorkbook workbook, System.Threading.CancellationToken cancellationToken = default,
             int maxCells = 4_000_000) {
-            if (workbook == null) throw new ArgumentNullException(nameof(workbook));
+            ArgumentNullException.ThrowIfNull(workbook);
             cancellationToken.ThrowIfCancellationRequested();
             EnsureArrayProjectionBudget(workbook, maxCells, cancellationToken);
 

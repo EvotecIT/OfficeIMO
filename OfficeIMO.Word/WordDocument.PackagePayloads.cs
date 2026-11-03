@@ -17,7 +17,7 @@ namespace OfficeIMO.Word {
         /// <param name="maxBytes">Maximum decoded VBA project bytes accepted.</param>
         /// <returns>Project metadata, or null when the document has no VBA project.</returns>
         public OfficeVbaProjectInfo? InspectVbaProject(bool includeSha256, long maxBytes) {
-            if (maxBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxBytes);
             VbaProjectPart? part = _wordprocessingDocument.MainDocumentPart?.VbaProjectPart;
             return part == null ? null : OfficeOpenXmlPackagePayload.CreateVbaProjectInfo(
                 part, includeSha256, maxBytes);
@@ -25,14 +25,14 @@ namespace OfficeIMO.Word {
 
         /// <summary>Extracts a VBA project while enforcing a maximum byte count.</summary>
         public byte[] ExtractMacros(long maxBytes) {
-            if (maxBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxBytes);
             VbaProjectPart? part = _wordprocessingDocument.MainDocumentPart?.VbaProjectPart;
             return part == null ? Array.Empty<byte>() : OfficeOpenXmlPackagePayload.ReadBytes(part, maxBytes);
         }
 
         /// <summary>Saves a VBA project while enforcing a maximum byte count.</summary>
         public void SaveMacros(string filePath, long maxBytes) {
-            if (maxBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxBytes);
             VbaProjectPart? part = _wordprocessingDocument.MainDocumentPart?.VbaProjectPart;
             if (part != null) {
                 OfficeOpenXmlPackagePayload.SaveBytes(part, filePath, maxBytes);

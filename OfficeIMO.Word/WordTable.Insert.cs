@@ -6,9 +6,10 @@ namespace OfficeIMO.Word;
 public partial class WordTable {
     /// <summary>Inserts a row at a zero-based logical index, including rows inside content controls and custom XML.</summary>
     public WordTableRow InsertRow(int index, params object?[] values) {
-        if (values == null) throw new ArgumentNullException(nameof(values));
+        ArgumentNullException.ThrowIfNull(values);
         var existing = WordTableContent.Rows(_table).ToList();
-        if (index < 0 || index > existing.Count) throw new ArgumentOutOfRangeException(nameof(index));
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(index, existing.Count);
         int columns = existing.Count > 0 ? WordTableContent.Cells(existing[0]).Count() : values.Length;
         if (values.Length > columns) throw new ArgumentException("The inserted row has more values than the table has columns.", nameof(values));
         var row = AddRow(columns);
@@ -24,7 +25,7 @@ public partial class WordTable {
 
     /// <summary>Inserts a column at a zero-based logical index and returns its cells in row order.</summary>
     public IReadOnlyList<WordTableCell> InsertColumn(int index, params object?[] values) {
-        if (values == null) throw new ArgumentNullException(nameof(values));
+        ArgumentNullException.ThrowIfNull(values);
         var rows = Rows;
         var cells = rows.Select(row => row.Cells).ToArray();
         if (index < 0 || cells.Any(row => index > row.Count)) throw new ArgumentOutOfRangeException(nameof(index));

@@ -24,7 +24,7 @@ public sealed partial class OdgPage {
     public OdfConversionResult<OfficeDrawing> ToDrawing(OfficeRenderingProfile renderingProfile,
         OdfConversionLossPolicy lossPolicy = OdfConversionLossPolicy.ReportOnly, bool forPrint = false,
         CancellationToken cancellationToken = default, OdfDateTimeFieldProjectionOptions? dateTimeFields = null) {
-        if (renderingProfile == null) throw new ArgumentNullException(nameof(renderingProfile));
+        ArgumentNullException.ThrowIfNull(renderingProfile);
         return ToDrawing(lossPolicy, forPrint, cancellationToken, 0, 0, new OdfDateTimeFieldProjection(_document, dateTimeFields), renderingProfile, null);
     }
 

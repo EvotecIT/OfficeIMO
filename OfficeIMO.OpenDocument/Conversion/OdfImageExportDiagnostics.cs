@@ -10,7 +10,7 @@ public static class OdfImageExportDiagnostics {
     /// <summary>Returns only lossy conversion mappings as image-export diagnostics.</summary>
     public static IReadOnlyList<OfficeImageExportDiagnostic> FromConversionReport(
         OdfConversionReport report) {
-        if (report == null) throw new ArgumentNullException(nameof(report));
+        ArgumentNullException.ThrowIfNull(report);
         var diagnostics = new List<OfficeImageExportDiagnostic>();
         foreach (OdfConversionMapping mapping in report.Mappings) {
             if (mapping.Status == OdfConversionMappingStatus.Converted) continue;
@@ -37,7 +37,7 @@ public static class OdfImageExportDiagnostics {
     public static OfficeImageExportResult Attach(
         OfficeImageExportResult result,
         OdfConversionReport report) {
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(result);
         IReadOnlyList<OfficeImageExportDiagnostic> conversionDiagnostics =
             FromConversionReport(report);
         if (conversionDiagnostics.Count == 0) return result;

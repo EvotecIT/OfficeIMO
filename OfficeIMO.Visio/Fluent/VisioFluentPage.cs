@@ -518,9 +518,7 @@ namespace OfficeIMO.Visio.Fluent {
                 throw new ArgumentException($"A shape with id '{id}' already exists on page '{_page.Name}'.", nameof(id));
             }
 
-            if (memberIds == null) {
-                throw new ArgumentNullException(nameof(memberIds));
-            }
+            ArgumentNullException.ThrowIfNull(memberIds);
 
             List<VisioShape> members = new();
             foreach (string memberId in memberIds) {

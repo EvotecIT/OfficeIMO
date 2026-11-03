@@ -30,11 +30,7 @@ public static class OfficeDocumentReadResultPdfExtensions {
         this OfficeDocumentReadResult source,
         OfficeIMO.Pdf.PdfProjectionOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-#if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(source);
-#else
-        if (source == null) throw new ArgumentNullException(nameof(source));
-#endif
         CoreModel model = ToNeutralModel(source, cancellationToken);
         return OfficeIMO.Pdf.OfficeDocumentModelPdfExtensions.ToPdfDocumentResult(model, options, cancellationToken);
     }

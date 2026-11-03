@@ -20,7 +20,7 @@ internal static class HtmlDocumentParser {
     /// Parses an HTML fragment or document into an AngleSharp document with cooperative cancellation.
     /// </summary>
     public static IHtmlDocument ParseDocument(string html, CancellationToken cancellationToken) {
-        if (html == null) throw new ArgumentNullException(nameof(html));
+        ArgumentNullException.ThrowIfNull(html);
         cancellationToken.ThrowIfCancellationRequested();
         var parserOptions = new HtmlParserOptions { IsKeepingSourceReferences = true };
         MathMlSourceCapture? sourceCapture = MathMlSourceCapture.Configure(ref parserOptions, html, cancellationToken);
@@ -34,8 +34,8 @@ internal static class HtmlDocumentParser {
 
     /// <summary>Parses an HTML fragment using the supplied element and its ancestors as context.</summary>
     public static HtmlFragmentParseResult ParseFragment(string html, IElement contextElement, CancellationToken cancellationToken) {
-        if (html == null) throw new ArgumentNullException(nameof(html));
-        if (contextElement == null) throw new ArgumentNullException(nameof(contextElement));
+        ArgumentNullException.ThrowIfNull(html);
+        ArgumentNullException.ThrowIfNull(contextElement);
         cancellationToken.ThrowIfCancellationRequested();
         var parserOptions = new HtmlParserOptions { IsKeepingSourceReferences = true };
         MathMlSourceCapture? sourceCapture = MathMlSourceCapture.Configure(ref parserOptions, html, cancellationToken);
@@ -415,7 +415,7 @@ internal static class HtmlDocumentParser {
     /// Creates a deep DOM clone so a target adapter can safely apply local transformations without reparsing text.
     /// </summary>
     public static IHtmlDocument CloneDocument(IHtmlDocument document, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         var clone = document.Clone(true) as IHtmlDocument
             ?? throw new InvalidOperationException("The HTML DOM implementation did not produce a document clone.");
@@ -482,7 +482,7 @@ internal static class HtmlDocumentParser {
     /// Returns the document node that should be used as a converter traversal root.
     /// </summary>
     public static INode GetConversionRoot(IHtmlDocument document, bool useBodyContentsOnly) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return useBodyContentsOnly && document.Body != null
             ? document.Body
             : (INode?)document.DocumentElement ?? document;

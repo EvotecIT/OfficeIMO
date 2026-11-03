@@ -77,7 +77,7 @@ internal sealed class OlmStoreSessionBackend : IEmailStoreSessionBackend {
 
     public EmailStoreItem ReadItem(EmailStoreItemReference reference, EmailStoreItemReadOptions options,
         CancellationToken cancellationToken) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         IndexedItem item = GetItem(reference, cancellationToken);
         EmailReadWorkspace? workspace = options.PreferStreamingAttachmentContent &&
             options.Includes(EmailStoreItemReadParts.AttachmentContent) ? new EmailReadWorkspace() : null;

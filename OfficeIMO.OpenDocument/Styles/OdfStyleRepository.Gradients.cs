@@ -13,7 +13,7 @@ public sealed partial class OdfStyleRepository {
     /// <summary>Creates a reusable native two-color gradient in common styles.</summary>
     public OdfGradient CreateGradient(string name, OdfGradientPattern pattern) {
         ValidateStyleName(name);
-        if (pattern == null) throw new ArgumentNullException(nameof(pattern));
+        ArgumentNullException.ThrowIfNull(pattern);
         if (FindGradient(name) != null) throw new InvalidOperationException("A gradient named '" + name + "' already exists.");
         var element = new XElement(OdfNamespaces.Draw + "gradient", new XAttribute(OdfNamespaces.Draw + "name", name));
         OdfGradient.WritePattern(element, pattern); GetContainer("styles.xml", OdfNamespaces.Office + "styles").Add(element);

@@ -34,7 +34,7 @@ public static class LegacySpreadsheetImporter {
 
     /// <summary>Detects legacy spreadsheet bytes.</summary>
     public static LegacySpreadsheetDetection Detect(byte[] data, LegacySpreadsheetImportOptions? options = null, CancellationToken cancellationToken = default) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         LegacySpreadsheetImportOptions effective = Prepare(options, options?.SourceName);
         if (data.Length > effective.Limits.MaxInputBytes) throw new InvalidDataException("Legacy spreadsheet input exceeds the configured byte limit.");
         cancellationToken.ThrowIfCancellationRequested();
@@ -55,7 +55,7 @@ public static class LegacySpreadsheetImporter {
 
     /// <summary>Imports legacy spreadsheet bytes into a normal editable <see cref="ExcelDocument"/>.</summary>
     public static LegacySpreadsheetImportResult Import(byte[] data, LegacySpreadsheetImportOptions? options = null, CancellationToken cancellationToken = default) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         LegacySpreadsheetImportOptions effective = Prepare(options, options?.SourceName);
         if (data.Length > effective.Limits.MaxInputBytes) throw new InvalidDataException("Legacy spreadsheet input exceeds the configured byte limit.");
         (ILegacySpreadsheetAdapter adapter, LegacySpreadsheetDetection detection) = SelectAdapter(data, effective, cancellationToken);

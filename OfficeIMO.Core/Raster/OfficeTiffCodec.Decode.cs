@@ -25,7 +25,7 @@ public static partial class OfficeTiffCodec {
         OfficeIccColorProfile? colorProfile = null,
         OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric) {
         image = null;
-        if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
         OfficeRasterDecodeOptions effective = options ?? new OfficeRasterDecodeOptions();
         effective.Validate();
         effective.CancellationToken.ThrowIfCancellationRequested();

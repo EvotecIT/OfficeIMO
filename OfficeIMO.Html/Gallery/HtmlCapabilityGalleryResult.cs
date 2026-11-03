@@ -29,8 +29,8 @@ public sealed class HtmlCapabilityGalleryResult {
         IEnumerable<HtmlCapabilityGalleryArtifact> artifacts,
         IEnumerable<HtmlDiagnostic> diagnostics)
         : this(scenario) {
-        if (artifacts == null) throw new ArgumentNullException(nameof(artifacts));
-        if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
+        ArgumentNullException.ThrowIfNull(artifacts);
+        ArgumentNullException.ThrowIfNull(diagnostics);
 
         foreach (HtmlCapabilityGalleryArtifact artifact in artifacts) {
             AddArtifact(artifact ?? throw new ArgumentException("Gallery artifacts cannot contain null values.", nameof(artifacts)));
@@ -64,7 +64,7 @@ public sealed class HtmlCapabilityGalleryResult {
 
     /// <summary>Adds an artifact to a mutable result builder.</summary>
     public void AddArtifact(HtmlCapabilityGalleryArtifact artifact) {
-        if (artifact == null) throw new ArgumentNullException(nameof(artifact));
+        ArgumentNullException.ThrowIfNull(artifact);
         EnsureMutable();
         _artifacts.Add(artifact);
     }

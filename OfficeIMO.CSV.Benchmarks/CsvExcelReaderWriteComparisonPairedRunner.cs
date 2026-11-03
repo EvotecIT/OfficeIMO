@@ -17,12 +17,8 @@ internal static class CsvExcelReaderWriteComparisonPairedRunner {
         int iterations = arguments.Length > 3 && int.TryParse(arguments[3], out int parsedIterations)
             ? parsedIterations
             : 30;
-        if (rowCount <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(rowCount));
-        }
-        if (iterations <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(iterations));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowCount);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(iterations);
 
         string affinity = arguments.Length > 4
             ? BenchmarkProcessorAffinity.Apply(arguments[4])
@@ -34,9 +30,7 @@ internal static class CsvExcelReaderWriteComparisonPairedRunner {
         int invocationsPerLeg = arguments.Length > 6 && int.TryParse(arguments[6], out int parsedInvocations)
             ? parsedInvocations
             : 8;
-        if (invocationsPerLeg <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(invocationsPerLeg));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(invocationsPerLeg);
 
         var benchmark = new CsvBenchmarks { RowCount = rowCount, Shape = shape };
         benchmark.Setup();

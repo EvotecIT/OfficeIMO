@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
         /// Sorts a rectangular range by a 1-based column offset while moving whole row cell nodes.
         /// </summary>
         public void SortRangeByColumn(string a1Range, int columnOffset, bool ascending = true, bool hasHeader = true) {
-            if (columnOffset < 1) throw new ArgumentOutOfRangeException(nameof(columnOffset));
+            ArgumentOutOfRangeException.ThrowIfLessThan(columnOffset, 1);
             var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
             int targetColumn = c1 + columnOffset - 1;
             if (targetColumn > c2) throw new ArgumentOutOfRangeException(nameof(columnOffset));

@@ -84,9 +84,9 @@ namespace OfficeIMO.Excel {
             bool includeAutoFilter = true,
             CancellationToken ct = default,
             bool preserveMissingValues = true) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (startRow < 1) throw new ArgumentOutOfRangeException(nameof(startRow));
-            if (startColumn < 1) throw new ArgumentOutOfRangeException(nameof(startColumn));
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentOutOfRangeException.ThrowIfLessThan(startRow, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(startColumn, 1);
 
             int rowsCount = source.RowCount + (includeHeaders ? 1 : 0);
             int columnCount = source.ColumnCount;
@@ -136,7 +136,7 @@ namespace OfficeIMO.Excel {
             bool includeAutoFilter = true,
             ExcelExecutionMode? mode = null,
             CancellationToken ct = default) {
-            if (table == null) throw new ArgumentNullException(nameof(table));
+            ArgumentNullException.ThrowIfNull(table);
 
             int rowsCount = table.Rows.Count + (includeHeaders ? 1 : 0);
             if (table.Columns.Count == 0 || rowsCount == 0) {
@@ -257,8 +257,8 @@ namespace OfficeIMO.Excel {
             bool matchColumnsByHeader = true,
             ExcelExecutionMode? mode = null,
             CancellationToken ct = default) {
-            if (dataTable == null) throw new ArgumentNullException(nameof(dataTable));
-            if (tableName == null) throw new ArgumentNullException(nameof(tableName));
+            ArgumentNullException.ThrowIfNull(dataTable);
+            ArgumentNullException.ThrowIfNull(tableName);
             if (string.IsNullOrWhiteSpace(tableName)) throw new ArgumentException("Table name cannot be empty.", nameof(tableName));
 
             if (!_excelDocument.IsMaterializingDeferredDataSetImport) {

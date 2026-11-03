@@ -276,7 +276,7 @@ internal static partial class CsvWriter
 
     internal static void WritePlainTextRecordBuffered(TextWriter writer, StringBuilder buffer, string?[] values, char delimiter, string newLine)
     {
-        if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+        ArgumentNullException.ThrowIfNull(buffer);
         buffer.Clear();
         for (int i = 0; i < values.Length; i++)
         {

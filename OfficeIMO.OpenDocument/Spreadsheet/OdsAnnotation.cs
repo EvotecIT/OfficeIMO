@@ -39,7 +39,7 @@ public sealed class OdsAnnotation {
     public string Text {
         get => OdfTextCodec.JoinBounded(ReadTextBlocks(_element));
         set {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
             _element.Elements().Where(IsAnnotationTextBlock).Remove();
             var paragraph = new XElement(OdfNamespaces.Text + "p");
             OdfTextCodec.Append(paragraph, value);

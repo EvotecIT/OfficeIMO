@@ -50,9 +50,7 @@ public sealed class MarkdownFencedBlockExtension {
             throw new ArgumentException("Extension name is required.", nameof(name));
         }
 
-        if (languages == null) {
-            throw new ArgumentNullException(nameof(languages));
-        }
+        ArgumentNullException.ThrowIfNull(languages);
 
         CreateBlock = createBlock ?? throw new ArgumentNullException(nameof(createBlock));
 

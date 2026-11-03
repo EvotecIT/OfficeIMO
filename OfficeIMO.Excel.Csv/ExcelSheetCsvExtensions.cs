@@ -15,8 +15,8 @@ public static class ExcelSheetCsvExtensions {
         CsvDocument csv,
         ExcelCsvImportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (sheet == null) throw new ArgumentNullException(nameof(sheet));
-        if (csv == null) throw new ArgumentNullException(nameof(csv));
+        ArgumentNullException.ThrowIfNull(sheet);
+        ArgumentNullException.ThrowIfNull(csv);
         cancellationToken.ThrowIfCancellationRequested();
         ExcelCsvImportOptions resolved = ExcelDocumentCsvExtensions.ResolveOptions(options);
         using DbDataReader reader = csv.CreateDataReader(resolved.ReaderOptions);
@@ -29,7 +29,7 @@ public static class ExcelSheetCsvExtensions {
         string path,
         ExcelCsvImportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+        ArgumentNullException.ThrowIfNull(sheet);
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         ExcelCsvImportOptions resolved = ExcelDocumentCsvExtensions.ResolveOptions(options);
         using var linkedCancellation = ExcelDocumentCsvExtensions.CreateLinkedLoadOptions(resolved, cancellationToken, out CsvLoadOptions loadOptions);
@@ -43,7 +43,7 @@ public static class ExcelSheetCsvExtensions {
         Stream stream,
         ExcelCsvImportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+        ArgumentNullException.ThrowIfNull(sheet);
         ExcelCsvImportOptions resolved = ExcelDocumentCsvExtensions.ResolveOptions(options);
         using var linkedCancellation = ExcelDocumentCsvExtensions.CreateLinkedLoadOptions(resolved, cancellationToken, out CsvLoadOptions loadOptions);
         using DbDataReader reader = CsvDocument.OpenDataReader(stream, loadOptions, resolved.ReaderOptions);
@@ -59,8 +59,8 @@ public static class ExcelSheetCsvExtensions {
         string text,
         ExcelCsvImportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (sheet == null) throw new ArgumentNullException(nameof(sheet));
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(sheet);
+        ArgumentNullException.ThrowIfNull(text);
         ExcelCsvImportOptions resolved = ExcelDocumentCsvExtensions.ResolveOptions(options);
         using var linkedCancellation = ExcelDocumentCsvExtensions.CreateLinkedLoadOptions(resolved, cancellationToken, out CsvLoadOptions loadOptions);
         using DbDataReader reader = CsvDocument.OpenTextDataReader(
@@ -118,7 +118,7 @@ public static class ExcelSheetCsvExtensions {
         CsvSaveOptions? csvOptions = null,
         ExcelReaderOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
-        if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+        ArgumentNullException.ThrowIfNull(sheet);
         using ExcelWorkbookDataReader reader = CreateSheetReader(
             sheet, a1Range: null, headersInFirstRow, readOptions, cancellationToken);
         CsvDocument.WriteDataReader(
@@ -136,7 +136,7 @@ public static class ExcelSheetCsvExtensions {
         CsvSaveOptions? csvOptions = null,
         ExcelReaderOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
-        if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+        ArgumentNullException.ThrowIfNull(sheet);
         using ExcelWorkbookDataReader reader = CreateSheetReader(
             sheet, a1Range: null, headersInFirstRow, readOptions, cancellationToken);
         CsvDocument.WriteDataReader(
@@ -188,7 +188,7 @@ public static class ExcelSheetCsvExtensions {
         CsvSaveOptions? csvOptions,
         ExcelReaderOptions? readOptions,
         CancellationToken cancellationToken) {
-        if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+        ArgumentNullException.ThrowIfNull(sheet);
         using ExcelWorkbookDataReader reader = CreateSheetReader(
             sheet, a1Range, headersInFirstRow, readOptions, cancellationToken);
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
@@ -206,7 +206,7 @@ public static class ExcelSheetCsvExtensions {
         bool headersInFirstRow,
         ExcelReaderOptions? readOptions,
         CancellationToken cancellationToken) {
-        if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+        ArgumentNullException.ThrowIfNull(sheet);
         using ExcelWorkbookDataReader reader = CreateSheetReader(
             sheet, a1Range, headersInFirstRow, readOptions, cancellationToken);
         var document = new CsvDocument();

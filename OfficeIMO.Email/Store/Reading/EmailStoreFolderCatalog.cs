@@ -73,7 +73,7 @@ public sealed class EmailStoreFolderCatalog {
 
     /// <summary>Enumerates descendants breadth-first, bounded and protected from source cycles.</summary>
     public IReadOnlyList<EmailStoreFolderInfo> GetDescendants(EmailStoreFolderId id, int maxFolders = 100_000) {
-        if (maxFolders <= 0) throw new ArgumentOutOfRangeException(nameof(maxFolders));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxFolders);
         Get(id);
         var result = new List<EmailStoreFolderInfo>();
         var visited = new HashSet<EmailStoreFolderId> { id };
@@ -95,7 +95,7 @@ public sealed class EmailStoreFolderCatalog {
 
     /// <summary>Gets the root-to-folder path, stopping safely if corrupt parent links form a cycle.</summary>
     public IReadOnlyList<EmailStoreFolderInfo> GetPath(EmailStoreFolderId id, int maxDepth = 1_024) {
-        if (maxDepth <= 0) throw new ArgumentOutOfRangeException(nameof(maxDepth));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDepth);
         var reverse = new List<EmailStoreFolderInfo>();
         var visited = new HashSet<EmailStoreFolderId>();
         EmailStoreFolderInfo? current = Get(id);

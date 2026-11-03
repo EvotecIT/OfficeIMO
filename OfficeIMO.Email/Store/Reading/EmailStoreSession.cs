@@ -68,7 +68,7 @@ public sealed partial class EmailStoreSession : IDisposable {
     /// <summary>Opens a file with random-access sharing suitable for large PST/OST sources.</summary>
     public static EmailStoreSession Open(string path, EmailStoreReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (Directory.Exists(path)) {
             EmailStoreReaderOptions effective = options ?? EmailStoreReaderOptions.Default;
             var backend = new MailboxDirectoryStoreSessionBackend(path, effective, cancellationToken);
@@ -92,7 +92,7 @@ public sealed partial class EmailStoreSession : IDisposable {
     public static EmailStoreSession Open(Stream stream, string? sourceName = null,
         EmailStoreReaderOptions? options = null, bool leaveOpen = true,
         CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead || !stream.CanSeek) {
             throw new ArgumentException("Email-store streams must be readable and seekable.", nameof(stream));
         }
@@ -130,8 +130,8 @@ public sealed partial class EmailStoreSession : IDisposable {
     public EmailStoreItem ReadItem(EmailStoreItemReference reference,
         EmailStoreItemReadOptions options,
         CancellationToken cancellationToken = default) {
-        if (reference == null) throw new ArgumentNullException(nameof(reference));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(reference);
+        ArgumentNullException.ThrowIfNull(options);
         ThrowIfDisposed();
         return _backend.ReadItem(reference, options, cancellationToken);
     }
@@ -143,7 +143,7 @@ public sealed partial class EmailStoreSession : IDisposable {
     /// </summary>
     public EmailStoreItemSummary ReadSummary(EmailStoreItemReference reference,
         CancellationToken cancellationToken = default) {
-        if (reference == null) throw new ArgumentNullException(nameof(reference));
+        ArgumentNullException.ThrowIfNull(reference);
         ThrowIfDisposed();
         return reference.Summary is { RequiresSourceRead: false } summary
             ? summary : _backend.ReadSummary(reference, cancellationToken);
@@ -154,7 +154,7 @@ public sealed partial class EmailStoreSession : IDisposable {
     /// </summary>
     public IEnumerable<EmailStoreSearchResult> Search(EmailStoreQuery query,
         CancellationToken cancellationToken = default) {
-        if (query == null) throw new ArgumentNullException(nameof(query));
+        ArgumentNullException.ThrowIfNull(query);
         ThrowIfDisposed();
         var enumeration = new EmailStoreEnumerationOptions(
             query.FolderId,

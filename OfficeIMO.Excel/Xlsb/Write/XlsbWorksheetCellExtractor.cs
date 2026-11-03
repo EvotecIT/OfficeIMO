@@ -14,9 +14,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ExcelSheet sheet,
             XlsbSheet sourceSheet,
             int availableCellFormatCount, XlsbFormulaWriteContext? formulas = null) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
-            if (sourceSheet == null) throw new ArgumentNullException(nameof(sourceSheet));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(sheet);
+            ArgumentNullException.ThrowIfNull(sourceSheet);
 
             ThrowIfUnsupportedWorksheetMutation(sheet, sourceSheet);
             return ExtractCore(document, sheet, sourceSheet, availableCellFormatCount, formulas);
@@ -25,8 +25,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         internal static IReadOnlyList<XlsbWriteCell> ExtractNew(
             ExcelDocument document,
             ExcelSheet sheet, XlsbFormulaWriteContext? formulas = null) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(sheet);
 
             ThrowIfUnsupportedNewWorksheetContent(sheet);
             return ExtractCore(document, sheet, sourceSheet: null, availableCellFormatCount: null, formulas);

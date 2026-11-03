@@ -94,13 +94,13 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Creates equal columns inside the slide's content region.</summary>
         public PowerPointLayoutBox[] GetColumns(int columnCount, OfficeLength margin, OfficeLength gutter) {
-            if (columnCount <= 0) throw new ArgumentOutOfRangeException(nameof(columnCount));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(columnCount);
             return GetContentBox(margin).SplitColumns(columnCount, gutter);
         }
 
         /// <summary>Creates equal rows inside the slide's content region.</summary>
         public PowerPointLayoutBox[] GetRows(int rowCount, OfficeLength margin, OfficeLength gutter) {
-            if (rowCount <= 0) throw new ArgumentOutOfRangeException(nameof(rowCount));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowCount);
             return GetContentBox(margin).SplitRows(rowCount, gutter);
         }
     }

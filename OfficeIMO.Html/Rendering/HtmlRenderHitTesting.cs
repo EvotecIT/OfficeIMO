@@ -114,7 +114,7 @@ public sealed class HtmlRenderHitTestReport {
 internal static class HtmlRenderHitTester {
     internal static HtmlRenderHitTestReport HitTest(HtmlRenderSurface surface, HtmlRenderPoint point,
         HtmlRenderHitTestOptions? options, CancellationToken cancellationToken) {
-        if (surface == null) throw new ArgumentNullException(nameof(surface));
+        ArgumentNullException.ThrowIfNull(surface);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderHitTestOptions resolved = options?.Clone() ?? new HtmlRenderHitTestOptions();
         resolved.Validate();

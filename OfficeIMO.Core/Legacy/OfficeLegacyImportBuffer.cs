@@ -10,15 +10,15 @@ namespace OfficeIMO;
 /// <summary>Shared bounded byte and text primitives used by legacy format adapters.</summary>
 internal static class OfficeLegacyImportBuffer {
     internal static byte[] ReadAll(string path, OfficeLegacyImportLimits limits, CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         using FileStream stream = File.OpenRead(path);
         return ReadAll(stream, limits, cancellationToken);
     }
 
     internal static byte[] ReadAll(Stream stream, OfficeLegacyImportLimits limits, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("Source stream must be readable.", nameof(stream));
-        if (limits == null) throw new ArgumentNullException(nameof(limits));
+        ArgumentNullException.ThrowIfNull(limits);
         limits.Validate();
 
         if (stream.CanSeek && stream.Length - stream.Position > limits.MaxInputBytes) {
@@ -60,9 +60,9 @@ internal static class OfficeLegacyImportBuffer {
         bool stripHighBit = false,
         int minimumRunLength = 3,
         CancellationToken cancellationToken = default) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         if (offset < 0 || length < 0 || offset > data.Length - length) throw new ArgumentOutOfRangeException(nameof(offset));
-        if (maxCharacters < 1) throw new ArgumentOutOfRangeException(nameof(maxCharacters));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxCharacters, 1);
 
         var output = new StringBuilder(Math.Min(length, maxCharacters));
         var run = new StringBuilder();

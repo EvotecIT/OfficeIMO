@@ -16,7 +16,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     /// <summary>Converts an Excel workbook to an in-memory ODS document and reports every lossy mapping.</summary>
     public static OdfConversionResult<OdsDocument> ToOpenDocumentResult(this ExcelDocument source,
         ExcelOpenDocumentConversionOptions? options = null) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         ExcelOpenDocumentConversionOptions effective = options ?? new ExcelOpenDocumentConversionOptions();
         effective.Validate();
         ExcelWorkbookInfo snapshot = source.Inspect();
@@ -405,7 +405,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     /// <summary>Converts an ODS document to an in-memory Excel workbook and reports every lossy mapping.</summary>
     public static OdfConversionResult<ExcelDocument> ToExcelDocumentResult(this OdsDocument source,
         ExcelOpenDocumentConversionOptions? options = null) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         ExcelOpenDocumentConversionOptions effective = options ?? new ExcelOpenDocumentConversionOptions();
         effective.Validate();
         ExcelDocument target = ExcelDocument.Create(new MemoryStream());

@@ -14,7 +14,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Loads a binary `.ppt`, `.pot`, or `.pps` file into the normal editable PowerPoint model.</summary>
         internal static PowerPointDocument LoadLegacyPpt(string path, LegacyPptImportOptions? options = null) {
-            if (path == null) throw new ArgumentNullException(nameof(path));
+            ArgumentNullException.ThrowIfNull(path);
             LegacyPptDocument legacy = LegacyPptDocument.Load(path, options);
             return ProjectLoadedLegacyPpt(legacy, path,
                 PowerPointDocumentLoadRouting.GetFormat(path, legacyDefault: true), new PowerPointLoadOptions());
@@ -29,7 +29,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Loads a binary PowerPoint file and returns its projected presentation and import report.</summary>
         internal static LegacyPptLoadResult LoadLegacyPptWithReport(string path, LegacyPptImportOptions? options = null) {
-            if (path == null) throw new ArgumentNullException(nameof(path));
+            ArgumentNullException.ThrowIfNull(path);
             LegacyPptDocument legacy = LegacyPptDocument.Load(path, options);
             try {
                 return new LegacyPptLoadResult(ProjectLoadedLegacyPpt(legacy, path,
@@ -96,7 +96,7 @@ namespace OfficeIMO.PowerPoint {
             string? sourcePath, PowerPointFileFormat sourceFormat, PowerPointLoadOptions loadOptions,
             Stream? sourceStream = null,
             CancellationToken cancellationToken = default) {
-            if (legacy == null) throw new ArgumentNullException(nameof(legacy));
+            ArgumentNullException.ThrowIfNull(legacy);
             cancellationToken.ThrowIfCancellationRequested();
             ValidateLegacyContentSecurity(legacy, loadOptions);
             using PowerPointDocument projected = CreateForImport();

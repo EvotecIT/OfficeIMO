@@ -10,7 +10,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         internal bool TryApplyDirectWorksheetAutoFilterMetadata(ExcelSheet sheet, string range) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             if (string.IsNullOrEmpty(range)) throw new ArgumentNullException(nameof(range));
             if (!ReferenceEquals(sheet.Document, this)) {
                 return false;
@@ -23,7 +23,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal bool TryEnableDirectTableAutoFilterMetadata(ExcelSheet sheet, string range) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             if (string.IsNullOrEmpty(range)) throw new ArgumentNullException(nameof(range));
             if (!ReferenceEquals(sheet.Document, this)) {
                 return false;
@@ -69,7 +69,7 @@ namespace OfficeIMO.Excel {
             bool? showLastColumn,
             bool? showRowStripes,
             bool? showColumnStripes) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             if (string.IsNullOrEmpty(tableOrRange)) throw new ArgumentNullException(nameof(tableOrRange));
             if (!ReferenceEquals(sheet.Document, this)) {
                 return false;
@@ -107,9 +107,9 @@ namespace OfficeIMO.Excel {
         }
 
         internal bool TryApplyDirectWorksheetFreezeMetadata(ExcelSheet sheet, int topRows, int leftCols) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
-            if (topRows < 0) throw new ArgumentOutOfRangeException(nameof(topRows));
-            if (leftCols < 0) throw new ArgumentOutOfRangeException(nameof(leftCols));
+            ArgumentNullException.ThrowIfNull(sheet);
+            ArgumentOutOfRangeException.ThrowIfNegative(topRows);
+            ArgumentOutOfRangeException.ThrowIfNegative(leftCols);
             if (!ReferenceEquals(sheet.Document, this)) {
                 return false;
             }
@@ -126,7 +126,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal bool ShouldMaterializeDeferredDirectTabularSaveCandidateForTable(ExcelSheet sheet, string range, bool includeHeaders) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             if (!ReferenceEquals(sheet.Document, this)) {
                 return false;
             }
@@ -338,7 +338,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal bool TryEnableDirectTabularSaveCandidateAutoFit(ExcelSheet sheet, CancellationToken ct = default) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             ct.ThrowIfCancellationRequested();
             if (!ReferenceEquals(sheet.Document, this)) {
                 return false;
@@ -395,10 +395,10 @@ namespace OfficeIMO.Excel {
             ExcelTableStyle tableStyle = ExcelTableStyle.TableStyleMedium2,
             bool includeAutoFilter = false,
             bool autoFit = false) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
-            if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
-            if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
-            if (rows == null) throw new ArgumentNullException(nameof(rows));
+            ArgumentNullException.ThrowIfNull(sheet);
+            ArgumentNullException.ThrowIfNull(columnNames);
+            ArgumentNullException.ThrowIfNull(columnTypes);
+            ArgumentNullException.ThrowIfNull(rows);
             if (!ReferenceEquals(sheet.Document, this)) {
                 return false;
             }
@@ -450,10 +450,10 @@ namespace OfficeIMO.Excel {
             ExcelTableStyle tableStyle = ExcelTableStyle.TableStyleMedium2,
             bool includeAutoFilter = false,
             bool autoFit = false) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
-            if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
-            if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
-            if (rows == null) throw new ArgumentNullException(nameof(rows));
+            ArgumentNullException.ThrowIfNull(sheet);
+            ArgumentNullException.ThrowIfNull(columnNames);
+            ArgumentNullException.ThrowIfNull(columnTypes);
+            ArgumentNullException.ThrowIfNull(rows);
             if (!ReferenceEquals(sheet.Document, this)) {
                 return false;
             }
@@ -505,10 +505,10 @@ namespace OfficeIMO.Excel {
             ExcelTableStyle tableStyle = ExcelTableStyle.TableStyleMedium2,
             bool includeAutoFilter = false,
             bool autoFit = false) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
-            if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
-            if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
-            if (rows == null) throw new ArgumentNullException(nameof(rows));
+            ArgumentNullException.ThrowIfNull(sheet);
+            ArgumentNullException.ThrowIfNull(columnNames);
+            ArgumentNullException.ThrowIfNull(columnTypes);
+            ArgumentNullException.ThrowIfNull(rows);
             if (!ReferenceEquals(sheet.Document, this)) {
                 return false;
             }
@@ -608,7 +608,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal bool TrySetDirectTabularSaveCandidateColumnNumberFormat(ExcelSheet sheet, int columnIndex, string numberFormat) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             if (string.IsNullOrWhiteSpace(numberFormat)) {
                 return false;
             }
@@ -660,7 +660,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal bool HasMaterializedDirectTabularFastSaveWorksheet(ExcelSheet sheet) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             if (!ReferenceEquals(sheet.Document, this) || !_materializedDirectDataSetFastSaveModelHasMaterializedWorksheet) {
                 return false;
             }
@@ -702,7 +702,7 @@ namespace OfficeIMO.Excel {
             startRow = 0;
             endRow = -1;
             candidateAvailable = false;
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             if (string.IsNullOrWhiteSpace(header) || !ReferenceEquals(sheet.Document, this)) {
                 return false;
             }
@@ -742,7 +742,7 @@ namespace OfficeIMO.Excel {
 
         internal bool TryGetDirectTabularSaveCandidateColumnCount(ExcelSheet sheet, out int columnCount) {
             columnCount = 0;
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             if (!ReferenceEquals(sheet.Document, this)) {
                 return false;
             }
@@ -769,7 +769,7 @@ namespace OfficeIMO.Excel {
         /// <returns><c>true</c> when the workbook has a valid single-sheet direct-tabular candidate for the worksheet.</returns>
         internal bool TryGetDirectTabularSaveCandidateRange(ExcelSheet sheet, out string range) {
             range = string.Empty;
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             if (!ReferenceEquals(sheet.Document, this)) {
                 return false;
             }
@@ -823,7 +823,7 @@ namespace OfficeIMO.Excel {
             int endColumn,
             out IExcelSheetTabularRowSource? source) {
             source = null;
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             if (!ReferenceEquals(sheet.Document, this)) {
                 return false;
             }

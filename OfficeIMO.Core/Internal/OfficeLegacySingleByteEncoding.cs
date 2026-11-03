@@ -9,7 +9,7 @@ namespace OfficeIMO.Core.Internal;
 /// <summary>Deterministic legacy document encodings without process-wide provider registration or best-fit substitution.</summary>
 internal static class OfficeLegacySingleByteEncoding {
     internal static string Decode(byte[] bytes, int offset, int count, int codePage) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         if (offset < 0 || count < 0 || offset > bytes.Length - count) throw new ArgumentOutOfRangeException(nameof(offset));
         return Decode(new OfficeByteView(bytes).Slice(offset, count), codePage);
     }
@@ -23,7 +23,7 @@ internal static class OfficeLegacySingleByteEncoding {
         return new string(result);
     }
     internal static byte[] Encode(string value, int codePage) {
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
         string map = Map(codePage); var result = new byte[value.Length];
         for (int i = 0; i < value.Length; i++) {
             char c = value[i]; int encoded = c < 128 ? c : map.IndexOf(c) is int index && index >= 0 ? index + 128 : -1;

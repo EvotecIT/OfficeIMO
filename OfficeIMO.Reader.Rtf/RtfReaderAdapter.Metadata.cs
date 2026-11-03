@@ -2,8 +2,8 @@ namespace OfficeIMO.Reader.Rtf;
 
 internal static partial class RtfReaderAdapter {
     private static ReaderChunk EnrichChunk(ReaderChunk chunk, SourceMetadata source, bool computeHashes) {
-        if (chunk == null) throw new ArgumentNullException(nameof(chunk));
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(chunk);
+        ArgumentNullException.ThrowIfNull(source);
 
         chunk.SourceId ??= source.SourceId;
         chunk.SourceHash ??= source.SourceHash;
@@ -47,8 +47,8 @@ internal static partial class RtfReaderAdapter {
 
     private static void UpdateSourceMetadataFromSeekableStream(SourceMetadata source, Stream stream, bool computeHash, long startPosition, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (source == null) throw new ArgumentNullException(nameof(source));
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(stream);
 
         try {
             if (stream.CanSeek) {

@@ -195,7 +195,7 @@ namespace OfficeIMO.Excel {
         /// <param name="password">Password used to encrypt the workbook package.</param>
         /// <param name="saveOptions">Optional save behaviors (safe defined-name repair, post-save Open XML validation).</param>
         internal void SaveEncrypted(string filePath, string password, ExcelSaveOptions? saveOptions = null) {
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(password);
             EnsureWritableForSave();
             if (string.IsNullOrEmpty(filePath) && string.IsNullOrEmpty(FilePath)) {
                 throw new InvalidOperationException("This workbook is not associated with a file path. Provide a file path or call SaveEncrypted(Stream, ...).");
@@ -381,7 +381,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void SaveToStreamCore(Stream destination, ExcelFileFormat format, ExcelSaveOptions? options) {
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            ArgumentNullException.ThrowIfNull(destination);
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
             EnsureXlsbStreamTargetSupported(format, options);
             EnsureWritableForSave();
@@ -465,8 +465,8 @@ namespace OfficeIMO.Excel {
         /// <param name="password">Password used to encrypt the workbook package.</param>
         /// <param name="saveOptions">Optional save behaviors (safe defined-name repair, post-save Open XML validation).</param>
         internal void SaveEncrypted(Stream destination, string password, ExcelSaveOptions? saveOptions = null) {
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(destination);
+            ArgumentNullException.ThrowIfNull(password);
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
             EnsureWritableForSave();
             EnsureLegacyXlsSaveDoesNotDropImportedContent(saveOptions);
@@ -527,7 +527,7 @@ namespace OfficeIMO.Excel {
         }
 
         private async Task SaveToStreamAsyncCore(Stream destination, ExcelFileFormat format, ExcelSaveOptions? options, CancellationToken cancellationToken) {
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            ArgumentNullException.ThrowIfNull(destination);
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
             EnsureXlsbStreamTargetSupported(format, options);
             EnsureWritableForSave();

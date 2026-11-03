@@ -13,7 +13,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         PdfRedactionWorkflowRequest request,
         IProgress<OfficeWorkflowProgress>? progress = null,
         CancellationToken cancellationToken = default) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         PdfRedactionWorkflowRequest executionRequest = SnapshotRedactionRequest(request);
         PreparedRedactionResult prepared;
         try {
@@ -52,7 +52,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         OfficePublicationPolicy? manifestConflictPolicy,
         IProgress<OfficeWorkflowProgress>? progress,
         CancellationToken cancellationToken) {
-        if (requests == null) throw new ArgumentNullException(nameof(requests));
+        ArgumentNullException.ThrowIfNull(requests);
         const int absoluteMaximumBatchItems = 10_000;
         var snapshots = new List<PdfRedactionWorkflowRequest>();
         int configuredMaximum = absoluteMaximumBatchItems;

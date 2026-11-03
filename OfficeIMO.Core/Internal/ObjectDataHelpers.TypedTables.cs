@@ -13,7 +13,7 @@ internal static partial class ObjectDataHelpers {
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(
         IEnumerable<T> data, bool includeHeaders, int maximumRows = int.MaxValue,
         int maximumColumns = int.MaxValue, long maximumCells = long.MaxValue, OfficeTableOptions? options = null) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         ValidateTableAlignments(options);
         using var enumerator = data.GetEnumerator();
         bool hasRow = enumerator.MoveNext();

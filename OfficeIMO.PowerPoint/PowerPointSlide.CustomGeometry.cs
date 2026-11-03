@@ -20,7 +20,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointAutoShape AddCustomGeometry(OfficeShape geometry, OfficeLength left, OfficeLength top,
             OfficeLength width, OfficeLength height, string? name = null) {
-            if (geometry == null) throw new ArgumentNullException(nameof(geometry));
+            ArgumentNullException.ThrowIfNull(geometry);
             long nativeLeft = left.ToEmus();
             long nativeTop = top.ToEmus();
             long nativeWidth = width.ToEmus();

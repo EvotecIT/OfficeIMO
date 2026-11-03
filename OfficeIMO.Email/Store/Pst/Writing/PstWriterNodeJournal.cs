@@ -40,7 +40,7 @@ internal sealed class PstWriterNodeJournal : IDisposable {
     }
 
     internal IEnumerable<PstWriterNode> ReadSorted(int maximumRecordsInMemory) {
-        if (maximumRecordsInMemory <= 0) throw new ArgumentOutOfRangeException(nameof(maximumRecordsInMemory));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumRecordsInMemory);
         _writer.Flush();
         List<string> runs = CreateRuns(maximumRecordsInMemory);
         var ownedRuns = new HashSet<string>(runs, StringComparer.Ordinal);

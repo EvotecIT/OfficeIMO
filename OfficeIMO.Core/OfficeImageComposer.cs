@@ -60,9 +60,7 @@ internal static class OfficeImageComposer {
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         ValidateOutputSize(width, height);
-        if (layers == null) {
-            throw new ArgumentNullException(nameof(layers));
-        }
+        ArgumentNullException.ThrowIfNull(layers);
 
         OfficeRasterImage image = new OfficeRasterImage(width, height, backgroundColor);
         cancellationToken.ThrowIfCancellationRequested();
@@ -101,7 +99,7 @@ internal static class OfficeImageComposer {
         CancellationToken cancellationToken,
         Action<StringBuilder>? beforeLayers = null,
         Action<StringBuilder>? afterLayers = null) {
-        if (maximumUtf8Bytes < 1L) throw new ArgumentOutOfRangeException(nameof(maximumUtf8Bytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumUtf8Bytes, 1L);
         string svg = ComposeSvgCore(
             width,
             height,
@@ -149,9 +147,7 @@ internal static class OfficeImageComposer {
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         ValidateOutputSize(width, height);
-        if (layers == null) {
-            throw new ArgumentNullException(nameof(layers));
-        }
+        ArgumentNullException.ThrowIfNull(layers);
 
         var builder = new StringBuilder();
         OfficeSvgUtf8CompositionBudget? budget = maximumUtf8Bytes.HasValue

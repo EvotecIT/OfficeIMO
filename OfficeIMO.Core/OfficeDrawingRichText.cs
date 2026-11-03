@@ -42,9 +42,7 @@ public sealed class OfficeDrawingRichText : OfficeDrawingElement {
         double rotationDegrees, double? rotationCenterX, double? rotationCenterY,
         bool wrapText, bool shrinkToFit, bool flipHorizontal, bool flipVertical,
         OfficeTextPadding? padding, OfficeTextParagraphIndent? paragraphIndent, bool allowOverflow) {
-        if (runs == null) {
-            throw new ArgumentNullException(nameof(runs));
-        }
+        ArgumentNullException.ThrowIfNull(runs);
 
         if (allowOverflow) {
             ValidateFinite(x, nameof(x));

@@ -4,8 +4,8 @@ using DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Excel {
     internal static class OpenXmlWorkbookElementOrder {
         internal static void InsertInOrder(Workbook workbook, OpenXmlElement element) {
-            if (workbook == null) throw new ArgumentNullException(nameof(workbook));
-            if (element == null) throw new ArgumentNullException(nameof(element));
+            ArgumentNullException.ThrowIfNull(workbook);
+            ArgumentNullException.ThrowIfNull(element);
 
             if (element is WorkbookProperties) {
                 OpenXmlElement? before = workbook.GetFirstChild<WorkbookProtection>();

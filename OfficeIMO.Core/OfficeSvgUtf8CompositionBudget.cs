@@ -12,15 +12,15 @@ internal sealed class OfficeSvgUtf8CompositionBudget {
     private long _encodedBytes;
 
     internal OfficeSvgUtf8CompositionBudget(long maximumBytes) {
-        if (maximumBytes < 1L) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumBytes, 1L);
         _maximumBytes = maximumBytes;
     }
 
     internal long RemainingBytes => _maximumBytes - _encodedBytes;
 
     internal void Append(StringBuilder destination, string fragment) {
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
-        if (fragment == null) throw new ArgumentNullException(nameof(fragment));
+        ArgumentNullException.ThrowIfNull(destination);
+        ArgumentNullException.ThrowIfNull(fragment);
 
         long fragmentBytes = Encoding.UTF8.GetByteCount(fragment);
         long actual = fragmentBytes > long.MaxValue - _encodedBytes

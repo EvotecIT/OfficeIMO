@@ -16,7 +16,7 @@ public static class OfficeDocumentReaderBuilderCsvExtensions {
         this OfficeDocumentReaderBuilder builder,
         CsvReadOptions? csvOptions = null,
         bool replaceExisting = true) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderHandlerRegistration registration = CreateRegistration(csvOptions);
         return builder.AddHandler(registration, replaceExisting);
     }

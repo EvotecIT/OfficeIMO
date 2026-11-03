@@ -31,9 +31,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// Replaces the master for every selected shape.
         /// </summary>
         public VisioFluentPage ReplaceMasters(Func<VisioShape, bool> predicate, string masterNameU, bool resizeToMaster = false) {
-            if (predicate == null) {
-                throw new ArgumentNullException(nameof(predicate));
-            }
+            ArgumentNullException.ThrowIfNull(predicate);
 
             Page.SelectShapes(predicate).ReplaceMaster(masterNameU, resizeToMaster);
             return this;
@@ -43,9 +41,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// Replaces the master for every selected shape using an existing master instance.
         /// </summary>
         public VisioFluentPage ReplaceMasters(Func<VisioShape, bool> predicate, VisioMaster master, bool resizeToMaster = false) {
-            if (predicate == null) {
-                throw new ArgumentNullException(nameof(predicate));
-            }
+            ArgumentNullException.ThrowIfNull(predicate);
 
             Page.SelectShapes(predicate).ReplaceMaster(master, resizeToMaster);
             return this;
@@ -55,9 +51,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// Replaces the master for every selected shape using an OfficeIMO stencil definition.
         /// </summary>
         public VisioFluentPage ReplaceMasters(Func<VisioShape, bool> predicate, VisioStencilShape stencil, bool resizeToMaster = false) {
-            if (predicate == null) {
-                throw new ArgumentNullException(nameof(predicate));
-            }
+            ArgumentNullException.ThrowIfNull(predicate);
 
             Page.SelectShapes(predicate).ReplaceMaster(stencil, resizeToMaster);
             return this;

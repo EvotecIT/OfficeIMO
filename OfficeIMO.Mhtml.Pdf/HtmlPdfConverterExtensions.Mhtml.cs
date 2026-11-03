@@ -38,7 +38,7 @@ public static class MhtmlPdfConverterExtensions {
     /// <summary>Converts an MHTML archive and returns MIME, HTML-render, and PDF diagnostics.</summary>
     public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this MhtmlDocument document, HtmlToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return Task.Run(() => document.ToPdfDocumentResultAsync(options, cancellationToken))
             .GetAwaiter()
             .GetResult();
@@ -49,7 +49,7 @@ public static class MhtmlPdfConverterExtensions {
         this MhtmlDocument document,
         HtmlToPdfOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         PdfCore.PdfDocumentConversionResult result = await document.HtmlDocument
             .ConvertToPdfWithEvidenceAsync(PrepareMhtmlOptions(document, options), cancellationToken)
@@ -62,8 +62,8 @@ public static class MhtmlPdfConverterExtensions {
         this MhtmlDocument document,
         HtmlRenderRequest request,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlToPdfOptions options = PrepareMhtmlOptions(document, new HtmlToPdfOptions(request.Options));
         PdfCore.PdfDocumentConversionResult result = await document.HtmlDocument

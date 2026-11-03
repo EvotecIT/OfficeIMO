@@ -90,9 +90,7 @@ namespace OfficeIMO.Word.Markdown {
         /// Applies default page settings to the provided document instance.
         /// </summary>
         internal void ApplyDefaults(WordDocument document) {
-            if (document == null) {
-                throw new ArgumentNullException(nameof(document));
-            }
+            ArgumentNullException.ThrowIfNull(document);
 
             if (DefaultPageSize.HasValue) {
                 document.PageSettings.PageSize = DefaultPageSize.Value;

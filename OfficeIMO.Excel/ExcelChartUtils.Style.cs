@@ -111,19 +111,13 @@ namespace OfficeIMO.Excel {
         }
 
         internal static void ApplyChartStyle(ChartPart chartPart, int styleId, int colorStyleId) {
-            if (chartPart == null) {
-                throw new ArgumentNullException(nameof(chartPart));
-            }
+            ArgumentNullException.ThrowIfNull(chartPart);
             ApplyChartStyle(chartPart, new ExcelChartStylePreset(styleId, colorStyleId));
         }
 
         internal static void ApplyChartStyle(ChartPart chartPart, ExcelChartStylePreset preset) {
-            if (chartPart == null) {
-                throw new ArgumentNullException(nameof(chartPart));
-            }
-            if (preset == null) {
-                throw new ArgumentNullException(nameof(preset));
-            }
+            ArgumentNullException.ThrowIfNull(chartPart);
+            ArgumentNullException.ThrowIfNull(preset);
 
             byte[] styleBytes = preset.StyleXmlBytes ?? GetChartStyleBytes(preset.StyleId);
             byte[] colorBytes = preset.ColorXmlBytes ?? GetChartColorStyleBytes(preset.ColorStyleId);
@@ -137,9 +131,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal static void PopulateChartStyle(ChartStylePart stylePart, byte[]? xmlBytes = null) {
-            if (stylePart == null) {
-                throw new ArgumentNullException(nameof(stylePart));
-            }
+            ArgumentNullException.ThrowIfNull(stylePart);
 
             xmlBytes ??= ChartStyle251Bytes.Value;
             using var stream = new MemoryStream(xmlBytes);
@@ -147,9 +139,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal static void PopulateChartColorStyle(ChartColorStylePart colorStylePart, byte[]? xmlBytes = null) {
-            if (colorStylePart == null) {
-                throw new ArgumentNullException(nameof(colorStylePart));
-            }
+            ArgumentNullException.ThrowIfNull(colorStylePart);
 
             xmlBytes ??= ChartColorStyle10Bytes.Value;
             using var stream = new MemoryStream(xmlBytes);

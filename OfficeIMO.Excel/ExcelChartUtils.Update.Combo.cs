@@ -10,9 +10,7 @@ using ChartIndex = DocumentFormat.OpenXml.Drawing.Charts.Index;
 namespace OfficeIMO.Excel {
     internal static partial class ExcelChartUtils {
         private static void UpdateComboChartData(PlotArea plotArea, ExcelChartData data, ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> descriptors) {
-            if (plotArea == null) {
-                throw new ArgumentNullException(nameof(plotArea));
-            }
+            ArgumentNullException.ThrowIfNull(plotArea);
 
             SeriesDescriptorSummary summary = SummarizeSeriesDescriptors(descriptors);
             if (summary.HasStock) {

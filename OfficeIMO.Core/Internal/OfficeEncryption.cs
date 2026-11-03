@@ -87,8 +87,8 @@ namespace OfficeIMO.Core.Internal {
         /// Encrypts a plain Open XML package into the encrypted Office container format.
         /// </summary>
         public static byte[] EncryptPackage(byte[] packageBytes, string password, OfficeEncryptionOptions? options = null) {
-            if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(packageBytes);
+            ArgumentNullException.ThrowIfNull(password);
 
             options ??= OfficeEncryptionOptions.Default;
             options.Validate();
@@ -161,8 +161,8 @@ namespace OfficeIMO.Core.Internal {
         internal static byte[] DecryptPackage(byte[] encryptedPackageBytes,
             string password, CancellationToken cancellationToken,
             long? maximumDecryptedPackageBytes) {
-            if (encryptedPackageBytes == null) throw new ArgumentNullException(nameof(encryptedPackageBytes));
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(encryptedPackageBytes);
+            ArgumentNullException.ThrowIfNull(password);
             if (maximumDecryptedPackageBytes.HasValue
                 && maximumDecryptedPackageBytes.Value < 1) {
                 throw new ArgumentOutOfRangeException(
@@ -215,7 +215,7 @@ namespace OfficeIMO.Core.Internal {
         /// Encrypts package bytes and writes the encrypted Office container to a stream.
         /// </summary>
         public static void EncryptPackageToStream(byte[] packageBytes, string password, Stream destination, OfficeEncryptionOptions? options = null) {
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            ArgumentNullException.ThrowIfNull(destination);
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
 
             var encryptedBytes = EncryptPackage(packageBytes, password, options);

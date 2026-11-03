@@ -6,9 +6,7 @@ using Omd = OfficeIMO.Markdown;
 namespace OfficeIMO.Word.Markdown {
     internal partial class MarkdownToWordConverter {
         public WordDocument ConvertIntoTemplate(string markdown, WordDocument document, WordMarkdownImportOptions options) {
-            if (markdown == null) {
-                throw new ArgumentNullException(nameof(markdown));
-            }
+            ArgumentNullException.ThrowIfNull(markdown);
 
             options ??= new WordMarkdownImportOptions();
             var readerOptions = CreateEffectiveReaderOptions(options);
@@ -17,13 +15,9 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         public WordDocument ConvertIntoTemplate(Omd.MarkdownDocument markdown, WordDocument document, WordMarkdownImportOptions options) {
-            if (markdown == null) {
-                throw new ArgumentNullException(nameof(markdown));
-            }
+            ArgumentNullException.ThrowIfNull(markdown);
 
-            if (document == null) {
-                throw new ArgumentNullException(nameof(document));
-            }
+            ArgumentNullException.ThrowIfNull(document);
 
             options ??= new WordMarkdownImportOptions();
             options.ApplyDefaults(document);

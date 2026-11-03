@@ -60,7 +60,7 @@ internal static partial class OfficeArchiveSafety {
     /// <summary>Reads a declared ZIP payload with bounded allocation and cooperative cancellation.</summary>
     internal static async Task<byte[]> ReadEntryBytesAsync(Stream source, long declaredLength,
         long maximumLength, CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         cancellationToken.ThrowIfCancellationRequested();
         if (declaredLength < 0 || declaredLength > maximumLength
             || maximumLength < 0 || declaredLength > int.MaxValue) {

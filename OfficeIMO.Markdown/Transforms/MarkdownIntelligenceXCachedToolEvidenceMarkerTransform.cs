@@ -16,13 +16,9 @@ public sealed class MarkdownIntelligenceXCachedToolEvidenceMarkerTransform : IMa
 
     /// <inheritdoc />
     public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
-        if (context == null) {
-            throw new ArgumentNullException(nameof(context));
-        }
+        ArgumentNullException.ThrowIfNull(context);
 
         MarkdownDocumentBlockListExpander.RewriteDocument(document, context, RewriteBlocks);
         return document;

@@ -36,7 +36,7 @@ public sealed class OfficeInvoiceWorkflowRequest {
     private OfficeInvoiceWorkflowRequest(byte[] xml, OfficeInvoiceWorkflowOperation operation,
         InvoiceXmlOptions? target, InvoiceSpecificationRelease? validationRelease,
         InvoicePdfLayoutOptions? layout, PdfCreateOptions? pdfOptions, string? inputName, InvoiceSourceEdits? sourceEdits) {
-        if (xml == null) throw new ArgumentNullException(nameof(xml));
+        ArgumentNullException.ThrowIfNull(xml);
         if (xml.Length == 0 || xml.Length > InvoiceProfileDeclaration.MaximumXmlBytes)
             throw new ArgumentException("Invoice XML must contain between one byte and 16 MiB.", nameof(xml));
         ValidateContract(operation, target, validationRelease, sourceEdits);
@@ -49,7 +49,7 @@ public sealed class OfficeInvoiceWorkflowRequest {
     /// <summary>Captures preservation-aware header replacements. Completion does not establish model validity; requested standards checks validate exact edited XML and must pass before output is returned.</summary>
     public static OfficeInvoiceWorkflowRequest ForSourceEdit(byte[] xml, InvoiceSourceEdits edits,
         InvoiceSpecificationRelease? validationRelease = null, string? inputName = null) {
-        if (edits == null) throw new ArgumentNullException(nameof(edits));
+        ArgumentNullException.ThrowIfNull(edits);
         return new(xml, OfficeInvoiceWorkflowOperation.EditSource, null, validationRelease, null, null, inputName, edits);
     }
 
@@ -98,8 +98,8 @@ public sealed class OfficeInvoiceWorkflowBatchOptions {
 
     internal OfficeInvoiceWorkflowBatchOptions Snapshot() {
         if (MaximumRequests is < 1 or > 10000) throw new ArgumentOutOfRangeException(nameof(MaximumRequests));
-        if (MaximumInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumInputBytes));
-        if (MaximumOutputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumOutputBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumInputBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumOutputBytes);
         return new OfficeInvoiceWorkflowBatchOptions { MaximumRequests = MaximumRequests, MaximumInputBytes = MaximumInputBytes,
             MaximumOutputBytes = MaximumOutputBytes, ContinueOnFailure = ContinueOnFailure };
     }

@@ -103,7 +103,7 @@ public sealed partial class OdfStyleRepository {
 
     /// <summary>Resolves a style and its parent chain from most specific to least specific.</summary>
     public IReadOnlyList<OdfStyle> Resolve(OdfStyle style) {
-        if (style == null) throw new ArgumentNullException(nameof(style));
+        ArgumentNullException.ThrowIfNull(style);
         var result = new List<OdfStyle>();
         var visited = new HashSet<XElement>();
         OdfStyle? current = style;

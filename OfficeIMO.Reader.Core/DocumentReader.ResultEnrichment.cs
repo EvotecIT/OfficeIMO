@@ -18,7 +18,7 @@ internal static partial class DocumentReaderEngine {
         IReadOnlyList<ReaderVisual> visuals,
         IReadOnlyList<OfficeDocumentPage> pages,
         IReadOnlyList<OfficeDocumentMetadataEntry>? formatMetadata = null) {
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(result);
 
         result.CapabilitiesUsed = result.CapabilitiesUsed
             .Concat(capabilities ?? Array.Empty<string>())

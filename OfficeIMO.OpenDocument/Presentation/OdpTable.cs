@@ -19,22 +19,22 @@ public sealed class OdpTable : OdpShape {
     }
     /// <summary>Gets a zero-based table cell.</summary>
     public OdpTableCell Cell(int row, int column) {
-        if (row < 0) throw new ArgumentOutOfRangeException(nameof(row));
-        if (column < 0) throw new ArgumentOutOfRangeException(nameof(column));
+        ArgumentOutOfRangeException.ThrowIfNegative(row);
+        ArgumentOutOfRangeException.ThrowIfNegative(column);
         OdpTableRow tableRow = Rows.ElementAtOrDefault(row) ?? throw new ArgumentOutOfRangeException(nameof(row));
         return tableRow.Cells.ElementAtOrDefault(column) ?? throw new ArgumentOutOfRangeException(nameof(column));
     }
     /// <summary>Merges a rectangular table range.</summary>
     public OdpTableCell Merge(int row, int column, int rowSpan, int columnSpan) {
-        if (rowSpan < 1) throw new ArgumentOutOfRangeException(nameof(rowSpan));
-        if (columnSpan < 1) throw new ArgumentOutOfRangeException(nameof(columnSpan));
+        ArgumentOutOfRangeException.ThrowIfLessThan(rowSpan, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(columnSpan, 1);
         OdpTableCell anchor = Cell(row, column); anchor.SetSpans(rowSpan, columnSpan);
         for (int y = 0; y < rowSpan; y++) for (int x = 0; x < columnSpan; x++) if (x != 0 || y != 0) Cell(row + y, column + x).ReplaceWithCoveredCell();
         return anchor;
     }
     internal static OdpTable Create(OdpPresentation presentation, OdfRect bounds, int rows, int columns, string name) {
-        if (rows < 1) throw new ArgumentOutOfRangeException(nameof(rows));
-        if (columns < 1) throw new ArgumentOutOfRangeException(nameof(columns));
+        ArgumentOutOfRangeException.ThrowIfLessThan(rows, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(columns, 1);
         var table = new XElement(OdfNamespaces.Table + "table", new XAttribute(OdfNamespaces.Table + "name", name));
         table.Add(new XElement(OdfNamespaces.Table + "table-column", new XAttribute(OdfNamespaces.Table + "number-columns-repeated", columns)));
         for (int row = 0; row < rows; row++) {

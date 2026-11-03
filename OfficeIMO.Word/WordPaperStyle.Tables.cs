@@ -12,7 +12,7 @@ public sealed partial class WordPaperStyle {
     /// <param name="allowRowSplit">Whether long evidence rows may continue on another page.</param>
     /// <param name="alignNumericColumns">Whether columns containing only numbers should align right, including their headers.</param>
     public void ApplyTable(WordTable table, bool hasHeader = true, bool allowRowSplit = false, bool alignNumericColumns = true) {
-        if (table == null) throw new ArgumentNullException(nameof(table));
+        ArgumentNullException.ThrowIfNull(table);
         table.Style = WordTableStyle.TableNormal;
         table.Width = WordTableWidth.Percent(100);
         table.RepeatHeaderRowAtTheTopOfEachPage = hasHeader;

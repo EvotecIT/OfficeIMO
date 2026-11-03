@@ -223,7 +223,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static bool TryRenderChartPicture(PowerPointChart chart,
             out byte[] pngBytes, out string? reason) {
-            if (chart == null) throw new ArgumentNullException(nameof(chart));
+            ArgumentNullException.ThrowIfNull(chart);
             pngBytes = Array.Empty<byte>();
             if (!chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot)) {
                 reason = "The chart data or chart kind cannot be projected through the shared OfficeIMO chart renderer.";
@@ -244,7 +244,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static bool TryRenderTablePicture(PowerPointTable table,
             out byte[] pngBytes, out string? reason) {
-            if (table == null) throw new ArgumentNullException(nameof(table));
+            ArgumentNullException.ThrowIfNull(table);
             pngBytes = Array.Empty<byte>();
             if (!PowerPointSlideImageRenderer.TryCreateTableDrawing(table,
                     out OfficeDrawing drawing, out reason)) {
@@ -264,7 +264,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static bool TryRenderSmartArtPicture(
             PowerPointSmartArt smartArt, out byte[] pngBytes,
             out string? reason) {
-            if (smartArt == null) throw new ArgumentNullException(nameof(smartArt));
+            ArgumentNullException.ThrowIfNull(smartArt);
             pngBytes = Array.Empty<byte>();
             if (!smartArt.TryGetOfficeDiagramSnapshot(
                     out OfficeDiagramSnapshot snapshot)) {
@@ -310,7 +310,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static bool TryValidatePictureForWrite(
             PowerPointPicture picture, out string? reason) {
-            if (picture == null) throw new ArgumentNullException(nameof(picture));
+            ArgumentNullException.ThrowIfNull(picture);
             if (picture is PowerPointMedia) {
                 reason = "Media poster frames are encoded through the binary media catalog, not as standalone pictures.";
                 return false;

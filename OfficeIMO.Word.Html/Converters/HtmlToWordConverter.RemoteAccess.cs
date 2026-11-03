@@ -9,8 +9,8 @@ namespace OfficeIMO.Word.Html {
         /// converter instead of relying on a manifest built with different caller options.
         /// </summary>
         internal static bool RequiresRemoteAccess(IHtmlDocument document, WordHtmlImportOptions options) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(options);
 
             if (options.ImageProcessing == WordHtmlImageProcessingMode.Embed) {
                 foreach (IHtmlImageElement image in document.QuerySelectorAll("img").OfType<IHtmlImageElement>()) {

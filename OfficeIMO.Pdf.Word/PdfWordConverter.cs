@@ -12,9 +12,7 @@ namespace OfficeIMO.Pdf.Word {
         private const double MaximumEditableFontSizePoints = 4000D;
 
         public static WordDocument Convert(PdfCore.PdfDocumentReadResult source, WordPdfImportOptions? options) {
-            if (source == null) {
-                throw new ArgumentNullException(nameof(source));
-            }
+            ArgumentNullException.ThrowIfNull(source);
 
             WordPdfImportOptions readOptions = options ?? new WordPdfImportOptions();
             readOptions.CancellationToken.ThrowIfCancellationRequested();
@@ -30,17 +28,11 @@ namespace OfficeIMO.Pdf.Word {
         }
 
         public static void ImportInto(PdfCore.PdfDocumentReadResult source, WordDocument target, WordPdfImportOptions options) {
-            if (source == null) {
-                throw new ArgumentNullException(nameof(source));
-            }
+            ArgumentNullException.ThrowIfNull(source);
 
-            if (target == null) {
-                throw new ArgumentNullException(nameof(target));
-            }
+            ArgumentNullException.ThrowIfNull(target);
 
-            if (options == null) {
-                throw new ArgumentNullException(nameof(options));
-            }
+            ArgumentNullException.ThrowIfNull(options);
             if (options.MaxImageTextOverlapComparisons <= 0)
                 throw new ArgumentOutOfRangeException(nameof(options.MaxImageTextOverlapComparisons));
 

@@ -15,9 +15,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// Moves a swimlane activity to another lane/phase cell using inline relayout options.
         /// </summary>
         public VisioFluentPage MoveSwimlaneActivity(string activityId, string laneId, string phaseId, Action<VisioSwimlaneRelayoutOptions> configureOptions) {
-            if (configureOptions == null) {
-                throw new ArgumentNullException(nameof(configureOptions));
-            }
+            ArgumentNullException.ThrowIfNull(configureOptions);
 
             VisioSwimlaneRelayoutOptions options = new();
             configureOptions(options);
@@ -36,9 +34,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// Re-centers and stacks swimlane activities using inline relayout options.
         /// </summary>
         public VisioFluentPage RelayoutSwimlanes(Action<VisioSwimlaneRelayoutOptions> configureOptions) {
-            if (configureOptions == null) {
-                throw new ArgumentNullException(nameof(configureOptions));
-            }
+            ArgumentNullException.ThrowIfNull(configureOptions);
 
             VisioSwimlaneRelayoutOptions options = new();
             configureOptions(options);
@@ -49,9 +45,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// Inspects discovered swimlane activity placements on the current page.
         /// </summary>
         public VisioFluentPage SwimlaneActivities(Action<IReadOnlyList<VisioSwimlaneActivityPlacement>> inspect) {
-            if (inspect == null) {
-                throw new ArgumentNullException(nameof(inspect));
-            }
+            ArgumentNullException.ThrowIfNull(inspect);
 
             inspect(Page.GetSwimlaneActivities());
             return this;

@@ -61,7 +61,7 @@ public sealed partial class ChmDocument {
     }
     /// <summary>Loads an independent snapshot of the supplied archive bytes.</summary>
     public static ChmDocument Load(byte[] bytes, ChmReadOptions? options = null, CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         ChmReadOptions configured = Configure(options);
         cancellationToken.ThrowIfCancellationRequested();
         if (bytes.LongLength > configured.MaxInputBytes) throw ChmBinary.Error("INPUT_LIMIT", "The CHM archive exceeds MaxInputBytes.");
@@ -109,8 +109,8 @@ public sealed partial class ChmDocument {
 
     /// <summary>Finds a content reference relative to a topic or sitemap. External, escaping, and merged-help references return null.</summary>
     public ChmEntry? FindEntry(string reference, string sourcePath = "/") {
-        if (reference == null) throw new ArgumentNullException(nameof(reference));
-        if (sourcePath == null) throw new ArgumentNullException(nameof(sourcePath));
+        ArgumentNullException.ThrowIfNull(reference);
+        ArgumentNullException.ThrowIfNull(sourcePath);
         if (_entries.TryGetValue(reference.Replace('\\', '/'), out ChmEntry? exact)) return exact;
         string? path = reference.StartsWith("::", StringComparison.Ordinal) ? reference : ChmPaths.Resolve(reference, sourcePath, _options.MaxPathLength);
         return path != null && _entries.TryGetValue(path, out ChmEntry? entry) ? entry : null;

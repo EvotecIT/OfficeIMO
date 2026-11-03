@@ -40,9 +40,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// <param name="options">Duplication options.</param>
         /// <param name="configure">Optional configuration for the duplicated selection.</param>
         public VisioFluentPage DuplicateShapes(IEnumerable<string> shapeIds, VisioShapeDuplicationOptions? options, Action<VisioShapeSelection>? configure = null) {
-            if (shapeIds == null) {
-                throw new ArgumentNullException(nameof(shapeIds));
-            }
+            ArgumentNullException.ThrowIfNull(shapeIds);
 
             List<VisioShape> shapes = new();
             foreach (string shapeId in shapeIds) {

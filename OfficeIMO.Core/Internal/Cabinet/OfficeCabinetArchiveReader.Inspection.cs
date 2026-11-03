@@ -8,7 +8,7 @@ internal static partial class OfficeCabinetArchiveReader {
     /// <summary>Indexes an immutable bounded CAB buffer without decoding any folder.</summary>
     internal static Inspection Inspect(byte[] data, long maxExpandedBytes, long maxEntryBytes, int maxEntries,
         OfficeCabinetDirectoryBudget directoryBudget, CancellationToken token) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         ValidateLimits(maxExpandedBytes, maxEntryBytes, maxEntries);
         return new Inspection(data, maxExpandedBytes, maxEntryBytes, maxEntries, directoryBudget, token);
     }
@@ -79,7 +79,8 @@ internal static partial class OfficeCabinetArchiveReader {
         internal long ExpandedBytes { get; }
         internal byte[] ReadMember(int ordinal, long maxExpandedBytes, OfficeCabinetWorkBudget workBudget,
             CancellationToken token) {
-            if (ordinal < 0 || ordinal >= Members.Count) throw new ArgumentOutOfRangeException(nameof(ordinal));
+            ArgumentOutOfRangeException.ThrowIfNegative(ordinal);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(ordinal, Members.Count);
             return ReadFolderMembers(new[] { ordinal }, maxExpandedBytes, workBudget, token)[0];
         }
     }

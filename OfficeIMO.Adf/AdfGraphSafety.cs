@@ -7,7 +7,7 @@ namespace OfficeIMO.Adf;
 /// <summary>Checks mutable node graphs before any recursive serializer, validator, or projection walks them.</summary>
 internal static class AdfGraphSafety {
     internal static AdfValidationIssue? Inspect(AdfDocument document, AdfProcessingOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         options ??= new AdfProcessingOptions();
         options.Check();
         CancellationToken cancellationToken = options.CancellationToken;

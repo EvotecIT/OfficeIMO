@@ -46,9 +46,7 @@ namespace OfficeIMO.Visio {
         /// <param name="layerName">Layer name.</param>
         /// <param name="shape">Shape to assign.</param>
         public VisioPage AddToLayer(string layerName, VisioShape shape) {
-            if (shape == null) {
-                throw new ArgumentNullException(nameof(shape));
-            }
+            ArgumentNullException.ThrowIfNull(shape);
 
             EnsureShapeBelongsToPage(shape, "The shape must belong to the page.");
             AddLayer(layerName);
@@ -62,9 +60,7 @@ namespace OfficeIMO.Visio {
         /// <param name="layerName">Layer name.</param>
         /// <param name="connector">Connector to assign.</param>
         public VisioPage AddToLayer(string layerName, VisioConnector connector) {
-            if (connector == null) {
-                throw new ArgumentNullException(nameof(connector));
-            }
+            ArgumentNullException.ThrowIfNull(connector);
 
             EnsureConnectorBelongsToPage(connector);
             AddLayer(layerName);
@@ -85,9 +81,7 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentException("Container id cannot be empty.", nameof(id));
             }
 
-            if (members == null) {
-                throw new ArgumentNullException(nameof(members));
-            }
+            ArgumentNullException.ThrowIfNull(members);
 
             List<VisioShape> memberList = members.Distinct().ToList();
             if (memberList.Count == 0) {

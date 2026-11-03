@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         }
 
         internal static Encoding Resolve(BiffCodePageState declarations) {
-            if (declarations is null) throw new ArgumentNullException(nameof(declarations));
+            ArgumentNullException.ThrowIfNull(declarations);
             return Resolve(declarations.GetCodePageOrThrow());
         }
 

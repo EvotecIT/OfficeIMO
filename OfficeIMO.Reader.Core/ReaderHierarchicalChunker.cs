@@ -19,7 +19,7 @@ public static partial class ReaderHierarchicalChunker {
         OfficeDocumentReadResult document,
         ReaderHierarchicalChunkingOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         ReaderHierarchicalChunkingOptions normalized = Normalize(options);
         int? knownInputCount = document.Chunks != null && document.Chunks.Count > 0
             ? document.Chunks.Count
@@ -39,7 +39,7 @@ public static partial class ReaderHierarchicalChunker {
         IEnumerable<ReaderChunk> chunks,
         ReaderHierarchicalChunkingOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (chunks == null) throw new ArgumentNullException(nameof(chunks));
+        ArgumentNullException.ThrowIfNull(chunks);
         return ChunkCore(
             chunks,
             new OfficeDocumentSource(),

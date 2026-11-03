@@ -11,7 +11,8 @@ internal static partial class OfficeCabinetArchiveReader {
         /// Bytes written before a later failure are unverified; callers must discard staging on every failure.</summary>
         internal void CopyMemberTo(int ordinal, Stream staging, long maxExpandedBytes,
             OfficeCabinetWorkBudget workBudget, CancellationToken token) {
-            if (ordinal < 0 || ordinal >= Members.Count) throw new ArgumentOutOfRangeException(nameof(ordinal));
+            ArgumentOutOfRangeException.ThrowIfNegative(ordinal);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(ordinal, Members.Count);
             var reader = new Reader(_data, maxExpandedBytes, _maxEntryBytes, _maxEntries, token, workBudget);
             reader._length = _directory.Length;
             var file = _directory.Files[ordinal];

@@ -16,8 +16,8 @@ public static partial class WordHtmlConverterExtensions {
         this WordTableCell cell,
         HtmlConversionDocument htmlDocument,
         WordHtmlImportOptions? options = null) {
-        if (cell == null) throw new ArgumentNullException(nameof(cell));
-        if (htmlDocument == null) throw new ArgumentNullException(nameof(htmlDocument));
+        ArgumentNullException.ThrowIfNull(cell);
+        ArgumentNullException.ThrowIfNull(htmlDocument);
         WordHtmlImportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
         resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
         EnsureOfflineSynchronousImport(htmlDocument, resolved);
@@ -37,8 +37,8 @@ public static partial class WordHtmlConverterExtensions {
         HtmlConversionDocument htmlDocument,
         WordHtmlImportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (cell == null) throw new ArgumentNullException(nameof(cell));
-        if (htmlDocument == null) throw new ArgumentNullException(nameof(htmlDocument));
+        ArgumentNullException.ThrowIfNull(cell);
+        ArgumentNullException.ThrowIfNull(htmlDocument);
         cancellationToken.ThrowIfCancellationRequested();
 
         WordHtmlImportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);

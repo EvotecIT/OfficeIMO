@@ -13,7 +13,7 @@ public sealed class OfficeDocumentProcessorPipelineBuilder {
 
     /// <summary>Adds a processor at the end of the deterministic execution order.</summary>
     public OfficeDocumentProcessorPipelineBuilder Add(IOfficeDocumentProcessor processor) {
-        if (processor == null) throw new ArgumentNullException(nameof(processor));
+        ArgumentNullException.ThrowIfNull(processor);
         string id = OfficeDocumentProcessorPipeline.ValidateProcessorId(processor.Id, nameof(processor));
         if (!_ids.Add(id)) {
             throw new InvalidOperationException($"A document processor with id '{id}' is already registered.");
@@ -30,7 +30,7 @@ public sealed class OfficeDocumentProcessorPipelineBuilder {
 
     /// <summary>Adds processors in enumeration order.</summary>
     public OfficeDocumentProcessorPipelineBuilder AddRange(IEnumerable<IOfficeDocumentProcessor> processors) {
-        if (processors == null) throw new ArgumentNullException(nameof(processors));
+        ArgumentNullException.ThrowIfNull(processors);
         foreach (IOfficeDocumentProcessor processor in processors) Add(processor);
         return this;
     }

@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         private static readonly byte[] WorksheetBof = { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07, 0x41, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00 };
 
         internal static byte[] WriteWorkbook(ExcelDocument document) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
 
             byte[] workbookStream = BuildWorkbookStream(document);
             return BuildCompoundFile(document, workbookStream);
@@ -27,8 +27,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             ExcelDirectTabularSource source,
             CancellationToken cancellationToken,
             out byte[] workbookBytes) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(source);
 
             Stopwatch? stageWatch = document.Execution.OnTiming == null ? null : Stopwatch.StartNew();
             ExcelSheet? sheet = document.GetOrCreateDeferredDirectTabularSheet(source.SheetName);

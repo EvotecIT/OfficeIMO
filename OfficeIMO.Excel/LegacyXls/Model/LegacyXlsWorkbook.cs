@@ -621,9 +621,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Loads a legacy `.xls` workbook from a file path.
         /// </summary>
         public static LegacyXlsWorkbook Load(string path, LegacyXlsImportOptions? options = null) {
-            if (path == null) {
-                throw new ArgumentNullException(nameof(path));
-            }
+            ArgumentNullException.ThrowIfNull(path);
 
             if (!File.Exists(path)) {
                 throw new FileNotFoundException($"File '{path}' doesn't exist.", path);
@@ -636,7 +634,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Loads a legacy `.xls` workbook from a stream.
         /// </summary>
         public static LegacyXlsWorkbook Load(Stream stream, LegacyXlsImportOptions? options = null) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
             using var buffer = new MemoryStream();
@@ -648,7 +646,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Loads a legacy `.xls` workbook from a byte array.
         /// </summary>
         private static LegacyXlsWorkbook LoadCore(byte[] bytes, LegacyXlsImportOptions? options) {
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            ArgumentNullException.ThrowIfNull(bytes);
 
             options ??= new LegacyXlsImportOptions();
             options.Validate();

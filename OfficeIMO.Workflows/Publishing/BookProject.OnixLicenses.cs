@@ -9,13 +9,13 @@ namespace OfficeIMO.Workflows;
 public sealed partial class BookProject {
     private static IReadOnlyList<XElement> BuildOnixLicenses(IReadOnlyList<BookOnixLicense> licenses,
         ref int textBudget, CancellationToken token) {
-        if (licenses == null) throw new ArgumentNullException(nameof(licenses));
+        ArgumentNullException.ThrowIfNull(licenses);
         if (licenses.Count > 16) throw new ArgumentException("At most 16 licenses per collateral item are supported.", nameof(licenses));
         var result = new List<XElement>();
         XNamespace ns = OnixNamespace;
         foreach (var license in licenses) {
             token.ThrowIfCancellationRequested();
-            if (license == null) throw new ArgumentNullException(nameof(license));
+            ArgumentNullException.ThrowIfNull(license);
             if (license.Names == null) throw new ArgumentNullException("license.Names");
             if (license.Expressions == null) throw new ArgumentNullException("license.Expressions");
             if (license.Names.Count is < 1 or > 16 || license.Expressions.Count > 16)
@@ -26,7 +26,7 @@ public sealed partial class BookProject {
             var languages = new HashSet<string>(StringComparer.Ordinal);
             foreach (var name in license.Names) {
                 token.ThrowIfCancellationRequested();
-                if (name == null) throw new ArgumentNullException(nameof(name));
+                ArgumentNullException.ThrowIfNull(name);
                 RequireOnixText(name.Text, nameof(name.Text));
                 if (name.Text.Length > 100 || name.Text.Length > textBudget)
                     throw new ArgumentException("License names exceed the field or aggregate collateral text limit.", nameof(licenses));
@@ -39,7 +39,7 @@ public sealed partial class BookProject {
             var expressions = new HashSet<(BookOnixLicenseExpressionType, string)>();
             foreach (var expression in license.Expressions) {
                 token.ThrowIfCancellationRequested();
-                if (expression == null) throw new ArgumentNullException(nameof(expression));
+                ArgumentNullException.ThrowIfNull(expression);
                 string type = expression.Type switch {
                     BookOnixLicenseExpressionType.HumanReadable => "01", BookOnixLicenseExpressionType.ProfessionalReadable => "02",
                     BookOnixLicenseExpressionType.AdditionalHumanReadable => "03", BookOnixLicenseExpressionType.AdditionalProfessionalReadable => "04",

@@ -11,9 +11,7 @@ public static partial class OfficeSvgFormatting {
     /// <returns>The supplied builder for call chaining.</returns>
     /// <remarks>Diagonal hatches may extend outside the rectangle; callers can clip when strict bounds are required.</remarks>
     public static StringBuilder AppendHatchPatternRectangle(this StringBuilder builder, double x, double y, double width, double height, OfficeColor color, double step, double lineWidth, OfficeHatchPatternKind pattern) {
-        if (builder == null) {
-            throw new ArgumentNullException(nameof(builder));
-        }
+        ArgumentNullException.ThrowIfNull(builder);
 
         if (color.A == 0 || width <= 0D || height <= 0D || step <= 0D || lineWidth <= 0D) {
             return builder;

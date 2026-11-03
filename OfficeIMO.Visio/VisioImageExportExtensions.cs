@@ -20,7 +20,7 @@ public static partial class VisioImageExportExtensions {
         OfficeImageExportFormat format,
         VisioImageExportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         VisioImageExportOptions resolved = Normalize(options);
         if (document.Pages.Count == 0) throw new InvalidOperationException("The document does not contain any pages to export.");
         if (resolved.PageIndex >= document.Pages.Count) {
@@ -54,8 +54,8 @@ public static partial class VisioImageExportExtensions {
         OfficeImageExportConsumer consumer,
         VisioImageExportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(consumer);
         VisioImageExportOptions resolved = Normalize(options);
         if (document.Pages.Count == 0) throw new InvalidOperationException("The document does not contain any pages to export.");
         if (resolved.PageIndex >= document.Pages.Count) {

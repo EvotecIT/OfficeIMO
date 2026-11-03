@@ -10,8 +10,8 @@ public sealed partial class ProjectDocument {
     public ProjectTask AddRecurringTask(string name, IEnumerable<DateTime> occurrenceStarts, ProjectDuration duration,
         ProjectTask? parent = null, ProjectCalendar? calendar = null, int maxOccurrences = 10000,
         CancellationToken cancellationToken = default) {
-        if (name == null) throw new ArgumentNullException(nameof(name));
-        if (occurrenceStarts == null) throw new ArgumentNullException(nameof(occurrenceStarts));
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(occurrenceStarts);
         if (duration.Value < 0) throw new ArgumentOutOfRangeException(nameof(duration));
         if (maxOccurrences < 1 || maxOccurrences > 100000) throw new ArgumentOutOfRangeException(nameof(maxOccurrences));
         EnsureMutable(); CheckMember(parent); CheckMember(calendar);

@@ -9,9 +9,7 @@ namespace OfficeIMO.Examples.Word {
         }
 
         private static WordHeader GetRequiredHeader(WordSection section, HeaderFooterValues type) {
-            if (section is null) {
-                throw new ArgumentNullException(nameof(section));
-            }
+            ArgumentNullException.ThrowIfNull(section);
 
             if (section.Header == null) {
                 section.AddHeadersAndFooters();

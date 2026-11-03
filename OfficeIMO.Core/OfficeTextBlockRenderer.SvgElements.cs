@@ -179,13 +179,9 @@ public static partial class OfficeTextBlockRenderer {
         OfficeTextDirection direction = OfficeTextDirection.Auto,
         OfficeTextShapingBackend? shapingBackend = null,
         bool preservePaintedGlyphOrder = false, OfficeFontFaceDescriptor? face = null, string? logicalText = null) {
-        if (builder == null) {
-            throw new ArgumentNullException(nameof(builder));
-        }
+        ArgumentNullException.ThrowIfNull(builder);
 
-        if (text == null) {
-            throw new ArgumentNullException(nameof(text));
-        }
+        ArgumentNullException.ThrowIfNull(text);
 
         if (color.A == 0) {
             return builder;

@@ -27,7 +27,7 @@ internal static class OcrTemporaryStorage {
     }
 
     internal static void WriteAllBytes(string path, byte[] payload) {
-        if (payload == null) throw new ArgumentNullException(nameof(payload));
+        ArgumentNullException.ThrowIfNull(payload);
         using FileStream stream = CreatePrivateFile(path);
         stream.Write(payload, 0, payload.Length);
     }

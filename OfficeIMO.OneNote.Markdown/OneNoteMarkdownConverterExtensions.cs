@@ -22,7 +22,7 @@ public static class OneNoteMarkdownConverterExtensions {
 
     /// <summary>Converts a section to Markdown with explicit source and semantic-projection diagnostics.</summary>
     public static OneNoteMarkdownConversionResult ToMarkdownDocumentResult(this OneNoteSection section, OneNoteMarkdownOptions? options = null) {
-        if (section == null) throw new ArgumentNullException(nameof(section));
+        ArgumentNullException.ThrowIfNull(section);
         OneNoteMarkdownOptions operation = CreateTrackedOptions(options, out HashSet<OneNoteBinaryElement> resolvedAssets);
         MarkdownDocument value = MarkdownDocument.Parse(section.ToMarkdown(operation));
         return new OneNoteMarkdownConversionResult(value, OneNoteMarkdownDiagnosticCollector.Collect(section, operation, resolvedAssets));
@@ -30,7 +30,7 @@ public static class OneNoteMarkdownConverterExtensions {
 
     /// <summary>Converts a notebook to Markdown with explicit source and semantic-projection diagnostics.</summary>
     public static OneNoteMarkdownConversionResult ToMarkdownDocumentResult(this OneNoteNotebook notebook, OneNoteMarkdownOptions? options = null) {
-        if (notebook == null) throw new ArgumentNullException(nameof(notebook));
+        ArgumentNullException.ThrowIfNull(notebook);
         OneNoteMarkdownOptions operation = CreateTrackedOptions(options, out HashSet<OneNoteBinaryElement> resolvedAssets);
         MarkdownDocument value = MarkdownDocument.Parse(notebook.ToMarkdown(operation));
         return new OneNoteMarkdownConversionResult(value, OneNoteMarkdownDiagnosticCollector.Collect(notebook, operation, resolvedAssets));

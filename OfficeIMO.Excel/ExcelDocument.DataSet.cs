@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel {
             bool autoFit = false,
             ExcelExecutionMode? mode = null,
             CancellationToken ct = default) {
-            if (dataSet == null) throw new ArgumentNullException(nameof(dataSet));
+            ArgumentNullException.ThrowIfNull(dataSet);
 
             if (!_materializingDeferredDataSetImport) {
                 MaterializeDeferredDataSetImport(ct);

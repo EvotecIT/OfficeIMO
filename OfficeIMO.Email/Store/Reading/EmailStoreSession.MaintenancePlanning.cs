@@ -7,7 +7,7 @@ public sealed partial class EmailStoreSession {
     /// </summary>
     public EmailStoreMaintenancePlan PlanMaintenance(int maxItems = 100_000,
         CancellationToken cancellationToken = default) {
-        if (maxItems <= 0) throw new ArgumentOutOfRangeException(nameof(maxItems));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxItems);
         ThrowIfDisposed();
         string fingerprint = GetDurableSourceFingerprint(cancellationToken);
         var validation = Validate(new EmailStoreValidationOptions(

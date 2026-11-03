@@ -23,7 +23,7 @@ public sealed class EmailDocumentWriter {
 
     /// <summary>Writes an artifact to a file.</summary>
     public EmailWriteResult Write(EmailDocument document, string filePath, EmailFileFormat format = EmailFileFormat.Eml) {
-        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        ArgumentNullException.ThrowIfNull(filePath);
         WritePreparation preparation = Prepare(document, format);
         if (!preparation.CanWrite) return preparation.CreateBlockedResult();
         EmailWriteResult? result = null;
@@ -33,7 +33,7 @@ public sealed class EmailDocumentWriter {
 
     /// <summary>Writes an artifact to a stream without closing it.</summary>
     public EmailWriteResult Write(EmailDocument document, Stream stream, EmailFileFormat format = EmailFileFormat.Eml) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
         WritePreparation preparation = Prepare(document, format);
         if (!preparation.CanWrite) return preparation.CreateBlockedResult();
@@ -52,7 +52,7 @@ public sealed class EmailDocumentWriter {
     /// <summary>Asynchronously writes an artifact to a file.</summary>
     public async Task<EmailWriteResult> WriteAsync(EmailDocument document, string filePath,
         EmailFileFormat format = EmailFileFormat.Eml, CancellationToken cancellationToken = default) {
-        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        ArgumentNullException.ThrowIfNull(filePath);
         cancellationToken.ThrowIfCancellationRequested();
         WritePreparation preparation = Prepare(document, format);
         if (!preparation.CanWrite) return preparation.CreateBlockedResult();
@@ -74,7 +74,7 @@ public sealed class EmailDocumentWriter {
     /// <summary>Asynchronously writes an artifact to a stream without closing it.</summary>
     public async Task<EmailWriteResult> WriteAsync(EmailDocument document, Stream stream,
         EmailFileFormat format = EmailFileFormat.Eml, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
         cancellationToken.ThrowIfCancellationRequested();
         WritePreparation preparation = Prepare(document, format);
@@ -110,7 +110,7 @@ public sealed class EmailDocumentWriter {
     }
 
     private WritePreparation Prepare(EmailDocument document, EmailFileFormat format) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         if (format != EmailFileFormat.Eml && format != EmailFileFormat.OutlookMsg &&
             format != EmailFileFormat.OutlookTemplate && format != EmailFileFormat.Tnef) {
             throw new NotSupportedException("The requested email artifact format cannot be serialized.");

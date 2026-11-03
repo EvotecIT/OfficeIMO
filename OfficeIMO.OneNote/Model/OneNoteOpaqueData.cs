@@ -26,7 +26,7 @@ public sealed class OneNoteOpaqueProperty {
 
     /// <summary>Replaces the retained encoded data with a defensive copy.</summary>
     public void SetRawData(byte[] rawData) {
-        if (rawData == null) throw new ArgumentNullException(nameof(rawData));
+        ArgumentNullException.ThrowIfNull(rawData);
         _rawData = new byte[rawData.Length];
         Buffer.BlockCopy(rawData, 0, _rawData, 0, rawData.Length);
     }
@@ -59,7 +59,7 @@ public sealed class OneNoteOpaqueObject {
 
     /// <summary>Replaces the retained encoded object data with a defensive copy.</summary>
     public void SetRawData(byte[] rawData) {
-        if (rawData == null) throw new ArgumentNullException(nameof(rawData));
+        ArgumentNullException.ThrowIfNull(rawData);
         _rawData = new byte[rawData.Length];
         Buffer.BlockCopy(rawData, 0, _rawData, 0, rawData.Length);
     }

@@ -3,7 +3,7 @@ namespace OfficeIMO.Excel;
 public sealed partial class ExcelRange {
     /// <summary>Writes a rectangular matrix whose dimensions exactly match this range.</summary>
     public ExcelRange SetValues(object?[,] values) {
-        if (values == null) throw new ArgumentNullException(nameof(values));
+        ArgumentNullException.ThrowIfNull(values);
         int rows = LastRow - FirstRow + 1, columns = LastColumn - FirstColumn + 1;
         if (values.GetLength(0) != rows || values.GetLength(1) != columns)
             throw new ArgumentException("Values array dimensions must match the range.", nameof(values));

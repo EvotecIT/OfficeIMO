@@ -22,9 +22,7 @@ namespace OfficeIMO.Excel {
             CellValuesCore(cells, mode, ct, preserveMissingValues: false);
 
         private void CellValuesCore(IEnumerable<(int Row, int Column, object Value)> cells, ExcelExecutionMode? mode, CancellationToken ct, bool preserveMissingValues) {
-            if (cells is null) {
-                throw new ArgumentNullException(nameof(cells));
-            }
+            ArgumentNullException.ThrowIfNull(cells);
             var list = cells as IReadOnlyList<(int Row, int Column, object Value)> ?? cells.ToList();
             if (list.Count == 0) return;
             EnsureDynamicArrayWriteIndex();

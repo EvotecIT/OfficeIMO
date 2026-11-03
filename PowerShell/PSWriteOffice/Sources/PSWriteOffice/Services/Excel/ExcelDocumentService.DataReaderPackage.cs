@@ -19,15 +19,9 @@ internal static partial class ExcelDocumentService
             throw new ArgumentException("File path cannot be empty.", nameof(filePath));
         }
 
-        if (reader == null)
-        {
-            throw new ArgumentNullException(nameof(reader));
-        }
+        ArgumentNullException.ThrowIfNull(reader);
 
-        if (options == null)
-        {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         var targetPath = Path.GetFullPath(filePath);
         if (!overwrite && File.Exists(targetPath))

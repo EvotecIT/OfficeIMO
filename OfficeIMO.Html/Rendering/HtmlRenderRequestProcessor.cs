@@ -6,9 +6,9 @@ internal static class HtmlRenderRequestProcessor {
         HtmlRenderDocument rendered,
         HtmlRenderOptions options,
         CancellationToken cancellationToken) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
-        if (rendered == null) throw new ArgumentNullException(nameof(rendered));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(rendered);
+        ArgumentNullException.ThrowIfNull(options);
         cancellationToken.ThrowIfCancellationRequested();
 
         HtmlRenderDocument projected;

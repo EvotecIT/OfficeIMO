@@ -15,13 +15,9 @@ internal sealed class OfficeMarkupWordExporter {
     };
 
     public WordDocument Convert(OfficeMarkupDocument document, MarkupToWordOptions options) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         if (document.Profile != OfficeMarkupProfile.Document) {
             throw new InvalidOperationException("Word export requires the Document OfficeIMO markup profile.");

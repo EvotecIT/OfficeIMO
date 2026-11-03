@@ -60,7 +60,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         /// <summary>Captures source content hashes and an optional observed remote Drive version.</summary>
         /// <remarks>Persist the checkpoint only when it accurately represents a synchronized baseline.</remarks>
         public static GoogleSheetsSyncCheckpoint CreateCheckpoint(ExcelDocument document, long? driveVersion = null) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             var checkpoint = new GoogleSheetsSyncCheckpoint { HashFormatVersion = CurrentHashFormatVersion, DriveVersion = driveVersion };
             foreach (var pair in BuildHashes(document)) checkpoint.ContentHashes[pair.Key] = pair.Value;
             return checkpoint;
@@ -74,7 +74,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             GoogleWorkspaceSession session,
             GoogleSheetsSyncCheckpoint? checkpoint = null,
             CancellationToken cancellationToken = default) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(source);
             ValidateCheckpoint(checkpoint);
             var importer = new GoogleSheetsImporter();
             GoogleSheetsImportResult imported = await importer.ImportAsync(

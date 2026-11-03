@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointContentPlanSlide(string? title, IEnumerable<PowerPointLayoutBlock> blocks,
             PowerPointLayout layout = PowerPointLayout.Auto, string? subtitle = null, string? seed = null)
             : base(title, subtitle, seed, allowEmptyTitle: true) {
-            if (blocks == null) throw new ArgumentNullException(nameof(blocks));
+            ArgumentNullException.ThrowIfNull(blocks);
             if (!Enum.IsDefined(typeof(PowerPointLayout), layout)) throw new ArgumentOutOfRangeException(nameof(layout));
             var items = blocks.ToList();
             if (items.Any(item => item == null)) throw new ArgumentException("Content blocks cannot be null.", nameof(blocks));

@@ -47,9 +47,7 @@ public partial class MarkdownDocument : MarkdownObject {
 
     /// <summary>Rewrites the document using the provided rewriter.</summary>
     public MarkdownDocument Rewrite(MarkdownRewriter rewriter) {
-        if (rewriter == null) {
-            throw new ArgumentNullException(nameof(rewriter));
-        }
+        ArgumentNullException.ThrowIfNull(rewriter);
 
         return rewriter.Rewrite(this);
     }
@@ -185,7 +183,7 @@ public partial class MarkdownDocument : MarkdownObject {
 
     /// <summary>Gets the resolved anchor id for a heading within this document.</summary>
     public string GetHeadingAnchor(HeadingBlock heading) {
-        if (heading == null) throw new ArgumentNullException(nameof(heading));
+        ArgumentNullException.ThrowIfNull(heading);
 
         var (_, headingCatalog) = GetBlocksAndHeadingSlugs();
         return headingCatalog.GetHeadingAnchor(heading);
@@ -412,9 +410,7 @@ public partial class MarkdownDocument : MarkdownObject {
 
     /// <summary>Adds a callout/admonition block with structured markdown body content.</summary>
     public MarkdownDocument Callout(string kind, string title, Action<MarkdownDocument> buildBody) {
-        if (buildBody == null) {
-            throw new ArgumentNullException(nameof(buildBody));
-        }
+        ArgumentNullException.ThrowIfNull(buildBody);
 
         var body = MarkdownDocument.Create();
         buildBody(body);

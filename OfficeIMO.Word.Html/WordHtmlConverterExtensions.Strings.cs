@@ -22,7 +22,7 @@ public static partial class WordHtmlConverterExtensions {
     /// <param name="options">Optional conversion options.</param>
     /// <returns>Live imported elements in document order, using the existing Word element projection.</returns>
     public static IReadOnlyList<WordElement> AddHtml(this WordDocument doc, string html, WordHtmlImportOptions? options = null) {
-        if (doc == null) throw new ArgumentNullException(nameof(doc));
+        ArgumentNullException.ThrowIfNull(doc);
         WordHtmlImportOptions resolved = (options ?? CreateWordOptionsForSharedDocument()).Clone();
         return doc.AddHtml(ParseWordHtml(html, resolved), resolved);
     }
@@ -34,7 +34,7 @@ public static partial class WordHtmlConverterExtensions {
     /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
     /// <returns>Live imported elements in document order, using the existing Word element projection.</returns>
     public static Task<IReadOnlyList<WordElement>> AddHtmlAsync(this WordDocument doc, string html, WordHtmlImportOptions? options = null, CancellationToken cancellationToken = default) {
-        if (doc == null) throw new ArgumentNullException(nameof(doc));
+        ArgumentNullException.ThrowIfNull(doc);
         cancellationToken.ThrowIfCancellationRequested();
         WordHtmlImportOptions resolved = (options ?? CreateWordOptionsForSharedDocument()).Clone();
         return doc.AddHtmlAsync(ParseWordHtml(html, resolved, cancellationToken), resolved, cancellationToken);
@@ -46,7 +46,7 @@ public static partial class WordHtmlConverterExtensions {
     /// <param name="options">Optional conversion options.</param>
     /// <returns>Live imported elements in document order, using the existing Word element projection.</returns>
     public static IReadOnlyList<WordElement> AddHtml(this WordTableCell cell, string html, WordHtmlImportOptions? options = null) {
-        if (cell == null) throw new ArgumentNullException(nameof(cell));
+        ArgumentNullException.ThrowIfNull(cell);
         WordHtmlImportOptions resolved = (options ?? CreateWordOptionsForSharedDocument()).Clone();
         return cell.AddHtml(ParseWordHtml(html, resolved), resolved);
     }
@@ -58,7 +58,7 @@ public static partial class WordHtmlConverterExtensions {
     /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
     /// <returns>Live imported elements in document order, using the existing Word element projection.</returns>
     public static Task<IReadOnlyList<WordElement>> AddHtmlAsync(this WordTableCell cell, string html, WordHtmlImportOptions? options = null, CancellationToken cancellationToken = default) {
-        if (cell == null) throw new ArgumentNullException(nameof(cell));
+        ArgumentNullException.ThrowIfNull(cell);
         cancellationToken.ThrowIfCancellationRequested();
         WordHtmlImportOptions resolved = (options ?? CreateWordOptionsForSharedDocument()).Clone();
         return cell.AddHtmlAsync(ParseWordHtml(html, resolved, cancellationToken), resolved, cancellationToken);

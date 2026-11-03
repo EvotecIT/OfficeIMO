@@ -48,7 +48,7 @@ internal sealed class ExcelDslContext : IDisposable
 
     public IDisposable Push(object scope)
     {
-        if (scope == null) throw new ArgumentNullException(nameof(scope));
+        ArgumentNullException.ThrowIfNull(scope);
         _scopes.Push(scope);
         return new PopToken(this, scope);
     }

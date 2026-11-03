@@ -118,8 +118,8 @@ public sealed class OfficeCapabilityCatalog {
     /// <summary>Creates a versioned capability catalog.</summary>
     public OfficeCapabilityCatalog(string id, int schemaVersion, IEnumerable<OfficeCapability> capabilities) {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Catalog id cannot be empty.", nameof(id));
-        if (schemaVersion <= 0) throw new ArgumentOutOfRangeException(nameof(schemaVersion));
-        if (capabilities == null) throw new ArgumentNullException(nameof(capabilities));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(schemaVersion);
+        ArgumentNullException.ThrowIfNull(capabilities);
 
         OfficeCapability[] rows = capabilities.ToArray();
         if (rows.Length == 0) throw new ArgumentException("A capability catalog must contain at least one row.", nameof(capabilities));

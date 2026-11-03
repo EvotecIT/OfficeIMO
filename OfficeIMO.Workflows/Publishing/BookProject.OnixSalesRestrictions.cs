@@ -10,7 +10,7 @@ namespace OfficeIMO.Workflows;
 public sealed partial class BookProject {
     private static XElement[] BuildOnixSalesRestrictions(IReadOnlyList<BookOnixSalesRestriction> restrictions,
         ref int budget, CancellationToken token) {
-        if (restrictions == null) throw new ArgumentNullException(nameof(restrictions));
+        ArgumentNullException.ThrowIfNull(restrictions);
         if (restrictions.Count > 32) throw new ArgumentException("At most 32 sales restrictions are supported per territory or market.", nameof(restrictions));
         XNamespace ns = OnixNamespace;
         var result = new List<XElement>(); var prior = new List<BookOnixSalesRestriction>();
@@ -72,7 +72,7 @@ public sealed partial class BookProject {
         var result = new XElement(ns + "SalesOutlet");
         var schemes = new HashSet<(BookOnixSalesOutletScheme, string?)>();
         foreach (var identifier in outlet.Identifiers) {
-            if (identifier == null) throw new ArgumentNullException(nameof(identifier));
+            ArgumentNullException.ThrowIfNull(identifier);
             if (!OfficeRuntimeCompatibility.IsDefined(identifier.Scheme)) throw new ArgumentOutOfRangeException(nameof(identifier.Scheme));
             RequireOnixRestrictionText(identifier.Value, 100, ref budget);
             if (identifier.Scheme == BookOnixSalesOutletScheme.Proprietary) RequireOnixRestrictionText(identifier.SchemeName!, 100, ref budget);

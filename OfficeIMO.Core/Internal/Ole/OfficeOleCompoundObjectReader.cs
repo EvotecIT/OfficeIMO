@@ -5,7 +5,7 @@ namespace OfficeIMO.Core.Internal {
     /// <summary>Reads inert, bounded clipboard-format identification without activating an OLE object.</summary>
     internal static class OfficeOleCompoundObjectReader {
         internal static string? ClipboardFormat(byte[] bytes) {
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            ArgumentNullException.ThrowIfNull(bytes);
             if (bytes.Length < 32) return null;
             uint userLength = BitConverter.ToUInt32(bytes, 28);
             if (userLength > 4096 || userLength > bytes.Length - 32) return null;

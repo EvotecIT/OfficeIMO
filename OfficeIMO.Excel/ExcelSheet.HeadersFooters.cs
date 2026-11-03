@@ -125,9 +125,7 @@ namespace OfficeIMO.Excel {
             GetHeaderFooter(ExcelImageExportOptions.DefaultMaximumTotalSourceImageBytes);
 
         internal ExcelHeaderFooterInfo GetHeaderFooter(long maximumTotalSourceImageBytes) {
-            if (maximumTotalSourceImageBytes <= 0L) {
-                throw new ArgumentOutOfRangeException(nameof(maximumTotalSourceImageBytes));
-            }
+            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maximumTotalSourceImageBytes, 0L);
 
             var ws = WorksheetRoot;
             var hf = ws.GetFirstChild<HeaderFooter>();
@@ -536,7 +534,7 @@ namespace OfficeIMO.Excel {
         public Task SetHeaderImageFromUrlAsync(ExcelHeaderFooterPosition position, string url,
             OfficeRemoteImageLoadOptions remoteImageOptions, OfficeLength? width = null,
             OfficeLength? height = null, CancellationToken cancellationToken = default) {
-            if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
+            ArgumentNullException.ThrowIfNull(remoteImageOptions);
             return SetHeaderImageFromUrlCoreAsync(position, url, remoteImageOptions, width, height, cancellationToken);
         }
 
@@ -577,7 +575,7 @@ namespace OfficeIMO.Excel {
         public Task SetFooterImageFromUrlAsync(ExcelHeaderFooterPosition position, string url,
             OfficeRemoteImageLoadOptions remoteImageOptions, OfficeLength? width = null,
             OfficeLength? height = null, CancellationToken cancellationToken = default) {
-            if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
+            ArgumentNullException.ThrowIfNull(remoteImageOptions);
             return SetFooterImageFromUrlCoreAsync(position, url, remoteImageOptions, width, height, cancellationToken);
         }
 

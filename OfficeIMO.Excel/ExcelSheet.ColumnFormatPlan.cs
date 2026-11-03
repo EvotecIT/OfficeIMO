@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel {
             bool autoFit = false,
             int? headerRow = null,
             ExcelReaderOptions? options = null) {
-            if (plan == null) throw new ArgumentNullException(nameof(plan));
+            ArgumentNullException.ThrowIfNull(plan);
             if (headerRow.HasValue && headerRow.Value <= 0) throw new ArgumentOutOfRangeException(nameof(headerRow), "Header row must be 1 or greater.");
 
             var results = new List<ExcelColumnFormatResult>(plan.Rules.Count);

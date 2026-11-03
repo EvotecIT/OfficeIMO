@@ -16,7 +16,7 @@ internal static class XmlDigitalSignatureService {
     [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "The provider rejects XSLT and limits XML DSig to statically referenced canonicalization and enveloped-signature transforms.")]
     internal static byte[] Create(XmlDigitalSignatureCreationRequest request) {
 #if NETSTANDARD2_0 || NET472
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
 #else
         ArgumentNullException.ThrowIfNull(request);
 #endif
@@ -72,7 +72,7 @@ internal static class XmlDigitalSignatureService {
     [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "The provider rejects XSLT and does not compile dynamic transforms.")]
     internal static XmlDigitalSignatureVerificationResult Verify(XmlDigitalSignatureVerificationRequest request) {
 #if NETSTANDARD2_0 || NET472
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
 #else
         ArgumentNullException.ThrowIfNull(request);
 #endif
@@ -223,16 +223,12 @@ internal static class XmlDigitalSignatureService {
         string? inclusiveNamespacesPrefixList,
         long maxOutputBytes) {
 #if NETSTANDARD2_0 || NET472
-        if (xml == null) throw new ArgumentNullException(nameof(xml));
+        ArgumentNullException.ThrowIfNull(xml);
 #else
         ArgumentNullException.ThrowIfNull(xml);
 #endif
         if (string.IsNullOrWhiteSpace(algorithm)) throw new ArgumentException("A canonicalization algorithm is required.", nameof(algorithm));
-#if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxOutputBytes);
-#else
-        if (maxOutputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxOutputBytes));
-#endif
         XmlDocument document = LoadXml(xml, maxOutputBytes);
         Transform transform;
         switch (algorithm) {

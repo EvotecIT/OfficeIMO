@@ -9,7 +9,7 @@ internal static class OneNoteWriteModelValidator {
         OneNoteSection section,
         int maxPageRelationshipDepth,
         int maxContentDepth) {
-        if (section == null) throw new ArgumentNullException(nameof(section));
+        ArgumentNullException.ThrowIfNull(section);
         var state = new ValidationState(
             OneNoteWriterOptions.DefaultMaxSectionGroupDepth,
             maxPageRelationshipDepth,
@@ -22,8 +22,8 @@ internal static class OneNoteWriteModelValidator {
         OneNoteNotebook notebook,
         OneNoteWriterOptions options,
         bool validateSectionContent) {
-        if (notebook == null) throw new ArgumentNullException(nameof(notebook));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(notebook);
+        ArgumentNullException.ThrowIfNull(options);
         var state = new ValidationState(
             options.MaxSectionGroupDepth,
             options.MaxPageRelationshipDepth,

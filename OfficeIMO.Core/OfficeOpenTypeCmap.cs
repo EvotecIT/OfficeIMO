@@ -31,7 +31,7 @@ internal static class OfficeOpenTypeCmap {
         Func<int, int> mapGlyph,
         Func<int, int, int> mapVariationSequence,
         Func<int, bool>? hasPaintedNotdef = null) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(text);
         for (int index = 0; index < text.Length;) {
             int glyph = ReadMappedGlyph(text, ref index, mapGlyph, mapVariationSequence, out int scalar);
             if (glyph < 0) continue;

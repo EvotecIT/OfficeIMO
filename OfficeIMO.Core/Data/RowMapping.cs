@@ -94,9 +94,7 @@ public sealed class RowMapper<T> where T : new() {
         if (string.IsNullOrWhiteSpace(columnName)) {
             throw new ArgumentException("Column name cannot be null or empty.", nameof(columnName));
         }
-        if (assign is null) {
-            throw new ArgumentNullException(nameof(assign));
-        }
+        ArgumentNullException.ThrowIfNull(assign);
 
         Entries.Add(new RowMappingEntry<T, TValue>(new[] { columnName }, assign, options));
         return this;
@@ -114,8 +112,8 @@ public sealed class RowMapper<T> where T : new() {
         IReadOnlyList<string> columnNames,
         Func<T, TValue, T> assign,
         RowMappingColumnOptions? options) {
-        if (columnNames is null) throw new ArgumentNullException(nameof(columnNames));
-        if (assign is null) throw new ArgumentNullException(nameof(assign));
+        ArgumentNullException.ThrowIfNull(columnNames);
+        ArgumentNullException.ThrowIfNull(assign);
         string[] names = columnNames
             .Where(static name => !string.IsNullOrWhiteSpace(name))
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -138,7 +136,7 @@ public static partial class DataReaderMappingExtensions {
     public static IEnumerable<T> RowsAs<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
         this DbDataReader reader) {
-        if (reader is null) throw new ArgumentNullException(nameof(reader));
+        ArgumentNullException.ThrowIfNull(reader);
         return EnumerateAutomatic<T>(reader);
     }
 
@@ -149,8 +147,8 @@ public static partial class DataReaderMappingExtensions {
     public static IEnumerable<T> RowsAs<T>(
         this DbDataReader reader,
         Action<RowMapper<T>> configure) where T : new() {
-        if (reader is null) throw new ArgumentNullException(nameof(reader));
-        if (configure is null) throw new ArgumentNullException(nameof(configure));
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(configure);
         return EnumerateExplicit(reader, configure);
     }
 
@@ -164,8 +162,8 @@ public static partial class DataReaderMappingExtensions {
     public static IEnumerable<T> RowsAs<T>(
         this DbDataReader reader,
         Func<IDataRecord, T> factory) {
-        if (reader is null) throw new ArgumentNullException(nameof(reader));
-        if (factory is null) throw new ArgumentNullException(nameof(factory));
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(factory);
         return EnumerateFactory(reader, factory);
     }
 

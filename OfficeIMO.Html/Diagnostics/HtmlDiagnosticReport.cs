@@ -39,9 +39,7 @@ public sealed class HtmlDiagnosticReport : IReadOnlyList<HtmlDiagnostic> {
     /// </summary>
     /// <param name="diagnostic">Diagnostic to add.</param>
     public void Add(HtmlDiagnostic diagnostic) {
-        if (diagnostic == null) {
-            throw new ArgumentNullException(nameof(diagnostic));
-        }
+        ArgumentNullException.ThrowIfNull(diagnostic);
 
         EnsureMutable();
         _diagnostics.Add(diagnostic);
@@ -101,9 +99,7 @@ public sealed class HtmlDiagnosticReport : IReadOnlyList<HtmlDiagnostic> {
     /// </summary>
     /// <param name="diagnostics">Diagnostics to add.</param>
     public void AddRange(IEnumerable<HtmlDiagnostic> diagnostics) {
-        if (diagnostics == null) {
-            throw new ArgumentNullException(nameof(diagnostics));
-        }
+        ArgumentNullException.ThrowIfNull(diagnostics);
 
         EnsureMutable();
         foreach (HtmlDiagnostic diagnostic in diagnostics) {

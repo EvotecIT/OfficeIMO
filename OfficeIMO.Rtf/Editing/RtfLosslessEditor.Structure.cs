@@ -10,8 +10,9 @@ public sealed partial class RtfLosslessEditor {
 
     /// <summary>Inserts a validated raw RTF fragment at a direct root-node index.</summary>
     public void InsertRootRtf(int index, string rtfFragment) {
-        if (rtfFragment == null) throw new ArgumentNullException(nameof(rtfFragment));
-        if (index < 0 || index > RootNodeCount) throw new ArgumentOutOfRangeException(nameof(index));
+        ArgumentNullException.ThrowIfNull(rtfFragment);
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(index, RootNodeCount);
         IReadOnlyList<RtfNode> fragmentNodes = ParseFragment(rtfFragment);
         var children = new List<RtfNode>(_syntaxTree.Root.Children);
         children.InsertRange(index, fragmentNodes);
@@ -20,8 +21,9 @@ public sealed partial class RtfLosslessEditor {
 
     /// <summary>Inserts a plain paragraph at a direct root-node index.</summary>
     public void InsertRootParagraph(int index, string text) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
-        if (index < 0 || index > RootNodeCount) throw new ArgumentOutOfRangeException(nameof(index));
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(index, RootNodeCount);
         var children = new List<RtfNode>(_syntaxTree.Root.Children);
         children.InsertRange(index, new RtfNode[] {
             new RtfControlWord(0, "pard", null, false, @"\pard "),
@@ -33,7 +35,8 @@ public sealed partial class RtfLosslessEditor {
 
     /// <summary>Removes direct root syntax nodes and returns the number removed.</summary>
     public int RemoveRootNodes(int index, int count = 1) {
-        if (index < 0 || index > RootNodeCount) throw new ArgumentOutOfRangeException(nameof(index));
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(index, RootNodeCount);
         if (count < 0 || index + count > RootNodeCount) throw new ArgumentOutOfRangeException(nameof(count));
         if (count == 0) return 0;
         var children = new List<RtfNode>(_syntaxTree.Root.Children);
@@ -44,7 +47,8 @@ public sealed partial class RtfLosslessEditor {
 
     /// <summary>Moves direct root syntax nodes to their final root-node index.</summary>
     public void MoveRootNodes(int fromIndex, int count, int toIndex) {
-        if (fromIndex < 0 || fromIndex >= RootNodeCount) throw new ArgumentOutOfRangeException(nameof(fromIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(fromIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(fromIndex, RootNodeCount);
         if (count <= 0 || fromIndex + count > RootNodeCount) throw new ArgumentOutOfRangeException(nameof(count));
         if (toIndex < 0 || toIndex > RootNodeCount - count) throw new ArgumentOutOfRangeException(nameof(toIndex));
         if (fromIndex == toIndex) return;
@@ -58,8 +62,8 @@ public sealed partial class RtfLosslessEditor {
 
     /// <summary>Replaces the nth picture destination while preserving all unrelated syntax.</summary>
     public bool ReplaceImage(int imageIndex, RtfImage replacement) {
-        if (imageIndex < 0) throw new ArgumentOutOfRangeException(nameof(imageIndex));
-        if (replacement == null) throw new ArgumentNullException(nameof(replacement));
+        ArgumentOutOfRangeException.ThrowIfNegative(imageIndex);
+        ArgumentNullException.ThrowIfNull(replacement);
         RtfGroup replacementGroup = CreatePictureGroup(replacement);
         int currentIndex = 0;
         bool replaced = false;
@@ -75,7 +79,7 @@ public sealed partial class RtfLosslessEditor {
     /// <summary>Replaces the content of every matching destination group, including headers and footers.</summary>
     public int ReplaceDestinationContent(string destination, string rtfFragment) {
         if (string.IsNullOrWhiteSpace(destination)) throw new ArgumentException("Destination cannot be empty.", nameof(destination));
-        if (rtfFragment == null) throw new ArgumentNullException(nameof(rtfFragment));
+        ArgumentNullException.ThrowIfNull(rtfFragment);
         IReadOnlyList<RtfNode> fragmentNodes = ParseFragment(rtfFragment);
         int replacements = 0;
         RtfGroup root = RewriteDestinationGroup(_syntaxTree.Root, destination, group => {

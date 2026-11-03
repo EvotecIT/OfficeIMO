@@ -15,7 +15,7 @@ internal static partial class DocumentReaderEngine {
         new ReaderHandlerRegistry().CaptureSnapshot();
 
     internal static IReadOnlyList<ReaderHandlerCapability> GetCapabilities(ReaderHandlerRegistrySnapshot snapshot) {
-        if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
+        ArgumentNullException.ThrowIfNull(snapshot);
         return snapshot.Handlers
             .Select(static handler => handler.ToCapability())
             .OrderBy(static capability => capability.Id, StringComparer.Ordinal)
@@ -31,7 +31,7 @@ internal static partial class DocumentReaderEngine {
     }
 
     internal static ReaderInputKind DetectKind(string path) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (path.Length == 0) throw new ArgumentException("Path cannot be empty.", nameof(path));
 
         string extension = NormalizeExtension(ReaderLogicalPath.GetExtension(path));

@@ -98,9 +98,10 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             GoogleDriveUploadOptions options, GoogleDriveResumableUploadCheckpoint? checkpoint = null,
             Func<GoogleDriveResumableUploadCheckpoint, CancellationToken, Task>? checkpointSink = null,
             TranslationReport? report = null, CancellationToken cancellationToken = default) {
-            if (content == null) throw new ArgumentNullException(nameof(content));
+            ArgumentNullException.ThrowIfNull(content);
             if (!content.CanRead || !content.CanSeek) throw new ArgumentException("A readable, seekable stream is required for restart-safe upload.", nameof(content));
-            if (length < 0 || length > content.Length) throw new ArgumentOutOfRangeException(nameof(length));
+            ArgumentOutOfRangeException.ThrowIfNegative(length);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(length, content.Length);
             ValidateUploadOptions(options); report ??= new TranslationReport();
             string contentType = options.ContentType;
             string sourceFingerprint = ComputeFingerprint(content, length, cancellationToken);

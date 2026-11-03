@@ -43,7 +43,7 @@ namespace OfficeIMO.Word {
         /// <param name="document">Document to inspect.</param>
         /// <returns>List of <see cref="WordMacro"/> instances.</returns>
         internal static IReadOnlyList<WordMacro> GetMacros(WordDocument document) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             if (!document.HasMacros) return new List<WordMacro>();
 
             var mainPart = document._wordprocessingDocument.MainDocumentPart;
@@ -79,7 +79,7 @@ namespace OfficeIMO.Word {
         /// <param name="document">Target document.</param>
         /// <param name="data">VBA project data.</param>
         internal static WordMacroProject AddMacro(WordDocument document, byte[] data) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             if (data == null || data.Length == 0) throw new ArgumentNullException(nameof(data));
 
             var main = document._wordprocessingDocument.MainDocumentPart;
@@ -102,7 +102,7 @@ namespace OfficeIMO.Word {
         /// <param name="document">Document containing macros.</param>
         /// <returns>Byte array with the macros or <c>null</c> when absent.</returns>
         internal static byte[]? ExtractMacros(WordDocument document) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             var mainPart = document._wordprocessingDocument.MainDocumentPart;
             var vbaPart = mainPart?.VbaProjectPart;
             if (vbaPart == null) return null;
@@ -130,7 +130,7 @@ namespace OfficeIMO.Word {
         /// <param name="document">Document to modify.</param>
         /// <param name="name">Module name to remove.</param>
         internal static void RemoveMacro(WordDocument document, string name) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             if (string.IsNullOrEmpty(name)) throw new ArgumentNullException(nameof(name));
             if (!document.HasMacros) return;
 
@@ -170,7 +170,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="document">Document to modify.</param>
         internal static void RemoveMacros(WordDocument document) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             var main = document._wordprocessingDocument.MainDocumentPart;
             if (main?.VbaProjectPart == null) {
                 return;

@@ -34,7 +34,7 @@ public partial class WordDocument {
     internal static OfficeContentSafetyReport InspectContentSafety(
         byte[] documentBytes, OfficeContentSafetyOptions? options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (documentBytes == null) throw new ArgumentNullException(nameof(documentBytes));
+        ArgumentNullException.ThrowIfNull(documentBytes);
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         OfficeContentSafetyInputGuard.ValidateBytes(documentBytes, effective, inspectZipPackage: true);
         using var stream = new MemoryStream(documentBytes, writable: false);
@@ -47,8 +47,8 @@ public partial class WordDocument {
         byte[] documentBytes,
         OfficeContentCleanupSelection selection,
         OfficeContentCleanupOptions? options = null) {
-        if (documentBytes == null) throw new ArgumentNullException(nameof(documentBytes));
-        if (selection == null) throw new ArgumentNullException(nameof(selection));
+        ArgumentNullException.ThrowIfNull(documentBytes);
+        ArgumentNullException.ThrowIfNull(selection);
         options ??= new OfficeContentCleanupOptions();
         options.Validate();
         OfficeContentSafetyReport before = InspectContentSafety(documentBytes, options.Inspection);

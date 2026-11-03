@@ -25,7 +25,7 @@ namespace OfficeIMO.Word {
         /// <param name="height">Optional placed height; omitted dimensions use the image aspect ratio or intrinsic size at 96 DPI.</param>
         /// <param name="description">Alternative-text description stored with the image.</param>
         public WordTemplateImage(byte[] content, string fileName, global::OfficeIMO.OfficeLength? width = null, global::OfficeIMO.OfficeLength? height = null, string description = "") {
-            if (content == null) throw new ArgumentNullException(nameof(content));
+            ArgumentNullException.ThrowIfNull(content);
             if (content.Length == 0) throw new ArgumentException("Image content cannot be empty.", nameof(content));
             if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("Image file name cannot be empty.", nameof(fileName));
             if (width <= global::OfficeIMO.OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(width), "Image width must be positive.");
@@ -62,7 +62,7 @@ namespace OfficeIMO.Word {
     public sealed class WordTemplateHyperlink {
         /// <summary>Creates a hyperlink value.</summary>
         public WordTemplateHyperlink(string text, Uri uri, string tooltip = "", bool addStyle = true) {
-            if (text == null) throw new ArgumentNullException(nameof(text));
+            ArgumentNullException.ThrowIfNull(text);
             Uri = uri ?? throw new ArgumentNullException(nameof(uri));
             if (!uri.IsAbsoluteUri) throw new ArgumentException("Template hyperlinks require an absolute URI.", nameof(uri));
             Text = text;

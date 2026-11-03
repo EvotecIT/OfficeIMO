@@ -41,6 +41,6 @@ public sealed class OneNoteVisualPdfOptions {
         if (PdfOptions == null) throw new InvalidOperationException("PDF options cannot be null.");
         if (PageRendering == null) throw new InvalidOperationException("Page rendering options cannot be null.");
         if (double.IsNaN(RasterScale) || double.IsInfinity(RasterScale) || RasterScale <= 0D) throw new ArgumentOutOfRangeException(nameof(RasterScale));
-        if (MaximumRasterPixels < 1L) throw new ArgumentOutOfRangeException(nameof(MaximumRasterPixels));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumRasterPixels, 1L);
     }
 }

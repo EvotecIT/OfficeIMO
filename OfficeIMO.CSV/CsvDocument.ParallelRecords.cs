@@ -52,10 +52,7 @@ public sealed class CsvRecordHeader
     /// <summary>Returns the ordinal for a column name.</summary>
     public int GetOrdinal(string name)
     {
-        if (name is null)
-        {
-            throw new ArgumentNullException(nameof(name));
-        }
+        ArgumentNullException.ThrowIfNull(name);
 
         return _ordinals.TryGetValue(name, out int ordinal)
             ? ordinal
@@ -339,8 +336,8 @@ public sealed partial class CsvDocument
         ParallelRowMappingOptions? parallelOptions = null,
         CancellationToken cancellationToken = default)
     {
-        if (text is null) throw new ArgumentNullException(nameof(text));
-        if (factoryBuilder is null) throw new ArgumentNullException(nameof(factoryBuilder));
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentNullException.ThrowIfNull(factoryBuilder);
         return EnumerateTextRowsAsParallel(
             text,
             factoryBuilder,

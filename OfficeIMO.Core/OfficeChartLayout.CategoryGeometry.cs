@@ -18,7 +18,8 @@ public sealed partial class OfficeChartLayout {
     /// <param name="gapWidthPercent">The gap between clusters as a percentage of one bar's width, from 0 to 500.</param>
     /// <param name="overlapPercent">The overlap of clustered bars, from -100 to 100.</param>
     public OfficeChartLayout WithBarGeometry(int gapWidthPercent, int overlapPercent) {
-        if (gapWidthPercent < 0 || gapWidthPercent > 500) throw new ArgumentOutOfRangeException(nameof(gapWidthPercent));
+        ArgumentOutOfRangeException.ThrowIfNegative(gapWidthPercent);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(gapWidthPercent, 500);
         if (overlapPercent < -100 || overlapPercent > 100) throw new ArgumentOutOfRangeException(nameof(overlapPercent));
         var copy = (OfficeChartLayout)MemberwiseClone();
         copy.BarGapWidthPercent = gapWidthPercent;

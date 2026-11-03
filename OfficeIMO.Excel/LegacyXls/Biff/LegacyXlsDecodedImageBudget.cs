@@ -5,14 +5,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private int _decodedBytes;
 
         internal LegacyXlsDecodedImageBudget(int maximumBytes) {
-            if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
             _maximumBytes = maximumBytes;
         }
 
         internal int RemainingBytes => _maximumBytes - _decodedBytes;
 
         internal void Consume(int bytes) {
-            if (bytes < 0) throw new ArgumentOutOfRangeException(nameof(bytes));
+            ArgumentOutOfRangeException.ThrowIfNegative(bytes);
             _decodedBytes = checked(_decodedBytes + bytes);
             if (_decodedBytes > _maximumBytes) {
                 throw new InvalidDataException(

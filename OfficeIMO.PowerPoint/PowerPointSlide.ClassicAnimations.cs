@@ -18,7 +18,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointClassicAnimation AddClassicAnimation(PowerPointShape shape,
             PowerPointClassicAnimationEffect effect,
             PowerPointClassicAnimationOptions? options = null) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
             if (!ReferenceEquals(shape.OwnerSlide, this)) {
                 throw new ArgumentException("The animation target must belong to this slide.", nameof(shape));
             }
@@ -49,7 +49,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Removes the classic animation attached to a shape.</summary>
         public bool RemoveClassicAnimation(PowerPointShape shape) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
             if (!ReferenceEquals(shape.OwnerSlide, this)) {
                 throw new ArgumentException(
                     "The animation target must belong to this slide.",
@@ -71,7 +71,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Sets the embedded WAV or AIFF sound played with a shape's classic animation.</summary>
         public void SetClassicAnimationSound(PowerPointShape shape,
             string audioPath, bool stopExistingSounds = false) {
-            if (audioPath == null) throw new ArgumentNullException(nameof(audioPath));
+            ArgumentNullException.ThrowIfNull(audioPath);
             if (!File.Exists(audioPath)) {
                 throw new FileNotFoundException("Audio file not found.", audioPath);
             }
@@ -86,7 +86,7 @@ namespace OfficeIMO.PowerPoint {
         public void SetClassicAnimationSound(PowerPointShape shape, Stream audio,
             string name, string contentType = "audio/wav",
             string extension = ".wav", bool stopExistingSounds = false) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
             if (string.IsNullOrWhiteSpace(name)) {
                 throw new ArgumentException("An animation sound name is required.",
                     nameof(name));
@@ -119,7 +119,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Returns the exact embedded classic-animation sound bytes, when present.</summary>
         public byte[]? GetClassicAnimationSoundBytes(PowerPointShape shape) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
             uint? shapeId = shape.Id;
             PowerPointClassicAnimation? animation = shapeId.HasValue
                 ? ReadClassicAnimations().FirstOrDefault(item =>
@@ -131,7 +131,7 @@ namespace OfficeIMO.PowerPoint {
 
         internal void SetClassicAnimations(
             IReadOnlyList<PowerPointClassicAnimation> animations) {
-            if (animations == null) throw new ArgumentNullException(nameof(animations));
+            ArgumentNullException.ThrowIfNull(animations);
             IReadOnlyList<PowerPointClassicAnimation> previousAnimations =
                 ReadClassicAnimations();
             string[] previousSoundRelationships = previousAnimations
@@ -698,7 +698,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private uint EnsureClassicAnimationTarget(PowerPointShape shape) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
             if (!ReferenceEquals(shape.OwnerSlide, this)) {
                 throw new ArgumentException(
                     "The animation target must belong to this slide.",

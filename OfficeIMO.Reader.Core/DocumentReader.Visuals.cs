@@ -36,7 +36,7 @@ internal static partial class DocumentReaderEngine {
     /// <param name="options">Extraction options.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     public static IReadOnlyList<ReaderVisual> ReadVisuals(byte[] bytes, string? sourceName = null, ReaderOptions? options = null, CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         using var stream = new MemoryStream(bytes, writable: false);
         return ReadVisuals(stream, sourceName, options, cancellationToken);
     }
@@ -73,7 +73,7 @@ internal static partial class DocumentReaderEngine {
     /// <param name="indentedJson">When true, writes indented visual JSON payloads.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     public static IReadOnlyList<ReaderVisualExportBundle> ReadVisualExports(byte[] bytes, string? sourceName = null, ReaderOptions? options = null, bool indentedJson = false, CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         using var stream = new MemoryStream(bytes, writable: false);
         return ReadVisualExports(stream, sourceName, options, indentedJson, cancellationToken);
     }
@@ -84,7 +84,7 @@ internal static partial class DocumentReaderEngine {
     /// <param name="chunks">Reader chunks to inspect.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     public static IReadOnlyList<ReaderVisual> ExtractVisuals(IEnumerable<ReaderChunk> chunks, CancellationToken cancellationToken = default) {
-        if (chunks == null) throw new ArgumentNullException(nameof(chunks));
+        ArgumentNullException.ThrowIfNull(chunks);
 
         List<ReaderVisual>? visuals = null;
         foreach (ReaderChunk? chunk in chunks) {
@@ -109,7 +109,7 @@ internal static partial class DocumentReaderEngine {
     /// <param name="indentedJson">When true, writes indented visual JSON payloads.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     public static IReadOnlyList<ReaderVisualExportBundle> ExportVisuals(IEnumerable<ReaderVisual> visuals, bool indentedJson = false, CancellationToken cancellationToken = default) {
-        if (visuals == null) throw new ArgumentNullException(nameof(visuals));
+        ArgumentNullException.ThrowIfNull(visuals);
 
         List<ReaderVisualExportBundle>? exports = null;
         int index = 0;

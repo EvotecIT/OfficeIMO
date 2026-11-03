@@ -33,7 +33,7 @@ public static partial class HtmlImageExportExtensions {
         OfficeImageExportConsumer consumer,
         HtmlRenderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        ArgumentNullException.ThrowIfNull(consumer);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
             options, MapEncoder(format), HtmlRenderPageSet.All());
@@ -83,7 +83,7 @@ public static partial class HtmlImageExportExtensions {
         OfficeImageExportAsyncConsumer consumer,
         HtmlRenderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        ArgumentNullException.ThrowIfNull(consumer);
         HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
             options, MapEncoder(format), HtmlRenderPageSet.All());
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);

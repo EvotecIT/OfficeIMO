@@ -4,8 +4,8 @@ using OfficeIMO.Drawing;
 
 internal static class OdfImageStore {
     internal static string Add(OdfDocument document, byte[] data, string fileName) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(data);
         if (data.Length == 0) throw new ArgumentException("Image data cannot be empty.", nameof(data));
         if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("Image file name cannot be empty.", nameof(fileName));
         if (!OfficeRasterGuards.IsEncodedPayloadWithinLimits(data.Length))

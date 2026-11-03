@@ -138,7 +138,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         }
 
         internal void AddChartRecord(LegacyXlsChartRecord record) {
-            if (record == null) throw new ArgumentNullException(nameof(record));
+            ArgumentNullException.ThrowIfNull(record);
 
             ChartRecordCount++;
             Increment(_chartRecordsByKind, record.Kind);

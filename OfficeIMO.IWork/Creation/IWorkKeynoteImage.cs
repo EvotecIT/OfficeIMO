@@ -7,7 +7,7 @@ namespace OfficeIMO.IWork;
 public sealed class IWorkKeynoteImage : IWorkKeynoteCreationDrawable {
     internal IWorkKeynoteImage(byte[] data, float left, float top, float width, float height,
         string? accessibilityDescription, CancellationToken cancellationToken) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         IWorkCreationValidation.ValidateFinite(left, nameof(left));
         IWorkCreationValidation.ValidateFinite(top, nameof(top));
         IWorkCreationValidation.ValidatePositive(width, nameof(width));

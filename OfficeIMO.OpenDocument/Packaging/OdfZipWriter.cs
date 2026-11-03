@@ -15,7 +15,7 @@ internal static class OdfZipWriter {
     private static readonly uint[] CrcTable = CreateCrcTable();
 
     internal static byte[] Write(IReadOnlyList<OdfZipWriteEntry> entries, bool deterministic) {
-        if (entries == null) throw new ArgumentNullException(nameof(entries));
+        ArgumentNullException.ThrowIfNull(entries);
         if (entries.Count == 0 || !string.Equals(entries[0].Name, "mimetype", StringComparison.Ordinal)) {
             throw new InvalidOperationException("OpenDocument ZIP output must begin with the 'mimetype' entry.");
         }

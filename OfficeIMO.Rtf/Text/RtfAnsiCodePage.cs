@@ -124,7 +124,7 @@ internal static partial class RtfAnsiCodePage {
     }
 
     public static string DecodeBytes(int codePage, byte[] bytes) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         return Encoding.GetEncoding(
             codePage,
             EncoderFallback.ReplacementFallback,

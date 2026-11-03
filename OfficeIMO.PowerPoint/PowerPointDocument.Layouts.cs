@@ -56,9 +56,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public int GetLayoutIndex(string layoutName, int masterIndex = 0, bool ignoreCase = true) {
             ThrowIfDisposed();
-            if (layoutName == null) {
-                throw new ArgumentNullException(nameof(layoutName));
-            }
+            ArgumentNullException.ThrowIfNull(layoutName);
 
             SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
             SlideLayoutPart[] layouts = masterPart.SlideLayoutParts.ToArray();
@@ -127,9 +125,8 @@ namespace OfficeIMO.PowerPoint {
         internal SlideLayoutPart GetSlideLayoutPart(int masterIndex, int layoutIndex) {
             SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
             SlideLayoutPart[] layouts = masterPart.SlideLayoutParts.ToArray();
-            if (layoutIndex < 0 || layoutIndex >= layouts.Length) {
-                throw new ArgumentOutOfRangeException(nameof(layoutIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(layoutIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(layoutIndex, layouts.Length);
             return layouts[layoutIndex];
         }
 

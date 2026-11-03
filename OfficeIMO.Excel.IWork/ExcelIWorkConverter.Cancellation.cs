@@ -15,7 +15,7 @@ public static partial class ExcelIWorkConverter {
     public static NumbersToExcelResult ConvertNumbersToExcelResult(string path,
         IWorkReadOptions? readOptions, IWorkConversionOptions? conversionOptions,
         CancellationToken cancellationToken) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         cancellationToken.ThrowIfCancellationRequested();
         return ProjectNumbers(IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers,
             readOptions, cancellationToken), conversionOptions);
@@ -32,7 +32,7 @@ public static partial class ExcelIWorkConverter {
     public static NumbersToExcelResult ConvertNumbersToExcelResult(Stream stream,
         IWorkReadOptions? readOptions, IWorkConversionOptions? conversionOptions,
         CancellationToken cancellationToken) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         cancellationToken.ThrowIfCancellationRequested();
         return ProjectNumbers(IWorkSourceDocument.Open(stream, IWorkDocumentKind.Numbers,
             readOptions, cancellationToken), conversionOptions);

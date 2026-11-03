@@ -11,10 +11,10 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             IReadOnlyList<ExcelSheet> sheets,
             LegacyXlsFontTable fontTable,
             LegacyXlsFormulaNameIndex formulaNameIndex) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (sheets == null) throw new ArgumentNullException(nameof(sheets));
-            if (fontTable == null) throw new ArgumentNullException(nameof(fontTable));
-            if (formulaNameIndex == null) throw new ArgumentNullException(nameof(formulaNameIndex));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(sheets);
+            ArgumentNullException.ThrowIfNull(fontTable);
+            ArgumentNullException.ThrowIfNull(formulaNameIndex);
 
             WorkbookPart workbookPart = document.WorkbookPartRoot;
             Workbook workbook = document.WorkbookRoot;

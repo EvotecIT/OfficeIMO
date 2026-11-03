@@ -26,7 +26,7 @@ public sealed class OdgToPdfOptions {
     };
 
     internal OdgToPdfOptions Snapshot() {
-        if (MaximumPages < 1) throw new ArgumentOutOfRangeException(nameof(MaximumPages));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumPages, 1);
         if (LossPolicy < OdfConversionLossPolicy.ReportOnly || LossPolicy > OdfConversionLossPolicy.ThrowOnAnyLoss)
             throw new ArgumentOutOfRangeException(nameof(LossPolicy));
         return Clone();

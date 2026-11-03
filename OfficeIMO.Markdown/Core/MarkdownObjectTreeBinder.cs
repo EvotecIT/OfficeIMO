@@ -2,9 +2,7 @@ namespace OfficeIMO.Markdown;
 
 internal static class MarkdownObjectTreeBinder {
     internal static void BindDocument(MarkdownDocument document, MarkdownSyntaxNode? syntaxTree = null) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
         BindObject(document, parent: null, indexInParent: null, previousSibling: null, nextSibling: null);
 
@@ -16,9 +14,7 @@ internal static class MarkdownObjectTreeBinder {
     }
 
     internal static void BindSourceSpans(MarkdownSyntaxNode syntaxNode) {
-        if (syntaxNode == null) {
-            throw new ArgumentNullException(nameof(syntaxNode));
-        }
+        ArgumentNullException.ThrowIfNull(syntaxNode);
 
         MapSourceSpans(syntaxNode);
     }

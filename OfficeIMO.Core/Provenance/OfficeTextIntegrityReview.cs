@@ -40,7 +40,7 @@ public sealed class OfficeTextIntegrityReview {
     /// <summary>Reviews strict UTF-8 or BOM-declared UTF-16/32, preserving encoding and the original BOM on export.</summary>
     public static OfficeTextIntegrityReview Inspect(byte[] data, OfficeTextIntegrityOptions? options = null,
         string location = "Text", CancellationToken cancellationToken = default) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         options ??= new OfficeTextIntegrityOptions();
         if (data.LongLength > options.MaxEncodedBytes) throw new InvalidDataException("The text exceeds the encoded byte limit.");
         data = (byte[])data.Clone();
@@ -52,14 +52,14 @@ public sealed class OfficeTextIntegrityReview {
     public string RemoveSelected(string currentText, IEnumerable<int> selectedIndices) {
         if (!string.Equals(currentText, Text, StringComparison.Ordinal))
             throw new InvalidOperationException("The text changed after inspection. Inspect it again before applying selections.");
-        if (selectedIndices == null) throw new ArgumentNullException(nameof(selectedIndices));
+        ArgumentNullException.ThrowIfNull(selectedIndices);
         int[] indices = selectedIndices.Distinct().OrderBy(index => index).ToArray();
         if (indices.Any(index => index < 0 || index >= Report.Findings.Count)) throw new ArgumentOutOfRangeException(nameof(selectedIndices));
         return OfficeTextIntegrityCleaner.RemoveSelected(Text, indices.Select(index => Report.Findings[index]));
     }
     /// <summary>Calculates a lowercase SHA-256 digest of encoded bytes.</summary>
     public static string ComputeSha256(byte[] data) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         using (SHA256 algorithm = SHA256.Create()) return BitConverter.ToString(algorithm.ComputeHash(data)).Replace("-", "").ToLowerInvariant();
     }
     /// <summary>Exports a separate copy in the original encoding, preserving line endings and unselected code points.</summary>

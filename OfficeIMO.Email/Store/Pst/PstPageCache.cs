@@ -7,7 +7,7 @@ internal sealed class PstPageCache {
     private readonly LinkedList<long> _usage = new LinkedList<long>();
 
     internal PstPageCache(int capacity) {
-        if (capacity <= 0) throw new ArgumentOutOfRangeException(nameof(capacity));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
         _capacity = capacity;
     }
 

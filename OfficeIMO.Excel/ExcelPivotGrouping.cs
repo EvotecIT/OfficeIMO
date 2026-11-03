@@ -111,7 +111,7 @@ namespace OfficeIMO.Excel {
         internal bool HasGeneratedDateLevels => GeneratedDateLevels.Count > 0;
 
         private static IReadOnlyList<ExcelPivotGroupBy> NormalizeDateHierarchyLevels(IEnumerable<ExcelPivotGroupBy> levels) {
-            if (levels == null) throw new ArgumentNullException(nameof(levels));
+            ArgumentNullException.ThrowIfNull(levels);
 
             var list = new List<ExcelPivotGroupBy>();
             var used = new HashSet<ExcelPivotGroupBy>();

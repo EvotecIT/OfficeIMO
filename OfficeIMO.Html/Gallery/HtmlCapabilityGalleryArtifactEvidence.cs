@@ -11,7 +11,7 @@ public sealed class HtmlCapabilityGalleryArtifactEvidence : IOfficeConversionRep
         string dimensionUnit,
         IEnumerable<HtmlDiagnostic> diagnostics,
         IEnumerable<HtmlCapabilityGalleryCheck> checks) {
-        if (pageCount < 1) throw new ArgumentOutOfRangeException(nameof(pageCount));
+        ArgumentOutOfRangeException.ThrowIfLessThan(pageCount, 1);
         if (pageNumber.HasValue && (pageNumber < 1 || pageNumber > pageCount)) throw new ArgumentOutOfRangeException(nameof(pageNumber));
         if (width.HasValue && (!(width > 0) || double.IsInfinity(width.Value))) throw new ArgumentOutOfRangeException(nameof(width));
         if (height.HasValue && (!(height > 0) || double.IsInfinity(height.Value))) throw new ArgumentOutOfRangeException(nameof(height));

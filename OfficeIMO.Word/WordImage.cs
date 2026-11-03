@@ -180,7 +180,7 @@ namespace OfficeIMO.Word {
                     : ResolveImagePart()?.Uri.ToString().Split('/').LastOrDefault();
             }
             set {
-                if (value == null) throw new ArgumentNullException(nameof(value));
+                ArgumentNullException.ThrowIfNull(value);
                 if (_vmlShape != null) {
                     if (_vmlImageData != null) _vmlImageData.Title = value;
                     return;

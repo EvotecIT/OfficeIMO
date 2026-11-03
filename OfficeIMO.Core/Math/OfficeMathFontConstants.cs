@@ -18,8 +18,8 @@ public sealed class OfficeMathFontConstants {
 
     /// <summary>Creates a detached snapshot for a font provider. Supply every named constant in design units.</summary>
     public OfficeMathFontConstants(int unitsPerEm, IReadOnlyDictionary<OfficeMathConstant, int> values) {
-        if (unitsPerEm <= 0) throw new ArgumentOutOfRangeException(nameof(unitsPerEm));
-        if (values == null) throw new ArgumentNullException(nameof(values));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(unitsPerEm);
+        ArgumentNullException.ThrowIfNull(values);
         if (values.Count != 56) throw new ArgumentException("Supply all 56 OpenType math constants.", nameof(values));
         _values = new int[56];
         for (int index = 0; index < _values.Length; index++) {

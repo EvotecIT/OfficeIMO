@@ -7,7 +7,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
         internal static IReadOnlyList<PowerPointShape> ReadMasterShapesForWrite(
             SlideMasterPart masterPart, out string? unsupportedReason) {
-            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            ArgumentNullException.ThrowIfNull(masterPart);
             return ReadMasterShapesForWrite(masterPart,
                 masterPart.SlideMaster?.CommonSlideData?.ShapeTree,
                 "slide master", out unsupportedReason);
@@ -15,7 +15,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static IReadOnlyList<PowerPointShape> ReadMasterShapesForWrite(
             NotesMasterPart masterPart, out string? unsupportedReason) {
-            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            ArgumentNullException.ThrowIfNull(masterPart);
             return ReadMasterShapesForWrite(masterPart,
                 masterPart.NotesMaster?.CommonSlideData?.ShapeTree,
                 "notes master", out unsupportedReason);
@@ -23,7 +23,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static IReadOnlyList<PowerPointShape> ReadMasterShapesForWrite(
             HandoutMasterPart masterPart, out string? unsupportedReason) {
-            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            ArgumentNullException.ThrowIfNull(masterPart);
             return ReadMasterShapesForWrite(masterPart,
                 masterPart.HandoutMaster?.CommonSlideData?.ShapeTree,
                 "handout master", out unsupportedReason);
@@ -31,7 +31,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static IReadOnlyList<PowerPointShape> ReadMasterShapesForWrite(
             SlideLayoutPart masterPart, out string? unsupportedReason) {
-            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            ArgumentNullException.ThrowIfNull(masterPart);
             return ReadMasterShapesForWrite(masterPart,
                 masterPart.SlideLayout?.CommonSlideData?.ShapeTree,
                 "title master layout", out unsupportedReason);

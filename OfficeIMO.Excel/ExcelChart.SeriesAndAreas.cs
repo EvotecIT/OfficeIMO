@@ -15,9 +15,7 @@ namespace OfficeIMO.Excel {
         /// Removes the fill from a chart series and optionally removes its outline.
         /// </summary>
         public ExcelChart SetSeriesNoFill(int seriesIndex, bool noLine = true) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
@@ -39,9 +37,7 @@ namespace OfficeIMO.Excel {
         /// Sets the fill color for a chart series by index.
         /// </summary>
         public ExcelChart SetSeriesFillColor(int seriesIndex, OfficeColor color) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
@@ -61,9 +57,7 @@ namespace OfficeIMO.Excel {
         /// Sets the fill color for a chart series by name.
         /// </summary>
         public ExcelChart SetSeriesFillColor(string seriesName, OfficeColor color, bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
@@ -84,9 +78,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetSeriesLineColor(int seriesIndex, OfficeColor color, OfficeLength? width = null) {
             OfficeChartStyleBounds.ValidateLineWidth(width?.ToPoints(), nameof(width), allowZero: true);
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
@@ -107,9 +99,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetSeriesLineColor(string seriesName, OfficeColor color, OfficeLength? width = null, bool ignoreCase = true) {
             OfficeChartStyleBounds.ValidateLineWidth(width?.ToPoints(), nameof(width), allowZero: true);
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
@@ -129,12 +119,8 @@ namespace OfficeIMO.Excel {
         /// Sets the fill color for one point in a chart series by index.
         /// </summary>
         public ExcelChart SetSeriesPointFillColor(int seriesIndex, int pointIndex, OfficeColor color) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
-            if (pointIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(pointIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
+            ArgumentOutOfRangeException.ThrowIfNegative(pointIndex);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 ApplyPointFill(series, pointIndex, color);
@@ -152,12 +138,8 @@ namespace OfficeIMO.Excel {
         /// Sets the fill color for one point in a chart series by name.
         /// </summary>
         public ExcelChart SetSeriesPointFillColor(string seriesName, int pointIndex, OfficeColor color, bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
-            if (pointIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(pointIndex));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
+            ArgumentOutOfRangeException.ThrowIfNegative(pointIndex);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 ApplyPointFill(series, pointIndex, color);
@@ -175,9 +157,7 @@ namespace OfficeIMO.Excel {
         /// Sets the marker style for a chart series by index.
         /// </summary>
         public ExcelChart SetSeriesMarker(int seriesIndex, OfficeChartMarkerShape style, OfficeLength? size = null, OfficeColor? fillColor = null, OfficeColor? lineColor = null, OfficeLength? lineWidth = null) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             if (size.HasValue && (size.Value < OfficeLength.Points(2) || size.Value > OfficeLength.Points(72))) {
                 throw new ArgumentOutOfRangeException(nameof(size), "Marker size must be between 2 and 72.");
             }
@@ -199,9 +179,7 @@ namespace OfficeIMO.Excel {
         /// Sets the marker style for a chart series by name.
         /// </summary>
         public ExcelChart SetSeriesMarker(string seriesName, OfficeChartMarkerShape style, OfficeLength? size = null, OfficeColor? fillColor = null, OfficeColor? lineColor = null, OfficeLength? lineWidth = null, bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
             if (size.HasValue && (size.Value < OfficeLength.Points(2) || size.Value > OfficeLength.Points(72))) {
                 throw new ArgumentOutOfRangeException(nameof(size), "Marker size must be between 2 and 72.");
             }
@@ -271,9 +249,7 @@ namespace OfficeIMO.Excel {
         public ExcelChart SetSeriesTrendline(int seriesIndex, OfficeChartTrendlineType type,
             int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null,
             bool displayEquation = false, bool displayRSquared = false, OfficeColor? lineColor = null, OfficeLength? lineWidth = null) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             ValidateTrendline(type, order, period, forward, backward, lineColor, lineWidth);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
@@ -295,9 +271,7 @@ namespace OfficeIMO.Excel {
             int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null,
             bool displayEquation = false, bool displayRSquared = false, OfficeColor? lineColor = null, OfficeLength? lineWidth = null,
             bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
             ValidateTrendline(type, order, period, forward, backward, lineColor, lineWidth);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
@@ -316,9 +290,7 @@ namespace OfficeIMO.Excel {
         /// Removes trendlines from a chart series by index.
         /// </summary>
         public ExcelChart ClearSeriesTrendline(int seriesIndex) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 series.RemoveAllChildren<C.Trendline>();
@@ -336,9 +308,7 @@ namespace OfficeIMO.Excel {
         /// Removes trendlines from a chart series by name.
         /// </summary>
         public ExcelChart ClearSeriesTrendline(string seriesName, bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 series.RemoveAllChildren<C.Trendline>();

@@ -23,7 +23,7 @@ namespace OfficeIMO.Word.Markdown {
     /// </summary>
     internal partial class WordToMarkdownConverter {
         public MarkdownDocument ConvertToDocument(WordDocument document, WordMarkdownExportOptions options, CancellationToken cancellationToken = default) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             options ??= new WordMarkdownExportOptions();
 
             var markdown = MarkdownDocument.Create();

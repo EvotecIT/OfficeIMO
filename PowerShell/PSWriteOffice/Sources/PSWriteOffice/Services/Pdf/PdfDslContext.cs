@@ -40,7 +40,7 @@ internal sealed class PdfDslContext : IDisposable
 
     public void ConfigureDocument(Action<PdfDocument> action)
     {
-        if (action == null) throw new ArgumentNullException(nameof(action));
+        ArgumentNullException.ThrowIfNull(action);
         _documentActions.Add(action);
     }
 

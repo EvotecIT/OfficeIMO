@@ -100,7 +100,7 @@ public static class ReaderVisualExportMaterializer {
         string directoryPath,
         ReaderVisualExportMaterializationOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (exports == null) throw new ArgumentNullException(nameof(exports));
+        ArgumentNullException.ThrowIfNull(exports);
         if (string.IsNullOrWhiteSpace(directoryPath)) throw new ArgumentException("Directory path cannot be empty.", nameof(directoryPath));
 
         ReaderVisualExportMaterializationOptions effectiveOptions = options ?? new ReaderVisualExportMaterializationOptions();
@@ -161,8 +161,8 @@ public static class ReaderVisualExportMaterializer {
         Action<ReaderVisualExportBundle, ReaderVisualExportFormat, Stream> writeExport,
         ReaderVisualExportMaterializationOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (exports == null) throw new ArgumentNullException(nameof(exports));
-        if (writeExport == null) throw new ArgumentNullException(nameof(writeExport));
+        ArgumentNullException.ThrowIfNull(exports);
+        ArgumentNullException.ThrowIfNull(writeExport);
 
         ReaderVisualExportMaterializationOptions effectiveOptions = options ?? new ReaderVisualExportMaterializationOptions();
         var results = new List<ReaderVisualMaterializedExport>();

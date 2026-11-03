@@ -24,7 +24,7 @@ public sealed class OfficeDrawingEffectGroup : OfficeDrawingElement {
         OfficeBlendMode blendMode,
         OfficeDrawingSoftMask? softMask = null,
         double opacity = 1D) {
-        if (drawing == null) throw new ArgumentNullException(nameof(drawing));
+        ArgumentNullException.ThrowIfNull(drawing);
         if (double.IsNaN(opacity) || double.IsInfinity(opacity) || opacity < 0D || opacity > 1D) {
             throw new ArgumentOutOfRangeException(nameof(opacity), "Group opacity must be between zero and one.");
         }

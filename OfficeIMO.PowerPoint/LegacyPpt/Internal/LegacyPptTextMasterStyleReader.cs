@@ -6,7 +6,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal static LegacyPptTextMasterStyle? Read(LegacyPptRecord record,
             LegacyPptColorScheme? colorScheme,
             IReadOnlyDictionary<ushort, LegacyPptFont>? fonts) {
-            if (record == null) throw new ArgumentNullException(nameof(record));
+            ArgumentNullException.ThrowIfNull(record);
             if (!TryMapTextType(record.Instance, out LegacyPptTextType textType)) return null;
             try {
                 var cursor = new LegacyPptTextPropertyCursor(record, "TextMasterStyleAtom");
@@ -50,8 +50,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             LegacyPptTextMasterStyle style, LegacyPptRecord record,
             IReadOnlyDictionary<ushort, LegacyPptPictureBullet>?
                 pictureBullets = null) {
-            if (style == null) throw new ArgumentNullException(nameof(style));
-            if (record == null) throw new ArgumentNullException(nameof(record));
+            ArgumentNullException.ThrowIfNull(style);
+            ArgumentNullException.ThrowIfNull(record);
             try {
                 if (record.Version != 0 || record.Type != 0x0FAD
                     || !TryMapTextType(record.Instance,

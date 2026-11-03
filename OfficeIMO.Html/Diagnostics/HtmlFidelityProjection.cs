@@ -3,7 +3,7 @@ namespace OfficeIMO.Html;
 /// <summary>Projects compatibility-tolerant HTML diagnostics into the strict shared fidelity contract.</summary>
 internal static class HtmlFidelityProjection {
     internal static OfficeConversionFidelityDiagnostic From(HtmlDiagnostic diagnostic) {
-        if (diagnostic == null) throw new ArgumentNullException(nameof(diagnostic));
+        ArgumentNullException.ThrowIfNull(diagnostic);
         string code = string.IsNullOrWhiteSpace(diagnostic.Code)
             ? "HTML_DIAGNOSTIC_UNCATEGORIZED"
             : diagnostic.Code;

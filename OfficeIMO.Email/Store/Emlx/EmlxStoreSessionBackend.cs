@@ -53,7 +53,7 @@ internal sealed class EmlxStoreSessionBackend : IEmailStoreSessionBackend {
 
     public EmailStoreItem ReadItem(EmailStoreItemReference reference, EmailStoreItemReadOptions options,
         CancellationToken cancellationToken) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         ValidateReference(reference, cancellationToken);
         bool includeContent = options.Includes(EmailStoreItemReadParts.AttachmentContent);
         EmailStoreReadResult result = new EmlxStoreReader(_options, includeContent, options.MaxDecodedPropertyBytes,

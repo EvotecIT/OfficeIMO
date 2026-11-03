@@ -56,9 +56,8 @@ public sealed class EmailStoreContentSearchCheckpoint {
 
     internal static EmailStoreContentSearchCheckpoint Create(long itemOffset, string sourceFingerprint,
         string querySignature) {
-        if (itemOffset < 0 || itemOffset > int.MaxValue) {
-            throw new ArgumentOutOfRangeException(nameof(itemOffset));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegative(itemOffset);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(itemOffset, int.MaxValue);
         using var stream = new MemoryStream();
         using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true)) {
             writer.Write(Magic); writer.Write(Version); writer.Write(itemOffset);

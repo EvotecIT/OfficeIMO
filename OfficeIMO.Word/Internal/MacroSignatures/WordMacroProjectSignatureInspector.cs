@@ -41,7 +41,7 @@ namespace OfficeIMO.Word {
             string filePath,
             IOfficeSecurityProvider securityProvider,
             WordMacroProjectSignatureInspectionOptions? options = null) {
-            if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
+            ArgumentNullException.ThrowIfNull(securityProvider);
             options ??= new WordMacroProjectSignatureInspectionOptions();
             using var operationBudget = new InspectionBudget(options, securityProvider);
             return Inspect(filePath, options, operationBudget);
@@ -135,7 +135,7 @@ namespace OfficeIMO.Word {
         }
 
         internal static void ValidateOptions(WordMacroProjectSignatureInspectionOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             if (options.MaxMacroProjectBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxMacroProjectBytes));
             if (options.MaxSignatureBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxSignatureBytes));
             if (options.MaxTotalSignatureBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalSignatureBytes));
@@ -330,7 +330,7 @@ namespace OfficeIMO.Word {
         }
 
         private static void ValidateCmsOptions(CmsVerificationOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             if (options.MaxEncodedBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxEncodedBytes));
             if (options.MaxContentBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxContentBytes));
             if (options.MaxSigners <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxSigners));

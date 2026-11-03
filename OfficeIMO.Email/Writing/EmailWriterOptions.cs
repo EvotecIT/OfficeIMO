@@ -31,8 +31,8 @@ public sealed class EmailWriterOptions {
         if (base64LineLength < 4 || base64LineLength > 998 || base64LineLength % 4 != 0) {
             throw new ArgumentOutOfRangeException(nameof(base64LineLength), "Base64 line length must be a multiple of four from 4 through 996.");
         }
-        if (maxNestedMessageDepth < 0) throw new ArgumentOutOfRangeException(nameof(maxNestedMessageDepth));
-        if (maxOutputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxOutputBytes));
+        ArgumentOutOfRangeException.ThrowIfNegative(maxNestedMessageDepth);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxOutputBytes);
         UsePreservedRawSource = usePreservedRawSource;
         IncludeBccHeader = includeBccHeader;
         Base64LineLength = base64LineLength;

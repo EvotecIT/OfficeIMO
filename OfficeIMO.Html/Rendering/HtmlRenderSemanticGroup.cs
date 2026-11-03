@@ -170,7 +170,7 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
             paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource, LogicalOrder, ListStyleType);
 
     private static ReadOnlyCollection<HtmlRenderVisual> OrderVisuals(IEnumerable<HtmlRenderVisual> visuals) {
-        if (visuals == null) throw new ArgumentNullException(nameof(visuals));
+        ArgumentNullException.ThrowIfNull(visuals);
         var materialized = new List<HtmlRenderVisual>(visuals);
         bool ordered = true;
         for (int index = 1; index < materialized.Count; index++) {

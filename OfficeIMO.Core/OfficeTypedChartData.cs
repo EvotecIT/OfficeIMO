@@ -11,9 +11,9 @@ namespace OfficeIMO;
 /// <summary>Projects typed authoring data once for all three native Office chart writers.</summary>
 internal static class OfficeTypedChartData {
     internal static OfficeChartData Create<T, TCategory>(IEnumerable<T> data, Func<T, TCategory> category, OfficeSeries[] series) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
-        if (category == null) throw new ArgumentNullException(nameof(category));
-        if (series == null) throw new ArgumentNullException(nameof(series));
+        ArgumentNullException.ThrowIfNull(data);
+        ArgumentNullException.ThrowIfNull(category);
+        ArgumentNullException.ThrowIfNull(series);
         var categories = data.Select(row => Convert.ToString(category(row), CultureInfo.InvariantCulture) ?? string.Empty).ToArray();
         foreach (var item in series) {
             if (item == null) throw new ArgumentException("Series must not contain null entries.", nameof(series));
@@ -24,8 +24,8 @@ internal static class OfficeTypedChartData {
 
     internal static OfficeChartData Create<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
         IEnumerable<T> data, string category, string[] values) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
-        if (values == null) throw new ArgumentNullException(nameof(values));
+        ArgumentNullException.ThrowIfNull(data);
+        ArgumentNullException.ThrowIfNull(values);
         if (values.Length == 0) throw new ArgumentException("Select at least one numeric series property.", nameof(values));
         var categoryProperty = Property(typeof(T), category);
         var numericProperties = values.Select(name => Property(typeof(T), name)).ToArray();

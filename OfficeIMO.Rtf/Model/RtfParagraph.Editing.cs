@@ -7,8 +7,8 @@ public sealed partial class RtfParagraph {
     /// unaffected prefix and suffix runs keep their existing formatting.
     /// </summary>
     public int ReplaceText(string oldText, string newText, StringComparison comparison = StringComparison.Ordinal) {
-        if (oldText == null) throw new ArgumentNullException(nameof(oldText));
-        if (newText == null) throw new ArgumentNullException(nameof(newText));
+        ArgumentNullException.ThrowIfNull(oldText);
+        ArgumentNullException.ThrowIfNull(newText);
         if (oldText.Length == 0) throw new ArgumentException("Text to replace cannot be empty.", nameof(oldText));
 
         int replacements = 0;
@@ -84,7 +84,8 @@ public sealed partial class RtfParagraph {
     }
 
     internal void ReplaceInlineRange(int startIndex, int count, string? replacement) {
-        if (startIndex < 0 || startIndex > _inlines.Count) throw new ArgumentOutOfRangeException(nameof(startIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(startIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(startIndex, _inlines.Count);
         if (count < 0 || startIndex + count > _inlines.Count) throw new ArgumentOutOfRangeException(nameof(count));
         _inlines.RemoveRange(startIndex, count);
         if (!string.IsNullOrEmpty(replacement)) _inlines.Insert(startIndex, new RtfRun(replacement!));

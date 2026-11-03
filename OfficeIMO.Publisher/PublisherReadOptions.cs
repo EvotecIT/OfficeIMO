@@ -21,14 +21,14 @@ public sealed class PublisherReadOptions {
 
     /// <summary>Creates a validated independent options copy. A supplied application image codec remains shared.</summary>
     public PublisherReadOptions Clone() {
-        if (Limits == null) throw new ArgumentNullException(nameof(Limits));
+        ArgumentNullException.ThrowIfNull(Limits);
         Limits.Validate();
-        if (MaximumPages < 1) throw new ArgumentOutOfRangeException(nameof(MaximumPages));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumPages, 1);
         if (MaximumNestingDepth < 1 || MaximumNestingDepth > 128) throw new ArgumentOutOfRangeException(nameof(MaximumNestingDepth));
-        if (MaximumImageBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaximumImageBytes));
-        if (MaximumTotalImageBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaximumTotalImageBytes));
-        if (MaximumRasterPixels < 1) throw new ArgumentOutOfRangeException(nameof(MaximumRasterPixels));
-        if (MaximumImageProcessingPixels < 1) throw new ArgumentOutOfRangeException(nameof(MaximumImageProcessingPixels));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumImageBytes, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumTotalImageBytes, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumRasterPixels, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumImageProcessingPixels, 1);
         return new PublisherReadOptions {
             Limits = Limits.Clone(), MaximumPages = MaximumPages, MaximumNestingDepth = MaximumNestingDepth,
             MaximumImageBytes = MaximumImageBytes, MaximumTotalImageBytes = MaximumTotalImageBytes,

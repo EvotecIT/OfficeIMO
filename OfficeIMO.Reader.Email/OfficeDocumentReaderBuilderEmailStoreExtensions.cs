@@ -12,7 +12,7 @@ public static class OfficeDocumentReaderBuilderEmailStoreExtensions {
         this OfficeDocumentReaderBuilder builder,
         ReaderEmailStoreOptions? options = null,
         bool replaceExisting = false) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderEmailStoreOptions registeredOptions = ReaderEmailStoreOptionsCloner.CloneOrDefault(options);
         EmailStoreReaderOptions storeOptions = registeredOptions.StoreOptions ?? EmailStoreReaderOptions.Default;
         return builder.AddHandler(new ReaderHandlerRegistration {

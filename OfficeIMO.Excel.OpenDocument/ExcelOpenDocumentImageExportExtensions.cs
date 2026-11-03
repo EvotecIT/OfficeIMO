@@ -32,8 +32,8 @@ public static class ExcelOpenDocumentImageExportExtensions {
         ExcelImageExportOptions? imageOptions = null,
         ExcelOpenDocumentConversionOptions? conversionOptions = null,
         CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
-        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(consumer);
         ExcelImageExportOptions effective =
             imageOptions?.Clone() ?? new ExcelImageExportOptions();
         OdfConversionResult<ExcelDocument> conversion =

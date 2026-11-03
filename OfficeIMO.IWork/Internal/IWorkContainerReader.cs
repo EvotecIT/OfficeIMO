@@ -59,7 +59,7 @@ internal static class IWorkContainerReader {
     internal static IWorkPackageData Read(Stream stream, IWorkReadOptions options,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("The source stream must be readable.", nameof(stream));
         byte[] package = ReadBounded(stream, options.MaximumPackageBytes, "package", cancellationToken);
         using var copy = new MemoryStream(package, writable: false);

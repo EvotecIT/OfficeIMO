@@ -264,9 +264,7 @@ namespace OfficeIMO.PowerPoint {
         /// Sets a hyperlink for this run.
         /// </summary>
         public void SetHyperlink(string url, string? tooltip = null) {
-            if (url == null) {
-                throw new ArgumentNullException(nameof(url));
-            }
+            ArgumentNullException.ThrowIfNull(url);
 
             SetHyperlink(new Uri(url, UriKind.RelativeOrAbsolute), tooltip);
         }
@@ -275,9 +273,7 @@ namespace OfficeIMO.PowerPoint {
         /// Sets a hyperlink for this run.
         /// </summary>
         public void SetHyperlink(Uri uri, string? tooltip = null) {
-            if (uri == null) {
-                throw new ArgumentNullException(nameof(uri));
-            }
+            ArgumentNullException.ThrowIfNull(uri);
             if (!uri.IsAbsoluteUri && _slidePart != null
                 && PowerPointHyperlinkResolver.TryResolveSlideFragment(
                     _slidePart, uri, out SlidePart? targetSlidePart)) {
@@ -303,9 +299,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void SetHyperlink(PowerPointSlide targetSlide,
             string? tooltip = null) {
-            if (targetSlide == null) {
-                throw new ArgumentNullException(nameof(targetSlide));
-            }
+            ArgumentNullException.ThrowIfNull(targetSlide);
             SetInternalHyperlink(targetSlide.SlidePart, tooltip);
         }
 

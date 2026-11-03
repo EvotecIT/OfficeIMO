@@ -15,7 +15,7 @@ public static class MermaidMarkdownAdapter {
     /// <summary>Replaces successfully rendered Mermaid fences in place with embedded PNG images.</summary>
     /// <remarks>Nested fences and captions are preserved. Unsupported or invalid fences remain source blocks and report diagnostics.</remarks>
     public static MarkdownDocument Materialize(MarkdownDocument document, Action<MarkupDiagnostic>? diagnostic = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return document.Rewrite(new ImageRewriter(diagnostic));
     }
 
@@ -26,7 +26,7 @@ public static class MermaidMarkdownAdapter {
     /// <summary>Registers static SVG image rendering and disables the Mermaid browser runtime.</summary>
     /// <remarks>Each SVG is an embedded image document, isolating its IDs from other diagrams. Failed renders retain the ordinary source fence.</remarks>
     public static void ConfigureHtml(MarkdownRendererOptions options, Action<MarkupDiagnostic>? diagnostic = null) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         options.Mermaid.Enabled = false;
         const string name = "ChartForgeX static Mermaid";
         for (int index = options.FencedCodeBlockRenderers.Count - 1; index >= 0; index--) {

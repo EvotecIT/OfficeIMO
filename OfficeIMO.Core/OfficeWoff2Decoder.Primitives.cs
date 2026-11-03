@@ -99,7 +99,7 @@ internal static partial class OfficeWoff2Decoder {
         private readonly int _maximumCount;
 
         internal ByteBuilder(int maximumCount = int.MaxValue) {
-            if (maximumCount < 0) throw new ArgumentOutOfRangeException(nameof(maximumCount));
+            ArgumentOutOfRangeException.ThrowIfNegative(maximumCount);
             _maximumCount = maximumCount;
             _bytes = new List<byte>(Math.Min(maximumCount, 4096));
         }
@@ -113,7 +113,7 @@ internal static partial class OfficeWoff2Decoder {
         }
 
         internal void Add(byte[] data) {
-            if (data == null) throw new ArgumentNullException(nameof(data));
+            ArgumentNullException.ThrowIfNull(data);
             EnsureCapacity(data.Length);
             _bytes.AddRange(data);
         }

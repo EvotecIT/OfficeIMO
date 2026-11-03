@@ -12,7 +12,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public static VisioPage RelayoutDiagram(this VisioPage page,
             VisioWholeDiagramRelayoutOptions? options = null) {
-            if (page == null) throw new ArgumentNullException(nameof(page));
+            ArgumentNullException.ThrowIfNull(page);
             VisioWholeDiagramRelayoutOptions resolved = options ?? new VisioWholeDiagramRelayoutOptions();
             Validate(resolved);
 

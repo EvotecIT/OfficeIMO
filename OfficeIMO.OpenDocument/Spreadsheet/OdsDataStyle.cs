@@ -261,7 +261,7 @@ public sealed partial class OdsDocument {
 
     /// <summary>Adds a decimal number style.</summary>
     public OdsDataStyle AddNumberStyle(string name, int decimalPlaces = 2, bool useGrouping = false) {
-        if (decimalPlaces < 0) throw new ArgumentOutOfRangeException(nameof(decimalPlaces));
+        ArgumentOutOfRangeException.ThrowIfNegative(decimalPlaces);
         return AddDataStyle(name, OdsDataStyleKind.Number,
             new XElement(OdfNamespaces.Number + "number",
                 new XAttribute(OdfNamespaces.Number + "decimal-places", decimalPlaces),
@@ -271,7 +271,7 @@ public sealed partial class OdsDocument {
 
     /// <summary>Adds a percentage style.</summary>
     public OdsDataStyle AddPercentageStyle(string name, int decimalPlaces = 2, bool useGrouping = false) {
-        if (decimalPlaces < 0) throw new ArgumentOutOfRangeException(nameof(decimalPlaces));
+        ArgumentOutOfRangeException.ThrowIfNegative(decimalPlaces);
         return AddDataStyle(name, OdsDataStyleKind.Percentage,
             new XElement(OdfNamespaces.Number + "number",
                 new XAttribute(OdfNamespaces.Number + "decimal-places", decimalPlaces),
@@ -283,7 +283,7 @@ public sealed partial class OdsDocument {
     /// <summary>Adds a currency style with a visible currency symbol or code.</summary>
     public OdsDataStyle AddCurrencyStyle(string name, string currencySymbol, int decimalPlaces = 2, bool useGrouping = false) {
         if (string.IsNullOrWhiteSpace(currencySymbol)) throw new ArgumentException("Currency symbol cannot be empty.", nameof(currencySymbol));
-        if (decimalPlaces < 0) throw new ArgumentOutOfRangeException(nameof(decimalPlaces));
+        ArgumentOutOfRangeException.ThrowIfNegative(decimalPlaces);
         return AddDataStyle(name, OdsDataStyleKind.Currency,
             new XElement(OdfNamespaces.Number + "currency-symbol", currencySymbol),
             new XElement(OdfNamespaces.Number + "text", " "),

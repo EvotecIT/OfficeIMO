@@ -48,7 +48,7 @@ public sealed class OcrProcessResult {
 public static class OcrProcessRunner {
     /// <summary>Runs one process command without invoking a command shell.</summary>
     public static async Task<OcrProcessResult> RunAsync(OcrProcessCommand command, CancellationToken cancellationToken = default) {
-        if (command == null) throw new ArgumentNullException(nameof(command));
+        ArgumentNullException.ThrowIfNull(command);
         if (string.IsNullOrWhiteSpace(command.FileName)) throw new ArgumentException("Process filename cannot be empty.", nameof(command));
         if (command.Timeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(command.Timeout));
         if (command.MaxStandardOutputCharacters < 1) throw new ArgumentOutOfRangeException(nameof(command.MaxStandardOutputCharacters));

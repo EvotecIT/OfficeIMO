@@ -13,7 +13,7 @@ public static class EmailDataInspector {
     /// <summary>Snapshots an already opened artifact without disposing it or replacing its owner-level read policy.</summary>
     public static EmailDataInspectionReport Inspect(EmailDataOpenResult opened, EmailDataInspectionOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (opened == null) throw new ArgumentNullException(nameof(opened));
+        ArgumentNullException.ThrowIfNull(opened);
         cancellationToken.ThrowIfCancellationRequested();
         var policy = options ?? new EmailDataInspectionOptions();
         string format = opened.EmailDocument?.Format.ToString() ?? opened.Store?.Format.ToString() ??

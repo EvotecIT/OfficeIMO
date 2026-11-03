@@ -27,15 +27,9 @@ internal static class ExcelReadProfileRunner {
         if (string.IsNullOrWhiteSpace(outputPath)) {
             throw new ArgumentException("Output path must not be empty.", nameof(outputPath));
         }
-        if (rowCount <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(rowCount));
-        }
-        if (warmupIterations <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(warmupIterations));
-        }
-        if (measuredIterations <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(measuredIterations));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowCount);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(warmupIterations);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(measuredIterations);
 
         var rows = ExcelBenchmarkScenarioFactory.CreateSalesRecords(rowCount);
         byte[] workbookBytes = ExcelBenchmarkScenarioFactory.CreateWorkbookBytes(rows);

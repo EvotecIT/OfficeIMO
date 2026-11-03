@@ -25,7 +25,7 @@ namespace OfficeIMO.Word {
         /// <param name="shape">The VML <see cref="Shape"/> whose style should be parsed.</param>
         /// <returns>A dictionary containing style names and values.</returns>
         public static Dictionary<string, string> GetStyle(Shape shape) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
 
             string? styleValue = shape.Style?.Value;
             if (string.IsNullOrWhiteSpace(styleValue)) {
@@ -52,8 +52,8 @@ namespace OfficeIMO.Word {
         /// <param name="shape">The VML <see cref="Shape"/> to update.</param>
         /// <param name="style">The style dictionary to serialize and assign.</param>
         public static void SetStyle(Shape shape, Dictionary<string, string> style) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
-            if (style == null) throw new ArgumentNullException(nameof(style));
+            ArgumentNullException.ThrowIfNull(shape);
+            ArgumentNullException.ThrowIfNull(style);
 
             if (style.Count == 0) {
                 shape.Style = null;

@@ -16,7 +16,7 @@ namespace OfficeIMO.Archives {
         public ArchiveReadPlan PlanRead(IReadOnlyList<int> ordinals, CancellationToken cancellationToken = default) {
             lock (_gate) {
                 ThrowIfDisposed(); cancellationToken.ThrowIfCancellationRequested();
-                if (ordinals == null) throw new ArgumentNullException(nameof(ordinals));
+                ArgumentNullException.ThrowIfNull(ordinals);
                 if (ordinals.Count > Entries.Count) throw new ArgumentException("The request exceeds the inventory count.", nameof(ordinals));
                 var entries = new ArchiveInspectionEntry[ordinals.Count];
                 var seen = new HashSet<int>();

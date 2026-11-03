@@ -206,7 +206,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static List<string> NormalizeSmartArtNodes(IEnumerable<string> nodeTexts) {
-            if (nodeTexts == null) throw new ArgumentNullException(nameof(nodeTexts));
+            ArgumentNullException.ThrowIfNull(nodeTexts);
             List<string> nodes = nodeTexts.Select(text => (text ?? string.Empty).Trim())
                 .Where(text => text.Length > 0).ToList();
             if (nodes.Count == 0) throw new ArgumentException("At least one SmartArt node is required.", nameof(nodeTexts));

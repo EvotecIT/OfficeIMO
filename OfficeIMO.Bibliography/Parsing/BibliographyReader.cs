@@ -4,7 +4,7 @@ namespace OfficeIMO.Bibliography;
 
 internal static class BibliographyReader {
     internal static BibliographyReadResult Parse(string source, BibliographyFormat format, BibliographyReadOptions? options, byte[]? originalBytes, CancellationToken cancellationToken) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         options ??= new BibliographyReadOptions();
         options.Validate();
         if (source.Length > options.MaximumInputCharacters) throw new InvalidDataException($"Bibliography input exceeds the configured {options.MaximumInputCharacters} character limit.");
@@ -154,7 +154,7 @@ internal static class BibliographyFormatDetector {
     }
 
     internal static BibliographyFormat Detect(string source, BibliographyReadOptions? options = null, CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         options ??= new BibliographyReadOptions();
         options.Validate();
         if (source.Length > options.MaximumInputCharacters) throw new InvalidDataException($"Bibliography input exceeds the configured {options.MaximumInputCharacters} character limit.");

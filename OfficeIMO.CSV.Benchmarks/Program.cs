@@ -89,11 +89,11 @@ if (compareDataReaderParallelWritePaired) {
     int invocationsPerLeg = args.Length > 7 && int.TryParse(args[7], out int parsedInvocations)
         ? parsedInvocations
         : 4;
-    if (iterations <= 0) throw new ArgumentOutOfRangeException(nameof(iterations));
-    if (rowCount <= 0) throw new ArgumentOutOfRangeException(nameof(rowCount));
-    if (parallelDegree <= 0) throw new ArgumentOutOfRangeException(nameof(parallelDegree));
-    if (parallelBatchSize <= 0) throw new ArgumentOutOfRangeException(nameof(parallelBatchSize));
-    if (invocationsPerLeg <= 0) throw new ArgumentOutOfRangeException(nameof(invocationsPerLeg));
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(iterations);
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowCount);
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(parallelDegree);
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(parallelBatchSize);
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(invocationsPerLeg);
     const int warmupIterations = 8;
 
     using var measuredProcess = System.Diagnostics.Process.GetCurrentProcess();
@@ -160,7 +160,7 @@ if (compareDataReaderWritePaired) {
     int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
         ? parsedIterations
         : 40;
-    if (iterations <= 0) throw new ArgumentOutOfRangeException(nameof(iterations));
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(iterations);
     string affinity = ApplyProcessAffinity(args, argumentIndex: 2);
     string priority = ApplyProcessPriority(args, argumentIndex: 3);
     const int warmupIterations = 12;
@@ -214,7 +214,7 @@ if (compareTypedParallelPaired) {
     int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
         ? parsedIterations
         : 30;
-    if (iterations <= 0) throw new ArgumentOutOfRangeException(nameof(iterations));
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(iterations);
     string affinity = ApplyProcessAffinity(args, argumentIndex: 2);
     int? officeBatchSize = null;
     if (args.Length > 3 &&
@@ -229,9 +229,9 @@ if (compareTypedParallelPaired) {
     int rowCount = args.Length > 6 && int.TryParse(args[6], out int parsedRowCount) ? parsedRowCount : 100_000;
     string priority = ApplyProcessPriority(args, argumentIndex: 7);
     if (officeBatchSize is <= 0) throw new ArgumentOutOfRangeException(nameof(officeBatchSize));
-    if (officeDegree <= 0) throw new ArgumentOutOfRangeException(nameof(officeDegree));
-    if (sepDegree <= 0) throw new ArgumentOutOfRangeException(nameof(sepDegree));
-    if (rowCount <= 0) throw new ArgumentOutOfRangeException(nameof(rowCount));
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(officeDegree);
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sepDegree);
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowCount);
 
     const int warmupIterations = 3;
     const int invocationsPerSample = 2;
@@ -292,9 +292,7 @@ if (compareTypedSequentialPaired) {
     int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
         ? parsedIterations
         : 20;
-    if (iterations <= 0) {
-        throw new ArgumentOutOfRangeException(nameof(iterations));
-    }
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(iterations);
     string affinity = ApplyProcessAffinity(args, argumentIndex: 2);
     const int warmupIterations = 3;
     const int invocationsPerSample = 4;
@@ -350,9 +348,7 @@ if (compareTrimUnescapeStringsPaired) {
     int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
         ? parsedIterations
         : 100;
-    if (iterations <= 0) {
-        throw new ArgumentOutOfRangeException(nameof(iterations));
-    }
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(iterations);
     string affinity = ApplyProcessAffinity(args, argumentIndex: 2);
     const int warmupIterations = 3;
     const int invocationsPerSample = 32;
@@ -399,9 +395,7 @@ if (comparePaired) {
     int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
         ? parsedIterations
         : 100;
-    if (iterations <= 0) {
-        throw new ArgumentOutOfRangeException(nameof(iterations));
-    }
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(iterations);
     string affinity = ApplyProcessAffinity(args, argumentIndex: 2);
     const int warmupIterations = 10;
 
@@ -466,9 +460,7 @@ if (profileTypedOfficeRowsAs || profileTypedOfficeManual || profileTypedOfficePa
     int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
         ? parsedIterations
         : 50;
-    if (iterations <= 0) {
-        throw new ArgumentOutOfRangeException(nameof(iterations));
-    }
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(iterations);
     ApplyProcessAffinity(args, argumentIndex: 2);
     int parallelBatchSize = args.Length > 3 && int.TryParse(args[3], out int parsedBatchSize)
         ? parsedBatchSize
@@ -518,9 +510,7 @@ if (profileTrimSpanOfficeIMO || profileTrimSpanSep) {
     int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
         ? parsedIterations
         : 100;
-    if (iterations <= 0) {
-        throw new ArgumentOutOfRangeException(nameof(iterations));
-    }
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(iterations);
     ApplyProcessAffinity(args, argumentIndex: 2);
 
     var benchmark = new CsvTrimUnescapeSpanBenchmarks { RowCount = 50_000 };
@@ -550,9 +540,7 @@ if (profileTrimOfficeIMO || profileTrimSep) {
     int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
         ? parsedIterations
         : 100;
-    if (iterations <= 0) {
-        throw new ArgumentOutOfRangeException(nameof(iterations));
-    }
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(iterations);
     ApplyProcessAffinity(args, argumentIndex: 2);
 
     var benchmark = new CsvTrimUnescapeBenchmarks { RowCount = 50_000 };
@@ -582,9 +570,7 @@ if (profileOfficeIMO || profileSep || profileSylvan) {
     int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
         ? parsedIterations
         : 100;
-    if (iterations <= 0) {
-        throw new ArgumentOutOfRangeException(nameof(iterations));
-    }
+    ArgumentOutOfRangeException.ThrowIfNegativeOrZero(iterations);
     ApplyProcessAffinity(args, argumentIndex: 2);
 
     var benchmark = new MarkPflug65KCsvBenchmarks();

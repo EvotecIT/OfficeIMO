@@ -70,7 +70,7 @@ public sealed partial class OfficeWorkflowRunner {
         CancellationToken cancellationToken,
         bool emitHtmlTaggedStructure = true,
         IReadOnlyDictionary<string, byte[]>? htmlResourceSnapshots = null) {
-        if (input == null) throw new ArgumentNullException(nameof(input));
+        ArgumentNullException.ThrowIfNull(input);
         if (request.Registration is not null) return ConvertRegistered(request, input, diagnostics, cancellationToken);
         OfficeWorkflowRoute route = request.Route!;
         OfficeWorkflowRenderingOptions settings = request.ConversionOptions ?? new();
@@ -258,7 +258,7 @@ public sealed partial class OfficeWorkflowRunner {
         byte[] input,
         string inputPath,
         CancellationToken cancellationToken = default) {
-        if (input == null) throw new ArgumentNullException(nameof(input));
+        ArgumentNullException.ThrowIfNull(input);
         if ((inputPath == null || string.IsNullOrWhiteSpace(inputPath))) throw new ArgumentException("Input path cannot be empty.", nameof(inputPath));
         using var source = new MemoryStream(input, writable: false);
         return HtmlConversionDocument.LoadAsync(

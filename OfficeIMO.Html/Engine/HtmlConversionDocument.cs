@@ -170,7 +170,7 @@ public sealed partial class HtmlConversionDocument {
     /// treat the supplied document as read-only and must not retain it after the callback returns.
     /// </summary>
     internal T ProjectSourceDocument<T>(Func<IHtmlDocument, T> projection, CancellationToken cancellationToken = default) {
-        if (projection == null) throw new ArgumentNullException(nameof(projection));
+        ArgumentNullException.ThrowIfNull(projection);
         return AnalyzeSource(projection, cancellationToken);
     }
 
@@ -194,7 +194,7 @@ public sealed partial class HtmlConversionDocument {
     /// </summary>
     internal IHtmlDocument CreatePolicyNormalizedDocumentForConversion(IHtmlDocument preparedDocument,
         Action<IElement, IElement>? elementNormalized = null) {
-        if (preparedDocument == null) throw new ArgumentNullException(nameof(preparedDocument));
+        ArgumentNullException.ThrowIfNull(preparedDocument);
         return AnalyzeSource(() => {
             IHtmlDocument normalized = HtmlNormalizer.NormalizeToDocument(
                 preparedDocument,

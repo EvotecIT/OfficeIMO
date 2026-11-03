@@ -16,7 +16,7 @@ internal sealed class OfficeImageExportBatchTracker {
     internal long TotalEncodedBytes { get; private set; }
 
     internal void Add(OfficeImageExportResult result) {
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(result);
         int nextCount = checked(Count + 1);
         EnsureWithin(nameof(OfficeImageExportOptions.MaximumOutputCount), nextCount, _options.MaximumOutputCount);
 

@@ -12,7 +12,7 @@ public partial class ExcelDocument {
     /// </summary>
     public static OfficeConversionResult<ExcelDocument, ExcelSpreadsheetXmlReport> ImportSpreadsheetXml(
         string filePath, ExcelSpreadsheetXmlOptions? options = null) {
-        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        ArgumentNullException.ThrowIfNull(filePath);
         using var input = File.OpenRead(filePath);
         return ImportSpreadsheetXml(input, options);
     }
@@ -20,7 +20,7 @@ public partial class ExcelDocument {
     /// <summary>Imports XML Spreadsheet bytes with operation-level fidelity diagnostics.</summary>
     public static OfficeConversionResult<ExcelDocument, ExcelSpreadsheetXmlReport> ImportSpreadsheetXml(
         byte[] input, ExcelSpreadsheetXmlOptions? options = null) {
-        if (input == null) throw new ArgumentNullException(nameof(input));
+        ArgumentNullException.ThrowIfNull(input);
         using var stream = new MemoryStream(input, writable: false);
         return ImportSpreadsheetXml(stream, options);
     }

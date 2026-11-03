@@ -63,8 +63,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         internal static LegacyPptTable? TryCreate(OfficeArtShapeStyle style,
             IReadOnlyList<LegacyPptShape> children,
             byte? styleFlags = null) {
-            if (style == null) throw new ArgumentNullException(nameof(style));
-            if (children == null) throw new ArgumentNullException(nameof(children));
+            ArgumentNullException.ThrowIfNull(style);
+            ArgumentNullException.ThrowIfNull(children);
             OfficeArtProperty? tableMarker = style.Properties.LastOrDefault(
                 property => property.PropertyId == TablePropertiesId
                     && !property.IsComplex && !property.IsBlipId);

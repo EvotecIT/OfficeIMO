@@ -15,8 +15,9 @@ internal static class OfficeArtPropertyTableReader {
     /// </summary>
     public static IReadOnlyList<OfficeArtProperty> Read(byte[] payload, int offset, int length,
         ushort propertyCount) {
-        if (payload == null) throw new ArgumentNullException(nameof(payload));
-        if (offset < 0 || offset > payload.Length) throw new ArgumentOutOfRangeException(nameof(offset));
+        ArgumentNullException.ThrowIfNull(payload);
+        ArgumentOutOfRangeException.ThrowIfNegative(offset);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(offset, payload.Length);
         if (length < 0 || length > payload.Length - offset) throw new ArgumentOutOfRangeException(nameof(length));
         if (propertyCount == 0) return Array.Empty<OfficeArtProperty>();
 
@@ -56,7 +57,7 @@ internal static class OfficeArtPropertyTableReader {
 
     /// <summary>Reads a complete byte array as a bounded FOPT payload.</summary>
     public static IReadOnlyList<OfficeArtProperty> Read(byte[] payload, ushort propertyCount) {
-        if (payload == null) throw new ArgumentNullException(nameof(payload));
+        ArgumentNullException.ThrowIfNull(payload);
         return Read(payload, 0, payload.Length, propertyCount);
     }
 

@@ -43,13 +43,13 @@ public sealed partial class XpsDocument {
     }
     /// <summary>Loads from bytes with bounded package and XML expansion.</summary>
     public static XpsDocument Load(byte[] bytes, XpsReadOptions? options = null, CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         using var stream = new MemoryStream(bytes, false);
         return Load(stream, options, cancellationToken);
     }
     /// <summary>Reads from the current position to EOF. The caller's stream remains open; non-seekable streams are supported.</summary>
     public static XpsDocument Load(Stream stream, XpsReadOptions? options = null, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         var limits = (options ?? new XpsReadOptions()).Snapshot();
         using var input = new MemoryStream();
         var buffer = new byte[81920];

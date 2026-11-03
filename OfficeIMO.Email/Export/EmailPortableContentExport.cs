@@ -40,7 +40,7 @@ public static class EmailPortableContentExport {
     /// <summary>Creates a standalone ICS stream. Unchanged MIME semantic content retains unknown properties and calendar roots.</summary>
     public static EmailPortableContentExportResult<IcsDocument> ToCalendar(EmailDocument document,
         EmailPortableContentExportOptions? options = null, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         if (document.OutlookItemKind != OutlookItemKind.Appointment && document.OutlookItemKind != OutlookItemKind.Task)
             throw new ArgumentException("Calendar export requires an appointment or task.", nameof(document));
         var policy = options ?? new EmailPortableContentExportOptions();
@@ -76,7 +76,7 @@ public static class EmailPortableContentExport {
     /// <summary>Creates a standalone vCard stream. Distribution lists require their dedicated group model and are rejected.</summary>
     public static EmailPortableContentExportResult<VCardDocument> ToVCard(EmailDocument document,
         EmailPortableContentExportOptions? options = null, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         if (document.OutlookItemKind != OutlookItemKind.Contact || document.DistributionList != null ||
             document.MessageClass?.StartsWith("IPM.DistList", StringComparison.OrdinalIgnoreCase) == true)
             throw new ArgumentException("Individual vCard export requires a contact.", nameof(document));

@@ -43,7 +43,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void AutoFilterByHeaderEquals(string header, IEnumerable<string> values) {
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            if (values == null) throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(values);
 
             WriteLock(() => {
                 if (!TryGetColumnIndexByHeader(header, out var colIndex))
@@ -174,7 +174,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void AutoFilterByHeaderContains(string header, string containsText) {
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            if (containsText is null) throw new ArgumentNullException(nameof(containsText));
+            ArgumentNullException.ThrowIfNull(containsText);
 
             ApplyCustomAutoFilterByHeader(header, FilterOperatorValues.Equal, "*" + containsText + "*");
         }
@@ -185,7 +185,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void AutoFilterByHeaderDoesNotContain(string header, string containsText) {
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            if (containsText is null) throw new ArgumentNullException(nameof(containsText));
+            ArgumentNullException.ThrowIfNull(containsText);
 
             ApplyCustomAutoFilterByHeader(header, FilterOperatorValues.NotEqual, "*" + containsText + "*");
         }
@@ -196,7 +196,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void AutoFilterByHeaderStartsWith(string header, string startsWithText) {
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            if (startsWithText is null) throw new ArgumentNullException(nameof(startsWithText));
+            ArgumentNullException.ThrowIfNull(startsWithText);
 
             ApplyCustomAutoFilterByHeader(header, FilterOperatorValues.Equal, startsWithText + "*");
         }
@@ -207,7 +207,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void AutoFilterByHeaderEndsWith(string header, string endsWithText) {
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            if (endsWithText is null) throw new ArgumentNullException(nameof(endsWithText));
+            ArgumentNullException.ThrowIfNull(endsWithText);
 
             ApplyCustomAutoFilterByHeader(header, FilterOperatorValues.Equal, "*" + endsWithText);
         }

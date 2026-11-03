@@ -215,7 +215,7 @@ namespace OfficeIMO {
     public sealed class OfficePackageSecurityException : IOException {
         internal OfficePackageSecurityException(OfficePackageSecurityFinding finding)
             : base(finding == null ? "Package security validation failed." : finding.Message) {
-            if (finding == null) throw new ArgumentNullException(nameof(finding));
+            ArgumentNullException.ThrowIfNull(finding);
             Rule = finding.Rule;
             PartName = finding.PartName;
             ObservedValue = finding.ObservedValue;

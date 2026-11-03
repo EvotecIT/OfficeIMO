@@ -10,7 +10,7 @@ namespace OfficeIMO;
 internal static class OfficeDocumentModelIdentity {
     /// <summary>Builds a block identity.</summary>
     public static string BuildBlockIdentity(OfficeDocumentModelBlock block) {
-        if (block == null) throw new ArgumentNullException(nameof(block));
+        ArgumentNullException.ThrowIfNull(block);
         if (!string.IsNullOrWhiteSpace(block.Id)) return "id:" + block.Id;
         OfficeDocumentModelLocation? location = block.Location;
         if (!string.IsNullOrWhiteSpace(location?.BlockAnchor)) return "anchor:" + location!.BlockAnchor!;
@@ -86,7 +86,7 @@ internal static class OfficeDocumentModelIdentity {
         string.IsNullOrWhiteSpace(left) || string.IsNullOrWhiteSpace(right) || string.Equals(left, right, StringComparison.Ordinal);
 
     private static string BuildPageTableIdentity(OfficeDocumentModelTable table, OfficeDocumentModelPage page, int? tableIndex) {
-        if (page == null) throw new ArgumentNullException(nameof(page));
+        ArgumentNullException.ThrowIfNull(page);
         OfficeDocumentModelLocation source = page.Location;
         var fallback = new OfficeDocumentModelLocation {
             LogicalOrder = source.LogicalOrder,
@@ -112,7 +112,7 @@ internal static class OfficeDocumentModelIdentity {
 
     /// <summary>Builds an asset identity.</summary>
     public static string BuildAssetIdentity(OfficeDocumentModelAsset asset) {
-        if (asset == null) throw new ArgumentNullException(nameof(asset));
+        ArgumentNullException.ThrowIfNull(asset);
         if (!string.IsNullOrWhiteSpace(asset.Id)) return "id:" + asset.Id;
         if (!string.IsNullOrWhiteSpace(asset.SourceObjectId)) return "source:" + asset.SourceObjectId;
         if (!string.IsNullOrWhiteSpace(asset.PayloadHash)) return "hash:" + asset.PayloadHash;
@@ -123,7 +123,7 @@ internal static class OfficeDocumentModelIdentity {
 
     /// <summary>Builds a link identity.</summary>
     public static string BuildLinkIdentity(OfficeDocumentModelLink link) {
-        if (link == null) throw new ArgumentNullException(nameof(link));
+        ArgumentNullException.ThrowIfNull(link);
         if (!string.IsNullOrWhiteSpace(link.Id)) return "id:" + link.Id;
         OfficeDocumentModelLocation? location = link.Location;
         if (!string.IsNullOrWhiteSpace(location?.BlockAnchor)) return "anchor:" + location!.BlockAnchor!;
@@ -132,7 +132,7 @@ internal static class OfficeDocumentModelIdentity {
 
     /// <summary>Builds a form-field identity.</summary>
     public static string BuildFormIdentity(OfficeDocumentModelFormField form) {
-        if (form == null) throw new ArgumentNullException(nameof(form));
+        ArgumentNullException.ThrowIfNull(form);
         if (!string.IsNullOrWhiteSpace(form.Id)) return "id:" + form.Id;
         OfficeDocumentModelLocation? location = form.Location;
         if (!string.IsNullOrWhiteSpace(location?.BlockAnchor)) return "anchor:" + location!.BlockAnchor!;
@@ -144,7 +144,7 @@ internal static class OfficeDocumentModelIdentity {
         OfficeDocumentModelLocation? fallback,
         int? fallbackTableIndex,
         bool includeLocation = true) {
-        if (table == null) throw new ArgumentNullException(nameof(table));
+        ArgumentNullException.ThrowIfNull(table);
         var builder = new StringBuilder();
         Append(builder, table.PayloadHash);
         Append(builder, table.Kind);

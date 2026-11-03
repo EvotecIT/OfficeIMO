@@ -111,7 +111,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             partUri != null && _olePartUris.Contains(partUri);
 
         internal bool TryGetSlide(PowerPointSlide slide, out LegacyPptSlideProjection? projection) {
-            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            ArgumentNullException.ThrowIfNull(slide);
             return _slidesByPartUri.TryGetValue(slide.SlidePart.Uri.ToString(), out projection);
         }
 
@@ -120,7 +120,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             _slidesByLegacyId.TryGetValue(legacySlideId, out projection);
 
         internal bool TryGetMasterId(PowerPointSlide slide, out uint masterId) {
-            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            ArgumentNullException.ThrowIfNull(slide);
             masterId = 0;
             SlideLayoutPart? layoutPart = slide.SlidePart.SlideLayoutPart;
             return layoutPart != null
@@ -180,7 +180,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal bool TryGetMaster(SlideMasterPart masterPart,
             out LegacyPptMasterProjection? projection) {
-            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            ArgumentNullException.ThrowIfNull(masterPart);
             return _mastersByPartUri.TryGetValue(masterPart.Uri.ToString(), out projection);
         }
 
@@ -192,22 +192,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal bool TryGetSpecialMaster(OpenXmlPart masterPart,
             out LegacyPptMasterProjection? projection) {
-            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            ArgumentNullException.ThrowIfNull(masterPart);
             return _specialMastersByPartUri.TryGetValue(
                 masterPart.Uri.ToString(), out projection);
         }
 
         internal bool TryGetTitleMaster(SlideLayoutPart masterPart,
             out LegacyPptMasterProjection? projection) {
-            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            ArgumentNullException.ThrowIfNull(masterPart);
             return _titleMastersByPartUri.TryGetValue(
                 masterPart.Uri.ToString(), out projection);
         }
 
         internal static LegacyPptProjectionMap Create(PowerPointDocument presentation,
             LegacyPptDocument legacy) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
-            if (legacy == null) throw new ArgumentNullException(nameof(legacy));
+            ArgumentNullException.ThrowIfNull(presentation);
+            ArgumentNullException.ThrowIfNull(legacy);
             if (presentation.Slides.Count != legacy.Slides.Count) {
                 throw new InvalidDataException("The projected slide count does not match the binary source slide count.");
             }

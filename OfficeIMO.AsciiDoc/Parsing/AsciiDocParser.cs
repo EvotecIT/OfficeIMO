@@ -4,7 +4,7 @@ namespace OfficeIMO.AsciiDoc;
 internal static class AsciiDocParser {
     /// <summary>Parses source into a lossless syntax tree and typed semantic blocks.</summary>
     public static AsciiDocParseResult Parse(string source, AsciiDocParseOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         options ??= new AsciiDocParseOptions();
         ValidateOptions(source, options);
         cancellationToken.ThrowIfCancellationRequested();

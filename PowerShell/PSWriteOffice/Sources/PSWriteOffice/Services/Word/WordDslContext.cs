@@ -27,10 +27,7 @@ internal sealed class WordDslContext : IDisposable
 
     public static WordDslContext Enter(WordDocument document)
     {
-        if (document == null)
-        {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
         if (CurrentScope.Value != null)
         {
@@ -65,10 +62,7 @@ internal sealed class WordDslContext : IDisposable
 
     public IDisposable Push(object scope)
     {
-        if (scope == null)
-        {
-            throw new ArgumentNullException(nameof(scope));
-        }
+        ArgumentNullException.ThrowIfNull(scope);
 
         _scopes.Push(scope);
         return new PopToken(this, scope);
@@ -165,19 +159,13 @@ internal sealed class WordDslContext : IDisposable
 
     public void RegisterListAnchor(WordList list, WordParagraph? anchor)
     {
-        if (list == null)
-        {
-            throw new ArgumentNullException(nameof(list));
-        }
+        ArgumentNullException.ThrowIfNull(list);
         _listAnchors[list] = anchor;
     }
 
     public WordParagraph? ConsumeListAnchor(WordList list)
     {
-        if (list == null)
-        {
-            throw new ArgumentNullException(nameof(list));
-        }
+        ArgumentNullException.ThrowIfNull(list);
         if (_listAnchors.TryGetValue(list, out var anchor))
         {
             _listAnchors.Remove(list);
@@ -188,28 +176,19 @@ internal sealed class WordDslContext : IDisposable
 
     public void ClearListAnchor(WordList list)
     {
-        if (list == null)
-        {
-            throw new ArgumentNullException(nameof(list));
-        }
+        ArgumentNullException.ThrowIfNull(list);
         _listAnchors.Remove(list);
     }
 
     public void RegisterTableSource(WordTable table, IReadOnlyList<object> rows)
     {
-        if (table == null)
-        {
-            throw new ArgumentNullException(nameof(table));
-        }
+        ArgumentNullException.ThrowIfNull(table);
         _tableSources[table] = rows;
     }
 
     public IReadOnlyList<object> GetTableSource(WordTable table)
     {
-        if (table == null)
-        {
-            throw new ArgumentNullException(nameof(table));
-        }
+        ArgumentNullException.ThrowIfNull(table);
         return _tableSources.TryGetValue(table, out var rows)
             ? rows
             : Array.Empty<object>();
@@ -217,19 +196,13 @@ internal sealed class WordDslContext : IDisposable
 
     public void ClearTableSource(WordTable table)
     {
-        if (table == null)
-        {
-            throw new ArgumentNullException(nameof(table));
-        }
+        ArgumentNullException.ThrowIfNull(table);
         _tableSources.Remove(table);
     }
 
     public void AddTableCondition(WordTable table, WordTableConditionModel model)
     {
-        if (table == null)
-        {
-            throw new ArgumentNullException(nameof(table));
-        }
+        ArgumentNullException.ThrowIfNull(table);
         if (!_tableConditions.TryGetValue(table, out var list))
         {
             list = new List<WordTableConditionModel>();
@@ -240,10 +213,7 @@ internal sealed class WordDslContext : IDisposable
 
     public IReadOnlyList<WordTableConditionModel> ConsumeTableConditions(WordTable table)
     {
-        if (table == null)
-        {
-            throw new ArgumentNullException(nameof(table));
-        }
+        ArgumentNullException.ThrowIfNull(table);
         if (_tableConditions.TryGetValue(table, out var list))
         {
             _tableConditions.Remove(table);

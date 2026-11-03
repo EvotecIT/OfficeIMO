@@ -16,7 +16,7 @@ public sealed partial class BookOnixMessage {
     /// </summary>
     public static BookOnixMessage CreateBlockUpdates(IReadOnlyList<BookOnixBlockUpdate> updates, XmlSchemaSet schemas,
         CancellationToken cancellationToken = default) {
-        if (updates == null) throw new ArgumentNullException(nameof(updates));
+        ArgumentNullException.ThrowIfNull(updates);
         cancellationToken.ThrowIfCancellationRequested();
         if (updates.Count is < 1 or > 1000) throw new ArgumentException("Supply 1–1000 block updates.", nameof(updates));
         var sources = new BookOnixExportResult[updates.Count];
@@ -64,7 +64,7 @@ public sealed partial class BookOnixMessage {
     /// </summary>
     public static BookOnixMessage CreateDeletions(IReadOnlyList<BookOnixDeletion> deletions, XmlSchemaSet schemas,
         CancellationToken cancellationToken = default) {
-        if (deletions == null) throw new ArgumentNullException(nameof(deletions));
+        ArgumentNullException.ThrowIfNull(deletions);
         cancellationToken.ThrowIfCancellationRequested();
         if (deletions.Count is < 1 or > 1000) throw new ArgumentException("Supply 1–1000 deletions.", nameof(deletions));
         XNamespace ns = BookProject.OnixNamespace;
@@ -96,7 +96,7 @@ public sealed partial class BookOnixMessage {
     }
 
     private static HashSet<BookOnixBlock> ReadBlocks(IReadOnlyList<BookOnixBlock> blocks) {
-        if (blocks == null) throw new ArgumentNullException(nameof(blocks));
+        ArgumentNullException.ThrowIfNull(blocks);
         if (blocks.Count > 8) throw new ArgumentException("At most eight blocks may be selected.", nameof(blocks));
         var result = new HashSet<BookOnixBlock>();
         foreach (var block in blocks)

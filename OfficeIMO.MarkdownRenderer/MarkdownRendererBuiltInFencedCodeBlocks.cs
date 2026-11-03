@@ -10,17 +10,13 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
     }
 
     public static void RegisterGenericDefaults(MarkdownRendererOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         MarkdownRendererPlugins.GenericVisuals.Apply(options);
     }
 
     public static void RegisterIntelligenceXDefaults(MarkdownRendererOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         MarkdownRendererPlugins.IntelligenceXVisuals.Apply(options);
     }

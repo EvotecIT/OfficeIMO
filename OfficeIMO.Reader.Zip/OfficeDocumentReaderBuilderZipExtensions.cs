@@ -19,7 +19,7 @@ public static class OfficeDocumentReaderBuilderZipExtensions {
         ArchiveTraversalOptions? zipOptions = null,
         ReaderZipOptions? readerZipOptions = null,
         bool replaceExisting = false) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderHandlerRegistration registration = CreateRegistration(zipOptions, readerZipOptions);
         return builder.AddHandler(registration, replaceExisting);
     }

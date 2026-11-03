@@ -164,9 +164,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="embeddedDocument">Embedded document to remove.</param>
         public void RemoveEmbeddedDocument(WordEmbeddedDocument embeddedDocument) {
-            if (embeddedDocument == null) {
-                throw new ArgumentNullException(nameof(embeddedDocument));
-            }
+            ArgumentNullException.ThrowIfNull(embeddedDocument);
 
             embeddedDocument.Remove();
         }

@@ -120,7 +120,7 @@ namespace OfficeIMO.PowerPoint {
         /// <see cref="Save()"/> is called or SaveOnDispose is explicitly enabled.
         /// </summary>
         public static PowerPointDocument Create(string filePath, PowerPointCreateOptions? options = null) {
-            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            ArgumentNullException.ThrowIfNull(filePath);
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             return CreateInternal(filePath, sourceStream: null, options ?? new PowerPointCreateOptions());
         }
@@ -188,7 +188,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLoadOptions? options,
             CancellationToken cancellationToken) {
             if (options?.Password is string password) return AssociateEncryptedDocument(LoadEncrypted(filePath, password, options, cancellationToken), filePath, password);
-            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            ArgumentNullException.ThrowIfNull(filePath);
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
@@ -215,7 +215,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLoadOptions? options,
             CancellationToken cancellationToken) {
             if (options?.Password is string password) return AssociateEncryptedDocument(LoadEncrypted(stream, password, options, cancellationToken), null, password, options.AccessMode == DocumentAccessMode.ReadOnly ? null : stream);
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
@@ -233,7 +233,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLoadOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (options?.Password is string password) return AssociateEncryptedDocument(await LoadEncryptedAsync(filePath, password, options, cancellationToken).ConfigureAwait(false), filePath, password);
-            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            ArgumentNullException.ThrowIfNull(filePath);
             string fullPath = Path.GetFullPath(filePath);
             if (!File.Exists(fullPath)) {
                 throw new FileNotFoundException($"File '{fullPath}' doesn't exist.", fullPath);
@@ -261,7 +261,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLoadOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (options?.Password is string password) return AssociateEncryptedDocument(await LoadEncryptedAsync(stream, password, options, cancellationToken).ConfigureAwait(false), null, password, options.AccessMode == DocumentAccessMode.ReadOnly ? null : stream);
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "presentation");
@@ -286,8 +286,8 @@ namespace OfficeIMO.PowerPoint {
             string password,
             PowerPointLoadOptions? options,
             CancellationToken cancellationToken) {
-            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(filePath);
+            ArgumentNullException.ThrowIfNull(password);
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
@@ -325,8 +325,8 @@ namespace OfficeIMO.PowerPoint {
             string password,
             PowerPointLoadOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(filePath);
+            ArgumentNullException.ThrowIfNull(password);
             string fullPath = Path.GetFullPath(filePath);
             if (!File.Exists(fullPath)) {
                 throw new FileNotFoundException($"File '{fullPath}' doesn't exist.", fullPath);
@@ -370,8 +370,8 @@ namespace OfficeIMO.PowerPoint {
             string password,
             PowerPointLoadOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(stream);
+            ArgumentNullException.ThrowIfNull(password);
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
             EnsureEncryptedLoadUsesExplicitPersistence(resolved);
@@ -411,8 +411,8 @@ namespace OfficeIMO.PowerPoint {
             string password,
             PowerPointLoadOptions? options,
             CancellationToken cancellationToken) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(stream);
+            ArgumentNullException.ThrowIfNull(password);
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();

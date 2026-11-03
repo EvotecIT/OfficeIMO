@@ -15,7 +15,7 @@ public static partial class OfficeOcrConversionExtensions {
     /// <summary>Reconstructs Excel content with its completed fidelity report.</summary>
     public static ExcelDocument ToExcel(this PdfOcrMergeResult source, ExcelPdfImportOptions? options,
         out OfficeConversionReport report, CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         cancellationToken.ThrowIfCancellationRequested();
         source.RequireAcceptedOcrContent();
         var timer = Stopwatch.StartNew();

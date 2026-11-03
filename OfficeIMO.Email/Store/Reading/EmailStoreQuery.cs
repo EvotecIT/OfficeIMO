@@ -19,8 +19,8 @@ public sealed class EmailStoreQuery {
         bool? isRead = null,
         int maxItemsScanned = 1_000_000,
         int maxResults = 1_000) {
-        if (maxItemsScanned <= 0) throw new ArgumentOutOfRangeException(nameof(maxItemsScanned));
-        if (maxResults <= 0) throw new ArgumentOutOfRangeException(nameof(maxResults));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxItemsScanned);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxResults);
         if (since.HasValue && before.HasValue && since.Value > before.Value) {
             throw new ArgumentException("The query start must not be later than its end.", nameof(since));
         }

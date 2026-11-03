@@ -4,8 +4,8 @@ public sealed partial class ProjectDocument {
     /// <summary>Analyzes concurrent regular work against dated resource availability, without moving tasks or treating overtime as regular capacity.</summary>
     public ProjectResourceAllocationResult AnalyzeResourceAllocation(ProjectScheduleResult schedule, int maxIntervals = 1_000_000, CancellationToken cancellationToken = default) {
         EnsureNotDisposed();
-        if (schedule == null) throw new ArgumentNullException(nameof(schedule));
-        if (maxIntervals < 1) throw new ArgumentOutOfRangeException(nameof(maxIntervals));
+        ArgumentNullException.ThrowIfNull(schedule);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxIntervals, 1);
         if (_batchDepth != 0 || schedule.Document != this || schedule.ModelRevision != Revision)
             throw new InvalidOperationException("Capacity analysis requires a schedule for the current document revision.");
         if (!schedule.CalculatedAssignments) throw new ArgumentException("Capacity analysis requires CalculateAssignments.", nameof(schedule));

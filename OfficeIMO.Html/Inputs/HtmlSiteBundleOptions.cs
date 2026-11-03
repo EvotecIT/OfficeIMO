@@ -24,10 +24,10 @@ public sealed class HtmlSiteBundleOptions {
     internal HtmlSiteBundleOptions Snapshot() {
         if (MaximumArchiveBytes < 1 || MaximumArchiveBytes > int.MaxValue)
             throw new ArgumentOutOfRangeException(nameof(MaximumArchiveBytes));
-        if (MaximumEntryCount < 1) throw new ArgumentOutOfRangeException(nameof(MaximumEntryCount));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumEntryCount, 1);
         if (MaximumEntryBytes < 1 || MaximumEntryBytes > int.MaxValue)
             throw new ArgumentOutOfRangeException(nameof(MaximumEntryBytes));
-        if (MaximumTotalDecodedBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaximumTotalDecodedBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumTotalDecodedBytes, 1);
         if (MaximumCompressionRatio < 1D || double.IsInfinity(MaximumCompressionRatio) || double.IsNaN(MaximumCompressionRatio))
             throw new ArgumentOutOfRangeException(nameof(MaximumCompressionRatio));
         if (ArchiveBaseUri == null || !ArchiveBaseUri.IsAbsoluteUri

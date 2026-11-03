@@ -38,9 +38,7 @@ public sealed class MarkdownRendererPlugin {
             throw new ArgumentException("Plugin name is required.", nameof(name));
         }
 
-        if (rendererFactories == null) {
-            throw new ArgumentNullException(nameof(rendererFactories));
-        }
+        ArgumentNullException.ThrowIfNull(rendererFactories);
 
         var registrations = new List<RendererRegistration>();
         foreach (var factory in rendererFactories) {
@@ -89,9 +87,7 @@ public sealed class MarkdownRendererPlugin {
             throw new ArgumentException("Plugin name is required.", nameof(name));
         }
 
-        if (plugins == null) {
-            throw new ArgumentNullException(nameof(plugins));
-        }
+        ArgumentNullException.ThrowIfNull(plugins);
 
         var normalizedPlugins = new List<MarkdownRendererPlugin>();
         foreach (var plugin in plugins) {
@@ -248,9 +244,7 @@ public sealed class MarkdownRendererPlugin {
     /// Applies the plugin to the supplied renderer options without duplicating existing language registrations.
     /// </summary>
     public void Apply(MarkdownRendererOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         if (!options.TryMarkPluginApplied(Id)) {
             return;
@@ -283,9 +277,7 @@ public sealed class MarkdownRendererPlugin {
     /// Returns <see langword="true"/> when any of this plugin's fenced block languages are already registered.
     /// </summary>
     public bool IsApplied(MarkdownRendererOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         if (options.HasPluginId(Id)) {
             return true;
@@ -597,9 +589,7 @@ public sealed class MarkdownRendererPlugin {
     }
 
     internal void ApplyReader(MarkdownLoadOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         for (int i = 0; i < _readerDocumentTransforms.Count; i++) {
             var transform = _readerDocumentTransforms[i];

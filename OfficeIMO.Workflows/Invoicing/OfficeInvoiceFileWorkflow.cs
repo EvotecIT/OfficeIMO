@@ -38,7 +38,7 @@ public sealed class OfficeInvoiceFileWorkflowRequest {
     /// <summary>Captures source edits for publication to a new XML file. Source syntax/profile and unmapped XML are retained.</summary>
     public static OfficeInvoiceFileWorkflowRequest ForSourceEdit(string inputPath, string outputPath, InvoiceSourceEdits edits,
         InvoiceSpecificationRelease? validationRelease = null) {
-        if (edits == null) throw new ArgumentNullException(nameof(edits));
+        ArgumentNullException.ThrowIfNull(edits);
         return new(inputPath, OfficeInvoiceWorkflowOperation.EditSource, outputPath, null, validationRelease, null, null, edits);
     }
     /// <summary>Absolute input path.</summary>
@@ -84,14 +84,14 @@ public static class OfficeInvoiceFileWorkflow {
         InvoiceValidator? validator = null,
 #endif
         CancellationToken cancellationToken = default) {
-        if (requests == null) throw new ArgumentNullException(nameof(requests));
+        ArgumentNullException.ThrowIfNull(requests);
         cancellationToken.ThrowIfCancellationRequested();
         var limits = (options ?? new()).Snapshot();
         var captured = new List<OfficeInvoiceFileWorkflowRequest>();
         var outputs = new SortedSet<string>(StringComparer.Ordinal);
         foreach (var request in requests) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (request == null) throw new ArgumentNullException(nameof(request));
+            ArgumentNullException.ThrowIfNull(request);
             if (captured.Count >= limits.MaximumRequests) throw new ArgumentException("Invoice batch exceeds the request limit.", nameof(requests));
             if (request.OutputPath != null) {
                 string identity = OfficeWorkflowPathIdentity.Normalize(request.OutputPath);

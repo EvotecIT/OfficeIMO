@@ -12,9 +12,7 @@ internal static class ExcelArrowComparisonPairedRunner {
         int iterations = arguments.Length > 2 && int.TryParse(arguments[2], out int parsedIterations)
             ? parsedIterations
             : 30;
-        if (iterations <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(iterations));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(iterations);
 
         string affinity = arguments.Length > 3
             ? BenchmarkProcessorAffinity.Apply(arguments[3])

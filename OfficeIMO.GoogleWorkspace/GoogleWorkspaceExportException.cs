@@ -79,9 +79,9 @@ namespace OfficeIMO.GoogleWorkspace {
             GoogleWorkspaceSession session,
             TranslationReport report,
             Exception exception) {
-            if (report == null) throw new ArgumentNullException(nameof(report));
-            if (session == null) throw new ArgumentNullException(nameof(session));
-            if (exception == null) throw new ArgumentNullException(nameof(exception));
+            ArgumentNullException.ThrowIfNull(report);
+            ArgumentNullException.ThrowIfNull(session);
+            ArgumentNullException.ThrowIfNull(exception);
 
             if (IsDomainWideDelegationFailure(session, exception)) {
                 string delegatedUser = string.IsNullOrWhiteSpace(session.Options.SubjectUser)
@@ -139,8 +139,8 @@ namespace OfficeIMO.GoogleWorkspace {
             GoogleWorkspaceSessionOptions? sessionOptions,
             TranslationReport report,
             Exception exception) {
-            if (report == null) throw new ArgumentNullException(nameof(report));
-            if (exception == null) throw new ArgumentNullException(nameof(exception));
+            ArgumentNullException.ThrowIfNull(report);
+            ArgumentNullException.ThrowIfNull(exception);
 
             string message = $"{operationName} failed during Google API execution. Original error: {exception.Message}";
 
@@ -172,8 +172,8 @@ namespace OfficeIMO.GoogleWorkspace {
             GoogleWorkspaceSessionOptions? sessionOptions,
             TranslationReport report,
             TaskCanceledException exception) {
-            if (report == null) throw new ArgumentNullException(nameof(report));
-            if (exception == null) throw new ArgumentNullException(nameof(exception));
+            ArgumentNullException.ThrowIfNull(report);
+            ArgumentNullException.ThrowIfNull(exception);
 
             string message = $"{operationName} timed out while waiting for Google service communication to complete. Original error: {exception.Message}";
 
@@ -202,8 +202,8 @@ namespace OfficeIMO.GoogleWorkspace {
             GoogleWorkspaceSessionOptions? sessionOptions,
             TranslationReport report,
             GoogleWorkspaceAmbiguousMutationException exception) {
-            if (report == null) throw new ArgumentNullException(nameof(report));
-            if (exception == null) throw new ArgumentNullException(nameof(exception));
+            ArgumentNullException.ThrowIfNull(report);
+            ArgumentNullException.ThrowIfNull(exception);
 
             string requestId = string.IsNullOrWhiteSpace(exception.Receipt.RequestId)
                 ? "not supplied"
@@ -238,8 +238,8 @@ namespace OfficeIMO.GoogleWorkspace {
             GoogleWorkspaceSessionOptions? sessionOptions,
             TranslationReport report,
             OperationCanceledException exception) {
-            if (report == null) throw new ArgumentNullException(nameof(report));
-            if (exception == null) throw new ArgumentNullException(nameof(exception));
+            ArgumentNullException.ThrowIfNull(report);
+            ArgumentNullException.ThrowIfNull(exception);
 
             string message = $"{operationName} was canceled by the caller before the Google export completed.";
 

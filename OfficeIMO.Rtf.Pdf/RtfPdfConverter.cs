@@ -4,9 +4,7 @@ namespace OfficeIMO.Rtf.Pdf;
 
 internal static partial class RtfPdfConverter {
     internal static PdfCore.PdfDocument Convert(RtfDocument document, RtfToPdfOptions? options) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
         RtfTableTraversalGuard.ValidateDocument(document);
         RtfToPdfOptions normalized = options ?? new RtfToPdfOptions();

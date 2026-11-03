@@ -8,7 +8,7 @@ namespace OfficeIMO.Reader;
 /// </summary>
 internal static class ReaderLogicalPath {
     internal static string GetFileName(string value) {
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
 
         int separator = Math.Max(value.LastIndexOf('/'), value.LastIndexOf('\\'));
         return separator < 0 ? value : value.Substring(separator + 1);

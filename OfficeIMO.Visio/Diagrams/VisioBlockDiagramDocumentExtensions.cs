@@ -9,7 +9,7 @@ namespace OfficeIMO.Visio.Diagrams {
         /// Adds a semantic block diagram page and returns the document for chaining.
         /// </summary>
         public static VisioDocument BlockDiagram(this VisioDocument document, string pageName, Action<VisioBlockDiagramBuilder> configure) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             VisioBlockDiagramBuilder builder = new VisioBlockDiagramBuilder(document, pageName);
             configure?.Invoke(builder);
             builder.Build();

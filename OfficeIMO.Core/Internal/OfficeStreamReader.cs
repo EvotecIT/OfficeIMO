@@ -213,7 +213,7 @@ namespace OfficeIMO.Core.Internal {
         /// Leaves caller-owned streams open, including when a limit or cancellation stops the read.
         /// </summary>
         internal static byte[] ReadForwardBytes(Stream source, CancellationToken cancellationToken, long? maxBytes = null) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(source);
             if (!source.CanRead) throw new ArgumentException("Stream must be readable.", nameof(source));
             if (maxBytes.HasValue && maxBytes.Value < 1) throw new ArgumentOutOfRangeException(nameof(maxBytes));
             using var output = new MemoryStream();
@@ -239,7 +239,7 @@ namespace OfficeIMO.Core.Internal {
         }
 
         private static void ValidateSource(Stream source, long? maxBytes) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(source);
             if (!source.CanRead) throw new ArgumentException("Stream must be readable.", nameof(source));
             if (maxBytes.HasValue && maxBytes.Value < 1) throw new ArgumentOutOfRangeException(nameof(maxBytes));
             if (source.CanSeek && maxBytes.HasValue && source.Length > maxBytes.Value) {
@@ -248,7 +248,7 @@ namespace OfficeIMO.Core.Internal {
         }
 
         private static void ValidateRemainingSource(Stream source, long? maxBytes) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(source);
             if (!source.CanRead) throw new ArgumentException("Stream must be readable.", nameof(source));
             if (maxBytes.HasValue && maxBytes.Value < 1) throw new ArgumentOutOfRangeException(nameof(maxBytes));
             if (source.CanSeek && maxBytes.HasValue && source.Length - source.Position > maxBytes.Value) {

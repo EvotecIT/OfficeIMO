@@ -92,7 +92,7 @@ public sealed class SpreadsheetRangeReference {
 
     /// <summary>Parses a complete address using the requested grammar.</summary>
     public static SpreadsheetRangeReference Parse(string text, SpreadsheetAddressDialect dialect) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(text);
         if (!TryParse(text, dialect, out SpreadsheetRangeReference? reference)) {
             throw new FormatException($"'{text}' is not a valid {dialect} spreadsheet address.");
         }

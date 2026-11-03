@@ -10,7 +10,7 @@ namespace OfficeIMO.Word {
             IOfficeSecurityProvider securityProvider,
             WordMacroProjectSignatureValidationOptions? options = null,
             WordMacroProjectSigningDependencies? dependencies = null) {
-            if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
+            ArgumentNullException.ThrowIfNull(securityProvider);
             options ??= new WordMacroProjectSignatureValidationOptions();
             dependencies ??= WordMacroProjectSigningDependencies.Default;
             ValidateValidationOptions(options);
@@ -130,7 +130,7 @@ namespace OfficeIMO.Word {
             string certificateThumbprint,
             WordMacroProjectSigningOptions? options = null,
             WordMacroProjectSigningDependencies? dependencies = null) {
-            if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
+            ArgumentNullException.ThrowIfNull(securityProvider);
             options ??= new WordMacroProjectSigningOptions();
             dependencies ??= WordMacroProjectSigningDependencies.Default;
             ValidateSigningOptions(options);
@@ -476,7 +476,7 @@ namespace OfficeIMO.Word {
             storeName == StoreName.CertificateAuthority ? "CA" : storeName.ToString();
 
         private static void ValidateValidationOptions(WordMacroProjectSignatureValidationOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             WordMacroProjectSignatureInspector.ValidateOptions(options.Inspection);
             if (!options.Inspection.ValidateCms) {
                 throw new ArgumentException(

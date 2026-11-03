@@ -13,7 +13,7 @@ public static class OfficeDocumentReaderBuilderSubtitleExtensions {
         this OfficeDocumentReaderBuilder builder,
         ReaderSubtitleOptions? subtitleOptions = null,
         bool replaceExisting = false) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderSubtitleOptions registered = (subtitleOptions ?? new ReaderSubtitleOptions()).CloneValidated();
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,

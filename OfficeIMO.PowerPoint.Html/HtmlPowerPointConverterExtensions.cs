@@ -22,7 +22,7 @@ public static partial class HtmlPowerPointConverterExtensions {
     /// Imports a prepared shared HTML conversion document and returns the presentation plus structured evidence.
     /// </summary>
     public static HtmlToPowerPointResult ToPowerPointDocumentResult(this HtmlConversionDocument document, HtmlToPowerPointOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         const HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen;
         IHtmlDocument adapterDocument = document.CreateNativeDocumentForConversion(mediaContext);
         HtmlToPowerPointOptions resolved = options?.Clone() ?? new HtmlToPowerPointOptions();

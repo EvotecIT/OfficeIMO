@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Dashboard layout and styling options.</param>
         /// <returns>Dashboard table range and generated chart metadata.</returns>
         public ExcelDashboardResult AddDashboard(DataTable data, ExcelDashboardOptions? options = null) {
-            if (data == null) throw new ArgumentNullException(nameof(data));
+            ArgumentNullException.ThrowIfNull(data);
             var opts = options ?? new ExcelDashboardOptions();
             if (data.Columns.Count == 0) throw new ArgumentException("Dashboard data must contain at least one column.", nameof(data));
             if (opts.TableRow <= 0) throw new ArgumentOutOfRangeException(nameof(ExcelDashboardOptions.TableRow));

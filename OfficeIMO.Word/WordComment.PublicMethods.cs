@@ -44,7 +44,7 @@ namespace OfficeIMO.Word {
         }
 
         internal static WordComment Create(WordDocument document, string author, string initials, IReadOnlyList<Paragraph> paragraphs, WordComment? parent = null) {
-            if (paragraphs == null) throw new ArgumentNullException(nameof(paragraphs));
+            ArgumentNullException.ThrowIfNull(paragraphs);
 
             var comments = GetCommentsPart(document);
             var commentsEx = GetCommentsExPart(document);

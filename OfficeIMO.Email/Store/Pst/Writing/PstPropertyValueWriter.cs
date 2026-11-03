@@ -36,7 +36,7 @@ internal static class PstPropertyValueWriter {
     }
 
     internal static long GetLogicalValueSize(MapiProperty property, int codePage) {
-        if (property == null) throw new ArgumentNullException(nameof(property));
+        ArgumentNullException.ThrowIfNull(property);
         switch (property.PropertyType) {
             case MapiPropertyType.Null:
                 return 0;

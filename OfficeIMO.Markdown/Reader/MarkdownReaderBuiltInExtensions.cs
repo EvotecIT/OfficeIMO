@@ -17,9 +17,7 @@ internal static class MarkdownReaderBuiltInExtensions {
     /// Registers the OfficeIMO default built-in block extensions: callouts, TOC placeholders, and footnotes.
     /// </summary>
     public static void RegisterOfficeIMODefaults(MarkdownLoadOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         AddCallouts(options);
         AddTocPlaceholders(options);
@@ -58,9 +56,7 @@ internal static class MarkdownReaderBuiltInExtensions {
 
     /// <summary>Returns <see langword="true"/> when a named built-in extension is already registered.</summary>
     public static bool HasRegistration(MarkdownLoadOptions options, string extensionName) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         if (string.IsNullOrWhiteSpace(extensionName)) {
             return false;
@@ -77,9 +73,7 @@ internal static class MarkdownReaderBuiltInExtensions {
         MarkdownBlockParserPlacement placement,
         IMarkdownBlockParser parser,
         Func<MarkdownLoadOptions, bool> isEnabled) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         if (HasRegistration(options, name)) {
             return;

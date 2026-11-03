@@ -21,8 +21,8 @@ internal static class OfficeVbaSignatureEncoding {
     }
 
     internal static byte[] CreateDigSigInfoSerialized(byte[] cms, byte[] signerCertificate) {
-        if (cms == null) throw new ArgumentNullException(nameof(cms));
-        if (signerCertificate == null) throw new ArgumentNullException(nameof(signerCertificate));
+        ArgumentNullException.ThrowIfNull(cms);
+        ArgumentNullException.ThrowIfNull(signerCertificate);
         if (cms.Length == 0) throw new ArgumentException("CMS bytes are required.", nameof(cms));
         if (signerCertificate.Length == 0) {
             throw new ArgumentException("Signer certificate bytes are required.", nameof(signerCertificate));

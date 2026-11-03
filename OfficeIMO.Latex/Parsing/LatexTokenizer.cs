@@ -9,7 +9,7 @@ public static class LatexTokenizer {
         string source,
         LatexParseOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         options = (options ?? new LatexParseOptions()).Clone();
         cancellationToken.ThrowIfCancellationRequested();
         Validate(source, options);
@@ -27,7 +27,7 @@ public static class LatexTokenizer {
         LatexSourceText sourceText,
         LatexParseOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (sourceText == null) throw new ArgumentNullException(nameof(sourceText));
+        ArgumentNullException.ThrowIfNull(sourceText);
         string source = sourceText.Text;
         options ??= new LatexParseOptions();
         Validate(source, options);

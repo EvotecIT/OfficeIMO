@@ -67,8 +67,8 @@ public static partial class HtmlResourcePipeline {
         string css,
         Uri baseUri,
         HtmlResourcePipelineOptions? options = null) {
-        if (css == null) throw new ArgumentNullException(nameof(css));
-        if (baseUri == null) throw new ArgumentNullException(nameof(baseUri));
+        ArgumentNullException.ThrowIfNull(css);
+        ArgumentNullException.ThrowIfNull(baseUri);
         if (!baseUri.IsAbsoluteUri) throw new ArgumentException("The stylesheet base URI must be absolute.", nameof(baseUri));
 
         HtmlResourcePipelineOptions resolved = options ?? new HtmlResourcePipelineOptions();

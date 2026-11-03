@@ -67,7 +67,7 @@ public static class ProcessOcrProtocol {
 
     /// <summary>Serializes a process request using camel-case properties and string enum values.</summary>
     public static string SerializeRequest(ProcessOcrRequest request, bool indented = false) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         JsonSerializerOptions options = CreateOptions();
         options.WriteIndented = indented;
         var context = new ProcessOcrJsonSerializerContext(options);
@@ -76,7 +76,7 @@ public static class ProcessOcrProtocol {
 
     /// <summary>Serializes an engine result suitable for the process response file.</summary>
     public static string SerializeResult(OcrResult result, bool indented = false) {
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(result);
         JsonSerializerOptions options = CreateOptions();
         options.WriteIndented = indented;
         var context = new ProcessOcrJsonSerializerContext(options);
@@ -85,7 +85,7 @@ public static class ProcessOcrProtocol {
 
     /// <summary>Deserializes an engine result from the process response file.</summary>
     public static OcrResult DeserializeResult(string json) {
-        if (json == null) throw new ArgumentNullException(nameof(json));
+        ArgumentNullException.ThrowIfNull(json);
         using (JsonDocument document = JsonDocument.Parse(json)) {
             if (document.RootElement.ValueKind != JsonValueKind.Object) throw new InvalidDataException("OCR process response must be a JSON object.");
             if (!HasProperty(document.RootElement, "schemaId")) throw new InvalidDataException("OCR process response did not contain schemaId.");

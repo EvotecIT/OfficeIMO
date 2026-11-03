@@ -66,7 +66,7 @@ namespace OfficeIMO.Excel {
             ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (options?.Password is string password) return OpenEncryptedDataReaderAsync(stream, password, options, cancellationToken);
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
             return OpenLocalDataReaderAsync(stream, options, cancellationToken, format: null);
         }

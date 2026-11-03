@@ -4,7 +4,7 @@ namespace OfficeIMO.AsciiDoc;
 internal static class AsciiDocWriter {
     /// <summary>Writes a document using preserve or canonical mode.</summary>
     internal static string Write(AsciiDocDocument document, AsciiDocWriterOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         options ??= new AsciiDocWriterOptions();
 
         string lineEnding = options.LineEnding ?? document.Source.PreferredLineEnding;

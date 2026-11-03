@@ -12,9 +12,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             byte flags,
             byte reserved,
             int drawingByteCount) {
-            if (drawingByteCount < 0) {
-                throw new ArgumentOutOfRangeException(nameof(drawingByteCount));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(drawingByteCount);
 
             WrappedRecordType = wrappedRecordType;
             FutureRecordFlags = futureRecordFlags;

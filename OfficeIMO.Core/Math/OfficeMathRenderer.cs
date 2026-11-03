@@ -31,7 +31,7 @@ public static partial class OfficeMathRenderer {
 
     /// <summary>Measures an expression with cancellable bounded font-outline work.</summary>
     public static OfficeMathLayoutMetrics Measure(OfficeMathExpression expression, OfficeMathRenderOptions? options, CancellationToken cancellationToken) {
-        if (expression == null) throw new ArgumentNullException(nameof(expression));
+        ArgumentNullException.ThrowIfNull(expression);
         OfficeMathRenderOptions effective = options?.Clone() ?? new OfficeMathRenderOptions();
         effective.Validate();
         LayoutBox box = new LayoutEngine(effective, !effective.DisplayStyle, cancellationToken).LayoutRoot(expression, 1D);
@@ -44,7 +44,7 @@ public static partial class OfficeMathRenderer {
 
     /// <summary>Creates a drawing with cancellable bounded font-outline work.</summary>
     public static OfficeDrawing Render(OfficeMathExpression expression, OfficeMathRenderOptions? options, CancellationToken cancellationToken) {
-        if (expression == null) throw new ArgumentNullException(nameof(expression));
+        ArgumentNullException.ThrowIfNull(expression);
         OfficeMathRenderOptions effective = options?.Clone() ?? new OfficeMathRenderOptions();
         effective.Validate();
         LayoutBox box = new LayoutEngine(effective, !effective.DisplayStyle, cancellationToken).LayoutRoot(expression, 1D);
@@ -74,8 +74,8 @@ public static partial class OfficeMathRenderer {
     public static OfficeMathLayoutMetrics AddToDrawing(
         OfficeDrawing drawing, OfficeMathExpression expression, double x, double y,
         OfficeMathRenderOptions? options, CancellationToken cancellationToken) {
-        if (drawing == null) throw new ArgumentNullException(nameof(drawing));
-        if (expression == null) throw new ArgumentNullException(nameof(expression));
+        ArgumentNullException.ThrowIfNull(drawing);
+        ArgumentNullException.ThrowIfNull(expression);
         OfficeMathRenderOptions effective = options?.Clone() ?? new OfficeMathRenderOptions();
         effective.Validate();
         LayoutBox box = new LayoutEngine(effective, !effective.DisplayStyle, cancellationToken).LayoutRoot(expression, 1D);

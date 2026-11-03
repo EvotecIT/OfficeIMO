@@ -95,7 +95,7 @@ public sealed class CslStyle {
     }
 
     internal static XElement ReadXml(string xml, int maximumCharacters, int maximumDepth, CancellationToken token) {
-        if (xml == null) throw new ArgumentNullException(nameof(xml));
+        ArgumentNullException.ThrowIfNull(xml);
         if (xml.Length > maximumCharacters) throw new InvalidDataException("CSL XML exceeds MaximumCharacters.");
         token.ThrowIfCancellationRequested();
         var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = maximumCharacters };

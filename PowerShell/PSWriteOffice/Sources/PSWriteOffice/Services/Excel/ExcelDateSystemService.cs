@@ -7,7 +7,7 @@ internal static class ExcelDateSystemService
 {
     public static void ApplyIfSpecified(ExcelDocument document, string? dateSystem, string parameterName)
     {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         if (string.IsNullOrWhiteSpace(dateSystem))
         {
             return;

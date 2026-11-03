@@ -16,15 +16,9 @@ public sealed partial class CsvRowWriter
     public void WriteRows(IReadOnlyList<string> columns, IEnumerable<object?[]?> rows)
     {
         ThrowIfDisposed();
-        if (columns == null)
-        {
-            throw new ArgumentNullException(nameof(columns));
-        }
+        ArgumentNullException.ThrowIfNull(columns);
 
-        if (rows == null)
-        {
-            throw new ArgumentNullException(nameof(rows));
-        }
+        ArgumentNullException.ThrowIfNull(rows);
 
         EnsureColumns(columns);
         foreach (var row in rows)
@@ -51,15 +45,9 @@ public sealed partial class CsvRowWriter
     public void WriteTextRows(IReadOnlyList<string> columns, IEnumerable<string?[]?> rows)
     {
         ThrowIfDisposed();
-        if (columns == null)
-        {
-            throw new ArgumentNullException(nameof(columns));
-        }
+        ArgumentNullException.ThrowIfNull(columns);
 
-        if (rows == null)
-        {
-            throw new ArgumentNullException(nameof(rows));
-        }
+        ArgumentNullException.ThrowIfNull(rows);
 
         EnsureColumns(columns);
         foreach (var row in rows)

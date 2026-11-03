@@ -23,8 +23,8 @@ public static class VisioShapeResizeExtensions {
     /// </remarks>
     public static VisioShape ResizeShape(this VisioPage page, VisioShape shape, double width, double height,
         VisioMeasurementUnit? unit = null) {
-        if (page == null) throw new ArgumentNullException(nameof(page));
-        if (shape == null) throw new ArgumentNullException(nameof(shape));
+        ArgumentNullException.ThrowIfNull(page);
+        ArgumentNullException.ThrowIfNull(shape);
         if (!ReferenceEquals(shape.OwnerPage, page)) throw new InvalidOperationException("The shape is not part of this page.");
         VisioMeasurementUnit sizeUnit = unit ?? page.DefaultUnit;
         width = width.ToInches(sizeUnit); height = height.ToInches(sizeUnit);

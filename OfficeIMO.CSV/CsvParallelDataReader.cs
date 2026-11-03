@@ -44,7 +44,7 @@ internal sealed class CsvParallelDataReader : DbDataReader,
     internal CsvParallelDataReader(CsvDataReader source, CsvDataReaderParallelOptions options)
     {
         _source = source ?? throw new ArgumentNullException(nameof(source));
-        if (options is null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         _degreeOfParallelism = options.GetDegreeOfParallelism();
         _batchSize = options.GetBatchSize(source.PreferredParallelProcessingBatchSize);
         _fieldCount = source.FieldCount;
@@ -538,7 +538,7 @@ internal sealed class CsvParallelDataReader : DbDataReader,
 
     public override int GetValues(object[] values)
     {
-        if (values is null) throw new ArgumentNullException(nameof(values));
+        ArgumentNullException.ThrowIfNull(values);
         EnsureOpenRow();
         int count = Math.Min(values.Length, _fieldCount);
         Array.Copy(_currentBatch!.Values, _currentRow * _fieldCount, values, 0, count);
@@ -624,7 +624,7 @@ internal sealed class CsvDataReaderRawBatch : IDisposable
 
     internal static int GetBoundedRowCapacity(int preferredBatchSize, int fieldCount)
     {
-        if (preferredBatchSize <= 0) throw new ArgumentOutOfRangeException(nameof(preferredBatchSize));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(preferredBatchSize);
         if (fieldCount <= 0) return 1;
         const int maximumElements = 4 * 1024 * 1024;
         return Math.Max(1, Math.Min(preferredBatchSize, maximumElements / fieldCount));

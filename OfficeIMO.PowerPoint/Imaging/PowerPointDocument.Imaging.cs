@@ -22,7 +22,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeImageExportConsumer consumer,
             PowerPointImageExportOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+            ArgumentNullException.ThrowIfNull(consumer);
             ThrowIfDisposed();
             PowerPointImageExportOptions resolved = NormalizeDocumentImageExportOptions(options);
             PowerPointPageImageExport.RenderPages(this, format, resolved, consumer, cancellationToken);

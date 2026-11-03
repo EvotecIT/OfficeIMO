@@ -5,7 +5,7 @@ public sealed class OdfConversionMapping {
     /// <summary>Creates a feature mapping result.</summary>
     public OdfConversionMapping(string feature, OdfConversionMappingStatus status, int count = 1, string? message = null) {
         if (string.IsNullOrWhiteSpace(feature)) throw new ArgumentException("Feature name cannot be empty.", nameof(feature));
-        if (count < 1) throw new ArgumentOutOfRangeException(nameof(count));
+        ArgumentOutOfRangeException.ThrowIfLessThan(count, 1);
         Feature = feature;
         Status = status;
         Count = count;

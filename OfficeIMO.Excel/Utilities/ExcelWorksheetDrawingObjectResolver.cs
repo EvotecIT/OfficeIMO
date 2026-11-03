@@ -12,9 +12,7 @@ namespace OfficeIMO.Excel.Utilities {
         private const long DefaultTopBottomTextInsetEmu = 45720L;
 
         internal static IReadOnlyList<ExcelWorksheetDrawingObjectInfo> FindDrawingObjects(WorksheetPart worksheetPart) {
-            if (worksheetPart == null) {
-                throw new ArgumentNullException(nameof(worksheetPart));
-            }
+            ArgumentNullException.ThrowIfNull(worksheetPart);
 
             Xdr.WorksheetDrawing? worksheetDrawing = worksheetPart.DrawingsPart?.WorksheetDrawing;
             if (worksheetDrawing == null) {

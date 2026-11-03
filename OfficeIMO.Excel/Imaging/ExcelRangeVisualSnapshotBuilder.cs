@@ -7,7 +7,7 @@ using OfficeIMO.Excel.Utilities;
 namespace OfficeIMO.Excel {
     internal sealed class ExcelSourceImageBudget {
         internal ExcelSourceImageBudget(long maximumBytes) {
-            if (maximumBytes < 0L) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+            ArgumentOutOfRangeException.ThrowIfLessThan(maximumBytes, 0L);
             RemainingBytes = maximumBytes;
         }
 
@@ -31,13 +31,9 @@ namespace OfficeIMO.Excel {
             ExcelSourceImageBudget? sourceImageBudget = null,
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (sheet == null) {
-                throw new ArgumentNullException(nameof(sheet));
-            }
+            ArgumentNullException.ThrowIfNull(sheet);
 
-            if (options == null) {
-                throw new ArgumentNullException(nameof(options));
-            }
+            ArgumentNullException.ThrowIfNull(options);
 
             if (!ExcelA1.TryParseRange(range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                 throw new ArgumentException("Range must be a valid A1 range.", nameof(range));

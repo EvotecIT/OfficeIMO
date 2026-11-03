@@ -315,7 +315,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="shapes">Stencil shapes with <see cref="VisioStencilShape.SourcePackagePath"/> metadata.</param>
         public IReadOnlyList<VisioMaster> ImportStencilMastersAndGet(IEnumerable<VisioStencilShape> shapes) {
-            if (shapes == null) throw new ArgumentNullException(nameof(shapes));
+            ArgumentNullException.ThrowIfNull(shapes);
 
             List<VisioMaster> imported = new();
             foreach (IGrouping<string, VisioStencilShape> group in shapes
@@ -423,7 +423,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="stream">Destination stream for the VSDX package.</param>
         public static VisioDocument Create(Stream stream) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanWrite) throw new ArgumentException("Stream must be writable.", nameof(stream));
             if (!OfficeStreamWriter.CanReplaceContents(stream)) {
                 throw new ArgumentException("Stream must support seeking when used as an associated destination.", nameof(stream));
@@ -612,7 +612,7 @@ namespace OfficeIMO.Visio {
         /// Registers a master on the document so it can be reused by name.
         /// </summary>
         public VisioMaster RegisterMaster(VisioMaster master) {
-            if (master == null) throw new ArgumentNullException(nameof(master));
+            ArgumentNullException.ThrowIfNull(master);
             if (string.IsNullOrWhiteSpace(master.NameU)) throw new ArgumentException("Master NameU cannot be null or whitespace.", nameof(master));
             if (master.IsPackageBacked
                 && _builtinMasters.TryGetValue(master.NameU,
@@ -642,7 +642,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public VisioMaster RegisterMaster(string nameU, VisioShape shape, string? id = null) {
             if (string.IsNullOrWhiteSpace(nameU)) throw new ArgumentException("Master NameU cannot be null or whitespace.", nameof(nameU));
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
 
             VisioMaster master = new(id ?? Guid.NewGuid().ToString("N"), nameU, shape);
             return RegisterMaster(master);

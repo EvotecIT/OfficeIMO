@@ -12,14 +12,14 @@ public sealed partial class XpsPage {
 
     /// <summary>Creates or replaces the page's native StoryFragments part, preserving unrelated relationships and package parts.</summary>
     public void ReplaceStoryFragmentsMarkup(XElement markup) {
-        if (markup == null) throw new ArgumentNullException(nameof(markup));
+        ArgumentNullException.ThrowIfNull(markup);
         Document.CommitPageContent(this, GetMarkup(), markup);
     }
 
     /// <summary>Atomically replaces page and StoryFragments markup, allowing named content and references to be edited together.</summary>
     public void ReplaceMarkup(XElement markup, XElement storyFragments) {
-        if (markup == null) throw new ArgumentNullException(nameof(markup));
-        if (storyFragments == null) throw new ArgumentNullException(nameof(storyFragments));
+        ArgumentNullException.ThrowIfNull(markup);
+        ArgumentNullException.ThrowIfNull(storyFragments);
         if (markup.Name != _markup.Name) throw new ArgumentException("Expected FixedPage in the document dialect.", nameof(markup));
         ValidatePageDimension(XpsPackage.Number((string?)markup.Attribute("Width")));
         ValidatePageDimension(XpsPackage.Number((string?)markup.Attribute("Height")));

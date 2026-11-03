@@ -83,9 +83,7 @@ namespace OfficeIMO.PowerPoint {
         /// Replaces text within the paragraph runs while preserving formatting.
         /// </summary>
         public int ReplaceText(string oldValue, string newValue) {
-            if (oldValue == null) {
-                throw new ArgumentNullException(nameof(oldValue));
-            }
+            ArgumentNullException.ThrowIfNull(oldValue);
             if (oldValue.Length == 0) {
                 throw new ArgumentException("Old value cannot be empty.", nameof(oldValue));
             }

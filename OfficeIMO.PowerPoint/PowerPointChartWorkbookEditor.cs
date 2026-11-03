@@ -82,8 +82,8 @@ namespace OfficeIMO.PowerPoint {
 
         internal static byte[] Update(byte[] source,
             OfficeChartData data) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (data == null) throw new ArgumentNullException(nameof(data));
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentNullException.ThrowIfNull(data);
             using var stream = new MemoryStream();
             stream.Write(source, 0, source.Length);
             stream.Position = 0;

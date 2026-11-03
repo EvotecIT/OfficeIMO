@@ -68,7 +68,7 @@ public sealed class PdfFormDataSet {
         Guard.NotNull(xfdf, nameof(xfdf));
         ValidateXfdfLimits(maxFields, maxValueCharacters, maxDocumentCharacters);
 #pragma warning disable CA1512 // ThrowIfNegativeOrZero is unavailable on every target framework.
-        if (maxDocumentBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxDocumentBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDocumentBytes);
 #pragma warning restore CA1512
         if (xfdf.Length > maxDocumentBytes) throw new InvalidOperationException("XFDF document byte limit exceeded.");
         var settings = CreateXfdfReaderSettings(maxDocumentCharacters);
@@ -91,9 +91,9 @@ public sealed class PdfFormDataSet {
 
     private static void ValidateXfdfLimits(int maxFields, int maxValueCharacters, int maxDocumentCharacters) {
 #pragma warning disable CA1512 // ThrowIfNegativeOrZero is unavailable on every target framework.
-        if (maxFields <= 0) throw new ArgumentOutOfRangeException(nameof(maxFields));
-        if (maxValueCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(maxValueCharacters));
-        if (maxDocumentCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(maxDocumentCharacters));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxFields);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxValueCharacters);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDocumentCharacters);
 #pragma warning restore CA1512
     }
 

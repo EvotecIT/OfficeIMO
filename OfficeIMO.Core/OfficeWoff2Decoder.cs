@@ -38,8 +38,8 @@ internal static partial class OfficeWoff2Decoder {
 #if !NET8_0_OR_GREATER
         throw new PlatformNotSupportedException("WOFF 2 decoding requires the .NET 8 or newer OfficeIMO.Core asset.");
 #else
-        if (data == null) throw new ArgumentNullException(nameof(data));
-        if (maximumDecodedBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumDecodedBytes));
+        ArgumentNullException.ThrowIfNull(data);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumDecodedBytes);
         if (data.Length < HeaderLength) throw new InvalidDataException("The WOFF 2 header is truncated.");
         if (ReadUInt32(data, 0) != Signature) throw new InvalidDataException("The font is not a WOFF 2 container.");
         uint flavor = ReadUInt32(data, 4);
@@ -286,8 +286,8 @@ internal static partial class OfficeWoff2Decoder {
     }
 
     internal static void ValidateTransformedGlyfGlyphCount(byte[] transformedGlyf, byte[] maxp) {
-        if (transformedGlyf == null) throw new ArgumentNullException(nameof(transformedGlyf));
-        if (maxp == null) throw new ArgumentNullException(nameof(maxp));
+        ArgumentNullException.ThrowIfNull(transformedGlyf);
+        ArgumentNullException.ThrowIfNull(maxp);
         if (transformedGlyf.Length < 6) {
             throw new InvalidDataException("The transformed WOFF 2 glyf header is truncated.");
         }

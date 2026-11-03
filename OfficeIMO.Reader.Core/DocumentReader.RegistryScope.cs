@@ -7,7 +7,7 @@ internal static partial class DocumentReaderEngine {
     private static readonly AsyncLocal<ReaderHandlerRegistrySnapshot?> ActiveHandlerRegistry = new AsyncLocal<ReaderHandlerRegistrySnapshot?>();
 
     internal static IDisposable UseHandlerRegistry(ReaderHandlerRegistrySnapshot snapshot) {
-        if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
+        ArgumentNullException.ThrowIfNull(snapshot);
 
         ReaderHandlerRegistrySnapshot? previous = ActiveHandlerRegistry.Value;
         ActiveHandlerRegistry.Value = snapshot;

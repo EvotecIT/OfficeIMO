@@ -15,7 +15,7 @@ public sealed partial class CslProcessor {
 
     /// <summary>Creates a processor by copying the bibliography data and rendering options. Keys must be nonempty and unique.</summary>
     public CslProcessor(BibliographyDocument document, CslStyle style, CslRenderOptions? options = null, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         _style = style ?? throw new ArgumentNullException(nameof(style));
         _options = CopyOptions(options ?? new CslRenderOptions());
         if (document.Items.Any(item => string.IsNullOrWhiteSpace(item.Key)) || document.Items.Select(item => item.Key).Distinct(StringComparer.Ordinal).Count() != document.Items.Count)
@@ -35,7 +35,7 @@ public sealed partial class CslProcessor {
     /// <summary>Renders a complete document citation sequence, recalculating numbers, positions, disambiguation, and bibliography order.</summary>
     /// <remarks>The processor does not mutate the source bibliography. Replacing the input sequence handles insertion, deletion, and movement of citations.</remarks>
     public CslRenderResult Render(IEnumerable<CslCitation> citations, bool includeUncitedItems = false, CancellationToken cancellationToken = default) {
-        if (citations == null) throw new ArgumentNullException(nameof(citations));
+        ArgumentNullException.ThrowIfNull(citations);
         // Operation-local copies keep successive operations independent and allow
         // callers to render different documents concurrently with one processor.
         Dictionary<string, CslRecord> records = _records.ToDictionary(pair => pair.Key, pair => new CslRecord(pair.Value), StringComparer.Ordinal);

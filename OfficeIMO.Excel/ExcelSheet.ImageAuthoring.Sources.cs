@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static ImageSource LoadImageSource(Stream stream, bool leaveOpen) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             try {
                 return ValidatedImageSource(OfficeStreamReader.ReadAllBytes(stream), null, nameof(stream));
             } finally {
@@ -59,7 +59,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static async Task<ImageSource> LoadImageSourceAsync(Stream stream, bool leaveOpen, CancellationToken cancellationToken) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             try {
                 byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
@@ -70,7 +70,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static async Task<ImageSource> LoadImageSourceAsync(Uri uri, OfficeRemoteImageLoadOptions? options, CancellationToken cancellationToken) {
-            if (uri == null) throw new ArgumentNullException(nameof(uri));
+            ArgumentNullException.ThrowIfNull(uri);
             if (!uri.IsAbsoluteUri || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
                 throw new ArgumentException("Use an absolute HTTP or HTTPS image URI; local files use the path overload.", nameof(uri));
             OfficeRemoteImage remote = await OfficeRemoteImageLoader.LoadAsync(uri.AbsoluteUri, options, cancellationToken).ConfigureAwait(false);

@@ -16,7 +16,7 @@ public static partial class ExcelHtmlConverterExtensions {
 
     /// <summary>Converts a workbook to HTML with the shared structured result contract.</summary>
     public static HtmlTextConversionResult ToHtmlResult(this ExcelDocument workbook, ExcelHtmlSaveOptions? options = null) {
-        if (workbook == null) throw new ArgumentNullException(nameof(workbook));
+        ArgumentNullException.ThrowIfNull(workbook);
         ExcelHtmlSaveOptions operation = (options ?? new ExcelHtmlSaveOptions()).Clone();
         operation.Validate();
         var diagnostics = new List<HtmlDiagnostic>();
@@ -38,7 +38,7 @@ public static partial class ExcelHtmlConverterExtensions {
 
     /// <summary>Converts a worksheet to HTML with the shared structured result contract.</summary>
     public static HtmlTextConversionResult ToHtmlResult(this ExcelSheet sheet, ExcelHtmlSaveOptions? options = null) {
-        if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+        ArgumentNullException.ThrowIfNull(sheet);
         ExcelHtmlSaveOptions operation = (options ?? new ExcelHtmlSaveOptions()).Clone();
         operation.Validate();
         var diagnostics = new List<HtmlDiagnostic>();

@@ -22,7 +22,7 @@ public static partial class RtfMarkdownConverterExtensions {
 
     /// <summary>Converts an RTF document into Markdown together with per-operation fidelity diagnostics.</summary>
     public static RtfConversionResult<MarkdownDocument> ToMarkdownDocumentResult(this RtfDocument document, RtfToMarkdownOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         var context = new RtfToMarkdownConversionContext(options ?? new RtfToMarkdownOptions());
         context.ConversionReport.Merge(document.GetStyleConversionDiagnostics());
         MarkdownDocument value = RtfToMarkdownConverter.Convert(document, context);
@@ -38,7 +38,7 @@ public static partial class RtfMarkdownConverterExtensions {
 
     /// <summary>Converts an RTF document into Markdown text with per-operation fidelity diagnostics.</summary>
     public static RtfConversionResult<string> ToMarkdownResult(this RtfDocument document, RtfToMarkdownOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         var effectiveOptions = options ?? new RtfToMarkdownOptions();
         RtfConversionResult<MarkdownDocument> converted = document.ToMarkdownDocumentResult(effectiveOptions);
         string value = converted.Value.ToMarkdown(effectiveOptions.MarkdownWriteOptions);
@@ -63,7 +63,7 @@ public static partial class RtfMarkdownConverterExtensions {
     /// Writes an RTF document as Markdown text.
     /// </summary>
     public static void SaveAsMarkdown(this RtfDocument document, string path, RtfToMarkdownOptions? options = null, Encoding? encoding = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Output path is required.", nameof(path));
 
         OfficeFileCommit.WriteAllBytes(path, document.ToMarkdownBytes(options, encoding));
@@ -104,7 +104,7 @@ public static partial class RtfMarkdownConverterExtensions {
 
     /// <summary>Converts Markdown into an RTF document together with per-operation fidelity diagnostics.</summary>
     public static RtfConversionResult<RtfDocument> ToRtfDocumentResult(this MarkdownDocument markdown, MarkdownToRtfOptions? options = null) {
-        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
+        ArgumentNullException.ThrowIfNull(markdown);
         var context = new MarkdownToRtfConversionContext(options ?? new MarkdownToRtfOptions());
         RtfDocument value = MarkdownToRtfConverter.Convert(markdown, context);
         return new RtfConversionResult<RtfDocument>(value, context.ConversionReport);

@@ -311,9 +311,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Replaces recipe-based alternatives with caller-supplied creative directions.
         /// </summary>
         public PowerPointDesignBrief WithDirections(IEnumerable<PowerPointDesignDirection> directions) {
-            if (directions == null) {
-                throw new ArgumentNullException(nameof(directions));
-            }
+            ArgumentNullException.ThrowIfNull(directions);
 
             _directions.Clear();
             foreach (PowerPointDesignDirection direction in directions) {
@@ -439,9 +437,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> DescribeDeckPlan(
             PowerPointDeckPlan plan, int alternativeIndex, int slideIndexOffset) {
-            if (plan == null) {
-                throw new ArgumentNullException(nameof(plan));
-            }
+            ArgumentNullException.ThrowIfNull(plan);
 
             return plan.DescribeSlides(CreateDesign(alternativeIndex), slideIndexOffset);
         }
@@ -460,9 +456,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<PowerPointDeckPlanAlternativeSummary> DescribeDeckPlanAlternatives(
             PowerPointDeckPlan plan, int count, int slideIndexOffset) {
-            if (plan == null) {
-                throw new ArgumentNullException(nameof(plan));
-            }
+            ArgumentNullException.ThrowIfNull(plan);
 
             IReadOnlyList<PowerPointDeckDesign> alternatives = CreateAlternatives(count);
             IReadOnlyList<PowerPointDeckPlanDiagnostic> diagnostics = plan.ValidateSlides();

@@ -17,7 +17,7 @@ public static class ChmMarkdownConverterExtensions {
 
     private static ChmConversionResult<T> Convert<T>(ChmDocument document, ChmConversionOptions? options,
         MarkdownHtmlImportOptions? markdownOptions, CancellationToken cancellationToken, Func<MarkdownDocument, string, T> select) where T : class {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         ChmConversionOptions configured = options?.Clone() ?? new ChmConversionOptions();
         ChmConversionResult<HtmlConversionDocument> projected = document.ToHtmlDocumentResult(configured, cancellationToken);
         MarkdownHtmlImportOptions conversion = markdownOptions?.Clone() ?? MarkdownHtmlImportOptions.CreatePortableProfile();

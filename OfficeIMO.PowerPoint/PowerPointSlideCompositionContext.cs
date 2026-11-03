@@ -99,7 +99,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Adds the deck's standard slide header: accent mark, eyebrow, title and subtitle.</summary>
         public IReadOnlyList<PowerPointShape> AddTitle(string title, string? subtitle = null) {
             return CaptureAddedShapes(() => {
-            if (title == null) throw new ArgumentNullException(nameof(title));
+            ArgumentNullException.ThrowIfNull(title);
             var slide = new PowerPointLayoutSlide { Title = title, Subtitle = subtitle, Eyebrow = _options.Eyebrow };
             if (!string.IsNullOrWhiteSpace(_context.Deck.CurrentSection)) slide.Eyebrow = null;
             _header = PowerPointLayoutEngine.RenderHeader(_context, _writer, slide);
@@ -112,7 +112,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointTextBox AddTextBlock(string text, PowerPointLayoutBox bounds, OfficeLength? fontSize = null,
             bool bold = false, string? color = null) {
-            if (text == null) throw new ArgumentNullException(nameof(text));
+            ArgumentNullException.ThrowIfNull(text);
             if (fontSize.HasValue && fontSize.Value <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(fontSize));
             PowerPointTextStyleSpec style = _context.Style(PowerPointTextRole.BodySmall);
             double size = Math.Max(style.Minimum, (fontSize ?? OfficeLength.Points(12)).ToPoints());
@@ -165,7 +165,7 @@ namespace OfficeIMO.PowerPoint {
         public IReadOnlyList<PowerPointShape> AddMetricStrip(IEnumerable<PowerPointMetric> metrics, PowerPointLayoutBox bounds,
             PowerPointMetricStripVariant variant) {
             return CaptureAddedShapes(() => {
-            if (metrics == null) throw new ArgumentNullException(nameof(metrics));
+            ArgumentNullException.ThrowIfNull(metrics);
             var slide = new PowerPointLayoutSlide();
             foreach (PowerPointMetric metric in metrics.Where(m => m != null)) {
                 slide.Blocks.Add(new PowerPointLayoutKpi(metric.Value, metric.Label, metric.Change, PowerPointLayoutBlock.ParseColor(metric.Color)));
@@ -206,7 +206,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Adds a callout: a surface panel with an accent rule and lede text.</summary>
         public IReadOnlyList<PowerPointShape> AddCalloutBand(string text, PowerPointLayoutBox bounds, string? accentColor = null) {
             return CaptureAddedShapes(() => {
-            if (text == null) throw new ArgumentNullException(nameof(text));
+            ArgumentNullException.ThrowIfNull(text);
             PowerPointLayoutRect rect = ToRect(bounds);
             _writer.Rect("Callout Panel", rect, _context.Theme.Surface);
             _writer.Rect("Callout Rule", new PowerPointLayoutRect(rect.X, rect.Y, 3D, rect.Height), _context.ResolveColor(PowerPointLayoutBlock.ParseColor(accentColor)) ?? _context.Theme.Accent1);
@@ -258,8 +258,8 @@ namespace OfficeIMO.PowerPoint {
         public static PowerPointSlide ComposeDesignerSlide(this PowerPointDocument presentation,
             Action<PowerPointSlideCompositionContext> compose, PowerPointDesignTheme? theme = null,
             PowerPointDesignerSlideOptions? options = null, bool dark = false) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
-            if (compose == null) throw new ArgumentNullException(nameof(compose));
+            ArgumentNullException.ThrowIfNull(presentation);
+            ArgumentNullException.ThrowIfNull(compose);
             PowerPointDesignerSlideOptions resolvedOptions = options ?? new PowerPointDesignerSlideOptions();
             var slide = new PowerPointLayoutSlide { Layout = PowerPointLayout.TitleAndContent, TemplateLayout = resolvedOptions.TemplateLayout };
             slide.Blocks.Add(new PowerPointLayoutDrawing((target, context, box) =>

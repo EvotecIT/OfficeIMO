@@ -26,7 +26,7 @@ public sealed class OdfMarkerGeometry {
     private static bool Finite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
     private static string CheckedViewBox(OdfViewBox value) { value.Validate(); return value.ToString(); }
     private static string ValidateViewBox(string value) {
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
         if (value.Length > 128) throw new ArgumentException("Marker view box exceeds the supported length.", nameof(value));
         string[] tokens = value.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
         if (tokens.Length != 4) throw new ArgumentException("Marker view box requires four numbers.", nameof(value));

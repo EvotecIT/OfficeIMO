@@ -17,7 +17,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static bool TryReadBackground(PowerPointSlide slide,
             out LegacyPptWriterBackground? background, out string? reason) {
-            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            ArgumentNullException.ThrowIfNull(slide);
             P.Background? source = slide.SlidePart.Slide?.CommonSlideData?.Background;
             OpenXmlPart? ownerPart = source == null ? null : slide.SlidePart;
             if (source == null) {
@@ -36,7 +36,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static bool TryReadBackground(SlideMasterPart masterPart,
             out LegacyPptWriterBackground? background, out string? reason) {
-            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            ArgumentNullException.ThrowIfNull(masterPart);
             P.Background? source = masterPart.SlideMaster?.CommonSlideData?.Background;
             if (source == null) {
                 background = null;
@@ -49,7 +49,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static bool TryReadBackground(NotesMasterPart masterPart,
             out LegacyPptWriterBackground? background, out string? reason) {
-            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            ArgumentNullException.ThrowIfNull(masterPart);
             P.Background? source = masterPart.NotesMaster?.CommonSlideData?.Background;
             if (source == null) {
                 background = null;
@@ -62,7 +62,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static bool TryReadBackground(HandoutMasterPart masterPart,
             out LegacyPptWriterBackground? background, out string? reason) {
-            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            ArgumentNullException.ThrowIfNull(masterPart);
             P.Background? source = masterPart.HandoutMaster?.CommonSlideData?
                 .Background;
             if (source == null) {
@@ -76,7 +76,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static bool TryReadBackground(SlideLayoutPart masterPart,
             out LegacyPptWriterBackground? background, out string? reason) {
-            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            ArgumentNullException.ThrowIfNull(masterPart);
             P.Background? source = masterPart.SlideLayout?.CommonSlideData?
                 .Background;
             if (source == null) {
@@ -90,7 +90,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static bool TryReadBackground(NotesSlidePart notesPart,
             out LegacyPptWriterBackground? background, out string? reason) {
-            if (notesPart == null) throw new ArgumentNullException(nameof(notesPart));
+            ArgumentNullException.ThrowIfNull(notesPart);
             P.Background? source = notesPart.NotesSlide?.CommonSlideData?
                 .Background;
             if (source == null) {

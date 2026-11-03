@@ -38,9 +38,7 @@ internal static class WordMarkdownSemanticBlocks {
     /// Registers Word header/footer fenced-block extensions on an existing reader options instance.
     /// </summary>
     public static void ConfigureReaderOptions(MarkdownLoadOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         AddExtensionIfMissing(
             options,

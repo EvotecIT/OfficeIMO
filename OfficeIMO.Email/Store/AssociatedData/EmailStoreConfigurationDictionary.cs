@@ -108,7 +108,7 @@ public sealed class EmailStoreConfigurationDictionary {
 
     /// <summary>Gets one decoded entry.</summary>
     public bool TryGet(string key, out EmailStoreConfigurationValue? value) {
-        if (key == null) throw new ArgumentNullException(nameof(key));
+        ArgumentNullException.ThrowIfNull(key);
         return Entries.TryGetValue(key, out value);
     }
 
@@ -121,7 +121,7 @@ public sealed class EmailStoreConfigurationDictionary {
 
     /// <summary>Creates or replaces a Unicode string entry.</summary>
     public void Set(string key, string value) {
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
         SetEncoded(key, string.Concat("18-", value));
     }
 
@@ -189,7 +189,7 @@ public sealed class EmailStoreConfigurationDictionary {
             key, StringComparison.Ordinal));
 
     private static void ValidateKey(string key) {
-        if (key == null) throw new ArgumentNullException(nameof(key));
+        ArgumentNullException.ThrowIfNull(key);
         if (key.Length == 0) throw new ArgumentException("A configuration key cannot be empty.", nameof(key));
     }
 }

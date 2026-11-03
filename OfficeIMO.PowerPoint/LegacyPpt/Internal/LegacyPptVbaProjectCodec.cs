@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal static bool IsValidProject(byte[] bytes,
             LegacyPptImportOptions? options, out string? reason, bool preserveResourceLimits = false) {
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            ArgumentNullException.ThrowIfNull(bytes);
             bool readable = options == null
                 ? OfficeCompoundFileReader.TryRead(bytes,
                     new OfficeCompoundReadOptions(preserveResourceLimits: preserveResourceLimits),

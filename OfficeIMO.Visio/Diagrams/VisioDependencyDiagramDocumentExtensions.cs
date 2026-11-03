@@ -9,7 +9,7 @@ namespace OfficeIMO.Visio.Diagrams {
         /// Adds an automatically layered dependency diagram page and returns the document for chaining.
         /// </summary>
         public static VisioDocument DependencyDiagram(this VisioDocument document, string pageName, Action<VisioDependencyDiagramBuilder> configure) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             VisioDependencyDiagramBuilder builder = new VisioDependencyDiagramBuilder(document, pageName);
             configure?.Invoke(builder);
             builder.Build();

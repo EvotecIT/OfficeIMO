@@ -312,7 +312,7 @@ internal static class PstTestFileBuilder {
     }
 
     private static byte[] CreateByValueAttachmentPropertyContext(uint contentNid, long contentLength) {
-        if (contentLength > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(contentLength));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(contentLength, int.MaxValue);
         byte[] fileName = Encoding.Unicode.GetBytes("payload.bin\0");
         var allocations = new List<byte[]> {
             new byte[] { 0xB5, 0x02, 0x06, 0x00, 0x40, 0x00, 0x00, 0x00 },

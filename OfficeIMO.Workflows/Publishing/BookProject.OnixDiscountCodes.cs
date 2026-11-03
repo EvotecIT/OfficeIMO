@@ -11,7 +11,7 @@ public sealed partial class BookProject {
         XNamespace ns = OnixNamespace;
         var result = new List<XElement>();
         foreach (BookOnixDiscountCode discount in price.DiscountCodes) {
-            if (discount == null) throw new ArgumentNullException(nameof(discount));
+            ArgumentNullException.ThrowIfNull(discount);
             string scheme = discount.Scheme switch {
                 BookOnixDiscountScheme.BicDiscount => "01", BookOnixDiscountScheme.ProprietaryDiscount => "02",
                 BookOnixDiscountScheme.Boeksoort => "03", BookOnixDiscountScheme.GermanTerms => "04",

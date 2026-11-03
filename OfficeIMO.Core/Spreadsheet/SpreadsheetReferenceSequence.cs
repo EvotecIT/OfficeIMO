@@ -18,7 +18,7 @@ public sealed class SpreadsheetReferenceSequence {
 
     /// <summary>Parses a comma- or whitespace-delimited reference sequence.</summary>
     public static SpreadsheetReferenceSequence Parse(string text, SpreadsheetAddressDialect dialect) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(text);
         if (!TryParse(text, dialect, out SpreadsheetReferenceSequence? sequence)) {
             throw new FormatException($"'{text}' is not a valid {dialect} spreadsheet reference sequence.");
         }

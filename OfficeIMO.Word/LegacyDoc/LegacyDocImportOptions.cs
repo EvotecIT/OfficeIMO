@@ -32,11 +32,11 @@ namespace OfficeIMO.Word.LegacyDoc {
         public bool ReportUnsupportedContent { get; set; } = true;
 
         internal void Validate() {
-            if (MaxInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxInputBytes));
-            if (MaxDecodedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxDecodedImageBytes));
-            if (MaxDecodedCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxDecodedCharacters));
-            if (MaxParagraphPropertyWorkBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxParagraphPropertyWorkBytes));
-            if (MaxDataPropertyChainLength <= 0) throw new ArgumentOutOfRangeException(nameof(MaxDataPropertyChainLength));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxInputBytes);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxDecodedImageBytes);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxDecodedCharacters);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxParagraphPropertyWorkBytes);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxDataPropertyChainLength);
         }
 
     }

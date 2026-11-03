@@ -13,8 +13,8 @@ public sealed class EmailMailboxReaderOptions {
     /// <summary>Creates mailbox reader options with an explicit aggregate byte limit.</summary>
     public EmailMailboxReaderOptions(long maxMailboxBytes, EmailReaderOptions? messageOptions = null,
         MboxVariant variant = MboxVariant.Auto, int maxMessageCount = 100000) {
-        if (maxMessageCount <= 0) throw new ArgumentOutOfRangeException(nameof(maxMessageCount));
-        if (maxMailboxBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxMailboxBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxMessageCount);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxMailboxBytes);
         MessageOptions = messageOptions ?? EmailReaderOptions.Default;
         Variant = variant;
         MaxMessageCount = maxMessageCount;

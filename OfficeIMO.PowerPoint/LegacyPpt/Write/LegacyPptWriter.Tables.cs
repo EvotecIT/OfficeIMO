@@ -11,8 +11,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterFontCatalog fonts,
             LegacyPptWriterPictureBulletCatalog pictureBullets,
             out string? reason) {
-            if (table == null) throw new ArgumentNullException(nameof(table));
-            if (fonts == null) throw new ArgumentNullException(nameof(fonts));
+            ArgumentNullException.ThrowIfNull(table);
+            ArgumentNullException.ThrowIfNull(fonts);
             if (pictureBullets == null) throw new ArgumentNullException(
                 nameof(pictureBullets));
             if (table.Rows <= 0 || table.Columns <= 0

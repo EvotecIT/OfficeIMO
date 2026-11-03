@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private const int BrtCalcProp = 157;
 
         internal static void Write(Stream output, CalculationProperties? properties) {
-            if (output == null) throw new ArgumentNullException(nameof(output));
+            ArgumentNullException.ThrowIfNull(output);
             if (properties == null) return;
             Xlsb.Biff12.XlsbRecordWriter.Write(output, BrtCalcProp, CreatePayload(properties));
         }

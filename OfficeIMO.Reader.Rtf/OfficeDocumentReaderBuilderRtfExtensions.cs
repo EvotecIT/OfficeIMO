@@ -16,7 +16,7 @@ public static class OfficeDocumentReaderBuilderRtfExtensions {
         this OfficeDocumentReaderBuilder builder,
         ReaderRtfOptions? rtfOptions = null,
         bool replaceExisting = true) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         return builder.AddHandler(CreateRegistration(rtfOptions), replaceExisting);
     }
 

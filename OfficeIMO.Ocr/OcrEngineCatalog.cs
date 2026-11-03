@@ -46,7 +46,7 @@ public sealed class OcrEngineCatalog {
 
     /// <summary>Registers a provider. Identifiers are unique without regard to case.</summary>
     public OcrEngineCatalog Register(IOcrEngineProvider provider) {
-        if (provider == null) throw new ArgumentNullException(nameof(provider));
+        ArgumentNullException.ThrowIfNull(provider);
         string id = ValidateIdentity(provider.Id, nameof(provider));
         string displayName = ValidateIdentity(provider.DisplayName, nameof(provider));
         OcrEngineCapabilities capabilities = (provider.Capabilities ?? new OcrEngineCapabilities()).Clone();

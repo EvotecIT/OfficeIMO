@@ -12,7 +12,7 @@ namespace OfficeIMO {
         private readonly List<string> _suppressedOrder = new List<string>();
 
         protected OfficeDiagnosticCollector(int maxDetailedPerCode) {
-            if (maxDetailedPerCode < 1) throw new ArgumentOutOfRangeException(nameof(maxDetailedPerCode));
+            ArgumentOutOfRangeException.ThrowIfLessThan(maxDetailedPerCode, 1);
             _maxDetailedPerCode = maxDetailedPerCode;
         }
 
@@ -22,7 +22,7 @@ namespace OfficeIMO {
         protected abstract TDiagnostic CreateSummary(string code, int severity, string message, OfficeConversionLossKind lossKind);
 
         protected void Collect(TDiagnostic diagnostic) {
-            if (diagnostic == null) throw new ArgumentNullException(nameof(diagnostic));
+            ArgumentNullException.ThrowIfNull(diagnostic);
             string code = CodeOf(diagnostic);
             _detailedCounts.TryGetValue(code, out int count);
             if (count < _maxDetailedPerCode) {

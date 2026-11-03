@@ -65,8 +65,8 @@ public static class AsciiDocAttributeSubstitutor {
         string value,
         AsciiDocDocumentAttributes attributes,
         AsciiDocAttributeSubstitutionOptions? options = null) {
-        if (value == null) throw new ArgumentNullException(nameof(value));
-        if (attributes == null) throw new ArgumentNullException(nameof(attributes));
+        ArgumentNullException.ThrowIfNull(value);
+        ArgumentNullException.ThrowIfNull(attributes);
         options ??= new AsciiDocAttributeSubstitutionOptions();
         ValidateOptions(options);
 

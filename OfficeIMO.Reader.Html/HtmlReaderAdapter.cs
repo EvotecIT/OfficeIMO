@@ -12,7 +12,7 @@ internal static partial class HtmlReaderAdapter {
     /// Reads an HTML file and emits normalized chunks.
     /// </summary>
     public static IEnumerable<ReaderChunk> Read(string htmlPath, ReaderOptions? readerOptions = null, ReaderHtmlOptions? htmlOptions = null, CancellationToken cancellationToken = default) {
-        if (htmlPath == null) throw new ArgumentNullException(nameof(htmlPath));
+        ArgumentNullException.ThrowIfNull(htmlPath);
         if (htmlPath.Length == 0) throw new ArgumentException("HTML path cannot be empty.", nameof(htmlPath));
         if (!File.Exists(htmlPath)) throw new FileNotFoundException($"HTML file '{htmlPath}' doesn't exist.", htmlPath);
 
@@ -30,7 +30,7 @@ internal static partial class HtmlReaderAdapter {
     /// Reads an HTML stream and emits normalized chunks.
     /// </summary>
     public static IEnumerable<ReaderChunk> Read(Stream htmlStream, string? sourceName = null, ReaderOptions? readerOptions = null, ReaderHtmlOptions? htmlOptions = null, CancellationToken cancellationToken = default) {
-        if (htmlStream == null) throw new ArgumentNullException(nameof(htmlStream));
+        ArgumentNullException.ThrowIfNull(htmlStream);
         if (!htmlStream.CanRead) throw new ArgumentException("HTML stream must be readable.", nameof(htmlStream));
 
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
@@ -70,8 +70,8 @@ internal static partial class HtmlReaderAdapter {
     /// Reads an HTML string and emits normalized chunks.
     /// </summary>
     public static IEnumerable<ReaderChunk> ReadContent(string html, string sourceName = "document.html", ReaderOptions? readerOptions = null, ReaderHtmlOptions? htmlOptions = null, CancellationToken cancellationToken = default) {
-        if (html == null) throw new ArgumentNullException(nameof(html));
-        if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
+        ArgumentNullException.ThrowIfNull(html);
+        ArgumentNullException.ThrowIfNull(sourceName);
 
         var effective = readerOptions ?? new ReaderOptions();
         var trimmedSourceName = sourceName.Trim();
@@ -385,8 +385,8 @@ internal static partial class HtmlReaderAdapter {
     }
 
     private static ReaderChunk EnrichChunk(ReaderChunk chunk, SourceMetadata source, bool computeHashes) {
-        if (chunk == null) throw new ArgumentNullException(nameof(chunk));
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(chunk);
+        ArgumentNullException.ThrowIfNull(source);
 
         chunk.SourceId ??= source.SourceId;
         chunk.SourceHash ??= source.SourceHash;
@@ -445,8 +445,8 @@ internal static partial class HtmlReaderAdapter {
     }
 
     internal static void UpdateSourceMetadataFromSeekableStream(SourceMetadata source, Stream stream, bool computeHash) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(stream);
 
         try {
             if (stream.CanSeek) {

@@ -141,7 +141,7 @@ namespace OfficeIMO.Word {
             string? noMatchFillColorHex = null, string? noMatchFontColorHex = null,
             bool ignoreCase = true, System.Collections.Generic.IEnumerable<string>? highlightColumns = null,
             Action<WordParagraph>? matchTextFormat = null, Action<WordParagraph>? noMatchTextFormat = null) {
-            if (conditions == null) throw new ArgumentNullException(nameof(conditions));
+            ArgumentNullException.ThrowIfNull(conditions);
 
             var conditionList = conditions.ToList();
             if (conditionList.Count == 0) throw new ArgumentException("At least one condition is required", nameof(conditions));
@@ -268,8 +268,8 @@ namespace OfficeIMO.Word {
         /// <param name="matchAction">Action executed when predicate is true.</param>
         /// <param name="noMatchAction">Action executed when predicate is false.</param>
         public void ConditionalFormatting(Func<WordTableRow, bool> predicate, Action<WordTableRow> matchAction, Action<WordTableRow>? noMatchAction = null) {
-            if (predicate == null) throw new ArgumentNullException(nameof(predicate));
-            if (matchAction == null) throw new ArgumentNullException(nameof(matchAction));
+            ArgumentNullException.ThrowIfNull(predicate);
+            ArgumentNullException.ThrowIfNull(matchAction);
 
             for (int r = 1; r < Rows.Count; r++) {
                 var row = Rows[r];

@@ -18,7 +18,7 @@ public static class OfficeMarkupWordConverterExtensions {
     public static OfficeMarkupConversionResult<WordDocument> ToWordDocumentResult(
         this OfficeMarkupDocument document,
         MarkupToWordOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         MarkupToWordOptions resolved = options ?? new MarkupToWordOptions();
         IReadOnlyList<OfficeMarkupDiagnostic> diagnostics = CollectDiagnostics(document, resolved);
         WordDocument value = new OfficeMarkupWordExporter().Convert(document, resolved);

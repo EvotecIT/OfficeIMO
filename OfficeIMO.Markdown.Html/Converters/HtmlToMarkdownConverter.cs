@@ -55,7 +55,7 @@ internal sealed partial class HtmlToMarkdownConverter {
     /// Converts a prepared HTML DOM into a Markdown document without mutating the caller's DOM.
     /// </summary>
     public MarkdownDocument ConvertToDocument(IHtmlDocument document, MarkdownHtmlImportOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         var effectiveOptions = options?.Clone() ?? new MarkdownHtmlImportOptions();
         IHtmlDocument filteredDocument = PrepareDocument(document, effectiveOptions, _cancellationToken);
         return ConvertFilteredDocument(filteredDocument, effectiveOptions);
@@ -69,8 +69,8 @@ internal sealed partial class HtmlToMarkdownConverter {
         IHtmlDocument document,
         MarkdownHtmlImportOptions effectiveOptions,
         int sourceLength) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (effectiveOptions == null) throw new ArgumentNullException(nameof(effectiveOptions));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(effectiveOptions);
         _cancellationToken.ThrowIfCancellationRequested();
         ValidateInputLength(sourceLength, effectiveOptions.MaxInputCharacters, nameof(document));
         ApplyHtmlFilters(document.DocumentElement, effectiveOptions, _cancellationToken);
@@ -84,8 +84,8 @@ internal sealed partial class HtmlToMarkdownConverter {
         IHtmlDocument document,
         MarkdownHtmlImportOptions effectiveOptions,
         int sourceLength) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (effectiveOptions == null) throw new ArgumentNullException(nameof(effectiveOptions));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(effectiveOptions);
         _cancellationToken.ThrowIfCancellationRequested();
         ValidateInputLength(sourceLength, effectiveOptions.MaxInputCharacters, nameof(document));
         // Native table materialization changes the DOM. Clone only when this
@@ -101,8 +101,8 @@ internal sealed partial class HtmlToMarkdownConverter {
     /// projection consumers without introducing a second HTML parsing path.
     /// </summary>
     internal static IHtmlDocument PrepareDocument(IHtmlDocument document, MarkdownHtmlImportOptions effectiveOptions, System.Threading.CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (effectiveOptions == null) throw new ArgumentNullException(nameof(effectiveOptions));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(effectiveOptions);
         cancellationToken.ThrowIfCancellationRequested();
         IHtmlDocument filteredDocument = HtmlDocumentParser.CloneDocument(document, cancellationToken);
         int sourceLength = (filteredDocument.DocumentElement?.OuterHtml ?? string.Empty).Length;

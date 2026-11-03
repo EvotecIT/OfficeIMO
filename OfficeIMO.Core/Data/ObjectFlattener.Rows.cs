@@ -17,10 +17,10 @@ namespace OfficeIMO.Data {
             Func<int, string?>? rowLimitGuidance = null,
             Func<int, string?>? columnLimitGuidance = null,
             Func<long, string?>? cellLimitGuidance = null) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentNullException.ThrowIfNull(options);
             options = options.CreateProjectionSnapshot();
-            if (headerRowCount < 0) throw new ArgumentOutOfRangeException(nameof(headerRowCount));
+            ArgumentOutOfRangeException.ThrowIfNegative(headerRowCount);
             if (renderedColumnCountForCellLimit <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(renderedColumnCountForCellLimit));
             }

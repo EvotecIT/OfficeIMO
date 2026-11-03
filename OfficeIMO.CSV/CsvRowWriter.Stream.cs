@@ -17,7 +17,7 @@ public sealed partial class CsvRowWriter
         int bufferSize = 256 * 1024)
     {
         options ??= new CsvSaveOptions();
-        if (bufferSize <= 0) throw new ArgumentOutOfRangeException(nameof(bufferSize));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bufferSize);
         return new CsvRowWriter(CsvFile.CreateTextWriter(destination, options, leaveOpen, bufferSize), options);
     }
 }

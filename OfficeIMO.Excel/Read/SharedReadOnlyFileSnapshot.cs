@@ -112,14 +112,14 @@ namespace OfficeIMO.Excel {
                 }
                 set {
                     ThrowIfDisposed();
-                    if (value < 0) throw new ArgumentOutOfRangeException(nameof(value));
+                    ArgumentOutOfRangeException.ThrowIfNegative(value);
                     _position = value;
                 }
             }
 
             public override int Read(byte[] buffer, int offset, int count) {
                 ThrowIfDisposed();
-                if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+                ArgumentNullException.ThrowIfNull(buffer);
                 if (offset < 0 || count < 0 || offset > buffer.Length - count) {
                     throw new ArgumentOutOfRangeException();
                 }

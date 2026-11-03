@@ -11,7 +11,7 @@ public static class ReaderHeadingPath {
 
     /// <summary>Combines heading titles while escaping literal backslashes and greater-than signs.</summary>
     public static string? Combine(IEnumerable<string?> headings) {
-        if (headings == null) throw new ArgumentNullException(nameof(headings));
+        ArgumentNullException.ThrowIfNull(headings);
         string[] values = headings
             .Where(static heading => !string.IsNullOrWhiteSpace(heading))
             .Select(static heading => Escape(heading!.Trim()))
@@ -56,7 +56,7 @@ public static class ReaderHeadingPath {
     /// Reader adapters use this to preserve literal heading delimiters without changing normal output.
     /// </summary>
     public static void SetHierarchyPath(ReaderLocation location, string? hierarchyPath) {
-        if (location == null) throw new ArgumentNullException(nameof(location));
+        ArgumentNullException.ThrowIfNull(location);
         location.HierarchyHeadingPath = hierarchyPath;
         location.HierarchyHeadingDisplayPath = location.HeadingPath;
     }

@@ -11,10 +11,10 @@ internal static class OneNotePreservationWriter {
         OneNoteMaterializedObjectSpace source,
         OneNoteSectionPreservationState preservation,
         long maxPayloadBytes) {
-        if (generated == null) throw new ArgumentNullException(nameof(generated));
-        if (source == null) throw new ArgumentNullException(nameof(source));
-        if (preservation == null) throw new ArgumentNullException(nameof(preservation));
-        if (maxPayloadBytes < 1) throw new ArgumentOutOfRangeException(nameof(maxPayloadBytes));
+        ArgumentNullException.ThrowIfNull(generated);
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(preservation);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxPayloadBytes, 1);
 
         // OneNote can share style/list objects between multiple semantic elements. The typed
         // projection may therefore generate the same retained identity more than once.

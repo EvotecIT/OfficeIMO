@@ -67,12 +67,12 @@ public sealed partial class BookProject {
         }, cancellationToken);
     /// <summary>Starts a project from the shared manuscript import result.</summary>
     public static BookProject FromImport(EpubManuscriptResult result) {
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(result);
         return new BookProject(result.Publication, result.Report.FidelityDiagnostics, false);
     }
     /// <summary>Opens an existing EPUB for package-preserving editing without claiming that its content was converted.</summary>
     public static BookProject FromEpub(byte[] bytes, CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         using var source = new MemoryStream(bytes, false);
         return new BookProject(EpubPublication.Load(source, cancellationToken: cancellationToken), [], false);
     }
@@ -86,7 +86,7 @@ public sealed partial class BookProject {
     public EpubWriteResult Export(CancellationToken cancellationToken = default) => Export(new EpubWriteOptions(), cancellationToken);
     /// <summary>Exports a reviewed publication with explicit EPUB writer limits and signature policy.</summary>
     public EpubWriteResult Export(EpubWriteOptions options, CancellationToken cancellationToken = default) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         if (!CanExport) throw new InvalidOperationException("Review the import report before exporting this book.");
         return _publication.Write(options, cancellationToken);
     }
@@ -131,7 +131,7 @@ public sealed partial class BookProject {
     }
     /// <summary>Changes the project typography stylesheet without replacing imported source CSS.</summary>
     public void SetStylesheet(string css, CancellationToken cancellationToken = default) {
-        if (css == null) throw new ArgumentNullException(nameof(css));
+        ArgumentNullException.ThrowIfNull(css);
         Mutate(proposed => ApplyStylesheet(proposed, css), cancellationToken);
     }
     private static void ApplyStylesheet(EpubPublication proposed, string css) {
@@ -162,7 +162,7 @@ public sealed partial class BookProject {
     }
     /// <summary>Applies a complete editor draft in one transaction; failure retains the previous publication.</summary>
     public void ApplyEdits(BookProjectEdits edits, CancellationToken cancellationToken = default) {
-        if (edits == null) throw new ArgumentNullException(nameof(edits));
+        ArgumentNullException.ThrowIfNull(edits);
         var bodies = edits.ChapterBodies?.ToArray() ?? [];
         var titles = edits.ChapterTitles?.ToArray() ?? [];
         string? title = edits.Title, language = edits.Language, creator = edits.Creator, css = edits.Stylesheet;
@@ -185,7 +185,7 @@ public sealed partial class BookProject {
     }
     /// <summary>Selects newly supplied image bytes as the package cover, retaining earlier resources and content references.</summary>
     public void SetCoverImage(byte[] bytes, string mediaType, CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         if ((mediaType == null || string.IsNullOrWhiteSpace(mediaType))) throw new ArgumentException("A non-empty value is required.", nameof(mediaType));
         Mutate(proposed => {
             string extension = mediaType.ToLowerInvariant() switch {
@@ -205,7 +205,8 @@ public sealed partial class BookProject {
     /// <summary>Renders one current chapter through the existing EPUB image owner, using retained package resources only.</summary>
     public IReadOnlyList<OfficeImageExportResult> PreviewChapter(int index, double width = 816,
         CancellationToken cancellationToken = default) {
-        if (index < 0 || index >= _publication.Spine.Count) throw new ArgumentOutOfRangeException(nameof(index));
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, _publication.Spine.Count);
         EpubDocument source = _publication.Read(new EpubReadOptions { IncludeRawHtml = true, IncludeResourceData = true, MaxChapters = _publication.Spine.Count }, cancellationToken);
         int extractedIndex = Enumerable.Range(0, source.Chapters.Count).Where(position => source.Chapters[position].SpineIndex == index + 1).DefaultIfEmpty(-1).First();
         if (extractedIndex < 0) throw new InvalidDataException("The selected chapter could not be extracted under the preview reading policy.");

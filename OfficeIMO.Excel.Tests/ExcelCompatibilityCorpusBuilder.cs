@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests;
 
 internal static class ExcelCompatibilityCorpusBuilder {
     internal static string CreateWorkbook(string filePath, Action<ExcelDocument> configureWorkbook, bool rewriteAppContentTypeToXml = false) {
-        if (configureWorkbook == null) throw new ArgumentNullException(nameof(configureWorkbook));
+        ArgumentNullException.ThrowIfNull(configureWorkbook);
 
         using (var document = ExcelDocument.Create(filePath)) {
             configureWorkbook(document);
@@ -29,7 +29,7 @@ internal static class ExcelCompatibilityCorpusBuilder {
     }
 
     internal static void RewriteWorksheetXml(string filePath, string worksheetEntryName, Func<XDocument, XDocument> mutateDocument) {
-        if (mutateDocument == null) throw new ArgumentNullException(nameof(mutateDocument));
+        ArgumentNullException.ThrowIfNull(mutateDocument);
 
         using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
         using var archive = new ZipArchive(fileStream, ZipArchiveMode.Update, leaveOpen: false);

@@ -17,7 +17,7 @@ public static class CsvMappingExtensions {
     public static IEnumerable<T> RowsAs<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
         this CsvDocument document) {
-        if (document is null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return EnumerateAutomatic<T>(document);
     }
 
@@ -25,8 +25,8 @@ public static class CsvMappingExtensions {
     public static IEnumerable<T> RowsAs<T>(
         this CsvDocument document,
         Action<RowMapper<T>> configure) where T : new() {
-        if (document is null) throw new ArgumentNullException(nameof(document));
-        if (configure is null) throw new ArgumentNullException(nameof(configure));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(configure);
         return EnumerateExplicit(document, configure);
     }
 
@@ -39,8 +39,8 @@ public static class CsvMappingExtensions {
     public static IEnumerable<T> RowsAs<T>(
         this CsvDocument document,
         Func<IDataRecord, T> factory) {
-        if (document is null) throw new ArgumentNullException(nameof(document));
-        if (factory is null) throw new ArgumentNullException(nameof(factory));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(factory);
         return EnumerateFactory(document, factory);
     }
 
@@ -53,7 +53,7 @@ public static class CsvMappingExtensions {
         this CsvDocument document,
         ParallelRowMappingOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document is null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return EnumerateParallelAutomatic<T>(document, options, cancellationToken);
     }
 
@@ -66,8 +66,8 @@ public static class CsvMappingExtensions {
         Action<RowMapper<T>> configure,
         ParallelRowMappingOptions? options = null,
         CancellationToken cancellationToken = default) where T : new() {
-        if (document is null) throw new ArgumentNullException(nameof(document));
-        if (configure is null) throw new ArgumentNullException(nameof(configure));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(configure);
         return EnumerateParallelExplicit(document, configure, options, cancellationToken);
     }
 
@@ -80,8 +80,8 @@ public static class CsvMappingExtensions {
         Func<IDataRecord, T> factory,
         ParallelRowMappingOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document is null) throw new ArgumentNullException(nameof(document));
-        if (factory is null) throw new ArgumentNullException(nameof(factory));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(factory);
         return EnumerateParallelFactory(document, factory, options, cancellationToken);
     }
 

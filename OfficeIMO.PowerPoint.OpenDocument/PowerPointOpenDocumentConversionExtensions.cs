@@ -17,7 +17,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     /// <summary>Converts a PowerPoint presentation to an in-memory ODP document and reports every lossy mapping.</summary>
     public static OdfConversionResult<OdpPresentation> ToOpenDocumentResult(this PowerPointDocument source,
         PowerPointOpenDocumentConversionOptions? options = null) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         PowerPointOpenDocumentConversionOptions effective = NormalizeOptions(options);
         OdpPresentation target = OdpPresentation.Create();
         var report = new OdfConversionReport("PPTX", "ODP");
@@ -303,7 +303,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     /// <summary>Converts an ODP document to an in-memory PowerPoint presentation and reports every lossy mapping.</summary>
     public static OdfConversionResult<PowerPointDocument> ToPowerPointDocumentResult(this OdpPresentation source,
         PowerPointOpenDocumentConversionOptions? options = null) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         PowerPointOpenDocumentConversionOptions effective = NormalizeOptions(options);
         PowerPointDocument target = PowerPointDocument.CreateForImport();
         var report = new OdfConversionReport("ODP", "PPTX");

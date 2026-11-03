@@ -94,9 +94,7 @@ public sealed class MarkdownHtmlInlineConverter {
     /// Attempts to convert a matching HTML inline element into markdown inline nodes.
     /// </summary>
     public IReadOnlyList<IMarkdownInline>? Convert(MarkdownHtmlInlineConversionContext context) {
-        if (context == null) {
-            throw new ArgumentNullException(nameof(context));
-        }
+        ArgumentNullException.ThrowIfNull(context);
 
         return _converter(context);
     }

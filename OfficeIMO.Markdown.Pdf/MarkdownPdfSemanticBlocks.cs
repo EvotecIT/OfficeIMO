@@ -12,7 +12,7 @@ public static class MarkdownPdfSemanticBlocks {
 
     /// <summary>Registers the PDF visual fenced-block mappings on existing reader options.</summary>
     public static void ConfigureReaderOptions(MarkdownLoadOptions options) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         options.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
             "OfficeIMO Markdown PDF visual fences",
             new[] { "chart", "ix-chart", "mermaid", "network", "visnetwork", "ix-network", "dataview", "ix-dataview" },

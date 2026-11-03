@@ -10,7 +10,7 @@ public static partial class WordPaperText {
     /// <param name="value">A property name or an already spaced label.</param>
     /// <returns>A display label with ordinary spaces; never use this method for source identifier values.</returns>
     public static string SplitIdentifier(string value) {
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
         return Regex.Replace(Regex.Replace(value.Replace('_', ' '), "([A-Z]+)([A-Z][a-z])", "$1 $2"),
             "([a-z0-9])([A-Z])", "$1 $2");
     }
@@ -25,7 +25,7 @@ public static partial class WordPaperText {
     /// <param name="value">Title-case prose owned by the report author.</param>
     /// <returns>Sentence-case prose with technical casing retained.</returns>
     public static string SentenceCase(string value) {
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
         string sentence = Regex.Replace(value, @"\b[A-Z][a-z]+\b", match => match.Value.ToLowerInvariant());
         Match firstWord = Regex.Match(sentence, @"\p{L}[\p{L}\p{N}]*");
         if (!firstWord.Success || (firstWord.Value.Any(char.IsUpper) && firstWord.Value.Any(char.IsLower))) return sentence;

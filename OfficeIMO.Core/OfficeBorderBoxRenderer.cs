@@ -11,9 +11,7 @@ public static class OfficeBorderBoxRenderer {
     /// Draws a border box onto a raster canvas using line-on-bounds geometry.
     /// </summary>
     public static void DrawRaster(OfficeRasterCanvas canvas, double x, double y, double width, double height, OfficeBorderBox borders) {
-        if (canvas == null) {
-            throw new ArgumentNullException(nameof(canvas));
-        }
+        ArgumentNullException.ThrowIfNull(canvas);
 
         ValidateBounds(x, y, width, height);
         DrawRasterLine(canvas, x, y, x + width, y, borders.Top);
@@ -28,9 +26,7 @@ public static class OfficeBorderBoxRenderer {
     /// Appends SVG line elements for a border box using line-on-bounds geometry.
     /// </summary>
     public static void AppendSvg(StringBuilder builder, double x, double y, double width, double height, OfficeBorderBox borders) {
-        if (builder == null) {
-            throw new ArgumentNullException(nameof(builder));
-        }
+        ArgumentNullException.ThrowIfNull(builder);
 
         ValidateBounds(x, y, width, height);
         AppendSvgLine(builder, x, y, x + width, y, borders.Top);

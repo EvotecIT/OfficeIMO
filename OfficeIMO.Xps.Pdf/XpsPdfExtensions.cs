@@ -27,8 +27,8 @@ public static class XpsPdfExtensions {
     /// <remarks>Validation precedes writing. A serialization failure can leave partial stream output; hosts that publish files should stage and validate it first.</remarks>
     public static PdfSaveResult SavePdf(this XpsDocument document, Stream output, XpsToPdfOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (output == null) throw new ArgumentNullException(nameof(output));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(output);
         if (!output.CanWrite) throw new ArgumentException("PDF output must be writable.", nameof(output));
         cancellationToken.ThrowIfCancellationRequested();
         var snapshot = (options ?? new XpsToPdfOptions()).Clone();

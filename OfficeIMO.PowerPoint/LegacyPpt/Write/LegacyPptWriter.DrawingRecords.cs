@@ -102,8 +102,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 IReadOnlyList<PowerPointShape> shapes,
                 ref uint nextShapeId, LegacyPptWriterFontCatalog fonts,
                 LegacyPptWriterPictureBulletCatalog pictureBullets) {
-            if (shapes == null) throw new ArgumentNullException(nameof(shapes));
-            if (fonts == null) throw new ArgumentNullException(nameof(fonts));
+            ArgumentNullException.ThrowIfNull(shapes);
+            ArgumentNullException.ThrowIfNull(fonts);
             if (pictureBullets == null) throw new ArgumentNullException(
                 nameof(pictureBullets));
             var interactions = new LegacyPptWriterInteractionCatalog();
@@ -408,7 +408,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static bool TryReadPlaceholderForWrite(PowerPointShape shape,
             LegacyPptWriterShapeContext shapeContext,
             out LegacyPptWriterPlaceholder? placeholder, out string? reason) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
             P.PlaceholderShape? source = shape.Element switch {
                 P.Shape value => value.NonVisualShapeProperties?
                     .ApplicationNonVisualDrawingProperties?.PlaceholderShape,

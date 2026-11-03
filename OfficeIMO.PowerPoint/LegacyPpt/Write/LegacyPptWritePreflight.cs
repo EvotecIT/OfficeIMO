@@ -7,7 +7,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWritePreflight {
         internal static LegacyPptWritePreflightReport Analyze(PowerPointDocument presentation) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+            ArgumentNullException.ThrowIfNull(presentation);
             var findings = new List<LegacyPptWriteFinding>();
             AddPackagePartFindings(presentation, findings);
             int packageFindingCount = findings.Count;
@@ -450,7 +450,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         internal static bool CanWriteSlideLosslessly(PowerPointSlide slide) {
-            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            ArgumentNullException.ThrowIfNull(slide);
             if (LegacyPptWriter.ShouldWriteNotesPage(slide, out _)) return false;
             P.Slide? slideRoot = slide.SlidePart.Slide;
             bool animationsSupported = slideRoot?.Timing == null

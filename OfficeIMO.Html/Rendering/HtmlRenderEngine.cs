@@ -37,8 +37,8 @@ public static class HtmlRenderEngine {
         HtmlConversionDocument document,
         HtmlRenderRequest request,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderOptions resolved = PrepareOptions(document, request);
         return ExecuteWithDeadline(resolved, cancellationToken,
@@ -85,7 +85,7 @@ public static class HtmlRenderEngine {
         IHtmlDocument document,
         HtmlRenderOptions? options,
         HtmlConversionDocument owningDocument) {
-        if (owningDocument == null) throw new ArgumentNullException(nameof(owningDocument));
+        ArgumentNullException.ThrowIfNull(owningDocument);
         return Render(document, options, owningDocument, owningDocument.Limits);
     }
 
@@ -97,8 +97,8 @@ public static class HtmlRenderEngine {
         HtmlRenderOptions? options,
         HtmlConversionDocument owningDocument,
         HtmlConversionLimits limits) {
-        if (owningDocument == null) throw new ArgumentNullException(nameof(owningDocument));
-        if (limits == null) throw new ArgumentNullException(nameof(limits));
+        ArgumentNullException.ThrowIfNull(owningDocument);
+        ArgumentNullException.ThrowIfNull(limits);
         HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
         resolved.BaseUri ??= owningDocument.BaseUri;
         ApplyDocumentPolicies(owningDocument, resolved);
@@ -118,8 +118,8 @@ public static class HtmlRenderEngine {
         HtmlConversionLimits limits,
         bool sourceAlreadyValidated,
         CancellationToken cancellationToken) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (limits == null) throw new ArgumentNullException(nameof(limits));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(limits);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
         HtmlConversionLimits effectiveLimits = limits.Clone();
@@ -241,8 +241,8 @@ public static class HtmlRenderEngine {
         HtmlConversionDocument document,
         HtmlRenderRequest request,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderOptions resolved = PrepareOptions(document, request);
         return await ExecuteWithDeadlineAsync(resolved, cancellationToken,
@@ -251,8 +251,8 @@ public static class HtmlRenderEngine {
     }
 
     internal static HtmlRenderOptions PrepareOptions(HtmlConversionDocument document, HtmlRenderRequest request) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(request);
         HtmlRenderOptions resolved = request.Encoder is HtmlRenderEncoder.Png or HtmlRenderEncoder.Jpeg
             or HtmlRenderEncoder.Tiff or HtmlRenderEncoder.Webp or HtmlRenderEncoder.Svg
             || request.Encoder == HtmlRenderEncoder.DisplayList && request.Options is Pdf.HtmlToPdfOptions
@@ -268,7 +268,7 @@ public static class HtmlRenderEngine {
     internal static HtmlRenderDocument RenderForRegionInspection(
         HtmlConversionDocument document, HtmlRenderOptions? options, IReadOnlyList<string> regionIds,
         CancellationToken cancellationToken) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         var request = HtmlRenderRequest.FromLegacy(options, HtmlRenderEncoder.DisplayList, HtmlRenderPageSet.All());
         HtmlRenderOptions resolved = PrepareOptions(document, request);
         if (regionIds.Count > 0) resolved.EnableEditableLayoutRegions = true;
@@ -323,7 +323,7 @@ public static class HtmlRenderEngine {
     /// Renders a prepared HTML DOM while resolving resources without reparsing or mutating the caller's document.
     /// </summary>
     internal static async Task<HtmlRenderDocument> RenderAsync(IHtmlDocument document, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
         resolved.Validate();

@@ -106,16 +106,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _uses1904DateSystem = uses1904DateSystem;
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _limits = limits ?? throw new ArgumentNullException(nameof(limits));
-            if (cellBudget == null) {
-                throw new ArgumentNullException(nameof(cellBudget));
-            }
+            ArgumentNullException.ThrowIfNull(cellBudget);
             _logicalRowBudget = logicalRowBudget ?? throw new ArgumentNullException(nameof(logicalRowBudget));
             _cancellationToken = cancellationToken;
             _activeReadCancellationToken = cancellationToken;
             _sharedStringOwner = sharedStrings as XlsbSharedStringTable;
-            if (worksheetPart == null) {
-                throw new ArgumentNullException(nameof(worksheetPart));
-            }
+            ArgumentNullException.ThrowIfNull(worksheetPart);
 
             int actualFirstColumn = int.MaxValue;
             int actualLastColumn = -1;
@@ -740,9 +736,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             T[]? destination,
             int destinationOffset,
             int length) {
-            if (dataOffset < 0 || dataOffset > source.Length) {
-                throw new ArgumentOutOfRangeException(nameof(dataOffset));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(dataOffset);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(dataOffset, source.Length);
 
             int available = source.Length - checked((int)dataOffset);
             if (destination == null) {

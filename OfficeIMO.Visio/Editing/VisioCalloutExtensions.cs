@@ -16,13 +16,9 @@ namespace OfficeIMO.Visio {
         /// <param name="pinY">Callout pin Y coordinate.</param>
         /// <param name="options">Optional callout options.</param>
         public static VisioShape AddCallout(this VisioPage page, VisioShape target, string text, double pinX, double pinY, VisioCalloutOptions? options = null) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
-            if (target == null) {
-                throw new ArgumentNullException(nameof(target));
-            }
+            ArgumentNullException.ThrowIfNull(target);
 
             VisioCalloutOptions effectiveOptions = options ?? new VisioCalloutOptions();
             VisioCalloutOptions pageOptions = ConvertOptionsToPageUnits(effectiveOptions, page.DefaultUnit);
@@ -42,13 +38,9 @@ namespace OfficeIMO.Visio {
         /// <param name="gap">Distance between the target edge and callout edge, in page units.</param>
         /// <param name="options">Optional callout options.</param>
         public static VisioShape AddCallout(this VisioPage page, VisioShape target, string text, VisioSide placement, double gap = 0.35D, VisioCalloutOptions? options = null) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
-            if (target == null) {
-                throw new ArgumentNullException(nameof(target));
-            }
+            ArgumentNullException.ThrowIfNull(target);
 
             VisioCalloutOptions effectiveOptions = options ?? new VisioCalloutOptions();
             VisioCalloutOptions pageOptions = ConvertOptionsToPageUnits(effectiveOptions, page.DefaultUnit);
@@ -67,13 +59,9 @@ namespace OfficeIMO.Visio {
         /// <param name="pinY">Callout pin Y coordinate.</param>
         /// <param name="options">Optional callout options.</param>
         public static VisioShape AddCallout(this VisioPage page, VisioShape target, string id, string text, double pinX, double pinY, VisioCalloutOptions? options = null) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
-            if (target == null) {
-                throw new ArgumentNullException(nameof(target));
-            }
+            ArgumentNullException.ThrowIfNull(target);
 
             if (string.IsNullOrWhiteSpace(id)) {
                 throw new ArgumentException("Callout id cannot be empty.", nameof(id));
@@ -106,13 +94,9 @@ namespace OfficeIMO.Visio {
         /// <param name="gap">Distance between the target edge and callout edge, in page units.</param>
         /// <param name="options">Optional callout options.</param>
         public static VisioShape AddCallout(this VisioPage page, VisioShape target, string id, string text, VisioSide placement, double gap = 0.35D, VisioCalloutOptions? options = null) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
-            if (target == null) {
-                throw new ArgumentNullException(nameof(target));
-            }
+            ArgumentNullException.ThrowIfNull(target);
 
             if (string.IsNullOrWhiteSpace(id)) {
                 throw new ArgumentException("Callout id cannot be empty.", nameof(id));

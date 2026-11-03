@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointTextBox AddTitle(string text, OfficeLength? left = null, OfficeLength? top = null,
             OfficeLength? width = null, OfficeLength? height = null) {
-            if (text == null) throw new ArgumentNullException(nameof(text));
+            ArgumentNullException.ThrowIfNull(text);
             if (!left.HasValue && !top.HasValue && !width.HasValue && !height.HasValue)
                 return AddAuthoringTitle(text);
             PowerPointLayoutBox defaults = left.HasValue && top.HasValue && width.HasValue && height.HasValue
@@ -62,9 +62,7 @@ namespace OfficeIMO.PowerPoint {
             long nativeTop = (top ?? OfficeLength.Emus(2174875L)).ToEmus();
             long nativeWidth = (width ?? OfficeLength.Emus(7772400L)).ToEmus();
             long nativeHeight = (height ?? OfficeLength.Emus(3962400L)).ToEmus();
-            if (text == null) {
-                throw new ArgumentNullException(nameof(text));
-            }
+            ArgumentNullException.ThrowIfNull(text);
 
             string name = GenerateUniqueName("TextBox");
             Shape shape = new(

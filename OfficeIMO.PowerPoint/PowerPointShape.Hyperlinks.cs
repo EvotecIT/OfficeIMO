@@ -8,7 +8,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="uri">Absolute hyperlink target or a valid <c>#slide-N</c> fragment.</param>
         /// <param name="tooltip">Optional screen tip.</param>
         public void SetHyperlink(Uri uri, string? tooltip = null) {
-            if (uri == null) throw new ArgumentNullException(nameof(uri));
+            ArgumentNullException.ThrowIfNull(uri);
             if (!uri.IsAbsoluteUri && OwnerSlide != null
                 && PowerPointHyperlinkResolver.TryResolveSlideFragment(
                     OwnerSlide.SlidePart, uri, out SlidePart? targetSlidePart)) {
@@ -40,7 +40,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="tooltip">Optional screen tip.</param>
         public void SetHyperlink(PowerPointSlide targetSlide,
             string? tooltip = null) {
-            if (targetSlide == null) throw new ArgumentNullException(nameof(targetSlide));
+            ArgumentNullException.ThrowIfNull(targetSlide);
             SetInternalHyperlink(targetSlide.SlidePart, tooltip);
         }
 

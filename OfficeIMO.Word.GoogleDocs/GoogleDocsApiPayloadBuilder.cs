@@ -6,7 +6,7 @@ using System.Text;
 namespace OfficeIMO.Word.GoogleDocs {
     internal static partial class GoogleDocsApiPayloadBuilder {
         internal static GoogleDocsApiCreateDocumentPayload BuildCreateDocumentPayload(GoogleDocsBatch batch) {
-            if (batch == null) throw new ArgumentNullException(nameof(batch));
+            ArgumentNullException.ThrowIfNull(batch);
             return new GoogleDocsApiCreateDocumentPayload {
                 Title = batch.Title,
             };
@@ -25,7 +25,7 @@ namespace OfficeIMO.Word.GoogleDocs {
         internal static PreparedInitialBatchUpdate BuildPreparedInitialBatchUpdate(
             GoogleDocsBatch batch,
             IReadOnlyDictionary<GoogleDocsInlineImage, string>? imageUris) {
-            if (batch == null) throw new ArgumentNullException(nameof(batch));
+            ArgumentNullException.ThrowIfNull(batch);
 
             var prepared = new PreparedInitialBatchUpdate();
             var payload = new GoogleDocsApiBatchUpdatePayload();
@@ -43,8 +43,8 @@ namespace OfficeIMO.Word.GoogleDocs {
             TranslationReport report,
             string segmentId,
             IReadOnlyDictionary<GoogleDocsInlineImage, string>? imageUris) {
-            if (segment == null) throw new ArgumentNullException(nameof(segment));
-            if (report == null) throw new ArgumentNullException(nameof(report));
+            ArgumentNullException.ThrowIfNull(segment);
+            ArgumentNullException.ThrowIfNull(report);
             if (string.IsNullOrWhiteSpace(segmentId)) throw new ArgumentException("Segment id is required.", nameof(segmentId));
 
             var payload = new GoogleDocsApiBatchUpdatePayload();
@@ -60,8 +60,8 @@ namespace OfficeIMO.Word.GoogleDocs {
             TranslationReport report,
             string footnoteId,
             IReadOnlyDictionary<GoogleDocsInlineImage, string>? imageUris) {
-            if (footnote == null) throw new ArgumentNullException(nameof(footnote));
-            if (report == null) throw new ArgumentNullException(nameof(report));
+            ArgumentNullException.ThrowIfNull(footnote);
+            ArgumentNullException.ThrowIfNull(report);
             if (string.IsNullOrWhiteSpace(footnoteId)) throw new ArgumentException("Footnote id is required.", nameof(footnoteId));
 
             var payload = new GoogleDocsApiBatchUpdatePayload();
@@ -83,8 +83,8 @@ namespace OfficeIMO.Word.GoogleDocs {
             GoogleDocsBatch batch,
             GoogleDocsApiDocumentResponse documentState,
             IReadOnlyDictionary<GoogleDocsInlineImage, string>? imageUris = null) {
-            if (batch == null) throw new ArgumentNullException(nameof(batch));
-            if (documentState == null) throw new ArgumentNullException(nameof(documentState));
+            ArgumentNullException.ThrowIfNull(batch);
+            ArgumentNullException.ThrowIfNull(documentState);
 
             var prepared = new PreparedTableContentBatchUpdate();
             var payload = prepared.Payload;
@@ -148,9 +148,9 @@ namespace OfficeIMO.Word.GoogleDocs {
             TranslationReport report,
             string segmentId,
             IReadOnlyDictionary<GoogleDocsInlineImage, string>? imageUris = null) {
-            if (segment == null) throw new ArgumentNullException(nameof(segment));
-            if (documentState == null) throw new ArgumentNullException(nameof(documentState));
-            if (report == null) throw new ArgumentNullException(nameof(report));
+            ArgumentNullException.ThrowIfNull(segment);
+            ArgumentNullException.ThrowIfNull(documentState);
+            ArgumentNullException.ThrowIfNull(report);
             if (string.IsNullOrWhiteSpace(segmentId)) throw new ArgumentException("Segment id is required.", nameof(segmentId));
 
             var payload = new GoogleDocsApiBatchUpdatePayload();
@@ -211,8 +211,8 @@ namespace OfficeIMO.Word.GoogleDocs {
         internal static GoogleDocsApiBatchUpdatePayload BuildTableMergeBatchUpdatePayload(
             GoogleDocsBatch batch,
             GoogleDocsApiDocumentResponse documentState) {
-            if (batch == null) throw new ArgumentNullException(nameof(batch));
-            if (documentState == null) throw new ArgumentNullException(nameof(documentState));
+            ArgumentNullException.ThrowIfNull(batch);
+            ArgumentNullException.ThrowIfNull(documentState);
 
             var payload = new GoogleDocsApiBatchUpdatePayload();
             var tableRequests = batch.Requests.OfType<GoogleDocsInsertTableRequest>().ToList();
@@ -238,8 +238,8 @@ namespace OfficeIMO.Word.GoogleDocs {
         internal static GoogleDocsApiBatchUpdatePayload BuildTableStyleBatchUpdatePayload(
             GoogleDocsBatch batch,
             GoogleDocsApiDocumentResponse documentState) {
-            if (batch == null) throw new ArgumentNullException(nameof(batch));
-            if (documentState == null) throw new ArgumentNullException(nameof(documentState));
+            ArgumentNullException.ThrowIfNull(batch);
+            ArgumentNullException.ThrowIfNull(documentState);
 
             var payload = new GoogleDocsApiBatchUpdatePayload();
             var tableRequests = batch.Requests.OfType<GoogleDocsInsertTableRequest>().ToList();
@@ -269,9 +269,9 @@ namespace OfficeIMO.Word.GoogleDocs {
             GoogleDocsApiDocumentResponse documentState,
             TranslationReport report,
             string segmentId) {
-            if (segment == null) throw new ArgumentNullException(nameof(segment));
-            if (documentState == null) throw new ArgumentNullException(nameof(documentState));
-            if (report == null) throw new ArgumentNullException(nameof(report));
+            ArgumentNullException.ThrowIfNull(segment);
+            ArgumentNullException.ThrowIfNull(documentState);
+            ArgumentNullException.ThrowIfNull(report);
             if (string.IsNullOrWhiteSpace(segmentId)) throw new ArgumentException("Segment id is required.", nameof(segmentId));
 
             var payload = new GoogleDocsApiBatchUpdatePayload();
@@ -300,9 +300,9 @@ namespace OfficeIMO.Word.GoogleDocs {
             GoogleDocsApiDocumentResponse documentState,
             TranslationReport report,
             string segmentId) {
-            if (segment == null) throw new ArgumentNullException(nameof(segment));
-            if (documentState == null) throw new ArgumentNullException(nameof(documentState));
-            if (report == null) throw new ArgumentNullException(nameof(report));
+            ArgumentNullException.ThrowIfNull(segment);
+            ArgumentNullException.ThrowIfNull(documentState);
+            ArgumentNullException.ThrowIfNull(report);
             if (string.IsNullOrWhiteSpace(segmentId)) throw new ArgumentException("Segment id is required.", nameof(segmentId));
 
             var payload = new GoogleDocsApiBatchUpdatePayload();
@@ -329,7 +329,7 @@ namespace OfficeIMO.Word.GoogleDocs {
         }
 
         internal static GoogleDocsApiBatchUpdatePayload BuildResetDocumentPayload(GoogleDocsApiDocumentResponse documentState) {
-            if (documentState == null) throw new ArgumentNullException(nameof(documentState));
+            ArgumentNullException.ThrowIfNull(documentState);
 
             var payload = new GoogleDocsApiBatchUpdatePayload();
             var bodyEndIndex = GetBodyEndIndex(documentState);

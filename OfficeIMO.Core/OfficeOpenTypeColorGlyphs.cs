@@ -42,7 +42,7 @@ internal sealed class OfficeOpenTypeColorGlyphs {
     }
 
     internal static OfficeOpenTypeColorGlyphs? TryParse(OfficeOpenTypeReader reader) {
-        if (reader == null) throw new ArgumentNullException(nameof(reader));
+        ArgumentNullException.ThrowIfNull(reader);
         try {
             if (!reader.TryGetTable("COLR", out int colr, out int colrLength) || colrLength < 14 ||
                 !reader.TryGetTable("CPAL", out int cpal, out int cpalLength) || cpalLength < 12) {

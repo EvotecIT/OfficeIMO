@@ -26,11 +26,11 @@ namespace OfficeIMO.PowerPoint {
         public int MaximumSameToneStreak { get; set; } = 6;
 
         internal void Validate() {
-            if (MaximumRepeatedKind < 1) throw new ArgumentOutOfRangeException(nameof(MaximumRepeatedKind));
-            if (MaximumDenseStreak < 1) throw new ArgumentOutOfRangeException(nameof(MaximumDenseStreak));
-            if (MaximumSlidesBetweenAnchors < 1) throw new ArgumentOutOfRangeException(nameof(MaximumSlidesBetweenAnchors));
-            if (ClosingExpectedAtSlideCount < 1) throw new ArgumentOutOfRangeException(nameof(ClosingExpectedAtSlideCount));
-            if (MaximumSameToneStreak < 1) throw new ArgumentOutOfRangeException(nameof(MaximumSameToneStreak));
+            ArgumentOutOfRangeException.ThrowIfLessThan(MaximumRepeatedKind, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(MaximumDenseStreak, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(MaximumSlidesBetweenAnchors, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(ClosingExpectedAtSlideCount, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(MaximumSameToneStreak, 1);
         }
     }
 
@@ -81,7 +81,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Inspects the resolved semantic sequence before rendering.</summary>
         public PowerPointDeckRhythmReport InspectRhythm(PowerPointDeckDesign design,
             PowerPointDeckRhythmOptions? options = null) {
-            if (design == null) throw new ArgumentNullException(nameof(design));
+            ArgumentNullException.ThrowIfNull(design);
             PowerPointDeckRhythmOptions resolved = options ?? new PowerPointDeckRhythmOptions();
             resolved.Validate();
             IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> slides = DescribeSlides(design);

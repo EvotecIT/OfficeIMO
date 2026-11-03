@@ -9,7 +9,7 @@ public sealed partial class EpubPublication {
     /// links. A rejected or cancelled batch leaves all retained content unchanged.
     /// </summary>
     public void SetContentXml(IReadOnlyDictionary<string, XDocument> documents, CancellationToken cancellationToken = default) {
-        if (documents == null) throw new ArgumentNullException(nameof(documents));
+        ArgumentNullException.ThrowIfNull(documents);
         cancellationToken.ThrowIfCancellationRequested();
         if (documents.Count == 0) return;
         CommitContentEdits(documents, cancellationToken, validatePublication: true);

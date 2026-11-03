@@ -56,9 +56,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             int cellFormatCount,
             IReadOnlyList<XlsbGeneratedRecord> hyperlinkRecords,
             XlsbSharedStringTable? sharedStrings = null, long maximumBytes = int.MaxValue, string? codeName = null) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
-            if (cells == null) throw new ArgumentNullException(nameof(cells));
-            if (hyperlinkRecords == null) throw new ArgumentNullException(nameof(hyperlinkRecords));
+            ArgumentNullException.ThrowIfNull(sheet);
+            ArgumentNullException.ThrowIfNull(cells);
+            ArgumentNullException.ThrowIfNull(hyperlinkRecords);
 
             XlsbWorksheetGeometryPlan geometry = XlsbWorksheetGeometryPlan.Create(sheet, cells, cellFormatCount);
 
@@ -128,10 +128,10 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             bool rewriteAutoFilter,
             IReadOnlyList<XlsbGeneratedRecord> hyperlinkRecords,
             bool rewriteHyperlinks, long maximumBytes = int.MaxValue) {
-            if (originalPart == null) throw new ArgumentNullException(nameof(originalPart));
-            if (cells == null) throw new ArgumentNullException(nameof(cells));
-            if (autoFilterRecords == null) throw new ArgumentNullException(nameof(autoFilterRecords));
-            if (hyperlinkRecords == null) throw new ArgumentNullException(nameof(hyperlinkRecords));
+            ArgumentNullException.ThrowIfNull(originalPart);
+            ArgumentNullException.ThrowIfNull(cells);
+            ArgumentNullException.ThrowIfNull(autoFilterRecords);
+            ArgumentNullException.ThrowIfNull(hyperlinkRecords);
 
             IReadOnlyList<XlsbRecord> records;
             using (var input = new MemoryStream(originalPart, writable: false)) {

@@ -10,9 +10,7 @@ namespace OfficeIMO.Security {
         private int _rounds;
 
         internal ManagedAesBlockCipher(byte[] key, bool forEncryption) {
-            if (key == null) {
-                throw new ArgumentNullException(nameof(key));
-            }
+            ArgumentNullException.ThrowIfNull(key);
 
             _forEncryption = forEncryption;
             byte[] keyCopy = (byte[])key.Clone();

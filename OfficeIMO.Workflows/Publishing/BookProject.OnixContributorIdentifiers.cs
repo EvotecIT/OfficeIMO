@@ -6,13 +6,13 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class BookProject {
     private static IReadOnlyList<XElement> BuildOnixContributorIdentifiers(IReadOnlyList<BookOnixContributorIdentifier> identifiers) {
-        if (identifiers == null) throw new ArgumentNullException(nameof(identifiers));
+        ArgumentNullException.ThrowIfNull(identifiers);
         if (identifiers.Count > 16) throw new ArgumentException("At most 16 contributor identifiers are supported.", nameof(identifiers));
         XNamespace ns = OnixNamespace;
         var result = new List<XElement>();
         var schemes = new HashSet<(BookOnixContributorIdentifierType, string?)>();
         foreach (var identifier in identifiers) {
-            if (identifier == null) throw new ArgumentNullException(nameof(identifier));
+            ArgumentNullException.ThrowIfNull(identifier);
             if (!OfficeRuntimeCompatibility.IsDefined(identifier.Type)) throw new ArgumentOutOfRangeException(nameof(identifier.Type));
             RequireOnixText(identifier.Value, nameof(identifier.Value));
             if (identifier.Value.Length > 100) throw new ArgumentException("Contributor identifiers are limited to 100 characters.", nameof(identifiers));
@@ -37,7 +37,7 @@ public sealed partial class BookProject {
     private static IReadOnlyList<XElement> BuildOnixResourceContributorReferences(
         IReadOnlyList<BookOnixContributorIdentifier> references, IReadOnlyList<XElement> contributors,
         ref int textBudget, CancellationToken token) {
-        if (references == null) throw new ArgumentNullException(nameof(references));
+        ArgumentNullException.ThrowIfNull(references);
         if (references.Count > 16) throw new ArgumentException("At most 16 resource contributor references are supported.", nameof(references));
         XNamespace ns = OnixNamespace;
         var result = new List<XElement>();

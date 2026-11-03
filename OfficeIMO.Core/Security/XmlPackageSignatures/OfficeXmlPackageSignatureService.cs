@@ -38,8 +38,8 @@ internal static class OfficeXmlPackageSignatureService {
         IOfficeSecurityProvider securityProvider,
         X509Certificate2 signingCertificate,
         OfficeXmlPackageSignatureOptions? options = null) {
-        if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
-        if (signingCertificate == null) throw new ArgumentNullException(nameof(signingCertificate));
+        ArgumentNullException.ThrowIfNull(securityProvider);
+        ArgumentNullException.ThrowIfNull(signingCertificate);
         options ??= new OfficeXmlPackageSignatureOptions();
         ValidateOptions(options);
         string fullPath = NormalizePath(filePath);
@@ -116,7 +116,7 @@ internal static class OfficeXmlPackageSignatureService {
         OfficeXmlPackageSignatureFormat format,
         IOfficeSecurityProvider securityProvider,
         OfficeXmlPackageSignatureOptions? options = null) {
-        if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
+        ArgumentNullException.ThrowIfNull(securityProvider);
         options ??= new OfficeXmlPackageSignatureOptions();
         ValidateOptions(options);
         string fullPath = NormalizePath(filePath);

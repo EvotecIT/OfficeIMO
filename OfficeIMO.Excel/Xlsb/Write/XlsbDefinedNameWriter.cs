@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         internal static void Write(Stream output, DefinedNames? definedNames, IReadOnlyList<ExcelSheet> sheets) {
-            if (output == null) throw new ArgumentNullException(nameof(output));
+            ArgumentNullException.ThrowIfNull(output);
             XlsbDefinedNamePlan plan = CreatePlan(definedNames, sheets);
             if (plan.Records.Count == 0) return;
 
@@ -31,7 +31,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static XlsbDefinedNamePlan CreatePlan(DefinedNames? definedNames, IReadOnlyList<ExcelSheet> sheets) {
-            if (sheets == null) throw new ArgumentNullException(nameof(sheets));
+            ArgumentNullException.ThrowIfNull(sheets);
             if (definedNames != null
                 && definedNames.HasChildren
                 && definedNames.ChildElements.Any(element => element is not DefinedName)) {

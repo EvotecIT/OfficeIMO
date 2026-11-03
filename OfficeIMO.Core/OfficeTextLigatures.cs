@@ -13,9 +13,7 @@ internal static class OfficeTextLigatures {
         int index,
         out int ligatureScalar,
         out int utf16Length) {
-        if (text == null) {
-            throw new ArgumentNullException(nameof(text));
-        }
+        ArgumentNullException.ThrowIfNull(text);
         if (index < 0 || index >= text.Length) {
             ligatureScalar = 0;
             utf16Length = 0;

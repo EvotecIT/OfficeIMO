@@ -93,7 +93,7 @@ public class ImageStreamingEncodeBenchmarks {
         public override void SetLength(long value) => throw new NotSupportedException();
 
         public override void Write(byte[] buffer, int offset, int count) {
-            if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+            ArgumentNullException.ThrowIfNull(buffer);
             if (offset < 0 || count < 0 || offset > buffer.Length - count) {
                 throw new ArgumentOutOfRangeException(nameof(count));
             }

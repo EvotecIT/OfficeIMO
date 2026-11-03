@@ -242,7 +242,7 @@ public static class PdfLogicalTableAnalysis {
         int pageLabelCount = 0,
         bool hasDocumentMetadata = false) {
 #pragma warning disable CA1512 // ThrowIfNegative is unavailable on netstandard2.0 and net472.
-        if (maximumComparisons < 0) throw new ArgumentOutOfRangeException(nameof(maximumComparisons));
+        ArgumentOutOfRangeException.ThrowIfNegative(maximumComparisons);
 #pragma warning restore CA1512
 
         int pagesWithTables = 0;

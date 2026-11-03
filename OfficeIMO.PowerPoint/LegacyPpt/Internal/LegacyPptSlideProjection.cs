@@ -109,7 +109,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal static string CreateBackgroundFingerprint(
             PowerPointSlide slide) {
-            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            ArgumentNullException.ThrowIfNull(slide);
             P.Background? background = slide.SlidePart.Slide?.CommonSlideData?
                 .Background;
             if (background != null) {
@@ -140,7 +140,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal static string CreateThemeFingerprint(
             PowerPointSlide slide) {
-            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            ArgumentNullException.ThrowIfNull(slide);
             string theme = (slide.SlidePart.ThemeOverridePart
                     ?? slide.SlidePart.SlideLayoutPart?.ThemeOverridePart)?
                 .ThemeOverride?.OuterXml ?? string.Empty;
@@ -153,7 +153,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal static IReadOnlyList<string>
             CreateClassicColorFingerprints(PowerPointSlide slide) {
-            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            ArgumentNullException.ThrowIfNull(slide);
             A.ColorScheme? colors = (slide.SlidePart.ThemeOverridePart
                     ?? slide.SlidePart.SlideLayoutPart?.ThemeOverridePart)?
                 .ThemeOverride?.ColorScheme

@@ -26,10 +26,7 @@ public sealed partial class CsvDocument
         CsvLoadOptions? loadOptions = null,
         CsvDataReaderOptions? readerOptions = null)
     {
-        if (text == null)
-        {
-            throw new ArgumentNullException(nameof(text));
-        }
+        ArgumentNullException.ThrowIfNull(text);
 
         var options = loadOptions?.Clone() ?? new CsvLoadOptions();
         if (options.MaxInputBytes <= 0)
@@ -207,10 +204,7 @@ public sealed partial class CsvDocument
         CsvLoadOptions? loadOptions = null,
         CsvDataReaderOptions? readerOptions = null)
     {
-        if (stream == null)
-        {
-            throw new ArgumentNullException(nameof(stream));
-        }
+        ArgumentNullException.ThrowIfNull(stream);
 
         if (!stream.CanRead)
         {
@@ -643,10 +637,7 @@ public sealed partial class CsvDocument
         TextReader reader,
         CancellationToken cancellationToken)
     {
-        if (reader == null)
-        {
-            throw new ArgumentNullException(nameof(reader));
-        }
+        ArgumentNullException.ThrowIfNull(reader);
 
         var text = new StringBuilder();
         var buffer = new char[FileBufferSize];

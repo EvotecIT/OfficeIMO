@@ -49,7 +49,7 @@ public sealed partial class OfficeImageMetadata {
 
     /// <summary>Removes selected supported profile families while preserving encoded image payloads, frame timing, and TIFF pages.</summary>
     public static OfficeImageMetadataRemovalResult Remove(byte[] encodedBytes, OfficeImageMetadataProfileKinds kinds, CancellationToken cancellationToken = default) {
-        if (encodedBytes == null) throw new ArgumentNullException(nameof(encodedBytes));
+        ArgumentNullException.ThrowIfNull(encodedBytes);
         if ((kinds & ~OfficeImageMetadataProfileKinds.All) != 0) throw new ArgumentOutOfRangeException(nameof(kinds));
         if (!OfficeRasterGuards.IsEncodedPayloadWithinLimits(encodedBytes.Length)) throw new FormatException("Image bytes exceed the metadata-edit limit.");
         cancellationToken.ThrowIfCancellationRequested();

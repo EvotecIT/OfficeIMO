@@ -8,7 +8,7 @@ public static partial class PdfHtmlConverterExtensions {
     /// <summary>Renders an opened PDF as HTML and returns a machine-readable export summary.</summary>
     internal static PdfHtmlConversionResult ToHtmlResult(this PdfCore.PdfDocument document, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return ReadForHtml(document, options, cancellationToken)
             .ToHtmlResult(CreateRenderOptionsAfterPreselection(options, document), cancellationToken);
     }
@@ -18,9 +18,7 @@ public static partial class PdfHtmlConverterExtensions {
     /// </summary>
     internal static PdfHtmlConversionResult ToHtmlResult(this PdfCore.PdfDocumentReadResult document, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
         options = (options ?? new PdfToHtmlOptions()).CloneForConversion();
         options.CancellationToken = cancellationToken;
