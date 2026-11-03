@@ -6,13 +6,12 @@ Recover a compiled help book as linked Markdown through `OfficeIMO.Chm` and the 
 using OfficeIMO.Chm;
 
 ChmDocument book = ChmDocument.Load("manual.chm");
-ChmConversionResult<string> result = book.ToMarkdownResult();
-File.WriteAllText("manual.md", result.RequireValue());
-foreach (var diagnostic in result.Report.Diagnostics)
+OfficeConversionReport report = book.SaveAsMarkdown("manual.md");
+foreach (var diagnostic in report.Diagnostics)
     Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
 ```
 
-Use `ToMarkdownDocumentResult()` for an editable `MarkdownDocument` from the canonical Markdown engine. Pass `ChmConversionOptions` to select topic paths and bound aggregate HTML, images and serialized output. Pass `HtmlMarkdownExportOptions` to choose the existing Markdown conversion/write policy. `ToMarkdown()` is a convenience wrapper; use the result API to retain fidelity evidence or call `Report.ThrowIfLoss()` for strict acceptance.
+Use `ToMarkdown(options, out report)` for an editable `MarkdownDocument` from the canonical Markdown engine. `ChmMarkdownExportOptions.ConversionOptions` selects topic paths and bounds aggregate HTML, images and serialized output; `MarkdownOptions` takes `HtmlMarkdownExportOptions` to choose the existing Markdown conversion/write policy. `ToMarkdown()` is a convenience wrapper; use the result API to retain fidelity evidence or call `Report.ThrowIfLoss()` for strict acceptance.
 
 Topic headings and links receive unique book anchors. Archive images are embedded as data URLs by default. Contents order is retained; compiled keyword-index and help-viewer features remain exposed by the source CHM model. Layout, styles and unsupported HTML structures follow the Markdown engine's reported conversion boundaries. See [CHM support](../OfficeIMO.Chm/SUPPORT.md).
 

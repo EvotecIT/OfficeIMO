@@ -31,8 +31,8 @@ Topics follow contents order, then unlisted HTML topics in ordinal path order. C
 | Package | Entry point | Result |
 | --- | --- | --- |
 | `OfficeIMO.Chm` | `ToHtmlDocumentResult()` | Linked canonical HTML book and fidelity report |
-| [OfficeIMO.Chm.Markdown](../OfficeIMO.Chm.Markdown/README.md) | `ToMarkdownResult()` | Linked Markdown book and fidelity report |
-| [OfficeIMO.Chm.Epub](../OfficeIMO.Chm.Epub/README.md) | `ToEpubBytesResult()` | Reflowable EPUB with contents and embedded resources |
+| [OfficeIMO.Chm.Markdown](../OfficeIMO.Chm.Markdown/README.md) | `ToMarkdown()`, `SaveAsMarkdown()` | Linked Markdown book and fidelity report |
+| [OfficeIMO.Chm.Epub](../OfficeIMO.Chm.Epub/README.md) | `ToEpub()`, `SaveAsEpub()` | Reflowable EPUB with contents and embedded resources |
 | [OfficeIMO.Chm.Pdf](../OfficeIMO.Chm.Pdf/README.md) | `ToPdf()` / `SaveAsPdf()` | Independently rendered topic pages and combined fidelity evidence |
 | [OfficeIMO.Reader.Chm](../OfficeIMO.Reader.Chm/README.md) | `AddChmHandler()` | Reader chunks, tables, links, assets, hashes, and topic citations |
 

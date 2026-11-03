@@ -11,8 +11,8 @@ public sealed class TopicLanguageTests {
         }), new ChmLoadOptions { MaxHtmlDepth = 3 });
         var projected = book.ToHtmlDocumentResult().Value;
         Assert.Equal("Text", projected.CreateDocumentForConversion().QuerySelector("p")!.TextContent);
-        Assert.Contains("Text", book.ToMarkdownResult().Value);
-        Assert.True(book.ToEpubPublicationResult().Succeeded);
+        Assert.Contains("Text", book.ConvertToMarkdownWithEvidence().Value);
+        Assert.True(book.ConvertToEpubWithEvidence().Succeeded);
     }
 
     [Fact]
@@ -30,12 +30,12 @@ public sealed class TopicLanguageTests {
         Assert.Equal("arabic", projected.Value.Document.QuerySelector("#chm-topic-1-root")!.GetAttribute("class"));
         Assert.Contains("navy", projected.Value.Document.QuerySelector("#chm-topic-1-body")!.GetAttribute("style"));
         Assert.Equal("#chm-topic-1-body", projected.Value.Document.QuerySelector("a")!.GetAttribute("href"));
-        var imported = book.ToEpubPublicationResult(); Assert.True(imported.Succeeded);
+        var imported = book.ConvertToEpubWithEvidence(); Assert.True(imported.Succeeded);
         Assert.Equal("ar", imported.Publication.Language);
         XNamespace xhtml = "http://www.w3.org/1999/xhtml";
         XElement section = imported.Publication.GetContentXml("chapter-1").Descendants(xhtml + "section").First();
         Assert.Equal("ar", (string?)section.Attribute("lang")); Assert.Equal("rtl", (string?)section.Attribute("dir"));
-        Assert.Equal("de", book.ToEpubPublicationResult(epubOptions: new EpubManuscriptOptions { Language = "de" }).Publication.Language);
+        Assert.Equal("de", book.ConvertToEpubWithEvidence(epubOptions: new EpubManuscriptOptions { Language = "de" }).Publication.Language);
     }
 
     [Fact]
@@ -46,6 +46,6 @@ public sealed class TopicLanguageTests {
         var projection = book.ToHtmlDocumentResult();
         Assert.Equal("pl-PL", projection.Value.Document.QuerySelector("section")!.GetAttribute("lang"));
         Assert.Contains(projection.Report.Diagnostics, item => item.Code == "CHM_CONTAINER_ATTRIBUTE_OMITTED");
-        Assert.Equal("pl-PL", book.ToEpubPublicationResult().Publication.Language);
+        Assert.Equal("pl-PL", book.ConvertToEpubWithEvidence().Publication.Language);
     }
 }

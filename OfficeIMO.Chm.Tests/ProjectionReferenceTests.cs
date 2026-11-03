@@ -110,7 +110,7 @@ public sealed class ProjectionReferenceTests {
     [InlineData("<img data-lazy-srcset='pixel.png 1x, large.png 2x' alt='Pixel'>")]
     public void ResponsiveAndLazyImagesArePortableInMarkdown(string image) {
         ChmDocument book = ImageBook(image);
-        var markdown = book.ToMarkdownResult();
+        var markdown = book.ConvertToMarkdownWithEvidence();
         Assert.Contains("data:image/png;base64,", markdown.Value);
         Assert.DoesNotContain("chm://", markdown.Value);
         var html = book.ToHtmlDocumentResult();

@@ -40,4 +40,8 @@
     <Using Include="System.Text" />
     <Using Include="OfficeIMO.Html" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Chm.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Workflows" />
+  </ItemGroup>
 </Project>

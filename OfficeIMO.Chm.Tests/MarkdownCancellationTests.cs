@@ -15,8 +15,8 @@ public sealed class MarkdownCancellationTests {
         var options = new HtmlMarkdownExportOptions();
         options.ElementFilters.Add(_ => { calls++; cancelled.Cancel(); return false; });
         Assert.ThrowsAny<OperationCanceledException>(() => {
-            if (model) book.ToMarkdownDocumentResult(markdownOptions: options, cancellationToken: cancelled.Token);
-            else book.ToMarkdownResult(markdownOptions: options, cancellationToken: cancelled.Token);
+            if (model) book.ConvertToMarkdownDocumentWithEvidence(markdownOptions: options, cancellationToken: cancelled.Token);
+            else book.ConvertToMarkdownWithEvidence(markdownOptions: options, cancellationToken: cancelled.Token);
         });
         Assert.Equal(1, calls);
     }
@@ -32,7 +32,7 @@ public sealed class MarkdownCancellationTests {
                 Assert.Equal(cancelled.Token, context.CancellationToken);
                 calls++; cancelled.Cancel(); return "Cancelled paragraph";
             }));
-        Assert.ThrowsAny<OperationCanceledException>(() => book.ToMarkdownResult(markdownOptions: options, cancellationToken: cancelled.Token));
+        Assert.ThrowsAny<OperationCanceledException>(() => book.ConvertToMarkdownWithEvidence(markdownOptions: options, cancellationToken: cancelled.Token));
         Assert.Equal(1, calls);
     }
 }
