@@ -9,7 +9,7 @@ internal static class OneNotePdfConversionEngine {
         cancellationToken.ThrowIfCancellationRequested();
         if (section == null) throw new ArgumentNullException(nameof(section));
         OneNotePdfExportOptions operation = (options ?? new OneNotePdfExportOptions()).CloneForConversion();
-        OneNoteMarkdownConversionResult projection = section.ToMarkdownDocumentResult(operation.ProjectionOptions);
+        OneNoteMarkdownConversionResult projection = section.ConvertToMarkdownWithEvidence(operation.ProjectionOptions);
         return ConvertProjection(projection, operation.MarkdownOptions, cancellationToken);
     }
 
@@ -17,7 +17,7 @@ internal static class OneNotePdfConversionEngine {
         cancellationToken.ThrowIfCancellationRequested();
         if (notebook == null) throw new ArgumentNullException(nameof(notebook));
         OneNotePdfExportOptions operation = (options ?? new OneNotePdfExportOptions()).CloneForConversion();
-        OneNoteMarkdownConversionResult projection = notebook.ToMarkdownDocumentResult(operation.ProjectionOptions);
+        OneNoteMarkdownConversionResult projection = notebook.ConvertToMarkdownWithEvidence(operation.ProjectionOptions);
         return ConvertProjection(projection, operation.MarkdownOptions, cancellationToken);
     }
 

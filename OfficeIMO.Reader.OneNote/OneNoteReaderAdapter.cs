@@ -249,8 +249,8 @@ internal static partial class OneNoteReaderAdapter {
         return new ReadContext(aggregate, metadataAggregate, notebook, pageHierarchy, source, reader, native, chunks.ToArray());
     }
 
-    private static OneNoteMarkdownOptions CreateProjectionValidationOptions(ReaderOneNoteOptions options) {
-        return new OneNoteMarkdownOptions {
+    private static OneNoteMarkdownExportOptions CreateProjectionValidationOptions(ReaderOneNoteOptions options) {
+        return new OneNoteMarkdownExportOptions {
             // Reader metadata counts all related pages even when their chunk projection is disabled.
             IncludeConflictPages = true,
             IncludeVersionHistory = true,

@@ -21,10 +21,15 @@ public sealed class HtmlOneNoteExportOptions {
     /// <summary>Whether bounded data URI images are restored as native OneNote images.</summary>
     public bool ImportImages { get; set; } = true;
 
-    internal HtmlOneNoteExportOptions Clone() => new HtmlOneNoteExportOptions {
+    /// <summary>Throws <see cref="OfficeConversionException"/> when the conversion reports loss.</summary>
+    public bool FailOnLoss { get; set; }
+
+    /// <summary>Creates an independent copy of these settings.</summary>
+    public HtmlOneNoteExportOptions Clone() => new HtmlOneNoteExportOptions {
         Limits = Limits.Clone(),
         SectionName = SectionName,
         NotebookName = NotebookName,
-        ImportImages = ImportImages
+        ImportImages = ImportImages,
+        FailOnLoss = FailOnLoss
     };
 }

@@ -12,31 +12,30 @@ using OfficeIMO.OneNote;
 using OfficeIMO.OneNote.Html;
 
 OneNoteSection section = OneNoteSectionReader.Read("Section.one");
-HtmlTextConversionResult export = section.ToHtmlDocumentResult();
-string html = export.RequireValue();
+string html = section.ToHtml(null, out OfficeConversionReport report);
 section.SaveAsHtml("Section.html");
 ```
 
-Use `OneNoteMarkdownOptions` to include conflict copies or version-history pages and to resolve extracted asset destinations. HTML rendering remains fully offline unless a caller explicitly configures external assets in `MarkdownHtmlExportOptions`. The separate Markdown conversion remains syntax-oriented and reports font, color, underline, and script details that portable Markdown cannot represent; semantic HTML no longer inherits that loss.
+Use `OneNoteMarkdownExportOptions` to include conflict copies or version-history pages and to resolve extracted asset destinations. HTML rendering remains fully offline unless a caller explicitly configures external assets in `MarkdownHtmlExportOptions`. The separate Markdown conversion remains syntax-oriented and reports font, color, underline, and script details that portable Markdown cannot represent; semantic HTML no longer inherits that loss.
 
 ## Visual page HTML
 
 The visual path maps each page to the same `OfficeDrawing` canvas used by OneNote image and visual PDF export, then embeds it as responsive SVG. It retains freeform placement, tables, images and printouts, ink, and structured math without maintaining a second HTML renderer.
 
 ```csharp
-var options = new OneNoteVisualHtmlOptions {
+var options = new OneNoteVisualHtmlExportOptions {
     DocumentTitle = "Project notebook",
     Language = "en",
     IncludeAccessibleText = true
 };
 
-string html = section.ToVisualHtmlDocument(options);
+string html = section.ToVisualHtml(options);
 section.SaveAsVisualHtml("Section-visual.html", options);
 ```
 
-`ToVisualHtmlFragment(...)` returns embeddable page figures without a document shell. With `IncludeAccessibleText` enabled, each page also contains an encoded assistive text projection for indexing and screen-reader context. The SVG remains the visual surface; use semantic HTML when ordinary DOM text selection and reflow are the primary requirement.
+Set `Fragment = true` on `OneNoteVisualHtmlExportOptions` for embeddable page figures without a document shell; semantic export uses `OneNoteHtmlExportOptions.Fragment` the same way. Visual export reports page-mapping and image-fallback diagnostics in its `OfficeConversionReport`. With `IncludeAccessibleText` enabled, each page also contains an encoded assistive text projection for indexing and screen-reader context. The SVG remains the visual surface; use semantic HTML when ordinary DOM text selection and reflow are the primary requirement.
 
-Set `OneNoteVisualHtmlOptions.DiagnosticSink` to a caller-owned collection when image-codec fallbacks or page-mapping warnings must be audited. Unsupported source images remain visible as placeholders in the SVG instead of disappearing silently.
+Set `OneNoteVisualHtmlExportOptions.DiagnosticSink` to a caller-owned collection when image-codec fallbacks or page-mapping warnings must be audited. Unsupported source images remain visible as placeholders in the SVG instead of disappearing silently.
 
 ## Import ordinary HTML
 
@@ -47,12 +46,11 @@ using OfficeIMO.Html;
 using OfficeIMO.OneNote.Html;
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
-HtmlToOneNoteSectionResult result = source.ToOneNoteSectionResult(
-    new HtmlOneNoteExportOptions { SectionName = "Imported notes" });
-OneNoteSection section = result.RequireValue();
+OneNoteSection section = source.ToOneNoteSection(
+    new HtmlOneNoteExportOptions { SectionName = "Imported notes" }, out OfficeConversionReport report);
 ```
 
-Use `ToOneNoteNotebookResult()` to create a one-section notebook. Convenience methods `ToOneNoteSection()` and `ToOneNoteNotebook()` throw when the result contains an error diagnostic. `HtmlOneNoteExportOptions.Limits` applies the shared native import budgets before pages, elements, tables, or image bytes are allocated.
+Use `ToOneNoteNotebook()` to create a one-section notebook. Both throw when the conversion reports an error diagnostic; set `FailOnLoss` to reject any reported loss. `HtmlOneNoteExportOptions.Limits` applies the shared native import budgets before pages, elements, tables, or image bytes are allocated.
 
 Native HTML and ARIA tables remain editable. Uneven rows and spans become a rectangular grid with blank covered cells and an approximation diagnostic. Authored table and cell widths are bounded to the native page layout; otherwise columns share the available width according to their content. Captions are retained as preceding paragraphs, including bounded links. Image hyperlinks are preserved.
 

@@ -13,7 +13,7 @@ string markdown = section.ToMarkdown();
 Current pages are projected by default. Conflict copies and historical page versions are explicit because including them can duplicate or expose superseded content:
 
 ```csharp
-var options = new OneNoteMarkdownOptions {
+var options = new OneNoteMarkdownExportOptions {
     IncludeConflictPages = true,
     IncludeVersionHistory = true
 };

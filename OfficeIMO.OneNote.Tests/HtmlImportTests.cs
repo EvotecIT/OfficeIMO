@@ -8,7 +8,7 @@ public sealed class HtmlImportTests {
     [Fact]
     public void GenericHtml_PreservesTextInsideOrdinaryContainers() {
         HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse("<div>Hello from a generic container</div>")
-            .ToOneNoteSectionResult();
+            .ConvertToOneNoteSectionWithEvidence();
 
         OneNoteParagraph paragraph = Assert.Single(Assert.Single(Assert.Single(result.Value.Pages).Outlines).Children.OfType<OneNoteParagraph>());
         Assert.Equal("Hello from a generic container", string.Concat(paragraph.Runs.Select(run => run.Text)));
@@ -24,7 +24,7 @@ public sealed class HtmlImportTests {
         };
 
         HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse("<p>too long</p><p>valid</p>")
-            .ToOneNoteSectionResult(options);
+            .ConvertToOneNoteSectionWithEvidence(options);
 
         OneNoteOutline outline = Assert.Single(Assert.Single(result.Value.Pages).Outlines);
         OneNoteParagraph paragraph = Assert.Single(outline.Children.OfType<OneNoteParagraph>());
@@ -41,7 +41,7 @@ public sealed class HtmlImportTests {
         limits.MaxShapes = 1;
 
         HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse("<table></table><p>valid</p>")
-            .ToOneNoteSectionResult(new HtmlOneNoteExportOptions { Limits = limits });
+            .ConvertToOneNoteSectionWithEvidence(new HtmlOneNoteExportOptions { Limits = limits });
 
         OneNoteOutline outline = Assert.Single(Assert.Single(result.Value.Pages).Outlines);
         OneNoteParagraph paragraph = Assert.Single(outline.Children.OfType<OneNoteParagraph>());
@@ -58,7 +58,7 @@ public sealed class HtmlImportTests {
         limits.MaxTables = 1;
 
         HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse("<table></table><table><tr><td></td></tr></table>")
-            .ToOneNoteSectionResult(new HtmlOneNoteExportOptions { Limits = limits });
+            .ConvertToOneNoteSectionWithEvidence(new HtmlOneNoteExportOptions { Limits = limits });
 
         OneNoteOutline outline = Assert.Single(Assert.Single(result.Value.Pages).Outlines);
         Assert.Single(outline.Children.OfType<OneNoteTable>());
@@ -79,7 +79,7 @@ public sealed class HtmlImportTests {
             </section>
             """;
 
-        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult();
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ConvertToOneNoteSectionWithEvidence();
 
         Assert.True(result.Succeeded);
         Assert.Equal(1, result.Pages);
@@ -96,7 +96,7 @@ public sealed class HtmlImportTests {
         var section = new OneNoteSection { Name = "Notes" };
         section.Pages.Add(new OneNotePage { Title = "Page" });
 
-        HtmlTextConversionResult result = section.ToHtmlDocumentResult();
+        HtmlTextConversionResult result = section.ConvertToHtmlWithEvidence();
 
         Assert.True(result.Succeeded);
         Assert.Contains("Page", result.Value);
@@ -115,7 +115,7 @@ public sealed class HtmlImportTests {
         }
         section.Pages.Add(page);
 
-        string html = section.ToHtmlDocumentResult().Value;
+        string html = section.ConvertToHtmlWithEvidence().Value;
 
         Assert.Equal(1, html.Split(new[] { "<ol data-level=\"0\">" }, StringSplitOptions.None).Length - 1);
         Assert.Equal(2, html.Split(new[] { "<li>" }, StringSplitOptions.None).Length - 1);
@@ -140,7 +140,7 @@ public sealed class HtmlImportTests {
         }
         section.Pages.Add(page);
 
-        string html = section.ToHtmlDocumentResult().Value;
+        string html = section.ConvertToHtmlWithEvidence().Value;
 
         Assert.Contains(
             "<ul data-level=\"0\"><li>Parent<ol data-level=\"1\"><li>Child one</li><li>Child two</li></ol></li><li>Sibling</li></ul>",
@@ -161,8 +161,8 @@ public sealed class HtmlImportTests {
         }
         section.Pages.Add(page);
 
-        string html = section.ToHtmlDocumentResult(
-            new OneNoteMarkdownOptions { MaxContentDepth = 1 }).Value;
+        string html = section.ConvertToHtmlWithEvidence(
+            new OneNoteMarkdownExportOptions { MaxContentDepth = 1 }).Value;
 
         Assert.Contains("Parent", html, StringComparison.Ordinal);
         Assert.Contains("Sibling", html, StringComparison.Ordinal);
@@ -184,11 +184,11 @@ public sealed class HtmlImportTests {
         }
         section.Pages.Add(page);
 
-        string html = section.ToHtmlDocumentResult().Value;
+        string html = section.ConvertToHtmlWithEvidence().Value;
         Assert.Contains("<ol data-level=\"0\" start=\"4\"><li>Four</li><li>Five</li><li value=\"9\">Nine</li></ol>", html, StringComparison.Ordinal);
 
         OneNoteParagraph[] imported = Assert.Single(Assert.Single(HtmlConversionDocument.Parse(
-                    html, HtmlConversionDocumentOptions.CreateTrustedProfile()).ToOneNoteSectionResult().RequireValue().Pages).Outlines)
+                    html, HtmlConversionDocumentOptions.CreateTrustedProfile()).ConvertToOneNoteSectionWithEvidence().RequireValue().Pages).Outlines)
             .Children.OfType<OneNoteParagraph>().Where(item => item.List != null).ToArray();
         Assert.Equal(new int?[] { 4, null, 9 }, imported.Select(item => item.List?.DisplayIndex));
         Assert.Equal(new bool?[] { true, false, true }, imported.Select(item => item.List?.Restart));
@@ -220,7 +220,7 @@ public sealed class HtmlImportTests {
         page.DirectContent.Add(table);
         section.Pages.Add(page);
 
-        string html = section.ToHtmlDocumentResult().Value;
+        string html = section.ConvertToHtmlWithEvidence().Value;
         Assert.Contains("#33669980", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("#FFF2CC40", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("#112233A0", html, StringComparison.OrdinalIgnoreCase);
@@ -228,7 +228,7 @@ public sealed class HtmlImportTests {
 
         OneNoteSection imported = HtmlConversionDocument.Parse(
                 html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToOneNoteSectionResult()
+            .ConvertToOneNoteSectionWithEvidence()
             .RequireValue();
         OneNoteOutline outline = Assert.Single(Assert.Single(imported.Pages).Outlines);
         OneNoteTextRun run = Assert.Single(
@@ -258,7 +258,7 @@ public sealed class HtmlImportTests {
         page.DirectContent.Add(parent);
         section.Pages.Add(page);
 
-        string html = section.ToHtmlDocumentResult().Value;
+        string html = section.ConvertToHtmlWithEvidence().Value;
 
         Assert.Contains("<p>Parent</p><p>Child</p>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<p>Parent<p>", html, StringComparison.Ordinal);
@@ -276,8 +276,8 @@ public sealed class HtmlImportTests {
         page.DirectContent.Add(paragraph);
         section.Pages.Add(page);
 
-        string html = section.ToHtmlDocumentResult().Value;
-        HtmlToOneNoteSectionResult imported = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult();
+        string html = section.ConvertToHtmlWithEvidence().Value;
+        HtmlToOneNoteSectionResult imported = HtmlConversionDocument.Parse(html).ConvertToOneNoteSectionWithEvidence();
 
         OneNoteTextRun run = Assert.Single(Assert.Single(imported.Value.Pages).Outlines
             .SelectMany(outline => outline.Children)

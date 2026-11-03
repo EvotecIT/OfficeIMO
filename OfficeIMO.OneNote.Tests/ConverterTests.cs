@@ -25,7 +25,7 @@ public sealed class ConverterTests {
         OneNoteNotebook notebook = CreateNotebook();
         int assetIndex = 0;
 
-        string currentOnly = notebook.ToMarkdown(new OneNoteMarkdownOptions {
+        string currentOnly = MarkdownText(notebook, new OneNoteMarkdownExportOptions {
             AssetUriResolver = _ => "assets/item-" + (++assetIndex) + ".bin"
         });
 
@@ -45,7 +45,7 @@ public sealed class ConverterTests {
         Assert.DoesNotContain("Version: Historical copy", currentOnly);
         Assert.Equal(2, assetIndex);
 
-        string withRelated = notebook.ToMarkdown(new OneNoteMarkdownOptions {
+        string withRelated = MarkdownText(notebook, new OneNoteMarkdownExportOptions {
             IncludeConflictPages = true,
             IncludeVersionHistory = true
         });
@@ -63,9 +63,9 @@ public sealed class ConverterTests {
         group.Sections.Add(SectionWithPage("Deep section", "Deep page"));
         notebook.SectionGroups.Add(group);
 
-        string html = notebook.ToHtmlDocument(new OneNoteMarkdownOptions {
+        string html = notebook.ConvertToHtmlWithEvidence(new OneNoteMarkdownExportOptions {
             MaxSectionGroupDepth = 1
-        });
+        }).RequireValue();
 
         Assert.Contains("Allowed group", html, StringComparison.Ordinal);
         Assert.Contains("Deep section", html, StringComparison.Ordinal);
@@ -76,14 +76,14 @@ public sealed class ConverterTests {
     public void ProjectionProducesReusableMarkdownDocumentAndUtf8Bytes() {
         OneNoteSection section = CreateNotebook().SectionGroups[0].Sections[0];
 
-        MarkdownDocument document = section.ToMarkdownDocument();
-        string markdown = section.ToMarkdown();
-        byte[] bytes = section.ToMarkdownBytes();
+        MarkdownDocument document = section.ToMarkdown();
+        string markdown = MarkdownText(section, null);
+        byte[] bytes = System.Text.Encoding.UTF8.GetBytes(MarkdownText(section, null));
 
         Assert.Contains("Section A", markdown);
         Assert.Contains("Current page", document.ToMarkdown());
         Assert.Equal(markdown, new UTF8Encoding(false).GetString(bytes));
-        Assert.Throws<ArgumentOutOfRangeException>(() => section.ToMarkdown(new OneNoteMarkdownOptions { HeadingLevel = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => section.ToMarkdown(new OneNoteMarkdownExportOptions { HeadingLevel = 0 }));
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public sealed class ConverterTests {
         first.SectionGroups.Add(nestedFirst);
         notebook.SectionGroups.Add(first);
 
-        string markdown = notebook.ToMarkdown();
+        string markdown = MarkdownText(notebook, null);
 
         Assert.True(markdown.IndexOf("## First", StringComparison.Ordinal) < markdown.IndexOf("## Middle", StringComparison.Ordinal));
         Assert.True(markdown.IndexOf("## Middle", StringComparison.Ordinal) < markdown.IndexOf("## Last", StringComparison.Ordinal));
@@ -117,11 +117,11 @@ public sealed class ConverterTests {
     public async Task HtmlConversionSupportsDocumentFragmentBytesAndCallerOwnedStreams() {
         OneNoteSection section = CreateNotebook().SectionGroups[0].Sections[0];
 
-        string document = section.ToHtmlDocument(htmlOptions: new MarkdownHtmlExportOptions { AssetMode = MarkdownAssetMode.Offline });
-        string fragment = section.ToHtmlFragment(htmlOptions: new MarkdownHtmlExportOptions { AssetMode = MarkdownAssetMode.Offline });
-        byte[] bytes = section.ToHtmlBytes(htmlOptions: new MarkdownHtmlExportOptions { AssetMode = MarkdownAssetMode.Offline });
+        string document = section.ConvertToHtmlWithEvidence(htmlOptions: new MarkdownHtmlExportOptions { AssetMode = MarkdownAssetMode.Offline }).RequireValue();
+        string fragment = section.ConvertToHtmlWithEvidence(htmlOptions: new MarkdownHtmlExportOptions { AssetMode = MarkdownAssetMode.Offline }, fragment: true).RequireValue();
+        byte[] bytes = System.Text.Encoding.UTF8.GetBytes(section.ConvertToHtmlWithEvidence(htmlOptions: new MarkdownHtmlExportOptions { AssetMode = MarkdownAssetMode.Offline }).RequireValue());
         using var stream = new MemoryStream();
-        await section.SaveAsHtmlAsync(stream, htmlOptions: new MarkdownHtmlExportOptions { AssetMode = MarkdownAssetMode.Offline });
+        await section.SaveAsHtmlAsync(stream, new OneNoteHtmlExportOptions { HtmlOptions = new MarkdownHtmlExportOptions { AssetMode = MarkdownAssetMode.Offline } });
 
         Assert.Contains("<!DOCTYPE html>", document, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Current page", document);
@@ -172,9 +172,9 @@ public sealed class ConverterTests {
     [Fact]
     public void NullAssetResolverOutcomeRemainsAReportedProjectionLoss() {
         OneNoteSection section = CreateNotebook().SectionGroups[0].Sections[0];
-        var options = new OneNoteMarkdownOptions { AssetUriResolver = _ => null };
+        var options = new OneNoteMarkdownExportOptions { AssetUriResolver = _ => null };
 
-        OneNoteMarkdownConversionResult markdown = section.ToMarkdownDocumentResult(options);
+        OneNoteMarkdownConversionResult markdown = section.ConvertToMarkdownWithEvidence(options);
         var pdf = section.ConvertToPdfWithEvidence(new OneNotePdfExportOptions {
             ProjectionOptions = options
         }, default);
@@ -214,7 +214,7 @@ public sealed class ConverterTests {
             LossKind = OfficeConversionLossKind.Omission
         });
 
-        OneNoteMarkdownConversionResult result = notebook.ToMarkdownDocumentResult();
+        OneNoteMarkdownConversionResult result = notebook.ConvertToMarkdownWithEvidence(null);
 
         Assert.Equal(3, result.Report.Diagnostics.Count(diagnostic =>
             diagnostic.LossKind == OfficeConversionLossKind.Omission));
@@ -239,13 +239,13 @@ public sealed class ConverterTests {
     public async Task VisualHtmlUsesTheNativeSvgCanvasAndAccessibleEncodedText() {
         OneNoteSection section = CreateNotebook().SectionGroups[0].Sections[0];
         section.Pages[0].Title = "Visual <script>title</script>";
-        var options = new OneNoteVisualHtmlOptions {
+        var options = new OneNoteVisualHtmlExportOptions {
             DocumentTitle = "Canvas export",
             PageRendering = new OneNotePageRenderingOptions { Scale = 0.5D }
         };
 
-        string document = section.ToVisualHtmlDocument(options);
-        string fragment = section.ToVisualHtmlFragment(options);
+        string document = section.ToVisualHtml(options);
+        string fragment = section.ToVisualHtml(FragmentOptions(options));
         using var stream = new MemoryStream();
         await section.SaveAsVisualHtmlAsync(stream, options);
 
@@ -275,7 +275,7 @@ public sealed class ConverterTests {
         section.Pages.Add(page);
         var diagnostics = new List<OfficeImageExportDiagnostic>();
 
-        string html = section.ToVisualHtmlDocument(new OneNoteVisualHtmlOptions { DiagnosticSink = diagnostics });
+        string html = section.ToVisualHtml(new OneNoteVisualHtmlExportOptions { DiagnosticSink = diagnostics });
 
         Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
         Assert.Contains("data:image/png;base64,", html, StringComparison.Ordinal);
@@ -293,7 +293,7 @@ public sealed class ConverterTests {
             section.Pages.Add(page);
         }
 
-        string html = section.ToVisualHtmlFragment();
+        string html = section.ToVisualHtml(FragmentOptions());
 
         Assert.Contains("id=\"officeimo-onenote-page-0-officeimo-group-clip-1\"", html, StringComparison.Ordinal);
         Assert.Contains("url(#officeimo-onenote-page-0-officeimo-group-clip-1)", html, StringComparison.Ordinal);
@@ -419,9 +419,9 @@ public sealed class ConverterTests {
         notebook.SectionGroups.Add(firstGroup);
 
         IReadOnlyList<OneNotePageReference> pages = OneNotePageTraversal.Flatten(notebook);
-        string html = notebook.ToVisualHtmlFragment(new OneNoteVisualHtmlOptions {
+        string html = notebook.ToVisualHtml(FragmentOptions(new OneNoteVisualHtmlExportOptions {
             PageRendering = new OneNotePageRenderingOptions { Scale = 0.25D }
-        });
+        }));
 
         Assert.Equal(new[] { "Page 1", "Page 2" }, pages.Select(page => page.Page.Title));
         Assert.Equal(new[] { "First/Nested", "Second" }, pages.Select(page => page.SectionPath));
@@ -449,8 +449,8 @@ public sealed class ConverterTests {
         section.Pages.Add(page);
 
         string text = OneNoteMarkdownProjection.ToText(page);
-        string markdown = section.ToMarkdown();
-        string html = section.ToHtmlDocument(htmlOptions: new MarkdownHtmlExportOptions { AssetMode = MarkdownAssetMode.Offline });
+        string markdown = MarkdownText(section, null);
+        string html = section.ConvertToHtmlWithEvidence(htmlOptions: new MarkdownHtmlExportOptions { AssetMode = MarkdownAssetMode.Offline }).RequireValue();
         byte[] pdf = section.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.Contains("Native\ntitle", text, StringComparison.Ordinal);
@@ -476,8 +476,8 @@ public sealed class ConverterTests {
         page.DirectContent.Add(paragraph);
         section.Pages.Add(page);
 
-        string markdown = section.ToMarkdown();
-        string html = section.ToHtmlDocument(htmlOptions: new MarkdownHtmlExportOptions { AssetMode = MarkdownAssetMode.Offline });
+        string markdown = MarkdownText(section, null);
+        string html = section.ConvertToHtmlWithEvidence(htmlOptions: new MarkdownHtmlExportOptions { AssetMode = MarkdownAssetMode.Offline }).RequireValue();
         byte[] pdf = section.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         string expectedPrefix = new string(' ', OneNoteListInfo.MaxLevel * 2) + "- Bounded item";
 
@@ -498,7 +498,7 @@ public sealed class ConverterTests {
         AssertProjectionError("ONENOTE_PROJECTION_CONTENT_CYCLE", () => OneNoteMarkdownProjection.ToText(outline));
         AssertProjectionError("ONENOTE_PROJECTION_CONTENT_CYCLE", () => OneNoteMarkdownProjection.ToMarkdown(outline));
         AssertProjectionError("ONENOTE_PROJECTION_CONTENT_CYCLE", () => section.ToMarkdown());
-        AssertProjectionError("ONENOTE_PROJECTION_CONTENT_CYCLE", () => section.ToHtmlDocument());
+        AssertProjectionError("ONENOTE_PROJECTION_CONTENT_CYCLE", () => section.ConvertToHtmlWithEvidence().RequireValue());
         AssertProjectionError("ONENOTE_PROJECTION_CONTENT_CYCLE", () => section.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
     }
 
@@ -518,7 +518,7 @@ public sealed class ConverterTests {
 
         AssertProjectionError(
             "ONENOTE_PROJECTION_GROUP_DEPTH",
-            () => deepNotebook.ToMarkdown(new OneNoteMarkdownOptions { MaxSectionGroupDepth = 1 }));
+            () => deepNotebook.ToMarkdown(new OneNoteMarkdownExportOptions { MaxSectionGroupDepth = 1 }));
     }
 
     [Fact]
@@ -531,16 +531,16 @@ public sealed class ConverterTests {
         version.VersionHistory.Add(version);
         section.Pages.Add(version);
 
-        string currentOnly = section.ToMarkdown();
+        string currentOnly = MarkdownText(section, null);
 
         Assert.Contains("Conflict root", currentOnly, StringComparison.Ordinal);
         Assert.Contains("Version root", currentOnly, StringComparison.Ordinal);
         AssertProjectionError(
             "ONENOTE_PROJECTION_PAGE_CYCLE",
-            () => section.ToMarkdown(new OneNoteMarkdownOptions { IncludeConflictPages = true }));
+            () => section.ToMarkdown(new OneNoteMarkdownExportOptions { IncludeConflictPages = true }));
         AssertProjectionError(
             "ONENOTE_PROJECTION_PAGE_CYCLE",
-            () => section.ToMarkdown(new OneNoteMarkdownOptions { IncludeVersionHistory = true }));
+            () => section.ToMarkdown(new OneNoteMarkdownExportOptions { IncludeVersionHistory = true }));
     }
 
     [Fact]
@@ -551,7 +551,7 @@ public sealed class ConverterTests {
         section.Pages.Add(page);
         AssertProjectionError(
             "ONENOTE_PROJECTION_PAGE_DEPTH",
-            () => section.ToMarkdown(new OneNoteMarkdownOptions {
+            () => section.ToMarkdown(new OneNoteMarkdownExportOptions {
                 IncludeConflictPages = true,
                 MaxPageRelationshipDepth = 1
             }));
@@ -562,7 +562,7 @@ public sealed class ConverterTests {
             "ONENOTE_PROJECTION_CONTENT_DEPTH",
             () => new OneNoteSection {
                 Pages = { new OneNotePage { Outlines = { parent } } }
-            }.ToMarkdown(new OneNoteMarkdownOptions { MaxContentDepth = 1 }));
+            }.ToMarkdown(new OneNoteMarkdownExportOptions { MaxContentDepth = 1 }));
     }
 
     [Fact]
@@ -594,7 +594,7 @@ public sealed class ConverterTests {
         AssertProjectionError("ONENOTE_PROJECTION_NULL_TEXT_RUN", () => OneNoteMarkdownProjection.ToText(paragraph));
         AssertProjectionError("ONENOTE_PROJECTION_NULL_TEXT_RUN", () => OneNoteMarkdownProjection.ToMarkdown(paragraph));
         AssertProjectionError("ONENOTE_PROJECTION_NULL_TEXT_RUN", () => section.ToMarkdown());
-        AssertProjectionError("ONENOTE_PROJECTION_NULL_TEXT_RUN", () => section.ToHtmlDocument());
+        AssertProjectionError("ONENOTE_PROJECTION_NULL_TEXT_RUN", () => section.ConvertToHtmlWithEvidence().RequireValue());
         AssertProjectionError("ONENOTE_PROJECTION_NULL_TEXT_RUN", () => section.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
     }
 
@@ -603,9 +603,9 @@ public sealed class ConverterTests {
         int invalid = OneNoteWriterOptions.MaximumTraversalDepth + 1;
         var section = new OneNoteSection();
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => section.ToMarkdown(new OneNoteMarkdownOptions { MaxSectionGroupDepth = invalid }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => section.ToMarkdown(new OneNoteMarkdownOptions { MaxPageRelationshipDepth = invalid }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => section.ToMarkdown(new OneNoteMarkdownOptions { MaxContentDepth = invalid }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => section.ToMarkdown(new OneNoteMarkdownExportOptions { MaxSectionGroupDepth = invalid }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => section.ToMarkdown(new OneNoteMarkdownExportOptions { MaxPageRelationshipDepth = invalid }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => section.ToMarkdown(new OneNoteMarkdownExportOptions { MaxContentDepth = invalid }));
     }
 
     [Fact]
@@ -615,8 +615,8 @@ public sealed class ConverterTests {
         page.DirectContent.Add(Paragraph("Text\n> literal quote\n- literal item\n1. literal ordered item"));
         section.Pages.Add(page);
 
-        string markdown = section.ToMarkdown();
-        string html = section.ToHtmlDocument(htmlOptions: new MarkdownHtmlExportOptions { AssetMode = MarkdownAssetMode.Offline });
+        string markdown = MarkdownText(section, null);
+        string html = section.ConvertToHtmlWithEvidence(htmlOptions: new MarkdownHtmlExportOptions { AssetMode = MarkdownAssetMode.Offline }).RequireValue();
 
         Assert.Contains("## Title<br># literal heading", markdown);
         Assert.Contains("Text<br>&gt; literal quote<br>- literal item<br>1. literal ordered item", markdown);
@@ -632,8 +632,8 @@ public sealed class ConverterTests {
         page.DirectContent.Add(Paragraph("<img src=x onerror=alert('body')>"));
         section.Pages.Add(page);
 
-        string markdown = section.ToMarkdown();
-        string html = section.ToHtmlDocument(htmlOptions: new MarkdownHtmlExportOptions { AssetMode = MarkdownAssetMode.Offline });
+        string markdown = MarkdownText(section, null);
+        string html = section.ConvertToHtmlWithEvidence(htmlOptions: new MarkdownHtmlExportOptions { AssetMode = MarkdownAssetMode.Offline }).RequireValue();
 
         Assert.Contains("&lt;script&gt;", markdown, StringComparison.Ordinal);
         Assert.Contains("&lt;img", markdown, StringComparison.Ordinal);
@@ -657,12 +657,12 @@ public sealed class ConverterTests {
             Payload = OneNoteBinaryPayload.FromBytes(new byte[] { 1 })
         });
         section.Pages.Add(page);
-        var projectionOptions = new OneNoteMarkdownOptions { AssetUriResolver = _ => unsafeDestination };
+        var projectionOptions = new OneNoteMarkdownExportOptions { AssetUriResolver = _ => unsafeDestination };
 
-        string markdown = section.ToMarkdown(projectionOptions);
-        string html = section.ToHtmlDocument(
+        string markdown = MarkdownText(section, projectionOptions);
+        string html = section.ConvertToHtmlWithEvidence(
             projectionOptions,
-            new MarkdownHtmlExportOptions { AssetMode = MarkdownAssetMode.Offline });
+            new MarkdownHtmlExportOptions { AssetMode = MarkdownAssetMode.Offline }).RequireValue();
 
         Assert.Contains("https://example.invalid/path%0A%3Cscript%3Ealert%281%29%3C/script%3E", markdown);
         Assert.DoesNotContain("\n<script", markdown, StringComparison.OrdinalIgnoreCase);
@@ -679,8 +679,8 @@ public sealed class ConverterTests {
         });
         section.Pages.Add(page);
 
-        string markdown = section.ToMarkdown();
-        string html = section.ToHtmlDocument(htmlOptions: new MarkdownHtmlExportOptions { AssetMode = MarkdownAssetMode.Offline });
+        string markdown = MarkdownText(section, null);
+        string html = section.ConvertToHtmlWithEvidence(htmlOptions: new MarkdownHtmlExportOptions { AssetMode = MarkdownAssetMode.Offline }).RequireValue();
 
         Assert.Contains("````math", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("<script", html, StringComparison.OrdinalIgnoreCase);
@@ -698,7 +698,7 @@ public sealed class ConverterTests {
         page.DirectContent.Add(table);
         section.Pages.Add(page);
 
-        string markdown = section.ToMarkdown();
+        string markdown = MarkdownText(section, null);
 
         Assert.Contains(@"Left \| Right", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain(@"\\|", markdown, StringComparison.Ordinal);
@@ -719,7 +719,7 @@ public sealed class ConverterTests {
         page.DirectContent.Add(table);
         section.Pages.Add(page);
 
-        string markdown = section.ToMarkdown();
+        string markdown = MarkdownText(section, null);
 
         Assert.Contains("[Link](https://example.test/a%7Cb)", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("a|b", markdown, StringComparison.Ordinal);
@@ -797,5 +797,23 @@ public sealed class ConverterTests {
         var paragraph = new OneNoteParagraph();
         paragraph.Runs.Add(new OneNoteTextRun { Text = text });
         return paragraph;
+    }
+
+    private static OneNoteVisualHtmlExportOptions FragmentOptions(OneNoteVisualHtmlExportOptions? options = null) {
+        OneNoteVisualHtmlExportOptions copy = options?.Clone() ?? new OneNoteVisualHtmlExportOptions();
+        copy.Fragment = true;
+        return copy;
+    }
+
+    private static string MarkdownText(OneNoteSection section, OneNoteMarkdownExportOptions? options) {
+        using var output = new MemoryStream();
+        section.SaveAsMarkdown(output, options);
+        return System.Text.Encoding.UTF8.GetString(output.ToArray());
+    }
+
+    private static string MarkdownText(OneNoteNotebook notebook, OneNoteMarkdownExportOptions? options) {
+        using var output = new MemoryStream();
+        notebook.SaveAsMarkdown(output, options);
+        return System.Text.Encoding.UTF8.GetString(output.ToArray());
     }
 }

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace OfficeIMO.OneNote.Html;
 
 /// <summary>Controls visual-preserving HTML generated from the native OneNote page canvas.</summary>
-public sealed class OneNoteVisualHtmlOptions {
+public sealed class OneNoteVisualHtmlExportOptions {
     /// <summary>Page rendering options shared with image and PDF export.</summary>
     public OneNotePageRenderingOptions PageRendering { get; set; } = new OneNotePageRenderingOptions();
 
@@ -23,13 +23,22 @@ public sealed class OneNoteVisualHtmlOptions {
     /// <summary>Optional caller-owned collection that receives page-mapping and image-fallback diagnostics.</summary>
     public ICollection<OfficeImageExportDiagnostic>? DiagnosticSink { get; set; }
 
-    internal OneNoteVisualHtmlOptions Clone() => new OneNoteVisualHtmlOptions {
+    /// <summary>Produces an embeddable SVG-page fragment instead of a standalone HTML5 document.</summary>
+    public bool Fragment { get; set; }
+
+    /// <summary>Throws <see cref="OfficeConversionException"/> when the conversion reports loss.</summary>
+    public bool FailOnLoss { get; set; }
+
+    /// <summary>Creates an independent copy of these settings; the diagnostic sink is shared.</summary>
+    public OneNoteVisualHtmlExportOptions Clone() => new OneNoteVisualHtmlExportOptions {
         PageRendering = PageRendering?.Clone() ?? new OneNotePageRenderingOptions(),
         DocumentTitle = DocumentTitle,
         Language = Language,
         IncludeAccessibleText = IncludeAccessibleText,
         IncludeDefaultStyles = IncludeDefaultStyles,
-        DiagnosticSink = DiagnosticSink
+        DiagnosticSink = DiagnosticSink,
+        Fragment = Fragment,
+        FailOnLoss = FailOnLoss
     };
 
     internal void Validate() {
