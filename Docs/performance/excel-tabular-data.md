@@ -161,6 +161,52 @@ reservation used 35.674 MiB: repeated destination growth consumed much of the sa
 copy. That version is superseded by the exact reservation. Complete output is
 validated by the strict reader and independently by ExcelDataReader.
 
+The [normalized compatible cohort](excel-tabular-compatible-2026-11-03.json) records
+all 25 ExcelReader.NET, Sylvan, ExcelDataReader and SpreadCheetah lanes in each of
+two interleaved baseline/candidate pairs. The implementation is `40734fa5ac`.
+The same baseline-produced files and SHA-256 hashes are used throughout. Each cell
+below keeps the first and second launch separate; allocation is representative of
+both pairs.
+
+| Lane | Before ms, pair 1 / 2 | After ms, pair 1 / 2 | Before → after MiB |
+|---|---:|---:|---:|
+| XLSX read | 10.549 / 10.169 | 10.134 / 9.927 | 2.274 → 2.274 |
+| XLSX typed parse | 12.701 / 11.465 | 11.021 / 10.858 | 4.562 → 4.562 |
+| XLSB read | 6.434 / 6.323 | 6.380 / 6.743 | 2.284 → 2.285 |
+| XLSB typed parse | 8.023 / 8.023 | 7.090 / 7.056 | 4.574 → 4.574 |
+| XLS read | 6.091 / 5.353 | 5.829 / 5.533 | 3.268 → 3.269 |
+| XLS typed parse | 8.245 / 7.427 | 6.769 / 6.639 | 5.558 → 5.558 |
+| XLSX write | 10.220 / 9.912 | 10.086 / 9.933 | 9.065 → 9.066 |
+| XLSB write | 16.458 / 16.064 | 16.683 / 16.687 | 15.173 → 15.470 |
+| XLS write | 17.602 / 17.694 | 18.196 / 18.727 | 36.193 → 30.072 |
+
+Typed parsing is 5–18% faster in both pairs. Raw reads have no consistent material
+gain. XLS writes save 17% of managed allocation; their raw medians are 3–6% slower,
+while the unchanged ExcelReader.NET XLS writer is 7–9% slower in those same pairs.
+I retain the allocation reduction without claiming an XLS throughput gain. The
+retained XLSB RK output adds about 0.30 MiB of writer allocation; the complete
+writer still trails ExcelReader.NET.
+
+All fifteen XLBench shapes complete their validation. Timing shifts in unchanged
+paths remain visible in the evidence. Two targeted interleaved repetitions reverse
+the direction of the calc difference: 103.0 → 112.3 ms, then 114.3 → 102.7 ms,
+with 16.57 MiB in every run. Template allocation ranges from 7.88 to 7.90 MiB on
+both sides. These runs do not establish a persistent timing regression or a quiet
+host result.
+
+The matrix uses the existing runner, with the pinned input root supplied through
+`OFFICEIMO_EXCEL_GENERATED_INPUT`:
+
+```sh
+lockf -k /Volumes/Samsung/Development/Scratch/heavy-run.lock \
+  dotnet OfficeIMO.Excel.Benchmarks/bin/Release/net10.0/OfficeIMO.Excel.Benchmarks.dll \
+  --filter '*ExcelReaderGenerated*' --inProcess --warmupCount 8 --iterationCount 12 \
+  --invocationCount 16 --unrollFactor 1 --outliers DontRemove --artifacts <output>/bdn
+lockf -k /Volumes/Samsung/Development/Scratch/heavy-run.lock \
+  dotnet OfficeIMO.Excel.Benchmarks/bin/Release/net10.0/OfficeIMO.Excel.Benchmarks.dll \
+  --compare-xlbench-shapes 9 2
+```
+
 Two read experiments are not retained:
 
 - Inflating the same validated XLSB and XLSX parts into an existing buffer with
@@ -180,17 +226,19 @@ existing normalization is preserved rather than changing the cell-write contract
 
 Parity is incomplete; the earlier cohorts still show gaps against ExcelReader.NET
 in XLSX/XLSB reads and typed parsing. The remaining read cost is structural rather
-than one hidden hot spot. OfficeIMO proves the whole
-part before delivering the first row and gives the data reader a fixed field
+than one hidden hot spot. OfficeIMO proves the whole part before delivering the first row and gives the data reader a fixed field
 count. It therefore makes a validation and indexing pass and then a delivery
 pass; ExcelReader.NET reads each row once. Inflation remains a substantial part of the
-XLSX and XLSB reads. Typed parsing qualifies every mapped cell on the worksheet reader before the compiled mapper reads it.
+XLSX and XLSB reads. Typed parsing qualifies every mapped cell on the worksheet
+reader before the compiled mapper reads it.
 
 The XLS and XLSB writers are the `WriteData` plus `Save` route. Before it saves,
 that route retains every source row and boxed selector value, so the generated
 rows survive into older GC generations. On its own, the measured registration
 takes about 7 ms of each write against 0.7 ms to generate the same rows. XLSB
-deflate takes about another 5 ms; exact RK encoding reduces the numeric payload where possible. Imported and asynchronous XLS saves retain compound-file staging. Removing the buffering would
+deflate takes about another 5 ms; exact RK encoding reduces the numeric payload
+where possible. Imported and asynchronous XLS saves retain compound-file staging.
+Removing the buffering would
 change when selectors and source enumeration run, so I leave that contract
 unchanged here.
 
