@@ -108,50 +108,21 @@ namespace OfficeIMO.Excel {
 
                 byte[]? buffer = null;
                 try {
-                    if (!TryRentWorksheetBuffer(owner, ct, out buffer, out int length)) {
+                    if (TryCreatePipelinedUsedRange(owner, ct, out source, out declaredFirstColumn, out buffer, out int length)) {
+                        if (source != null) return true;
+                    } else if (!TryRentWorksheetBuffer(owner, ct, out buffer, out length)) {
                         return false;
                     }
 
                     var candidate = new ExcelUtf8RangeRowSource(owner, buffer!, length);
                     buffer = null;
                     try {
-                        if (!candidate.TryGetDeclaredRange(
-                                ct,
-                                out int firstRow,
-                                out int firstColumn,
-                                out int lastRow,
-                                out int lastColumn)
-                            && !candidate.TryInferUndeclaredRange(
-                                ct, out firstRow, out firstColumn, out lastRow, out lastColumn)) {
-                            candidate.Dispose();
-                            return false;
-                        }
-
-                        int fieldCount = lastColumn - firstColumn + 1;
-                        if (firstRow <= 0 || lastRow < firstRow || lastRow > ExcelA1.MaxRows
-                            || firstColumn <= 0 || lastColumn < firstColumn || lastColumn > ExcelA1.MaxColumns
-                            || fieldCount <= 0
-                            || fieldCount > owner._opt.MaxDataReaderColumns
-                            || fieldCount > owner._opt.MaxDataReaderBufferedCells
-                            || owner._opt.MaxDataReaderChunkRows <= 0) {
-                            candidate.Dispose();
-                            return false;
-                        }
-
-                        candidate.InitializeRange(firstRow, lastRow, firstColumn, fieldCount);
-                        if (!candidate.TryIndexRows(firstRow, lastRow, ct)) {
-                            candidate.Dispose();
-                            return false;
-                        }
-
-                        if (!candidate.IsCanonicalWorksheetXmlFullyValidated(ct)
-                            && !candidate.ValidateBufferedWorksheetXml(ct)) {
+                        if (!candidate.TryPrepareUsedRange(ct, allowUnknownRows: false, out declaredFirstColumn)) {
                             candidate.Dispose();
                             return false;
                         }
 
                         ct.ThrowIfCancellationRequested();
-                        declaredFirstColumn = firstColumn;
                         source = candidate;
                         return true;
                     } catch {
@@ -465,7 +436,7 @@ namespace OfficeIMO.Excel {
 
                 _disposed = true;
                 if (_buffer != null) {
-                    OpenXmlPartBufferPool.Return(_buffer);
+                    if (_ownsBuffer) OpenXmlPartBufferPool.Return(_buffer);
                     _buffer = null;
                 }
 
@@ -578,7 +549,7 @@ namespace OfficeIMO.Excel {
                 int nextImplicitRow = 1;
                 int previousRow = 0;
                 bool repeatedRowShapeValidated = false;
-                while (position < _length) {
+                while (position < _length || TryAdvanceInflation(ct)) {
                     ct.ThrowIfCancellationRequested();
                     int tagSearchStart = position;
                     Utf8Tag tag = default;
@@ -1076,6 +1047,10 @@ namespace OfficeIMO.Excel {
             }
 
             private void EnsureRowCapacity(int required) {
+                if (_unknownRowExtent && !UsesCellWindow
+                    && (long)required * _fieldCount > Math.Min(MaximumIndexedCells, _options.MaxDataReaderBufferedCells)) {
+                    PromoteProvisionalIndexToWindow();
+                }
                 if (UsesCellWindow) {
                     EnsureWindowRowCapacity(required);
                     return;
@@ -1086,6 +1061,12 @@ namespace OfficeIMO.Excel {
                 }
 
                 int nextCapacity = Math.Min(ExcelA1.MaxRows, checked(currentCapacity * 2));
+                if (_unknownRowExtent) {
+                    nextCapacity = (int)Math.Min(nextCapacity,
+                        Math.Min(MaximumIndexedCells, _options.MaxDataReaderBufferedCells) / _fieldCount);
+                    GrowRowArray(ref _rowContentStarts, nextCapacity, _rowCount);
+                    GrowRowArray(ref _rowContentEnds, nextCapacity, _rowCount);
+                }
                 GrowRowArray(ref _rowIndexes, nextCapacity, _rowCount);
                 int currentCellCount = checked(_rowCount * _fieldCount);
                 int nextCellCapacity = checked(nextCapacity * _fieldCount);

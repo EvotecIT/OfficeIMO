@@ -13,7 +13,8 @@ namespace OfficeIMO.Excel {
             /// <summary>
             /// Proposes bounds for an undimensioned worksheet from its first populated
             /// row and final explicit row tag, or the number of unprefixed row tags
-            /// when the final row omits its coordinate. These are only an indexing candidate:
+            /// when the final row omits its coordinate. During inflation, the end remains
+            /// a bounded unknown proposal. These are only an indexing candidate:
             /// the complete index and XML validation must still prove every cell fits.
             /// </summary>
             private bool TryInferUndeclaredRange(
@@ -21,24 +22,29 @@ namespace OfficeIMO.Excel {
                 out int firstRow,
                 out int firstColumn,
                 out int lastRow,
-                out int lastColumn) {
+                out int lastColumn,
+                bool unknownLastRow = false) {
                 firstRow = firstColumn = lastRow = lastColumn = 0;
                 if (!HasSupportedUtf8Encoding()) return false;
 
-                // Reject a known large rectangular extent before renting its metadata.
-                // Unusual final tags retain the existing XML discovery path.
-                int lastRowStart = _buffer!.AsSpan(0, _length).LastIndexOf("<row"u8);
-                if (lastRowStart < 0
-                    || !TryParseTag(lastRowStart, _length, out Utf8Tag finalRow)
-                    || finalRow.NameStart != finalRow.LocalNameStart
-                    || finalRow.IsEnd
-                    || !LocalNameEquals(finalRow, "row")
-                    || !TryGetAttribute(finalRow, "r", out bool hasFinalReference, out int finalStart, out int finalLength)) {
-                    return false;
+                if (unknownLastRow) {
+                    lastRow = ExcelA1.MaxRows;
+                } else {
+                    // Reject a known large rectangular extent before renting its metadata.
+                    // Unusual final tags retain the existing XML discovery path.
+                    int lastRowStart = _buffer!.AsSpan(0, _length).LastIndexOf("<row"u8);
+                    if (lastRowStart < 0
+                        || !TryParseTag(lastRowStart, _length, out Utf8Tag finalRow)
+                        || finalRow.NameStart != finalRow.LocalNameStart
+                        || finalRow.IsEnd
+                        || !LocalNameEquals(finalRow, "row")
+                        || !TryGetAttribute(finalRow, "r", out bool hasFinalReference, out int finalStart, out int finalLength)) {
+                        return false;
+                    }
+                    lastRow = hasFinalReference
+                        ? ParsePositiveInt(_buffer!, finalStart, finalLength)
+                        : CountUndeclaredRowCandidate(ct);
                 }
-                lastRow = hasFinalReference
-                    ? ParsePositiveInt(_buffer!, finalStart, finalLength)
-                    : CountUndeclaredRowCandidate(ct);
                 if (lastRow <= 0) return false;
 
                 int position = 0;

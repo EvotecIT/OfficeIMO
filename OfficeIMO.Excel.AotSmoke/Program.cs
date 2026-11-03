@@ -9,6 +9,7 @@ try
 {
     XmlTableSmoke.Run();
     RecordReadSmoke.Run();
+    PipelinedReadSmoke.Run();
     using (var asyncRows = new MemoryStream())
     {
         using (ExcelWorkbookWriter writer = ExcelDocument.CreateWriter(asyncRows, leaveOpen: true))

@@ -152,6 +152,21 @@ namespace OfficeIMO.Excel {
 
         internal ExcelDateSystem DateSystem { get; }
 
+        // Indexing may overlap foreground inflation only when metadata has an
+        // independent archive. Explicit sequential policies and diagnostic callbacks
+        // retain their existing execution and callback-thread behavior.
+        private static bool CanPipelineWorksheetIndex(ExcelReaderOptions options) {
+#if NET8_0_OR_GREATER
+            return !options.EnableWorksheetPrefetch && options.A1Range == null
+                && options.Execution.Mode != ExcelExecutionMode.Sequential
+                && (options.Execution.MaxDegreeOfParallelism ?? 2) > 1
+                && options.Execution.OnDecision == null && options.Execution.OnTiming == null
+                && options.Execution.OnInfo == null && !options.Execution.DiagnosticsRequested;
+#else
+            return false;
+#endif
+        }
+
         internal static XlsxTabularWorkbook Open(string path, ExcelReaderOptions options) {
             return Open(path, options, metadataOnly: false);
         }
@@ -186,8 +201,9 @@ namespace OfficeIMO.Excel {
                 parts = OpenXmlPackagePartBufferReader.TryOpen(snapshot.CreateView(bufferSize: 1))
                     ?? throw new XlsxTabularFastPathNotSupportedException(
                         "The workbook is not a readable Open XML package.");
-                if (!metadataOnly && options.EnableWorksheetPrefetch) {
-                    prefetchedParts = OpenXmlPackagePartBufferReader.TryOpen(snapshot.CreateView(bufferSize: 1));
+                if (!metadataOnly && (options.EnableWorksheetPrefetch || CanPipelineWorksheetIndex(options))) {
+                    prefetchedParts = OpenXmlPackagePartBufferReader.TryOpen(snapshot.CreateView(bufferSize: 1),
+                        allowPipelining: CanPipelineWorksheetIndex(options));
                 }
                 var workbook = new XlsxTabularWorkbook(parts, prefetchedParts, snapshot, options, metadataOnly);
                 parts = null;
@@ -219,8 +235,8 @@ namespace OfficeIMO.Excel {
                     "The workbook is not a readable Open XML package.");
             OpenXmlPackagePartBufferReader? prefetchedParts = null;
             try {
-                prefetchedParts = options.EnableWorksheetPrefetch
-                    ? OpenXmlPackagePartBufferReader.TryOpen(bytes)
+                prefetchedParts = options.EnableWorksheetPrefetch || CanPipelineWorksheetIndex(options)
+                    ? OpenXmlPackagePartBufferReader.TryOpen(bytes, allowPipelining: CanPipelineWorksheetIndex(options))
                     : null;
                 var workbook = new XlsxTabularWorkbook(parts, prefetchedParts, ownedResource: null, options);
                 parts = null!;
@@ -251,9 +267,10 @@ namespace OfficeIMO.Excel {
                 _styles,
                 _options,
                 DateSystem,
-                string.Equals(sheet.PartName, _prefetchedSheetPartName, StringComparison.OrdinalIgnoreCase)
-                    ? _prefetchedParts ?? _parts
-                    : _parts,
+                !_options.EnableWorksheetPrefetch
+                    || string.Equals(sheet.PartName, _prefetchedSheetPartName, StringComparison.OrdinalIgnoreCase)
+                        ? _prefetchedParts ?? _parts
+                        : _parts,
                 _richValueErrors);
             DbDataReader dataReader = string.IsNullOrWhiteSpace(_options.A1Range)
                 ? (DbDataReader)reader.ReadUsedRangeAsDataReader(

@@ -32,6 +32,11 @@ namespace OfficeIMO.Excel {
             /// </summary>
             private int InitializeCellWindow(int rowCapacity, long rangeRows, int fieldCount) {
                 long maximumCells = Math.Min(MaximumIndexedCells, _options.MaxDataReaderBufferedCells);
+                if (_unknownRowExtent) {
+                    _rowContentStarts = ArrayPool<int>.Shared.Rent(rowCapacity);
+                    _rowContentEnds = ArrayPool<int>.Shared.Rent(rowCapacity);
+                    return (int)Math.Min(rowCapacity, maximumCells / fieldCount);
+                }
                 if (rangeRows * fieldCount <= maximumCells) {
                     return rowCapacity;
                 }
@@ -49,7 +54,7 @@ namespace OfficeIMO.Excel {
                 ? 0 : checked(physicalRow * _fieldCount);
 
             private void RetainQualifiedRowPosition(int physicalRow, int contentStart, int contentEnd) {
-                if (UsesCellWindow) {
+                if (UsesCellWindow || _unknownRowExtent) {
                     _rowContentStarts![physicalRow] = contentStart;
                     _rowContentEnds![physicalRow] = contentEnd;
                 }
