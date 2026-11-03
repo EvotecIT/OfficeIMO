@@ -22,8 +22,8 @@ public partial class Word {
         using WordDocument imported = WordDocument.Load(new MemoryStream(document.ToBytes()));
         string target = crossRun ? "FirstSecond" : "First";
         Assert.Equal(target, string.Concat(imported.Paragraphs.Select(value => value.Text)));
-        Assert.NotEmpty(imported.Find(target, StringComparison.Ordinal));
-        Assert.Equal(1, imported.FindAndReplace(target, "Updated", StringComparison.Ordinal));
+        Assert.NotEmpty(imported.Find(target, new OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
+        Assert.Equal(1, imported.ReplaceAll(target, "Updated", new OfficeTextSearchOptions { MatchCase = true }));
         Assert.Equal("Updated", string.Concat(imported.Paragraphs.Select(value => value.Text)));
     }
 
@@ -54,7 +54,7 @@ public partial class Word {
         if (wrapping) run.InsertBefore(new W.Break(), run.Elements<W.Break>().Single());
         string before = prefix.Trim(' ', '\t') + (wrapping ? "\n" : "") + "\u2028After";
         Assert.Equal(before, paragraph.Text);
-        if (replace) Assert.Equal(1, document.FindAndReplace("After", "Updated", StringComparison.Ordinal));
+        if (replace) Assert.Equal(1, document.ReplaceAll("After", "Updated", new OfficeTextSearchOptions { MatchCase = true }));
         else paragraph.Text = paragraph.Text;
         Assert.Equal(replace ? before.Replace("After", "Updated") : before, paragraph.Text);
         Assert.Equal(breakType, Assert.Single(run.Elements<W.Break>(), value => value.Type?.Value == breakType).Type!.Value);

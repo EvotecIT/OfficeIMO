@@ -1520,7 +1520,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Word
 
 <details>
-<summary>414 changes</summary>
+<summary>419 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -1936,6 +1936,11 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | accessibility | `OfficeIMO.Word.WordImageOptions.Description` | Renamed | `OfficeIMO.Word.WordImageOptions.AltText` | AltText is the shared alternative-text name for images. |
 | accessibility | `OfficeIMO.Word.WordInlineImageInfo.Description` | Renamed | `OfficeIMO.Word.WordInlineImageInfo.AltText` | The inspection snapshot uses the same name as WordImage.AltText. |
 | accessibility | `OfficeIMO.Word.WordTemplateImage.Description / WordTemplateImage(byte[] content, string fileName, OfficeLength? width = null, OfficeLength? height = null, string description = "")` | Renamed | `OfficeIMO.Word.WordTemplateImage.AltText / WordTemplateImage(..., string altText = "")` | Read AltText; pass altText: instead of description: when using a named argument. |
+| search | `OfficeIMO.Word.WordDocument.Find(string text, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) : List<WordParagraph>` | Changed | `OfficeIMO.Word.WordDocument.Find(string text, OfficeTextSearchOptions? options = null) : WordSearchResult` | document.Find(text).Paragraphs for the former flat list; StringComparison.Ordinal becomes new OfficeTextSearchOptions { MatchCase = true }. Use MatchCount for the number of matches. |
+| search | `OfficeIMO.Word.WordDocument.FindAndReplace(string textToFind, string textToReplace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) : int` | Renamed | `OfficeIMO.Word.WordDocument.ReplaceAll(string text, string replacement, OfficeTextSearchOptions? options = null) : int` | document.ReplaceAll(text, replacement); StringComparison.Ordinal becomes new OfficeTextSearchOptions { MatchCase = true }. WholeWords = true keeps matches inside one paragraph. |
+| search | `OfficeIMO.Word.WordDocumentRegexExtensions` | Removed | `OfficeIMO.Word.WordDocument.Find(Regex pattern)` | Its only member moved onto WordDocument. |
+| search | `OfficeIMO.Word.WordDocumentRegexExtensions.Find(this WordDocument document, Regex regex) : WordSearchResult` | Moved | `OfficeIMO.Word.WordDocument.Find(Regex pattern) : WordSearchResult` | Call syntax is unchanged: document.Find(regex). Remove references to WordDocumentRegexExtensions. |
+| search | `static OfficeIMO.Word.WordDocument.FindAndReplace(List<WordParagraph> paragraphs, string textToFind, string textToReplace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) : int` | Renamed | `static OfficeIMO.Word.WordDocument.ReplaceAll(List<WordParagraph> paragraphs, string text, string replacement, OfficeTextSearchOptions? options = null) : int` | WordDocument.ReplaceAll(cell.Paragraphs, text, replacement, options). |
 | tables | `OfficeIMO.Word.WordDocument.AddTable(IEnumerable<object?> items, WordTableStyle style, bool includeHeader = true, WordTableLayoutMode? layout = null) : WordTable` | Changed | `OfficeIMO.Word.WordDocument.AddTable(IEnumerable<object?> items, OfficeTableOptions? options) : WordTable` | document.AddTable(items, new WordTableOptions { Style = style, IncludeHeaders = includeHeader, LayoutMode = layout }). The runtime overload now also honours Include, Exclude, Order, HeaderRenames, HeaderTransform, Formatters, Alignments, Name and Caption, and rejects null rows before adding anything. |
 | tables | `OfficeIMO.Word.WordDocument.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions? options = null) / AddTable(object?[,] values, ...) / AddTable(IEnumerable<string[]> rows, ...) / AddTable(IEnumerable<IReadOnlyList<string>> rows, ...)` | Changed | `Same signatures` | OfficeTableOptions.Caption adds a visible paragraph immediately before the table; Name stays the table's accessible title. WordTableOptions.Style and LayoutMode are applied when given. |
 
@@ -2484,7 +2489,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.PowerPoint
 
 <details>
-<summary>590 changes</summary>
+<summary>595 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -3077,6 +3082,11 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | images | `OfficeIMO.PowerPoint.PowerPointSlide.GetGroupPictures(PowerPointGroupShape groupShape) : IReadOnlyList<PowerPointPicture>` | Renamed | `OfficeIMO.PowerPoint.PowerPointSlide.GetGroupImages(PowerPointGroupShape groupShape) : IReadOnlyList<PowerPointImage>` | The lookup is named after the shared image handle type. |
 | images | `OfficeIMO.PowerPoint.PowerPointSlide.GetPicture(string name) : PowerPointPicture?` | Renamed | `OfficeIMO.PowerPoint.PowerPointSlide.GetImage(string name) : PowerPointImage?` | The lookup is named after the shared image handle type. |
 | images | `OfficeIMO.PowerPoint.PowerPointSlide.Pictures : IEnumerable<PowerPointPicture>` | Renamed | `OfficeIMO.PowerPoint.PowerPointSlide.Images : IEnumerable<PowerPointImage>` | The collection is named after the shared image handle type. |
+| search | `OfficeIMO.PowerPoint.PowerPointDocument.ReplaceText(string oldValue, string newValue, bool includeTables = true, bool includeNotes = false) : int` | Changed | `OfficeIMO.PowerPoint.PowerPointDocument.ReplaceAll(string text, string replacement, PowerPointTextSearchOptions? options = null) : int` | deck.ReplaceAll(text, replacement, new PowerPointTextSearchOptions { IncludeTables = ..., IncludeNotes = ..., MatchCase = true }). Matching is now case-insensitive by default; set MatchCase = true to keep the former case-sensitive behaviour. |
+| search | `OfficeIMO.PowerPoint.PowerPointParagraph.ReplaceText(string oldValue, string newValue) : int` | Changed | `OfficeIMO.PowerPoint.PowerPointParagraph.ReplaceAll(string text, string replacement, OfficeTextSearchOptions? options = null) : int` | Pass new OfficeTextSearchOptions { MatchCase = true } to keep case-sensitive matching. |
+| search | `OfficeIMO.PowerPoint.PowerPointSlide.ReplaceText(string oldValue, string newValue, bool includeTables = true, bool includeNotes = false) : int` | Changed | `OfficeIMO.PowerPoint.PowerPointSlide.ReplaceAll(string text, string replacement, PowerPointTextSearchOptions? options = null) : int` | slide.ReplaceAll(text, replacement, new PowerPointTextSearchOptions { IncludeTables = ..., IncludeNotes = ..., MatchCase = true }). Matching is now case-insensitive by default. |
+| search | `OfficeIMO.PowerPoint.PowerPointTableCell.ReplaceText(string oldValue, string newValue) : int` | Changed | `OfficeIMO.PowerPoint.PowerPointTableCell.ReplaceAll(string text, string replacement, OfficeTextSearchOptions? options = null) : int` | Pass new OfficeTextSearchOptions { MatchCase = true } to keep case-sensitive matching. |
+| search | `OfficeIMO.PowerPoint.PowerPointTextBox.ReplaceText(string oldValue, string newValue) : int` | Changed | `OfficeIMO.PowerPoint.PowerPointTextBox.ReplaceAll(string text, string replacement, OfficeTextSearchOptions? options = null) : int` | Pass new OfficeTextSearchOptions { MatchCase = true } to keep case-sensitive matching. |
 | tables | `OfficeIMO.PowerPoint.PowerPointSlide.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions? options = null) : PowerPointTable` | Changed | `Same signature` | Name stays the graphic-frame name. A non-null Caption throws NotSupportedException; add a text box next to the table for visible caption text. |
 
 </details>
@@ -3114,7 +3124,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Pdf
 
 <details>
-<summary>177 changes</summary>
+<summary>178 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -3294,6 +3304,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | geometry | `OfficeIMO.Pdf.PdfPageCanvas.TextField(... double geometry ...)` | Changed | `OfficeIMO.Pdf.PdfPageCanvas.TextField(... OfficeLength geometry ...)` | Require explicit physical units for x, y, width, height, fontSize. Omitted defaults preserve native point dimensions. |
 | geometry | `OfficeIMO.Pdf.PdfTableCellFormField.TextField(... double geometry ...)` | Changed | `OfficeIMO.Pdf.PdfTableCellFormField.TextField(... OfficeLength geometry ...)` | Require explicit physical units for width, height, fontSize. Omitted defaults preserve native point dimensions. |
 | geometry | `OfficeIMO.Pdf.PdfTableCellFormField.Width / Height / FontSize : double` | Changed | `OfficeIMO.Pdf.PdfTableCellFormField.Width / Height / FontSize : OfficeLength` | Keep the TextField public model consistent; the shared choice-field model and clone/render paths convert at the point boundary. |
+| search | `OfficeIMO.Pdf.PdfTextSearchOptions.MatchCase / WholeWords` | Moved | `OfficeIMO.OfficeTextSearchOptions.MatchCase / WholeWords (inherited by PdfTextSearchOptions)` | No source change: PdfTextSearchOptions derives from OfficeTextSearchOptions, so options.MatchCase and options.WholeWords still compile with the same defaults. Recompile against the new package. |
 | tables | `OfficeIMO.Pdf.PdfContentBuilder.Table<T>(IEnumerable<T> rows, OfficeTableOptions? options) with OfficeTableOptions.Name rendered as the caption` | Changed | `OfficeIMO.Pdf.PdfContentBuilder.Table<T>(IEnumerable<T> rows, OfficeTableOptions? options)` | Set Caption instead of Name for the visible PDF table caption. A non-null Name now throws NotSupportedException. |
 
 </details>
@@ -3533,7 +3544,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Core
 
 <details>
-<summary>72 changes</summary>
+<summary>73 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -3607,6 +3618,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | contract | `OfficeIMO.OfficeConversionResult<TValue, TReport>.RequireNoLoss() (returned Value)` | Changed | `OfficeIMO.OfficeConversionResult<T>.ThrowIfLoss() then Value` | var result = Convert(...); result.ThrowIfLoss(); var value = result.Value; |
 | contract | `OfficeIMO.OfficeConversionResult<TValue, TReport>.RequireValue() / Succeeded` | Removed | &mdash; | Use Value. Format results with a real failed state (CHM, RTF, HTML) keep their own Succeeded and RequireValue. |
 | contract | `OfficeIMO.OfficeOutputResult<TReport>.RequireNoLoss() (returned the result)` | Renamed | `OfficeIMO.OfficeOutputResult<TReport>.ThrowIfLoss()` | ThrowIfLoss() returns void. |
+| search | `System.StringComparison parameters of WordDocument.Find/FindAndReplace, PowerPoint ReplaceText (always ordinal case-sensitive) and PdfTextSearchOptions.MatchCase/WholeWords` | Merged | `OfficeIMO.OfficeTextSearchOptions { bool MatchCase; bool WholeWords; }` | Pass new OfficeTextSearchOptions { MatchCase = true } where code passed StringComparison.Ordinal; omit options for the case-insensitive default. |
 | tables | `OfficeIMO.OfficeTableOptions.Name` | Changed | `OfficeIMO.OfficeTableOptions.Name` | Name is the native table name or identity (Excel table name, PowerPoint graphic-frame name, Word table title) and is never rendered as visible text. Use Caption for visible caption text. |
 | tables | `OfficeIMO.OfficeTableOptions.Name : string? (rendered as a visible PDF caption)` | Changed | `OfficeIMO.OfficeTableOptions.Name : string? (native name); OfficeIMO.OfficeTableOptions.Caption : string? (visible caption)` | Set Caption for visible caption text. Word adds a paragraph before the table and PDF renders it as the table caption; PowerPoint and Markdown throw NotSupportedException. |
 

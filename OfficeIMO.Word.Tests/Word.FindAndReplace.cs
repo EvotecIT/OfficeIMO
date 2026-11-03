@@ -29,13 +29,14 @@ namespace OfficeIMO.Tests {
                 document.Paragraphs[10].Bold = true;
 
                 var listFound = document.Find("Test Section");
-                Assert.True(listFound.Count == 2);
+                Assert.Equal(2, listFound.MatchCount);
+                Assert.Equal(2, listFound.BodyParagraphs.Count);
 
-                var replacedCount = document.FindAndReplace("Test Section", "Production Section");
+                var replacedCount = document.ReplaceAll("Test Section", "Production Section");
                 Assert.True(replacedCount == 2);
 
                 // should be 0 because it stretches over 2 paragraphs
-                var replacedCount1 = document.FindAndReplace("This is a text more text", "Shorter text");
+                var replacedCount1 = document.ReplaceAll("This is a text more text", "Shorter text");
                 Assert.True(replacedCount1 == 2);
 
                 document.CleanupDocument();
@@ -43,10 +44,10 @@ namespace OfficeIMO.Tests {
                 // cleanup should merge paragraphs making it easier to find and replace text
                 // this only works for same formatting though
                 // may require improvement in the future to ignore formatting completely, but then it's a bit tricky which formatting to apply
-                var replacedCount2 = document.FindAndReplace("This is a text more text", "Shorter text");
+                var replacedCount2 = document.ReplaceAll("This is a text more text", "Shorter text");
                 Assert.True(replacedCount2 == 0);
 
-                var replacedCount3 = document.FindAndReplace("even longer", "not longer");
+                var replacedCount3 = document.ReplaceAll("even longer", "not longer");
                 Assert.True(replacedCount3 == 4);
 
                 document.Save();
@@ -77,12 +78,12 @@ namespace OfficeIMO.Tests {
                 document.CleanupDocument();
 
                 var listFound1 = document.Find("Test Section");
-                Assert.True(listFound1.Count == 3);
+                Assert.True(listFound1.Paragraphs.Count == 3);
 
                 var listFound2 = document.Find("Prod Section");
-                Assert.True(listFound2.Count == 6);
+                Assert.True(listFound2.Paragraphs.Count == 6);
 
-                var replacedCount = document.FindAndReplace("Prod Section", "Production Section");
+                var replacedCount = document.ReplaceAll("Prod Section", "Production Section");
                 Assert.True(replacedCount == 6);
 
                 document.Save();
@@ -128,7 +129,7 @@ namespace OfficeIMO.Tests {
                 var paragraph = document.AddParagraph("Before KEY After");
                 paragraph.SetBold();
 
-                var replaced = document.FindAndReplace("KEY", "Line1\nLine2");
+                var replaced = document.ReplaceAll("KEY", "Line1\nLine2");
 
                 Assert.Equal(1, replaced);
                 Assert.Equal("Before Line1\nLine2 After", paragraph.Text);
@@ -157,7 +158,7 @@ namespace OfficeIMO.Tests {
             paragraph.AddText("KEY").SetBold();
             paragraph.AddText(" after");
 
-            int replaced = document.FindAndReplace("KEY", "VALUE", StringComparison.Ordinal);
+            int replaced = document.ReplaceAll("KEY", "VALUE", new OfficeTextSearchOptions { MatchCase = true });
 
             Assert.Equal(1, replaced);
             Assert.Equal("Before VALUE after", string.Concat(paragraph._paragraph.Descendants<Text>().Select(text => text.Text)));
@@ -172,7 +173,7 @@ namespace OfficeIMO.Tests {
             WordParagraph first = document.AddParagraph("Alpha");
             WordParagraph second = document.AddParagraph("Beta");
 
-            int replaced = document.FindAndReplace("AlphaBeta", "Joined", StringComparison.Ordinal);
+            int replaced = document.ReplaceAll("AlphaBeta", "Joined", new OfficeTextSearchOptions { MatchCase = true });
 
             Assert.Equal(1, replaced);
             Assert.Equal("Joined", first.Text);
@@ -186,7 +187,7 @@ namespace OfficeIMO.Tests {
             paragraph.AddText(string.Empty);
             paragraph.AddText("Beta");
 
-            int replaced = document.FindAndReplace("AlphaBeta", "Joined", StringComparison.Ordinal);
+            int replaced = document.ReplaceAll("AlphaBeta", "Joined", new OfficeTextSearchOptions { MatchCase = true });
 
             Assert.Equal(1, replaced);
             Assert.Equal("Joined", paragraph.Text);

@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
                 },
                 ["replaced text"] = (slide, text) => {
                     PowerPointTextBox box = slide.AddTextBox("token");
-                    box.ReplaceText("token", text);
+                    box.ReplaceAll("token", text);
                     return () => box.Text;
                 },
                 ["notes paragraph"] = (slide, text) => {

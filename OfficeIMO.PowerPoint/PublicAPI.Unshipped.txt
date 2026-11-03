@@ -35,6 +35,8 @@ OfficeIMO.PowerPoint.PowerPointDocument.ApplyTheme(OfficeIMO.OfficeTheme! theme,
 OfficeIMO.PowerPoint.PowerPointDocument.GetTheme(int masterIndex = 0) -> OfficeIMO.OfficeTheme!
 OfficeIMO.PowerPoint.PowerPointDocument.ImportSlides(OfficeIMO.PowerPoint.PowerPointDocument! sourcePresentation, System.Collections.Generic.IEnumerable<int>! sourceIndices, int? insertAt = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointSlide!>!
 OfficeIMO.PowerPoint.PowerPointDocument.Properties.get -> OfficeIMO.PowerPoint.PowerPointBuiltinDocumentProperties!
+OfficeIMO.PowerPoint.PowerPointDocument.ReplaceAll(string! text, string! replacement, OfficeIMO.PowerPoint.PowerPointTextSearchOptions? options = null) -> int
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDocument.ReplaceText(string! oldValue, string! newValue, bool includeTables = true, bool includeNotes = false) -> int
 OfficeIMO.PowerPoint.PowerPointDocument.SetThemeName(string! name, int masterIndex = 0) -> void
 OfficeIMO.PowerPoint.PowerPointImage
 OfficeIMO.PowerPoint.PowerPointImage.BlackWhiteThreshold.get -> int?
@@ -180,6 +182,8 @@ OfficeIMO.PowerPoint.PowerPointParagraph.AddFormattedText(string! text, bool bol
 *REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.AddRun(string! text, System.Action<OfficeIMO.PowerPoint.PowerPointTextRun!>? configure = null) -> OfficeIMO.PowerPoint.PowerPointTextRun!
 OfficeIMO.PowerPoint.PowerPointParagraph.AddText(string! text) -> OfficeIMO.PowerPoint.PowerPointTextRun!
 *REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.AddText(string! text, System.Action<OfficeIMO.PowerPoint.PowerPointTextRun!>? configure = null) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+OfficeIMO.PowerPoint.PowerPointParagraph.ReplaceAll(string! text, string! replacement, OfficeIMO.OfficeTextSearchOptions? options = null) -> int
+*REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.ReplaceText(string! oldValue, string! newValue) -> int
 OfficeIMO.PowerPoint.PowerPointParagraph.SetBackgroundColor(OfficeIMO.OfficeColor color) -> OfficeIMO.PowerPoint.PowerPointParagraph!
 OfficeIMO.PowerPoint.PowerPointParagraph.SetColor(OfficeIMO.OfficeColor color) -> OfficeIMO.PowerPoint.PowerPointParagraph!
 *REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.SetColor(string! color) -> OfficeIMO.PowerPoint.PowerPointParagraph!
@@ -231,6 +235,8 @@ OfficeIMO.PowerPoint.PowerPointSlide.GetImage(string! name) -> OfficeIMO.PowerPo
 *REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.GetPicture(string! name) -> OfficeIMO.PowerPoint.PowerPointPicture?
 OfficeIMO.PowerPoint.PowerPointSlide.Images.get -> System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointImage!>!
 *REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.Pictures.get -> System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointPicture!>!
+OfficeIMO.PowerPoint.PowerPointSlide.ReplaceAll(string! text, string! replacement, OfficeIMO.PowerPoint.PowerPointTextSearchOptions? options = null) -> int
+*REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.ReplaceText(string! oldValue, string! newValue, bool includeTables = true, bool includeNotes = false) -> int
 OfficeIMO.PowerPoint.PowerPointSlide.SetBackgroundColor(OfficeIMO.OfficeColor color) -> void
 *REMOVED*OfficeIMO.PowerPoint.PowerPointTableCell.AddRun(string! text, System.Action<OfficeIMO.PowerPoint.PowerPointTextRun!>? configure = null) -> OfficeIMO.PowerPoint.PowerPointTextRun!
 OfficeIMO.PowerPoint.PowerPointTableCell.AddText(string! text) -> OfficeIMO.PowerPoint.PowerPointTextRun!
@@ -240,12 +246,16 @@ OfficeIMO.PowerPoint.PowerPointTableCell.FontFamily.get -> string?
 OfficeIMO.PowerPoint.PowerPointTableCell.FontFamily.set -> void
 *REMOVED*OfficeIMO.PowerPoint.PowerPointTableCell.FontName.get -> string?
 *REMOVED*OfficeIMO.PowerPoint.PowerPointTableCell.FontName.set -> void
+OfficeIMO.PowerPoint.PowerPointTableCell.ReplaceAll(string! text, string! replacement, OfficeIMO.OfficeTextSearchOptions? options = null) -> int
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTableCell.ReplaceText(string! oldValue, string! newValue) -> int
 OfficeIMO.PowerPoint.PowerPointTextBox.Color.get -> OfficeIMO.OfficeColor?
 *REMOVED*OfficeIMO.PowerPoint.PowerPointTextBox.Color.get -> string?
 OfficeIMO.PowerPoint.PowerPointTextBox.FontFamily.get -> string?
 OfficeIMO.PowerPoint.PowerPointTextBox.FontFamily.set -> void
 *REMOVED*OfficeIMO.PowerPoint.PowerPointTextBox.FontName.get -> string?
 *REMOVED*OfficeIMO.PowerPoint.PowerPointTextBox.FontName.set -> void
+OfficeIMO.PowerPoint.PowerPointTextBox.ReplaceAll(string! text, string! replacement, OfficeIMO.OfficeTextSearchOptions? options = null) -> int
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextBox.ReplaceText(string! oldValue, string! newValue) -> int
 OfficeIMO.PowerPoint.PowerPointTextRun.BackgroundColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.PowerPoint.PowerPointTextRun.BackgroundColor.set -> void
 OfficeIMO.PowerPoint.PowerPointTextRun.Color.get -> OfficeIMO.OfficeColor?
@@ -264,6 +274,12 @@ OfficeIMO.PowerPoint.PowerPointTextRun.SetFontSize(OfficeIMO.OfficeLength size) 
 OfficeIMO.PowerPoint.PowerPointTextRun.SetItalic(bool isItalic = true) -> OfficeIMO.PowerPoint.PowerPointTextRun!
 OfficeIMO.PowerPoint.PowerPointTextRun.SetStrikethrough(bool strikethrough = true) -> OfficeIMO.PowerPoint.PowerPointTextRun!
 OfficeIMO.PowerPoint.PowerPointTextRun.SetUnderline(bool underline = true) -> OfficeIMO.PowerPoint.PowerPointTextRun!
+OfficeIMO.PowerPoint.PowerPointTextSearchOptions
+OfficeIMO.PowerPoint.PowerPointTextSearchOptions.IncludeNotes.get -> bool
+OfficeIMO.PowerPoint.PowerPointTextSearchOptions.IncludeNotes.set -> void
+OfficeIMO.PowerPoint.PowerPointTextSearchOptions.IncludeTables.get -> bool
+OfficeIMO.PowerPoint.PowerPointTextSearchOptions.IncludeTables.set -> void
+OfficeIMO.PowerPoint.PowerPointTextSearchOptions.PowerPointTextSearchOptions() -> void
 OfficeIMO.PowerPoint.PowerPointTextStyle.BackgroundColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.PowerPoint.PowerPointTextStyle.Color.get -> OfficeIMO.OfficeColor?
 *REMOVED*OfficeIMO.PowerPoint.PowerPointTextStyle.Color.get -> string?

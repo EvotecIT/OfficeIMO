@@ -105,38 +105,41 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Replaces text across all textboxes on the slide.
+        ///     Replaces literal text in the slide's textboxes and, by default, its table cells.
         /// </summary>
-        public int ReplaceText(string oldValue, string newValue, bool includeTables = true, bool includeNotes = false) {
-            if (oldValue == null) {
-                throw new ArgumentNullException(nameof(oldValue));
-            }
-            if (oldValue.Length == 0) {
-                throw new ArgumentException("Old value cannot be empty.", nameof(oldValue));
-            }
-
-            string replacement = newValue ?? string.Empty;
+        /// <param name="text">Text to find.</param>
+        /// <param name="replacement">Replacement text; <c>null</c> removes each match.</param>
+        /// <param name="options">Comparison settings and scope. <c>null</c> matches ordinally, ignoring case, inside or across words, in textboxes and tables but not notes.</param>
+        /// <returns>The number of replaced matches.</returns>
+        /// <remarks>
+        ///     In textboxes and table cells, each match lies within one text run; text split across runs with different
+        ///     formatting is not matched, and replacement keeps each run's formatting. Speaker notes are matched as one
+        ///     plain text and rewritten as plain text when they contain a match.
+        /// </remarks>
+        public int ReplaceAll(string text, string replacement, PowerPointTextSearchOptions? options = null) {
+            OfficeTextSearch.ValidateSearchText(text, nameof(text));
             int count = 0;
 
             foreach (PowerPointTextBox textBox in TextBoxes) {
-                count += textBox.ReplaceText(oldValue, replacement);
+                count += textBox.ReplaceAll(text, replacement, options);
             }
 
-            if (includeTables) {
+            if (options?.IncludeTables ?? true) {
                 foreach (PowerPointTable table in Tables) {
                     for (int r = 0; r < table.Rows; r++) {
                         for (int c = 0; c < table.Columns; c++) {
-                            count += table.GetCell(r, c).ReplaceText(oldValue, replacement);
+                            count += table.GetCell(r, c).ReplaceAll(text, replacement, options);
                         }
                     }
                 }
             }
 
-            if (includeNotes && _slidePart.NotesSlidePart != null) {
+            if (options?.IncludeNotes == true && _slidePart.NotesSlidePart != null) {
                 string notesText = Notes.Text ?? string.Empty;
-                int occurrences = CountOccurrences(notesText, oldValue);
+                int occurrences = 0;
+                string updated = OfficeTextSearch.Replace(notesText, text, replacement, OfficeTextSearch.GetComparison(options), options.WholeWords, ref occurrences);
                 if (occurrences > 0) {
-                    Notes.Text = notesText.Replace(oldValue, replacement);
+                    Notes.Text = updated;
                     count += occurrences;
                 }
             }
@@ -266,19 +269,5 @@ namespace OfficeIMO.PowerPoint {
             attribute.NamespaceUri,
             "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
             StringComparison.Ordinal);
-
-        private static int CountOccurrences(string value, string oldValue) {
-            int count = 0;
-            int index = 0;
-            while (true) {
-                index = value.IndexOf(oldValue, index, StringComparison.Ordinal);
-                if (index < 0) {
-                    break;
-                }
-                count++;
-                index += oldValue.Length;
-            }
-            return count;
-        }
     }
 }

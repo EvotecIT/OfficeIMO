@@ -3238,6 +3238,15 @@
       "replacement": "Set Caption instead of Name for the visible PDF table caption. A non-null Name now throws NotSupportedException.",
       "reason": "Name is the native table identity, which PDF tables do not have; Caption is the visible text.",
       "category": "tables"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfTextSearchOptions.MatchCase / WholeWords",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.OfficeTextSearchOptions.MatchCase / WholeWords (inherited by PdfTextSearchOptions)",
+      "replacement": "No source change: PdfTextSearchOptions derives from OfficeTextSearchOptions, so options.MatchCase and options.WholeWords still compile with the same defaults. Recompile against the new package.",
+      "reason": "PDF keeps its own search options for pages and invisible text while sharing the comparison settings with Word and PowerPoint.",
+      "category": "search"
     }
   ],
   "packageMoves": [

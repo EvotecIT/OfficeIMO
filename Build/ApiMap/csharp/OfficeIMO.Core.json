@@ -998,6 +998,15 @@
       "reason": "Visible caption text is separate from the native table name.",
       "category": "tables",
       "old": "OfficeIMO.OfficeTableOptions.Name : string? (rendered as a visible PDF caption)"
+    },
+    {
+      "old": "System.StringComparison parameters of WordDocument.Find/FindAndReplace, PowerPoint ReplaceText (always ordinal case-sensitive) and PdfTextSearchOptions.MatchCase/WholeWords",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeTextSearchOptions { bool MatchCase; bool WholeWords; }",
+      "replacement": "Pass new OfficeTextSearchOptions { MatchCase = true } where code passed StringComparison.Ordinal; omit options for the case-insensitive default.",
+      "reason": "One set of Find/ReplaceAll comparison settings shared by Word, PowerPoint and PDF, with the same case-insensitive, partial-word default.",
+      "category": "search"
     }
   ],
   "extraChanges": [

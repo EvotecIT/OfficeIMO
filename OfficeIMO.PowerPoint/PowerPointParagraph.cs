@@ -75,32 +75,43 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Replaces text within the paragraph runs while preserving formatting.
+        /// Replaces literal text in the paragraph's runs.
         /// </summary>
-        public int ReplaceText(string oldValue, string newValue) {
-            if (oldValue == null) {
-                throw new ArgumentNullException(nameof(oldValue));
-            }
-            if (oldValue.Length == 0) {
-                throw new ArgumentException("Old value cannot be empty.", nameof(oldValue));
-            }
-
-            string replacement = newValue ?? string.Empty;
+        /// <param name="text">Text to find.</param>
+        /// <param name="replacement">Replacement text; <c>null</c> removes each match.</param>
+        /// <param name="options">Comparison settings. <c>null</c> matches ordinally, ignoring case, inside or across words.</param>
+        /// <returns>The number of replaced matches.</returns>
+        /// <remarks>
+        /// Each match lies within one text run; text split across runs with different formatting is not matched. Replacement keeps each run's formatting. Word boundaries for <see cref="OfficeTextSearchOptions.WholeWords"/> take the adjacent runs into account.
+        /// </remarks>
+        public int ReplaceAll(string text, string replacement, OfficeTextSearchOptions? options = null) {
+            OfficeTextSearch.ValidateSearchText(text, nameof(text));
+            StringComparison comparison = OfficeTextSearch.GetComparison(options);
+            bool wholeWords = options?.WholeWords == true;
             int count = 0;
 
             foreach (A.Run run in Paragraph.Elements<A.Run>().ToArray()) {
                 string current = run.Text?.Text ?? string.Empty;
-                int occurrences = CountOccurrences(current, oldValue);
+                string? preceding = wholeWords ? GetAdjacentText(run.PreviousSibling()) : null;
+                string? following = wholeWords ? GetAdjacentText(run.NextSibling()) : null;
+                int occurrences = 0;
+                string updated = OfficeTextSearch.Replace(current, text, replacement, comparison, wholeWords, ref occurrences, preceding, following);
                 if (occurrences == 0) {
                     continue;
                 }
 
-                new PowerPointTextRun(run, _slidePart, _ownerPart).Text = current.Replace(oldValue, replacement);
+                new PowerPointTextRun(run, _slidePart, _ownerPart).Text = updated;
                 count += occurrences;
             }
 
             return count;
         }
+
+        private static string? GetAdjacentText(OpenXmlElement? sibling) => sibling switch {
+            A.Run run => run.Text?.Text,
+            A.Field field => field.Text?.Text,
+            _ => null
+        };
 
         /// <summary>
         /// Runs within the paragraph.
@@ -589,20 +600,6 @@ namespace OfficeIMO.PowerPoint {
 
         private A.ParagraphProperties EnsureParagraphProperties() {
             return Paragraph.ParagraphProperties ??= new A.ParagraphProperties();
-        }
-
-        private static int CountOccurrences(string value, string oldValue) {
-            int count = 0;
-            int index = 0;
-            while (true) {
-                index = value.IndexOf(oldValue, index, StringComparison.Ordinal);
-                if (index < 0) {
-                    break;
-                }
-                count++;
-                index += oldValue.Length;
-            }
-            return count;
         }
 
         private static int? ToTextCoordinate(global::OfficeIMO.OfficeLength? length) {

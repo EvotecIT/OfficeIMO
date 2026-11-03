@@ -39,7 +39,10 @@ public static class WordRtfWorkflowExtensions {
         if (document == null) throw new ArgumentNullException(nameof(document));
         RtfConversionResult<WordDocument> input = document.ToWordDocumentResult();
         using WordDocument word = input.Value;
-        int replacements = word.FindAndReplace(textToFind, textToReplace, comparison);
+        var options = new global::OfficeIMO.OfficeTextSearchOptions {
+            MatchCase = comparison is StringComparison.Ordinal or StringComparison.CurrentCulture or StringComparison.InvariantCulture
+        };
+        int replacements = word.ReplaceAll(textToFind, textToReplace, options);
         return Complete(word, replacements, input.Report, global::OfficeIMO.OfficeDiagnosticCodes.RtfWordFindReplaceCompleted, "Find and replace was executed by OfficeIMO.Word.");
     }
 

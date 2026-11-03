@@ -125,7 +125,7 @@ blocks known loss by default:
 using OfficeIMO.PowerPoint.LegacyPpt;
 
 using var presentation = PowerPointDocument.Load("legacy-deck.ppt");
-presentation.ReplaceText("Draft", "Approved");
+presentation.ReplaceAll("Draft", "Approved");
 
 LegacyPptWritePreflightReport report = presentation.AnalyzeLegacyPptWrite();
 if (!report.CanWrite) {

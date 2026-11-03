@@ -147,17 +147,16 @@ namespace OfficeIMO.PowerPoint {
             (Cell.RowSpan?.Value ?? 1) > 1 || (Cell.GridSpan?.Value ?? 1) > 1;
 
         /// <summary>
-        ///     Replaces text within the cell while preserving run formatting.
+        ///     Replaces literal text in the cell paragraphs.
         /// </summary>
-        public int ReplaceText(string oldValue, string newValue) {
-            if (oldValue == null) {
-                throw new ArgumentNullException(nameof(oldValue));
-            }
-            if (oldValue.Length == 0) {
-                throw new ArgumentException("Old value cannot be empty.", nameof(oldValue));
-            }
-
-            return Cell.TextBody == null ? 0 : Paragraphs.Sum(paragraph => paragraph.ReplaceText(oldValue, newValue));
+        /// <param name="text">Text to find.</param>
+        /// <param name="replacement">Replacement text; <c>null</c> removes each match.</param>
+        /// <param name="options">Comparison settings. <c>null</c> matches ordinally, ignoring case, inside or across words.</param>
+        /// <returns>The number of replaced matches.</returns>
+        /// <remarks>Each match lies within one text run; text split across runs with different formatting is not matched. Replacement keeps each run's formatting.</remarks>
+        public int ReplaceAll(string text, string replacement, OfficeTextSearchOptions? options = null) {
+            OfficeTextSearch.ValidateSearchText(text, nameof(text));
+            return Cell.TextBody == null ? 0 : Paragraphs.Sum(paragraph => paragraph.ReplaceAll(text, replacement, options));
         }
 
         /// <summary>

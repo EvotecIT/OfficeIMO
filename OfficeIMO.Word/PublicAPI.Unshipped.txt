@@ -41,6 +41,10 @@ OfficeIMO.Word.WordDocument.CustomProperties.get -> System.Collections.Generic.D
 *REMOVED*OfficeIMO.Word.WordDocument.DifferentFirstPage.set -> void
 *REMOVED*OfficeIMO.Word.WordDocument.DifferentOddAndEvenPages.get -> bool
 *REMOVED*OfficeIMO.Word.WordDocument.DifferentOddAndEvenPages.set -> void
+OfficeIMO.Word.WordDocument.Find(System.Text.RegularExpressions.Regex! pattern) -> OfficeIMO.Word.WordSearchResult!
+OfficeIMO.Word.WordDocument.Find(string! text, OfficeIMO.OfficeTextSearchOptions? options = null) -> OfficeIMO.Word.WordSearchResult!
+*REMOVED*OfficeIMO.Word.WordDocument.Find(string! text, System.StringComparison stringComparison = System.StringComparison.OrdinalIgnoreCase) -> System.Collections.Generic.List<OfficeIMO.Word.WordParagraph!>!
+*REMOVED*OfficeIMO.Word.WordDocument.FindAndReplace(string! textToFind, string! textToReplace, System.StringComparison stringComparison = System.StringComparison.OrdinalIgnoreCase) -> int
 *REMOVED*OfficeIMO.Word.WordDocument.Footer.get -> OfficeIMO.Word.WordFooters?
 *REMOVED*OfficeIMO.Word.WordDocument.FooterDefaultOrCreate.get -> OfficeIMO.Word.WordFooter!
 *REMOVED*OfficeIMO.Word.WordDocument.FooterEvenOrCreate.get -> OfficeIMO.Word.WordFooter!
@@ -57,12 +61,14 @@ OfficeIMO.Word.WordDocument.CustomProperties.get -> System.Collections.Generic.D
 *REMOVED*OfficeIMO.Word.WordDocument.PageSettings.set -> void
 OfficeIMO.Word.WordDocument.PageSetup.get -> OfficeIMO.Word.WordPageSetup!
 OfficeIMO.Word.WordDocument.Properties.get -> OfficeIMO.Word.WordBuiltinDocumentProperties!
+OfficeIMO.Word.WordDocument.ReplaceAll(string! text, string! replacement, OfficeIMO.OfficeTextSearchOptions? options = null) -> int
 OfficeIMO.Word.WordDocumentMergeOptions
 OfficeIMO.Word.WordDocumentMergeOptions.SectionMode.get -> OfficeIMO.Word.WordMergeSectionMode
 OfficeIMO.Word.WordDocumentMergeOptions.SectionMode.set -> void
 OfficeIMO.Word.WordDocumentMergeOptions.StyleMode.get -> OfficeIMO.Word.WordMergeStyleMode
 OfficeIMO.Word.WordDocumentMergeOptions.StyleMode.set -> void
 OfficeIMO.Word.WordDocumentMergeOptions.WordDocumentMergeOptions() -> void
+*REMOVED*OfficeIMO.Word.WordDocumentRegexExtensions
 OfficeIMO.Word.WordFieldEvaluationBasis.LayoutPagination = 6 -> OfficeIMO.Word.WordFieldEvaluationBasis
 OfficeIMO.Word.WordFieldUpdateOptions.UpdateTablesOfContents.get -> bool
 OfficeIMO.Word.WordFieldUpdateOptions.UpdateTablesOfContents.set -> void
@@ -186,6 +192,7 @@ OfficeIMO.Word.WordRunInfo.BackgroundColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Word.WordRunInfo.Color.get -> OfficeIMO.OfficeColor?
 *REMOVED*OfficeIMO.Word.WordRunInfo.ColorHex.get -> string?
 *REMOVED*OfficeIMO.Word.WordRunInfo.RunShadingFillColorHex.get -> string?
+OfficeIMO.Word.WordSearchResult.Paragraphs.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordParagraph!>!
 *REMOVED*OfficeIMO.Word.WordSection.AddHeadersAndFooters() -> (OfficeIMO.Word.WordHeader! Header, OfficeIMO.Word.WordFooter! Footer)
 OfficeIMO.Word.WordSection.AddTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern) -> OfficeIMO.Word.WordTable!
 *REMOVED*OfficeIMO.Word.WordSection.DifferentFirstPage.get -> bool
@@ -311,12 +318,15 @@ OfficeIMO.Word.WordTextBox.FillColor.set -> void
 *REMOVED*OfficeIMO.Word.WordTextBox.FillColorHex.set -> void
 *REMOVED*OfficeIMO.Word.WordWatermark.ColorHex.get -> string!
 *REMOVED*OfficeIMO.Word.WordWatermark.ColorHex.set -> void
+*REMOVED*static OfficeIMO.Word.WordDocument.FindAndReplace(System.Collections.Generic.List<OfficeIMO.Word.WordParagraph!>! paragraphs, string! textToFind, string! textToReplace, System.StringComparison stringComparison = System.StringComparison.OrdinalIgnoreCase) -> int
+static OfficeIMO.Word.WordDocument.ReplaceAll(System.Collections.Generic.List<OfficeIMO.Word.WordParagraph!>! paragraphs, string! text, string! replacement, OfficeIMO.OfficeTextSearchOptions? options = null) -> int
 static OfficeIMO.Word.WordDocument.SignPackage(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options) -> OfficeIMO.Security.OfficePackageSigningResult!
 *REMOVED*static OfficeIMO.Word.WordDocument.SignPackageSignature(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options = null) -> OfficeIMO.Security.OfficePackageSigningResult!
 static OfficeIMO.Word.WordDocument.TrySignPackage(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options) -> OfficeIMO.Security.OfficePackageSigningResult!
 *REMOVED*static OfficeIMO.Word.WordDocument.TrySignPackageSignature(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options = null) -> OfficeIMO.Security.OfficePackageSigningResult!
 *REMOVED*static OfficeIMO.Word.WordDocument.ValidatePackageSignatures(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, OfficeIMO.Security.OfficePackageSignatureValidationOptions? options = null) -> OfficeIMO.Security.OfficePackageSignatureValidationReport!
 static OfficeIMO.Word.WordDocument.ValidateSignatures(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, OfficeIMO.Security.OfficePackageSignatureValidationOptions? options = null) -> OfficeIMO.Security.OfficePackageSignatureValidationReport!
+*REMOVED*static OfficeIMO.Word.WordDocumentRegexExtensions.Find(this OfficeIMO.Word.WordDocument! document, System.Text.RegularExpressions.Regex! regex) -> OfficeIMO.Word.WordSearchResult!
 *REMOVED*static OfficeIMO.Word.WordHeadersAndFooters.AddHeadersAndFooters(this OfficeIMO.Word.WordDocument! document) -> (OfficeIMO.Word.WordHeader! Header, OfficeIMO.Word.WordFooter! Footer)
 *REMOVED*static OfficeIMO.Word.WordHeadersAndFooters.AddHeadersAndFooters(this OfficeIMO.Word.WordSection! section) -> (OfficeIMO.Word.WordHeader! Header, OfficeIMO.Word.WordFooter! Footer)
 static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! document, OfficeIMO.Word.WordBulletSymbol symbol, string! fontFamily, OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!

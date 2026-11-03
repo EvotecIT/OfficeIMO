@@ -21,7 +21,7 @@ public sealed class HtmlWordPaperPresetTests {
             Assert.Single(word.TextBoxes);
         } else {
             Assert.Empty(word.TextBoxes);
-            Assert.NotEmpty(word.Find("Preset region", StringComparison.Ordinal));
+            Assert.NotEmpty(word.Find("Preset region", new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
             Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
                 && diagnostic.Detail != null && diagnostic.Detail.Contains("maximumPageHeight", StringComparison.Ordinal));
         }

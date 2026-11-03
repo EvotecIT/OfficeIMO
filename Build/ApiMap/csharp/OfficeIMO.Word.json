@@ -7091,6 +7091,50 @@
       "replacement": "OfficeTableOptions.Caption adds a visible paragraph immediately before the table; Name stays the table's accessible title. WordTableOptions.Style and LayoutMode are applied when given.",
       "reason": "Caption is the visible caption; Name is the native identity.",
       "category": "tables"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.Find(string text, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) : List<WordParagraph>",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.Find(string text, OfficeTextSearchOptions? options = null) : WordSearchResult",
+      "replacement": "document.Find(text).Paragraphs for the former flat list; StringComparison.Ordinal becomes new OfficeTextSearchOptions { MatchCase = true }. Use MatchCount for the number of matches.",
+      "reason": "Literal and regex Find return the same WordSearchResult, and comparison is set through the shared search options.",
+      "category": "search"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocumentRegexExtensions.Find(this WordDocument document, Regex regex) : WordSearchResult",
+      "kind": "method",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordDocument.Find(Regex pattern) : WordSearchResult",
+      "replacement": "Call syntax is unchanged: document.Find(regex). Remove references to WordDocumentRegexExtensions.",
+      "reason": "One Find owner on the document for literal and regex search.",
+      "category": "search"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocumentRegexExtensions",
+      "kind": "type",
+      "action": "remove",
+      "new": "OfficeIMO.Word.WordDocument.Find(Regex pattern)",
+      "reason": "Its only member moved onto WordDocument.",
+      "category": "search"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.FindAndReplace(string textToFind, string textToReplace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) : int",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordDocument.ReplaceAll(string text, string replacement, OfficeTextSearchOptions? options = null) : int",
+      "replacement": "document.ReplaceAll(text, replacement); StringComparison.Ordinal becomes new OfficeTextSearchOptions { MatchCase = true }. WholeWords = true keeps matches inside one paragraph.",
+      "reason": "ReplaceAll is the shared name with PDF and PowerPoint, with the shared comparison options.",
+      "category": "search"
+    },
+    {
+      "old": "static OfficeIMO.Word.WordDocument.FindAndReplace(List<WordParagraph> paragraphs, string textToFind, string textToReplace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) : int",
+      "kind": "method",
+      "action": "rename",
+      "new": "static OfficeIMO.Word.WordDocument.ReplaceAll(List<WordParagraph> paragraphs, string text, string replacement, OfficeTextSearchOptions? options = null) : int",
+      "replacement": "WordDocument.ReplaceAll(cell.Paragraphs, text, replacement, options).",
+      "reason": "Paragraph-scoped replacement follows the document ReplaceAll name and options.",
+      "category": "search"
     }
   ],
   "packageMoves": [

@@ -1306,8 +1306,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable.Rows[1].Cells[0].Paragraphs[0].Text == "Test 2");
                 Assert.True(wordTable.Rows[2].Cells[0].Paragraphs[0].Text == "Test 3");
 
-                WordDocument.FindAndReplace(wordTable.Rows[0].Cells[0].Paragraphs, "Test 1", "Test 11");
-                WordDocument.FindAndReplace(wordTable.Rows[1].Cells[0].Paragraphs, "Test 2", "Test 21");
+                WordDocument.ReplaceAll(wordTable.Rows[0].Cells[0].Paragraphs, "Test 1", "Test 11");
+                WordDocument.ReplaceAll(wordTable.Rows[1].Cells[0].Paragraphs, "Test 2", "Test 21");
 
                 // lets make sure find and replace works only on table
                 Assert.True(document.Paragraphs[0].Text == "Table1 - Test 1");

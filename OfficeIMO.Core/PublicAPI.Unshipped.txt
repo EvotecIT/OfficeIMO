@@ -11,32 +11,20 @@ OfficeIMO.Drawing.OfficeChartTrendline.Type.get -> OfficeIMO.Drawing.OfficeChart
 OfficeIMO.Drawing.OfficeChartTrendline.Width.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Drawing.OfficeDrawingRasterRenderOptions.MaximumClipEdgeChecks.get -> long
 OfficeIMO.Drawing.OfficeDrawingRasterRenderOptions.MaximumClipEdgeChecks.set -> void
-OfficeIMO.OfficePackageSecurityOptions.MaxRelationships.get -> int
-OfficeIMO.OfficePackageSecurityOptions.MaxRelationships.set -> void
-OfficeIMO.OfficePackageSecurityRule.RelationshipCount = 13 -> OfficeIMO.OfficePackageSecurityRule
-OfficeIMO.OfficeSeries.Trendline.get -> OfficeIMO.Drawing.OfficeChartTrendline?
-OfficeIMO.OfficeSeries.WithTrendline(OfficeIMO.Drawing.OfficeChartTrendline? trendline) -> OfficeIMO.OfficeSeries!
-OfficeIMO.OfficeTableOptions.Caption.get -> string?
-OfficeIMO.OfficeTableOptions.Caption.set -> void
-const OfficeIMO.OfficeDiagnosticCodes.FontNotEmbedded = "font-not-embedded" -> string!
-const OfficeIMO.OfficeDiagnosticCodes.NativeBookmarkTargetMissing = "native-bookmark-target-missing" -> string!
-const OfficeIMO.OfficeDiagnosticCodes.NativeBookmarkTargetUnprojected = "native-bookmark-target-unprojected" -> string!
-const OfficeIMO.OfficeDiagnosticCodes.PdfArtifactTextOmitted = "pdf-artifact-text-omitted" -> string!
-const OfficeIMO.OfficeDiagnosticCodes.PdfExcelNumericConventionMismatch = "pdf-excel-numeric-convention-mismatch" -> string!
-const OfficeIMO.OfficeDiagnosticCodes.PdfExcelNumericConventionMixed = "pdf-excel-numeric-convention-mixed" -> string!
-const OfficeIMO.OfficeDiagnosticCodes.PdfExcelNumericValueAmbiguous = "pdf-excel-numeric-value-ambiguous" -> string!
-const OfficeIMO.OfficeDiagnosticCodes.WordDocColorApproximated = "word-doc-color-approximated" -> string!
-static OfficeIMO.OfficeTheme.FromDocument(string! path) -> OfficeIMO.OfficeTheme!
+OfficeIMO.Drawing.OfficeImageExportPolicy.FailOnLoss.get -> bool
+OfficeIMO.Drawing.OfficeImageExportPolicy.FailOnLoss.set -> void
 *REMOVED*OfficeIMO.Drawing.OfficeImageExportPolicy.RequireNoLoss.get -> bool
 *REMOVED*OfficeIMO.Drawing.OfficeImageExportPolicy.RequireNoLoss.set -> void
 *REMOVED*OfficeIMO.Drawing.OfficeImageExportReport.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportDiagnostic!>!
 *REMOVED*OfficeIMO.Drawing.OfficeImageExportReport.FidelityDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeConversionFidelityDiagnostic!>!
 *REMOVED*OfficeIMO.Drawing.OfficeImageExportReport.HasLoss.get -> bool
+OfficeIMO.Drawing.OfficeImageExportReport.NativeDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportDiagnostic!>!
 *REMOVED*OfficeIMO.Drawing.OfficeImageExportReport.RequireNoLoss() -> void
 *REMOVED*OfficeIMO.Drawing.OfficeImageMetadataReport.FidelityDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeConversionFidelityDiagnostic!>!
 *REMOVED*OfficeIMO.Drawing.OfficeImageMetadataReport.HasLoss.get -> bool
 *REMOVED*OfficeIMO.Drawing.OfficeImageMetadataReport.RequireNoLoss() -> void
 *REMOVED*OfficeIMO.Drawing.OfficeImageMetadataReport.Source.get -> OfficeIMO.Drawing.OfficeImageMetadataKinds
+OfficeIMO.Drawing.OfficeImageMetadataReport.SourceKinds.get -> OfficeIMO.Drawing.OfficeImageMetadataKinds
 *REMOVED*OfficeIMO.IOfficeConversionReport
 *REMOVED*OfficeIMO.IOfficeConversionReport.FidelityDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeConversionFidelityDiagnostic!>!
 *REMOVED*OfficeIMO.IOfficeConversionReport.HasLoss.get -> bool
@@ -49,7 +37,9 @@ static OfficeIMO.OfficeTheme.FromDocument(string! path) -> OfficeIMO.OfficeTheme
 *REMOVED*OfficeIMO.OfficeCompatibilityReport.HasLoss.get -> bool
 *REMOVED*OfficeIMO.OfficeCompatibilityReport.RequireNoLoss() -> void
 *REMOVED*OfficeIMO.OfficeConversionException.OfficeConversionException(string! message, OfficeIMO.IOfficeConversionReport! report, System.Exception? innerException = null) -> void
+OfficeIMO.OfficeConversionException.OfficeConversionException(string! message, OfficeIMO.OfficeConversionReport! report, System.Exception? innerException = null) -> void
 *REMOVED*OfficeIMO.OfficeConversionException.Report.get -> OfficeIMO.IOfficeConversionReport!
+OfficeIMO.OfficeConversionException.Report.get -> OfficeIMO.OfficeConversionReport!
 *REMOVED*OfficeIMO.OfficeConversionFidelityDiagnostic
 *REMOVED*OfficeIMO.OfficeConversionFidelityDiagnostic.Code.get -> string!
 *REMOVED*OfficeIMO.OfficeConversionFidelityDiagnostic.Location.get -> string?
@@ -58,6 +48,11 @@ static OfficeIMO.OfficeTheme.FromDocument(string! path) -> OfficeIMO.OfficeTheme
 *REMOVED*OfficeIMO.OfficeConversionFidelityDiagnostic.OfficeConversionFidelityDiagnostic(string! code, string! message, OfficeIMO.OfficeConversionLossKind lossKind, string! source, string? location = null) -> void
 *REMOVED*OfficeIMO.OfficeConversionFidelityDiagnostic.Source.get -> string!
 *REMOVED*OfficeIMO.OfficeConversionReport.HasLoss.get -> bool
+OfficeIMO.OfficeConversionReport.OfficeConversionReport() -> void
+OfficeIMO.OfficeConversionReport.OfficeConversionReport(string! source, string! target) -> void
+OfficeIMO.OfficeConversionResult<T, TReport>
+OfficeIMO.OfficeConversionResult<T, TReport>.OfficeConversionResult(T value, TReport! report) -> void
+OfficeIMO.OfficeConversionResult<T, TReport>.Report.get -> TReport!
 *REMOVED*OfficeIMO.OfficeConversionResult<TValue, TReport>
 *REMOVED*OfficeIMO.OfficeConversionResult<TValue, TReport>.OfficeConversionResult(TValue! value, TReport! report) -> void
 *REMOVED*OfficeIMO.OfficeConversionResult<TValue, TReport>.Report.get -> TReport!
@@ -66,29 +61,40 @@ static OfficeIMO.OfficeTheme.FromDocument(string! path) -> OfficeIMO.OfficeTheme
 *REMOVED*OfficeIMO.OfficeLegacyImportReport.HasLoss.get -> bool
 *REMOVED*OfficeIMO.OfficeLegacyImportReport.RequireNoLoss() -> void
 *REMOVED*OfficeIMO.OfficeOutputResult<TReport>.RequireNoLoss() -> OfficeIMO.OfficeOutputResult<TReport!>!
-*REMOVED*static OfficeIMO.Drawing.OfficeDrawingPortableExporter.TryExportJson(OfficeIMO.Drawing.OfficeDrawing! drawing, OfficeIMO.Drawing.OfficeDrawingPortableOptions! options, out string? json, out System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeConversionFidelityDiagnostic!>! diagnostics) -> bool
-*REMOVED*virtual OfficeIMO.OfficeConversionResult<TValue, TReport>.HasLoss.get -> bool
-*REMOVED*virtual OfficeIMO.OfficeConversionResult<TValue, TReport>.RequireNoLoss() -> TValue!
-*REMOVED*virtual OfficeIMO.OfficeConversionResult<TValue, TReport>.RequireValue() -> TValue!
-*REMOVED*virtual OfficeIMO.OfficeConversionResult<TValue, TReport>.Succeeded.get -> bool
-OfficeIMO.Drawing.OfficeImageExportPolicy.FailOnLoss.get -> bool
-OfficeIMO.Drawing.OfficeImageExportPolicy.FailOnLoss.set -> void
-OfficeIMO.Drawing.OfficeImageExportReport.NativeDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportDiagnostic!>!
-OfficeIMO.Drawing.OfficeImageMetadataReport.SourceKinds.get -> OfficeIMO.Drawing.OfficeImageMetadataKinds
-OfficeIMO.OfficeConversionException.OfficeConversionException(string! message, OfficeIMO.OfficeConversionReport! report, System.Exception? innerException = null) -> void
-OfficeIMO.OfficeConversionException.Report.get -> OfficeIMO.OfficeConversionReport!
-OfficeIMO.OfficeConversionReport.OfficeConversionReport() -> void
-OfficeIMO.OfficeConversionReport.OfficeConversionReport(string! source, string! target) -> void
 OfficeIMO.OfficeOutputResult<TReport>.ThrowIfLoss() -> void
+OfficeIMO.OfficePackageSecurityOptions.MaxRelationships.get -> int
+OfficeIMO.OfficePackageSecurityOptions.MaxRelationships.set -> void
+OfficeIMO.OfficePackageSecurityRule.RelationshipCount = 13 -> OfficeIMO.OfficePackageSecurityRule
+OfficeIMO.OfficeSeries.Trendline.get -> OfficeIMO.Drawing.OfficeChartTrendline?
+OfficeIMO.OfficeSeries.WithTrendline(OfficeIMO.Drawing.OfficeChartTrendline? trendline) -> OfficeIMO.OfficeSeries!
+OfficeIMO.OfficeTableOptions.Caption.get -> string?
+OfficeIMO.OfficeTableOptions.Caption.set -> void
+OfficeIMO.OfficeTextSearchOptions
+OfficeIMO.OfficeTextSearchOptions.MatchCase.get -> bool
+OfficeIMO.OfficeTextSearchOptions.MatchCase.set -> void
+OfficeIMO.OfficeTextSearchOptions.OfficeTextSearchOptions() -> void
+OfficeIMO.OfficeTextSearchOptions.WholeWords.get -> bool
+OfficeIMO.OfficeTextSearchOptions.WholeWords.set -> void
+const OfficeIMO.OfficeDiagnosticCodes.FontNotEmbedded = "font-not-embedded" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.NativeBookmarkTargetMissing = "native-bookmark-target-missing" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.NativeBookmarkTargetUnprojected = "native-bookmark-target-unprojected" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.PdfArtifactTextOmitted = "pdf-artifact-text-omitted" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.PdfExcelNumericConventionMismatch = "pdf-excel-numeric-convention-mismatch" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.PdfExcelNumericConventionMixed = "pdf-excel-numeric-convention-mixed" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.PdfExcelNumericValueAmbiguous = "pdf-excel-numeric-value-ambiguous" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.WordDocColorApproximated = "word-doc-color-approximated" -> string!
 override OfficeIMO.Drawing.OfficeImageExportReport.HasLoss.get -> bool
 override OfficeIMO.Drawing.OfficeImageMetadataReport.HasLoss.get -> bool
 override OfficeIMO.OfficeCompatibilityReport.HasLoss.get -> bool
 override OfficeIMO.OfficeLegacyImportReport.HasLoss.get -> bool
+*REMOVED*static OfficeIMO.Drawing.OfficeDrawingPortableExporter.TryExportJson(OfficeIMO.Drawing.OfficeDrawing! drawing, OfficeIMO.Drawing.OfficeDrawingPortableOptions! options, out string? json, out System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeConversionFidelityDiagnostic!>! diagnostics) -> bool
 static OfficeIMO.Drawing.OfficeDrawingPortableExporter.TryExportJson(OfficeIMO.Drawing.OfficeDrawing! drawing, OfficeIMO.Drawing.OfficeDrawingPortableOptions! options, out string? json, out System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeDiagnostic!>! diagnostics) -> bool
+static OfficeIMO.OfficeTheme.FromDocument(string! path) -> OfficeIMO.OfficeTheme!
 virtual OfficeIMO.OfficeConversionReport.CreateLossException() -> OfficeIMO.OfficeConversionException!
 virtual OfficeIMO.OfficeConversionReport.GetDiagnostics() -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeDiagnostic!>!
 virtual OfficeIMO.OfficeConversionReport.HasLoss.get -> bool
-OfficeIMO.OfficeConversionResult<T, TReport>
-OfficeIMO.OfficeConversionResult<T, TReport>.OfficeConversionResult(T value, TReport! report) -> void
-OfficeIMO.OfficeConversionResult<T, TReport>.Report.get -> TReport!
 virtual OfficeIMO.OfficeConversionResult<T>.ThrowIfLoss() -> void
+*REMOVED*virtual OfficeIMO.OfficeConversionResult<TValue, TReport>.HasLoss.get -> bool
+*REMOVED*virtual OfficeIMO.OfficeConversionResult<TValue, TReport>.RequireNoLoss() -> TValue!
+*REMOVED*virtual OfficeIMO.OfficeConversionResult<TValue, TReport>.RequireValue() -> TValue!
+*REMOVED*virtual OfficeIMO.OfficeConversionResult<TValue, TReport>.Succeeded.get -> bool

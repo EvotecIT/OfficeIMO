@@ -157,12 +157,18 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Replaces text within the textbox while preserving run formatting.
+        ///     Replaces literal text in the textbox paragraphs.
         /// </summary>
-        public int ReplaceText(string oldValue, string newValue) {
+        /// <param name="text">Text to find.</param>
+        /// <param name="replacement">Replacement text; <c>null</c> removes each match.</param>
+        /// <param name="options">Comparison settings. <c>null</c> matches ordinally, ignoring case, inside or across words.</param>
+        /// <returns>The number of replaced matches.</returns>
+        /// <remarks>Each match lies within one text run; text split across runs with different formatting is not matched. Replacement keeps each run's formatting.</remarks>
+        public int ReplaceAll(string text, string replacement, OfficeTextSearchOptions? options = null) {
+            OfficeTextSearch.ValidateSearchText(text, nameof(text));
             int count = 0;
             foreach (PowerPointParagraph paragraph in Paragraphs) {
-                count += paragraph.ReplaceText(oldValue, newValue);
+                count += paragraph.ReplaceAll(text, replacement, options);
             }
             return count;
         }

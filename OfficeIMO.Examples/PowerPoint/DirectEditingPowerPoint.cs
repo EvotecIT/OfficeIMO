@@ -46,13 +46,13 @@ namespace OfficeIMO.Examples.PowerPoint {
 
                 PowerPointSlide duplicate = presentation.DuplicateSlide(0);
                 duplicate.Hidden = true;
-                duplicate.ReplaceText("Direct presentation editing", "Hidden duplicate");
+                duplicate.ReplaceAll("Direct presentation editing", "Hidden duplicate");
                 presentation.MoveSlide(1, presentation.Slides.Count - 1);
                 presentation.Save();
             }
 
             using (PowerPointDocument edited = PowerPointDocument.Load(filePath)) {
-                edited.ReplaceText("One lifecycle owner", "One consistent lifecycle owner");
+                edited.ReplaceAll("One lifecycle owner", "One consistent lifecycle owner");
                 edited.Save();
             }
 

@@ -23,7 +23,7 @@ public sealed class HtmlEditableLayoutReviewWave29Tests {
             using WordDocument word = result.Value;
 
             Assert.Empty(word.TextBoxes);
-            Assert.NotEmpty(word.Find("Element styled anchor", StringComparison.Ordinal));
+            Assert.NotEmpty(word.Find("Element styled anchor", new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
             Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
                 diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
                 && diagnostic.Detail == "externalStylesheetSources=true; semanticFlow=true");
